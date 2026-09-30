@@ -1,0 +1,50 @@
+# Verificação do Solar nos três sistemas, com o bundle de verdade.
+#
+# - `checks`: formatação, clippy, documentação e testes que não precisam de
+#   ferramenta, em Linux, macOS e Windows.
+# - `installers`: monta o bundle e os instaladores (installers.yml), instala
+#   por eles e roda todos os testes contra a instalação. Com CI=true, uma
+#   ferramenta ausente é falha, não teste pulado. O teste que abre a janela
+#   do surfer-aurora (SOLAR_TEST_GUI) não roda: não há display nos runners.
+#
+# Numa tag v*, quem roda é o release.yml.
+
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checks:
+    name: checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo doc --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      # Só unidade, doc e o teste do clap: os de integração precisam do bundle
+      # e falham de propósito sem ele quando CI=true. O cargo não aceita --doc
+      # junto com outros alvos, por isso são dois comandos.
+      - run: cargo test --workspace --lib --bins
+      - run: cargo test --workspace --doc
+
+  # Monta o bundle e os instaladores nas três plataformas, instala por eles e
+  # roda os testes contra a instalação (installers.yml).
+  installers:
+    uses: ./.github/workflows/installers.yml

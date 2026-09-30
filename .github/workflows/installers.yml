@@ -1,0 +1,216 @@
+# Instaladores do Solar nas três plataformas, testados instalando.
+#
+# Chamado pelo ci.yml (a cada push) e pelo release.yml (numa tag). Em cada
+# plataforma:
+#
+# 1. monta o bundle com scripts/bundle.py (OSS CAD Suite fixado e dividido
+#    por ferramenta, YANC e surfer-aurora compilados dos commits fixados);
+# 2. monta o instalador: a TUI (install + payload/, em .tar.gz) no Linux e no
+#    macOS, o assistente do Inno Setup no Windows;
+# 3. instala pelo próprio instalador, sem perguntas, com todos os
+#    componentes, e roda todos os testes contra a instalação;
+# 4. instala o perfil recomendado em outra pasta, confere com
+#    `solar tools --verify` e desinstala;
+# 5. publica o instalador como artefato do workflow.
+
+name: installers
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: Versão do Solar (a do Cargo.toml)
+        value: ${{ jobs.build.outputs.version }}
+
+env:
+  CARGO_TERM_COLOR: always
+  INNO_VERSION: "6.7.3"
+
+jobs:
+  build:
+    name: instalador (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux-x64
+          - os: macos-14
+            platform: darwin-arm64
+          - os: windows-2022
+            platform: windows-x64
+    runs-on: ${{ matrix.os }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      # YANC: os casos de teste do próprio YANC, no commit do bundle.
+      - name: YANC (fonte dos testes)
+        uses: actions/checkout@v4
+        with:
+          repository: nipscernlab/yanc
+          ref: e1ad1495ffef55d8758b16b2bb7b20f14a9c84b8
+          path: vendor/yanc
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Versão
+        id: version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | python -c "import json,sys; print([p['version'] for p in json.load(sys.stdin)['packages'] if p['name']=='solar-cli'][0])")
+          bundle=$(python -c "import json; print(json.load(open('bundle/versions.json'))['bundle'])")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          {
+            echo "VERSION=$version"
+            echo "BUNDLE=$bundle"
+            echo "NAME=solar-$version-${{ matrix.platform }}"
+          } >> "$GITHUB_ENV"
+
+      - name: Cache do empacotamento
+        uses: actions/cache@v4
+        with:
+          path: .bundle-cache/downloads
+          key: downloads-${{ matrix.platform }}-${{ hashFiles('bundle/versions.json') }}
+
+      # ------------------------------------------------ o que montar exige
+      - name: Dependências de montagem (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y flex bison
+
+      - name: Dependências de montagem (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install flex bison
+          echo "YANC_MAKE_ARGS=BISON=$(brew --prefix bison)/bin/bison FLEX=$(brew --prefix flex)/bin/flex" >> "$GITHUB_ENV"
+
+      # No Windows: o MSYS2 do runner (C:\msys64), para compilar o YANC e para
+      # ser o compilador do sistema do Verilator, no local padrão que o Solar
+      # procura.
+      - name: MSYS2 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          release: false
+          path-type: inherit
+          install: >-
+            make flex bison perl git
+            mingw-w64-x86_64-gcc
+
+      # ------------------------------------------------------------ bundle
+      - name: Montar o bundle
+        if: runner.os != 'Windows'
+        run: python3 scripts/bundle.py --out dist/toolchain
+
+      - name: Montar o bundle (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: python scripts/bundle.py --out dist/toolchain
+
+      - name: Compilar o Solar e o empacotador
+        run: cargo build --release -p solar-cli -p solar-installer
+
+      - name: Conferir o bundle
+        run: target/release/solar tools --toolchain dist/toolchain --verify
+
+      # ----------------------------------------------- Linux e macOS: TUI
+      - name: Montar o instalador (TUI)
+        if: runner.os != 'Windows'
+        run: |
+          target/release/solar-pack tui --toolchain dist/toolchain \
+            --solar target/release/solar --installer target/release/solar-installer \
+            --out "dist/$NAME" --tar-gz
+          ls -la dist
+
+      - name: Instalar tudo pelo instalador (TUI, sem perguntas)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p "$RUNNER_TEMP/extraido"
+          tar xzf "dist/$NAME.tar.gz" -C "$RUNNER_TEMP/extraido"
+          installer="$RUNNER_TEMP/extraido/$NAME/install"
+          "$installer" --list
+          all=$("$installer" --list | awk '/^  [a-z]/ {print $1}' | paste -sd, -)
+          "$installer" --yes --components "$all" --prefix "$RUNNER_TEMP/solar-completo" --no-link
+          echo "INSTALLED=$RUNNER_TEMP/solar-completo" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------ Windows: Inno Setup
+      - name: Inno Setup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --version=$env:INNO_VERSION -y --no-progress }
+          & $iscc /? | Select-Object -First 1
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Montar o instalador (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          target\release\solar-pack.exe inno --toolchain dist\toolchain --solar target\release\solar.exe --out dist\inno
+          & $env:ISCC /Q "/DStage=$PWD\dist\inno" "/DSolarVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\solar.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist\*.exe
+
+      - name: Instalar tudo pelo instalador (Inno Setup, sem perguntas)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dir = "$env:RUNNER_TEMP\solar-completo"
+          $components = "solar,yanc,icarus,verilator,yosys,yosys\graphviz,surfer_aurora"
+          $p = Start-Process -Wait -PassThru "dist\$env:NAME-setup.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/CURRENTUSER","/TYPE=avancada","/COMPONENTS=$components","/DIR=$dir","/LOG=$env:RUNNER_TEMP\setup-completo.log"
+          if ($p.ExitCode -ne 0) { Get-Content "$env:RUNNER_TEMP\setup-completo.log" -Tail 40; exit $p.ExitCode }
+          "INSTALLED=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # ------------------------------------------ testes contra a instalação
+      - name: Testes contra a instalação
+        run: |
+          "$INSTALLED/bin/solar" tools --verify
+          cargo test --workspace -- --test-threads=2
+        env:
+          SOLAR_TEST_BUNDLE: ${{ env.INSTALLED }}/toolchain
+          INSTA_UPDATE: "no"
+
+      - name: Perfil recomendado, e desinstalar (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: |
+          installer="$RUNNER_TEMP/extraido/$NAME/install"
+          "$installer" --yes --prefix "$RUNNER_TEMP/solar-rec" --link "$RUNNER_TEMP/bin/solar"
+          "$RUNNER_TEMP/bin/solar" tools --verify
+          cat "$RUNNER_TEMP/solar-rec/install.json"
+          "$RUNNER_TEMP/solar-rec/uninstall.sh"
+          test ! -e "$RUNNER_TEMP/solar-rec" && test ! -e "$RUNNER_TEMP/bin/solar"
+
+      - name: Perfil recomendado, e desinstalar (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dir = "$env:RUNNER_TEMP\solar-rec"
+          $p = Start-Process -Wait -PassThru "dist\$env:NAME-setup.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/CURRENTUSER","/TYPE=recomendada","/TASKS=path","/DIR=$dir"
+          if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+          & "$dir\bin\solar.exe" tools --verify
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $path = (Get-ItemProperty HKCU:\Environment).Path
+          if (-not $path.Contains("$dir\bin")) { throw "PATH sem $dir\bin: $path" }
+          $p = Start-Process -Wait -PassThru "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES"
+          Start-Sleep -Seconds 5
+          if (Test-Path "$dir\bin\solar.exe") { throw "o desinstalador não removeu $dir" }
+          $path = (Get-ItemProperty HKCU:\Environment).Path
+          if ($path -and $path.Contains("$dir\bin")) { throw "o desinstalador não tirou $dir\bin do PATH" }
+
+      # ---------------------------------------------------------- publicar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: |
+            dist/${{ env.NAME }}.tar.gz
+            dist/${{ env.NAME }}-setup.exe
+          if-no-files-found: error
+          retention-days: 14
