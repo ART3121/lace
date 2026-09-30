@@ -1,0 +1,18 @@
+#PRNAME conta
+#NUBITS 23
+#NDSTAC 5
+#SDEPTH 5
+#NUIOIN 1
+#NUIOOU 1
+#NBMANT 16
+#NBEXPO 6
+#NUGAIN 128
+
+// Erro proposital na linha 16: 'total' não foi declarada.
+void main()
+{
+    int acc = 0;
+    int k;
+    for (k = 1; k <= 10; k++) acc = acc + total;
+    out(0, acc);
+}

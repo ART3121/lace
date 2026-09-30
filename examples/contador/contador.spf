@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "projectName": "contador"
+  },
+  "structure": {
+    "basePath": "",
+    "processors": [],
+    "folders": [],
+    "topLevelFile": "rtl/contador.v",
+    "testbenchFile": "rtl/contador_tb.v",
+    "synthesizableFiles": [
+      { "name": "contador.v", "path": "rtl/contador.v", "isTopLevel": true }
+    ],
+    "testbenchFiles": [
+      { "name": "contador_tb.v", "path": "rtl/contador_tb.v", "isTopLevel": true }
+    ]
+  }
+}

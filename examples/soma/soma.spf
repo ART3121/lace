@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "projectName": "soma"
+  },
+  "structure": {
+    "basePath": "",
+    "processors": [
+      {
+        "name": "soma"
+      },
+      {
+        "name": "filtro",
+        "language": "cpp"
+      }
+    ],
+    "folders": [],
+    "topLevelFile": "",
+    "testbenchFile": "",
+    "synthesizableFiles": [],
+    "testbenchFiles": []
+  }
+}

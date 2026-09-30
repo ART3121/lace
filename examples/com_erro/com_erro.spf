@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "projectName": "com_erro"
+  },
+  "structure": {
+    "basePath": "",
+    "processors": [
+      { "name": "conta" },
+      { "name": "filtro", "language": "cpp" }
+    ],
+    "folders": [],
+    "topLevelFile": "",
+    "testbenchFile": "",
+    "synthesizableFiles": [],
+    "testbenchFiles": []
+  }
+}

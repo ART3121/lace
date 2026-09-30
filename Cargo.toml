@@ -1,0 +1,32 @@
+[workspace]
+resolver = "3"
+members = ["crates/solar-core", "crates/solar-cli", "crates/solar-installer"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+
+[workspace.dependencies]
+solar-core = { path = "crates/solar-core" }
+camino = { version = "1", features = ["serde1"] }
+dunce = "1"
+sha2 = "0.10"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+anstream = "1"
+anstyle = "1"
+clap_complete = "4"
+insta = { version = "1", features = ["json", "redactions"] }
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
+ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
+zstd = { version = "0.14", features = ["zstdmt"] }
+tar = "0.4"
+flate2 = "1"

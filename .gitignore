@@ -1,0 +1,21 @@
+/target
+/vendor
+
+# saídas de build dos projetos de exemplo
+/examples/**/.solar/
+/examples/**/Hardware/
+/examples/**/Software/*.asm
+/examples/**/*.vcd
+/examples/**/*.surfer.log
+/examples/**/pc_*_mem.txt
+/examples/**/Simulation/output_*.txt
+
+# empacotamento do bundle
+/.bundle-cache/
+/dist/
+
+# instruções locais para agentes de IA (não vão para o repositório)
+/AGENTS*.md
+
+# Python
+__pycache__/
