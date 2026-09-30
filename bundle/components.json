@@ -1,0 +1,121 @@
+{
+  "_doc": [
+    "Os componentes que o instalador oferece e a parte de cada pacote que cada um leva.",
+    "package: o pacote de bundle/versions.json de onde o componente sai (por plataforma, ou '*').",
+    "select: caminhos no pacote; binários entram com o fecho das bibliotecas que carregam.",
+    "data: caminhos que entram sem fecho (os módulos do Python, por exemplo).",
+    "exclude: caminhos que não entram, mesmo que casem com select ou data.",
+    "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora).",
+    "run: os executáveis que o Solar roda; o SHA-256 de cada um vai para o manifesto.",
+    "Padrões: caminho exato, 'dir/**' para tudo abaixo de dir, ou glob de fnmatch.",
+    "Chaves de plataforma: linux-x64, darwin-arm64, windows-x64; 'unix' vale para as duas primeiras.",
+    "common: arquivos de um pacote que vão com qualquer componente dele (no macOS, o realpath que os lançadores usam)."
+  ],
+  "common": {
+    "oss-cad-suite": ["VERSION", "README", "license/**", "libexec/realpath"]
+  },
+  "components": [
+    {
+      "name": "yanc",
+      "label": "YANC",
+      "description": "Compiladores C± e C do SAPHO e a biblioteca SAPHO",
+      "recommended": true,
+      "package": "yanc",
+      "closure": false,
+      "select": { "*": ["bin/cmmcomp*", "bin/appcomp*", "bin/asmcomp*", "bin/cpppp*", "bin/cppcomp*", "SAPHO/**", "Macros/**", "Header/**", "README.md"] },
+      "run": {
+        "unix": ["bin/cmmcomp", "bin/appcomp", "bin/asmcomp", "bin/cpppp", "bin/cppcomp"],
+        "windows-x64": ["bin/cmmcomp.exe", "bin/appcomp.exe", "bin/asmcomp.exe", "bin/cpppp.exe", "bin/cppcomp.exe"]
+      }
+    },
+    {
+      "name": "icarus",
+      "label": "Icarus Verilog",
+      "description": "Simulador Verilog, o padrão da AURORA",
+      "recommended": true,
+      "package": "oss-cad-suite",
+      "select": {
+        "unix": ["bin/iverilog", "bin/vvp", "libexec/iverilog", "libexec/vvp", "libexec/ivl", "libexec/ivlpp", "lib/ivl/**"],
+        "windows-x64": ["bin/iverilog.exe", "bin/vvp.exe", "lib/ivl/**"]
+      },
+      "run": {
+        "unix": ["bin/iverilog", "bin/vvp", "libexec/iverilog", "libexec/vvp", "libexec/ivl", "libexec/ivlpp"],
+        "windows-x64": ["bin/iverilog.exe", "bin/vvp.exe", "lib/ivl/ivl.exe", "lib/ivl/ivlpp.exe"]
+      }
+    },
+    {
+      "name": "verilator",
+      "label": "Verilator",
+      "description": "Simulador compilado; precisa de compilador C++, make e Perl do sistema",
+      "recommended": false,
+      "package": "oss-cad-suite",
+      "select": {
+        "unix": ["bin/verilator", "bin/verilator_bin", "libexec/verilator_bin", "bin/tabbypy3", "libexec/python3.11"],
+        "windows-x64": ["bin/verilator", "bin/verilator_bin.exe", "lib/python3.exe"]
+      },
+      "data": {
+        "*": ["share/verilator/**", "lib/python3.11/**"]
+      },
+      "exclude": {
+        "*": [
+          "share/verilator/bin/*_dbg*", "share/verilator/bin/verilator_bin*",
+          "lib/python3.11/test/**", "lib/python3.11/site-packages/**", "lib/python3.11/idlelib/**",
+          "lib/python3.11/tkinter/**", "lib/python3.11/turtledemo/**", "lib/python3.11/lib2to3/**",
+          "lib/python3.11/ensurepip/**", "lib/python3.11/config-3.11*/**", "lib/python3.11/unittest/**",
+          "lib/python3.11/pydoc_data/**", "lib/python3.11/distutils/**", "lib/python3.11/__phello__/**"
+        ]
+      },
+      "run": {
+        "unix": ["bin/verilator", "bin/verilator_bin", "libexec/verilator_bin", "bin/tabbypy3", "libexec/python3.11"],
+        "windows-x64": ["bin/verilator", "bin/verilator_bin.exe", "lib/python3.exe"]
+      }
+    },
+    {
+      "name": "yosys",
+      "label": "Yosys",
+      "description": "Síntese e verificação de sintaxe",
+      "recommended": true,
+      "package": "oss-cad-suite",
+      "select": {
+        "unix": ["bin/yosys", "libexec/yosys", "bin/yosys-abc", "libexec/yosys-abc"],
+        "windows-x64": ["bin/yosys.exe", "bin/yosys-abc.exe"]
+      },
+      "data": { "*": ["share/yosys/**", "lib/tcl8.6/**"] },
+      "exclude": { "*": ["share/yosys/plugins/**", "share/yosys/python3/**"] },
+      "run": {
+        "unix": ["bin/yosys", "libexec/yosys"],
+        "windows-x64": ["bin/yosys.exe"]
+      }
+    },
+    {
+      "name": "graphviz",
+      "label": "Graphviz (dot)",
+      "description": "Desenho do esquemático a partir do grafo do Yosys",
+      "recommended": true,
+      "requires": ["yosys"],
+      "package": { "windows-x64": "graphviz", "*": "oss-cad-suite" },
+      "select": {
+        "unix": ["bin/dot", "libexec/dot"],
+        "windows-x64": ["bin/**"]
+      },
+      "data": { "unix": ["share/fonts/**", "etc/fonts/**"] },
+      "run": {
+        "unix": ["bin/dot", "libexec/dot"],
+        "windows-x64": ["bin/dot.exe"]
+      }
+    },
+    {
+      "name": "surfer-aurora",
+      "label": "surfer-aurora",
+      "description": "Visualizador de formas de onda (o fork do Surfer da AURORA)",
+      "recommended": true,
+      "package": "surfer-aurora",
+      "closure": false,
+      "select": { "*": ["**"] },
+      "run": {
+        "unix": ["surfer-aurora"],
+        "windows-x64": ["surfer-aurora.exe"]
+      }
+    }
+  ]
+}

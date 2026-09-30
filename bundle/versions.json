@@ -1,0 +1,44 @@
+{
+  "bundle": "2026.09.29",
+  "packages": {
+    "oss-cad-suite": {
+      "version": "2026-09-29",
+      "assets": {
+        "linux-x64": {
+          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-09-29/oss-cad-suite-linux-x64-20260929.tgz",
+          "sha256": "eba89154b46ca9829e90d4238ed28e85b25d6ce9b8eb331076a32f10c81d0aff"
+        },
+        "darwin-arm64": {
+          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-09-29/oss-cad-suite-darwin-arm64-20260929.tgz",
+          "sha256": "bf3677e41aa14da5e4b73e3fb0f40daf9e8962f4820885726c26a1cb7a6c2dcd"
+        },
+        "windows-x64": {
+          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-09-29/oss-cad-suite-windows-x64-20260929.tgz",
+          "sha256": "47e637fd61cde624a839a3d97197d1ecb1a0c556eef121c793a95575e2c83973"
+        }
+      }
+    },
+    "yanc": {
+      "version": "v5.6",
+      "repository": "https://github.com/nipscernlab/yanc",
+      "commit": "e1ad1495ffef55d8758b16b2bb7b20f14a9c84b8"
+    },
+    "surfer-aurora": {
+      "version": "v0.7.0-nips.10",
+      "repository": "https://gitlab.com/nips-cern/surfer-aurora.git",
+      "commit": "d0af8a742728005c61d2ec414da96eef963cb4ff"
+    },
+    "graphviz": {
+      "version": "16.1.0",
+      "platforms": [
+        "windows-x64"
+      ],
+      "assets": {
+        "windows-x64": {
+          "url": "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/16.1.0/windows_10_cmake_Release_Graphviz-16.1.0-win64.zip",
+          "sha256": "733e49626c492242eb8dca30ea627b6ead20710e207998c7933b4909d92d6abc"
+        }
+      }
+    }
+  }
+}
