@@ -437,7 +437,10 @@ fn execute(
                 .arg("OBJCACHE=")
                 // O Python do bundle, e não o `python3` do sistema.
                 .arg("-MAKEFLAGS")
-                .arg(format!("PYTHON3={}", toolchain.bundled_python()?))
+                .arg(format!(
+                    "PYTHON3={}",
+                    make_path(&toolchain.bundled_python()?)
+                ))
                 .arg("-Wno-fatal")
                 .arg("-Wno-TIMESCALEMOD")
                 .arg("-Wno-DECLFILENAME")
@@ -549,6 +552,17 @@ fn string_calls<'a>(code: &'a str, name: &str) -> Vec<(&'a str, &'a str)> {
             Some((&rest[..end], &rest[end + 1..]))
         })
         .collect()
+}
+
+/// Um caminho que o `make` do Verilator repassa ao `/bin/sh`. No Windows
+/// esse `sh` é o do MSYS2, para o qual `\` é escape (`D:\a\b` vira `D:ab`):
+/// o caminho vai com `/`, que o MSYS2 aceita num caminho do Windows.
+fn make_path(path: &Utf8Path) -> String {
+    if cfg!(windows) {
+        path.as_str().replace('\\', "/")
+    } else {
+        path.as_str().to_owned()
+    }
 }
 
 /// Onde a onda vai parar: o `$dumpfile` do testbench, relativo ao CWD.
@@ -667,6 +681,16 @@ pub fn missing_inputs(processor: &Processor) -> Result<Vec<Utf8PathBuf>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn make_paths_have_no_backslash_on_windows() {
+        let path = make_path(Utf8Path::new("D:\\a\\_temp\\oss\\lib/python3.exe"));
+        if cfg!(windows) {
+            assert_eq!(path, "D:/a/_temp/oss/lib/python3.exe");
+        } else {
+            assert_eq!(path, "D:\\a\\_temp\\oss\\lib/python3.exe");
+        }
+    }
 
     const TB: &str = r#"module soma_tb();
     data_in_0 = $fopen("/p/soma/Simulation/input_0.txt", "r"); // place your input data in this file

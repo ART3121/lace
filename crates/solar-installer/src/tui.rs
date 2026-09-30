@@ -818,16 +818,14 @@ mod tests {
     }
 
     fn app() -> App {
+        // Absoluto em qualquer sistema (no Windows, `/nao/existe` não é: falta
+        // o drive) e inexistente, para a tela de destino aceitar.
+        let base = std::env::temp_dir().join(format!("solar-tui-{}", std::process::id()));
         let target = Target {
-            prefix: "/nao/existe/solar".into(),
-            link: Some("/nao/existe/bin/solar".into()),
+            prefix: base.join("solar"),
+            link: Some(base.join("bin").join("solar")),
         };
-        App::new(
-            crate::plan::tests::index(),
-            "/nao/existe".into(),
-            target,
-            None,
-        )
+        App::new(crate::plan::tests::index(), base, target, None)
     }
 
     fn screen_text(app: &App) -> String {
@@ -903,7 +901,7 @@ mod tests {
     fn destination_is_edited_and_validated() {
         let mut app = app();
         app.screen = Screen::Destination;
-        for _ in 0.."/nao/existe/solar".len() {
+        for _ in 0..app.prefix.chars().count() {
             app.handle(key(KeyCode::Backspace));
         }
         for c in "relativo".chars() {
