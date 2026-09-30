@@ -717,10 +717,15 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
                     .unwrap_or_default();
                 lines.push(Line::from(""));
                 lines.push(Line::from(Span::styled(
-                    format!("{dir} não está no PATH. Acrescente ao ~/.bashrc ou ~/.zshrc:"),
+                    format!("{dir} não está no PATH. No bash ou no zsh, acrescente ao ~/.bashrc ou ~/.zshrc:"),
                     Style::default().fg(Color::Yellow),
                 )));
                 lines.push(Line::from(format!("  export PATH=\"{dir}:$PATH\"")));
+                lines.push(Line::from(Span::styled(
+                    "No fish, rode uma vez:",
+                    Style::default().fg(Color::Yellow),
+                )));
+                lines.push(Line::from(format!("  fish_add_path {dir}")));
             }
         }
         LinkOutcome::Blocked(link) => lines.push(Line::from(Span::styled(
