@@ -12,6 +12,31 @@ pasta só, e deixa escolher quais ferramentas do bundle instalar.
 
 O `SHA256SUMS` da release tem o hash de cada arquivo.
 
+## Em um comando
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ART3121/solar/main/install.sh | sh     # Linux, macOS
+```
+
+```powershell
+irm https://raw.githubusercontent.com/ART3121/solar/main/install.ps1 | iex          # Windows, PowerShell
+```
+
+Os dois scripts, `install.sh` e `install.ps1` na raiz do repositório, fazem
+a mesma coisa: descobrem a última release, baixam o instalador da
+plataforma, conferem o SHA-256 com o `SHA256SUMS` da release e abrem o
+instalador. O `install.sh` roda em qualquer shell, porque é executado pelo
+`sh`; a instalação guiada lê o teclado pelo terminal mesmo com o `| sh`.
+Ele baixa para `~/.cache` (há distribuições que montam o `/tmp` sem
+permissão de execução) e apaga o que baixou no fim.
+
+| O quê | Linux, macOS | Windows |
+|---|---|---|
+| versão fixa | `... \| SOLAR_VERSION=0.1.0 sh` | `$env:SOLAR_VERSION = "0.1.0"` antes do `irm` |
+| sem perguntas | `... \| sh -s -- --yes` | `$env:SOLAR_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"` antes do `irm` |
+| outras opções do instalador | `... \| sh -s -- --components yanc,icarus --prefix /opt/solar` | os parâmetros do Inno Setup em `SOLAR_SETUP_ARGS` |
+| para todos os usuários | `... \| sudo sh` (vai para `/opt/solar`) | o assistente pergunta |
+
 ## Tipos de instalação e componentes
 
 Os dois instaladores oferecem os mesmos tipos:
@@ -51,7 +76,8 @@ números da plataforma.
 
 ## Windows
 
-1. Rode `solar-<versão>-windows-x64-setup.exe`.
+1. Rode o `irm ... | iex` acima, ou baixe e rode
+   `solar-<versão>-windows-x64-setup.exe` da página da release.
 2. Escolha instalar só para você (padrão, sem administrador, em
    `%LOCALAPPDATA%\Programs\Solar`) ou para todos os usuários (pede
    administrador, em `C:\Solar`).
@@ -93,9 +119,11 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 
 ## Linux e macOS
 
+Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
+
 ```
-tar xzf solar-0.1.0-linux-x64.tar.gz
-./solar-0.1.0-linux-x64/install
+curl -fLO https://github.com/ART3121/solar/releases/download/v0.1.0/solar-0.1.0-linux-x64.tar.gz
+tar xzf solar-0.1.0-linux-x64.tar.gz && ./solar-0.1.0-linux-x64/install
 ```
 
 A instalação guiada no terminal tem estas telas:
@@ -110,13 +138,14 @@ A instalação guiada no terminal tem estas telas:
 
 `Esc` volta uma tela, `Ctrl+C` sai sem mudar nada.
 
-| | Usuário comum | root (`sudo ./install`) |
+| | Usuário comum | root (`sudo ./install`, ou `curl ... \| sudo sh`) |
 |---|---|---|
 | Pasta | `~/.local/share/solar` | `/opt/solar` |
 | Atalho | `~/.local/bin/solar` | `/usr/local/bin/solar` |
 
 Se a pasta do atalho não estiver no `PATH`, o instalador diz a linha para
-pôr no `~/.bashrc` ou `~/.zshrc`. No macOS, `~/.local/bin` não está no `PATH`
+pôr no `~/.bashrc` ou `~/.zshrc`, e o comando do fish
+(`fish_add_path ~/.local/bin`). No macOS, `~/.local/bin` não está no `PATH`
 por padrão.
 
 O instalador só escreve numa pasta nova, vazia ou com uma instalação do
@@ -148,8 +177,9 @@ instalação é trocada pela nova seleção.
 
 **macOS e o Gatekeeper:** o instalador não é assinado nem notarizado. Um
 `.tar.gz` baixado pelo navegador recebe a marca de quarentena, e o macOS
-recusa abrir o `install` ("desenvolvedor não pode ser verificado"). Baixar
-com `curl -LO` não põe a marca; se já foi baixado pelo navegador:
+recusa abrir o `install` ("desenvolvedor não pode ser verificado"). O
+`install.sh` e o `curl -fLO` baixam pelo `curl`, que não põe a marca; se já
+foi baixado pelo navegador:
 
 ```
 xattr -dr com.apple.quarantine solar-0.1.0-darwin-arm64

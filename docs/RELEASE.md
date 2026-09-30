@@ -4,6 +4,9 @@
 
 1. Subir a versão em `Cargo.toml` (`[workspace.package] version`).
 2. Acrescentar a seção `## <versão> (<data>)` no `CHANGELOG.md`.
+   Trocar a versão nos comandos manuais do `README.md` e do
+   `docs/INSTALL.md` (os que baixam `solar-<versão>-...` direto). O
+   `install.sh` e o `install.ps1` não mudam: eles pegam a última release.
 3. Commit, tag e push da tag:
 
    ```
@@ -21,6 +24,10 @@
 
 O `installers.yml` também roda a cada push (pelo `ci.yml`), e os instaladores
 ficam como artefatos do workflow por 14 dias.
+
+O `install.sh` e o `install.ps1` são servidos da `main` pelo
+`raw.githubusercontent.com`: uma mudança neles vale para todo mundo assim que
+chega na `main`, sem release.
 
 ## Localmente
 

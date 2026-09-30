@@ -12,83 +12,48 @@ Verilator, que compila com o compilador C++, o `make` e o Perl do sistema.
 
 Plataformas: Linux x64, macOS Apple Silicon, Windows 10 e 11 x64.
 
-## Instalar com curl
+## Instalar
 
-Os comandos abaixo baixam o instalador da release `v0.1.0`. Para outra
-versão, troque `VERSAO`.
-
-### Linux
+Linux x64 e macOS Apple Silicon, em qualquer shell (bash, zsh, fish):
 
 ```sh
-VERSAO=0.1.0
-URL=https://github.com/ART3121/solar/releases/download/v$VERSAO
-
-curl -fLO "$URL/solar-$VERSAO-linux-x64.tar.gz"
-curl -fLO "$URL/SHA256SUMS"
-grep "solar-$VERSAO-linux-x64.tar.gz" SHA256SUMS | sha256sum -c
-tar xzf "solar-$VERSAO-linux-x64.tar.gz"
-./solar-$VERSAO-linux-x64/install
+curl -fsSL https://raw.githubusercontent.com/ART3121/solar/main/install.sh | sh
 ```
 
-O `install` abre a instalação guiada no terminal: tipo **Recomendada** (o
-padrão) ou **Avançada**, para escolher os componentes. Instala em
-`~/.local/share/solar`, com o atalho `~/.local/bin/solar`; com `sudo`, em
-`/opt/solar`, com o atalho `/usr/local/bin/solar`.
-
-### macOS (Apple Silicon)
-
-```sh
-VERSAO=0.1.0
-URL=https://github.com/ART3121/solar/releases/download/v$VERSAO
-
-curl -fLO "$URL/solar-$VERSAO-darwin-arm64.tar.gz"
-curl -fLO "$URL/SHA256SUMS"
-grep "solar-$VERSAO-darwin-arm64.tar.gz" SHA256SUMS | shasum -a 256 -c
-tar xzf "solar-$VERSAO-darwin-arm64.tar.gz"
-./solar-$VERSAO-darwin-arm64/install
-```
-
-Baixe pelo `curl`, não pelo navegador: o instalador não é assinado, e o
-arquivo baixado pelo navegador recebe a marca de quarentena, que faz o macOS
-recusar o `install` (ver [docs/INSTALL.md](docs/INSTALL.md)). O
-`~/.local/bin` não está no `PATH` do macOS por padrão; o instalador mostra a
-linha para acrescentar ao `~/.zshrc`.
-
-### Windows
-
-No PowerShell (o `curl.exe` vem com o Windows 10 e 11):
+Windows 10 e 11, no PowerShell:
 
 ```powershell
-$VERSAO = "0.1.0"
-$URL = "https://github.com/ART3121/solar/releases/download/v$VERSAO"
-
-curl.exe -fLO "$URL/solar-$VERSAO-windows-x64-setup.exe"
-curl.exe -fLO "$URL/SHA256SUMS"
-(Get-FileHash "solar-$VERSAO-windows-x64-setup.exe" -Algorithm SHA256).Hash.ToLower()
-Select-String "windows-x64" SHA256SUMS
-.\solar-$VERSAO-windows-x64-setup.exe
+irm https://raw.githubusercontent.com/ART3121/solar/main/install.ps1 | iex
 ```
 
-Os dois hashes impressos têm que ser iguais. O assistente oferece os mesmos
-tipos, Recomendada e Avançada, e a opção de pôr o Solar no `PATH`.
+O script baixa o instalador da última release, confere o SHA-256 com o
+`SHA256SUMS` da release e o abre: a instalação guiada no terminal no Linux e
+no macOS, o assistente no Windows. Nos dois, o tipo **Recomendada** é o
+padrão e o **Avançada** deixa escolher os componentes. No Linux e no macOS,
+instala em `~/.local/share/solar`, com o atalho `~/.local/bin/solar`.
 
-### Sem perguntas (scripts, laboratórios, CI)
-
-Linux e macOS, depois de extrair:
+Sem perguntas (scripts, laboratórios, CI):
 
 ```sh
-./solar-$VERSAO-linux-x64/install --list                                   # componentes e tamanhos
-./solar-$VERSAO-linux-x64/install --yes                                    # Recomendada
-./solar-$VERSAO-linux-x64/install --yes --components yanc,icarus,verilator # Avançada
-./solar-$VERSAO-linux-x64/install --yes --prefix /opt/solar --no-link
+curl -fsSL https://raw.githubusercontent.com/ART3121/solar/main/install.sh | sh -s -- --yes
+curl -fsSL https://raw.githubusercontent.com/ART3121/solar/main/install.sh | sh -s -- --yes --components yanc,icarus,verilator
 ```
-
-Windows:
 
 ```powershell
-.\solar-$VERSAO-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path
-.\solar-$VERSAO-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="solar,yanc,icarus,verilator"
+$env:SOLAR_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"
+irm https://raw.githubusercontent.com/ART3121/solar/main/install.ps1 | iex
 ```
+
+Sem o script, direto da [página da release](https://github.com/ART3121/solar/releases/latest):
+
+```sh
+curl -fLO https://github.com/ART3121/solar/releases/download/v0.1.0/solar-0.1.0-linux-x64.tar.gz
+tar xzf solar-0.1.0-linux-x64.tar.gz && ./solar-0.1.0-linux-x64/install
+```
+
+No macOS, troque `linux-x64` por `darwin-arm64`. Baixe pelo `curl`, não
+pelo navegador: o instalador não é assinado, e o macOS recusa abrir um
+arquivo baixado pelo navegador (ver [docs/INSTALL.md](docs/INSTALL.md)).
 
 ### Componentes
 
