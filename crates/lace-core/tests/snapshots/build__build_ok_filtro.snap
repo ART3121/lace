@@ -1,0 +1,269 @@
+---
+source: crates/lace-core/tests/build.rs
+expression: "normalized(&result, &root, &toolchain)"
+---
+{
+  "processor": "filtro",
+  "language": "cpp",
+  "status": "succeeded",
+  "failed_step": null,
+  "frequency_mhz": 100,
+  "clocks": 2000,
+  "steps": [
+    {
+      "step": "preprocess",
+      "tool": "cpppp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/cpppp",
+        "args": [
+          "-i",
+          "[PROJETO]/filtro/Software/filtro.cpp",
+          "-o",
+          "[PROJETO]/.lace/Temp/filtro/pp.cpp",
+          "-I",
+          "[TOOLCHAIN]/yanc/Header",
+          "-I",
+          "[PROJETO]/filtro/Software"
+        ],
+        "cwd": "[PROJETO]/.lace/Temp/filtro",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 0
+      },
+      "stdout": "",
+      "stderr": "",
+      "duration_ms": "[ms]"
+    },
+    {
+      "step": "compile",
+      "tool": "cppcomp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/cppcomp",
+        "args": [
+          "-i",
+          "[PROJETO]/.lace/Temp/filtro/pp.cpp",
+          "-p",
+          "[PROJETO]/filtro",
+          "-n",
+          "filtro",
+          "-t",
+          "[PROJETO]/.lace/Temp/filtro"
+        ],
+        "cwd": "[PROJETO]/filtro",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 0
+      },
+      "stdout": "",
+      "stderr": "",
+      "duration_ms": "[ms]"
+    },
+    {
+      "step": "pre_assemble",
+      "tool": "appcomp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/appcomp",
+        "args": [
+          "-i",
+          "[PROJETO]/filtro/Software/filtro.asm",
+          "-t",
+          "[PROJETO]/.lace/Temp/filtro",
+          "-en"
+        ],
+        "cwd": "[PROJETO]/.lace/Temp/filtro",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 0
+      },
+      "stdout": "Info: 16 instructions and 5 variables were found\nSweet: got the memory count nailed down! Now let's see which circuits you'll need...\n",
+      "stderr": "",
+      "duration_ms": "[ms]"
+    },
+    {
+      "step": "assemble",
+      "tool": "asmcomp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/asmcomp",
+        "args": [
+          "-i",
+          "[PROJETO]/filtro/Software/filtro.asm",
+          "-p",
+          "[PROJETO]/filtro",
+          "-d",
+          "[TOOLCHAIN]/yanc/SAPHO",
+          "-m",
+          "[TOOLCHAIN]/yanc/Macros",
+          "-t",
+          "[PROJETO]/.lace/Temp/filtro",
+          "-f",
+          "100",
+          "-c",
+          "2000",
+          "-en"
+        ],
+        "cwd": "[PROJETO]/.lace/Temp/filtro",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 0
+      },
+      "stdout": "Info: ULA resource -> integer adder\nInfo: ULA resource -> < operator for int\nInfo: adding data output handling\nInfo: using 5% of the Assembly Instruction Set\nInfo: using 5% of the ULA operations\nSweet: the processor is good to go.\n",
+      "stderr": "",
+      "duration_ms": "[ms]"
+    }
+  ],
+  "diagnostics": [
+    {
+      "tool": "appcomp",
+      "severity": "info",
+      "message": "16 instructions and 5 variables were found",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: 16 instructions and 5 variables were found"
+    },
+    {
+      "tool": "appcomp",
+      "severity": "info",
+      "message": "got the memory count nailed down! Now let's see which circuits you'll need...",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Sweet: got the memory count nailed down! Now let's see which circuits you'll need..."
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "ULA resource -> integer adder",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: ULA resource -> integer adder"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "ULA resource -> < operator for int",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: ULA resource -> < operator for int"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "adding data output handling",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: adding data output handling"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "using 5% of the Assembly Instruction Set",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: using 5% of the Assembly Instruction Set"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "using 5% of the ULA operations",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: using 5% of the ULA operations"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "the processor is good to go.",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Sweet: the processor is good to go."
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "assembly",
+      "path": "[PROJETO]/filtro/Software/filtro.asm",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "verilog",
+      "path": "[PROJETO]/filtro/Hardware/filtro.v",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "data_memory",
+      "path": "[PROJETO]/filtro/Hardware/filtro_data.mif",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "instruction_memory",
+      "path": "[PROJETO]/filtro/Hardware/filtro_inst.mif",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "testbench",
+      "path": "[PROJETO]/filtro/Simulation/filtro_tb.v",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "program_counter_map",
+      "path": "[PROJETO]/.lace/Temp/filtro/pc_filtro_mem.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "source_translation",
+      "path": "[PROJETO]/.lace/Temp/filtro/trad_cmm.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "opcode_translation",
+      "path": "[PROJETO]/.lace/Temp/filtro/trad_opcode.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "compiler_log",
+      "path": "[PROJETO]/.lace/Temp/filtro/cmm_log.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "pre_assembler_log",
+      "path": "[PROJETO]/.lace/Temp/filtro/app_log.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "preprocessed_source",
+      "path": "[PROJETO]/.lace/Temp/filtro/pp.cpp",
+      "required": false,
+      "fresh": true
+    }
+  ],
+  "duration_ms": "[ms]"
+}

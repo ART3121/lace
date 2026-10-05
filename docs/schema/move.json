@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MoveReport",
+  "description": "`lace move`.",
+  "type": "object",
+  "properties": {
+    "project": {
+      "description": "O `.spf`.",
+      "type": "string"
+    },
+    "moved": {
+      "description": "Um por origem, na ordem da linha de comando.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MovedPath"
+      }
+    }
+  },
+  "required": [
+    "project",
+    "moved"
+  ],
+  "$defs": {
+    "MovedPath": {
+      "description": "O que [`Project::move_path`] fez.",
+      "type": "object",
+      "properties": {
+        "from": {
+          "description": "Onde estava, absoluto.",
+          "type": "string"
+        },
+        "to": {
+          "description": "Onde ficou, absoluto.",
+          "type": "string"
+        },
+        "files": {
+          "description": "Os arquivos registrados no `.spf` que mudaram de lugar, já com o\ncaminho novo: o próprio arquivo, ou os que estavam dentro da pasta.\nContinuam com o mesmo papel e a mesma marca de topo ou de testbench\nescolhido.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProjectFile"
+          }
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "files"
+      ]
+    },
+    "ProjectFile": {
+      "description": "Um arquivo registrado no projeto.",
+      "type": "object",
+      "properties": {
+        "role": {
+          "description": "Em qual lista ele está.",
+          "$ref": "#/$defs/FileRole"
+        },
+        "path": {
+          "description": "Caminho absoluto.",
+          "type": "string"
+        },
+        "top_level": {
+          "description": "Marcado como topo (sintetizável) ou como o testbench escolhido.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "top_level"
+      ]
+    },
+    "FileRole": {
+      "description": "Em qual lista do `.spf` um arquivo fica. Em JSON: `\"synthesizable\"` ou\n`\"testbench\"`.\n\n[`Project::add_verilog`] decide o papel pelo conteúdo, como a AURORA\n([`classify`](crate::verilog::classify)); [`Project::add_file`] recebe o\npapel de quem chama. Um arquivo fica numa lista só.",
+      "oneOf": [
+        {
+          "description": "Entra na síntese e na simulação.",
+          "type": "string",
+          "const": "synthesizable"
+        },
+        {
+          "description": "Só entra na simulação.",
+          "type": "string",
+          "const": "testbench"
+        }
+      ]
+    }
+  }
+}

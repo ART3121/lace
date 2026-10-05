@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UpdateReport",
+  "description": "`lace update`.",
+  "type": "object",
+  "properties": {
+    "lace": {
+      "description": "O Lace: este e o da última release.",
+      "$ref": "#/$defs/LaceVersions"
+    },
+    "bundle": {
+      "description": "O bundle de ferramentas: o instalado e o da última release.",
+      "$ref": "#/$defs/BundleVersions"
+    },
+    "components": {
+      "description": "Cada componente instalado, na ordem do manifesto do bundle. Vazio sem\nbundle.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ComponentVersions"
+      }
+    },
+    "prefix": {
+      "description": "A pasta da instalação; `null` se este `lace` não foi instalado pelo\ninstalador (um build em `target/`, por exemplo).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "action": {
+      "description": "O que o comando fez.",
+      "$ref": "#/$defs/UpdateAction"
+    }
+  },
+  "required": [
+    "lace",
+    "bundle",
+    "components",
+    "prefix",
+    "action"
+  ],
+  "$defs": {
+    "LaceVersions": {
+      "description": "As versões do Lace em `lace update`.",
+      "type": "object",
+      "properties": {
+        "installed": {
+          "description": "A versão deste `lace`.",
+          "type": "string"
+        },
+        "latest": {
+          "description": "A versão da última release no GitHub.",
+          "type": "string"
+        },
+        "newer": {
+          "description": "`latest` é mais nova que `installed`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "installed",
+        "latest",
+        "newer"
+      ]
+    },
+    "BundleVersions": {
+      "description": "As versões do bundle em `lace update`.",
+      "type": "object",
+      "properties": {
+        "installed": {
+          "description": "O bundle instalado; `null` sem bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "latest": {
+          "description": "O bundle da última release; `null` se o `bundle/versions.json` dela\nnão pôde ser lido.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "newer": {
+          "description": "`latest` é mais novo que `installed`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "installed",
+        "latest",
+        "newer"
+      ]
+    },
+    "ComponentVersions": {
+      "description": "Um componente instalado em `lace update`.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O componente (`yanc`, `icarus`, `verilator`, `yosys`, `graphviz`,\n`surfer-aurora`).",
+          "type": "string"
+        },
+        "package": {
+          "description": "O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,\n`yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que\neste Lace não conhece.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installed": {
+          "description": "A versão instalada.",
+          "type": "string"
+        },
+        "release": {
+          "description": "A versão no bundle da última release; `null` se não pôde ser lida.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "release_newer": {
+          "description": "`release` é mais nova que `installed`: chega atualizando o Lace.",
+          "type": "boolean"
+        },
+        "upstream": {
+          "description": "A última versão upstream; `null` se a consulta falhou.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream_newer": {
+          "description": "`upstream` é mais nova que `installed` e que `release`: só chega num\nbundle novo, numa release nova do Lace. Sem `release`, `false` quando\nhá Lace mais novo, cujo bundle pode já trazê-la.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "package",
+        "installed",
+        "release",
+        "release_newer",
+        "upstream",
+        "upstream_newer"
+      ]
+    },
+    "UpdateAction": {
+      "description": "O que `lace update` fez.",
+      "oneOf": [
+        {
+          "description": "`--check`: só comparou as versões.",
+          "type": "string",
+          "const": "checked"
+        },
+        {
+          "description": "Não há Lace mais novo publicado: nada mudou.",
+          "type": "string",
+          "const": "up_to_date"
+        },
+        {
+          "description": "O instalador da versão nova trocou o Lace e o bundle (Linux, macOS).",
+          "type": "string",
+          "const": "updated"
+        },
+        {
+          "description": "O assistente de instalação do Windows foi aberto e termina depois que\no `lace` sai.",
+          "type": "string",
+          "const": "wizard_opened"
+        }
+      ]
+    }
+  }
+}

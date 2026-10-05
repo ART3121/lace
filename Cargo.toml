@@ -1,14 +1,19 @@
 [workspace]
 resolver = "3"
-members = ["crates/solar-core", "crates/solar-cli", "crates/solar-installer"]
+members = ["crates/lace-core", "crates/lace-cli", "crates/lace-installer"]
+# O Lace Studio (studio/) tem o próprio workspace e o próprio Cargo.lock:
+# o Tauri pede as bibliotecas de sistema do WebView e a interface já
+# compilada, que os testes do Core e da CLI não precisam.
+exclude = ["studio/src-tauri"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.89"
 
 [workspace.dependencies]
-solar-core = { path = "crates/solar-core" }
+lace-core = { path = "crates/lace-core" }
+lace-installer = { path = "crates/lace-installer" }
 camino = { version = "1", features = ["serde1"] }
 dunce = "1"
 sha2 = "0.10"
@@ -30,3 +35,7 @@ ratatui = { version = "0.30", default-features = false, features = ["crossterm"]
 zstd = { version = "0.14", features = ["zstdmt"] }
 tar = "0.4"
 flate2 = "1"
+schemars = "1"
+jsonschema = { version = "0.58", default-features = false }
+rustix = { version = "1", default-features = false, features = ["std", "process", "system"] }
+signal-hook = { version = "0.3", default-features = false }

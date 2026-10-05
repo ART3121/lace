@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RemoveReport",
+  "description": "`lace remove`.",
+  "type": "object",
+  "properties": {
+    "project": {
+      "description": "O `.spf`.",
+      "type": "string"
+    },
+    "removed": {
+      "description": "Tirados do projeto (continuam no disco).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "not_registered": {
+      "description": "Pedidos, mas que não estavam no projeto.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "project",
+    "removed",
+    "not_registered"
+  ]
+}

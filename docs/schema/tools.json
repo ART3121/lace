@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ToolsReport",
+  "description": "`lace tools`.",
+  "type": "object",
+  "properties": {
+    "root": {
+      "description": "A pasta do bundle.",
+      "type": "string"
+    },
+    "bundle": {
+      "description": "A versão do bundle.",
+      "type": "string"
+    },
+    "platform": {
+      "description": "A plataforma do bundle (`linux-x64`, `darwin-arm64`, `windows-x64`).",
+      "type": "string"
+    },
+    "components": {
+      "description": "Os componentes instalados.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BundleComponent"
+      }
+    },
+    "not_installed": {
+      "description": "Os componentes que este Lace conhece e que não estão instalados.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tools": {
+      "description": "Cada ferramenta, pelo nome do executável.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/ToolEntry"
+      }
+    },
+    "system_compiler": {
+      "description": "O compilador do Verilator, se encontrado: do sistema no Linux e no\nmacOS, do bundle no Windows (`bundled`).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SystemCompiler"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "verify": {
+      "description": "Com `--verify`, os executáveis cujo SHA-256 não confere (vazio: todos\nconferem).",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/FileMismatch"
+      }
+    }
+  },
+  "required": [
+    "root",
+    "bundle",
+    "platform",
+    "components",
+    "not_installed",
+    "tools",
+    "system_compiler",
+    "verify"
+  ],
+  "$defs": {
+    "BundleComponent": {
+      "description": "Um componente instalado (`components/<nome>.json`).",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Nome (ver o módulo [`component`]); é também o nome do arquivo.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Versão exata: data da release do OSS CAD Suite, tag do YANC, do\nsurfer-aurora, do Graphviz.",
+          "type": "string"
+        },
+        "dir": {
+          "description": "Diretório do componente, relativo ao bundle. Componentes do OSS CAD\nSuite dividem o mesmo.",
+          "type": "string"
+        },
+        "source": {
+          "description": "De onde veio: URL do pacote, ou `git+<repositório>@<commit>` quando o\nempacotamento compilou do fonte.",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 do pacote de origem, quando foi baixado pronto.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "files": {
+          "description": "SHA-256 dos executáveis do componente que o Lace roda, por caminho\nrelativo ao bundle, conferido por [`Toolchain::verify`].",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "dir",
+        "source",
+        "sha256",
+        "files"
+      ]
+    },
+    "ToolEntry": {
+      "description": "Uma ferramenta em `lace tools`: onde está, ou por que não está.",
+      "anyOf": [
+        {
+          "description": "Disponível.",
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "O executável.",
+              "type": "string"
+            },
+            "system": {
+              "description": "Vem do sistema, não do bundle (só o Perl do Verilator, no Linux e\nno macOS).",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "path",
+            "system"
+          ]
+        },
+        {
+          "description": "Indisponível.",
+          "type": "object",
+          "properties": {
+            "error": {
+              "description": "Por quê.",
+              "$ref": "#/$defs/ErrorInfo"
+            }
+          },
+          "required": [
+            "error"
+          ]
+        }
+      ]
+    },
+    "ErrorInfo": {
+      "description": "Um erro do Lace.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "Código estável, em `snake_case` (`no_testbench`, `component_missing`),\nou `cli` para um erro da própria linha de comando.",
+          "type": "string"
+        },
+        "message": {
+          "description": "A mensagem, em inglês.",
+          "type": "string"
+        },
+        "hint": {
+          "description": "O comando que resolve, quando há um.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "SystemCompiler": {
+      "description": "O compilador C++, o `make` e o Perl que o Verilator usa.\n\nNo Windows vêm do bundle, no componente verilator (`msys/ucrt64/bin` e\n`msys/usr/bin`), e [`SystemCompiler::bundled`] é verdadeiro. No Linux e no\nmacOS vêm do sistema, a exceção à regra do bundle, procurados em locais\nfixos ([`SystemCompiler::detect`]), nunca no `PATH`: `/usr/bin` no Linux;\n`/usr/bin` com as Command Line Tools do Xcode no macOS. Ou num diretório\ndeclarado ([`SystemCompiler::in_dir`], e [`SystemCompiler::in_msys2`]\npara um MSYS2 no Windows), que substitui o padrão.",
+      "type": "object",
+      "properties": {
+        "perl": {
+          "description": "O Perl que executa o script `verilator`.",
+          "type": "string"
+        },
+        "make": {
+          "description": "O `make` que o Verilator chama.",
+          "type": "string"
+        },
+        "cxx": {
+          "description": "O compilador C++ que o `make` chama.",
+          "type": "string"
+        },
+        "path": {
+          "description": "Os diretórios postos no `PATH` do Verilator para ele achar `make` e o\ncompilador.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bundled": {
+          "description": "Veio do bundle (Windows), e não do sistema.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "perl",
+        "make",
+        "cxx",
+        "path",
+        "bundled"
+      ]
+    },
+    "FileMismatch": {
+      "description": "Um executável do bundle cujo hash não bate com o manifesto.",
+      "type": "object",
+      "properties": {
+        "component": {
+          "description": "O componente que lista o arquivo.",
+          "type": "string"
+        },
+        "path": {
+          "description": "Caminho relativo ao bundle.",
+          "type": "string"
+        },
+        "expected": {
+          "description": "O hash do manifesto.",
+          "type": "string"
+        },
+        "actual": {
+          "description": "O hash do arquivo, ou `None` se ele não existe.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "component",
+        "path",
+        "expected",
+        "actual"
+      ]
+    }
+  }
+}

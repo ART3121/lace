@@ -1,11 +1,14 @@
-# Verificação do Solar nos três sistemas, com o bundle de verdade.
+# Verificação do Lace nos três sistemas, com o bundle de verdade.
 #
 # - `checks`: formatação, clippy, documentação e testes que não precisam de
 #   ferramenta, em Linux, macOS e Windows.
+# - `studio`: o Lace Studio (studio/): os tipos e a interface, formatação,
+#   clippy e os testes de unidade. Os fluxos dele, com o bundle, rodam no
+#   installers.yml.
 # - `installers`: monta o bundle e os instaladores (installers.yml), instala
 #   por eles e roda todos os testes contra a instalação. Com CI=true, uma
 #   ferramenta ausente é falha, não teste pulado. O teste que abre a janela
-#   do surfer-aurora (SOLAR_TEST_GUI) não roda: não há display nos runners.
+#   do surfer-aurora (LACE_TEST_GUI) não roda: não há display nos runners.
 #
 # Numa tag v*, quem roda é o release.yml.
 
@@ -26,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14, windows-2022]
+        os: [ubuntu-22.04, macos-14, windows-2022]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +46,34 @@ jobs:
       # junto com outros alvos, por isso são dois comandos.
       - run: cargo test --workspace --lib --bins
       - run: cargo test --workspace --doc
+
+  studio:
+    name: studio
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+      - name: Dependências do Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+            libayatana-appindicator3-dev libxdo-dev libssl-dev
+      - run: npm ci --no-audit --no-fund
+      # tsc --noEmit e o vite build: a interface que o Tauri embute no binário.
+      - run: npm run build
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --lib
 
   # Monta o bundle e os instaladores nas três plataformas, instala por eles e
   # roda os testes contra a instalação (installers.yml).

@@ -1,0 +1,698 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BuildReport",
+  "description": "`lace build`.",
+  "type": "object",
+  "properties": {
+    "project": {
+      "description": "O `.spf`.",
+      "type": "string"
+    },
+    "results": {
+      "description": "Um por processador compilado. Vazio num projeto sem processadores.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BuildResult"
+      }
+    },
+    "report": {
+      "description": "O relatório gravado no histórico do projeto (`run-000042`), para\n`lace report show`; `null` se nada rodou ou se não pôde ser gravado.",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "project",
+    "results",
+    "report"
+  ],
+  "$defs": {
+    "BuildResult": {
+      "description": "O resultado de [`build`]. Ver o módulo `pipeline` para os campos comuns a\ntoda operação.\n\nEm JSON (resumido):\n\n```json\n{ \"processor\": \"soma\", \"language\": \"cmm\", \"status\": \"succeeded\",\n  \"failed_step\": null, \"frequency_mhz\": 100, \"clocks\": 2000,\n  \"steps\": [ { \"step\": \"compile\", \"tool\": \"cmmcomp\", \"...\": \"...\" } ],\n  \"diagnostics\": [],\n  \"artifacts\": [ { \"kind\": \"verilog\", \"path\": \"/p/soma/Hardware/soma.v\",\n                   \"required\": true, \"fresh\": true } ] }\n```",
+      "type": "object",
+      "properties": {
+        "processor": {
+          "description": "O processador compilado.",
+          "type": "string"
+        },
+        "language": {
+          "description": "A linguagem do fonte, que decidiu o pipeline.",
+          "$ref": "#/$defs/Language"
+        },
+        "status": {
+          "description": "Como o build terminou.",
+          "$ref": "#/$defs/Status"
+        },
+        "failed_step": {
+          "description": "O passo que falhou ou quebrou, quando for o caso.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Step"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frequency_mhz": {
+          "description": "A frequência usada (do `.spf` ou de [`BuildOptions`]).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "clocks": {
+          "description": "Os clocks usados (do `.spf` ou de [`BuildOptions`]).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "steps": {
+          "description": "Um relatório por compilador executado. Em C±: `compile`,\n`pre_assemble`, `assemble`. Em C: `preprocess` antes dos três.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StepReport"
+          }
+        },
+        "diagnostics": {
+          "description": "Todas as mensagens de todos os passos, na ordem em que saíram. Hoje\nos compiladores param no primeiro erro, mas a API já é uma lista.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "artifacts": {
+          "description": "Obrigatórios: `Software/<nome>.asm`, `Hardware/<nome>.v`,\n`Hardware/<nome>_data.mif`, `Hardware/<nome>_inst.mif` e o testbench\n`Simulation/<nome>_tb.v`. Intermediários (`pc_<nome>_mem.txt`,\n`trad_cmm.txt`, `trad_opcode.txt`, `cmm_log.txt`, `app_log.txt`,\n`pp.cpp`), quando existem.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          }
+        },
+        "duration_ms": {
+          "description": "Quanto o build levou, do começo ao fim, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "processor",
+        "language",
+        "status",
+        "failed_step",
+        "frequency_mhz",
+        "clocks",
+        "steps",
+        "diagnostics",
+        "artifacts",
+        "duration_ms"
+      ]
+    },
+    "Language": {
+      "description": "Linguagem do programa de um processador. Em JSON: `\"cmm\"` ou `\"cpp\"`.",
+      "oneOf": [
+        {
+          "description": "C±, compilado pelo `cmmcomp`.",
+          "type": "string",
+          "const": "cmm"
+        },
+        {
+          "description": "C, pré-processado pelo `cpppp` e compilado pelo `cppcomp`. A AURORA e o\nYANC chamam de \"cpp\" e usam a extensão `.cpp`.",
+          "type": "string",
+          "const": "cpp"
+        }
+      ]
+    },
+    "Status": {
+      "description": "Como uma operação terminou. Em JSON, em `snake_case` (`\"succeeded\"`).",
+      "oneOf": [
+        {
+          "description": "Todos os passos terminaram com código 0 e os artefatos foram gerados.",
+          "type": "string",
+          "const": "succeeded"
+        },
+        {
+          "description": "Uma ferramenta recusou a entrada (código de saída diferente de 0).",
+          "type": "string",
+          "const": "failed"
+        },
+        {
+          "description": "Uma ferramenta morreu (sinal no Unix, exceção no Windows). É defeito da\nferramenta, não do código do usuário.",
+          "type": "string",
+          "const": "crashed"
+        },
+        {
+          "description": "As ferramentas terminaram bem, mas faltou algum artefato obrigatório.",
+          "type": "string",
+          "const": "incomplete"
+        },
+        {
+          "description": "O cancelamento foi pedido ([`CancelToken`](crate::CancelToken)): o\npasso que rodava foi encerrado e os seguintes não rodaram.",
+          "type": "string",
+          "const": "cancelled"
+        },
+        {
+          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "type": "string",
+          "const": "timed_out"
+        }
+      ]
+    },
+    "Step": {
+      "description": "Um passo de uma operação. Em JSON, em `snake_case` (`\"pre_assemble\"`).",
+      "oneOf": [
+        {
+          "description": "`cpppp`, só no fluxo C.",
+          "type": "string",
+          "const": "preprocess"
+        },
+        {
+          "description": "`cmmcomp` ou `cppcomp`: fonte para assembly.",
+          "type": "string",
+          "const": "compile"
+        },
+        {
+          "description": "`appcomp`: conta instruções e variáveis.",
+          "type": "string",
+          "const": "pre_assemble"
+        },
+        {
+          "description": "`asmcomp`: assembly para Verilog e memórias.",
+          "type": "string",
+          "const": "assemble"
+        },
+        {
+          "description": "`iverilog -t null`: só confere se o Verilog elabora.",
+          "type": "string",
+          "const": "check_syntax"
+        },
+        {
+          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `lace check --lint`.",
+          "type": "string",
+          "const": "lint"
+        },
+        {
+          "description": "`iverilog`: Verilog para o `.vvp` do Icarus.",
+          "type": "string",
+          "const": "elaborate"
+        },
+        {
+          "description": "`verilator --binary`: Verilog para um executável C++.",
+          "type": "string",
+          "const": "verilate"
+        },
+        {
+          "description": "`vvp` ou o executável do Verilator rodando o testbench.",
+          "type": "string",
+          "const": "simulate"
+        },
+        {
+          "description": "`yosys`: Verilog para netlist JSON.",
+          "type": "string",
+          "const": "synthesize"
+        },
+        {
+          "description": "`yosys show`: netlist para o grafo do esquemático (`.dot`).",
+          "type": "string",
+          "const": "graph"
+        },
+        {
+          "description": "`dot`: grafo do esquemático para SVG.",
+          "type": "string",
+          "const": "render"
+        }
+      ]
+    },
+    "StepReport": {
+      "description": "O que aconteceu num passo: o comando exato, como terminou e tudo o que\nescreveu. É o registro de auditoria da operação; os `diagnostics` do\nresultado são a versão interpretada de `stdout` e `stderr`.",
+      "type": "object",
+      "properties": {
+        "step": {
+          "description": "Qual passo.",
+          "$ref": "#/$defs/Step"
+        },
+        "tool": {
+          "description": "A ferramenta executada. Para o executável que o Verilator gera, é\n[`Tool::Verilator`].",
+          "$ref": "#/$defs/Tool"
+        },
+        "command": {
+          "description": "O que foi executado, com CWD e ambiente.",
+          "$ref": "#/$defs/Invocation"
+        },
+        "termination": {
+          "description": "Como o processo terminou.",
+          "$ref": "#/$defs/Termination"
+        },
+        "stdout": {
+          "description": "Tudo que o processo escreveu no stdout, decodificado como UTF-8 (bytes\ninválidos viram `U+FFFD`). Numa simulação, inclui o `$display` do\ntestbench.",
+          "type": "string"
+        },
+        "stderr": {
+          "description": "Tudo que o processo escreveu no stderr.",
+          "type": "string"
+        },
+        "duration_ms": {
+          "description": "Duração, do início do processo até o fim, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "step",
+        "tool",
+        "command",
+        "termination",
+        "stdout",
+        "stderr",
+        "duration_ms"
+      ]
+    },
+    "Tool": {
+      "description": "As ferramentas que o Lace sabe orquestrar.\n\nEm JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do\nprograma ([`Tool::binary_name`]).",
+      "oneOf": [
+        {
+          "description": "Compilador C± do YANC: `.cmm` para `.asm`.",
+          "type": "string",
+          "const": "cmmcomp"
+        },
+        {
+          "description": "Pré-assembler do YANC: conta instruções e variáveis do `.asm` e\nregistra o `#PRNAME` em `app_log.txt`.",
+          "type": "string",
+          "const": "appcomp"
+        },
+        {
+          "description": "Assembler do YANC: `.asm` para o Verilog do processador, as memórias\n`.mif` e o testbench.",
+          "type": "string",
+          "const": "asmcomp"
+        },
+        {
+          "description": "Pré-processador do fluxo C do YANC (`#include`, `#define`).",
+          "type": "string",
+          "const": "cpppp"
+        },
+        {
+          "description": "Compilador C do YANC: `.cpp` pré-processado para `.asm`.",
+          "type": "string",
+          "const": "cppcomp"
+        },
+        {
+          "description": "Compilador do Icarus Verilog.",
+          "type": "string",
+          "const": "iverilog"
+        },
+        {
+          "description": "Simulador do Icarus: executa o `.vvp` que o `iverilog` gera.",
+          "type": "string",
+          "const": "vvp"
+        },
+        {
+          "description": "Verilator: compila o Verilog para um executável C++ e o roda como\nsimulação, com o compilador de [`SystemCompiler`].",
+          "type": "string",
+          "const": "verilator"
+        },
+        {
+          "description": "Yosys: sintetiza Verilog para netlist e gera o grafo do esquemático.",
+          "type": "string",
+          "const": "yosys"
+        },
+        {
+          "description": "`dot` do Graphviz: desenha o grafo do esquemático em SVG.",
+          "type": "string",
+          "const": "dot"
+        },
+        {
+          "description": "O visualizador de ondas surfer-aurora. Aplicação gráfica: abre e fica\naberta.",
+          "type": "string",
+          "const": "surfer"
+        },
+        {
+          "description": "O Perl que executa o script `verilator`, parte do [`SystemCompiler`]:\ndo sistema no Linux e no macOS, do bundle no Windows.",
+          "type": "string",
+          "const": "perl"
+        }
+      ]
+    },
+    "Invocation": {
+      "description": "Uma execução de programa, totalmente especificada: o registro exato do\nque o Lace rodou, presente em todo [`StepReport`](crate::StepReport).\n\nSó o Core monta invocações; para os clientes o tipo é somente leitura.\nReproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,\ncom um ambiente vazio mais `env` e as variáveis de `inherit`.\n\nEm JSON:\n\n```json\n{ \"program\": \"/opt/yanc/bin/cmmcomp\",\n  \"args\": [\"-i\", \"soma.cmm\", \"-n\", \"soma\", \"-p\", \"/p/soma\", \"...\"],\n  \"cwd\": \"/p/soma\",\n  \"env\": [],\n  \"inherit\": [] }\n```",
+      "type": "object",
+      "properties": {
+        "program": {
+          "description": "Caminho absoluto do executável. Nunca é procurado no `PATH`.",
+          "type": "string"
+        },
+        "args": {
+          "description": "Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cwd": {
+          "description": "Diretório de trabalho. Faz parte do contrato de várias ferramentas (o\n`appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench\ngrava a onda nele), por isso nunca é herdado.",
+          "type": "string"
+        },
+        "env": {
+          "description": "Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "inherit": {
+          "description": "Nomes de variáveis copiadas do ambiente do Lace, quando existirem.\nSó os nomes aparecem no relatório.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "program",
+        "args",
+        "cwd",
+        "env",
+        "inherit"
+      ]
+    },
+    "Termination": {
+      "description": "Como um processo terminou.\n\nEm JSON: `{\"kind\": \"exited\", \"value\": 1}`, `{\"kind\": \"signaled\",\n\"value\": 11}`, `{\"kind\": \"exception\", \"value\": 3221225477}`,\n`{\"kind\": \"cancelled\"}`, `{\"kind\": \"timed_out\"}`, `{\"kind\": \"unknown\"}`.\n\nUm código de saída e um sinal são coisas diferentes: `msg_internal` do\n`cppcomp` chama `abort()`, e um `asmcomp` que perde um `fopen` morre por\nsegfault. Nenhum dos dois é um \"erro de compilação\" do usuário.",
+      "oneOf": [
+        {
+          "description": "Terminou com um código de saída.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exited"
+            },
+            "value": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "description": "Morto por sinal (só Unix).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "signaled"
+            },
+            "value": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "description": "Terminou com um código NTSTATUS de exceção (só Windows), por exemplo\n`0xC0000005`, violação de acesso.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exception"
+            },
+            "value": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "description": "O Lace encerrou o processo porque a operação foi cancelada\n([`CancelToken::cancel`]).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "O Lace encerrou o processo porque ele passou do prazo (por exemplo,\n[`SimulationOptions::timeout`](crate::SimulationOptions::timeout)).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "timed_out"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "O sistema não informou nem código nem sinal.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "Diagnostic": {
+      "description": "Uma mensagem de uma ferramenta, com os campos que deu para extrair.\n\n`file`, `line` e `column` são opcionais porque o `cmmcomp` não informa\narquivo nem coluna, e várias mensagens não informam nem a linha. Quando a\nferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila\num fonte só), `file` vem preenchido pelo Lace.\n\nEm JSON:\n\n```json\n{ \"tool\": \"cmmcomp\", \"severity\": \"error\",\n  \"message\": \"c'mon dude, declare the variable 'total' properly!\",\n  \"file\": \"/p/conta/Software/conta.cmm\", \"line\": 16, \"column\": null,\n  \"raw\": \"Error on line 16: c'mon dude, declare the variable 'total' properly!\" }\n```\n\nNo fluxo C, o `cppcomp` numera as linhas do arquivo pré-processado\n(`<temp>/pp.cpp`), e é esse o `file` que aparece: o `cpppp` não emite\nmarcadores `#line` que permitam voltar ao fonte original.",
+      "type": "object",
+      "properties": {
+        "tool": {
+          "description": "A ferramenta que escreveu a mensagem.",
+          "$ref": "#/$defs/Tool"
+        },
+        "severity": {
+          "description": "A gravidade.",
+          "$ref": "#/$defs/Severity"
+        },
+        "message": {
+          "description": "A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma\nda ferramenta (inglês: o Lace sempre pede `-en` ao YANC).",
+          "type": "string"
+        },
+        "file": {
+          "description": "O arquivo a que a mensagem se refere, como a ferramenta o escreveu\n(normalmente absoluto, porque o Lace passa caminhos absolutos).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "description": "Linha, a partir de 1.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "column": {
+          "description": "Coluna, a partir de 1 (Verilator e compilador C++).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "raw": {
+          "description": "O texto exatamente como a ferramenta o escreveu (várias linhas quando\na ferramenta continua a mensagem em linhas indentadas).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "severity",
+        "message",
+        "file",
+        "line",
+        "column",
+        "raw"
+      ]
+    },
+    "Severity": {
+      "description": "Gravidade de um [`Diagnostic`]. A ordem (`Error < Warning < Info <\nUnknown`) serve para ordenar do mais grave ao menos grave.\n\nEm JSON: `\"error\"`, `\"warning\"`, `\"info\"`, `\"unknown\"`.",
+      "oneOf": [
+        {
+          "description": "A ferramenta recusou a entrada.",
+          "type": "string",
+          "const": "error"
+        },
+        {
+          "description": "A ferramenta aceitou, mas avisou (`Heads up on line`, `%Warning-`).",
+          "type": "string",
+          "const": "warning"
+        },
+        {
+          "description": "Mensagem informativa (`Info:`, `Sweet:`, resumos de contagem).",
+          "type": "string",
+          "const": "info"
+        },
+        {
+          "description": "Linha que o parser não reconheceu.",
+          "type": "string",
+          "const": "unknown"
+        }
+      ]
+    },
+    "Artifact": {
+      "description": "Um arquivo que a operação deveria produzir.\n\n`fresh` é calculado comparando o horário de modificação antes e depois da\noperação. Um `.v` que sobrou de um build anterior aparece com\n`fresh = false`, e não como sucesso. Artefatos obrigatórios aparecem\nsempre; intermediários, só se existirem.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "O papel do arquivo.",
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "path": {
+          "description": "Caminho absoluto.",
+          "type": "string"
+        },
+        "required": {
+          "description": "Sem ele a operação não está completa.",
+          "type": "boolean"
+        },
+        "fresh": {
+          "description": "Existe e foi escrito por esta operação (não é sobra de uma anterior).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "required",
+        "fresh"
+      ]
+    },
+    "ArtifactKind": {
+      "description": "O papel de um arquivo produzido por uma operação. Em JSON, em\n`snake_case` (`\"data_memory\"`).",
+      "oneOf": [
+        {
+          "description": "`Software/<nome>.asm`",
+          "type": "string",
+          "const": "assembly"
+        },
+        {
+          "description": "`Hardware/<nome>.v`, o processador sintetizável.",
+          "type": "string",
+          "const": "verilog"
+        },
+        {
+          "description": "`Hardware/<nome>_data.mif`",
+          "type": "string",
+          "const": "data_memory"
+        },
+        {
+          "description": "`Hardware/<nome>_inst.mif`",
+          "type": "string",
+          "const": "instruction_memory"
+        },
+        {
+          "description": "`Simulation/<nome>_tb.v`: o testbench que o asmcomp gera na pasta\ntemporária, copiado para cá pelo build, como a AURORA faz.",
+          "type": "string",
+          "const": "testbench"
+        },
+        {
+          "description": "`<temp>/pp.cpp`, saída do `cpppp`.",
+          "type": "string",
+          "const": "preprocessed_source"
+        },
+        {
+          "description": "`<temp>/pc_<nome>_mem.txt`, liga endereço de instrução a linha do fonte.",
+          "type": "string",
+          "const": "program_counter_map"
+        },
+        {
+          "description": "`<temp>/trad_cmm.txt`",
+          "type": "string",
+          "const": "source_translation"
+        },
+        {
+          "description": "`<temp>/trad_opcode.txt`",
+          "type": "string",
+          "const": "opcode_translation"
+        },
+        {
+          "description": "`<temp>/cmm_log.txt`",
+          "type": "string",
+          "const": "compiler_log"
+        },
+        {
+          "description": "`<temp>/app_log.txt`",
+          "type": "string",
+          "const": "pre_assembler_log"
+        },
+        {
+          "description": "O `.vvp` do Icarus.",
+          "type": "string",
+          "const": "icarus_image"
+        },
+        {
+          "description": "O executável que o Verilator gerou.",
+          "type": "string",
+          "const": "verilated_model"
+        },
+        {
+          "description": "Onda da simulação (VCD ou FST).",
+          "type": "string",
+          "const": "waveform"
+        },
+        {
+          "description": "`Simulation/output_<n>.txt`, escrito pelo testbench.",
+          "type": "string",
+          "const": "simulation_output"
+        },
+        {
+          "description": "Netlist JSON do Yosys.",
+          "type": "string",
+          "const": "netlist"
+        },
+        {
+          "description": "Grafo do esquemático (`.dot`), gerado pelo Yosys.",
+          "type": "string",
+          "const": "schematic_graph"
+        },
+        {
+          "description": "Esquemático SVG, desenhado pelo `dot`.",
+          "type": "string",
+          "const": "schematic"
+        },
+        {
+          "description": "As estatísticas do `stat -json` do Yosys (`stat.json`).",
+          "type": "string",
+          "const": "synthesis_statistics"
+        }
+      ]
+    }
+  }
+}

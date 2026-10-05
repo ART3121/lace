@@ -1,0 +1,54 @@
+[package]
+name = "lace-studio"
+description = "Lace Studio: o ambiente gráfico do Lace para Verilog e processadores SAPHO"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.90"
+authors = ["NIPS-CERN <https://nipscern.com>"]
+publish = false
+
+[lib]
+# O nome com `_lib` evita a colisão entre o binário e a biblioteca no Windows.
+name = "lace_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# O Core do Lace, do mesmo repositório. Ver docs/DEVELOPMENT.md.
+lace-core = { path = "../../crates/lace-core" }
+
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+
+camino = { version = "1.2.6", features = ["serde1"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.21"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+
+# Arquivos: vigiar a pasta do projeto, mandar para a lixeira, buscar.
+notify = "8.2.0"
+trash = "5.2.9"
+regex = "1.13.1"
+
+# O terminal de shell (o TCMD da AURORA).
+portable-pty = "0.9.0"
+
+# A onda numa aba: o servidor local que serve o cliente web do Surfer e
+# repassa os pedidos ao `surfer-aurora server` (wave_tab.rs).
+tiny_http = "0.12.0"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
+
+[target."cfg(unix)".dependencies]
+signal-hook = { version = "0.3", default-features = false, features = ["iterator"] }

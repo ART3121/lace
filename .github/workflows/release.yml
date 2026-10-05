@@ -1,4 +1,4 @@
-# Release do Solar: numa tag vX.Y.Z, monta e testa os instaladores das três
+# Release do Lace: numa tag vX.Y.Z, monta e testa os instaladores das três
 # plataformas (installers.yml) e cria um RASCUNHO de release no GitHub com
 # eles, o SHA256SUMS e as notas da versão no CHANGELOG.md. Publicar o
 # rascunho é manual.
@@ -13,15 +13,18 @@ on:
 
 jobs:
   # Antes de gastar uma hora de build: a tag tem que ser a versão do
-  # Cargo.toml, e o CHANGELOG.md tem que ter a seção dela.
+  # Cargo.toml e a do Studio (o bundle.py confere que o studio/ diz o mesmo
+  # que o bundle/versions.json), e o CHANGELOG.md tem que ter a seção dela.
   check:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Tag, versão e CHANGELOG
         run: |
-          version=$(cargo metadata --no-deps --format-version 1 | python3 -c "import json,sys; print([p['version'] for p in json.load(sys.stdin)['packages'] if p['name']=='solar-cli'][0])")
+          version=$(cargo metadata --no-deps --format-version 1 | python3 -c "import json,sys; print([p['version'] for p in json.load(sys.stdin)['packages'] if p['name']=='lace-cli'][0])")
           test "$GITHUB_REF_NAME" = "v$version" || { echo "a tag é $GITHUB_REF_NAME, mas o Cargo.toml diz $version"; exit 1; }
+          studio=$(python3 -c "import json; print(json.load(open('bundle/versions.json'))['packages']['studio']['version'])")
+          test "$studio" = "$version" || { echo "o Studio em bundle/versions.json é $studio, e o Lace é $version"; exit 1; }
           grep -q "^## $version " CHANGELOG.md || { echo "o CHANGELOG.md não tem a seção ## $version"; exit 1; }
 
   installers:
@@ -30,7 +33,7 @@ jobs:
 
   publish:
     needs: installers
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
@@ -42,6 +45,10 @@ jobs:
       - name: Somas e notas
         run: |
           version="${{ needs.installers.outputs.version }}"
+          # Os aplicativos do bundle em pedaços (o lace install os baixa) vêm
+          # em apps/ em cada artefato e vão para a raiz da release, como o
+          # lace install os procura. Os nomes levam a plataforma.
+          if [ -d dist/apps ]; then mv dist/apps/* dist/ && rmdir dist/apps; fi
           (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
           {
             awk -v v="$version" '/^## / { p = ($2 == v) } p' CHANGELOG.md
@@ -55,5 +62,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
-            --title "Solar ${{ needs.installers.outputs.version }}" \
+            --title "Lace ${{ needs.installers.outputs.version }}" \
             --notes-file notes.md dist/*

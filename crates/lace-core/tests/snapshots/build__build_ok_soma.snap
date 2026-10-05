@@ -1,0 +1,257 @@
+---
+source: crates/lace-core/tests/build.rs
+expression: "normalized(&result, &root, &toolchain)"
+---
+{
+  "processor": "soma",
+  "language": "cmm",
+  "status": "succeeded",
+  "failed_step": null,
+  "frequency_mhz": 100,
+  "clocks": 2000,
+  "steps": [
+    {
+      "step": "compile",
+      "tool": "cmmcomp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/cmmcomp",
+        "args": [
+          "-i",
+          "soma.cmm",
+          "-n",
+          "soma",
+          "-p",
+          "[PROJETO]/soma",
+          "-m",
+          "[TOOLCHAIN]/yanc/Macros",
+          "-t",
+          "[PROJETO]/.lace/Temp/soma",
+          "-en"
+        ],
+        "cwd": "[PROJETO]/soma",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 0
+      },
+      "stdout": "Info: 16 assembly instructions generated\nSweet: it compiled! Now you just gotta figure out why it doesn't work.\n",
+      "stderr": "",
+      "duration_ms": "[ms]"
+    },
+    {
+      "step": "pre_assemble",
+      "tool": "appcomp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/appcomp",
+        "args": [
+          "-i",
+          "[PROJETO]/soma/Software/soma.asm",
+          "-t",
+          "[PROJETO]/.lace/Temp/soma",
+          "-en"
+        ],
+        "cwd": "[PROJETO]/.lace/Temp/soma",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 0
+      },
+      "stdout": "Info: 16 instructions and 5 variables were found\nSweet: got the memory count nailed down! Now let's see which circuits you'll need...\n",
+      "stderr": "",
+      "duration_ms": "[ms]"
+    },
+    {
+      "step": "assemble",
+      "tool": "asmcomp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/asmcomp",
+        "args": [
+          "-i",
+          "[PROJETO]/soma/Software/soma.asm",
+          "-p",
+          "[PROJETO]/soma",
+          "-d",
+          "[TOOLCHAIN]/yanc/SAPHO",
+          "-m",
+          "[TOOLCHAIN]/yanc/Macros",
+          "-t",
+          "[PROJETO]/.lace/Temp/soma",
+          "-f",
+          "100",
+          "-c",
+          "2000",
+          "-en"
+        ],
+        "cwd": "[PROJETO]/.lace/Temp/soma",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 0
+      },
+      "stdout": "Info: ULA resource -> integer adder\nInfo: ULA resource -> < operator for int\nInfo: adding data output handling\nInfo: using 5% of the Assembly Instruction Set\nInfo: using 5% of the ULA operations\nSweet: the processor is good to go.\n",
+      "stderr": "",
+      "duration_ms": "[ms]"
+    }
+  ],
+  "diagnostics": [
+    {
+      "tool": "cmmcomp",
+      "severity": "info",
+      "message": "16 assembly instructions generated",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: 16 assembly instructions generated"
+    },
+    {
+      "tool": "cmmcomp",
+      "severity": "info",
+      "message": "it compiled! Now you just gotta figure out why it doesn't work.",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Sweet: it compiled! Now you just gotta figure out why it doesn't work."
+    },
+    {
+      "tool": "appcomp",
+      "severity": "info",
+      "message": "16 instructions and 5 variables were found",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: 16 instructions and 5 variables were found"
+    },
+    {
+      "tool": "appcomp",
+      "severity": "info",
+      "message": "got the memory count nailed down! Now let's see which circuits you'll need...",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Sweet: got the memory count nailed down! Now let's see which circuits you'll need..."
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "ULA resource -> integer adder",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: ULA resource -> integer adder"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "ULA resource -> < operator for int",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: ULA resource -> < operator for int"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "adding data output handling",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: adding data output handling"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "using 5% of the Assembly Instruction Set",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: using 5% of the Assembly Instruction Set"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "using 5% of the ULA operations",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Info: using 5% of the ULA operations"
+    },
+    {
+      "tool": "asmcomp",
+      "severity": "info",
+      "message": "the processor is good to go.",
+      "file": null,
+      "line": null,
+      "column": null,
+      "raw": "Sweet: the processor is good to go."
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "assembly",
+      "path": "[PROJETO]/soma/Software/soma.asm",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "verilog",
+      "path": "[PROJETO]/soma/Hardware/soma.v",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "data_memory",
+      "path": "[PROJETO]/soma/Hardware/soma_data.mif",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "instruction_memory",
+      "path": "[PROJETO]/soma/Hardware/soma_inst.mif",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "testbench",
+      "path": "[PROJETO]/soma/Simulation/soma_tb.v",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "program_counter_map",
+      "path": "[PROJETO]/.lace/Temp/soma/pc_soma_mem.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "source_translation",
+      "path": "[PROJETO]/.lace/Temp/soma/trad_cmm.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "opcode_translation",
+      "path": "[PROJETO]/.lace/Temp/soma/trad_opcode.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "compiler_log",
+      "path": "[PROJETO]/.lace/Temp/soma/cmm_log.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "pre_assembler_log",
+      "path": "[PROJETO]/.lace/Temp/soma/app_log.txt",
+      "required": false,
+      "fresh": true
+    }
+  ],
+  "duration_ms": "[ms]"
+}

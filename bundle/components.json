@@ -5,11 +5,14 @@
     "select: caminhos no pacote; binários entram com o fecho das bibliotecas que carregam.",
     "data: caminhos que entram sem fecho (os módulos do Python, por exemplo).",
     "exclude: caminhos que não entram, mesmo que casem com select ou data.",
-    "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora).",
-    "run: os executáveis que o Solar roda; o SHA-256 de cada um vai para o manifesto.",
+    "keep: exceções ao exclude: entram mesmo casando com ele (alguns pacotes do site-packages do Python, sem os outros).",
+    "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora, Lace Studio).",
+    "run: os executáveis que o Lace roda; o SHA-256 de cada um vai para o manifesto.",
     "Padrões: caminho exato, 'dir/**' para tudo abaixo de dir, ou glob de fnmatch.",
     "Chaves de plataforma: linux-x64, darwin-arm64, windows-x64; 'unix' vale para as duas primeiras.",
-    "common: arquivos de um pacote que vão com qualquer componente dele (no macOS, o realpath que os lançadores usam)."
+    "common: arquivos de um pacote que vão com qualquer componente dele (no macOS, o realpath que os lançadores usam).",
+    "msys: no pacote msys (o bloco de Windows do lace-toolchain), os pacotes do MSYS2 que o componente leva; as dependências deles e os arquivos de cada um saem do manifesto da release. Nome curto (iverilog, gcc) para os do UCRT64; o nome exato vale primeiro (make, bash: os da camada MSYS).",
+    "description: texto, ou um por plataforma, como as outras chaves."
   ],
   "common": {
     "oss-cad-suite": ["VERSION", "README", "license/**", "libexec/realpath"]
@@ -18,7 +21,7 @@
     {
       "name": "yanc",
       "label": "YANC",
-      "description": "Compiladores C± e C do SAPHO e a biblioteca SAPHO",
+      "description": "SAPHO C± and C compilers and the SAPHO library",
       "recommended": true,
       "package": "yanc",
       "closure": false,
@@ -31,33 +34,35 @@
     {
       "name": "icarus",
       "label": "Icarus Verilog",
-      "description": "Simulador Verilog, o padrão da AURORA",
+      "description": "Verilog simulator, the AURORA default",
       "recommended": true,
-      "package": "oss-cad-suite",
+      "package": { "windows-x64": "msys", "*": "oss-cad-suite" },
       "select": {
-        "unix": ["bin/iverilog", "bin/vvp", "libexec/iverilog", "libexec/vvp", "libexec/ivl", "libexec/ivlpp", "lib/ivl/**"],
-        "windows-x64": ["bin/iverilog.exe", "bin/vvp.exe", "lib/ivl/**"]
+        "unix": ["bin/iverilog", "bin/vvp", "libexec/iverilog", "libexec/vvp", "libexec/ivl", "libexec/ivlpp", "lib/ivl/**"]
       },
+      "msys": { "windows-x64": ["iverilog"] },
       "run": {
         "unix": ["bin/iverilog", "bin/vvp", "libexec/iverilog", "libexec/vvp", "libexec/ivl", "libexec/ivlpp"],
-        "windows-x64": ["bin/iverilog.exe", "bin/vvp.exe", "lib/ivl/ivl.exe", "lib/ivl/ivlpp.exe"]
+        "windows-x64": ["ucrt64/bin/iverilog.exe", "ucrt64/bin/vvp.exe", "ucrt64/lib/ivl/ivl.exe", "ucrt64/lib/ivl/ivlpp.exe"]
       }
     },
     {
       "name": "verilator",
       "label": "Verilator",
-      "description": "Simulador compilado; precisa de compilador C++, make e Perl do sistema",
+      "description": {
+        "windows-x64": "Compiled simulator, with the g++, make and Perl it uses",
+        "*": "Compiled simulator; needs a system C++ compiler, make and Perl"
+      },
       "recommended": false,
-      "package": "oss-cad-suite",
+      "package": { "windows-x64": "msys", "*": "oss-cad-suite" },
       "select": {
-        "unix": ["bin/verilator", "bin/verilator_bin", "libexec/verilator_bin", "bin/tabbypy3", "libexec/python3.11"],
-        "windows-x64": ["bin/verilator", "bin/verilator_bin.exe", "lib/python3.exe"]
+        "unix": ["bin/verilator", "bin/verilator_bin", "libexec/verilator_bin", "bin/tabbypy3", "libexec/python3.11"]
       },
       "data": {
-        "*": ["share/verilator/**", "lib/python3.11/**"]
+        "unix": ["share/verilator/**", "lib/python3.11/**"]
       },
       "exclude": {
-        "*": [
+        "unix": [
           "share/verilator/bin/*_dbg*", "share/verilator/bin/verilator_bin*",
           "lib/python3.11/test/**", "lib/python3.11/site-packages/**", "lib/python3.11/idlelib/**",
           "lib/python3.11/tkinter/**", "lib/python3.11/turtledemo/**", "lib/python3.11/lib2to3/**",
@@ -65,15 +70,68 @@
           "lib/python3.11/pydoc_data/**", "lib/python3.11/distutils/**", "lib/python3.11/__phello__/**"
         ]
       },
+      "msys": {
+        "windows-x64": ["verilator", "perl", "gcc", "python", "make", "bash", "coreutils", "findutils", "msys2-runtime"]
+      },
       "run": {
         "unix": ["bin/verilator", "bin/verilator_bin", "libexec/verilator_bin", "bin/tabbypy3", "libexec/python3.11"],
-        "windows-x64": ["bin/verilator", "bin/verilator_bin.exe", "lib/python3.exe"]
+        "windows-x64": [
+          "ucrt64/bin/verilator", "ucrt64/bin/verilator_bin.exe", "ucrt64/bin/perl.exe", "ucrt64/bin/g++.exe",
+          "ucrt64/bin/python.exe", "usr/bin/make.exe", "usr/bin/sh.exe"
+        ]
+      }
+    },
+    {
+      "name": "cocotb",
+      "label": "cocotb",
+      "description": "Python testbenches, with the Python that runs them; simulates with Icarus or Verilator",
+      "recommended": false,
+      "requires": ["icarus"],
+      "package": { "windows-x64": "msys", "unix": "oss-cad-suite" },
+      "select": {
+        "unix": [
+          "bin/tabbypy3", "libexec/python3.11", "lib/libpython3.11*", "lib/libdl.so*",
+          "lib/python3.11/lib-dynload/*",
+          "lib/python3.11/site-packages/cocotb-*.egg/**/*.so",
+          "lib/python3.11/site-packages/cocotb-*.egg/**/*.vpl"
+        ]
+      },
+      "data": {
+        "unix": ["lib/python3.11/**"]
+      },
+      "exclude": {
+        "unix": [
+          "lib/python3.11/test/**", "lib/python3.11/idlelib/**", "lib/python3.11/tkinter/**",
+          "lib/python3.11/turtledemo/**", "lib/python3.11/lib2to3/**", "lib/python3.11/ensurepip/**",
+          "lib/python3.11/config-3.11*/**", "lib/python3.11/__phello__/**", "lib/python3.11/pydoc_data/**",
+          "lib/python3.11/*/test/**", "lib/python3.11/*/tests/**", "lib/python3.11/lib-dynload/_tkinter*",
+          "lib/python3.11/site-packages/**"
+        ]
+      },
+      "keep": {
+        "unix": [
+          "lib/python3.11/site-packages/cocotb.pth",
+          "lib/python3.11/site-packages/cocotb-*.egg/**",
+          "lib/python3.11/site-packages/find_libpython-*.egg/**",
+          "lib/python3.11/site-packages/_pytest/**", "lib/python3.11/site-packages/pytest/**",
+          "lib/python3.11/site-packages/pytest-*.dist-info/**",
+          "lib/python3.11/site-packages/pluggy/**", "lib/python3.11/site-packages/pluggy-*.dist-info/**",
+          "lib/python3.11/site-packages/iniconfig/**", "lib/python3.11/site-packages/iniconfig-*.dist-info/**",
+          "lib/python3.11/site-packages/packaging/**", "lib/python3.11/site-packages/packaging-*.dist-info/**",
+          "lib/python3.11/site-packages/pygments/**", "lib/python3.11/site-packages/pygments-*.dist-info/**",
+          "lib/python3.11/site-packages/py.py"
+        ]
+      },
+      "msys": { "windows-x64": ["cocotb", "mingw-w64-ucrt-x86_64-gcc-libs"] },
+      "run": {
+        "unix": ["bin/tabbypy3", "libexec/python3.11"],
+        "windows-x64": ["ucrt64/bin/python.exe"]
       }
     },
     {
       "name": "yosys",
       "label": "Yosys",
-      "description": "Síntese e verificação de sintaxe",
+      "description": "Synthesis, schematic and the port list for generated testbenches",
       "recommended": true,
       "package": "oss-cad-suite",
       "select": {
@@ -90,7 +148,7 @@
     {
       "name": "graphviz",
       "label": "Graphviz (dot)",
-      "description": "Desenho do esquemático a partir do grafo do Yosys",
+      "description": "Draws the schematic from the Yosys graph",
       "recommended": true,
       "requires": ["yosys"],
       "package": { "windows-x64": "graphviz", "*": "oss-cad-suite" },
@@ -107,7 +165,7 @@
     {
       "name": "surfer-aurora",
       "label": "surfer-aurora",
-      "description": "Visualizador de formas de onda (o fork do Surfer da AURORA)",
+      "description": "Waveform viewer (the AURORA fork of Surfer)",
       "recommended": true,
       "package": "surfer-aurora",
       "closure": false,
@@ -115,6 +173,24 @@
       "run": {
         "unix": ["surfer-aurora"],
         "windows-x64": ["surfer-aurora.exe"]
+      }
+    },
+    {
+      "name": "studio",
+      "label": "Lace Studio",
+      "description": {
+        "linux-x64": "The graphical environment (editor, build, simulation, waves); needs the system webkit2gtk 4.1",
+        "windows-x64": "The graphical environment (editor, build, simulation, waves); needs the WebView2 runtime that comes with Windows 10 and 11",
+        "*": "The graphical environment (editor, build, simulation, waves)"
+      },
+      "recommended": true,
+      "package": "studio",
+      "closure": false,
+      "select": { "*": ["**"] },
+      "run": {
+        "linux-x64": ["lace-studio"],
+        "darwin-arm64": ["Lace Studio.app/Contents/MacOS/lace-studio"],
+        "windows-x64": ["lace-studio.exe"]
       }
     }
   ]

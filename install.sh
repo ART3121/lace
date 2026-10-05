@@ -1,51 +1,51 @@
 #!/bin/sh
-# Instala a última release do Solar (Linux x64, macOS Apple Silicon).
+# Instala a última release do Lace (Linux x64, macOS Apple Silicon).
 #
-#   curl -fsSL https://raw.githubusercontent.com/ART3121/solar/main/install.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/ART3121/solar/main/install.sh | sh -s -- --yes
+#   curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes
 #
 # Baixa o instalador da release, confere o SHA-256 com o SHA256SUMS da
 # release, extrai numa pasta provisória e roda o `install`. Os argumentos
 # depois de `sh -s --` vão para o `install` (--yes, --components, --prefix,
-# --no-link, --list). SOLAR_VERSION=0.1.0 fixa a versão.
+# --no-link, --list). LACE_VERSION=0.2.0 fixa a versão.
 
 set -eu
 
-repo="${SOLAR_REPO:-ART3121/solar}"
+repo="${LACE_REPO:-ART3121/lace}"
 
 die() {
-    echo "erro: $*" >&2
+    echo "Error: $*" >&2
     exit 1
 }
 
 case "$(uname -s) $(uname -m)" in
     "Linux x86_64") platform=linux-x64 ;;
     "Darwin arm64") platform=darwin-arm64 ;;
-    *) die "não há instalador do Solar para $(uname -s) $(uname -m) (só Linux x64 e macOS Apple Silicon; no Windows, use o install.ps1)" ;;
+    *) die "No Lace installer for $(uname -s) $(uname -m) (only Linux x64 and macOS Apple Silicon; on Windows, use install.ps1)" ;;
 esac
 
-command -v curl >/dev/null 2>&1 || die "precisa do curl"
-command -v tar >/dev/null 2>&1 || die "precisa do tar"
+command -v curl >/dev/null 2>&1 || die "curl is required"
+command -v tar >/dev/null 2>&1 || die "tar is required"
 if command -v sha256sum >/dev/null 2>&1; then
     sha256="sha256sum"
 elif command -v shasum >/dev/null 2>&1; then
     sha256="shasum -a 256"
 else
-    die "precisa do sha256sum ou do shasum para conferir o download"
+    die "sha256sum or shasum is required to verify the download"
 fi
 
 # A última versão: /releases/latest redireciona para /releases/tag/v<versão>.
-version="${SOLAR_VERSION:-}"
+version="${LACE_VERSION:-}"
 if [ -z "$version" ]; then
     latest=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$repo/releases/latest") ||
-        die "não consegui consultar https://github.com/$repo/releases"
+        die "Could not look up https://github.com/$repo/releases"
     version=${latest##*/v}
 fi
 case "$version" in
-    "" | */*) die "não achei a última versão em https://github.com/$repo/releases" ;;
+    "" | */*) die "Could not find the latest version at https://github.com/$repo/releases" ;;
 esac
 
-name="solar-$version-$platform"
+name="lace-$version-$platform"
 base="https://github.com/$repo/releases/download/v$version"
 
 # Fora do /tmp: há distribuições que o montam sem permissão de execução.
@@ -57,19 +57,19 @@ else
     cache="${XDG_CACHE_HOME:-$HOME/.cache}"
 fi
 mkdir -p "$cache"
-tmp=$(mktemp -d "$cache/solar-install.XXXXXX")
+tmp=$(mktemp -d "$cache/lace-install.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 trap 'exit 130' INT TERM
 
-echo "Baixando o Solar $version ($platform)"
+echo "Downloading Lace $version ($platform)"
 curl -fL --progress-bar -o "$tmp/$name.tar.gz" "$base/$name.tar.gz" ||
-    die "não consegui baixar $base/$name.tar.gz"
+    die "Could not download $base/$name.tar.gz"
 curl -fsSL -o "$tmp/SHA256SUMS" "$base/SHA256SUMS" ||
-    die "não consegui baixar $base/SHA256SUMS"
+    die "Could not download $base/SHA256SUMS"
 (
     cd "$tmp"
-    grep " $name.tar.gz\$" SHA256SUMS >"$name.sha256" || die "o SHA256SUMS da release não lista $name.tar.gz"
-    $sha256 -c "$name.sha256" >/dev/null 2>&1 || die "o SHA-256 de $name.tar.gz não confere com o SHA256SUMS da release"
+    grep " $name.tar.gz\$" SHA256SUMS >"$name.sha256" || die "The release SHA256SUMS does not list $name.tar.gz"
+    $sha256 -c "$name.sha256" >/dev/null 2>&1 || die "The SHA-256 of $name.tar.gz does not match the release SHA256SUMS"
 )
 tar xzf "$tmp/$name.tar.gz" -C "$tmp"
 

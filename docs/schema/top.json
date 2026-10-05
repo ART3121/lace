@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TopReport",
+  "description": "`lace top`.",
+  "type": "object",
+  "properties": {
+    "top_level": {
+      "description": "O arquivo de topo, se escolhido.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "module": {
+      "description": "O módulo de topo.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "module_error": {
+      "description": "Por que não dá para saber o módulo de um arquivo de topo escolhido\n(vários módulos, nenhum com o nome do arquivo).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ErrorInfo"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "top_level",
+    "module",
+    "module_error"
+  ],
+  "$defs": {
+    "ErrorInfo": {
+      "description": "Um erro do Lace.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "Código estável, em `snake_case` (`no_testbench`, `component_missing`),\nou `cli` para um erro da própria linha de comando.",
+          "type": "string"
+        },
+        "message": {
+          "description": "A mensagem, em inglês.",
+          "type": "string"
+        },
+        "hint": {
+          "description": "O comando que resolve, quando há um.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    }
+  }
+}

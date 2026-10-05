@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-// Testbench sem $dumpfile: o Solar injeta o dump padrão.
+// Testbench sem $dumpfile: o Lace injeta o dump padrão.
 module contador_tb;
     reg clk = 0, rst = 1, en = 0;
     wire [3:0] q;

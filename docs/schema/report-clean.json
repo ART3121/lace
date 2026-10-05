@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReportCleanReport",
+  "description": "`lace report clean`: os relatórios apagados.",
+  "type": "object",
+  "properties": {
+    "removed": {
+      "description": "Os apagados, do mais antigo para o mais novo. Vazio se não havia o\nque apagar.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "kept": {
+      "description": "Quantos ficaram no histórico.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "removed",
+    "kept"
+  ]
+}

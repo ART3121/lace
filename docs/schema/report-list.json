@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReportListReport",
+  "description": "`lace report list`: os relatórios, do mais novo para o mais antigo.",
+  "type": "object",
+  "properties": {
+    "reports": {
+      "description": "Os relatórios, até o `--limit`.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RunSummary"
+      }
+    }
+  },
+  "required": [
+    "reports"
+  ],
+  "$defs": {
+    "RunSummary": {
+      "description": "Uma linha de [`list`].",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "O identificador.",
+          "type": "string"
+        },
+        "timestamp": {
+          "description": "Quando terminou; `null` num relatório ilegível.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "command": {
+          "description": "O comando.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "description": "Como terminou.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Status"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "top": {
+          "description": "O módulo de topo.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "synthesis": {
+          "description": "Tem estatísticas de síntese.",
+          "type": "boolean"
+        },
+        "simulation": {
+          "description": "Quanto dos tempos de simulação tem.",
+          "$ref": "#/$defs/Availability"
+        },
+        "readable": {
+          "description": "O `record.json` pôde ser lido.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "timestamp",
+        "command",
+        "status",
+        "top",
+        "synthesis",
+        "simulation",
+        "readable"
+      ]
+    },
+    "Status": {
+      "description": "Como uma operação terminou. Em JSON, em `snake_case` (`\"succeeded\"`).",
+      "oneOf": [
+        {
+          "description": "Todos os passos terminaram com código 0 e os artefatos foram gerados.",
+          "type": "string",
+          "const": "succeeded"
+        },
+        {
+          "description": "Uma ferramenta recusou a entrada (código de saída diferente de 0).",
+          "type": "string",
+          "const": "failed"
+        },
+        {
+          "description": "Uma ferramenta morreu (sinal no Unix, exceção no Windows). É defeito da\nferramenta, não do código do usuário.",
+          "type": "string",
+          "const": "crashed"
+        },
+        {
+          "description": "As ferramentas terminaram bem, mas faltou algum artefato obrigatório.",
+          "type": "string",
+          "const": "incomplete"
+        },
+        {
+          "description": "O cancelamento foi pedido ([`CancelToken`](crate::CancelToken)): o\npasso que rodava foi encerrado e os seguintes não rodaram.",
+          "type": "string",
+          "const": "cancelled"
+        },
+        {
+          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "type": "string",
+          "const": "timed_out"
+        }
+      ]
+    },
+    "Availability": {
+      "description": "Quanto de uma parte um relatório tem.",
+      "oneOf": [
+        {
+          "description": "Tudo.",
+          "type": "string",
+          "const": "available"
+        },
+        {
+          "description": "Uma parte (uma simulação que não compilou não tem tempo de execução).",
+          "type": "string",
+          "const": "partial"
+        },
+        {
+          "description": "Nada.",
+          "type": "string",
+          "const": "unavailable"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NewReport",
+  "description": "`lace new`: o projeto criado.",
+  "type": "object",
+  "properties": {
+    "message": {
+      "description": "Sempre `\"Project created\"`.",
+      "type": "string"
+    },
+    "path": {
+      "description": "O `.spf` criado.",
+      "type": "string"
+    },
+    "root": {
+      "description": "A pasta do projeto.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "message",
+    "path",
+    "root"
+  ]
+}

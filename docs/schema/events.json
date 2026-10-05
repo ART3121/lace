@@ -1,0 +1,442 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EventLine",
+  "description": "Uma linha do `--events`: um evento do Core enquanto as ferramentas rodam,\nou, na última linha, o resultado.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/Event"
+    },
+    {
+      "$ref": "#/$defs/ResultLine"
+    }
+  ],
+  "$defs": {
+    "Event": {
+      "description": "O que aconteceu durante uma operação, avisado na hora em que acontece.\n\nEm JSON, com o tipo no campo `event`:\n\n```json\n{ \"event\": \"step_started\", \"step\": \"simulate\", \"tool\": \"vvp\", \"command\": { \"...\": \"...\" } }\n{ \"event\": \"output\", \"step\": \"simulate\", \"tool\": \"vvp\", \"stream\": \"stdout\",\n  \"line\": \"t=10 y=1\", \"diagnostic\": false }\n{ \"event\": \"step_finished\", \"step\": \"simulate\", \"tool\": \"vvp\",\n  \"termination\": { \"kind\": \"exited\", \"value\": 0 }, \"duration_ms\": 12 }\n```\n\nOs mesmos dados chegam depois no resultado da operação\n([`StepReport`](crate::StepReport)); os eventos só os adiantam.",
+      "oneOf": [
+        {
+          "description": "Um passo começou: o processo vai ser iniciado.",
+          "type": "object",
+          "properties": {
+            "step": {
+              "description": "Qual passo.",
+              "$ref": "#/$defs/Step"
+            },
+            "tool": {
+              "description": "A ferramenta.",
+              "$ref": "#/$defs/Tool"
+            },
+            "command": {
+              "description": "O que vai ser executado.",
+              "$ref": "#/$defs/Invocation"
+            },
+            "event": {
+              "type": "string",
+              "const": "step_started"
+            }
+          },
+          "required": [
+            "event",
+            "step",
+            "tool",
+            "command"
+          ]
+        },
+        {
+          "description": "Uma linha que o processo escreveu, sem o fim de linha. Linhas de\nstdout e de stderr chegam na ordem em que o Lace as leu, que pode não\nser exatamente a ordem em que o processo as escreveu.",
+          "type": "object",
+          "properties": {
+            "step": {
+              "description": "O passo que escreveu.",
+              "$ref": "#/$defs/Step"
+            },
+            "tool": {
+              "description": "A ferramenta que escreveu.",
+              "$ref": "#/$defs/Tool"
+            },
+            "stream": {
+              "description": "stdout ou stderr.",
+              "$ref": "#/$defs/Stream"
+            },
+            "line": {
+              "description": "A linha, decodificada como UTF-8 (bytes inválidos viram `U+FFFD`).",
+              "type": "string"
+            },
+            "diagnostic": {
+              "description": "A linha é uma mensagem da ferramenta, que volta interpretada em\n`diagnostics` no resultado: tudo do stderr, todo o stdout dos\ncompiladores, e no stdout de uma simulação as linhas do próprio\nsimulador (`$finish called at`, `VCD info:`, o `ERROR:` de um\n`$error`). `false` é saída do programa, como o `$display` do\ntestbench. Decidido linha a linha: a continuação indentada de uma\nmensagem conta como `false`.",
+              "type": "boolean"
+            },
+            "event": {
+              "type": "string",
+              "const": "output"
+            }
+          },
+          "required": [
+            "event",
+            "step",
+            "tool",
+            "stream",
+            "line",
+            "diagnostic"
+          ]
+        },
+        {
+          "description": "O processo do passo terminou.",
+          "type": "object",
+          "properties": {
+            "step": {
+              "description": "Qual passo.",
+              "$ref": "#/$defs/Step"
+            },
+            "tool": {
+              "description": "A ferramenta.",
+              "$ref": "#/$defs/Tool"
+            },
+            "termination": {
+              "description": "Como terminou.",
+              "$ref": "#/$defs/Termination"
+            },
+            "duration_ms": {
+              "description": "Duração, em milissegundos.",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "event": {
+              "type": "string",
+              "const": "step_finished"
+            }
+          },
+          "required": [
+            "event",
+            "step",
+            "tool",
+            "termination",
+            "duration_ms"
+          ]
+        }
+      ]
+    },
+    "Step": {
+      "description": "Um passo de uma operação. Em JSON, em `snake_case` (`\"pre_assemble\"`).",
+      "oneOf": [
+        {
+          "description": "`cpppp`, só no fluxo C.",
+          "type": "string",
+          "const": "preprocess"
+        },
+        {
+          "description": "`cmmcomp` ou `cppcomp`: fonte para assembly.",
+          "type": "string",
+          "const": "compile"
+        },
+        {
+          "description": "`appcomp`: conta instruções e variáveis.",
+          "type": "string",
+          "const": "pre_assemble"
+        },
+        {
+          "description": "`asmcomp`: assembly para Verilog e memórias.",
+          "type": "string",
+          "const": "assemble"
+        },
+        {
+          "description": "`iverilog -t null`: só confere se o Verilog elabora.",
+          "type": "string",
+          "const": "check_syntax"
+        },
+        {
+          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `lace check --lint`.",
+          "type": "string",
+          "const": "lint"
+        },
+        {
+          "description": "`iverilog`: Verilog para o `.vvp` do Icarus.",
+          "type": "string",
+          "const": "elaborate"
+        },
+        {
+          "description": "`verilator --binary`: Verilog para um executável C++.",
+          "type": "string",
+          "const": "verilate"
+        },
+        {
+          "description": "`vvp` ou o executável do Verilator rodando o testbench.",
+          "type": "string",
+          "const": "simulate"
+        },
+        {
+          "description": "`yosys`: Verilog para netlist JSON.",
+          "type": "string",
+          "const": "synthesize"
+        },
+        {
+          "description": "`yosys show`: netlist para o grafo do esquemático (`.dot`).",
+          "type": "string",
+          "const": "graph"
+        },
+        {
+          "description": "`dot`: grafo do esquemático para SVG.",
+          "type": "string",
+          "const": "render"
+        }
+      ]
+    },
+    "Tool": {
+      "description": "As ferramentas que o Lace sabe orquestrar.\n\nEm JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do\nprograma ([`Tool::binary_name`]).",
+      "oneOf": [
+        {
+          "description": "Compilador C± do YANC: `.cmm` para `.asm`.",
+          "type": "string",
+          "const": "cmmcomp"
+        },
+        {
+          "description": "Pré-assembler do YANC: conta instruções e variáveis do `.asm` e\nregistra o `#PRNAME` em `app_log.txt`.",
+          "type": "string",
+          "const": "appcomp"
+        },
+        {
+          "description": "Assembler do YANC: `.asm` para o Verilog do processador, as memórias\n`.mif` e o testbench.",
+          "type": "string",
+          "const": "asmcomp"
+        },
+        {
+          "description": "Pré-processador do fluxo C do YANC (`#include`, `#define`).",
+          "type": "string",
+          "const": "cpppp"
+        },
+        {
+          "description": "Compilador C do YANC: `.cpp` pré-processado para `.asm`.",
+          "type": "string",
+          "const": "cppcomp"
+        },
+        {
+          "description": "Compilador do Icarus Verilog.",
+          "type": "string",
+          "const": "iverilog"
+        },
+        {
+          "description": "Simulador do Icarus: executa o `.vvp` que o `iverilog` gera.",
+          "type": "string",
+          "const": "vvp"
+        },
+        {
+          "description": "Verilator: compila o Verilog para um executável C++ e o roda como\nsimulação, com o compilador de [`SystemCompiler`].",
+          "type": "string",
+          "const": "verilator"
+        },
+        {
+          "description": "Yosys: sintetiza Verilog para netlist e gera o grafo do esquemático.",
+          "type": "string",
+          "const": "yosys"
+        },
+        {
+          "description": "`dot` do Graphviz: desenha o grafo do esquemático em SVG.",
+          "type": "string",
+          "const": "dot"
+        },
+        {
+          "description": "O visualizador de ondas surfer-aurora. Aplicação gráfica: abre e fica\naberta.",
+          "type": "string",
+          "const": "surfer"
+        },
+        {
+          "description": "O Perl que executa o script `verilator`, parte do [`SystemCompiler`]:\ndo sistema no Linux e no macOS, do bundle no Windows.",
+          "type": "string",
+          "const": "perl"
+        }
+      ]
+    },
+    "Invocation": {
+      "description": "Uma execução de programa, totalmente especificada: o registro exato do\nque o Lace rodou, presente em todo [`StepReport`](crate::StepReport).\n\nSó o Core monta invocações; para os clientes o tipo é somente leitura.\nReproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,\ncom um ambiente vazio mais `env` e as variáveis de `inherit`.\n\nEm JSON:\n\n```json\n{ \"program\": \"/opt/yanc/bin/cmmcomp\",\n  \"args\": [\"-i\", \"soma.cmm\", \"-n\", \"soma\", \"-p\", \"/p/soma\", \"...\"],\n  \"cwd\": \"/p/soma\",\n  \"env\": [],\n  \"inherit\": [] }\n```",
+      "type": "object",
+      "properties": {
+        "program": {
+          "description": "Caminho absoluto do executável. Nunca é procurado no `PATH`.",
+          "type": "string"
+        },
+        "args": {
+          "description": "Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cwd": {
+          "description": "Diretório de trabalho. Faz parte do contrato de várias ferramentas (o\n`appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench\ngrava a onda nele), por isso nunca é herdado.",
+          "type": "string"
+        },
+        "env": {
+          "description": "Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "inherit": {
+          "description": "Nomes de variáveis copiadas do ambiente do Lace, quando existirem.\nSó os nomes aparecem no relatório.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "program",
+        "args",
+        "cwd",
+        "env",
+        "inherit"
+      ]
+    },
+    "Stream": {
+      "description": "De qual saída do processo veio uma linha. Em JSON: `\"stdout\"` ou\n`\"stderr\"`.",
+      "oneOf": [
+        {
+          "description": "Saída padrão. Numa simulação, é onde sai o `$display` do testbench.",
+          "type": "string",
+          "const": "stdout"
+        },
+        {
+          "description": "Saída de erro.",
+          "type": "string",
+          "const": "stderr"
+        }
+      ]
+    },
+    "Termination": {
+      "description": "Como um processo terminou.\n\nEm JSON: `{\"kind\": \"exited\", \"value\": 1}`, `{\"kind\": \"signaled\",\n\"value\": 11}`, `{\"kind\": \"exception\", \"value\": 3221225477}`,\n`{\"kind\": \"cancelled\"}`, `{\"kind\": \"timed_out\"}`, `{\"kind\": \"unknown\"}`.\n\nUm código de saída e um sinal são coisas diferentes: `msg_internal` do\n`cppcomp` chama `abort()`, e um `asmcomp` que perde um `fopen` morre por\nsegfault. Nenhum dos dois é um \"erro de compilação\" do usuário.",
+      "oneOf": [
+        {
+          "description": "Terminou com um código de saída.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exited"
+            },
+            "value": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "description": "Morto por sinal (só Unix).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "signaled"
+            },
+            "value": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "description": "Terminou com um código NTSTATUS de exceção (só Windows), por exemplo\n`0xC0000005`, violação de acesso.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exception"
+            },
+            "value": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "description": "O Lace encerrou o processo porque a operação foi cancelada\n([`CancelToken::cancel`]).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "O Lace encerrou o processo porque ele passou do prazo (por exemplo,\n[`SimulationOptions::timeout`](crate::SimulationOptions::timeout)).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "timed_out"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "O sistema não informou nem código nem sinal.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ResultLine": {
+      "description": "A última linha do `--events`.",
+      "type": "object",
+      "properties": {
+        "event": {
+          "description": "Sempre `\"result\"`.",
+          "$ref": "#/$defs/ResultTag"
+        },
+        "result": {
+          "description": "O mesmo objeto que o comando escreve com `--json` (veja o schema do\ncomando).",
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "event",
+        "result"
+      ]
+    },
+    "ResultTag": {
+      "type": "string",
+      "enum": [
+        "result"
+      ]
+    }
+  }
+}

@@ -26,7 +26,11 @@
     "surfer-aurora": {
       "version": "v0.7.0-nips.10",
       "repository": "https://gitlab.com/nips-cern/surfer-aurora.git",
-      "commit": "d0af8a742728005c61d2ec414da96eef963cb4ff"
+      "commit": "d0af8a742728005c61d2ec414da96eef963cb4ff",
+      "web": {
+        "url": "https://gitlab.com/api/v4/projects/84576006/packages/generic/surfer-aurora/v0.7.0-nips.10/surfer-aurora_web_v0.7.0-nips.10.zip",
+        "sha256": "159c6c1dc3d378d6474e7c86ea6d937f9d1c740006bc3af33304e1fd6727d092"
+      }
     },
     "graphviz": {
       "version": "16.1.0",
@@ -39,6 +43,25 @@
           "sha256": "733e49626c492242eb8dca30ea627b6ead20710e207998c7933b4909d92d6abc"
         }
       }
+    },
+    "msys": {
+      "version": "ucrt64-v1",
+      "repository": "https://github.com/ART3121/lace-toolchain",
+      "platforms": [
+        "windows-x64"
+      ],
+      "assets": {
+        "windows-x64": {
+          "url": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v1/lace-msys-ucrt64-v1.zip",
+          "sha256": null,
+          "manifest": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v1/lace-msys-ucrt64-v1.json",
+          "manifest_sha256": null
+        }
+      }
+    },
+    "studio": {
+      "version": "0.2.0",
+      "path": "studio"
     }
   }
 }

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WaveReport",
+  "description": "`lace wave`.",
+  "type": "object",
+  "properties": {
+    "waveform": {
+      "description": "A onda aberta.",
+      "type": "string"
+    },
+    "pid": {
+      "description": "O processo do surfer-aurora, que continua aberto.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "log": {
+      "description": "Onde vai o stdout e o stderr do surfer-aurora.",
+      "type": "string"
+    },
+    "layout": {
+      "description": "O estado do Surfer gerado para os processadores SAPHO da onda\n(`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda\nque não é VCD.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "processors": {
+      "description": "Os processadores do layout.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WaveProcessor"
+      }
+    }
+  },
+  "required": [
+    "waveform",
+    "pid",
+    "log",
+    "layout",
+    "processors"
+  ],
+  "$defs": {
+    "WaveProcessor": {
+      "description": "Um processador SAPHO achado na onda.",
+      "type": "object",
+      "properties": {
+        "instance": {
+          "description": "O escopo da instância na onda (`soma_tb.proc`).",
+          "type": "string"
+        },
+        "processor": {
+          "description": "O processador (o `#PRNAME`, nome da pasta no projeto).",
+          "type": "string"
+        },
+        "variables": {
+          "description": "Quantas variáveis do programa estão na onda (cada elemento de array\nconta).",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "assembly": {
+          "description": "O PC aparece como instrução de assembly (havia `trad_opcode.txt`).",
+          "type": "boolean"
+        },
+        "source": {
+          "description": "A linha do fonte aparece como texto (havia `trad_cmm.txt`).",
+          "type": "boolean"
+        },
+        "outdated": {
+          "description": "As tabelas são mais novas que a onda: o processador foi compilado de\nnovo depois da simulação, e o assembly e a linha do C± sairiam\ndeslocados. O PC e a linha aparecem como números até simular de novo;\nas interfaces avisam.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "instance",
+        "processor",
+        "variables",
+        "assembly",
+        "source",
+        "outdated"
+      ]
+    }
+  }
+}

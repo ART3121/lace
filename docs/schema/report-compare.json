@@ -1,0 +1,619 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunComparison",
+  "description": "Dois relatórios comparados: o atual contra a referência.",
+  "type": "object",
+  "properties": {
+    "current_id": {
+      "description": "O relatório atual.",
+      "type": "string"
+    },
+    "current": {
+      "description": "O contexto dele.",
+      "$ref": "#/$defs/RunMetadata"
+    },
+    "baseline_id": {
+      "description": "A referência.",
+      "type": "string"
+    },
+    "baseline": {
+      "description": "O contexto dela.",
+      "$ref": "#/$defs/RunMetadata"
+    },
+    "synthesis": {
+      "description": "A síntese comparada; `null` se os dois não têm estatísticas do mesmo\ntopo.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SynthesisComparison"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "simulation": {
+      "description": "A simulação comparada; `null` se os dois não têm tempos do mesmo\nsimulador e testbench.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TimingComparison"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "warnings": {
+      "description": "O que difere no contexto e pode explicar uma mudança (fontes,\nversões, máquina), em inglês, sem ponto final.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "current_id",
+    "current",
+    "baseline_id",
+    "baseline",
+    "synthesis",
+    "simulation",
+    "warnings"
+  ],
+  "$defs": {
+    "RunMetadata": {
+      "description": "O contexto de uma operação guardada.",
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "description": "Quando terminou, em UTC (`2026-10-03T21:04:05Z`).",
+          "type": "string"
+        },
+        "command": {
+          "description": "O comando.",
+          "type": "string"
+        },
+        "status": {
+          "description": "Como terminou.",
+          "$ref": "#/$defs/Status"
+        },
+        "duration_ms": {
+          "description": "Quanto levou, do começo ao fim, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "lace_version": {
+          "description": "A versão do Lace que gravou.",
+          "type": "string"
+        },
+        "project": {
+          "description": "O que identifica o projeto: um hash da raiz dele. Relatórios de\nprojetos diferentes não se comparam.",
+          "type": "string"
+        },
+        "project_name": {
+          "description": "O nome do projeto.",
+          "type": "string"
+        },
+        "bundle": {
+          "description": "O bundle de ferramentas (`2026.09.29`) e a plataforma.",
+          "type": "string"
+        },
+        "platform": {
+          "description": "`linux-x64`, `darwin-arm64`, `windows-x64`.",
+          "type": "string"
+        },
+        "top": {
+          "description": "O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do\nprojeto.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "synthesis": {
+          "description": "O contexto da síntese, quando houve.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SynthesisContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "simulation": {
+          "description": "O contexto da simulação, quando houve.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "environment": {
+          "description": "A máquina.",
+          "$ref": "#/$defs/Environment"
+        }
+      },
+      "required": [
+        "timestamp",
+        "command",
+        "status",
+        "duration_ms",
+        "lace_version",
+        "project",
+        "project_name",
+        "bundle",
+        "platform",
+        "top",
+        "synthesis",
+        "simulation",
+        "environment"
+      ]
+    },
+    "Status": {
+      "description": "Como uma operação terminou. Em JSON, em `snake_case` (`\"succeeded\"`).",
+      "oneOf": [
+        {
+          "description": "Todos os passos terminaram com código 0 e os artefatos foram gerados.",
+          "type": "string",
+          "const": "succeeded"
+        },
+        {
+          "description": "Uma ferramenta recusou a entrada (código de saída diferente de 0).",
+          "type": "string",
+          "const": "failed"
+        },
+        {
+          "description": "Uma ferramenta morreu (sinal no Unix, exceção no Windows). É defeito da\nferramenta, não do código do usuário.",
+          "type": "string",
+          "const": "crashed"
+        },
+        {
+          "description": "As ferramentas terminaram bem, mas faltou algum artefato obrigatório.",
+          "type": "string",
+          "const": "incomplete"
+        },
+        {
+          "description": "O cancelamento foi pedido ([`CancelToken`](crate::CancelToken)): o\npasso que rodava foi encerrado e os seguintes não rodaram.",
+          "type": "string",
+          "const": "cancelled"
+        },
+        {
+          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "type": "string",
+          "const": "timed_out"
+        }
+      ]
+    },
+    "SynthesisContext": {
+      "description": "O que decide se duas sínteses se comparam, e o que vira aviso.",
+      "type": "object",
+      "properties": {
+        "top": {
+          "description": "O módulo de topo.",
+          "type": "string"
+        },
+        "component_version": {
+          "description": "A versão do componente yosys do bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Hash dos fontes sintetizáveis e dos programas dos processadores.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "top",
+        "component_version",
+        "sources"
+      ]
+    },
+    "SimulationContext": {
+      "description": "O que decide se duas simulações se comparam, e o que vira aviso.",
+      "type": "object",
+      "properties": {
+        "simulator": {
+          "description": "O simulador.",
+          "$ref": "#/$defs/Simulator"
+        },
+        "testbench": {
+          "description": "O testbench (o módulo de topo simulado).",
+          "type": "string"
+        },
+        "component_version": {
+          "description": "A versão do componente do simulador no bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Hash dos fontes, com os testbenches, e dos programas dos processadores.",
+          "type": "string"
+        },
+        "inputs": {
+          "description": "Hash das entradas dos processadores (`Simulation/input_*.txt`).",
+          "type": "string"
+        },
+        "waveform": {
+          "description": "A simulação gravou onda.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "simulator",
+        "testbench",
+        "component_version",
+        "sources",
+        "inputs",
+        "waveform"
+      ]
+    },
+    "Simulator": {
+      "description": "Qual simulador usar. Em JSON: `\"icarus\"` ou `\"verilator\"`.",
+      "oneOf": [
+        {
+          "description": "Icarus Verilog (`iverilog` + `vvp`): compila em segundos, simula\ndevagar. O padrão.",
+          "type": "string",
+          "const": "icarus"
+        },
+        {
+          "description": "Verilator: compila o modelo para C++ (dezenas de segundos na primeira\nvez; o `obj_dir` é reaproveitado depois), simula rápido.",
+          "type": "string",
+          "const": "verilator"
+        }
+      ]
+    },
+    "Environment": {
+      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
+      "type": "object",
+      "properties": {
+        "hostname": {
+          "description": "O nome da máquina.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "os": {
+          "description": "`linux`, `macos`, `windows`.",
+          "type": "string"
+        },
+        "os_name": {
+          "description": "O nome da distribuição (Linux).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kernel": {
+          "description": "A versão do kernel (Linux e macOS).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "arch": {
+          "description": "`x86_64`, `aarch64`.",
+          "type": "string"
+        },
+        "cpu_model": {
+          "description": "O modelo do processador (Linux).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cpus": {
+          "description": "Processadores lógicos disponíveis.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "memory_bytes": {
+          "description": "A memória total, em bytes (Linux).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "fingerprint": {
+          "description": "Hash do sistema, da arquitetura, do processador, do número de\nprocessadores e do nome da máquina: muda quando a máquina muda.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostname",
+        "os",
+        "os_name",
+        "kernel",
+        "arch",
+        "cpu_model",
+        "cpus",
+        "memory_bytes",
+        "fingerprint"
+      ]
+    },
+    "SynthesisComparison": {
+      "description": "As estatísticas de síntese, comparadas.",
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "description": "As contagens do resumo, na ordem do relatório.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SynthesisMetricComparison"
+          }
+        },
+        "cell_types": {
+          "description": "Os tipos de célula, da maior mudança para a menor e, no empate, pelo\nnome.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CellComparison"
+          }
+        },
+        "added_cell_types": {
+          "description": "Tipos que só existem no atual.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "removed_cell_types": {
+          "description": "Tipos que só existem na referência.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "increased": {
+          "description": "Contagens do resumo que aumentaram.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "decreased": {
+          "description": "Que diminuíram.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "unchanged": {
+          "description": "Iguais.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "not_comparable": {
+          "description": "Sem um dos lados.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "metrics",
+        "cell_types",
+        "added_cell_types",
+        "removed_cell_types",
+        "increased",
+        "decreased",
+        "unchanged",
+        "not_comparable"
+      ]
+    },
+    "SynthesisMetricComparison": {
+      "description": "Uma contagem do resumo, comparada.",
+      "type": "object",
+      "properties": {
+        "metric": {
+          "description": "Qual.",
+          "$ref": "#/$defs/SynthesisMetric"
+        },
+        "comparison": {
+          "description": "A comparação.",
+          "$ref": "#/$defs/MetricComparison"
+        }
+      },
+      "required": [
+        "metric",
+        "comparison"
+      ]
+    },
+    "SynthesisMetric": {
+      "description": "Uma contagem do resumo do projeto.",
+      "oneOf": [
+        {
+          "description": "Módulos no projeto, contando o de topo.",
+          "type": "string",
+          "const": "modules"
+        },
+        {
+          "description": "Fios.",
+          "type": "string",
+          "const": "wires"
+        },
+        {
+          "description": "Bits de fio.",
+          "type": "string",
+          "const": "wire_bits"
+        },
+        {
+          "description": "Fios com nome do usuário.",
+          "type": "string",
+          "const": "public_wires"
+        },
+        {
+          "description": "Bits de fio com nome do usuário.",
+          "type": "string",
+          "const": "public_wire_bits"
+        },
+        {
+          "description": "Memórias.",
+          "type": "string",
+          "const": "memories"
+        },
+        {
+          "description": "Bits de memória.",
+          "type": "string",
+          "const": "memory_bits"
+        },
+        {
+          "description": "Processos que sobraram depois do `proc`.",
+          "type": "string",
+          "const": "processes"
+        },
+        {
+          "description": "Células, sem contar as instâncias de submódulo.",
+          "type": "string",
+          "const": "cells"
+        }
+      ]
+    },
+    "MetricComparison": {
+      "description": "Um número comparado.",
+      "type": "object",
+      "properties": {
+        "baseline": {
+          "description": "Na referência.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "current": {
+          "description": "No atual.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "change": {
+          "description": "O que mudou.",
+          "$ref": "#/$defs/Change"
+        },
+        "delta": {
+          "description": "Atual menos referência.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "percent": {
+          "description": "A variação em porcentagem da referência. `null` quando não se\ncompara ou quando a referência é zero e o atual não (não há\nporcentagem de zero; o texto mostra `new`).",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "baseline",
+        "current",
+        "change",
+        "delta",
+        "percent"
+      ]
+    },
+    "Change": {
+      "description": "O que aconteceu com um número de um relatório para o outro.",
+      "oneOf": [
+        {
+          "description": "Igual.",
+          "type": "string",
+          "const": "unchanged"
+        },
+        {
+          "description": "Maior.",
+          "type": "string",
+          "const": "increased"
+        },
+        {
+          "description": "Menor.",
+          "type": "string",
+          "const": "decreased"
+        },
+        {
+          "description": "Só existe no atual (um tipo de célula novo).",
+          "type": "string",
+          "const": "added"
+        },
+        {
+          "description": "Só existe na referência (um tipo de célula que sumiu).",
+          "type": "string",
+          "const": "removed"
+        },
+        {
+          "description": "Falta de um dos lados.",
+          "type": "string",
+          "const": "not_comparable"
+        }
+      ]
+    },
+    "CellComparison": {
+      "description": "Um tipo de célula, comparado.",
+      "type": "object",
+      "properties": {
+        "cell_type": {
+          "description": "O tipo (`$add`).",
+          "type": "string"
+        },
+        "usage": {
+          "description": "A comparação. Um tipo que só existe de um lado conta como 0 do outro,\ncom `added` ou `removed`.",
+          "$ref": "#/$defs/MetricComparison"
+        }
+      },
+      "required": [
+        "cell_type",
+        "usage"
+      ]
+    },
+    "TimingComparison": {
+      "description": "Os tempos de simulação, comparados.",
+      "type": "object",
+      "properties": {
+        "compile": {
+          "description": "Compilação, em milissegundos.",
+          "$ref": "#/$defs/MetricComparison"
+        },
+        "execution": {
+          "description": "Execução, em milissegundos.",
+          "$ref": "#/$defs/MetricComparison"
+        },
+        "total": {
+          "description": "A simulação inteira, em milissegundos.",
+          "$ref": "#/$defs/MetricComparison"
+        },
+        "simulated": {
+          "description": "O tempo simulado, em femtossegundos.",
+          "$ref": "#/$defs/MetricComparison"
+        },
+        "environment_changed": {
+          "description": "As duas rodaram em máquinas diferentes.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "compile",
+        "execution",
+        "total",
+        "simulated",
+        "environment_changed"
+      ]
+    }
+  }
+}

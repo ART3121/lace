@@ -1,0 +1,37 @@
+[package]
+name = "lace-cli"
+description = "Linha de comando do Lace"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "lace"
+path = "src/main.rs"
+
+[dependencies]
+lace-core.workspace = true
+lace-installer.workspace = true
+anyhow.workspace = true
+anstream.workspace = true
+anstyle.workspace = true
+clap_complete.workspace = true
+camino.workspace = true
+clap.workspace = true
+dunce.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+signal-hook.workspace = true
+tar.workspace = true
+flate2.workspace = true
+tempfile.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+jsonschema.workspace = true
+assert_cmd.workspace = true
+insta.workspace = true
+predicates.workspace = true

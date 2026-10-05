@@ -1,0 +1,554 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReportShowReport",
+  "description": "`lace report` e `lace report show`: um relatório guardado.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "O identificador (`run-000042`).",
+      "type": "string"
+    },
+    "path": {
+      "description": "O `report.txt`.",
+      "type": "string"
+    },
+    "record": {
+      "description": "O que a comparação usa: contexto, estatísticas e tempos.",
+      "$ref": "#/$defs/RunRecord"
+    },
+    "text": {
+      "description": "O `report.txt`, sem mudança.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "path",
+    "record",
+    "text"
+  ],
+  "$defs": {
+    "RunRecord": {
+      "description": "Um relatório guardado: o que a comparação e a lista usam. O texto fica ao\nlado, em `report.txt` ([`report_text`]).",
+      "type": "object",
+      "properties": {
+        "schema": {
+          "description": "O formato ([`RECORD_SCHEMA`]).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "id": {
+          "description": "O identificador (`run-000042`).",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "O contexto da operação.",
+          "$ref": "#/$defs/RunMetadata"
+        },
+        "synthesis": {
+          "description": "As estatísticas do Yosys, quando houve síntese e o Yosys as gravou.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SynthesisStatistics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "simulation": {
+          "description": "Os tempos da simulação, quando houve simulação.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationTimings"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema",
+        "id",
+        "metadata",
+        "synthesis",
+        "simulation"
+      ]
+    },
+    "RunMetadata": {
+      "description": "O contexto de uma operação guardada.",
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "description": "Quando terminou, em UTC (`2026-10-03T21:04:05Z`).",
+          "type": "string"
+        },
+        "command": {
+          "description": "O comando.",
+          "type": "string"
+        },
+        "status": {
+          "description": "Como terminou.",
+          "$ref": "#/$defs/Status"
+        },
+        "duration_ms": {
+          "description": "Quanto levou, do começo ao fim, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "lace_version": {
+          "description": "A versão do Lace que gravou.",
+          "type": "string"
+        },
+        "project": {
+          "description": "O que identifica o projeto: um hash da raiz dele. Relatórios de\nprojetos diferentes não se comparam.",
+          "type": "string"
+        },
+        "project_name": {
+          "description": "O nome do projeto.",
+          "type": "string"
+        },
+        "bundle": {
+          "description": "O bundle de ferramentas (`2026.09.29`) e a plataforma.",
+          "type": "string"
+        },
+        "platform": {
+          "description": "`linux-x64`, `darwin-arm64`, `windows-x64`.",
+          "type": "string"
+        },
+        "top": {
+          "description": "O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do\nprojeto.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "synthesis": {
+          "description": "O contexto da síntese, quando houve.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SynthesisContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "simulation": {
+          "description": "O contexto da simulação, quando houve.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "environment": {
+          "description": "A máquina.",
+          "$ref": "#/$defs/Environment"
+        }
+      },
+      "required": [
+        "timestamp",
+        "command",
+        "status",
+        "duration_ms",
+        "lace_version",
+        "project",
+        "project_name",
+        "bundle",
+        "platform",
+        "top",
+        "synthesis",
+        "simulation",
+        "environment"
+      ]
+    },
+    "Status": {
+      "description": "Como uma operação terminou. Em JSON, em `snake_case` (`\"succeeded\"`).",
+      "oneOf": [
+        {
+          "description": "Todos os passos terminaram com código 0 e os artefatos foram gerados.",
+          "type": "string",
+          "const": "succeeded"
+        },
+        {
+          "description": "Uma ferramenta recusou a entrada (código de saída diferente de 0).",
+          "type": "string",
+          "const": "failed"
+        },
+        {
+          "description": "Uma ferramenta morreu (sinal no Unix, exceção no Windows). É defeito da\nferramenta, não do código do usuário.",
+          "type": "string",
+          "const": "crashed"
+        },
+        {
+          "description": "As ferramentas terminaram bem, mas faltou algum artefato obrigatório.",
+          "type": "string",
+          "const": "incomplete"
+        },
+        {
+          "description": "O cancelamento foi pedido ([`CancelToken`](crate::CancelToken)): o\npasso que rodava foi encerrado e os seguintes não rodaram.",
+          "type": "string",
+          "const": "cancelled"
+        },
+        {
+          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "type": "string",
+          "const": "timed_out"
+        }
+      ]
+    },
+    "SynthesisContext": {
+      "description": "O que decide se duas sínteses se comparam, e o que vira aviso.",
+      "type": "object",
+      "properties": {
+        "top": {
+          "description": "O módulo de topo.",
+          "type": "string"
+        },
+        "component_version": {
+          "description": "A versão do componente yosys do bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Hash dos fontes sintetizáveis e dos programas dos processadores.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "top",
+        "component_version",
+        "sources"
+      ]
+    },
+    "SimulationContext": {
+      "description": "O que decide se duas simulações se comparam, e o que vira aviso.",
+      "type": "object",
+      "properties": {
+        "simulator": {
+          "description": "O simulador.",
+          "$ref": "#/$defs/Simulator"
+        },
+        "testbench": {
+          "description": "O testbench (o módulo de topo simulado).",
+          "type": "string"
+        },
+        "component_version": {
+          "description": "A versão do componente do simulador no bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Hash dos fontes, com os testbenches, e dos programas dos processadores.",
+          "type": "string"
+        },
+        "inputs": {
+          "description": "Hash das entradas dos processadores (`Simulation/input_*.txt`).",
+          "type": "string"
+        },
+        "waveform": {
+          "description": "A simulação gravou onda.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "simulator",
+        "testbench",
+        "component_version",
+        "sources",
+        "inputs",
+        "waveform"
+      ]
+    },
+    "Simulator": {
+      "description": "Qual simulador usar. Em JSON: `\"icarus\"` ou `\"verilator\"`.",
+      "oneOf": [
+        {
+          "description": "Icarus Verilog (`iverilog` + `vvp`): compila em segundos, simula\ndevagar. O padrão.",
+          "type": "string",
+          "const": "icarus"
+        },
+        {
+          "description": "Verilator: compila o modelo para C++ (dezenas de segundos na primeira\nvez; o `obj_dir` é reaproveitado depois), simula rápido.",
+          "type": "string",
+          "const": "verilator"
+        }
+      ]
+    },
+    "Environment": {
+      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
+      "type": "object",
+      "properties": {
+        "hostname": {
+          "description": "O nome da máquina.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "os": {
+          "description": "`linux`, `macos`, `windows`.",
+          "type": "string"
+        },
+        "os_name": {
+          "description": "O nome da distribuição (Linux).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kernel": {
+          "description": "A versão do kernel (Linux e macOS).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "arch": {
+          "description": "`x86_64`, `aarch64`.",
+          "type": "string"
+        },
+        "cpu_model": {
+          "description": "O modelo do processador (Linux).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cpus": {
+          "description": "Processadores lógicos disponíveis.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "memory_bytes": {
+          "description": "A memória total, em bytes (Linux).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "fingerprint": {
+          "description": "Hash do sistema, da arquitetura, do processador, do número de\nprocessadores e do nome da máquina: muda quando a máquina muda.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostname",
+        "os",
+        "os_name",
+        "kernel",
+        "arch",
+        "cpu_model",
+        "cpus",
+        "memory_bytes",
+        "fingerprint"
+      ]
+    },
+    "SynthesisStatistics": {
+      "description": "O que o `stat` do Yosys contou. Uma contagem que ele não informou fica\n`null`, e é diferente de zero.",
+      "type": "object",
+      "properties": {
+        "tool": {
+          "description": "O Yosys que contou, como ele se identifica (`Yosys 0.69+156 (...)`).",
+          "type": "string"
+        },
+        "top": {
+          "description": "O módulo de topo.",
+          "type": "string"
+        },
+        "modules": {
+          "description": "Módulos.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "wires": {
+          "description": "Fios.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "wire_bits": {
+          "description": "Bits de fio.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "public_wires": {
+          "description": "Fios com nome do usuário.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "public_wire_bits": {
+          "description": "Bits de fio com nome do usuário.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "memories": {
+          "description": "Memórias.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "memory_bits": {
+          "description": "Bits de memória.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "processes": {
+          "description": "Processos.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cells": {
+          "description": "Células, sem as instâncias de submódulo.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cell_types": {
+          "description": "As células por tipo, da mais usada para a menos usada e, no empate,\npelo nome.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CellUsage"
+          }
+        }
+      },
+      "required": [
+        "tool",
+        "top",
+        "modules",
+        "wires",
+        "wire_bits",
+        "public_wires",
+        "public_wire_bits",
+        "memories",
+        "memory_bits",
+        "processes",
+        "cells",
+        "cell_types"
+      ]
+    },
+    "CellUsage": {
+      "description": "Quantas células de um tipo.",
+      "type": "object",
+      "properties": {
+        "cell_type": {
+          "description": "O tipo, como o Yosys o nomeia (`$add`, `$dff`).",
+          "type": "string"
+        },
+        "count": {
+          "description": "Quantas.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "cell_type",
+        "count"
+      ]
+    },
+    "SimulationTimings": {
+      "description": "Os tempos de uma simulação, em milissegundos de relógio. O tempo simulado\né outra grandeza: o quanto o tempo andou dentro do modelo.",
+      "type": "object",
+      "properties": {
+        "succeeded": {
+          "description": "A simulação terminou com sucesso.",
+          "type": "boolean"
+        },
+        "compile_ms": {
+          "description": "O passo que compila o Verilog (`iverilog` ou `verilator --binary`).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "execution_ms": {
+          "description": "O passo que roda o testbench (`vvp` ou o modelo do Verilator).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "total_ms": {
+          "description": "A simulação inteira, medida à parte: com a preparação do Lace.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "simulated_fs": {
+          "description": "O tempo simulado no `$finish`, em femtossegundos, quando o simulador\no informa (o `vvp` informa; o Verilator, não).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "succeeded",
+        "compile_ms",
+        "execution_ms",
+        "total_ms",
+        "simulated_fs"
+      ]
+    }
+  }
+}

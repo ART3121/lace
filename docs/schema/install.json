@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InstallReport",
+  "description": "`lace install`.",
+  "type": "object",
+  "properties": {
+    "prefix": {
+      "description": "A pasta da instalação.",
+      "type": "string"
+    },
+    "components": {
+      "description": "Os aplicativos do bundle instalados agora.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "added": {
+      "description": "Os que entraram nesta chamada (com os que eles exigem).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "prefix",
+    "components",
+    "added"
+  ]
+}

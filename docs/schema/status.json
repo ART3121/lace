@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StatusReport",
+  "description": "`lace status`: o projeto inteiro.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "Nome do projeto (o do `.spf`).",
+      "type": "string"
+    },
+    "spf": {
+      "description": "O `.spf`.",
+      "type": "string"
+    },
+    "root": {
+      "description": "A pasta do projeto.",
+      "type": "string"
+    },
+    "synthesizable": {
+      "description": "Os módulos registrados.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProjectFile"
+      }
+    },
+    "testbench": {
+      "description": "Os testbenches registrados.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProjectFile"
+      }
+    },
+    "top_level": {
+      "description": "O arquivo de topo, se escolhido.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "top_module": {
+      "description": "O módulo de topo: o `topLevelModule` do `.spf`, o único módulo do\narquivo de topo ou o que tem o nome dele. `null` se não dá para saber.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "selected_testbench": {
+      "description": "O testbench que `lace sim` simula.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "testbench_module": {
+      "description": "O módulo desse testbench.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "unregistered": {
+      "description": "Arquivos `.v` e `.sv` da pasta que não estão no projeto.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "here": {
+      "description": "O processador em cuja pasta o comando rodou: o que `build`, `check`,\n`sim`, `wave`, `synth` e `proc set` usam quando não recebem nome.\n`null` fora da pasta de um processador.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "processors": {
+      "description": "Os processadores SAPHO.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProcessorStatus"
+      }
+    },
+    "issues": {
+      "description": "O que está estranho no `.spf` sem impedir de abrir\n(`Project::issues`): caminho de outra máquina achado pela cauda,\ntopo fora da lista, processador com nome que não compila.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProjectIssue"
+      }
+    }
+  },
+  "required": [
+    "name",
+    "spf",
+    "root",
+    "synthesizable",
+    "testbench",
+    "top_level",
+    "top_module",
+    "selected_testbench",
+    "testbench_module",
+    "unregistered",
+    "here",
+    "processors",
+    "issues"
+  ],
+  "$defs": {
+    "ProjectFile": {
+      "description": "Um arquivo registrado no projeto.",
+      "type": "object",
+      "properties": {
+        "role": {
+          "description": "Em qual lista ele está.",
+          "$ref": "#/$defs/FileRole"
+        },
+        "path": {
+          "description": "Caminho absoluto.",
+          "type": "string"
+        },
+        "top_level": {
+          "description": "Marcado como topo (sintetizável) ou como o testbench escolhido.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "top_level"
+      ]
+    },
+    "FileRole": {
+      "description": "Em qual lista do `.spf` um arquivo fica. Em JSON: `\"synthesizable\"` ou\n`\"testbench\"`.\n\n[`Project::add_verilog`] decide o papel pelo conteúdo, como a AURORA\n([`classify`](crate::verilog::classify)); [`Project::add_file`] recebe o\npapel de quem chama. Um arquivo fica numa lista só.",
+      "oneOf": [
+        {
+          "description": "Entra na síntese e na simulação.",
+          "type": "string",
+          "const": "synthesizable"
+        },
+        {
+          "description": "Só entra na simulação.",
+          "type": "string",
+          "const": "testbench"
+        }
+      ]
+    },
+    "ProcessorStatus": {
+      "description": "Um processador em `lace status`.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome: diretório, `#PRNAME`, nome do módulo Verilog e dos artefatos.",
+          "type": "string"
+        },
+        "language": {
+          "description": "A linguagem do fonte.",
+          "$ref": "#/$defs/Language"
+        },
+        "dir": {
+          "description": "`<raiz>/<nome>`, o `-p` dos compiladores.",
+          "type": "string"
+        },
+        "source": {
+          "description": "O programa-fonte, em `Software/`.",
+          "type": "string"
+        },
+        "temp_dir": {
+          "description": "Diretório de intermediários, o `-t` dos compiladores.",
+          "type": "string"
+        },
+        "frequency_mhz": {
+          "description": "Frequência de operação em MHz (`-f` do `asmcomp`).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "clocks": {
+          "description": "Clocks a simular (`-c` do `asmcomp`, vai para o testbench).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "show_arrays": {
+          "description": "Exporta arrays para a simulação (`-A` do `cmmcomp`).",
+          "type": "boolean"
+        },
+        "built": {
+          "description": "Já foi compilado: o Verilog e o testbench gerados existem.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "language",
+        "dir",
+        "source",
+        "temp_dir",
+        "frequency_mhz",
+        "clocks",
+        "show_arrays",
+        "built"
+      ]
+    },
+    "Language": {
+      "description": "Linguagem do programa de um processador. Em JSON: `\"cmm\"` ou `\"cpp\"`.",
+      "oneOf": [
+        {
+          "description": "C±, compilado pelo `cmmcomp`.",
+          "type": "string",
+          "const": "cmm"
+        },
+        {
+          "description": "C, pré-processado pelo `cpppp` e compilado pelo `cppcomp`. A AURORA e o\nYANC chamam de \"cpp\" e usam a extensão `.cpp`.",
+          "type": "string",
+          "const": "cpp"
+        }
+      ]
+    },
+    "ProjectIssue": {
+      "description": "Um aviso de [`Project::issues`]: algo estranho no `.spf` que não impede\nde abrir.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "O tipo, para a interface traduzir.",
+          "$ref": "#/$defs/IssueKind"
+        },
+        "path": {
+          "description": "O arquivo ou a pasta envolvida, absoluta.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "description": "O complemento do tipo: o caminho como estava gravado\n(`rescued_path`), o campo do `.spf` (`selection_not_registered`,\n`testbench_as_top`) ou o nome do processador\n(`invalid_processor_name`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "O aviso inteiro, em inglês, pronto para mostrar.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "detail",
+        "message"
+      ]
+    },
+    "IssueKind": {
+      "description": "O tipo de um [`ProjectIssue`]. Em JSON, `snake_case`.",
+      "oneOf": [
+        {
+          "description": "Um absoluto de outra máquina que não existe aqui foi achado pela\ncauda dentro da raiz; o `.spf` sai consertado na próxima gravação.",
+          "type": "string",
+          "const": "rescued_path"
+        },
+        {
+          "description": "`topLevelFile` ou `testbenchFile` aponta para um arquivo que não está\nna lista do papel, e é ignorado.",
+          "type": "string",
+          "const": "selection_not_registered"
+        },
+        {
+          "description": "`topLevelFile` tem nome de testbench (`tb_x.v`, `x_tb.v`), que não\npode ser topo, e é ignorado.",
+          "type": "string",
+          "const": "testbench_as_top"
+        },
+        {
+          "description": "Um processador do `.spf` com nome que o YANC não compila (`x-y`,\n`void`); o build dele recusa com `invalid_name`.",
+          "type": "string",
+          "const": "invalid_processor_name"
+        },
+        {
+          "description": "Um arquivo repetido numa lista, ou nas duas: conta uma vez, e a\npróxima gravação tira as entradas que sobram.",
+          "type": "string",
+          "const": "duplicate_file"
+        },
+        {
+          "description": "O projeto está dentro da pasta de outro (uma pasta acima tem `.spf`):\nos arquivos dele aparecem também no outro.",
+          "type": "string",
+          "const": "nested_project"
+        }
+      ]
+    }
+  }
+}

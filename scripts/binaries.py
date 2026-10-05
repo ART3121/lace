@@ -133,7 +133,7 @@ def _macho(data):
         for i in range(count):
             cputype, _sub, offset, size, _align = arch.unpack_from(data, 8 + i * arch.size)
             slices.append((cputype, data[offset : offset + size]))
-        # O Solar só roda em arm64; sem essa fatia, a união de todas.
+        # O Lace só roda em arm64; sem essa fatia, a união de todas.
         chosen = [s for c, s in slices if c == _CPU_ARM64] or [s for _, s in slices]
         deps = Deps()
         for s in chosen:

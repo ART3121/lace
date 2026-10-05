@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Processor",
+  "description": "Um processador do projeto, com todos os caminhos já absolutos.\n\nOs valores de simulação (`frequency_mhz`, `clocks`, `show_arrays`) vêm do\n`.spf` (`clk`, `numClocks`, `showArrays`) ou dos padrões da AURORA\n([`DEFAULT_FREQUENCY_MHZ`], [`DEFAULT_CLOCKS`], `false`). Para mudá-los\nsó num build, use [`BuildOptions`](crate::BuildOptions).\n\nA linguagem é resolvida como na AURORA: `language` declarada no `.spf`;\nsenão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir em\n`Software/` (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "O nome: diretório, `#PRNAME`, nome do módulo Verilog e dos artefatos.",
+      "type": "string"
+    },
+    "language": {
+      "description": "A linguagem do fonte.",
+      "$ref": "#/$defs/Language"
+    },
+    "dir": {
+      "description": "`<raiz>/<nome>`, o `-p` dos compiladores.",
+      "type": "string"
+    },
+    "source": {
+      "description": "O programa-fonte, em `Software/`.",
+      "type": "string"
+    },
+    "temp_dir": {
+      "description": "Diretório de intermediários, o `-t` dos compiladores.",
+      "type": "string"
+    },
+    "frequency_mhz": {
+      "description": "Frequência de operação em MHz (`-f` do `asmcomp`).",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "clocks": {
+      "description": "Clocks a simular (`-c` do `asmcomp`, vai para o testbench).",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "show_arrays": {
+      "description": "Exporta arrays para a simulação (`-A` do `cmmcomp`).",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "name",
+    "language",
+    "dir",
+    "source",
+    "temp_dir",
+    "frequency_mhz",
+    "clocks",
+    "show_arrays"
+  ],
+  "$defs": {
+    "Language": {
+      "description": "Linguagem do programa de um processador. Em JSON: `\"cmm\"` ou `\"cpp\"`.",
+      "oneOf": [
+        {
+          "description": "C±, compilado pelo `cmmcomp`.",
+          "type": "string",
+          "const": "cmm"
+        },
+        {
+          "description": "C, pré-processado pelo `cpppp` e compilado pelo `cppcomp`. A AURORA e o\nYANC chamam de \"cpp\" e usam a extensão `.cpp`.",
+          "type": "string",
+          "const": "cpp"
+        }
+      ]
+    }
+  }
+}

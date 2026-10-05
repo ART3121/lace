@@ -1,0 +1,561 @@
+// As operações: começar um fluxo, acompanhar, cancelar, e o que fica
+// depois (problemas, último resultado de cada fluxo, estado de cada ação no
+// navegador de fluxo).
+//
+// As mensagens de uma operação (jobs.rs) chegam em ordem: started, phase,
+// events (em lotes), build (um por processador), e por fim finished ou
+// failed. Cada linha de ferramenta vai para o console do passo que a
+// escreveu (console/consoles.ts); o resultado final vira o resumo no
+// console, os problemas e os marcadores no editor.
+
+import { create } from 'zustand';
+
+import { writeLine, styleForToolLine, type LineStyle } from '../console/consoles';
+import { setDiagnostics } from '../editor/monaco';
+import { formatDuration, t, type Key } from '../i18n';
+import { api } from '../ipc/api';
+import type {
+  BuildResult,
+  Diagnostic,
+  Event,
+  Invocation,
+  SchematicResult,
+  Status,
+  Step,
+  SynthesisResult,
+  UpdateReport,
+} from '../ipc/lace-types';
+import type {
+  CliFlow,
+  CliOutcome,
+  FlowName,
+  FlowOutcome,
+  FlowRequest,
+  IpcError,
+  JobMessage,
+  Phase,
+} from '../ipc/types';
+import { relativeTo } from '../util/paths';
+import { useApp } from './app';
+import { useEditor } from './editor';
+import { useHierarchy } from './hierarchy';
+import { useLayout, type ConsoleChannel } from './layout';
+import { useProject } from './project';
+import { showError, useToasts } from './toasts';
+import { openWaveTab } from './waves';
+
+export type ActionStatus = 'ok' | 'failed' | 'running';
+
+export interface RunningJob {
+  id: number | null;
+  flow: FlowName | CliFlow;
+  phase: Phase | null;
+  startedAt: number;
+  command: string;
+  statusKey: string;
+}
+
+export interface LastRun {
+  flow: FlowName | CliFlow;
+  succeeded: boolean;
+  status: Status | 'error';
+  durationMs: number;
+  finishedAt: number;
+}
+
+interface JobsState {
+  running: RunningJob | null;
+  last: LastRun | null;
+  outcomes: Partial<Record<FlowName, FlowOutcome>>;
+  statusByKey: Record<string, ActionStatus>;
+  problems: Diagnostic[];
+  /** A última síntese que rodou (de qualquer fluxo), para as vistas. */
+  synthesis: SynthesisResult | null;
+  /** O último esquemático desenhado. */
+  schematic: SchematicResult | null;
+
+  run: (request: FlowRequest, statusKey?: string) => Promise<FlowOutcome | null>;
+  cancel: () => Promise<void>;
+  install: (components: string[]) => Promise<boolean>;
+  /** `lace update --yes`, depois de a interface confirmar. Devolve o
+   * relatório da CLI, ou null se falhou. */
+  update: () => Promise<UpdateReport | null>;
+}
+
+/** O console de cada passo. */
+const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
+  preprocess: 'cmm',
+  compile: 'cmm',
+  pre_assemble: 'asm',
+  assemble: 'asm',
+  check_syntax: 'verilog',
+  lint: 'verilog',
+  elaborate: 'wave',
+  verilate: 'wave',
+  simulate: 'wave',
+  synthesize: 'prism',
+  graph: 'prism',
+  render: 'prism',
+};
+
+const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
+  build: 'cmm',
+  check: 'verilog',
+  simulate: 'wave',
+  synthesize: 'prism',
+  schematic: 'prism',
+  wave: 'wave',
+};
+
+const FLOW_CHANNEL: Record<FlowName, ConsoleChannel> = {
+  build: 'asm',
+  check: 'verilog',
+  simulate: 'wave',
+  synthesize: 'prism',
+  schematic: 'prism',
+};
+
+function verbose(): boolean {
+  return useApp.getState().settings?.verbose ?? false;
+}
+
+function root(): string | null {
+  return useProject.getState().snapshot?.root ?? null;
+}
+
+function rel(path: string): string {
+  return relativeTo(path, root());
+}
+
+function show(channel: ConsoleChannel): void {
+  const layout = useLayout.getState();
+  // Quem está no terminal de shell não é tirado de lá.
+  if (layout.panelTab === 'terminal' && layout.panelVisible) {
+    layout.markUnread(channel);
+    return;
+  }
+  layout.showPanel(channel);
+}
+
+function write(channel: ConsoleChannel, text: string, style: LineStyle = 'plain'): void {
+  writeLine(channel, text, style);
+  useLayout.getState().markUnread(channel);
+}
+
+function commandLine(command: Invocation): string {
+  const quote = (s: string) => (/[\s"']/.test(s) || s === '' ? `"${s}"` : s);
+  return [command.program, ...command.args].map(quote).join(' ');
+}
+
+function statusStyle(status: Status): LineStyle {
+  if (status === 'succeeded') return 'success';
+  if (status === 'cancelled' || status === 'timed_out') return 'warning';
+  return 'error';
+}
+
+function statusText(status: Status): string {
+  return t(`console.status.${status}` as Key);
+}
+
+/** Uma mensagem de evento do Core no console do passo. */
+function handleEvent(event: Event): void {
+  switch (event.event) {
+    case 'step_started': {
+      const channel = STEP_CHANNEL[event.step as Step];
+      if (verbose()) write(channel, `$ ${commandLine(event.command as Invocation)}`, 'command');
+      break;
+    }
+    case 'output': {
+      const channel = STEP_CHANNEL[event.step as Step];
+      write(channel, event.line, styleForToolLine(event.line, event.diagnostic, event.stream === 'stderr'));
+      break;
+    }
+    case 'step_finished': {
+      const channel = STEP_CHANNEL[event.step as Step];
+      const termination = event.termination as { kind: string; value?: number };
+      const ok = termination.kind === 'exited' && termination.value === 0;
+      // Cancelar não é falha da ferramenta: rótulo e cor próprios.
+      const cancelled = termination.kind === 'cancelled';
+      if (verbose() || !ok) {
+        const how =
+          termination.kind === 'exited'
+            ? t('console.termination.code', { code: termination.value ?? '?' })
+            : t(`console.termination.${termination.kind}` as Key);
+        const label = ok ? t('console.step.done') : cancelled ? t('console.step.cancelled') : t('console.step.failed');
+        write(
+          channel,
+          `  ${label}  ${event.step}  ${event.tool}  ${formatDuration(event.duration_ms)}${ok ? '' : `  (${how})`}`,
+          ok ? 'dim' : cancelled ? 'warning' : 'error',
+        );
+      }
+      break;
+    }
+  }
+}
+
+/** O resumo de um build, como a linha de título da CLI. Os diagnósticos vão
+ * junto porque a mensagem do YANC não traz o arquivo (`Error on line 16`); o
+ * Lace o preenche, e a linha com `arquivo:linha` vira link. Nas outras fases a
+ * ferramenta já escreveu o arquivo e a linha ao vivo, e o resumo não repete. */
+function writeBuild(result: BuildResult): void {
+  const failedStep = result.failed_step as Step | null;
+  const channel = failedStep ? STEP_CHANNEL[failedStep] : 'asm';
+  write(
+    channel,
+    t('console.buildTitle', {
+      name: result.processor,
+      lang: result.language === 'cpp' ? 'C' : 'C±',
+      mhz: result.frequency_mhz,
+      clocks: result.clocks,
+      status: statusText(result.status),
+      time: formatDuration(result.duration_ms),
+    }),
+    statusStyle(result.status),
+  );
+  writeDiagnostics(channel, result.diagnostics);
+}
+
+function writeDiagnostics(channel: ConsoleChannel, diagnostics: Diagnostic[]): void {
+  for (const d of diagnostics) {
+    if (d.severity === 'info' && !verbose()) continue;
+    const where = d.file ? `${rel(d.file)}${d.line ? `:${d.line}` : ''}${d.column ? `:${d.column}` : ''}: ` : '';
+    const style: LineStyle = d.severity === 'error' ? 'error' : d.severity === 'warning' ? 'warning' : 'dim';
+    write(channel, `  ${where}${d.severity}: ${d.message}`, style);
+  }
+}
+
+/** Todos os diagnósticos de um resultado. */
+function collectDiagnostics(outcome: FlowOutcome): Diagnostic[] {
+  return [
+    ...outcome.builds.flatMap((b) => b.diagnostics),
+    ...(outcome.check?.diagnostics ?? []),
+    ...(outcome.simulation?.diagnostics ?? []),
+    ...(outcome.synthesis?.diagnostics ?? []),
+    ...(outcome.schematic?.diagnostics ?? []),
+  ];
+}
+
+/** O resumo final de um fluxo, no console dele. */
+function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
+  let channel = FLOW_CHANNEL[outcome.flow];
+  const failedBuild = outcome.builds.find((b) => b.status !== 'succeeded');
+  if (failedBuild && outcome.flow !== 'build') {
+    const phase = { check: 'flowName.check', simulate: 'flowName.simulate', synthesize: 'flowName.synthesize' }[
+      outcome.flow as 'check' | 'simulate' | 'synthesize'
+    ];
+    channel = failedBuild.failed_step ? STEP_CHANNEL[failedBuild.failed_step as Step] : 'cmm';
+    if (phase) write(channel, t('console.notRun', { phase: t(phase as Key), name: failedBuild.processor }), 'warning');
+  }
+  if (outcome.check) {
+    const c = outcome.check;
+    write(
+      channel,
+      t('console.checkTitle', {
+        targets: c.targets.join(', ') || '-',
+        status: statusText(c.status),
+        time: formatDuration(c.duration_ms),
+      }),
+      statusStyle(c.status),
+    );
+  }
+  if (outcome.simulation) {
+    const s = outcome.simulation;
+    write(
+      channel,
+      t('console.simTitle', {
+        top: s.top,
+        simulator: s.simulator === 'icarus' ? 'Icarus' : 'Verilator',
+        status: statusText(s.status),
+        time: formatDuration(s.duration_ms),
+      }),
+      statusStyle(s.status),
+    );
+    for (const port of outcome.outputs) {
+      write(
+        channel,
+        t('console.output', { port: port.port, values: port.error ? port.error.message : port.values.join(' ') }),
+        port.error ? 'error' : 'success',
+      );
+    }
+    for (const missing of s.missing_inputs) write(channel, t('console.missingInput', { path: rel(missing) }), 'warning');
+    if (s.status === 'timed_out') write(channel, t('console.timedOutHint'), 'warning');
+    if (s.waveform) write(channel, t('console.waveformAt', { path: rel(s.waveform.path) }), 'dim');
+  }
+  if (outcome.synthesis) {
+    const s = outcome.synthesis;
+    write(
+      channel,
+      t('console.synthTitle', { top: s.top, status: statusText(s.status), time: formatDuration(s.duration_ms) }),
+      statusStyle(s.status),
+    );
+  }
+  if (outcome.schematic) {
+    const s = outcome.schematic;
+    write(
+      channel,
+      t('console.schematicTitle', { module: s.module, status: statusText(s.status), time: formatDuration(s.duration_ms) }),
+      statusStyle(s.status),
+    );
+  }
+  if (outcome.wave) {
+    write(channel, t('console.waveOpened', { pid: outcome.wave.pid, path: rel(outcome.wave.waveform) }), 'info');
+    for (const processor of outcome.wave.outdated) {
+      write(channel, `${processor}: ${t('wave.outdated')}`, 'warning');
+    }
+  }
+  if (outcome.wave_tab) {
+    write(channel, t('console.waveTab', { path: rel(outcome.wave_tab) }), 'info');
+  }
+  if (outcome.wave_error) {
+    write(channel, t('console.waveError', { error: outcome.wave_error.message }), 'error');
+  }
+  if (outcome.flow === 'build' && outcome.builds.length === 0) {
+    write('lace', t('console.noProcessors'), 'info');
+    channel = 'lace';
+    show('lace');
+  }
+  if (outcome.report) write(channel, t('console.report', { id: outcome.report }), 'dim');
+  if (outcome.report_error) write(channel, t('console.reportError', { error: outcome.report_error }), 'warning');
+  return channel;
+}
+
+/** O status que resume um fluxo, para a barra de status. */
+function outcomeStatus(outcome: FlowOutcome): Status {
+  const failedBuild = outcome.builds.find((b) => b.status !== 'succeeded');
+  if (failedBuild) return failedBuild.status as Status;
+  return (outcome.schematic?.status ??
+    outcome.synthesis?.status ??
+    outcome.simulation?.status ??
+    outcome.check?.status ??
+    (outcome.succeeded ? 'succeeded' : 'failed')) as Status;
+}
+
+/** O que a CLI escreve no JSON quando o comando não roda. */
+interface CliFailure {
+  error?: { code?: string; message?: string; hint?: string | null };
+}
+
+/** Roda uma operação da CLI (`lace install`, `lace update`): cada linha vai
+ * para o console do Lace, o fim vai para `last`, e o bundle é relido, porque
+ * a operação mexe nele. O erro que a CLI descreve no JSON vira o aviso.
+ * Devolve o resultado, ou null se a operação não chegou ao fim. */
+function runCli(flow: CliFlow, start: (onMessage: (m: JobMessage) => void) => Promise<number>): Promise<CliOutcome | null> {
+  if (useJobs.getState().running) {
+    showError({ code: 'busy', message: 'Another operation is running' } satisfies IpcError);
+    return Promise.resolve(null);
+  }
+  const startedAt = Date.now();
+  useJobs.setState({ running: { id: null, flow, phase: null, startedAt, command: '', statusKey: flow } });
+  show('lace');
+  return new Promise((resolve) => {
+    const done = (outcome: CliOutcome | null, error?: IpcError, hint?: string | null) => {
+      const ok = outcome?.succeeded ?? false;
+      useJobs.setState({
+        running: null,
+        last: { flow, succeeded: ok, status: ok ? 'succeeded' : 'failed', durationMs: Date.now() - startedAt, finishedAt: Date.now() },
+      });
+      if (error) {
+        write('lace', error.message, 'error');
+        if (hint) write('lace', hint, 'dim');
+        showError(error);
+      }
+      void useApp.getState().refreshToolchain();
+      resolve(outcome);
+    };
+    start((message) => {
+      switch (message.type) {
+        case 'started':
+          useJobs.setState({ running: { ...useJobs.getState().running!, id: message.job, command: message.command } });
+          write('lace', `> ${message.command}`, 'command');
+          break;
+        case 'cli_output':
+          write('lace', message.line, message.stream === 'stderr' ? 'plain' : 'dim');
+          break;
+        case 'finished': {
+          const outcome = message.outcome as CliOutcome;
+          const failure = outcome.succeeded ? undefined : (outcome.result as CliFailure | null)?.error;
+          if (failure?.message) done(outcome, { code: failure.code ?? 'cli', message: failure.message }, failure.hint);
+          else done(outcome);
+          break;
+        }
+        case 'failed':
+          done(null, message.error);
+          break;
+        default:
+          break;
+      }
+    }).catch((error: IpcError) => done(null, error));
+  });
+}
+
+export const useJobs = create<JobsState>((set, get) => ({
+  running: null,
+  last: null,
+  outcomes: {},
+  statusByKey: {},
+  problems: [],
+  synthesis: null,
+  schematic: null,
+
+  run: async (request, statusKey) => {
+    if (get().running) {
+      showError({ code: 'busy', message: 'Another operation is running' } satisfies IpcError);
+      return null;
+    }
+    // Os arquivos abertos são gravados antes, como na AURORA: compilar o
+    // que está na tela, não o que estava no disco.
+    if (!(await useEditor.getState().saveAll())) return null;
+
+    const key = statusKey ?? request.flow;
+    const startedAt = Date.now();
+    set({
+      running: { id: null, flow: request.flow, phase: null, startedAt, command: '', statusKey: key },
+      statusByKey: { ...get().statusByKey, [key]: 'running' },
+    });
+
+    return new Promise<FlowOutcome | null>((resolve) => {
+      const finish = (outcome: FlowOutcome | null, error?: IpcError) => {
+        const durationMs = Date.now() - startedAt;
+        if (outcome) {
+          const diagnostics = collectDiagnostics(outcome);
+          setDiagnostics(diagnostics.filter((d) => d.severity === 'error' || d.severity === 'warning'));
+          set({
+            running: null,
+            problems: diagnostics,
+            outcomes: { ...get().outcomes, [outcome.flow]: outcome },
+            synthesis: outcome.synthesis ?? get().synthesis,
+            schematic: outcome.schematic ?? get().schematic,
+            statusByKey: { ...get().statusByKey, [key]: outcome.succeeded ? 'ok' : 'failed' },
+            last: {
+              flow: outcome.flow,
+              succeeded: outcome.succeeded,
+              status: outcomeStatus(outcome),
+              durationMs,
+              finishedAt: Date.now(),
+            },
+          });
+          const channel = writeOutcome(outcome);
+          if (!outcome.succeeded) show(channel);
+          if (outcome.wave_error) showError(outcome.wave_error);
+          if (outcome.schematic_error) {
+            write('prism', outcome.schematic_error.message, 'warning');
+            showError(outcome.schematic_error);
+          }
+          // A onda numa aba: abre, ou recarrega a que já está aberta, porque
+          // a simulação acabou de regravar o arquivo.
+          if (outcome.wave_tab) openWaveTab(outcome.wave_tab, true);
+          // Depois da síntese com esquemático, ele abre sozinho, como o
+          // PRISM da AURORA.
+          if (outcome.schematic?.svg) useEditor.getState().openView('schematic');
+          else if (outcome.flow === 'synthesize' && outcome.synthesis?.status === 'succeeded') {
+            useEditor.getState().openView('synthesis');
+          }
+          void useProject.getState().refresh();
+          useProject.getState().bumpTree();
+          // Compilou: a hierarquia elaborada pelo Icarus acompanha.
+          if (outcome.succeeded && ['check', 'simulate', 'build', 'synthesize'].includes(outcome.flow)) {
+            void useHierarchy.getState().refresh();
+          }
+        } else {
+          set({
+            running: null,
+            statusByKey: { ...get().statusByKey, [key]: 'failed' },
+            last: { flow: request.flow, succeeded: false, status: 'error', durationMs, finishedAt: Date.now() },
+          });
+          if (error) {
+            write('lace', t('console.failedToRun', { message: error.message }), 'error');
+            showError(error);
+          }
+        }
+        resolve(outcome);
+      };
+
+      const onMessage = (message: JobMessage) => {
+        switch (message.type) {
+          case 'started':
+            set({ running: { ...get().running!, id: message.job, command: message.command } });
+            write('lace', `> ${message.command}`, 'command');
+            break;
+          case 'phase': {
+            set({ running: { ...get().running!, phase: message.phase } });
+            const channel = PHASE_CHANNEL[message.phase];
+            write(channel, `${t(`console.phase.${message.phase}` as Key)}...`, 'title');
+            show(channel);
+            break;
+          }
+          case 'events':
+            message.events.forEach(handleEvent);
+            break;
+          case 'build':
+            writeBuild(message.result);
+            break;
+          case 'finished':
+            finish(message.outcome as FlowOutcome);
+            break;
+          case 'failed':
+            finish(null, message.error);
+            break;
+          case 'cli_output':
+            write('lace', message.line, message.stream === 'stderr' ? 'dim' : 'plain');
+            break;
+        }
+      };
+
+      api.flow.start(request, onMessage).catch((error: IpcError) => finish(null, error));
+    });
+  },
+
+  cancel: async () => {
+    const running = get().running;
+    if (!running || running.flow === 'update') return;
+    write('lace', t('console.cancelRequested'), 'warning');
+    try {
+      await api.flow.cancel(running.id);
+    } catch (error) {
+      showError(error);
+    }
+  },
+
+  install: async (components) => {
+    const outcome = await runCli('install', (onMessage) => api.toolchain.install(components, onMessage));
+    if (!outcome) return false;
+    write('lace', t('console.installDone', { code: outcome.exit_code ?? '-' }), outcome.succeeded ? 'success' : 'error');
+    if (outcome.succeeded) {
+      useToasts.getState().push({ kind: 'success', title: t('console.installDone', { code: 0 }) });
+    }
+    return outcome.succeeded;
+  },
+
+  update: async () => {
+    const outcome = await runCli('update', api.toolchain.update);
+    if (!outcome?.succeeded) {
+      if (outcome) write('lace', t('console.updateFailed', { code: outcome.exit_code ?? '-' }), 'error');
+      return null;
+    }
+    const report = outcome.result as UpdateReport;
+    const version = report.lace.latest;
+    if (report.action === 'updated') {
+      const text = t('console.updateDone', { version });
+      write('lace', text, 'success');
+      useToasts.getState().push({ kind: 'success', title: text });
+    } else if (report.action === 'wizard_opened') {
+      const text = t('console.updateWizard', { version });
+      write('lace', text, 'info');
+      useToasts.getState().push({ kind: 'info', title: text }, 10000);
+    } else {
+      const text = t('console.updateCurrent', { version });
+      write('lace', text, 'info');
+      useToasts.getState().push({ kind: 'info', title: text });
+    }
+    return report;
+  },
+}));
+
+// Outro projeto (ou nenhum): o que as operações deixaram era do anterior.
+// Problemas, marcadores, o "Último" da barra e o estado dos botões do fluxo
+// recomeçam; uma operação ainda rodando segue até o fim.
+useProject.subscribe((state, previous) => {
+  if (state.snapshot?.spf === previous.snapshot?.spf) return;
+  useJobs.setState({ last: null, outcomes: {}, statusByKey: {}, problems: [], synthesis: null, schematic: null });
+  setDiagnostics([]);
+});

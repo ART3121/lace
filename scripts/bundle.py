@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Monta o bundle de ferramentas do Solar para uma plataforma.
+"""Monta o bundle de ferramentas do Lace para uma plataforma.
 
-O bundle é o único lugar de onde o Solar executa ferramentas. Este script é o
-único lugar que baixa ou compila alguma coisa: o Solar, em uso, só lê o
+O bundle é o único lugar de onde o Lace executa ferramentas. Este script é o
+único lugar que baixa ou compila alguma coisa: o Lace, em uso, só lê o
 bundle já montado.
 
     python3 scripts/bundle.py --out dist/toolchain
@@ -12,18 +12,28 @@ bundle já montado.
 Os pacotes, com as versões exatas, estão em bundle/versions.json:
 
 - oss-cad-suite: release datada do OSS CAD Suite, baixada e conferida pelo
-  SHA-256 publicado no GitHub (Icarus, Verilator, Yosys, dot);
+  SHA-256 publicado no GitHub. No Linux e no macOS, Icarus, Verilator,
+  Yosys e dot; no Windows, só o Yosys;
+- msys: só no Windows, o bloco MSYS2 UCRT64 que o repositório lace-toolchain
+  monta e testa (Icarus, Verilator, o g++, o make e o Perl que ele usa, e
+  Python com cocotb). O zip e o manifesto da release, conferidos pelo
+  SHA-256 fixado aqui;
 - yanc: compilado do commit fixado (make stage);
 - surfer-aurora: compilado do commit fixado do fork da AURORA
   (cargo build --bin surfer, como o CI do fork);
 - graphviz: só no Windows, onde o OSS CAD Suite não traz o dot; zip oficial
-  conferido pelo SHA-256 publicado.
+  conferido pelo SHA-256 publicado;
+- studio: o Lace Studio, compilado de studio/ deste repositório
+  (npm ci e tauri build); a versão de versions.json tem que ser a do
+  studio/package.json e a do tauri.conf.json.
 
 Os componentes que o instalador oferece estão em bundle/components.json. O
 OSS CAD Suite vira quatro (icarus, verilator, yosys, graphviz): cada um leva
 os arquivos que a ferramenta executa, os dados dela e o fecho das bibliotecas
 dinâmicas que esses binários carregam (scripts/binaries.py). O resto do
-pacote (nextpnr, GHDL, GTKWave, bases de FPGA...) fica de fora.
+pacote (nextpnr, GHDL, GTKWave, bases de FPGA...) fica de fora. Do msys,
+cada componente leva os pacotes do MSYS2 que pede, com as dependências e os
+arquivos que o manifesto da release lista para cada um.
 
 Saída:
 
@@ -34,14 +44,18 @@ Saída:
                                       os instaladores (não é instalado)
 
 Só usa a biblioteca padrão do Python (3.9 ou mais novo). Compilar o YANC
-exige gcc/clang, make, flex e bison; o surfer-aurora, cargo. No Windows,
-rode dentro do shell MINGW64 do MSYS2.
+exige gcc/clang, make, flex e bison; o surfer-aurora, cargo; o Studio, cargo,
+Node.js e, no Linux, as bibliotecas de desenvolvimento do webkit2gtk 4.1. No
+Windows, rode dentro do shell MINGW64 do MSYS2.
 
 Variáveis opcionais:
-  SOLAR_BUNDLE_CACHE  onde guardar downloads, clones e pacotes extraídos
+  LACE_BUNDLE_CACHE   onde guardar downloads, clones e pacotes extraídos
                       (padrão: ./.bundle-cache)
   YANC_MAKE_ARGS      argumentos extras para o make do YANC
                       (no macOS: BISON=... FLEX=... do Homebrew)
+  LACE_MSYS_DIST      o dist/ de um build local do lace-toolchain (com o
+                      lace-msys-<tag>.zip e o .json), no lugar da release:
+                      para testar um bloco de Windows antes de publicá-lo
 """
 
 import argparse
@@ -173,7 +187,13 @@ def pkg_yanc(spec, plat, work, cache):
 def pkg_surfer_aurora(spec, plat, work, cache):
     src = checkout(spec["repository"], spec["commit"], cache, "surfer-aurora")
     target = cache / "surfer-target"
-    env = dict(os.environ, CARGO_TARGET_DIR=str(target))
+    # No Windows, o runtime do Visual C++ dentro do executável, como o do Lace
+    # (.cargo/config.toml): sem ele, o surfer-aurora pede o VCRUNTIME140.dll.
+    env = dict(
+        os.environ,
+        CARGO_TARGET_DIR=str(target),
+        CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS="-C target-feature=+crt-static",
+    )
     run(["cargo", "build", "--bin", "surfer", "--release", "--locked", "--features", "accesskit"], cwd=src, env=env)
     exe = ".exe" if plat == "windows-x64" else ""
     stage = work / "surfer-aurora"
@@ -182,7 +202,54 @@ def pkg_surfer_aurora(spec, plat, work, cache):
     shutil.copy2(target / "release" / f"surfer{exe}", stage / f"surfer-aurora{exe}")
     for lic in src.glob("LICENSE*"):
         shutil.copy2(lic, stage / lic.name)
+    # O cliente web (WASM) da mesma tag, que a CI do fork publica: o Lace
+    # Studio o mostra numa aba, ligado a um `surfer-aurora server`. Um zip
+    # só serve às três plataformas, e cliente e servidor precisam ser da
+    # mesma versão.
+    web = spec.get("web")
+    if web:
+        archive = download(web["url"], web["sha256"], cache)
+        with zipfile.ZipFile(archive) as z:
+            z.extractall(stage / "web")
+        if not (stage / "web" / "index.html").is_file():
+            sys.exit("o zip do cliente web do surfer-aurora não tem index.html na raiz")
     return stage, {"source": f"git+{spec['repository']}@{spec['commit']}"}
+
+
+def pkg_studio(spec, plat, work, cache):
+    """O Lace Studio, compilado de studio/ deste repositório pelo Tauri (a
+    interface pelo Vite, embutida no executável). No macOS sai o
+    `Lace Studio.app`; no Linux e no Windows, o executável, que usa o
+    WebView do sistema (webkit2gtk 4.1, WebView2)."""
+    src = ROOT / spec["path"]
+    conf = json.loads((src / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
+    npm_package = json.loads((src / "package.json").read_text(encoding="utf-8"))
+    for where, version in (("src-tauri/tauri.conf.json", conf["version"]), ("package.json", npm_package["version"])):
+        if version != spec["version"]:
+            sys.exit(f"studio: bundle/versions.json diz {spec['version']}, e {spec['path']}/{where} diz {version}")
+    npm = shutil.which("npm")
+    if not npm:
+        sys.exit("studio: o build do Lace Studio precisa do Node.js (npm)")
+    if not (src / "node_modules").is_dir():
+        run([npm, "ci", "--no-audit", "--no-fund"], cwd=src)
+    target = cache / "studio-target"
+    env = dict(os.environ, CARGO_TARGET_DIR=str(target))
+    bundles = ["--bundles", "app"] if plat == "darwin-arm64" else ["--no-bundle"]
+    run([npm, "exec", "--", "tauri", "build", "--ci", *bundles], cwd=src, env=env)
+    stage = work / "studio"
+    shutil.rmtree(stage, ignore_errors=True)
+    stage.mkdir(parents=True)
+    if plat == "darwin-arm64":
+        app = target / "release" / "bundle" / "macos" / f"{conf['productName']}.app"
+        if not app.is_dir():
+            sys.exit(f"studio: o tauri build não gerou {app}")
+        shutil.copytree(app, stage / app.name, symlinks=True)
+    else:
+        exe = ".exe" if plat == "windows-x64" else ""
+        shutil.copy2(target / "release" / f"lace-studio{exe}", stage / f"lace-studio{exe}")
+        # O ícone que o instalador põe no atalho do menu de aplicativos.
+        shutil.copy2(src / "src-tauri" / "icons" / "128x128.png", stage / "lace-studio.png")
+    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
 
 
 def pkg_graphviz(spec, plat, work, cache):
@@ -202,11 +269,62 @@ def pkg_graphviz(spec, plat, work, cache):
     return stage, {"source": asset["url"], "sha256": asset["sha256"]}
 
 
+def pkg_msys(spec, plat, work, cache):
+    """O bloco de Windows do lace-toolchain: o zip (com msys/ na raiz) e o
+    manifesto, que fica ao lado da pasta extraída (MSYS_MANIFEST)."""
+    local = os.environ.get("LACE_MSYS_DIST")
+    if local:
+        zips = sorted(Path(local).glob("lace-msys-*.zip"))
+        if len(zips) != 1:
+            sys.exit(f"LACE_MSYS_DIST={local}: esperado um lace-msys-<tag>.zip, achados {len(zips)}")
+        archive, manifest = zips[0], zips[0].with_suffix(".json")
+        if not manifest.is_file():
+            sys.exit(f"falta {manifest.name} ao lado de {archive.name}")
+        sha256 = sha256_file(archive)
+        log(f"msys de um build local: {archive}")
+        origin = {"source": archive.resolve().as_uri(), "sha256": sha256}
+    else:
+        asset = spec["assets"][plat]
+        if not asset.get("sha256") or not asset.get("manifest_sha256"):
+            sys.exit(
+                f"o pacote msys {spec['version']} ainda não tem SHA-256 em bundle/versions.json: "
+                "publique a release no lace-toolchain e preencha sha256 e manifest_sha256 "
+                "(ou aponte LACE_MSYS_DIST para o dist/ de um build local dele)"
+            )
+        archive = download(asset["url"], asset["sha256"], cache)
+        manifest = download(asset["manifest"], asset["manifest_sha256"], cache)
+        sha256 = asset["sha256"]
+        origin = {"source": asset["url"], "sha256": sha256}
+
+    dest = cache / "extract" / archive.stem
+    marker = dest / ".sha256"
+    if not marker.is_file() or marker.read_text().strip() != sha256:
+        log(f"extraindo {archive.name}")
+        shutil.rmtree(dest, ignore_errors=True)
+        with zipfile.ZipFile(archive) as z:
+            z.extractall(dest)
+        marker.write_text(sha256)
+    data = json.loads(Path(manifest).read_text(encoding="utf-8"))
+    root = dest / data.get("root", "msys")
+    if not root.is_dir():
+        sys.exit(f"{archive.name} não trouxe {root.name}/")
+    shutil.copy2(manifest, dest / MSYS_MANIFEST)
+    return root, origin
+
+
+# O manifesto da release do lace-toolchain, guardado ao lado da pasta
+# extraída: os pacotes do MSYS2, as dependências e os arquivos de cada um.
+MSYS_MANIFEST = "lace-msys.json"
+MSYS_PREFIX = "mingw-w64-ucrt-x86_64-"
+
+
 PACKAGES = {
     "oss-cad-suite": pkg_oss_cad_suite,
+    "msys": pkg_msys,
     "yanc": pkg_yanc,
     "surfer-aurora": pkg_surfer_aurora,
     "graphviz": pkg_graphviz,
+    "studio": pkg_studio,
 }
 
 
@@ -229,7 +347,11 @@ def matches(rel, pattern):
     if pattern == "**":
         return True
     if pattern.endswith("/**"):
-        return rel.startswith(pattern[:-2])
+        prefix = pattern[:-2]
+        if not any(c in prefix for c in "*?["):
+            return rel.startswith(prefix)
+        # `pasta-*.egg/**`: o `*` do fnmatch também casa `/`.
+        return fnmatch.fnmatchcase(rel, prefix + "*")
     return fnmatch.fnmatchcase(rel, pattern)
 
 
@@ -284,9 +406,18 @@ class Package:
         here = os.path.dirname(binary)
         if self.plat == "linux-x64":
             # Os lançadores rodam o binário pelo ld-linux do pacote com
-            # --library-path lib: tudo sai de lib/.
-            cand = f"lib/{name}"
-            return (cand, False) if cand in self.present else (None, False)
+            # --library-path lib: quase tudo sai de lib/. O resto (as
+            # bibliotecas do cocotb, que se acham entre si) vem do RUNPATH
+            # com $ORIGIN, a pasta do binário.
+            candidates = [f"lib/{name}"]
+            for rp in rpaths:
+                if "$ORIGIN" in rp:
+                    base = rp.replace("${ORIGIN}", here).replace("$ORIGIN", here)
+                    candidates.append(os.path.normpath(os.path.join(base, name)))
+            for c in candidates:
+                if c in self.present:
+                    return c, False
+            return None, False
         if self.plat == "darwin-arm64":
             if name.startswith(("/usr/lib/", "/System/")):
                 return None, True
@@ -309,7 +440,7 @@ class Package:
                 if rel in self.present:
                     return rel, False
             return None, False
-        # Windows: a pasta do binário e o PATH que o Solar monta (bin;lib).
+        # Windows: a pasta do binário e o PATH que o Lace monta (bin;lib).
         for d in (here, "bin", "lib"):
             rel = f"{d}/{name}".lower() if d else name.lower()
             if rel in self.lower:
@@ -348,20 +479,59 @@ class Package:
         return files, missing, system
 
 
+def select_msys(name, package, wanted):
+    """Os arquivos dos pacotes do MSYS2 em `wanted` e das dependências deles,
+    como o manifesto da release os lista."""
+    manifest = json.loads((package.root.parent / MSYS_MANIFEST).read_text(encoding="utf-8"))
+    by_name = {p["name"]: p for p in manifest["packages"]}
+
+    def full(short):
+        for candidate in (short, MSYS_PREFIX + short):
+            if candidate in by_name:
+                return candidate
+        sys.exit(f"{name}: o manifesto do msys {manifest.get('tag')} não tem o pacote {short}")
+
+    queue = [full(w) for w in wanted]
+    taken = set()
+    while queue:
+        pkg = queue.pop()
+        if pkg in taken:
+            continue
+        taken.add(pkg)
+        queue.extend(d for d in by_name[pkg]["depends"] if d in by_name)
+    files = set()
+    for pkg in taken:
+        files.update(by_name[pkg]["files"])
+    missing = sorted(f for f in files if f not in package.present)
+    if missing:
+        sys.exit(f"{name}: o manifesto lista arquivos que o zip não tem (o primeiro: {missing[0]})")
+    log(f"{name}: {len(taken)} pacotes do MSYS2")
+    return files
+
+
 def select(component, package, plat, common):
     """Os arquivos do pacote que o componente leva."""
     name = component["name"]
     sel = for_platform(component.get("select", {}), plat, [])
     data = for_platform(component.get("data", {}), plat, [])
     excl = for_platform(component.get("exclude", {}), plat, [])
+    # Exceções ao exclude: o que entra mesmo casando com ele.
+    keep_anyway = for_platform(component.get("keep", {}), plat, [])
     run_list = for_platform(component.get("run", {}), plat, [])
+    msys = for_platform(component.get("msys", {}), plat, [])
 
     for pattern in sel + run_list:
         if not any(c in pattern for c in "*?[") and pattern not in package.present:
             sys.exit(f"{name}: o pacote {package.name} não tem {pattern}")
 
     def keep(rel, patterns):
-        return any(matches(rel, p) for p in patterns) and not any(matches(rel, p) for p in excl)
+        if not any(matches(rel, p) for p in patterns):
+            return False
+        return not any(matches(rel, p) for p in excl) or any(matches(rel, p) for p in keep_anyway)
+
+    if msys:
+        files = {f for f in select_msys(name, package, msys) if not any(matches(f, p) for p in excl)}
+        return files, run_list
 
     roots = [f for f in package.files if keep(f, sel) or f in common]
     if component.get("closure", True):
@@ -422,7 +592,7 @@ def main():
     if out.exists() and any(out.iterdir()):
         sys.exit(f"{out} já existe e não está vazio")
     out.mkdir(parents=True, exist_ok=True)
-    cache = Path(os.environ.get("SOLAR_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
+    cache = Path(os.environ.get("LACE_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
     work = cache / "work" / plat
     work.mkdir(parents=True, exist_ok=True)
 
@@ -461,7 +631,7 @@ def main():
         contents.append({
             "name": c["name"],
             "label": c["label"],
-            "description": c["description"],
+            "description": for_platform(c["description"], plat),
             "recommended": c.get("recommended", False),
             "requires": c.get("requires", []),
             "version": spec["version"],

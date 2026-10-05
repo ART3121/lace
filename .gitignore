@@ -2,11 +2,10 @@
 /vendor
 
 # saídas de build dos projetos de exemplo
-/examples/**/.solar/
+/examples/**/.lace/
 /examples/**/Hardware/
 /examples/**/Software/*.asm
 /examples/**/*.vcd
-/examples/**/*.surfer.log
 /examples/**/pc_*_mem.txt
 /examples/**/Simulation/output_*.txt
 

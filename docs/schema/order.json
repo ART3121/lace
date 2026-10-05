@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderReport",
+  "description": "`lace order`.",
+  "type": "object",
+  "properties": {
+    "project": {
+      "description": "O `.spf`.",
+      "type": "string"
+    },
+    "files": {
+      "description": "A lista em que o arquivo está, na ordem nova.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProjectFile"
+      }
+    }
+  },
+  "required": [
+    "project",
+    "files"
+  ],
+  "$defs": {
+    "ProjectFile": {
+      "description": "Um arquivo registrado no projeto.",
+      "type": "object",
+      "properties": {
+        "role": {
+          "description": "Em qual lista ele está.",
+          "$ref": "#/$defs/FileRole"
+        },
+        "path": {
+          "description": "Caminho absoluto.",
+          "type": "string"
+        },
+        "top_level": {
+          "description": "Marcado como topo (sintetizável) ou como o testbench escolhido.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "top_level"
+      ]
+    },
+    "FileRole": {
+      "description": "Em qual lista do `.spf` um arquivo fica. Em JSON: `\"synthesizable\"` ou\n`\"testbench\"`.\n\n[`Project::add_verilog`] decide o papel pelo conteúdo, como a AURORA\n([`classify`](crate::verilog::classify)); [`Project::add_file`] recebe o\npapel de quem chama. Um arquivo fica numa lista só.",
+      "oneOf": [
+        {
+          "description": "Entra na síntese e na simulação.",
+          "type": "string",
+          "const": "synthesizable"
+        },
+        {
+          "description": "Só entra na simulação.",
+          "type": "string",
+          "const": "testbench"
+        }
+      ]
+    }
+  }
+}
