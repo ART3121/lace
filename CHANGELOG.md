@@ -1,6 +1,6 @@
 # Mudanças
 
-## 0.2.0 (não publicada)
+## 0.2.0 (2026-10-05)
 
 A 0.1.0 saiu com o nome Solar; esta é a mesma linha com o nome Lace (o
 executável `lace`, a pasta `~/.local/share/lace`, `LACE_*` no lugar de
