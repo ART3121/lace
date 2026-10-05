@@ -44,8 +44,9 @@ jobs:
       # Só unidade, doc e o teste do clap: os de integração precisam do bundle
       # e falham de propósito sem ele quando CI=true. O cargo não aceita --doc
       # junto com outros alvos, por isso são dois comandos.
-      - run: cargo test --workspace --lib --bins
-      - run: cargo test --workspace --doc
+      # --no-fail-fast: uma falha não esconde as dos outros binários de teste.
+      - run: cargo test --workspace --lib --bins --no-fail-fast
+      - run: cargo test --workspace --doc --no-fail-fast
 
   studio:
     name: studio

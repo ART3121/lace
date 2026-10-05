@@ -202,14 +202,14 @@ jobs:
       - name: Testes contra a instalação
         run: |
           "$INSTALLED/bin/lace" tools --verify
-          cargo test --workspace -- --test-threads=2
+          cargo test --workspace --no-fail-fast -- --test-threads=2
         env:
           LACE_TEST_BUNDLE: ${{ env.INSTALLED }}/toolchain
           INSTA_UPDATE: "no"
 
       # Os fluxos do Studio (studio/src-tauri/tests) com o bundle instalado.
       - name: Testes do Studio contra a instalação
-        run: cargo test --manifest-path studio/src-tauri/Cargo.toml -- --test-threads=2
+        run: cargo test --manifest-path studio/src-tauri/Cargo.toml --no-fail-fast -- --test-threads=2
         env:
           LACE_TEST_BUNDLE: ${{ env.INSTALLED }}/toolchain
 

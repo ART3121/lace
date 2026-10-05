@@ -1,0 +1,4 @@
+# Os contratos do --json (docs/schema) são comparados byte a byte com o que os
+# tipos geram (report.rs, schema_files_match_the_types): em LF em qualquer
+# sistema, inclusive no checkout do Windows, que converteria para CRLF.
+docs/schema/*.json text eol=lf
