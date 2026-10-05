@@ -1121,7 +1121,7 @@ impl Project {
                 .and_then(Value::as_array_mut)
             {
                 for entry in list {
-                    let Some(new) = entry.get("path").and_then(Value::as_str).and_then(&moved)
+                    let Some(new) = entry.get("path").and_then(Value::as_str).and_then(moved)
                     else {
                         continue;
                     };
@@ -1131,7 +1131,7 @@ impl Project {
                 }
             }
             let key = role.selected_key();
-            if let Some(new) = structure.get(key).and_then(Value::as_str).and_then(&moved) {
+            if let Some(new) = structure.get(key).and_then(Value::as_str).and_then(moved) {
                 structure[key] = store(&root, &new).into();
                 changed = true;
             }
