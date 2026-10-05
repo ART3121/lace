@@ -600,7 +600,10 @@ fn add_registers_existing_files_relative_to_the_shell() {
         .args(["add", "novo/dentro.v"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Module created: novo/dentro.v"));
+        .stdout(predicate::str::contains(format!(
+            "Module created: {}",
+            shown("novo/dentro.v")
+        )));
     assert!(root.join("novo/dentro.v").is_file());
 }
 
