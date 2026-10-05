@@ -66,8 +66,9 @@ falhar. O bundle completo fica com 300 MiB no Linux; a divisão do macOS dá
 141 MiB, sem o surfer-aurora (medidos na montagem local; o CI monta os
 completos). O cocotb não entra nessas contas: acrescenta 42 MiB no Linux e
 25 MiB no macOS a quem tem o Verilator, que já traz o mesmo Python, e 115 e
-76 MiB a quem não tem. O tamanho do Windows com o bloco MSYS2 ainda não foi
-medido.
+76 MiB a quem não tem. No Windows, o bloco MSYS2 (`ucrt64-v1`) se divide em
+14 MiB para o Icarus, 630 MiB para o Verilator (quase tudo o g++ e o Perl)
+e 102 MiB para o cocotb (o Python, a libstdc++ e o cocotb).
 
 O cocotb leva o Python do pacote com a biblioteca padrão, o egg do cocotb
 (as bibliotecas dele e a VPI de cada simulador), o `find_libpython` e o

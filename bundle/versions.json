@@ -53,9 +53,9 @@
       "assets": {
         "windows-x64": {
           "url": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v1/lace-msys-ucrt64-v1.zip",
-          "sha256": null,
+          "sha256": "bfc42547deb61b5d5708385c5e74a05b48b23946891d4ec405a7004e06dfa857",
           "manifest": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v1/lace-msys-ucrt64-v1.json",
-          "manifest_sha256": null
+          "manifest_sha256": "0002cf91f073b963928518ca73f6a0dc3963f0c23b364ab49a364b00f9d91261"
         }
       }
     },
