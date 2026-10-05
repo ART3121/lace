@@ -107,6 +107,16 @@ fn bundle_has(bundle: &str, component: &str) -> bool {
     has
 }
 
+/// Um caminho relativo do projeto como a CLI o mostra: com o separador do
+/// sistema (`rtl\x.v` no Windows). O `.spf` guarda sempre com `/`.
+fn shown(path: &str) -> String {
+    if cfg!(windows) {
+        path.replace('/', "\\")
+    } else {
+        path.to_owned()
+    }
+}
+
 fn spf(root: &Utf8Path) -> Value {
     let name = root.file_name().unwrap();
     serde_json::from_str(&std::fs::read_to_string(root.join(format!("{name}.spf"))).unwrap())
@@ -571,7 +581,10 @@ fn add_registers_existing_files_relative_to_the_shell() {
         .args(["-C", "..", "add", "--tb", "forcado.v"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Testbench added: rtl/forcado.v"));
+        .stdout(predicate::str::contains(format!(
+            "Testbench added: {}",
+            shown("rtl/forcado.v")
+        )));
     let doc = spf(&root);
     assert_eq!(
         doc["structure"]["synthesizableFiles"][0]["path"],
@@ -824,7 +837,7 @@ fn status_lists_unregistered_files() {
     std::fs::write(root.join("rtl/solto.v"), "module solto; endmodule\n").unwrap();
     let text = stdout(lace_in(&root).arg("status"), 0);
     assert!(text.contains("Untracked files"), "{text}");
-    assert!(text.contains("rtl/solto.v"), "{text}");
+    assert!(text.contains(&shown("rtl/solto.v")), "{text}");
     assert!(text.contains("Add one with: lace add <file>"), "{text}");
 
     let status = json(lace_in(&root).args(["--json", "status"]), 0);
@@ -974,9 +987,10 @@ fn processor_simulation_prints_outputs() {
         .stdout(predicate::str::contains(
             "Simulation of soma_tb (Icarus): finished in",
         ))
-        .stdout(predicate::str::contains(
-            "testbench           soma/Simulation/soma_tb.v",
-        ))
+        .stdout(predicate::str::contains(format!(
+            "testbench           {}",
+            shown("soma/Simulation/soma_tb.v")
+        )))
         .stdout(predicate::str::contains("Output 0: 55"))
         .stdout(predicate::str::contains(
             "Open the waveform with: lace wave -p soma",
@@ -1760,14 +1774,17 @@ fn a_failed_build_says_what_ran_and_what_did_not() {
         1,
     );
     for expected in [
-        "Build of conta (C±, 100 MHz, 2000 clocks): failed after",
-        "cmmcomp exited with code 1",
-        "not run   pre assemble  appcomp",
-        "Not generated:",
-        "testbench           conta/Simulation/conta_tb.v",
-        "Simulation not run: the build of conta did not finish",
+        "Build of conta (C±, 100 MHz, 2000 clocks): failed after".to_owned(),
+        "cmmcomp exited with code 1".to_owned(),
+        "not run   pre assemble  appcomp".to_owned(),
+        "Not generated:".to_owned(),
+        format!(
+            "testbench           {}",
+            shown("conta/Simulation/conta_tb.v")
+        ),
+        "Simulation not run: the build of conta did not finish".to_owned(),
     ] {
-        assert!(text.contains(expected), "{expected}:\n{text}");
+        assert!(text.contains(&expected), "{expected}:\n{text}");
     }
 }
 

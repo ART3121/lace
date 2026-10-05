@@ -246,7 +246,27 @@ pub(crate) fn write(path: &Utf8Path, doc: &Value) -> Result<()> {
     let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let tmp = Utf8PathBuf::from(format!("{path}.{}-{n}.tmp", std::process::id()));
     std::fs::write(&tmp, text).map_err(LaceError::io("Writing project", &tmp))?;
-    std::fs::rename(&tmp, path).map_err(LaceError::io("Writing project", path))
+    // No Windows, a troca pode esbarrar num leitor que abriu o `.spf` sem
+    // permitir a remoção (outro programa) ou numa troca anterior ainda em
+    // curso: tenta de novo por alguns milissegundos.
+    let mut attempt = 0;
+    loop {
+        match std::fs::rename(&tmp, path) {
+            Err(e)
+                if cfg!(windows)
+                    && attempt < 20
+                    && e.kind() == std::io::ErrorKind::PermissionDenied =>
+            {
+                attempt += 1;
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            Err(e) => {
+                let _ = std::fs::remove_file(&tmp);
+                return Err(LaceError::io("Writing project", path)(e));
+            }
+            Ok(()) => return Ok(()),
+        }
+    }
 }
 
 #[cfg(test)]

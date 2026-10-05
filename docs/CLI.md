@@ -233,7 +233,11 @@ do bundle no Windows (ver [BUNDLE.md](BUNDLE.md)) e grava a onda sempre em
 VCD.
 `--timeout <SEGUNDOS>` (inteiro, a partir de 1) encerra a simulação que
 passar desse tempo, sem contar a elaboração e a compilação; sem ele, não há
-limite, e um testbench sem `$finish` roda até o Ctrl+C. `--open` abre a onda
+limite, e um testbench sem `$finish` roda até o Ctrl+C. No Linux e no
+macOS, o prazo pede ao simulador que saia (SIGTERM), e o que o testbench
+escreveu até ali aparece. No Windows não há esse pedido: o `taskkill` encerra
+o simulador na hora, e o que ainda estava no buffer de saída dele se perde
+(um `$fflush` no testbench o escreve antes). `--open` abre a onda
 no surfer-aurora ao terminar. O esquemático sempre traz a largura dos
 barramentos. Para ver os nomes de módulo que `--module` aceita, rode
 `lace synth -v`.

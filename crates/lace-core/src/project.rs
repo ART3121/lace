@@ -435,8 +435,32 @@ impl Project {
     ///   não seja inteiro positivo;
     /// - [`LaceError::Io`] se o arquivo não puder ser lido.
     pub fn open(path: impl AsRef<Utf8Path>) -> Result<Self> {
-        let spf_path = locate_spf(path.as_ref())?;
-        let spf_path = paths::canonicalize(&spf_path)?;
+        // No Windows, o `.spf` que outra gravação troca neste instante
+        // (`spf::write`, por rename) pode sumir ou negar acesso por alguns
+        // milissegundos: o Studio e a CLI abrindo e gravando o mesmo projeto.
+        let mut attempt = 0;
+        loop {
+            match Self::open_once(path.as_ref()) {
+                Err(error) if cfg!(windows) && attempt < 20 && is_transient(&error) => {
+                    attempt += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+                other => return other,
+            }
+        }
+    }
+
+    fn open_once(path: &Utf8Path) -> Result<Self> {
+        let spf_path = locate_spf(path)?;
+        // A pasta canonicalizada, e não o arquivo: no Windows, canonicalizar
+        // o `.spf` bem na troca devolve o caminho do arquivo apagado
+        // (`C:\$Extend\$Deleted\...`).
+        let name = spf_path.file_name().unwrap_or_default().to_owned();
+        let parent = match spf_path.parent() {
+            Some(p) if !p.as_str().is_empty() => p.to_owned(),
+            _ => Utf8PathBuf::from("."),
+        };
+        let spf_path = paths::canonicalize(&parent)?.join(name);
         let text = std::fs::read_to_string(&spf_path)
             .map_err(LaceError::io("Reading project", &spf_path))?;
         let document = spf::parse(&spf_path, &text)?;
@@ -1029,6 +1053,19 @@ fn simulation_range(kind: &str, value: u32) -> Option<&'static str> {
 /// processador; `../x` sairia do projeto.
 fn is_single_folder_name(name: &str) -> bool {
     !name.contains(['/', '\\', ':']) && name != "." && name != ".."
+}
+
+/// Um erro que a troca do `.spf` por outra gravação causa no Windows, e que
+/// some na tentativa seguinte (ver [`Project::open`]).
+fn is_transient(error: &LaceError) -> bool {
+    match error {
+        LaceError::Io { source, .. } => matches!(
+            source.kind(),
+            std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+        ),
+        LaceError::InvalidProject { .. } => true,
+        _ => false,
+    }
 }
 
 fn locate_spf(path: &Utf8Path) -> Result<Utf8PathBuf> {

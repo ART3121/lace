@@ -276,22 +276,26 @@ pub fn hierarchy(
     for target in targets {
         let image = work.join(format!("{}.vvp", target.name));
         tracker.expect(ArtifactKind::IcarusImage, &image, true);
-        let mut invocation = crate::synth::include_paths(
-            toolchain.invocation(Tool::Iverilog, project.root())?,
-            project.root(),
-        );
+        // Os caminhos que podem ir para a tabela de arquivos do `.vvp` (as
+        // fontes, a biblioteca e a pasta dos `include`) vão por
+        // `icarus_path`; o `-I` é o de `synth::include_paths`.
+        let mut invocation = toolchain
+            .invocation(Tool::Iverilog, project.root())?
+            .arg("-grelative-include")
+            .arg("-I")
+            .arg(icarus_path(project.root()));
         if target.files.iter().any(|f| f.extension() == Some("sv")) {
             invocation = invocation.arg("-g2012");
         }
         if let Some(library) = &library {
-            invocation = invocation.arg("-y").path_arg(library);
+            invocation = invocation.arg("-y").arg(icarus_path(library));
         }
         for top in &target.tops {
             invocation = invocation.arg("-s").arg(top);
         }
         invocation = invocation.arg("-o").path_arg(&image);
         for file in &target.files {
-            invocation = invocation.path_arg(file);
+            invocation = invocation.arg(icarus_path(file));
         }
 
         // Um Runner por elaboração: a falha de uma não pula as outras.
@@ -386,6 +390,22 @@ struct Scope {
     /// Num filho, a definição.
     defined: Option<(usize, u32)>,
     parent: Option<String>,
+}
+
+/// Um caminho como o `iverilog` da hierarquia o recebe: no Windows, com `/`.
+/// O `.vvp` guarda os nomes da tabela `:file_names` como vieram, sem escapar
+/// a `\`, e na leitura a `\` de `C:\Users` sumiria ([`unescape`] a lê como
+/// escape). O Windows aceita a `/`, e o `Utf8Path` do resultado compara igual
+/// ao caminho com `\`.
+fn icarus_path(path: &Utf8Path) -> String {
+    let native = dunce::simplified(path.as_std_path())
+        .to_string_lossy()
+        .into_owned();
+    if cfg!(windows) {
+        native.replace('\\', "/")
+    } else {
+        native
+    }
 }
 
 /// A árvore de módulos de um `.vvp`. Os blocos `generate`, `begin` e `fork`

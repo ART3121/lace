@@ -69,8 +69,12 @@ fn timeout_stops_a_testbench_without_finish() {
     assert_eq!(result.failed_step, Some(Step::Simulate));
     let run = result.steps.last().unwrap();
     assert_eq!(run.termination, Termination::TimedOut);
-    // O que o testbench escreveu antes do prazo continua no resultado.
-    assert!(run.stdout.contains("comecou"), "{}", run.stdout);
+    // O que o testbench escreveu antes do prazo continua no resultado. No
+    // Windows, o `taskkill /F` não deixa o `vvp` esvaziar o buffer da saída
+    // (docs/CLI.md, `--timeout`).
+    if !cfg!(windows) {
+        assert!(run.stdout.contains("comecou"), "{}", run.stdout);
+    }
     assert!(result.waveform.is_none());
 }
 

@@ -35,6 +35,14 @@ Lace Studio e instaladores:
 - O `release.yml` publica os pedaços do bundle na raiz da release (antes eles
   ficavam em `apps/` e o passo das somas falhava) e confere que o Studio
   tem a versão do Lace.
+- Windows, achados no primeiro CI com o instalador: a hierarquia (`lace
+  hierarchy`, a árvore do Studio) perdia as `\` dos caminhos dos arquivos (o
+  `.vvp` do Icarus os guarda sem escapar; o `iverilog` da hierarquia passa a
+  recebê-los com `/`); abrir o projeto enquanto outro processo grava o `.spf`
+  falhava na troca do arquivo (`Project::open` canonicaliza a pasta e tenta de
+  novo por alguns milissegundos, e a gravação também); o `docs/schema` vai em
+  LF no checkout. Limitação registrada: no Windows, a simulação encerrada pelo
+  `--timeout` perde o que ainda estava no buffer de saída do simulador.
 
 O Lace passa a cobrir o desenvolvimento em Verilog e o de processadores
 SAPHO num fluxo só. Um projeto é Verilog; os processadores, quando existem,
