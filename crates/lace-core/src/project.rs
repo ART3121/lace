@@ -596,11 +596,10 @@ impl Project {
         let parent = paths::canonicalize(parent.as_ref())?;
         let root = parent.join(name);
         let spf_path = root.join(format!("{name}.spf"));
-        if spf_path.exists() {
-            return Err(LaceError::ProjectExists(spf_path));
-        }
         // `Ok1` ao lado de `ok1`: duas pastas no Linux, a mesma no Windows e
-        // no macOS.
+        // no macOS. Antes de conferir o `.spf`: no macOS e no Windows,
+        // `Ok1/Ok1.spf` acharia o de `ok1`, e o erro diria outra coisa em
+        // cada sistema.
         if let Ok(entries) = parent.read_dir_utf8()
             && let Some(other) = entries
                 .filter_map(|e| e.ok())
@@ -613,6 +612,9 @@ impl Project {
                     "'{other}' already exists here, and Windows and macOS do not tell the two names apart"
                 ),
             });
+        }
+        if spf_path.exists() {
+            return Err(LaceError::ProjectExists(spf_path));
         }
         let created = !root.exists();
         std::fs::create_dir_all(&root).map_err(LaceError::io("Creating project", &root))?;
@@ -2059,7 +2061,14 @@ mod tests {
             Err(LaceError::InvalidName { reason, .. }) => assert!(reason.contains("ok1")),
             other => panic!("{other:?}"),
         }
-        assert!(!dir.join("Ok1").exists());
+        // No macOS e no Windows, `dir/Ok1` acha a pasta `ok1`: o que conta é
+        // não haver uma entrada com o nome `Ok1`.
+        let names: Vec<String> = dir
+            .read_dir_utf8()
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_owned())
+            .collect();
+        assert_eq!(names, ["ok1"]);
     }
 
     #[test]
