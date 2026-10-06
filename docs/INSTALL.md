@@ -60,7 +60,7 @@ permissão de execução) e apaga o que baixou no fim.
 
 | O quê | Linux, macOS | Windows |
 |---|---|---|
-| versão fixa | `... \| LACE_VERSION=0.2.0 sh` | `$env:LACE_VERSION = "0.2.0"` antes do `irm` |
+| versão fixa | `... \| LACE_VERSION=0.3.0 sh` | `$env:LACE_VERSION = "0.3.0"` antes do `irm` |
 | sem perguntas | `... \| sh -s -- --yes` | `$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"` antes do `irm` |
 | outras opções do instalador | `... \| sh -s -- --components yanc,icarus --prefix /opt/lace` | os parâmetros do Inno Setup em `LACE_SETUP_ARGS` |
 | para todos os usuários | `... \| sudo sh` (vai para `/opt/lace`) | o assistente pergunta |
@@ -180,8 +180,8 @@ perguntar.
 **Sem interação** (scripts, laboratórios):
 
 ```
-lace-0.2.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path
-lace-0.2.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
+lace-0.3.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path
+lace-0.3.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
 ```
 
 Nos parâmetros do Inno Setup, os nomes são `lace`, `yanc`, `icarus`,
@@ -197,8 +197,8 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
 
 ```
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.2.0/lace-0.2.0-linux-x64.tar.gz
-tar xzf lace-0.2.0-linux-x64.tar.gz && ./lace-0.2.0-linux-x64/install
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.3.0/lace-0.3.0-linux-x64.tar.gz
+tar xzf lace-0.3.0-linux-x64.tar.gz && ./lace-0.3.0-linux-x64/install
 ```
 
 A instalação guiada no terminal tem estas telas:
@@ -295,7 +295,7 @@ recusa abrir o `install` ("desenvolvedor não pode ser verificado"). O
 foi baixado pelo navegador:
 
 ```
-xattr -dr com.apple.quarantine lace-0.2.0-darwin-arm64
+xattr -dr com.apple.quarantine lace-0.3.0-darwin-arm64
 ```
 
 Isto não foi verificado num Mac: é o comportamento documentado do

@@ -7,7 +7,7 @@ members = ["crates/lace-core", "crates/lace-cli", "crates/lace-installer"]
 exclude = ["studio/src-tauri"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.89"
 

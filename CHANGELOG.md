@@ -1,6 +1,6 @@
 # Mudanças
 
-## Não publicada
+## 0.3.0 (2026-10-06)
 
 Windows:
 
