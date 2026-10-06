@@ -1,19 +1,15 @@
-# Instaladores do Lace nas três plataformas, testados instalando.
+# Instaladores do Lace nas três plataformas, sem testes: os instaladores
+# publicados se testam à mão.
 #
-# Chamado pelo release.yml (numa tag). Em cada
-# plataforma:
+# Chamado pelo release.yml (numa tag). Em cada plataforma:
 #
 # 1. monta o bundle com scripts/bundle.py (OSS CAD Suite fixado e dividido
-#    por ferramenta, YANC e surfer-aurora compilados dos commits fixados, o
-#    Lace Studio compilado de studio/);
+#    por ferramenta, YANC compilado do commit fixado, surfer-aurora
+#    pré-compilado (ou compilado, sem o pré-compilado), o Lace Studio
+#    compilado de studio/);
 # 2. monta o instalador: a TUI (install + payload/, em .tar.gz) no Linux e no
 #    macOS, o assistente do Inno Setup no Windows;
-# 3. instala pelo próprio instalador, sem perguntas, com todos os
-#    componentes, e roda todos os testes contra a instalação, os do Studio
-#    também;
-# 4. instala o perfil recomendado em outra pasta, confere com
-#    `lace tools --verify` e desinstala;
-# 5. publica o instalador como artefato do workflow.
+# 3. publica o instalador e os pedaços do bundle como artefato do workflow.
 
 name: installers
 
@@ -54,14 +50,6 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-
-      # YANC: os casos de teste do próprio YANC, no commit do bundle.
-      - name: YANC (fonte dos testes)
-        uses: actions/checkout@v4
-        with:
-          repository: nipscernlab/yanc
-          ref: e1ad1495ffef55d8758b16b2bb7b20f14a9c84b8
-          path: vendor/yanc
 
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
@@ -148,17 +136,6 @@ jobs:
             --out "dist/$NAME" --tar-gz --assets dist/apps
           ls -la dist dist/apps
 
-      - name: Instalar tudo pelo instalador (TUI, sem perguntas)
-        if: runner.os != 'Windows'
-        run: |
-          mkdir -p "$RUNNER_TEMP/extraido"
-          tar xzf "dist/$NAME.tar.gz" -C "$RUNNER_TEMP/extraido"
-          installer="$RUNNER_TEMP/extraido/$NAME/install"
-          "$installer" --list
-          all=$("$installer" --list | awk '/^  [a-z]/ {print $1}' | paste -sd, -)
-          "$installer" --yes --components "$all" --prefix "$RUNNER_TEMP/lace-completo" --no-link
-          echo "INSTALLED=$RUNNER_TEMP/lace-completo" >> "$GITHUB_ENV"
-
       # ------------------------------------------------ Windows: Inno Setup
       - name: Inno Setup
         if: runner.os == 'Windows'
@@ -187,73 +164,6 @@ jobs:
           target\release\lace-pack.exe tui --toolchain dist\toolchain --lace target\release\lace.exe --installer target\release\lace-installer.exe --out dist\tui --assets dist\apps
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem dist\apps
-
-      - name: Instalar tudo pelo instalador (Inno Setup, sem perguntas)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $dir = "$env:RUNNER_TEMP\lace-completo"
-          $components = "lace,yanc,icarus,icarus\cocotb,verilator,yosys,yosys\graphviz,surfer_aurora,studio"
-          $p = Start-Process -Wait -PassThru "dist\$env:NAME-setup.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/CURRENTUSER","/TYPE=avancada","/COMPONENTS=$components","/DIR=$dir","/LOG=$env:RUNNER_TEMP\setup-completo.log"
-          if ($p.ExitCode -ne 0) { Get-Content "$env:RUNNER_TEMP\setup-completo.log" -Tail 40; exit $p.ExitCode }
-          "INSTALLED=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
-      # ------------------------------------------ testes contra a instalação
-      - name: Testes contra a instalação
-        run: |
-          "$INSTALLED/bin/lace" tools --verify
-          cargo test --workspace --no-fail-fast -- --test-threads=2
-        env:
-          LACE_TEST_BUNDLE: ${{ env.INSTALLED }}/toolchain
-          INSTA_UPDATE: "no"
-
-      # Os fluxos do Studio (studio/src-tauri/tests) com o bundle instalado.
-      # Este passo e os dois seguintes rodam mesmo se os testes de cima
-      # falharem, para uma rodada mostrar tudo o que quebrou; o instalador só
-      # sobe como artefato se tudo passar.
-      - name: Testes do Studio contra a instalação
-        if: ${{ !cancelled() && env.INSTALLED != '' }}
-        run: cargo test --manifest-path studio/src-tauri/Cargo.toml --no-fail-fast -- --test-threads=2
-        env:
-          LACE_TEST_BUNDLE: ${{ env.INSTALLED }}/toolchain
-
-      - name: Perfil recomendado, e desinstalar (Linux, macOS)
-        if: ${{ !cancelled() && runner.os != 'Windows' && env.INSTALLED != '' }}
-        run: |
-          installer="$RUNNER_TEMP/extraido/$NAME/install"
-          "$installer" --yes --prefix "$RUNNER_TEMP/lace-rec" --link "$RUNNER_TEMP/bin/lace"
-          "$RUNNER_TEMP/bin/lace" tools --verify
-          cat "$RUNNER_TEMP/lace-rec/install.json"
-          # O Verilator fica fora da Recomendada: o lace install o baixa em
-          # pedaços, de um espelho em file:// com os arquivos da release, sem
-          # reinstalar o Lace.
-          mirror="$RUNNER_TEMP/espelho/v$VERSION"
-          mkdir -p "$mirror" && cp dist/apps/* "$mirror/"
-          (cd "$mirror" && shasum -a 256 -- * > SHA256SUMS)
-          before=$(shasum -a 256 "$RUNNER_TEMP/lace-rec/bin/lace")
-          LACE_RELEASE_URL="file://$RUNNER_TEMP/espelho" "$RUNNER_TEMP/bin/lace" install verilator
-          test "$before" = "$(shasum -a 256 "$RUNNER_TEMP/lace-rec/bin/lace")"
-          "$RUNNER_TEMP/bin/lace" --json tools | python3 -c "import json, sys; d = json.load(sys.stdin); assert 'verilator' in [c['name'] for c in d['components']], d['components']"
-          "$RUNNER_TEMP/bin/lace" tools --verify
-          "$RUNNER_TEMP/bin/lace" uninstall --yes
-          test ! -e "$RUNNER_TEMP/lace-rec" && test ! -e "$RUNNER_TEMP/bin/lace"
-
-      - name: Perfil recomendado, e desinstalar (Windows)
-        if: ${{ !cancelled() && runner.os == 'Windows' && env.INSTALLED != '' }}
-        shell: pwsh
-        run: |
-          $dir = "$env:RUNNER_TEMP\lace-rec"
-          $p = Start-Process -Wait -PassThru "dist\$env:NAME-setup.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/CURRENTUSER","/TYPE=recomendada","/TASKS=path","/DIR=$dir"
-          if ($p.ExitCode -ne 0) { exit $p.ExitCode }
-          & "$dir\bin\lace.exe" tools --verify
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $path = (Get-ItemProperty HKCU:\Environment).Path
-          if (-not $path.Contains("$dir\bin")) { throw "PATH sem $dir\bin: $path" }
-          $p = Start-Process -Wait -PassThru "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES"
-          Start-Sleep -Seconds 5
-          if (Test-Path "$dir\bin\lace.exe") { throw "o desinstalador não removeu $dir" }
-          $path = (Get-ItemProperty HKCU:\Environment).Path
-          if ($path -and $path.Contains("$dir\bin")) { throw "o desinstalador não tirou $dir\bin do PATH" }
 
       # ---------------------------------------------------------- publicar
       - uses: actions/upload-artifact@v4

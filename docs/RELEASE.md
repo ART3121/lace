@@ -24,8 +24,8 @@
    da `main` e procuram na última release os arquivos com os nomes da
    versão deles; na `main` antes da release publicada, eles procuram a
    versão nova numa release que ainda é a antiga. Não há CI a cada push:
-   quem monta e testa tudo é o `release.yml`, na tag. A tag vai no commit
-   da branch:
+   quem monta a release é o `release.yml`, na tag. A tag vai no commit da
+   branch:
 
    ```
    git tag v0.2.0
@@ -33,13 +33,12 @@
    ```
 
 5. O `release.yml` confere que a tag é a versão do `Cargo.toml` e do Studio
-   e que o CHANGELOG tem a seção, e chama o `installers.yml` nas três plataformas:
-   monta o bundle, monta o instalador, instala por ele, roda todos os testes
-   contra a instalação, faz a instalação Recommended, confere e desinstala.
-6. Com tudo verde, ele cria um **rascunho** de release com os três
-   instaladores, os pedaços do bundle, o `SHA256SUMS` e as notas do
-   CHANGELOG. Revisar e publicar o rascunho é manual.
-7. Só depois de publicada, a branch vai para a `main`.
+   e que o CHANGELOG tem a seção, e chama o `installers.yml` nas três
+   plataformas: monta o bundle e o instalador, sem testes.
+6. Ele publica a release com os três instaladores, os pedaços do bundle, o
+   `SHA256SUMS` e as notas do CHANGELOG. Os instaladores publicados se
+   testam à mão.
+7. A branch vai para a `main`.
 
 Os instaladores de cada execução do `release.yml` também ficam como
 artefatos do workflow por 14 dias.

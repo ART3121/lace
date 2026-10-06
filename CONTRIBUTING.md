@@ -95,7 +95,7 @@ git clone https://github.com/nipscernlab/yanc vendor/yanc
 git -C vendor/yanc checkout <commit de bundle/versions.json>
 ```
 
-Depois, o mesmo comando que o CI roda contra a instalação:
+Depois, os testes contra a instalação:
 
 ```sh
 cargo test --workspace -- --test-threads=2
@@ -186,7 +186,7 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 | `scripts/bundle.py`, `scripts/binaries.py` | a montagem do bundle e a leitura de dependências de binários |
 | `installer/windows/lace.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
-| `.github/workflows/` | `release.yml` (rascunho de release numa tag) e o `installers.yml` que ele chama (bundle, instaladores e testes contra a instalação); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); não há CI a cada push |
+| `.github/workflows/` | `release.yml` (publica a release numa tag) e o `installers.yml` que ele chama (bundle e instaladores, sem testes); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); não há CI a cada push |
 | `docs/` | API, CLI, bundle, instalação e release |
 
 ### Como uma operação anda
@@ -445,11 +445,12 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
   o Lace sempre pede `-en`.
 - **Três plataformas.** O código compila para Linux, macOS e Windows; o que
   muda por sistema vai em `cfg(windows)` (veja `INHERITED_ENV` em
-  `process.rs` e `YANC_PATH_LIMIT` em `paths.rs`). O CI compila e testa nos
-  três.
+  `process.rs` e `YANC_PATH_LIMIT` em `paths.rs`). A release compila nos
+  três; os testes, rode à mão.
 - **Teste que precisa de ferramenta** pede o bundle com
   `common::toolchain_with(&[Tool::...])` (ou `common::toolchain()`) e
-  retorna se vier `None`. Assim ele é pulado fora do CI e cobrado no CI.
+  retorna se vier `None`. Assim ele é pulado sem o bundle; com `CI`
+  definido, a falta do bundle é falha.
 - **Formatação** é a padrão do `rustfmt`; o repositório não tem
   `rustfmt.toml`.
 

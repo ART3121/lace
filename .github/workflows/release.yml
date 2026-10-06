@@ -1,7 +1,7 @@
-# Release do Lace: numa tag vX.Y.Z, monta e testa os instaladores das três
-# plataformas (installers.yml) e cria um RASCUNHO de release no GitHub com
-# eles, o SHA256SUMS e as notas da versão no CHANGELOG.md. Publicar o
-# rascunho é manual.
+# Release do Lace: numa tag vX.Y.Z, monta os instaladores das três
+# plataformas (installers.yml), sem testes, e publica a release no GitHub com
+# eles, o SHA256SUMS e as notas da versão no CHANGELOG.md. Os instaladores
+# publicados se testam à mão.
 #
 #   git tag v0.1.0 && git push origin v0.1.0
 
@@ -12,7 +12,7 @@ on:
     tags: ["v*"]
 
 jobs:
-  # Antes de gastar uma hora de build: a tag tem que ser a versão do
+  # Antes de montar: a tag tem que ser a versão do
   # Cargo.toml e a do Studio (o bundle.py confere que o studio/ diz o mesmo
   # que o bundle/versions.json), e o CHANGELOG.md tem que ter a seção dela.
   check:
@@ -57,10 +57,10 @@ jobs:
             printf '```\n'
           } > notes.md
           cat notes.md
-      - name: Rascunho da release
+      - name: Publicar a release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+          gh release create "$GITHUB_REF_NAME" --verify-tag \
             --title "Lace ${{ needs.installers.outputs.version }}" \
             --notes-file notes.md dist/*

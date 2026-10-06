@@ -32,9 +32,9 @@ lace/
 
 O `src-tauri/` tem o próprio workspace do Cargo e o próprio `Cargo.lock`:
 o `Cargo.toml` da raiz o deixa de fora (`exclude`), para os testes do Core
-e da CLI não precisarem do WebView nem da interface compilada. Os fluxos do
-Studio, com o bundle instalado, são testados no `installers.yml`, que roda
-na release.
+e da CLI não precisarem do WebView nem da interface compilada. Os testes
+dos fluxos do Studio pedem o bundle instalado (`LACE_TEST_BUNDLE`) e rodam à
+mão.
 
 ## 2. Rodar
 
