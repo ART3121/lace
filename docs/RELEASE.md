@@ -20,9 +20,9 @@
 4. Mandar numa branch, não na `main`: o `install.sh` e o `install.ps1` saem
    da `main` e procuram na última release os arquivos com os nomes da
    versão deles; na `main` antes da release publicada, eles procuram a
-   versão nova numa release que ainda é a antiga. O push da branch roda o
-   `ci.yml`, com os instaladores das três plataformas. Com tudo verde, a tag
-   no commit da branch:
+   versão nova numa release que ainda é a antiga. Não há CI a cada push:
+   quem monta e testa tudo é o `release.yml`, na tag. A tag vai no commit
+   da branch:
 
    ```
    git tag v0.2.0
@@ -38,8 +38,8 @@
    CHANGELOG. Revisar e publicar o rascunho é manual.
 7. Só depois de publicada, a branch vai para a `main`.
 
-O `installers.yml` também roda a cada push (pelo `ci.yml`), e os instaladores
-ficam como artefatos do workflow por 14 dias.
+Os instaladores de cada execução do `release.yml` também ficam como
+artefatos do workflow por 14 dias.
 
 O `install.sh` e o `install.ps1` são servidos da `main` pelo
 `raw.githubusercontent.com`: uma mudança neles vale para todo mundo assim que

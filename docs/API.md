@@ -1850,7 +1850,8 @@ O Lace é escrito para Linux, macOS e Windows. O que foi conferido e como:
 
 O Wine executa a API do Windows (criação de processo, caminhos `C:\`,
 `.exe`, ambiente), mas não é o Windows. A verificação completa nos três
-sistemas, com todas as ferramentas, é o workflow `.github/workflows/ci.yml`.
+sistemas, com todas as ferramentas, roda na release: o `release.yml` testa
+os instaladores nas três plataformas antes de criar o rascunho.
 
 O que muda por sistema, e como o Lace trata:
 

@@ -20,8 +20,8 @@ Instale o Rust pelo [rustup](https://rustup.rs), com o clippy e o rustfmt:
 rustup component add clippy rustfmt
 ```
 
-Use o Rust estável atual, que é o que o CI usa
-(`dtolnay/rust-toolchain@stable`, em `.github/workflows/ci.yml`). O mínimo é
+Use o Rust estável atual, que é o que a release usa
+(`dtolnay/rust-toolchain@stable`, em `.github/workflows/installers.yml`). O mínimo é
 o 1.88 (`rust-version` no `Cargo.toml`, edição 2024): o código usa let chains
 (`if let ... && let ...`, por exemplo em `diagnostics.rs`), que versões
 anteriores recusam.
@@ -186,7 +186,7 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 | `scripts/bundle.py`, `scripts/binaries.py` | a montagem do bundle e a leitura de dependências de binários |
 | `installer/windows/lace.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
-| `.github/workflows/` | `ci.yml` (verificação a cada push), `installers.yml` (bundle, instaladores e testes contra a instalação), `release.yml` (rascunho de release numa tag) |
+| `.github/workflows/` | `release.yml` (rascunho de release numa tag) e o `installers.yml` que ele chama (bundle, instaladores e testes contra a instalação); não há CI a cada push |
 | `docs/` | API, CLI, bundle, instalação e release |
 
 ### Como uma operação anda
@@ -409,8 +409,8 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
   `#![forbid(unsafe_code)]`. A CLI não tem o atributo, e também não usa
   `unsafe`.
 - **Todo item público do Core é documentado.** `#![deny(missing_docs)]` em
-  `lib.rs`, e o CI roda o `cargo doc` com `-D warnings`, que também reprova
-  link quebrado na documentação. Os exemplos da documentação rodam como
+  `lib.rs`. Rode o `cargo doc` com `-D warnings` antes de mandar: ele também
+  reprova link quebrado na documentação. Os exemplos da documentação rodam como
   teste; marque com `no_run` o que precisa do bundle, como os de `lib.rs`.
 - **Só ferramentas do bundle.** Programa externo roda por
   `Toolchain::invocation` e `process::run`. Nada de
@@ -533,7 +533,8 @@ um, em geral, não quebra.
 
 ## Antes de mandar a mudança
 
-Rode o que o CI roda (`.github/workflows/ci.yml`):
+Rode as verificações (não há CI a cada push; os testes completos rodam na
+release):
 
 ```sh
 cargo fmt --check

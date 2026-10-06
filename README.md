@@ -6,7 +6,6 @@
 </h1>
 
 <p align="center">
-  <a href="https://github.com/ART3121/lace/actions/workflows/ci.yml"><img src="https://github.com/ART3121/lace/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://github.com/ART3121/lace/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=2e4374" alt="Versão"></a>
   <a href="https://nipscern.com"><img src="https://img.shields.io/badge/NIPS--CERN-UFJF-2e4374" alt="NIPS-CERN, UFJF"></a>
 </p>

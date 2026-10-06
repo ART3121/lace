@@ -1,6 +1,6 @@
 # Instaladores do Lace nas três plataformas, testados instalando.
 #
-# Chamado pelo ci.yml (a cada push) e pelo release.yml (numa tag). Em cada
+# Chamado pelo release.yml (numa tag). Em cada
 # plataforma:
 #
 # 1. monta o bundle com scripts/bundle.py (OSS CAD Suite fixado e dividido
