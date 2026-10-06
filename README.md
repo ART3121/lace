@@ -1,4 +1,30 @@
-# Lace
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="studio/public/brand/lace-lockup-reverse.svg">
+    <img src="studio/public/brand/lace-lockup.svg" alt="Lace" width="260">
+  </picture>
+</h1>
+
+<p align="center">
+  <a href="https://github.com/ART3121/lace/actions/workflows/ci.yml"><img src="https://github.com/ART3121/lace/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://github.com/ART3121/lace/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=2e4374" alt="Versão"></a>
+  <a href="https://nipscern.com"><img src="https://img.shields.io/badge/NIPS--CERN-UFJF-2e4374" alt="NIPS-CERN, UFJF"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Linux-x64-2e4374?logo=linux&logoColor=white" alt="Linux x64">
+  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-2e4374?logo=apple&logoColor=white" alt="macOS Apple Silicon">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-2e4374" alt="Windows 10 e 11 x64">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Rust-1.89%2B-2e4374?logo=rust&logoColor=white" alt="Rust 1.89 ou mais novo">
+  <img src="https://img.shields.io/badge/TypeScript-Studio-2e4374?logo=typescript&logoColor=white" alt="TypeScript, no Studio">
+  <img src="https://img.shields.io/badge/Tauri-2-2e4374?logo=tauri&logoColor=white" alt="Tauri 2">
+  <img src="https://img.shields.io/badge/HDL-Verilog-2e4374" alt="Verilog">
+  <img src="https://img.shields.io/badge/SAPHO-C%C2%B1-2e4374" alt="SAPHO e C±">
+  <img src="https://img.shields.io/badge/testbench-cocotb-2e4374?logo=python&logoColor=white" alt="Testbench em Python com o cocotb">
+</p>
 
 Orquestrador do desenvolvimento em Verilog e de processadores SAPHO, o
 processador soft-core do NIPS-CERN (UFJF). Cria projetos, compila C± e C com
