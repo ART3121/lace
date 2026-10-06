@@ -201,8 +201,8 @@ fn processor_builds_and_simulates_with_port_values() {
     let port0 = sim.outputs.iter().find(|p| p.port == 0).expect("porta 0");
     assert_eq!(port0.values.last(), Some(&55));
 
-    // O alvo no F7: compila só o soma (o filtro, em C, fica de fora) e
-    // verifica o Verilog dele com o testbench do YANC.
+    // O alvo no F7: verifica o Verilog do soma, que o build acima compilou,
+    // com o testbench do YANC, sem compilar de novo.
     let check = run(
         FlowRequest::Check {
             file: None,
@@ -213,8 +213,7 @@ fn processor_builds_and_simulates_with_port_values() {
         &spf,
     );
     assert!(check.succeeded, "{:?}", check.check.map(|c| c.diagnostics));
-    let names: Vec<&str> = check.builds.iter().map(|b| b.processor.as_str()).collect();
-    assert_eq!(names, ["soma"]);
+    assert!(check.builds.is_empty(), "o F7 não compila");
     assert_eq!(check.command, "lace-studio check -p soma");
     let targets = &check.check.as_ref().unwrap().targets;
     assert!(targets.iter().any(|t| t == "soma_tb"), "{targets:?}");

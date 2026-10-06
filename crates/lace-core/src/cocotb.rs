@@ -716,9 +716,11 @@ fn parse_results(text: &str, testbench: &Utf8Path) -> std::result::Result<Vec<Te
                         .find(|l| !l.is_empty())
                         .map(str::to_owned)
                 });
+            // O nome pelos dois separadores: o results.xml traz o caminho
+            // como o Python o viu, que pode ser de outro sistema.
             let file_name = file
-                .as_deref()
-                .and_then(Utf8Path::file_name)
+                .as_ref()
+                .and_then(|f| f.as_str().rsplit(['/', '\\']).next())
                 .or(testbench.file_name())
                 .unwrap_or_default();
             (

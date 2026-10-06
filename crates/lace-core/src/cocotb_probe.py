@@ -27,10 +27,16 @@ import find_libpython
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
+# As extensões de biblioteca, na ordem de preferência. O nome que o cocotb dá
+# (lib_name_path) pode não existir: no egg do OSS CAD Suite, a VPI do Icarus
+# é .vpl, e cada biblioteca tem ao lado um .py de carga do setuptools.
+LIB_EXTS = (".vpl", ".so", ".dylib", ".dll", ".vpi")
+
 libs = str(config.libs_dir)
 vpi = str(config.lib_name_path("vpi", "icarus"))
 if not os.path.isfile(vpi):
-    found = sorted(glob.glob(os.path.join(libs, "*cocotbvpi_icarus*")))
+    found = [p for p in glob.glob(os.path.join(libs, "*cocotbvpi_icarus*")) if p.endswith(LIB_EXTS)]
+    found.sort(key=lambda p: [p.endswith(ext) for ext in LIB_EXTS].index(True))
     if found:
         vpi = found[0]
 
