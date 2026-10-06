@@ -564,7 +564,7 @@ fn own_process_group(_command: &mut Command) {}
 /// Studio, ganharia uma janela própria por ferramenta, e fechar essa janela
 /// mataria a ferramenta. Sem console, então, o filho vai com
 /// `CREATE_NO_WINDOW`: um console próprio, sem janela, que os processos que
-/// ele iniciar herdam. Com console ([`has_console`]: o de um terminal, ou o
+/// ele iniciar herdam. Com console (`has_console`: o de um terminal, ou o
 /// que quem criou o Lace lhe deu), o filho divide o do Lace, como sempre: não
 /// abre janela nenhuma, e o `CREATE_NO_WINDOW` só custaria um console novo
 /// (um `conhost.exe`) por ferramenta, uns 16 ms em cada uma. A saída vai
