@@ -1,0 +1,91 @@
+# O surfer-aurora pré-compilado, para o bundle não compilá-lo a cada release
+# (uns 14 minutos por plataforma).
+#
+# Manual (Actions > surfer-aurora > Run workflow, ou
+# `gh workflow run surfer-aurora.yml`): rode quando o commit do surfer-aurora
+# em bundle/versions.json mudar. Compila nas três plataformas com o
+# `bundle.py --surfer-prebuilt` e publica os pacotes numa pré-release
+# `surfer-aurora-<versão>` deste repositório. Pré-release não vira a "última
+# release", que o install.sh, o install.ps1 e o `lace update` procuram.
+# Depois, os SHA-256 do resumo da execução vão para o `prebuilt` do
+# surfer-aurora em bundle/versions.json.
+
+name: surfer-aurora
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: surfer-aurora (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux-x64
+          - os: macos-14
+            platform: darwin-arm64
+          - os: windows-2022
+            platform: windows-x64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # As bibliotecas do installers.yml, onde o surfer-aurora compila.
+      - name: Dependências (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+            libayatana-appindicator3-dev libxdo-dev libssl-dev
+
+      - name: Compilar
+        run: python scripts/bundle.py --surfer-prebuilt dist --platform ${{ matrix.platform }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: surfer-aurora-${{ matrix.platform }}
+          path: dist/*.tar.gz
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Pré-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('bundle/versions.json'))['packages']['surfer-aurora']['version'])")
+          tag="surfer-aurora-$version"
+          cd dist
+          sha256sum ./*.tar.gz | sed 's| \./| |' > SHA256SUMS
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" ./*.tar.gz SHA256SUMS --clobber
+          else
+            gh release create "$tag" ./*.tar.gz SHA256SUMS --prerelease --latest=false \
+              --target "$GITHUB_SHA" --title "surfer-aurora $version, pré-compilado" \
+              --notes "O surfer-aurora $version compilado do commit fixado em bundle/versions.json, para o bundle do Lace não compilá-lo a cada release. Não é uma versão do Lace."
+          fi
+          {
+            echo "### SHA-256 para o prebuilt do surfer-aurora em bundle/versions.json"
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

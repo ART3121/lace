@@ -27,7 +27,7 @@ Bundle `2026.09.29`. Os pacotes, com as versões fixadas em
 | Pacote | Versão | O que traz | De onde vem |
 |---|---|---|---|
 | YANC | v5.6 (`e1ad149`) | `cmmcomp`, `appcomp`, `asmcomp`, `cpppp`, `cppcomp`, a biblioteca SAPHO, macros e headers | compilado do fonte pelo empacotamento |
-| surfer-aurora | v0.7.0-nips.10 (`d0af8a7`) | o fork do Surfer da AURORA e o cliente web (WASM) dele | o executável, compilado do fonte pelo empacotamento; o cliente web, o zip que a CI do fork publica na mesma tag, conferido pelo SHA-256 fixado |
+| surfer-aurora | v0.7.0-nips.10 (`d0af8a7`) | o fork do Surfer da AURORA e o cliente web (WASM) dele | o executável, pré-compilado do commit fixado pelo workflow `surfer-aurora.yml` numa pré-release deste repositório e conferido pelo SHA-256 fixado (`prebuilt`); sem ele, compilado do fonte pelo empacotamento; o cliente web, o zip que a CI do fork publica na mesma tag, conferido pelo SHA-256 fixado |
 | OSS CAD Suite | release 2026-09-29 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys e o `dot` do Graphviz. Windows: só o Yosys | pacote oficial, conferido pelo SHA-256 publicado |
 | msys | `ucrt64-v1` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
@@ -223,9 +223,14 @@ Instalar o compilador:
   máquina. No Linux usa as do bundle.
 - **Esquemático diferente da AURORA.** O Lace desenha com o `show` do Yosys e
   o `dot`; a AURORA, com o netlistsvg e skins próprios.
-- **YANC e surfer-aurora são compilados pelo empacotamento.** O YANC não
-  publica build de macOS, e o surfer-aurora publica só o executável de
-  Windows e o cliente web. O cliente web, igual nas três plataformas, vem
+- **O YANC é compilado pelo empacotamento, e o surfer-aurora, uma vez por
+  commit.** O YANC não publica build de macOS, e o surfer-aurora publica só
+  o executável de Windows e o cliente web. O executável do surfer-aurora
+  das três plataformas sai do workflow `surfer-aurora.yml`, manual, que o
+  compila do commit fixado e o publica numa pré-release
+  `surfer-aurora-<versão>` deste repositório; o `bundle.py` baixa e
+  confere pelo SHA-256 do `prebuilt` em `bundle/versions.json`, em vez de
+  compilar em cada release (uns 14 minutos por plataforma). O cliente web, igual nas três plataformas, vem
   do zip publicado: é ele que o Lace Studio mostra numa aba, ligado a um
   `surfer-aurora server` da mesma versão (o cliente recusa um servidor com
   outra versão do leitor de ondas).
@@ -238,7 +243,9 @@ python3 scripts/bundle.py --out dist/toolchain --only yanc     # parcial, para t
 ```
 
 O script baixa (uma vez, para `.bundle-cache/`) e confere o SHA-256 de cada
-pacote, compila YANC e surfer-aurora dos commits fixados, separa a parte de
+pacote, compila o YANC do commit fixado (e o surfer-aurora, quando não há o
+pré-compilado da plataforma em `prebuilt`, ou com `LACE_BUILD_SURFER`),
+separa a parte de
 cada componente e grava o `bundle.json`, os `components/<nome>.json` com o
 hash de cada executável, e `dist/toolchain.contents.json`, o índice de que
 arquivo é de que componente, que os instaladores usam
@@ -246,7 +253,15 @@ arquivo é de que componente, que os instaladores usam
 Lace só lê o bundle.
 
 `--platform` monta a divisão de outra plataforma: os pacotes prontos se
-dividem em qualquer sistema; YANC e surfer-aurora precisam compilar para ela.
+dividem em qualquer sistema; o YANC, e o surfer-aurora sem pré-compilado,
+precisam compilar para ela.
+
+`--surfer-prebuilt <pasta>` só compila o surfer-aurora e grava na pasta o
+pacote pré-compilado da plataforma (`surfer-aurora-<versão>-<plataforma>.tar.gz`,
+com o executável e as licenças), que o workflow `surfer-aurora.yml` publica.
+Quando o commit do surfer-aurora muda em `bundle/versions.json`, rode o
+workflow (`gh workflow run surfer-aurora.yml`) e troque as URLs e os SHA-256
+do `prebuilt` pelos do resumo da execução.
 
 No Windows, o pacote msys precisa do SHA-256 da release do lace-toolchain em
 `bundle/versions.json` (o zip em `sha256`, o manifesto em

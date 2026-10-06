@@ -186,7 +186,7 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 | `scripts/bundle.py`, `scripts/binaries.py` | a montagem do bundle e a leitura de dependências de binários |
 | `installer/windows/lace.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
-| `.github/workflows/` | `release.yml` (rascunho de release numa tag) e o `installers.yml` que ele chama (bundle, instaladores e testes contra a instalação); não há CI a cada push |
+| `.github/workflows/` | `release.yml` (rascunho de release numa tag) e o `installers.yml` que ele chama (bundle, instaladores e testes contra a instalação); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); não há CI a cada push |
 | `docs/` | API, CLI, bundle, instalação e release |
 
 ### Como uma operação anda

@@ -8,6 +8,7 @@ bundle já montado.
     python3 scripts/bundle.py --out dist/toolchain
     python3 scripts/bundle.py --out dist/toolchain --only yanc
     python3 scripts/bundle.py --out dist/toolchain --platform windows-x64
+    python3 scripts/bundle.py --surfer-prebuilt dist
 
 Os pacotes, com as versões exatas, estão em bundle/versions.json:
 
@@ -19,8 +20,13 @@ Os pacotes, com as versões exatas, estão em bundle/versions.json:
   Python com cocotb). O zip e o manifesto da release, conferidos pelo
   SHA-256 fixado aqui;
 - yanc: compilado do commit fixado (make stage);
-- surfer-aurora: compilado do commit fixado do fork da AURORA
-  (cargo build --bin surfer, como o CI do fork);
+- surfer-aurora: o executável pré-compilado do commit fixado do fork da
+  AURORA, que o workflow surfer-aurora.yml publica numa pré-release deste
+  repositório e versions.json fixa pelo SHA-256 (`prebuilt`, por
+  plataforma). Sem ele para a plataforma, ou com LACE_BUILD_SURFER,
+  compilado do commit (cargo build --bin surfer, como o CI do fork), o que
+  leva uns 14 minutos. --surfer-prebuilt DIR só compila e grava em DIR o
+  pacote da plataforma, que o workflow publica;
 - graphviz: só no Windows, onde o OSS CAD Suite não traz o dot; zip oficial
   conferido pelo SHA-256 publicado;
 - studio: o Lace Studio, compilado de studio/ deste repositório
@@ -56,6 +62,8 @@ Variáveis opcionais:
   LACE_MSYS_DIST      o dist/ de um build local do lace-toolchain (com o
                       lace-msys-<tag>.zip e o .json), no lugar da release:
                       para testar um bloco de Windows antes de publicá-lo
+  LACE_BUILD_SURFER   compila o surfer-aurora mesmo com o pré-compilado
+                      fixado em versions.json
 """
 
 import argparse
@@ -184,7 +192,8 @@ def pkg_yanc(spec, plat, work, cache):
     return stage, {"source": f"git+{spec['repository']}@{spec['commit']}"}
 
 
-def pkg_surfer_aurora(spec, plat, work, cache):
+def build_surfer(spec, plat, cache):
+    """Compila o surfer-aurora do commit fixado; devolve o executável e o fonte."""
     src = checkout(spec["repository"], spec["commit"], cache, "surfer-aurora")
     target = cache / "surfer-target"
     # No Windows, o runtime do Visual C++ dentro do executável, como o do Lace
@@ -196,12 +205,43 @@ def pkg_surfer_aurora(spec, plat, work, cache):
     )
     run(["cargo", "build", "--bin", "surfer", "--release", "--locked", "--features", "accesskit"], cwd=src, env=env)
     exe = ".exe" if plat == "windows-x64" else ""
+    return target / "release" / f"surfer{exe}", src
+
+
+def surfer_prebuilt(pins, plat, out, cache):
+    """Compila o surfer-aurora e grava em out o pacote pré-compilado da
+    plataforma: o executável e as licenças, num .tar.gz."""
+    spec = pins["packages"]["surfer-aurora"]
+    binary, src = build_surfer(spec, plat, cache)
+    exe = ".exe" if plat == "windows-x64" else ""
+    out.mkdir(parents=True, exist_ok=True)
+    archive = out / f"surfer-aurora-{spec['version']}-{plat}.tar.gz"
+    with tarfile.open(archive, "w:gz") as tar:
+        tar.add(binary, arcname=f"surfer-aurora{exe}")
+        for lic in sorted(src.glob("LICENSE*")):
+            tar.add(lic, arcname=lic.name)
+    log(f"{archive.name}: sha256 {sha256_file(archive)}")
+    return archive
+
+
+def pkg_surfer_aurora(spec, plat, work, cache):
+    exe = ".exe" if plat == "windows-x64" else ""
     stage = work / "surfer-aurora"
     shutil.rmtree(stage, ignore_errors=True)
     stage.mkdir(parents=True)
-    shutil.copy2(target / "release" / f"surfer{exe}", stage / f"surfer-aurora{exe}")
-    for lic in src.glob("LICENSE*"):
-        shutil.copy2(lic, stage / lic.name)
+    # O executável pré-compilado do mesmo commit (surfer-aurora.yml): sem
+    # ele, cada release compilava o surfer-aurora de novo, uns 14 minutos
+    # por plataforma.
+    prebuilt = spec.get("prebuilt", {}).get(plat)
+    if prebuilt and not os.environ.get("LACE_BUILD_SURFER"):
+        extract_tgz(download(prebuilt["url"], prebuilt["sha256"], cache), stage)
+        if not (stage / f"surfer-aurora{exe}").is_file():
+            sys.exit(f"o pacote pré-compilado do surfer-aurora não tem surfer-aurora{exe}")
+    else:
+        binary, src = build_surfer(spec, plat, cache)
+        shutil.copy2(binary, stage / f"surfer-aurora{exe}")
+        for lic in src.glob("LICENSE*"):
+            shutil.copy2(lic, stage / lic.name)
     # O cliente web (WASM) da mesma tag, que a CI do fork publica: o Lace
     # Studio o mostra numa aba, ligado a um `surfer-aurora server`. Um zip
     # só serve às três plataformas, e cliente e servidor precisam ser da
@@ -565,7 +605,13 @@ def size_of(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--out", required=True, type=Path, help="diretório do bundle (criado; precisa estar vazio)")
+    parser.add_argument("--out", type=Path, help="diretório do bundle (criado; precisa estar vazio)")
+    parser.add_argument(
+        "--surfer-prebuilt",
+        type=Path,
+        metavar="DIR",
+        help="só compila o surfer-aurora e grava em DIR o pacote pré-compilado da plataforma",
+    )
     parser.add_argument("--platform", default=None, choices=PLATFORMS)
     parser.add_argument("--only", help="componentes separados por vírgula (bundle parcial, para desenvolvimento)")
     parser.add_argument("--versions", type=Path, default=ROOT / "bundle" / "versions.json")
@@ -574,6 +620,12 @@ def main():
     plat = args.platform or current_platform()
 
     pins = json.loads(args.versions.read_text())
+    cache = Path(os.environ.get("LACE_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
+    if args.surfer_prebuilt:
+        surfer_prebuilt(pins, plat, args.surfer_prebuilt.resolve(), cache)
+        return
+    if args.out is None:
+        parser.error("--out é obrigatório (ou --surfer-prebuilt)")
     catalog = json.loads(args.components.read_text())
     components = [c for c in catalog["components"] if for_platform(c["package"], plat) in pins["packages"]]
     components = [
@@ -592,7 +644,6 @@ def main():
     if out.exists() and any(out.iterdir()):
         sys.exit(f"{out} já existe e não está vazio")
     out.mkdir(parents=True, exist_ok=True)
-    cache = Path(os.environ.get("LACE_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
     work = cache / "work" / plat
     work.mkdir(parents=True, exist_ok=True)
 

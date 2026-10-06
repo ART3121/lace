@@ -16,7 +16,10 @@
    `install.sh` e o `install.ps1` não mudam: eles pegam a última release.
 3. O bloco de Windows tem que estar publicado: o pacote `msys` de
    `bundle/versions.json` aponta para uma release do lace-toolchain, com os
-   dois SHA-256 preenchidos (do `SHA256SUMS` dela).
+   dois SHA-256 preenchidos (do `SHA256SUMS` dela). O surfer-aurora também:
+   se o commit dele mudou, rode antes o `gh workflow run surfer-aurora.yml` e
+   ponha as URLs e os SHA-256 do resumo no `prebuilt` dele (sem isso, a
+   release compila o surfer-aurora, uns 14 minutos a mais).
 4. Mandar numa branch, não na `main`: o `install.sh` e o `install.ps1` saem
    da `main` e procuram na última release os arquivos com os nomes da
    versão deles; na `main` antes da release publicada, eles procuram a
