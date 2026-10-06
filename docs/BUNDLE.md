@@ -3,7 +3,8 @@
 O Lace só executa ferramentas de um bundle instalado junto com ele. Nunca do
 `PATH`, nunca de um caminho configurado pelo usuário. A exceção, decidida pelo
 autor, é o compilador C++ do Verilator no Linux e no macOS; no Windows ele
-vem no bundle, e o `taskkill` encerra os passos cancelados (seção 4).
+vem no bundle, e o `taskkill` encerra um passo cancelado quando o sistema
+recusa o Job Object dele (seção 4).
 
 As duas famílias de plataforma montam o bundle de fontes diferentes:
 
@@ -154,11 +155,15 @@ Windows, o `PATH` das ferramentas do pacote termina em
 `%SystemRoot%\System32`, e o `ComSpec` é repassado: o `iverilog` roda o
 `ivlpp` e o `ivl` pelo `system()` da biblioteca C, que usa o `cmd.exe`.
 
-O Lace ainda não roda o cocotb. Quem rodar com o Verilator tem de passar ao
-`make` o Python do pacote (`PYTHON3=oss-cad-suite/bin/tabbypy3`, no
-`MAKEFLAGS`, por exemplo): sem isso, o `verilated.mk` chama o `python3` do
-sistema com o `PYTHONHOME` do pacote, herdado do lançador, e ele falha ao
-carregar a biblioteca padrão. Com o Icarus não há o que passar.
+O Lace roda o cocotb com o Icarus ([API.md, seção 5.3.2](API.md#532-testbench-cocotb)):
+o Python do componente (`oss-cad-suite/bin/tabbypy3` no Linux e no macOS,
+`msys/ucrt64/bin/python.exe` no Windows) roda uma sonda que diz ao Lace
+onde estão a VPI e a biblioteca do Python, e o `vvp` carrega a VPI com o
+ambiente que ela descreve. Com o Verilator o Lace ainda não roda o cocotb.
+Quem rodar à mão com o Verilator tem de passar ao `make` o Python do pacote
+(`PYTHON3=oss-cad-suite/bin/tabbypy3`, no `MAKEFLAGS`, por exemplo): sem
+isso, o `verilated.mk` chama o `python3` do sistema com o `PYTHONHOME` do
+pacote, herdado do lançador, e ele falha ao carregar a biblioteca padrão.
 
 O Lace recusa um bundle em que um componente, ou um executável, seja um
 symlink para fora dele. E recusa rodar o Verilator se faltar o
@@ -177,7 +182,7 @@ síntese, a partir do modelo que o pacote traz (como fazem os lançadores do
 | `libc` (Linux e macOS) | o `lace` e o YANC são binários nativos ligados à `libc` do sistema; as ferramentas do OSS CAD Suite não, carregam as bibliotecas do pacote | sistema base |
 | fontes (macOS e Windows) | os pacotes dessas plataformas não trazem fontes; o `dot` usa as do sistema | as do sistema |
 | compilador C++, `make`, Perl (Linux e macOS) | exceção decidida pelo autor: o Verilator compila o modelo em C++, e o OSS CAD Suite não traz compilador. No Windows os três vêm no bundle, com o Verilator | locais fixos: `/usr/bin` (Linux); `/usr/bin` com as Command Line Tools do Xcode (macOS) |
-| `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`). Só encerra, não executa trabalho ([ADR 0007](adr/0007-cancelamento-e-saida-ao-vivo.md)); no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
+| `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho ([ADR 0007](adr/0007-cancelamento-e-saida-ao-vivo.md)); no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
 
 Sem o compilador, tudo funciona menos a simulação com Verilator, e
 `lace tools` avisa. Para um compilador fora do local padrão, a opção global
@@ -205,8 +210,9 @@ Instalar o compilador:
 
 - **Verilator grava VCD, não FST.** No Linux e no macOS, o FST do Verilator
   compila contra lz4 e zlib, que não vêm no pacote nem fazem parte da
-  exceção do compilador. O Windows segue o mesmo formato. O Icarus grava FST
-  quando o `$dumpfile` termina em `.fst` (e na onda que o Lace injeta).
+  exceção do compilador. O Windows segue o mesmo formato. O Icarus grava
+  FST, e o Lace troca a extensão do `$dumpfile` numa cópia do testbench
+  quando ele pede outra.
 - **As versões de Icarus e Verilator diferem entre as plataformas.** No
   Linux e no macOS são os builds de desenvolvimento do OSS CAD Suite
   (Icarus 14 devel, Verilator 5.053 devel); no Windows, as versões estáveis

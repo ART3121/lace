@@ -16,8 +16,8 @@ import { useProject } from '../../state/project';
 import { relativeUp } from '../../util/paths';
 import { Empty, IconButton } from '../common';
 
-const TABS: PanelTab[] = ['cmm', 'asm', 'verilog', 'wave', 'prism', 'lace', 'problems', 'terminal'];
-const CONSOLES = new Set<PanelTab>(['cmm', 'asm', 'verilog', 'wave', 'prism', 'lace']);
+const TABS: PanelTab[] = ['cmm', 'asm', 'verilog', 'wave', 'prism', 'problems', 'terminal'];
+const CONSOLES = new Set<PanelTab>(['cmm', 'asm', 'verilog', 'wave', 'prism']);
 
 /** Chama `fit` quando o elemento muda de tamanho. */
 function useResize(ref: React.RefObject<HTMLElement | null>, fit: () => void) {

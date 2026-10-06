@@ -8,7 +8,10 @@
 // | verilog  | TVERI     | iverilog -tnull e verilator --lint-only (check_syntax, lint) |
 // | wave     | TWAVE     | iverilog/vvp ou verilator (elaborate, verilate, simulate) |
 // | prism    | TPRISM    | yosys e dot (synthesize, graph, render) |
-// | lace     | (nenhum)  | o próprio Studio: comandos, resumos, instalação de componentes |
+//
+// O comando de cada operação e os avisos dela (falha ao iniciar, pedido de
+// cancelamento) vão para o console da operação. A saída do `lace install` e
+// do `lace update` aparece na tela do bundle (`views/ToolchainView.tsx`).
 //
 // Os terminais vivem fora do React: são criados uma vez e o elemento deles
 // é movido para dentro do componente quando ele aparece. Assim a saída não

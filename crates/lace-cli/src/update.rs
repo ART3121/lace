@@ -25,9 +25,11 @@
 //! - Linux e macOS: `install --yes --components <os instalados> --prefix
 //!   <instalação>`, com o atalho do recibo. Ele troca o `bin/lace` e o
 //!   `toolchain/` inteiro.
-//! - Windows: o assistente de instalação, que lembra a pasta e os
-//!   componentes instalados. Ele troca o `lace.exe`, então roda depois que
-//!   este `lace` sai.
+//! - Windows: o assistente de instalação, que lembra a pasta, com os
+//!   componentes instalados marcados (`/COMPONENTS=`): ele só lembra a
+//!   própria seleção, e refaz o `toolchain\` com ela, então o que o
+//!   `lace install` acrescentou sairia. Ele troca o `lace.exe`, então roda
+//!   depois que este `lace` sai.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, IsTerminal, Write};
@@ -35,7 +37,9 @@ use std::process::Stdio;
 
 use anyhow::{Context, bail};
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::{BundleManifest, Toolchain, component};
+use lace_core::{BundleManifest, Platform, Toolchain, component};
+use lace_installer::pack;
+use lace_installer::payload::{self, Index};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -176,7 +180,16 @@ pub fn run(
         confirm(&report.lace, &prefix)?;
     }
     report.action = if cfg!(windows) {
-        windows(out, &report.lace.latest)?
+        let installed: Vec<String> = toolchain
+            .map(|t| {
+                t.manifest()
+                    .components
+                    .iter()
+                    .map(|c| c.name.clone())
+                    .collect()
+            })
+            .unwrap_or_default();
+        windows(out, &report.lace.latest, &installed)?
     } else {
         unix(out, &prefix, &report.lace.latest)?
     };
@@ -627,10 +640,10 @@ fn unix(out: &Output, prefix: &Utf8Path, version: &str) -> anyhow::Result<Update
     Ok(UpdateAction::Updated)
 }
 
-/// No Windows, o assistente de instalação da versão nova, que lembra a pasta
-/// e os componentes. Ele troca o `lace.exe`, então roda depois que este
-/// `lace` sai.
-fn windows(out: &Output, version: &str) -> anyhow::Result<UpdateAction> {
+/// No Windows, o assistente de instalação da versão nova, que lembra a
+/// pasta, com os componentes `installed` marcados. Ele troca o `lace.exe`,
+/// então roda depois que este `lace` sai.
+fn windows(out: &Output, version: &str, installed: &[String]) -> anyhow::Result<UpdateAction> {
     // Fica depois que o `lace` sai: o assistente roda dela.
     let work = release::work_dir()?.keep();
     let work = Utf8PathBuf::from_path_buf(work)
@@ -640,15 +653,81 @@ fn windows(out: &Output, version: &str) -> anyhow::Result<UpdateAction> {
         eprintln!("Downloading {}", release::asset_url(version, &file));
     }
     let setup = release::download_checked(version, &file, &work, out.is_text())?;
-    std::process::Command::new(setup.as_std_path())
-        .spawn()
-        .with_context(|| format!("Opening {setup}"))?;
+    let mut command = std::process::Command::new(setup.as_std_path());
+    // O assistente só lembra a seleção feita nele, e refaz o `toolchain\`
+    // com ela: sem a lista, o que o `lace install` acrescentou sairia.
+    let selected = match wizard_components(version, installed, &work) {
+        Ok(components) => {
+            command
+                .arg("/TYPE=avancada")
+                .arg(format!("/COMPONENTS={}", components.join(",")));
+            true
+        }
+        Err(error) => {
+            tracing::warn!("Could not list the components of the new setup: {error:#}");
+            if out.is_text() {
+                eprintln!(
+                    "Warning: could not read the components of release v{version} ({error:#}); \
+                     in the setup wizard, check that every app you use is selected"
+                );
+            }
+            false
+        }
+    };
+    installation::open_wizard(&mut command).with_context(|| format!("Opening {setup}"))?;
     if out.is_text() {
-        println!(
-            "Opened the Lace {version} setup wizard: it remembers the installation folder and components"
-        );
+        if selected {
+            println!(
+                "Opened the Lace {version} setup wizard, with the installed components selected"
+            );
+        } else {
+            println!("Opened the Lace {version} setup wizard");
+        }
     }
     Ok(UpdateAction::WizardOpened)
+}
+
+/// Os nomes que o `/COMPONENTS=` do assistente de `version` aceita para os
+/// componentes `installed`, tirados do índice que a release publica
+/// (`lace-<versão>-windows-x64-index.json`), com a regra do `lace-pack`
+/// ([`pack::inno_component_names`]): `icarus\cocotb`, `surfer_aurora`. Um
+/// componente que a versão nova não tem fica de fora; o `lace` vai sempre.
+fn wizard_components(
+    version: &str,
+    installed: &[String],
+    work: &Utf8Path,
+) -> anyhow::Result<Vec<String>> {
+    // Sem a lista (o bundle não abriu), `/COMPONENTS=lace` desmarcaria
+    // todas as ferramentas: melhor deixar a seleção que o assistente lembra.
+    if installed.is_empty() {
+        bail!("the installed components are unknown");
+    }
+    let platform = Platform::current()
+        .context("No Lace installer for this platform")?
+        .as_str();
+    let file = payload::release_asset(version, platform, payload::INDEX_FILE);
+    let path = release::download_checked_quiet(version, &file, work, &mut |_| {})?;
+    let text = std::fs::read_to_string(&path).with_context(|| format!("Reading {path}"))?;
+    let index: Index =
+        serde_json::from_str(&text).with_context(|| format!("Invalid {file} in the release"))?;
+    selected_components(&index, installed)
+}
+
+/// [`wizard_components`] sobre um índice já lido.
+fn selected_components(index: &Index, installed: &[String]) -> anyhow::Result<Vec<String>> {
+    let pairs: Vec<(&str, &[String])> = index
+        .components
+        .iter()
+        .map(|c| (c.name.as_str(), c.requires.as_slice()))
+        .collect();
+    let names = pack::inno_component_names(&pairs)?;
+    let mut selected = vec!["lace".to_owned()];
+    selected.extend(
+        installed
+            .iter()
+            .filter_map(|c| names.get(c.as_str()).cloned()),
+    );
+    Ok(selected)
 }
 
 /// Extrai o `.tar.gz` da release em `dir` e devolve a pasta extraída que tem
@@ -1116,5 +1195,57 @@ mod tests {
                 .collect();
             assert!(errors.is_empty(), "{errors:?}\n{value:#}");
         }
+    }
+
+    #[test]
+    fn the_wizard_gets_every_installed_component_by_its_inno_name() {
+        let component = |name: &str, requires: &[&str]| lace_installer::payload::ComponentInfo {
+            name: name.into(),
+            label: name.into(),
+            description: String::new(),
+            recommended: true,
+            requires: requires.iter().map(|r| (*r).to_owned()).collect(),
+            version: "1".into(),
+        };
+        let index = Index {
+            schema: payload::INDEX_SCHEMA,
+            lace_version: "0.3.0".into(),
+            bundle: "2026.10.01".into(),
+            platform: "windows-x64".into(),
+            components: vec![
+                component("yanc", &[]),
+                component("icarus", &[]),
+                component("verilator", &[]),
+                component("cocotb", &["icarus"]),
+                component("yosys", &[]),
+                component("graphviz", &["yosys"]),
+                component("surfer-aurora", &[]),
+                component("studio", &[]),
+            ],
+            chunks: Vec::new(),
+        };
+        // O Verilator e o cocotb entraram depois, pelo `lace install`; um
+        // componente que a versão nova não tem mais fica de fora.
+        let installed: Vec<String> = [
+            "yanc",
+            "icarus",
+            "verilator",
+            "cocotb",
+            "surfer-aurora",
+            "antigo",
+        ]
+        .map(String::from)
+        .to_vec();
+        assert_eq!(
+            selected_components(&index, &installed).unwrap(),
+            [
+                "lace",
+                "yanc",
+                "icarus",
+                "verilator",
+                "icarus\\cocotb",
+                "surfer_aurora"
+            ]
+        );
     }
 }

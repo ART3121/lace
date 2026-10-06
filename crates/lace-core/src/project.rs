@@ -828,6 +828,15 @@ impl Project {
             .collect()
     }
 
+    /// O processador cujo build gera `path`: o Verilog (`Hardware/<nome>.v`)
+    /// ou o testbench (`Simulation/<nome>_tb.v`). Um desses registrado e
+    /// ausente quer dizer processador ainda não compilado.
+    pub(crate) fn generated_by(&self, path: &Utf8Path) -> Option<&Processor> {
+        self.processors.iter().find(|p| {
+            path == p.hardware_dir().join(format!("{}.v", p.name)) || path == p.testbench_path()
+        })
+    }
+
     /// O processador com esse nome, se houver.
     pub fn processor(&self, name: &str) -> Option<&Processor> {
         self.processors.iter().find(|p| p.name == name)

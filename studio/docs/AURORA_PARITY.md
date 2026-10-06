@@ -60,7 +60,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Botão da AURORA | Estado | No Studio |
 |---|---|---|
 | C± (F6) | Feito | C± (F6): `build` dos processadores, ou só o alvo |
-| Verilog (F7) | Feito | Verilog (F7): `check`, que compila os processadores antes; Shift+F7 acrescenta o lint do Verilator |
+| Verilog (F7) | Feito | Verilog (F7): `check`, que roda só o Icarus e não compila os processadores (a AURORA compila); Shift+F7 acrescenta o lint do Verilator |
 | Wave (F8) | Feito | Wave (F8): simula e abre a onda no surfer-aurora |
 | Fast Sim (F9) | Feito | Rápida (F9): simula sem abrir a onda |
 | PRISM (F10) | Diferente | PRISM (F10): síntese do Yosys e esquemático do `show` + Graphviz, não o netlistsvg (decisão do Lace, API.md seção 10) |

@@ -83,8 +83,8 @@ pub mod component {
     pub const VERILATOR: &str = "verilator";
     /// cocotb, para testbenches em Python, com o Python que o roda: no Linux
     /// e no macOS, o do OSS CAD Suite; no Windows, o do `msys/`, com a VPI do
-    /// Verilator que o lace-toolchain compila. O Lace ainda não roda cocotb:
-    /// o componente só o instala.
+    /// Verilator que o lace-toolchain compila. O Lace roda o cocotb com o
+    /// Icarus ([`cocotb`](crate::cocotb)); com o Verilator, ainda não.
     pub const COCOTB: &str = "cocotb";
     /// Yosys.
     pub const YOSYS: &str = "yosys";
@@ -911,6 +911,34 @@ impl Toolchain {
                 path,
             })
         }
+    }
+
+    /// O Python do componente cocotb rodando `script` em `cwd`: o do `msys/`
+    /// no Windows, com o `bin` dele no `PATH` (as DLLs do Python); o
+    /// lançador `tabbypy3` do OSS CAD Suite nos outros, pelo `bash`, como as
+    /// outras ferramentas do pacote.
+    pub(crate) fn cocotb_python(&self, script: &Utf8Path, cwd: &Utf8Path) -> Result<Invocation> {
+        let dir = self.component_dir(component::COCOTB)?;
+        let (program, path) = match self.platform {
+            Platform::WindowsX64 => (
+                dir.join("ucrt64/bin/python.exe"),
+                vec![dir.join("ucrt64/bin")],
+            ),
+            _ => (dir.join("bin/tabbypy3"), Vec::new()),
+        };
+        if !program.is_file() {
+            return Err(LaceError::ToolchainIncomplete {
+                what: "Python for cocotb".into(),
+                path: program,
+            });
+        }
+        let mut path = path;
+        path.extend(base_path(self.platform));
+        let invocation = match self.platform {
+            Platform::WindowsX64 => Invocation::new(program, cwd),
+            _ => Invocation::new(UNIX_SHELL, cwd).path_arg(&program),
+        };
+        Ok(invocation.path_arg(script).search_path(&path))
     }
 
     /// Ambiente de fontes do `dot`. Sem configuração, o fontconfig do pacote

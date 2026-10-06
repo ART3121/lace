@@ -4,23 +4,9 @@
   "description": "`lace check`.",
   "type": "object",
   "properties": {
-    "builds": {
-      "description": "Os processadores, compilados antes. Se um falha, `check` é `null`.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/BuildResult"
-      }
-    },
     "check": {
-      "description": "A verificação.",
-      "anyOf": [
-        {
-          "$ref": "#/$defs/CheckResult"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "description": "A verificação. Não compila os processadores: verifica o Verilog que\nestá no disco.",
+      "$ref": "#/$defs/CheckResult"
     },
     "report": {
       "description": "O relatório gravado no histórico do projeto (`run-000042`), para\n`lace report show`; `null` se nada rodou ou se não pôde ser gravado.",
@@ -31,29 +17,27 @@
     }
   },
   "required": [
-    "builds",
     "check",
     "report"
   ],
   "$defs": {
-    "BuildResult": {
-      "description": "O resultado de [`build`]. Ver o módulo `pipeline` para os campos comuns a\ntoda operação.\n\nEm JSON (resumido):\n\n```json\n{ \"processor\": \"soma\", \"language\": \"cmm\", \"status\": \"succeeded\",\n  \"failed_step\": null, \"frequency_mhz\": 100, \"clocks\": 2000,\n  \"steps\": [ { \"step\": \"compile\", \"tool\": \"cmmcomp\", \"...\": \"...\" } ],\n  \"diagnostics\": [],\n  \"artifacts\": [ { \"kind\": \"verilog\", \"path\": \"/p/soma/Hardware/soma.v\",\n                   \"required\": true, \"fresh\": true } ] }\n```",
+    "CheckResult": {
+      "description": "O resultado de [`check`]. Não há artefatos: a verificação só diz se o\nVerilog elabora, e o que os compiladores acharam.",
       "type": "object",
       "properties": {
-        "processor": {
-          "description": "O processador compilado.",
-          "type": "string"
-        },
-        "language": {
-          "description": "A linguagem do fonte, que decidiu o pipeline.",
-          "$ref": "#/$defs/Language"
+        "targets": {
+          "description": "Os módulos elaborados como raiz: os do projeto (ou os do arquivo\npedido) e cada testbench.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "status": {
-          "description": "Como o build terminou.",
+          "description": "`Succeeded` se tudo elabora sem erro.",
           "$ref": "#/$defs/Status"
         },
         "failed_step": {
-          "description": "O passo que falhou ou quebrou, quando for o caso.",
+          "description": "O primeiro passo que falhou.",
           "anyOf": [
             {
               "$ref": "#/$defs/Step"
@@ -63,72 +47,34 @@
             }
           ]
         },
-        "frequency_mhz": {
-          "description": "A frequência usada (do `.spf` ou de [`BuildOptions`]).",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
-        "clocks": {
-          "description": "Os clocks usados (do `.spf` ou de [`BuildOptions`]).",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
         "steps": {
-          "description": "Um relatório por compilador executado. Em C±: `compile`,\n`pre_assemble`, `assemble`. Em C: `preprocess` antes dos três.",
+          "description": "Um `iverilog -t null` para o projeto, um por testbench e, com\n`lint`, o `verilator --lint-only`.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/StepReport"
           }
         },
         "diagnostics": {
-          "description": "Todas as mensagens de todos os passos, na ordem em que saíram. Hoje\nos compiladores param no primeiro erro, mas a API já é uma lista.",
+          "description": "Os erros e avisos, com arquivo e linha.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/Diagnostic"
           }
         },
-        "artifacts": {
-          "description": "Obrigatórios: `Software/<nome>.asm`, `Hardware/<nome>.v`,\n`Hardware/<nome>_data.mif`, `Hardware/<nome>_inst.mif` e o testbench\n`Simulation/<nome>_tb.v`. Intermediários (`pc_<nome>_mem.txt`,\n`trad_cmm.txt`, `trad_opcode.txt`, `cmm_log.txt`, `app_log.txt`,\n`pp.cpp`), quando existem.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Artifact"
-          }
-        },
         "duration_ms": {
-          "description": "Quanto o build levou, do começo ao fim, em milissegundos.",
+          "description": "Quanto a verificação levou, do começo ao fim, em milissegundos.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0
         }
       },
       "required": [
-        "processor",
-        "language",
+        "targets",
         "status",
         "failed_step",
-        "frequency_mhz",
-        "clocks",
         "steps",
         "diagnostics",
-        "artifacts",
         "duration_ms"
-      ]
-    },
-    "Language": {
-      "description": "Linguagem do programa de um processador. Em JSON: `\"cmm\"` ou `\"cpp\"`.",
-      "oneOf": [
-        {
-          "description": "C±, compilado pelo `cmmcomp`.",
-          "type": "string",
-          "const": "cmm"
-        },
-        {
-          "description": "C, pré-processado pelo `cpppp` e compilado pelo `cppcomp`. A AURORA e o\nYANC chamam de \"cpp\" e usam a extensão `.cpp`.",
-          "type": "string",
-          "const": "cpp"
-        }
       ]
     },
     "Status": {
@@ -350,7 +296,7 @@
           "type": "string"
         },
         "args": {
-          "description": "Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.",
+          "description": "Argumentos, na ordem. Caminhos já estão no formato que a ferramenta\naceita: o nativo do sistema, menos os do `iverilog` no Windows, que\nvão com `/`.",
           "type": "array",
           "items": {
             "type": "string"
@@ -571,190 +517,6 @@
           "type": "string",
           "const": "unknown"
         }
-      ]
-    },
-    "Artifact": {
-      "description": "Um arquivo que a operação deveria produzir.\n\n`fresh` é calculado comparando o horário de modificação antes e depois da\noperação. Um `.v` que sobrou de um build anterior aparece com\n`fresh = false`, e não como sucesso. Artefatos obrigatórios aparecem\nsempre; intermediários, só se existirem.",
-      "type": "object",
-      "properties": {
-        "kind": {
-          "description": "O papel do arquivo.",
-          "$ref": "#/$defs/ArtifactKind"
-        },
-        "path": {
-          "description": "Caminho absoluto.",
-          "type": "string"
-        },
-        "required": {
-          "description": "Sem ele a operação não está completa.",
-          "type": "boolean"
-        },
-        "fresh": {
-          "description": "Existe e foi escrito por esta operação (não é sobra de uma anterior).",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "kind",
-        "path",
-        "required",
-        "fresh"
-      ]
-    },
-    "ArtifactKind": {
-      "description": "O papel de um arquivo produzido por uma operação. Em JSON, em\n`snake_case` (`\"data_memory\"`).",
-      "oneOf": [
-        {
-          "description": "`Software/<nome>.asm`",
-          "type": "string",
-          "const": "assembly"
-        },
-        {
-          "description": "`Hardware/<nome>.v`, o processador sintetizável.",
-          "type": "string",
-          "const": "verilog"
-        },
-        {
-          "description": "`Hardware/<nome>_data.mif`",
-          "type": "string",
-          "const": "data_memory"
-        },
-        {
-          "description": "`Hardware/<nome>_inst.mif`",
-          "type": "string",
-          "const": "instruction_memory"
-        },
-        {
-          "description": "`Simulation/<nome>_tb.v`: o testbench que o asmcomp gera na pasta\ntemporária, copiado para cá pelo build, como a AURORA faz.",
-          "type": "string",
-          "const": "testbench"
-        },
-        {
-          "description": "`<temp>/pp.cpp`, saída do `cpppp`.",
-          "type": "string",
-          "const": "preprocessed_source"
-        },
-        {
-          "description": "`<temp>/pc_<nome>_mem.txt`, liga endereço de instrução a linha do fonte.",
-          "type": "string",
-          "const": "program_counter_map"
-        },
-        {
-          "description": "`<temp>/trad_cmm.txt`",
-          "type": "string",
-          "const": "source_translation"
-        },
-        {
-          "description": "`<temp>/trad_opcode.txt`",
-          "type": "string",
-          "const": "opcode_translation"
-        },
-        {
-          "description": "`<temp>/cmm_log.txt`",
-          "type": "string",
-          "const": "compiler_log"
-        },
-        {
-          "description": "`<temp>/app_log.txt`",
-          "type": "string",
-          "const": "pre_assembler_log"
-        },
-        {
-          "description": "O `.vvp` do Icarus.",
-          "type": "string",
-          "const": "icarus_image"
-        },
-        {
-          "description": "O executável que o Verilator gerou.",
-          "type": "string",
-          "const": "verilated_model"
-        },
-        {
-          "description": "Onda da simulação (VCD ou FST).",
-          "type": "string",
-          "const": "waveform"
-        },
-        {
-          "description": "`Simulation/output_<n>.txt`, escrito pelo testbench.",
-          "type": "string",
-          "const": "simulation_output"
-        },
-        {
-          "description": "Netlist JSON do Yosys.",
-          "type": "string",
-          "const": "netlist"
-        },
-        {
-          "description": "Grafo do esquemático (`.dot`), gerado pelo Yosys.",
-          "type": "string",
-          "const": "schematic_graph"
-        },
-        {
-          "description": "Esquemático SVG, desenhado pelo `dot`.",
-          "type": "string",
-          "const": "schematic"
-        },
-        {
-          "description": "As estatísticas do `stat -json` do Yosys (`stat.json`).",
-          "type": "string",
-          "const": "synthesis_statistics"
-        }
-      ]
-    },
-    "CheckResult": {
-      "description": "O resultado de [`check`]. Não há artefatos: a verificação só diz se o\nVerilog elabora, e o que os compiladores acharam.",
-      "type": "object",
-      "properties": {
-        "targets": {
-          "description": "Os módulos elaborados como raiz: os do projeto (ou os do arquivo\npedido) e cada testbench.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "status": {
-          "description": "`Succeeded` se tudo elabora sem erro.",
-          "$ref": "#/$defs/Status"
-        },
-        "failed_step": {
-          "description": "O primeiro passo que falhou.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Step"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "steps": {
-          "description": "Um `iverilog -t null` para o projeto, um por testbench e, com\n`lint`, o `verilator --lint-only`.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/StepReport"
-          }
-        },
-        "diagnostics": {
-          "description": "Os erros e avisos, com arquivo e linha.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Diagnostic"
-          }
-        },
-        "duration_ms": {
-          "description": "Quanto a verificação levou, do começo ao fim, em milissegundos.",
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        }
-      },
-      "required": [
-        "targets",
-        "status",
-        "failed_step",
-        "steps",
-        "diagnostics",
-        "duration_ms"
       ]
     }
   }

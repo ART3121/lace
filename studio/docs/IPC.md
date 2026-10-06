@@ -111,10 +111,10 @@ seção 5.4.1. Não compila os processadores nem grava relatório.
 | `synthesizable`, `testbenches` | `ProjectFile[]`: `role`, `path`, `top_level` |
 | `top_level`, `top_module`, `top_module_error` | o arquivo e o módulo de topo; o erro quando o módulo não dá para saber |
 | `selected_testbench`, `testbench_module` | o testbench simulado e o módulo dele |
-| `unregistered` | os `.v` e `.sv` da pasta fora do `.spf` |
+| `unregistered` | os `.v` e `.sv` da pasta fora do `.spf`, e os `.py` com `@cocotb.test` |
 | `processors` | `ProcessorStatus[]`: os campos do `Processor` do Core, mais `built`, `inputs` e `outputs` (`{ port, path }`), `missing_inputs`, `waveform` e `generated` (o que o build gerou e existe: `verilog`, `testbench`, `assembly`, `memories[]`, `intermediates[]`, os `.txt` e `.log` da pasta temporária) |
 | `waveform` | a onda da simulação do projeto, se já existe |
-| `top_candidates` | os Verilog que podem ser o topo pela regra do Core (qualquer um, menos nome de testbench): registrados, o gerado de cada processador e os de fora do `.spf` |
+| `top_candidates` | os Verilog que podem ser o topo pela regra do Core (qualquer um, menos nome de testbench e testbench cocotb `.py`): registrados, o gerado de cada processador e os de fora do `.spf` |
 | `issues` | `ProjectIssue[]` do Core (`Project::issues`): `kind` (`rescued_path`, `selection_not_registered`, `testbench_as_top`, `invalid_processor_name`), `path`, `detail`, `message`; o painel Problemas mostra como aviso, traduzido pelo `kind` |
 
 `NewProcessorRequest`: `name`, `language` (`cmm` ou `cpp`) e, opcionais,
@@ -196,11 +196,11 @@ Toda operação termina com exatamente um `finished` ou um `failed`.
 | `flow`, `command` | o fluxo e o comando equivalente (`lace-studio sim -p soma`) |
 | `succeeded` | tudo deu certo |
 | `builds` | `BuildResult[]` dos builds feitos antes (ou do próprio build) |
-| `check`, `simulation`, `synthesis`, `schematic` | o resultado de cada fase que rodou, ou `null` |
+| `check`, `simulation`, `synthesis`, `schematic` | o resultado de cada fase que rodou, ou `null`; com um testbench cocotb, `simulation.tests` traz os testes (`TestReport` do Core) |
 | `outputs` | `PortValues[]` (`port`, `path`, `values`, `error`), na simulação de um processador que deu certo |
 | `wave`, `wave_error` | a onda aberta em janela, ou por que não abriu |
 | `wave_tab` | a onda que a interface abre numa aba (`wave_viewer: tab`), no lugar da janela |
-| `schematic_error` | por que o esquemático não saiu depois da síntese (`schematic_too_large`: o módulo tem ligações demais para o Graphviz); a síntese vale |
+| `schematic_error` | por que o esquemático não saiu depois da síntese (`module_not_found`: o módulo pedido não está no netlist); a síntese vale |
 | `report`, `report_error` | o relatório gravado (`run-000042`), ou por que não foi |
 
 O `stdout` e o `stderr` de cada passo vêm cortados em 256 KiB, guardando o
@@ -280,6 +280,7 @@ aba ou ao recarregar.
 |---|---|---|
 | `terminal_spawn` | `cwd?` (padrão: a pasta do projeto), `cols`, `rows`, `channel: Channel<TerminalMessage>` | o identificador |
 | `terminal_write` | `id`, `data` | |
+| `terminal_cd` | `id`, `path` | digita no shell o `cd` para `path`, na sintaxe dele (PowerShell, `cmd`, POSIX ou fish); a interface chama ao abrir outro projeto |
 | `terminal_resize` | `id`, `cols`, `rows` | |
 | `terminal_kill` | `id` | |
 

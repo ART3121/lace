@@ -5,7 +5,10 @@
 //! Prompt de Comando); nos outros sistemas, o do usuário (`$SHELL`).
 //!
 //! O shell abre na pasta do projeto, com a pasta `bin/` da instalação do
-//! Lace no começo do `PATH`, para o usuário poder rodar `lace` direto.
+//! Lace no começo do `PATH`, para o usuário poder rodar `lace` direto. Ao
+//! trocar de projeto, a interface pede [`terminal_cd`], que digita no shell
+//! o `cd` para a pasta nova, como o "abrir o terminal aqui" da AURORA: o
+//! histórico e o que estava na tela ficam.
 //!
 //! O que o shell escreve chega à interface por um `Channel`, como texto
 //! UTF-8. Uma leitura pode cortar um caractere de vários bytes ao meio: os
@@ -28,6 +31,56 @@ pub struct Terminal {
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
     child: Box<dyn Child + Send + Sync>,
+    shell: ShellKind,
+}
+
+/// O shell de um terminal, pelo jeito de escrever um `cd` nele.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ShellKind {
+    /// O Windows PowerShell.
+    PowerShell,
+    /// O Prompt de Comando.
+    Cmd,
+    /// Um shell POSIX (bash, zsh, sh).
+    Posix,
+    /// O fish, que escapa aspas de outro jeito.
+    Fish,
+}
+
+impl ShellKind {
+    /// O shell que [`terminal_spawn`] abre: no Windows, o da preferência
+    /// `terminal_shell`; nos outros sistemas, o `$SHELL`.
+    fn current(choice: &str) -> ShellKind {
+        if cfg!(windows) {
+            if choice == "cmd" {
+                ShellKind::Cmd
+            } else {
+                ShellKind::PowerShell
+            }
+        } else if std::env::var("SHELL").is_ok_and(|shell| shell.ends_with("fish")) {
+            ShellKind::Fish
+        } else {
+            ShellKind::Posix
+        }
+    }
+
+    /// A linha que leva o shell para `path`, com o Enter.
+    fn cd_line(self, path: &str) -> String {
+        match self {
+            // Aspas simples: nada é interpretado dentro, e a aspa simples se
+            // escreve dobrada. `-LiteralPath` não trata `[` como curinga.
+            ShellKind::PowerShell => {
+                format!("Set-Location -LiteralPath '{}'\r", path.replace('\'', "''"))
+            }
+            // Um caminho do Windows não tem aspas duplas; o `/d` troca o disco.
+            ShellKind::Cmd => format!("cd /d \"{path}\"\r"),
+            ShellKind::Posix => format!("cd -- '{}'\r", path.replace('\'', r"'\''")),
+            ShellKind::Fish => format!(
+                "cd -- '{}'\r",
+                path.replace('\\', r"\\").replace('\'', r"\'")
+            ),
+        }
+    }
 }
 
 /// O que a interface recebe de um terminal.
@@ -82,8 +135,10 @@ pub async fn terminal_spawn(
         })
         .map_err(terminal_error)?;
 
+    let choice = state.settings.get().terminal_shell;
+    let shell = ShellKind::current(&choice);
     let mut command = if cfg!(windows) {
-        windows_shell(&state.settings.get().terminal_shell)
+        windows_shell(&choice)
     } else {
         CommandBuilder::new_default_prog()
     };
@@ -123,6 +178,7 @@ pub async fn terminal_spawn(
             master: pair.master,
             writer,
             child,
+            shell,
         },
     );
 
@@ -195,6 +251,23 @@ pub fn terminal_write(app: AppHandle, id: u32, data: String) -> IpcResult<()> {
         .map_err(terminal_error)
 }
 
+/// Leva o shell do terminal para `path`, digitando o `cd` do shell dele.
+/// Um terminal que já terminou fica como está.
+#[tauri::command]
+pub fn terminal_cd(app: AppHandle, id: u32, path: String) -> IpcResult<()> {
+    let state = app.state::<AppState>();
+    let mut terminals = state.terminals.lock().expect("terminals lock");
+    let Some(terminal) = terminals.get_mut(&id) else {
+        return Ok(());
+    };
+    let line = terminal.shell.cd_line(&path);
+    terminal
+        .writer
+        .write_all(line.as_bytes())
+        .and_then(|()| terminal.writer.flush())
+        .map_err(terminal_error)
+}
+
 /// Avisa o shell do novo tamanho da janela.
 #[tauri::command]
 pub fn terminal_resize(app: AppHandle, id: u32, cols: u16, rows: u16) -> IpcResult<()> {
@@ -241,7 +314,28 @@ pub fn kill_all(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::take_utf8;
+    use super::{ShellKind, take_utf8};
+
+    #[test]
+    fn cd_quotes_the_path_for_each_shell() {
+        let path = r"C:\Users\Ana's [x]\proj";
+        assert_eq!(
+            ShellKind::PowerShell.cd_line(path),
+            "Set-Location -LiteralPath 'C:\\Users\\Ana''s [x]\\proj'\r"
+        );
+        assert_eq!(
+            ShellKind::Cmd.cd_line(path),
+            "cd /d \"C:\\Users\\Ana's [x]\\proj\"\r"
+        );
+        assert_eq!(
+            ShellKind::Posix.cd_line("/home/ana/o'projeto"),
+            "cd -- '/home/ana/o'\\''projeto'\r"
+        );
+        assert_eq!(
+            ShellKind::Fish.cd_line(r"/home/ana/o'pro\jeto"),
+            "cd -- '/home/ana/o\\'pro\\\\jeto'\r"
+        );
+    }
 
     #[test]
     fn keeps_a_split_character_for_the_next_read() {

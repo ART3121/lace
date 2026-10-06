@@ -63,8 +63,27 @@ export interface LastRun {
   finishedAt: number;
 }
 
+/** Uma linha da saída do `lace install` ou do `lace update`. */
+export interface CliLine {
+  text: string;
+  style: LineStyle;
+}
+
+/** A última instalação ou atualização: o comando e o que ele escreveu. A
+ * tela do bundle mostra. */
+export interface CliLog {
+  flow: CliFlow;
+  command: string;
+  lines: CliLine[];
+}
+
+/** Quantas linhas do `lace install` e do `lace update` guardar. */
+const CLI_LOG_LINES = 2000;
+
 interface JobsState {
   running: RunningJob | null;
+  /** A última instalação ou atualização. */
+  cliLog: CliLog | null;
   last: LastRun | null;
   outcomes: Partial<Record<FlowName, FlowOutcome>>;
   statusByKey: Record<string, ActionStatus>;
@@ -106,6 +125,24 @@ const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   schematic: 'prism',
   wave: 'wave',
 };
+
+/** O console onde cada operação começa: o comando dela e os avisos (falha
+ * ao iniciar, pedido de cancelamento) vão para lá. */
+const START_CHANNEL: Record<FlowName, ConsoleChannel> = {
+  build: 'cmm',
+  check: 'verilog',
+  simulate: 'wave',
+  synthesize: 'prism',
+  schematic: 'prism',
+};
+
+/** Uma linha no registro da instalação ou da atualização. */
+function cliLine(text: string, style: LineStyle = 'plain'): void {
+  const log = useJobs.getState().cliLog;
+  if (!log) return;
+  const lines = [...log.lines, { text, style }];
+  useJobs.setState({ cliLog: { ...log, lines: lines.slice(-CLI_LOG_LINES) } });
+}
 
 const FLOW_CHANNEL: Record<FlowName, ConsoleChannel> = {
   build: 'asm',
@@ -277,6 +314,26 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
         port.error ? 'error' : 'success',
       );
     }
+    // cocotb: um teste por linha e quantos passaram; a falha vem com a linha
+    // do .py, que também está nos problemas.
+    if (s.tests) {
+      for (const c of s.tests.cases) {
+        const where = c.status === 'failed' && c.file ? ` (${rel(c.file)}${c.line ? `:${c.line}` : ''})` : '';
+        const [key, style]: [Key, LineStyle] =
+          c.status === 'passed'
+            ? ['console.testPassed', 'success']
+            : c.status === 'failed'
+              ? ['console.testFailed', 'error']
+              : ['console.testSkipped', 'dim'];
+        write(channel, `  ${t(key, { name: c.name })}${where}`, style);
+      }
+      const total = s.tests.passed + s.tests.failed + s.tests.skipped;
+      write(
+        channel,
+        t('console.testsSummary', { passed: s.tests.passed, total }),
+        s.tests.failed > 0 || total === 0 ? 'error' : 'success',
+      );
+    }
     for (const missing of s.missing_inputs) write(channel, t('console.missingInput', { path: rel(missing) }), 'warning');
     if (s.status === 'timed_out') write(channel, t('console.timedOutHint'), 'warning');
     if (s.waveform) write(channel, t('console.waveformAt', { path: rel(s.waveform.path) }), 'dim');
@@ -310,9 +367,9 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
     write(channel, t('console.waveError', { error: outcome.wave_error.message }), 'error');
   }
   if (outcome.flow === 'build' && outcome.builds.length === 0) {
-    write('lace', t('console.noProcessors'), 'info');
-    channel = 'lace';
-    show('lace');
+    write('cmm', t('console.noProcessors'), 'info');
+    channel = 'cmm';
+    show('cmm');
   }
   if (outcome.report) write(channel, t('console.report', { id: outcome.report }), 'dim');
   if (outcome.report_error) write(channel, t('console.reportError', { error: outcome.report_error }), 'warning');
@@ -335,18 +392,22 @@ interface CliFailure {
   error?: { code?: string; message?: string; hint?: string | null };
 }
 
-/** Roda uma operação da CLI (`lace install`, `lace update`): cada linha vai
- * para o console do Lace, o fim vai para `last`, e o bundle é relido, porque
- * a operação mexe nele. O erro que a CLI descreve no JSON vira o aviso.
- * Devolve o resultado, ou null se a operação não chegou ao fim. */
+/** Roda uma operação da CLI (`lace install`, `lace update`): a tela do
+ * bundle abre e mostra cada linha (`cliLog`), o fim vai para `last`, e o
+ * bundle é relido, porque a operação mexe nele. O erro que a CLI descreve no
+ * JSON vira o aviso. Devolve o resultado, ou null se a operação não chegou ao
+ * fim. */
 function runCli(flow: CliFlow, start: (onMessage: (m: JobMessage) => void) => Promise<number>): Promise<CliOutcome | null> {
   if (useJobs.getState().running) {
     showError({ code: 'busy', message: 'Another operation is running' } satisfies IpcError);
     return Promise.resolve(null);
   }
   const startedAt = Date.now();
-  useJobs.setState({ running: { id: null, flow, phase: null, startedAt, command: '', statusKey: flow } });
-  show('lace');
+  useJobs.setState({
+    running: { id: null, flow, phase: null, startedAt, command: '', statusKey: flow },
+    cliLog: { flow, command: `lace ${flow}`, lines: [] },
+  });
+  useEditor.getState().openView('toolchain');
   return new Promise((resolve) => {
     const done = (outcome: CliOutcome | null, error?: IpcError, hint?: string | null) => {
       const ok = outcome?.succeeded ?? false;
@@ -355,8 +416,8 @@ function runCli(flow: CliFlow, start: (onMessage: (m: JobMessage) => void) => Pr
         last: { flow, succeeded: ok, status: ok ? 'succeeded' : 'failed', durationMs: Date.now() - startedAt, finishedAt: Date.now() },
       });
       if (error) {
-        write('lace', error.message, 'error');
-        if (hint) write('lace', hint, 'dim');
+        cliLine(error.message, 'error');
+        if (hint) cliLine(hint, 'dim');
         showError(error);
       }
       void useApp.getState().refreshToolchain();
@@ -364,12 +425,14 @@ function runCli(flow: CliFlow, start: (onMessage: (m: JobMessage) => void) => Pr
     };
     start((message) => {
       switch (message.type) {
-        case 'started':
+        case 'started': {
           useJobs.setState({ running: { ...useJobs.getState().running!, id: message.job, command: message.command } });
-          write('lace', `> ${message.command}`, 'command');
+          const log = useJobs.getState().cliLog;
+          if (log) useJobs.setState({ cliLog: { ...log, command: message.command } });
           break;
+        }
         case 'cli_output':
-          write('lace', message.line, message.stream === 'stderr' ? 'plain' : 'dim');
+          cliLine(message.line, message.stream === 'stderr' ? 'plain' : 'dim');
           break;
         case 'finished': {
           const outcome = message.outcome as CliOutcome;
@@ -390,6 +453,7 @@ function runCli(flow: CliFlow, start: (onMessage: (m: JobMessage) => void) => Pr
 
 export const useJobs = create<JobsState>((set, get) => ({
   running: null,
+  cliLog: null,
   last: null,
   outcomes: {},
   statusByKey: {},
@@ -463,7 +527,7 @@ export const useJobs = create<JobsState>((set, get) => ({
             last: { flow: request.flow, succeeded: false, status: 'error', durationMs, finishedAt: Date.now() },
           });
           if (error) {
-            write('lace', t('console.failedToRun', { message: error.message }), 'error');
+            write(START_CHANNEL[request.flow], t('console.failedToRun', { message: error.message }), 'error');
             showError(error);
           }
         }
@@ -474,7 +538,7 @@ export const useJobs = create<JobsState>((set, get) => ({
         switch (message.type) {
           case 'started':
             set({ running: { ...get().running!, id: message.job, command: message.command } });
-            write('lace', `> ${message.command}`, 'command');
+            write(START_CHANNEL[request.flow], `> ${message.command}`, 'command');
             break;
           case 'phase': {
             set({ running: { ...get().running!, phase: message.phase } });
@@ -496,7 +560,7 @@ export const useJobs = create<JobsState>((set, get) => ({
             finish(null, message.error);
             break;
           case 'cli_output':
-            write('lace', message.line, message.stream === 'stderr' ? 'dim' : 'plain');
+            write(START_CHANNEL[request.flow], message.line, message.stream === 'stderr' ? 'dim' : 'plain');
             break;
         }
       };
@@ -508,7 +572,8 @@ export const useJobs = create<JobsState>((set, get) => ({
   cancel: async () => {
     const running = get().running;
     if (!running || running.flow === 'update') return;
-    write('lace', t('console.cancelRequested'), 'warning');
+    if (running.flow === 'install') cliLine(t('console.cancelRequested'), 'warning');
+    else write(START_CHANNEL[running.flow], t('console.cancelRequested'), 'warning');
     try {
       await api.flow.cancel(running.id);
     } catch (error) {
@@ -519,7 +584,7 @@ export const useJobs = create<JobsState>((set, get) => ({
   install: async (components) => {
     const outcome = await runCli('install', (onMessage) => api.toolchain.install(components, onMessage));
     if (!outcome) return false;
-    write('lace', t('console.installDone', { code: outcome.exit_code ?? '-' }), outcome.succeeded ? 'success' : 'error');
+    cliLine(t('console.installDone', { code: outcome.exit_code ?? '-' }), outcome.succeeded ? 'success' : 'error');
     if (outcome.succeeded) {
       useToasts.getState().push({ kind: 'success', title: t('console.installDone', { code: 0 }) });
     }
@@ -529,22 +594,22 @@ export const useJobs = create<JobsState>((set, get) => ({
   update: async () => {
     const outcome = await runCli('update', api.toolchain.update);
     if (!outcome?.succeeded) {
-      if (outcome) write('lace', t('console.updateFailed', { code: outcome.exit_code ?? '-' }), 'error');
+      if (outcome) cliLine(t('console.updateFailed', { code: outcome.exit_code ?? '-' }), 'error');
       return null;
     }
     const report = outcome.result as UpdateReport;
     const version = report.lace.latest;
     if (report.action === 'updated') {
       const text = t('console.updateDone', { version });
-      write('lace', text, 'success');
+      cliLine(text, 'success');
       useToasts.getState().push({ kind: 'success', title: text });
     } else if (report.action === 'wizard_opened') {
       const text = t('console.updateWizard', { version });
-      write('lace', text, 'info');
+      cliLine(text, 'info');
       useToasts.getState().push({ kind: 'info', title: text }, 10000);
     } else {
       const text = t('console.updateCurrent', { version });
-      write('lace', text, 'info');
+      cliLine(text, 'info');
       useToasts.getState().push({ kind: 'info', title: text });
     }
     return report;

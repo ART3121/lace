@@ -33,7 +33,7 @@ export interface ConfirmOptions {
 export type DialogSpec =
   | { kind: 'newProject' }
   | { kind: 'newProcessor' }
-  | { kind: 'newVerilog'; testbench: boolean; folder?: string }
+  | { kind: 'newVerilog'; testbench: boolean; folder?: string; cocotb?: boolean }
   | { kind: 'newInput'; processor: string }
   | { kind: 'install'; components?: string[] }
   | { kind: 'palette' }

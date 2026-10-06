@@ -487,7 +487,10 @@ fn error_hints_name_the_command() {
         ));
     let err = json(&mut run(&["--json", "sim"]), 2);
     assert_eq!(err["error"]["code"], "no_testbench");
-    assert_eq!(err["error"]["hint"], "Create it with: lace add <name>_tb.v");
+    assert_eq!(
+        err["error"]["hint"],
+        "Create it with: lace add <name>_tb.v, or a cocotb one with: lace add test_<name>.py"
+    );
 
     run(&["synth"])
         .assert()
@@ -949,7 +952,7 @@ fn build_error_is_exit_code_1_with_file_and_line() {
 }
 
 #[test]
-fn build_reports_all_failures_but_sim_and_check_stop_at_first() {
+fn build_reports_all_failures_but_sim_stops_at_first() {
     let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
         return;
     };
@@ -967,10 +970,67 @@ fn build_reports_all_failures_but_sim_and_check_stop_at_first() {
     let sim = run(&["sim"], 1);
     assert_eq!(sim["builds"].as_array().unwrap().len(), 1);
     assert!(sim["simulation"].is_null());
+}
 
-    let check = run(&["check"], 1);
-    assert_eq!(check["builds"].as_array().unwrap().len(), 1);
-    assert!(check["check"].is_null());
+#[test]
+fn check_does_not_build_the_processors() {
+    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+        return;
+    };
+    let (_guard, root) = example("soma");
+    let check = |args: &[&str], code: i32| {
+        json(
+            lace_in(&root)
+                .args(["--json", "check"])
+                .args(args)
+                .env("LACE_TOOLCHAIN", &tc),
+            code,
+        )
+    };
+    // Sem compilar antes, não há o Verilog do processador para verificar.
+    for args in [&[][..], &["-p", "soma"][..]] {
+        let err = check(args, 2);
+        assert_eq!(err["error"]["code"], "not_built", "{args:?}");
+        assert_eq!(err["error"]["hint"], "Build it with: lace build -p soma");
+    }
+    // Com um processador compilado e o outro não, o check roda e avisa do
+    // que ficou de fora.
+    lace_in(&root)
+        .args(["build", "-p", "soma"])
+        .env("LACE_TOOLCHAIN", &tc)
+        .assert()
+        .success();
+    let partial = check(&[], 0);
+    let warned = partial["check"]["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| {
+            d["message"] == "Processor filtro has not been built: its Verilog is not in the check"
+        });
+    assert!(warned, "{partial}");
+    // Compilado, o check só roda o Icarus: nenhum passo do YANC, e o
+    // Verilog gerado não é reescrito.
+    lace_in(&root)
+        .args(["build"])
+        .env("LACE_TOOLCHAIN", &tc)
+        .assert()
+        .success();
+    let verilog = root.join("soma/Hardware/soma.v");
+    let written = std::fs::metadata(&verilog).unwrap().modified().unwrap();
+    let report = check(&["-p", "soma"], 0);
+    assert!(report.get("builds").is_none(), "{report}");
+    let tools: Vec<&str> = report["check"]["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["tool"].as_str().unwrap())
+        .collect();
+    assert!(tools.iter().all(|t| *t == "iverilog"), "{tools:?}");
+    assert_eq!(
+        std::fs::metadata(&verilog).unwrap().modified().unwrap(),
+        written
+    );
 }
 
 #[test]
@@ -1256,8 +1316,9 @@ fn check_project_single_file_and_lint() {
         json(&mut cmd, code)
     };
 
+    // O check não compila: o JSON não tem `builds`.
     let check = run(&["check"], 0);
-    assert_eq!(check["builds"], serde_json::json!([]));
+    assert!(check.get("builds").is_none(), "{check}");
     assert_eq!(check["check"]["status"], "succeeded");
     let targets = check["check"]["targets"].as_array().unwrap();
     assert!(targets.contains(&"contador".into()), "{targets:?}");
@@ -1882,8 +1943,9 @@ fn build_check_and_synth_inside_a_processor_folder_act_on_it() {
     };
 
     assert_eq!(processors(&run(&here, &["build"])["results"]), ["filtro"]);
+    // O check verifica o filtro que o build acima compilou, sem compilar.
     let check = run(&here, &["check"]);
-    assert_eq!(processors(&check["builds"]), ["filtro"]);
+    assert!(check.get("builds").is_none(), "{check}");
     assert_eq!(
         check["check"]["targets"],
         serde_json::json!(["filtro", "filtro_tb"])
@@ -1931,4 +1993,44 @@ fn sim_inside_a_processor_folder_simulates_that_processor() {
         0,
     );
     assert_eq!(sim["simulation"]["top"], "contador_tb");
+}
+
+#[test]
+fn cocotb_testbench_from_the_command_line() {
+    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+        return;
+    };
+    if !bundle_has(&tc, "icarus") || !bundle_has(&tc, "cocotb") {
+        return;
+    }
+    let (_guard, root) = new_project("c");
+    std::fs::write(
+        root.join("somador.v"),
+        "module somador(input [3:0] a, input [3:0] b, output [4:0] y);\n    assign y = a + b;\nendmodule\n",
+    )
+    .unwrap();
+    let lace = |args: &[&str]| {
+        let mut cmd = lace_in(&root);
+        cmd.args(args).env("LACE_TOOLCHAIN", &tc);
+        cmd
+    };
+    lace(&["add", "somador.v", "test_somador.py"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "Testbench created: test_somador.py",
+        ));
+    let sim = json(&mut lace(&["--json", "sim"]), 0);
+    assert_eq!(sim["simulation"]["top"], "somador");
+    assert_eq!(sim["simulation"]["tests"]["passed"], 1, "{sim}");
+    assert_eq!(
+        sim["simulation"]["tests"]["cases"][0]["name"],
+        "test_somador.basic_test"
+    );
+    let text = stdout(&mut lace(&["sim"]), 0);
+    assert!(text.contains("Tests: 1 of 1 passed"), "{text}");
+    lace(&["sim", "--verilator"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Simulate it without --verilator"));
 }

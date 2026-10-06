@@ -25,7 +25,7 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
   },
   {
     label: 'menu.project',
-    entries: ['addVerilog', 'newVerilog', 'newTestbench', 'newProcessor', '-', 'chooseTop', 'chooseTestbench', '-', 'refreshProject'],
+    entries: ['addVerilog', 'newVerilog', 'newTestbench', 'newCocotb', 'newProcessor', '-', 'chooseTop', 'chooseTestbench', '-', 'refreshProject'],
   },
   {
     label: 'menu.flow',

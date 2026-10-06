@@ -7,6 +7,7 @@
 //! errado vindo da interface. Apagar é mandar para a lixeira do sistema,
 //! como a AURORA, nunca apagar de vez.
 
+use std::path::{Component, Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -436,11 +437,7 @@ pub(crate) fn ensure_inside(state: &AppState, path: &Utf8Path) -> IpcResult<()> 
 /// `allow_root` (o destino de arrastar para a raiz).
 pub(crate) fn ensure_within(state: &AppState, path: &Utf8Path, allow_root: bool) -> IpcResult<()> {
     let root = canonical(&project_root(state)?);
-    let target = match (path.parent(), path.file_name()) {
-        (Some(parent), Some(name)) => canonical(parent).join(name),
-        _ => canonical(path),
-    };
-    if target.starts_with(&root) && (allow_root || target != root) {
+    if is_within(&root, path, allow_root) {
         Ok(())
     } else {
         Err(IpcError::new(
@@ -450,9 +447,63 @@ pub(crate) fn ensure_within(state: &AppState, path: &Utf8Path, allow_root: bool)
     }
 }
 
-/// O caminho sem `..` nem atalhos, quando existe; senão, como está.
-fn canonical(path: &Utf8Path) -> std::path::PathBuf {
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.as_std_path().to_owned())
+/// `path` fica dentro de `root` (já canônica)? A pasta de `path` é resolvida
+/// e o nome não: um link do projeto que aponta para fora ainda pode ser
+/// renomeado ou ir para a lixeira. A pasta pode ainda não existir ("Novo
+/// arquivo" em `rtl/modulo.v` num projeto sem `rtl/`).
+fn is_within(root: &Path, path: &Utf8Path, allow_root: bool) -> bool {
+    let path = lexical(path.as_std_path());
+    let target = match (path.parent(), path.file_name()) {
+        (Some(parent), Some(name)) => canonical_path(parent).map(|p| p.join(name)),
+        _ => canonical_path(&path),
+    };
+    target.is_some_and(|t| t.starts_with(root) && (allow_root || t != root))
+}
+
+/// [`canonical_path`] de `path`; se nada dele existe, `path` sem `.` nem
+/// `..`.
+fn canonical(path: &Utf8Path) -> PathBuf {
+    let path = lexical(path.as_std_path());
+    canonical_path(&path).unwrap_or(path)
+}
+
+/// O caminho canônico, mesmo que o fim dele ainda não exista: o ancestral
+/// mais fundo que existe é resolvido (links, e no Windows a forma `\\?\` e a
+/// caixa do disco) e o resto vem como está. Com raiz e alvo na mesma forma,
+/// `starts_with` compara os dois; antes, uma pasta nova saía sem o `\\?\` da
+/// raiz e parecia fora do projeto. `None` se nada do caminho existe.
+fn canonical_path(path: &Path) -> Option<PathBuf> {
+    let mut missing = Vec::new();
+    let mut existing = path;
+    loop {
+        if let Ok(found) = std::fs::canonicalize(existing) {
+            return Some(missing.iter().rev().fold(found, |acc, name| acc.join(name)));
+        }
+        missing.push(existing.file_name()?);
+        existing = existing.parent()?;
+    }
+}
+
+/// Tira `.` e resolve `..` sem tocar no disco (`proj/x/../a.v` vira
+/// `proj/a.v`), como o Core faz com os caminhos do projeto. Sem isso, um
+/// `proj/x/../../fora/a.v` com `x` inexistente passava por dentro do
+/// projeto. Um `..` acima da raiz do disco fica na raiz.
+fn lexical(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if matches!(out.components().next_back(), Some(Component::Normal(_))) {
+                    out.pop();
+                } else if !out.has_root() {
+                    out.push("..");
+                }
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
 }
 
 /// O horário de modificação em ms desde 1970 (0 se o sistema não informa).
@@ -462,4 +513,61 @@ fn modified_ms(meta: &std::fs::Metadata) -> u64 {
         .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
         .map(|d| d.as_millis() as u64)
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn utf8(path: &Path) -> &Utf8Path {
+        Utf8Path::from_path(path).expect("caminho UTF-8")
+    }
+
+    #[test]
+    fn a_new_folder_inside_the_project_is_inside() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = utf8(dir.path());
+        let root = canonical(base);
+        // "Novo arquivo" em rtl/modulo.v num projeto sem rtl/: no Windows a
+        // raiz canônica tem a forma \?\, e a pasta nova saía sem ela.
+        assert!(is_within(&root, &base.join("rtl").join("modulo.v"), false));
+        assert!(is_within(
+            &root,
+            &base.join("a").join("b").join("c.v"),
+            false
+        ));
+        assert!(is_within(
+            &root,
+            &base.join("novo").join("..").join("a.v"),
+            false
+        ));
+        // A própria pasta só vale com `allow_root`.
+        assert!(!is_within(&root, base, false));
+        assert!(is_within(&root, base, true));
+    }
+
+    #[test]
+    fn dot_dot_through_a_missing_folder_stays_outside() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = utf8(dir.path());
+        let project = base.join("proj");
+        std::fs::create_dir(&project).unwrap();
+        let root = canonical(&project);
+        let escape = project
+            .join("x")
+            .join("..")
+            .join("..")
+            .join("fora")
+            .join("a.v");
+        assert!(!is_within(&root, &escape, false));
+        assert!(!is_within(&root, &base.join("fora.v"), false));
+        assert!(is_within(&root, &project.join("x").join("a.v"), false));
+    }
+
+    #[test]
+    fn lexical_resolves_dots_without_the_disk() {
+        assert_eq!(lexical(Path::new("a/./b/../c.v")), Path::new("a/c.v"));
+        assert_eq!(lexical(Path::new("../a")), Path::new("../a"));
+        assert_eq!(lexical(Path::new("/../a")), Path::new("/a"));
+    }
 }

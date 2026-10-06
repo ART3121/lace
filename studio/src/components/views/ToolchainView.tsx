@@ -1,10 +1,10 @@
 // O bundle do Lace: o equivalente gráfico do `lace tools`, com a conferência
 // dos hashes, a busca de atualização (`lace update --check`), a atualização
 // (`lace update --yes`, depois de confirmar) e a instalação de componentes
-// (`lace install`).
+// (`lace install`). A saída da última instalação ou atualização aparece aqui.
 
 import { CircleArrowUp, CircleCheck, CircleX, Download, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
@@ -20,6 +20,8 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
   const t = useT();
   const info = useApp((s) => s.toolchain);
   const running = useJobs((s) => s.running);
+  const cliLog = useJobs((s) => s.cliLog);
+  const logRef = useRef<HTMLPreElement>(null);
   const windows = useApp((s) => s.info?.os.startsWith('windows') ?? false);
   const [mismatches, setMismatches] = useState<FileMismatch[] | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -66,6 +68,12 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
   useEffect(() => {
     if (checkToken) void checkUpdates();
   }, [checkToken]);
+
+  // A saída rola para o fim a cada linha nova.
+  useEffect(() => {
+    const log = logRef.current;
+    if (log) log.scrollTop = log.scrollHeight;
+  }, [cliLog?.lines.length]);
 
   if (!info) return <div className="view-page">{t('common.loading')}</div>;
 
@@ -116,6 +124,20 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
         <dt>{t('toolchain.laceCli')}</dt>
         <dd className="mono">{info.lace_cli ?? '-'}</dd>
       </dl>
+
+      {cliLog && (
+        <>
+          <h2>{t('toolchain.output', { command: cliLog.command })}</h2>
+          <pre className="cli-log" ref={logRef}>
+            {cliLog.lines.length === 0 && running ? <Spinner /> : null}
+            {cliLog.lines.map((line, index) => (
+              <div key={index} className={`cli-log__line cli-log__line--${line.style}`}>
+                {line.text}
+              </div>
+            ))}
+          </pre>
+        </>
+      )}
 
       {mismatches && (
         <div className={`notice${mismatches.length ? ' notice--error' : ' notice--ok'}`}>

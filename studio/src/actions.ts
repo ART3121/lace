@@ -168,7 +168,12 @@ export async function openWaveWindow(path: string) {
 }
 
 async function fullFlow() {
-  // O F5 da AURORA: compila tudo, verifica e, se passou, simula.
+  // O F5 da AURORA: compila tudo, verifica e, se passou, simula. A
+  // verificação não compila os processadores, então o build vem antes.
+  if ((useProject.getState().snapshot?.processors.length ?? 0) > 0) {
+    const built = await runBuild();
+    if (!built?.succeeded) return;
+  }
   const checked = await runCheck(false);
   if (checked?.succeeded) await runSimulation(settings()?.open_wave_after_sim ?? true);
 }
@@ -211,7 +216,8 @@ export async function newFolderIn(dir?: string) {
   }
 }
 
-/** Escolhe arquivos .v e .sv no disco e os registra (`lace add`). */
+/** Escolhe arquivos .v e .sv, e testbenches cocotb (.py), no disco e os
+ * registra (`lace add`). */
 export async function addVerilogFiles(paths?: string[]) {
   const snapshot = useProject.getState().snapshot;
   if (!snapshot) return;
@@ -221,7 +227,11 @@ export async function addVerilogFiles(paths?: string[]) {
       multiple: true,
       directory: false,
       defaultPath: snapshot.root,
-      filters: [{ name: 'Verilog', extensions: ['v', 'sv', 'vh', 'svh'] }],
+      filters: [
+        { name: 'Verilog, cocotb', extensions: ['v', 'sv', 'vh', 'svh', 'py'] },
+        { name: 'Verilog', extensions: ['v', 'sv', 'vh', 'svh'] },
+        { name: 'cocotb (Python)', extensions: ['py'] },
+      ],
     });
     files = Array.isArray(chosen) ? chosen : typeof chosen === 'string' ? [chosen] : [];
   }
@@ -393,6 +403,7 @@ export const ACTIONS: Action[] = [
   { id: 'addVerilog', label: 'action.addVerilog', category: 'project', enabled: hasProject, run: () => addVerilogFiles() },
   { id: 'newVerilog', label: 'action.newVerilog', category: 'project', icon: FileCode, enabled: hasProject, run: () => openDialog({ kind: 'newVerilog', testbench: false }) },
   { id: 'newTestbench', label: 'action.newTestbench', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'newVerilog', testbench: true }) },
+  { id: 'newCocotb', label: 'action.newCocotb', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'newVerilog', testbench: true, cocotb: true }) },
   { id: 'newProcessor', label: 'action.newProcessor', category: 'project', keys: 'Ctrl+Alt+P', icon: Cpu, enabled: hasProject, run: () => openDialog({ kind: 'newProcessor' }) },
   { id: 'chooseTop', label: 'action.chooseTop', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'chooseTop' }) },
   { id: 'chooseTestbench', label: 'action.chooseTestbench', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'chooseTestbench' }) },

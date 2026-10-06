@@ -182,7 +182,8 @@ pub fn snapshot(project: &Project) -> ProjectSnapshot {
 }
 
 /// Os candidatos a topo, na ordem: registrados (módulos e testbenches), o
-/// Verilog gerado dos processadores e os de fora do `.spf`.
+/// Verilog gerado dos processadores e os de fora do `.spf`. Um testbench
+/// cocotb (`.py`) nunca é topo.
 fn top_candidates(project: &Project, processors: &[ProcessorStatus]) -> Vec<Utf8PathBuf> {
     let mut candidates: Vec<Utf8PathBuf> = Vec::new();
     let registered = [FileRole::Synthesizable, FileRole::Testbench]
@@ -197,7 +198,10 @@ fn top_candidates(project: &Project, processors: &[ProcessorStatus]) -> Vec<Utf8
         .chain(project.unregistered_verilog())
     {
         let name = path.file_name().unwrap_or_default();
-        if !lace_core::verilog::is_testbench_name(name) && !candidates.contains(&path) {
+        if !lace_core::verilog::is_testbench_name(name)
+            && !lace_core::cocotb::is_testbench(&path)
+            && !candidates.contains(&path)
+        {
             candidates.push(path);
         }
     }

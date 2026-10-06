@@ -229,6 +229,29 @@ pub enum LaceError {
     #[error("Project {0} has no testbench")]
     NoTestbench(Utf8PathBuf),
 
+    /// O testbench cocotb (`.py`) não diz qual módulo testa (a linha
+    /// `# aurora-toplevel: <módulo>`) e o projeto não tem módulo de topo
+    /// para o lugar dele.
+    #[error(
+        "The cocotb testbench {0} does not say which module it tests: add a `# aurora-toplevel: <module>` line to it, or choose the project top module"
+    )]
+    NoCocotbToplevel(Utf8PathBuf),
+
+    /// Um testbench cocotb (`.py`) simulado com o Verilator: o Lace roda o
+    /// cocotb só com o Icarus.
+    #[error("The cocotb testbench {0} runs on Icarus; Lace does not run cocotb with Verilator")]
+    CocotbNeedsIcarus(Utf8PathBuf),
+
+    /// O Python do componente `cocotb` não carregou o cocotb: a sonda que diz
+    /// onde estão a VPI e a biblioteca do Python falhou.
+    #[error("cocotb could not be loaded by {python}: {reason}")]
+    CocotbUnavailable {
+        /// O comando da sonda.
+        python: String,
+        /// O fim do que a sonda escreveu, ou o motivo.
+        reason: String,
+    },
+
     /// [`synthesize`](crate::synthesize) com
     /// [`DesignTarget::TopLevel`](crate::DesignTarget::TopLevel) num projeto
     /// sem módulo de topo. Escolha um com
@@ -355,21 +378,6 @@ pub enum LaceError {
     #[error("Path is not UTF-8: {0}")]
     NonUtf8Path(String),
 
-    /// O módulo tem ligações demais para o esquemático: o `dot` levaria
-    /// minutos e muita memória. Desenhe um submódulo, ou suba o teto
-    /// ([`SchematicOptions::max_connections`](crate::SchematicOptions::max_connections)).
-    #[error(
-        "Module {module} has {connections} connections, above the schematic limit of {limit}: drawing it would take minutes"
-    )]
-    SchematicTooLarge {
-        /// O módulo.
-        module: String,
-        /// As ligações dele.
-        connections: usize,
-        /// O teto.
-        limit: usize,
-    },
-
     /// Caminho com caractere fora do ASCII (acento, `ç`) onde o simulador
     /// precisa abrir arquivo: o `$readmemb` e o `$fopen` do Icarus recusam o
     /// nome, e o processador simularia sem programa nem entradas. Mova o
@@ -466,6 +474,9 @@ impl LaceError {
             LaceError::InvalidSource { .. } => "invalid_source",
             LaceError::NotBuilt { .. } => "not_built",
             LaceError::NoTestbench(_) => "no_testbench",
+            LaceError::NoCocotbToplevel(_) => "no_cocotb_toplevel",
+            LaceError::CocotbNeedsIcarus(_) => "cocotb_needs_icarus",
+            LaceError::CocotbUnavailable { .. } => "cocotb_unavailable",
             LaceError::NoTopLevel(_) => "no_top_level",
             LaceError::EmptyProject(_) => "empty_project",
             LaceError::ModuleNotFound { .. } => "module_not_found",
@@ -477,7 +488,6 @@ impl LaceError {
             LaceError::NonUtf8Path(_) => "non_utf8_path",
             LaceError::PathTooLong { .. } => "path_too_long",
             LaceError::NonAsciiPath { .. } => "non_ascii_path",
-            LaceError::SchematicTooLarge { .. } => "schematic_too_large",
             LaceError::Spawn { .. } => "spawn",
             LaceError::ProcessExitedEarly { .. } => "process_exited_early",
             LaceError::Io { .. } => "io",

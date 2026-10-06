@@ -29,11 +29,14 @@
 //! e os arquivos de `Simulation/` são abertos por caminho absoluto, embutido
 //! pelo `asmcomp`, e não precisam ser copiados.
 //!
-//! A onda sai com o nome do `$dumpfile` do testbench, no formato da extensão:
-//! `.fst` liga o `-fst` do vvp; o resto é VCD. Sem `$dumpfile`, o Lace injeta
-//! `<topo>.fst` (Icarus) ou `<topo>.vcd` (Verilator) com todos os sinais. O
-//! Verilator só grava VCD: o FST dele exige lz4 e zlib do sistema, fora da
-//! exceção do compilador.
+//! A onda sai com o nome do `$dumpfile` do testbench e a extensão do formato
+//! que o simulador grava: FST no Icarus (`vvp -fst`), o padrão; VCD no
+//! Verilator, porque o FST dele exige a lz4, que o bloco MSYS2 do bundle não
+//! traz no Windows e que no Linux e no macOS fica fora da exceção do
+//! compilador. Um `$dumpfile` com outra extensão, como o `.vcd` do
+//! testbench que o YANC gera simulado no Icarus, é trocado numa cópia do
+//! testbench; o arquivo dele não muda. Sem `$dumpfile`, o Lace injeta
+//! `<topo>.fst` (`<topo>.vcd` no Verilator) com todos os sinais.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -42,6 +45,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::cocotb::TestReport;
 use crate::control::Control;
 use crate::diagnostics::Diagnostic;
 use crate::error::{LaceError, Result};
@@ -66,9 +70,10 @@ pub enum Simulator {
     Verilator,
 }
 
-/// O formato do conteúdo de uma onda. Pode não bater com a extensão: o
-/// testbench gerado sempre chama a onda de `.vcd`, e com FST o conteúdo é
-/// FST mesmo assim.
+/// O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
+/// extensão é a do formato, menos quando o testbench nomeia a onda com uma
+/// expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
+/// testbench der.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, JsonSchema, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -116,10 +121,13 @@ impl SimulationOptions {
     }
 }
 
-/// Onde a próxima simulação grava a onda: com `processor`, a do testbench
-/// gerado do processador; sem, a do testbench do projeto. É o
-/// `$dumpfile` do testbench, ou, sem ele, `<testbench>.fst` (Icarus; `.vcd`
-/// no Verilator) na raiz do projeto.
+/// A onda da simulação: com `processor`, a do testbench gerado do
+/// processador; sem, a do testbench do projeto. É o `$dumpfile` do testbench
+/// com a extensão `.fst` (o Icarus) ou `.vcd` (o Verilator), a mais recente
+/// das duas; sem `$dumpfile`, `<testbench>.fst`
+/// (Icarus) ou `<testbench>.vcd` (Verilator) na raiz do projeto. Sem
+/// nenhuma no disco, a do Icarus, o simulador padrão. Com um testbench
+/// cocotb (`.py`), `<raiz>/<módulo de teste>.fst` ([`cocotb`](crate::cocotb)).
 ///
 /// # Erros
 ///
@@ -136,18 +144,23 @@ pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result
         }
         let text = read(&testbench)?;
         return Ok(match dump_of(&text, &processor.temp_dir) {
-            Dump::Path(wave) => wave,
-            _ => processor
-                .temp_dir
-                .join(format!("{}_tb.vcd", processor.name)),
+            Dump::Path(wave) => newest_wave(wave),
+            _ => newest_wave(
+                processor
+                    .temp_dir
+                    .join(format!("{}_tb.vcd", processor.name)),
+            ),
         });
     }
     let testbench = project
         .testbench()
         .ok_or_else(|| LaceError::NoTestbench(project.spf_path().to_owned()))?;
+    if crate::cocotb::is_testbench(&testbench) {
+        return Ok(crate::cocotb::wave_path(project.root(), &testbench));
+    }
     let text = read(&testbench)?;
     match dump_of(&text, project.root()) {
-        Dump::Path(wave) => return Ok(wave),
+        Dump::Path(wave) => return Ok(newest_wave(wave)),
         Dump::Unknown => {
             return Err(LaceError::InvalidProject {
                 path: testbench,
@@ -161,26 +174,45 @@ pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result
     let top = project
         .testbench_module()?
         .unwrap_or_else(|| testbench.file_stem().unwrap_or_default().to_owned());
-    let candidates = [Simulator::Icarus, Simulator::Verilator]
-        .map(|s| project.root().join(injected_wave(&top, s)));
-    let newest = candidates
+    Ok(newest(
+        &[Simulator::Icarus, Simulator::Verilator]
+            .map(|s| project.root().join(injected_wave(&top, s))),
+    ))
+}
+
+/// A onda de um `$dumpfile`: a do Icarus (`.fst`) ou a do Verilator
+/// (`.vcd`), a mais recente.
+fn newest_wave(wave: Utf8PathBuf) -> Utf8PathBuf {
+    newest(
+        &[Simulator::Icarus, Simulator::Verilator].map(|s| wave.with_extension(wave_extension(s))),
+    )
+}
+
+/// A extensão da onda que cada simulador grava: FST no Icarus, VCD no
+/// Verilator (o FST dele exige a lz4).
+fn wave_extension(simulator: Simulator) -> &'static str {
+    match simulator {
+        Simulator::Icarus => "fst",
+        _ => "vcd",
+    }
+}
+
+/// O candidato modificado por último; sem nenhum no disco, o primeiro.
+fn newest(candidates: &[Utf8PathBuf]) -> Utf8PathBuf {
+    candidates
         .iter()
         .filter_map(|c| Some((std::fs::metadata(c).ok()?.modified().ok()?, c)))
         .max_by_key(|(time, _)| *time)
-        .map(|(_, c)| c.clone());
-    Ok(newest.unwrap_or_else(|| candidates[0].clone()))
+        .map_or_else(|| candidates[0].clone(), |(_, c)| c.clone())
 }
 
 /// Por que a onda de um testbench não tem caminho conhecido.
 const UNKNOWN_DUMP: &str = "The testbench names its waveform ($dumpfile) with an expression Lace cannot read; open the file it writes directly";
 
-/// O nome da onda que o Lace injeta quando o testbench não grava: FST no
-/// Icarus (menor), VCD no Verilator (o FST dele exige lz4 do sistema).
+/// O nome da onda que o Lace injeta quando o testbench não grava, no formato
+/// do simulador ([`wave_extension`]).
 fn injected_wave(top: &str, simulator: Simulator) -> String {
-    match simulator {
-        Simulator::Icarus => format!("{top}.fst"),
-        _ => format!("{top}.vcd"),
-    }
+    format!("{top}.{}", wave_extension(simulator))
 }
 
 /// O resultado de [`simulate`] e de [`simulate_project`].
@@ -218,6 +250,10 @@ pub struct SimulationResult {
     /// de ler), mas a porta correspondente não recebe dado nenhum.
     #[schemars(with = "Vec<String>")]
     pub missing_inputs: Vec<Utf8PathBuf>,
+    /// Os testes de um testbench cocotb (`.py`), lidos do `results.xml`;
+    /// `null` num testbench Verilog, ou se o cocotb não chegou a gravar o
+    /// resultado.
+    pub tests: Option<TestReport>,
     /// Quanto a simulação levou, do começo ao fim (preparar, compilar e
     /// rodar), em milissegundos.
     pub duration_ms: u64,
@@ -246,7 +282,8 @@ pub struct Waveform {
 /// da simulação (clocks) e a frequência já estão no testbench gerado.
 ///
 /// Roda no diretório temporário do processador. A onda sai em
-/// `<temp>/<nome>_tb.vcd` e as saídas em `Simulation/output_<n>.txt`.
+/// `<temp>/<nome>_tb.fst` (`.vcd` no Verilator) e as saídas em
+/// `Simulation/output_<n>.txt`.
 ///
 /// ```no_run
 /// use lace_core::*;
@@ -311,12 +348,17 @@ pub fn simulate(
         Dump::Path(wave) => wave,
         _ => processor.temp_dir.join(format!("{name}_tb.vcd")),
     };
+    // No Icarus, o `$dumpfile("<nome>_tb.vcd")` do testbench gerado vira
+    // `.fst` na cópia simulada.
+    let (wave, renamed) = named_by_format(&text, wave, options.simulator);
     // Uma cópia do testbench que avisa quando o programa lê mais valores do
-    // que uma entrada tem; sem o trecho esperado, o testbench vai como está.
-    let (simulated, instrumented) = match watch_inputs(&text, &counts) {
-        Some(watched) => {
+    // que uma entrada tem; sem o trecho esperado, vai a cópia só com a onda
+    // renomeada, ou o testbench como está.
+    let copied = watch_inputs(renamed.as_deref().unwrap_or(&text), &counts).or(renamed);
+    let (simulated, instrumented) = match copied {
+        Some(copied) => {
             let copy = processor.temp_dir.join(format!("instr_{name}_tb.v"));
-            std::fs::write(&copy, watched).map_err(LaceError::io("Writing testbench", &copy))?;
+            std::fs::write(&copy, copied).map_err(LaceError::io("Writing testbench", &copy))?;
             (copy.clone(), Some((copy, testbench)))
         }
         None => (testbench, None),
@@ -333,6 +375,7 @@ pub fn simulate(
         sapho: true,
         notes,
         instrumented,
+        cocotb: None,
     };
     let mut result = execute(toolchain, &plan, options, control, started)?;
     // O testbench gerado avisa quando o programa chega ao fim; sem o aviso,
@@ -490,12 +533,20 @@ fn watch_inputs(testbench: &str, counts: &HashMap<Utf8PathBuf, usize>) -> Option
 /// Se o testbench não grava onda (`$dumpfile`), o Lace simula uma cópia com
 /// `$dumpfile("<topo>.fst"); $dumpvars(0, <topo>);` antes do último
 /// `endmodule` (`.vcd` no Verilator): todos os sinais, inclusive os do
-/// módulo testado. O arquivo do usuário não é alterado. O formato da onda
-/// segue a extensão do `$dumpfile` (`.fst` liga o `-fst` do vvp).
+/// módulo testado. A onda sai com a extensão do formato do simulador (`.fst`
+/// no Icarus, `.vcd` no Verilator): um `$dumpfile` com outra é trocado numa
+/// cópia. O arquivo do usuário não é alterado.
 ///
 /// O vvp roda com `-n` (um `$stop` termina a simulação), e uma linha
 /// `ERROR:` ou `FATAL:` (`$error`, `$fatal`) reprova a simulação, mesmo com
 /// o vvp saindo com 0.
+///
+/// Um testbench cocotb (`.py`) simula, só no Icarus, o módulo da diretiva
+/// `# aurora-toplevel:` do arquivo (ou o topo do projeto, com um aviso), com
+/// os testes em Python ([`cocotb`](crate::cocotb)). O resultado traz os
+/// testes em [`SimulationResult::tests`], cada teste que falha é um
+/// diagnóstico de erro no `.py` e reprova a simulação, e a onda vem mesmo
+/// assim: é nela que se vê a falha.
 ///
 /// Os processadores não são compilados aqui: chame [`build`](crate::build)
 /// para cada um antes, como o botão Wave da AURORA.
@@ -505,6 +556,12 @@ fn watch_inputs(testbench: &str, counts: &HashMap<Utf8PathBuf, usize>) -> Option
 /// - [`LaceError::NoTestbench`]: o projeto não tem testbench;
 /// - [`LaceError::InvalidProject`]: o testbench ou um arquivo sintetizável
 ///   registrado não existe;
+/// - com um testbench cocotb: [`LaceError::CocotbNeedsIcarus`] com o
+///   Verilator, [`LaceError::NoCocotbToplevel`] sem diretiva e sem topo,
+///   [`LaceError::InvalidName`] com um nome de arquivo que não é
+///   identificador do Python, [`LaceError::ComponentMissing`] sem o
+///   componente `cocotb` e [`LaceError::CocotbUnavailable`] se o Python dele
+///   não carrega o cocotb;
 /// - os mesmos de [`simulate`] para ferramenta e I/O.
 pub fn simulate_project(
     toolchain: &Toolchain,
@@ -522,9 +579,19 @@ pub fn simulate_project(
             reason: "The project testbench does not exist".into(),
         });
     }
-    let top = project
-        .testbench_module()?
-        .unwrap_or_else(|| testbench.file_stem().unwrap_or_default().to_owned());
+    // Um testbench cocotb (`.py`) simula o DUT, com os testes em Python.
+    let cocotb = crate::cocotb::is_testbench(&testbench);
+    if cocotb && options.simulator != Simulator::Icarus {
+        return Err(LaceError::CocotbNeedsIcarus(testbench));
+    }
+    let (top, cocotb_notes) = if cocotb {
+        crate::cocotb::dut(project, &testbench)?
+    } else {
+        let top = project
+            .testbench_module()?
+            .unwrap_or_else(|| testbench.file_stem().unwrap_or_default().to_owned());
+        (top, Vec::new())
+    };
     let _span = tracing::info_span!("simulate_project", %top).entered();
     let root = project.root().to_owned();
     let work = project.temp_dir();
@@ -584,6 +651,33 @@ pub fn simulate_project(
         }
     }
 
+    if cocotb {
+        let Some(run) = crate::cocotb::prepare(toolchain, project, &testbench, &top, control)?
+        else {
+            return Ok(cancelled(top, options.simulator, started));
+        };
+        files.push(run.dump_module.clone());
+        let plan = Plan {
+            missing_inputs: Vec::new(),
+            top,
+            wave: Some(run.wave.clone()),
+            wave_required: false,
+            files,
+            cwd: root,
+            work,
+            output_dirs: project
+                .processors()
+                .iter()
+                .map(Processor::simulation_dir)
+                .collect(),
+            sapho: !project.processors().is_empty(),
+            notes: cocotb_notes,
+            instrumented: None,
+            cocotb: Some(run),
+        };
+        return execute(toolchain, &plan, options, control, started);
+    }
+
     // Dados que o testbench lê por nome relativo vêm da pasta dele.
     let text = read(&testbench)?;
     let tb_dir = testbench.parent().expect("File has a parent").to_owned();
@@ -604,7 +698,27 @@ pub fn simulate_project(
         ));
     }
     let (testbench, wave, wave_required, instrumented) = match dump {
-        Dump::Path(wave) => (testbench, Some(wave), true, None),
+        Dump::Path(wave) => match named_by_format(&text, wave, options.simulator) {
+            // A onda sai com a extensão do formato do simulador: a cópia
+            // simulada leva o `$dumpfile` com ela, e o arquivo do usuário não
+            // muda.
+            (wave, Some(renamed)) => {
+                let instrumented = work.join(format!(
+                    "instr_{}",
+                    testbench.file_name().expect("File has a name")
+                ));
+                std::fs::write(&instrumented, renamed)
+                    .map_err(LaceError::io("Writing testbench", &instrumented))?;
+                let copy = instrumented.clone();
+                (
+                    instrumented,
+                    Some(wave),
+                    true,
+                    Some((copy, original.clone())),
+                )
+            }
+            (wave, None) => (testbench, Some(wave), true, None),
+        },
         // `$dumpfile(ONDA)` com um nome que o Lace não resolve: o testbench
         // grava onde quiser, e o Lace não injeta outro dump (o `-fst` do
         // injetado mudaria o formato do arquivo dele).
@@ -649,10 +763,13 @@ pub fn simulate_project(
         sapho: !project.processors().is_empty(),
         notes,
         instrumented,
+        cocotb: None,
     };
     let mut result = execute(toolchain, &plan, options, control, started)?;
-    // O Icarus grava o mesmo em FST, várias vezes menor; o VCD de centenas
-    // de MB demora para abrir, e a aba do Studio não abre acima de 256 MB.
+    // O Icarus só grava VCD quando o Lace não consegue trocar o nome do
+    // `$dumpfile` (a chamada quebrada em linhas). O FST seria várias vezes
+    // menor; o VCD de centenas de MB demora para abrir, e a aba do Studio
+    // não abre acima de 256 MB.
     if let Some(wave) = &result.waveform
         && wave.format == WaveformFormat::Vcd
         && options.simulator == Simulator::Icarus
@@ -703,6 +820,28 @@ struct Plan {
     /// O testbench com o dump injetado e o original: os diagnósticos da
     /// cópia apontam para o original, que tem as mesmas linhas.
     instrumented: Option<(Utf8PathBuf, Utf8PathBuf)>,
+    /// Testbench cocotb: a VPI e o ambiente do `vvp`, o `cmds.f` e o módulo
+    /// que grava a onda (que já está em `files`).
+    cocotb: Option<crate::cocotb::CocotbRun>,
+}
+
+/// O resultado de uma simulação cancelada antes do primeiro passo (na sonda
+/// do cocotb).
+fn cancelled(top: String, simulator: Simulator, started: Instant) -> SimulationResult {
+    SimulationResult {
+        top,
+        simulator,
+        status: Status::Cancelled,
+        failed_step: Some(Step::Elaborate),
+        steps: Vec::new(),
+        diagnostics: Vec::new(),
+        artifacts: Vec::new(),
+        waveform: None,
+        outputs: Vec::new(),
+        missing_inputs: Vec::new(),
+        tests: None,
+        duration_ms: crate::pipeline::elapsed_ms(started),
+    }
 }
 
 fn execute(
@@ -717,17 +856,31 @@ fn execute(
     let mut tracker = ArtifactTracker::new();
     let mut runner = Runner::new(control);
     let outputs_before = output_files(&plan.output_dirs);
+    let mut tests = None;
+    // O `vvp` do cocotb foi até o fim, com os testes passando ou não.
+    let mut tests_ran = false;
 
     match options.simulator {
         Simulator::Icarus => {
-            let image = plan.work.join(format!("{top}.vvp"));
+            // O `.vvp` do cocotb fica na pasta dele, com o `cmds.f` e o dump.
+            let image = plan
+                .cocotb
+                .as_ref()
+                .map_or_else(|| plan.work.join(format!("{top}.vvp")), |c| c.image.clone());
             tracker.expect(ArtifactKind::IcarusImage, &image, true);
             if let Some(wave) = &plan.wave {
                 tracker.expect(ArtifactKind::Waveform, wave, plan.wave_required);
             }
 
+            // A cópia do testbench com o dump injetado fica em `.lace/Temp`:
+            // a pasta do original entra nos `include` antes da raiz.
+            let original_dir = plan
+                .instrumented
+                .as_ref()
+                .and_then(|(_, original)| original.parent());
             let mut elaborate = crate::synth::include_paths(
                 toolchain.invocation(Tool::Iverilog, &plan.cwd)?,
+                original_dir,
                 &plan.cwd,
             );
             // SystemVerilog só quando há `.sv`, como no `check`: o `-g2012`
@@ -736,11 +889,21 @@ fn execute(
                 elaborate = elaborate.arg("-g2012");
             }
             if let Some(hdl) = &hdl {
-                elaborate = elaborate.arg("-y").path_arg(hdl);
+                elaborate = elaborate.arg("-y").icarus_path_arg(hdl);
             }
-            let mut elaborate = elaborate.arg("-s").arg(top).arg("-o").path_arg(&image);
+            let mut elaborate = elaborate.arg("-s").arg(top);
+            // cocotb: o timescale padrão do runner dele e o módulo que grava a
+            // onda, como segunda raiz.
+            if let Some(cocotb) = &plan.cocotb {
+                elaborate = elaborate
+                    .arg("-f")
+                    .icarus_path_arg(&cocotb.commands)
+                    .arg("-s")
+                    .arg(crate::cocotb::DUMP_MODULE);
+            }
+            let mut elaborate = elaborate.arg("-o").path_arg(&image);
             for file in &plan.files {
-                elaborate = elaborate.path_arg(file);
+                elaborate = elaborate.icarus_path_arg(file);
             }
             if runner.run(PlannedStep::new(Step::Elaborate, Tool::Iverilog, elaborate))? {
                 // `-n`: um `$stop` termina em vez de abrir o prompt interativo.
@@ -753,6 +916,16 @@ fn execute(
                 if control.has_sink() {
                     run = run.arg("-i");
                 }
+                // cocotb: a VPI dele, que sobe o Python e roda os testes.
+                if let Some(cocotb) = &plan.cocotb {
+                    run = run
+                        .arg("-m")
+                        .arg(&cocotb.vpi)
+                        .append_search_path(std::slice::from_ref(&cocotb.libs));
+                    for (key, value) in &cocotb.env {
+                        run = run.env(key, value);
+                    }
+                }
                 run = run.path_arg(&image);
                 if plan.wave.as_deref().and_then(Utf8Path::extension) == Some("fst") {
                     run = run.arg("-fst");
@@ -760,6 +933,17 @@ fn execute(
                 runner.run(
                     PlannedStep::new(Step::Simulate, Tool::Vvp, run).timeout(options.timeout),
                 )?;
+                // cocotb: o resultado dos testes. Cada teste que falhou é um
+                // diagnóstico de erro, que reprova a simulação logo abaixo.
+                if let Some(cocotb) = &plan.cocotb {
+                    tests_ran = runner.steps.last().is_some_and(|s| {
+                        s.step == Step::Simulate
+                            && matches!(s.termination, crate::process::Termination::Exited(0))
+                    });
+                    let (report, found) = crate::cocotb::finish(cocotb, tests_ran);
+                    runner.diagnostics.extend(found);
+                    tests = report;
+                }
                 // O vvp sai com 0 depois de um `$error`: o erro do testbench
                 // reprova a simulação.
                 runner.fail_on_error_diagnostics(Tool::Vvp);
@@ -853,10 +1037,19 @@ fn execute(
     }));
 
     let status = final_status(runner.status, &artifacts);
+    // A onda de um teste cocotb que falhou também vem: a simulação foi até o
+    // fim, e é nela que se vê por que o teste falhou (a AURORA também a abre).
+    let fresh = |wave: &Utf8PathBuf| {
+        artifacts
+            .iter()
+            .any(|a| a.kind == ArtifactKind::Waveform && &a.path == wave && a.fresh)
+    };
     let waveform = plan
         .wave
         .as_ref()
-        .filter(|wave| status == Status::Succeeded && wave.is_file())
+        .filter(|wave| {
+            (status == Status::Succeeded && wave.is_file()) || (tests_ran && fresh(wave))
+        })
         .map(|wave| Waveform {
             path: wave.clone(),
             format: if wave.extension() == Some("fst") {
@@ -885,6 +1078,7 @@ fn execute(
         waveform,
         outputs,
         missing_inputs: plan.missing_inputs.clone(),
+        tests,
         duration_ms: crate::pipeline::elapsed_ms(started),
     })
 }
@@ -944,6 +1138,120 @@ fn make_path(path: &Utf8Path) -> String {
     }
 }
 
+/// A onda com a extensão do formato que o simulador grava
+/// ([`wave_extension`]): com um `$dumpfile` de outra extensão, a onda ganha
+/// a do formato e vem o texto do testbench com o nome trocado. Com a extensão
+/// certa, ou com um `$dumpfile` que o Lace não acha no texto, nada muda.
+fn named_by_format(
+    testbench: &str,
+    wave: Utf8PathBuf,
+    simulator: Simulator,
+) -> (Utf8PathBuf, Option<String>) {
+    let extension = wave_extension(simulator);
+    if wave.extension() == Some(extension) {
+        return (wave, None);
+    }
+    let Some(name) = dumpfile_name(testbench) else {
+        return (wave, None);
+    };
+    match with_dumpfile(testbench, &with_extension(&name, extension)) {
+        Some(renamed) => (wave.with_extension(extension), Some(renamed)),
+        None => (wave, None),
+    }
+}
+
+/// `name` com `extension` no lugar da que tiver (`soma_tb.vcd` vira
+/// `soma_tb.fst`; sem extensão, ganha uma).
+fn with_extension(name: &str, extension: &str) -> String {
+    let (dir, file) = name.split_at(name.rfind(['/', '\\']).map_or(0, |i| i + 1));
+    let stem = match file.rfind('.') {
+        Some(dot) if dot > 0 => &file[..dot],
+        _ => file,
+    };
+    format!("{dir}{stem}.{extension}")
+}
+
+/// O nome que o último `$dumpfile` dá à onda, como o testbench o escreve: o
+/// texto entre aspas ou o de uma constante. `None` sem `$dumpfile` ou com
+/// uma expressão.
+fn dumpfile_name(testbench: &str) -> Option<String> {
+    let code = strip_comments(testbench);
+    let at = code.rfind("$dumpfile")?;
+    let argument = code[at + "$dumpfile".len()..]
+        .trim_start()
+        .strip_prefix('(')
+        .and_then(|rest| rest.find(')').map(|end| rest[..end].trim()))?;
+    let name = if argument.starts_with('"') {
+        argument.trim_matches('"').to_owned()
+    } else {
+        string_constant(&code, argument.trim_start_matches('`'))?
+    };
+    (!name.is_empty()).then_some(name)
+}
+
+/// O testbench com o argumento do último `$dumpfile` (fora de comentário e
+/// de texto entre aspas) trocado por `"name"`. As linhas continuam as
+/// mesmas. `None` se não houver `$dumpfile(...)`.
+fn with_dumpfile(testbench: &str, name: &str) -> Option<String> {
+    let at = dumpfile_calls(testbench).pop()?;
+    let rest = &testbench[at + "$dumpfile".len()..];
+    let open = at + "$dumpfile".len() + rest.find('(')?;
+    if !testbench[at + "$dumpfile".len()..open].trim().is_empty() {
+        return None;
+    }
+    let close = open + testbench[open..].find(')')?;
+    if testbench[open..close].contains('\n') {
+        return None;
+    }
+    Some(format!(
+        "{}(\"{name}\"){}",
+        &testbench[..open],
+        &testbench[close + 1..]
+    ))
+}
+
+/// Onde começa cada `$dumpfile` do testbench, fora de comentário e de texto
+/// entre aspas.
+fn dumpfile_calls(text: &str) -> Vec<usize> {
+    const CALL: &[u8] = b"$dumpfile";
+    let bytes = text.as_bytes();
+    let mut calls = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'/' if bytes.get(i + 1) == Some(&b'/') => {
+                while i < bytes.len() && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'/' if bytes.get(i + 1) == Some(&b'*') => {
+                i += 2;
+                while i + 1 < bytes.len() && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
+                    i += 1;
+                }
+                i += 2;
+            }
+            b'"' => {
+                i += 1;
+                while i < bytes.len() && bytes[i] != b'"' && bytes[i] != b'\n' {
+                    i += if bytes[i] == b'\\' { 2 } else { 1 };
+                }
+                i += 1;
+            }
+            b'$' if bytes[i..].starts_with(CALL)
+                && bytes
+                    .get(i + CALL.len())
+                    .is_none_or(|c| !(c.is_ascii_alphanumeric() || *c == b'_' || *c == b'$')) =>
+            {
+                calls.push(i);
+                i += CALL.len();
+            }
+            _ => i += 1,
+        }
+    }
+    calls
+}
+
 /// O `$dumpfile` de um testbench.
 #[derive(Debug, PartialEq, Eq)]
 enum Dump {
@@ -960,30 +1268,14 @@ enum Dump {
 /// `` `define `` com texto entre aspas (`$dumpfile(ONDA)`); vale a última
 /// chamada.
 fn dump_of(testbench: &str, cwd: &Utf8Path) -> Dump {
-    let code = strip_comments(testbench);
-    let Some(at) = code.rfind("$dumpfile") else {
+    if !strip_comments(testbench).contains("$dumpfile") {
         return Dump::Absent;
-    };
-    let argument = code[at + "$dumpfile".len()..]
-        .trim_start()
-        .strip_prefix('(')
-        .and_then(|rest| rest.find(')').map(|end| rest[..end].trim()));
-    let name = match argument {
-        Some(literal) if literal.starts_with('"') => literal.trim_matches('"').to_owned(),
-        Some(identifier) => match string_constant(&code, identifier.trim_start_matches('`')) {
-            Some(name) => name,
-            None => return Dump::Unknown,
-        },
-        None => return Dump::Unknown,
-    };
-    if name.is_empty() {
-        return Dump::Unknown;
     }
-    Dump::Path(if crate::paths::is_rooted(&name) {
-        Utf8PathBuf::from(name)
-    } else {
-        cwd.join(name)
-    })
+    match dumpfile_name(testbench) {
+        Some(name) if crate::paths::is_rooted(&name) => Dump::Path(Utf8PathBuf::from(name)),
+        Some(name) => Dump::Path(cwd.join(name)),
+        None => Dump::Unknown,
+    }
 }
 
 /// O texto de uma constante do Verilog: `` `define NOME "x" `` ou
@@ -1316,6 +1608,48 @@ endmodule
         // Um nome maior que contém o outro não confunde.
         let longer = "module t; localparam XONDA = \"no.vcd\"; localparam ONDA = \"z.vcd\"; initial $dumpfile(ONDA); endmodule";
         assert_eq!(dump_of(longer, r), Dump::Path("/r/z.vcd".into()));
+    }
+
+    #[test]
+    fn the_wave_extension_follows_the_simulator_format() {
+        assert_eq!(with_extension("soma_tb.vcd", "fst"), "soma_tb.fst");
+        assert_eq!(
+            with_extension("ondas/x.dump.vcd", "fst"),
+            "ondas/x.dump.fst"
+        );
+        assert_eq!(with_extension("sem_extensao", "fst"), "sem_extensao.fst");
+        assert_eq!(with_extension("c:\\a.b\\onda", "vcd"), "c:\\a.b\\onda.vcd");
+        let r = Utf8Path::new("/r");
+        // O último `$dumpfile` de verdade: o comentado e o do texto ficam.
+        let tb = "module t;\n// $dumpfile(\"velho.vcd\");\n  initial $display(\"$dumpfile(x)\");\n  initial $dumpfile( \"soma_tb.vcd\" );\nendmodule\n";
+        let (wave, renamed) = named_by_format(tb, r.join("soma_tb.vcd"), Simulator::Icarus);
+        let renamed = renamed.unwrap();
+        assert_eq!(wave, r.join("soma_tb.fst"));
+        assert_eq!(dump_of(&renamed, r), Dump::Path(r.join("soma_tb.fst")));
+        assert!(
+            renamed.contains("// $dumpfile(\"velho.vcd\");"),
+            "{renamed}"
+        );
+        assert!(renamed.contains("$display(\"$dumpfile(x)\")"), "{renamed}");
+        assert_eq!(renamed.lines().count(), tb.lines().count());
+        // Pela constante: o nome resolvido entra no lugar dela.
+        let local = "module t; localparam ONDA = \"x.vcd\"; initial $dumpfile(ONDA); endmodule";
+        let (_, renamed) = named_by_format(local, r.join("x.vcd"), Simulator::Icarus);
+        assert_eq!(dump_of(&renamed.unwrap(), r), Dump::Path(r.join("x.fst")));
+        // O Verilator grava VCD: o `.fst` do testbench vira `.vcd`. Com a
+        // extensão certa, nada muda.
+        let fst = "module t; initial $dumpfile(\"y.fst\"); endmodule";
+        let (wave, renamed) = named_by_format(fst, r.join("y.fst"), Simulator::Verilator);
+        assert_eq!(wave, r.join("y.vcd"));
+        assert_eq!(dump_of(&renamed.unwrap(), r), Dump::Path(r.join("y.vcd")));
+        assert_eq!(
+            named_by_format(fst, r.join("y.fst"), Simulator::Icarus),
+            (r.join("y.fst"), None)
+        );
+        assert_eq!(
+            named_by_format(tb, r.join("soma_tb.vcd"), Simulator::Verilator),
+            (r.join("soma_tb.vcd"), None)
+        );
     }
 
     #[test]

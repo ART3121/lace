@@ -8,6 +8,12 @@ rust-version.workspace = true
 [dependencies]
 camino.workspace = true
 dunce.workspace = true
+# O cabeçalho e os valores dos complexos de uma onda FST, para o layout do
+# Surfer (`wave_layout.rs`); em Rust seguro.
+fst-reader.workspace = true
+# O results.xml (JUnit) que o cocotb grava com o resultado dos testes
+# (`cocotb.rs`).
+roxmltree.workspace = true
 schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -19,6 +25,11 @@ tracing.workspace = true
 # `uname` do ambiente do relatório (`history.rs`).
 [target.'cfg(unix)'.dependencies]
 rustix.workspace = true
+
+# O Job Object que prende a árvore de processos de cada passo (`process.rs`),
+# com API segura: o Core continua com `forbid(unsafe_code)`.
+[target.'cfg(windows)'.dependencies]
+win32job.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

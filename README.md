@@ -75,7 +75,7 @@ Para remover o Lace com o bundle inteiro: `lace uninstall`.
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim |
 | Icarus Verilog | simulador Verilog, o padrão da AURORA, e a verificação do `lace check` | sim |
 | Verilator | simulador compilado e o `lace check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles | não |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace ainda não roda o cocotb | não |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave no Studio); com o Verilator, ainda não | não |
 | Yosys | síntese; lê as portas para o testbench-modelo do `lace add` | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda | sim |

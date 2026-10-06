@@ -10,7 +10,11 @@ publish = false
 [lib]
 # O nome com `_lib` evita a colisão entre o binário e a biblioteca no Windows.
 name = "lace_studio_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# Só `rlib`: o binário e os testes são os únicos que usam a biblioteca. O
+# `staticlib` e o `cdylib` do modelo do Tauri servem a apps de celular, que
+# o Studio não tem; com o toolchain GNU do Windows, a DLL de depuração passava
+# das 65.535 exportações que o linker aceita, e o `tauri dev` não linkava.
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

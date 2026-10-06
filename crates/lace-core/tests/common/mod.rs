@@ -136,3 +136,18 @@ pub fn dumped_scopes(path: &Utf8Path) -> usize {
     }
     with_signals
 }
+
+/// O bundle, se ele tiver o Icarus e o componente `cocotb`. Sem eles o teste
+/// avisa e passa; com `CI` definido, falha.
+pub fn toolchain_with_cocotb() -> Option<Toolchain> {
+    let toolchain = toolchain_with(&[Tool::Iverilog, Tool::Vvp])?;
+    if toolchain.component(lace_core::component::COCOTB).is_some() {
+        return Some(toolchain);
+    }
+    assert!(
+        std::env::var_os("CI").is_none(),
+        "CI sem o componente cocotb no bundle"
+    );
+    eprintln!("PULADO: falta o componente cocotb no bundle");
+    None
+}

@@ -343,7 +343,7 @@
           "type": "string"
         },
         "args": {
-          "description": "Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.",
+          "description": "Argumentos, na ordem. Caminhos já estão no formato que a ferramenta\naceita: o nativo do sistema, menos os do `iverilog` no Windows, que\nvão com `/`.",
           "type": "array",
           "items": {
             "type": "string"

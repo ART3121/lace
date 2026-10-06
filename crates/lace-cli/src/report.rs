@@ -216,10 +216,9 @@ pub struct BuildReport {
 /// `lace check`.
 #[derive(Serialize, JsonSchema)]
 pub struct CheckReport {
-    /// Os processadores, compilados antes. Se um falha, `check` é `null`.
-    pub builds: Vec<BuildResult>,
-    /// A verificação.
-    pub check: Option<CheckResult>,
+    /// A verificação. Não compila os processadores: verifica o Verilog que
+    /// está no disco.
+    pub check: CheckResult,
     /// O relatório gravado no histórico do projeto (`run-000042`), para
     /// `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
     pub report: Option<String>,
@@ -271,7 +270,7 @@ pub struct WaveReport {
     pub log: Utf8PathBuf,
     /// O estado do Surfer gerado para os processadores SAPHO da onda
     /// (`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda
-    /// que não é VCD.
+    /// que não é VCD nem FST.
     #[schemars(with = "Option<String>")]
     pub layout: Option<Utf8PathBuf>,
     /// Os processadores do layout.

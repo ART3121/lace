@@ -147,19 +147,7 @@ fn log_path(waveform: &Utf8Path) -> Result<Utf8PathBuf> {
 /// A pasta dos logs do Surfer fora de projeto: a de cache do usuário, que
 /// é só dele (o `/tmp` do Linux é de todos).
 fn user_log_dir() -> Result<Utf8PathBuf> {
-    let home = || std::env::var_os("HOME").filter(|h| !h.is_empty());
-    let base = if cfg!(windows) {
-        None
-    } else if cfg!(target_os = "macos") {
-        home().map(|h| std::path::PathBuf::from(h).join("Library/Caches"))
-    } else {
-        std::env::var_os("XDG_CACHE_HOME")
-            .map(std::path::PathBuf::from)
-            .filter(|p| p.is_absolute())
-            .or_else(|| home().map(|h| std::path::PathBuf::from(h).join(".cache")))
-    };
-    let base = base.unwrap_or_else(std::env::temp_dir);
-    paths::to_utf8(base.join("lace").join(LOG_DIR))
+    Ok(paths::user_cache_dir()?.join(LOG_DIR))
 }
 
 #[cfg(test)]

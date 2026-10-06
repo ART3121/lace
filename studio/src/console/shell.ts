@@ -1,6 +1,7 @@
 // O terminal de shell (o TCMD da AURORA): um xterm.js ligado a um
 // pseudoterminal do backend (src-tauri/src/terminal.rs). Como os consoles,
 // vive fora do React para não perder o que está na tela ao trocar de aba.
+// Acompanha o projeto: ao abrir outro, o shell vai para a pasta dele.
 
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal, type ITheme } from '@xterm/xterm';
@@ -110,6 +111,17 @@ export async function restartShell(): Promise<void> {
   await spawn(shell);
   shell.term.focus();
 }
+
+// Outro projeto aberto: o shell que já roda vai para a pasta dele, com um
+// `cd` digitado, como o "abrir o terminal aqui" da AURORA; o histórico e o
+// que está na tela ficam. Um shell que ainda não abriu nasce na pasta nova, e
+// um que terminou reabre nela.
+useProject.subscribe((state, previous) => {
+  const root = state.snapshot?.root ?? null;
+  if (!root || root === (previous.snapshot?.root ?? null)) return;
+  if (!shell || shell.id === null || shell.exited) return;
+  void api.terminal.cd(shell.id, root).catch(() => undefined);
+});
 
 export function setShellTheme(next: Theme): void {
   theme = next;

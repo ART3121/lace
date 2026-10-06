@@ -5,7 +5,35 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
-Sai na 0.2.0 do Lace, a primeira com o Studio, com a mesma versão.
+### Acrescentado
+
+- Testbench em Python, com o cocotb: **Projeto > Novo testbench cocotb
+  (Python)**, ou a linguagem Python em **Novo testbench**, cria um `.py` a
+  partir do modelo do Core, com a linha `# aurora-toplevel:` do módulo
+  testado; um `.py` que já existe entra por **Adicionar arquivos** ou
+  arrastado para Testbenches, e os da pasta com `@cocotb.test` aparecem
+  entre os não registrados. Com ele como testbench simulado, Wave (F8) e
+  Rápida (F9) rodam os testes no Icarus: cada teste aparece no console Wave
+  com o resultado, o que falhou vai para o painel Problemas na linha do
+  `.py`, e a onda abre mesmo com teste falhando.
+
+### Mudado
+
+- O terminal acompanha o projeto: ao abrir outro, o shell que está rodando
+  entra na pasta dele (`Set-Location` no PowerShell, `cd` nos outros).
+- A aba Lace saiu do painel inferior. A saída do `lace install` e do
+  `lace update` aparece na tela de Ferramentas, que abre quando o comando
+  começa; o início de cada fluxo vai para o console da etapa.
+- O Verilog (F7) não compila mais os processadores: verifica o Verilog que
+  está no disco, e um processador que nunca foi compilado fica de fora, com
+  um aviso. O fluxo completo (F5) compila antes de verificar.
+- O esquemático não recusa mais um módulo por ter muitas ligações.
+- A onda do Icarus sai sempre em FST, e o layout dos processadores vale
+  também para ela.
+
+## [0.2.0] - 2026-10-05
+
+A primeira versão com o Studio, junto com a 0.2.0 do Lace.
 
 ### Distribuição
 

@@ -208,9 +208,13 @@ parâmetros o Core confere ao criar (`invalid_parameter`).
 
 Ao sair (evento `RunEvent::Exit`) e ao receber SIGTERM, SIGINT ou SIGHUP
 (Unix), o Studio cancela a operação rodando, espera até 3 s e fecha os
-terminais. Sem isso, as ferramentas, que o Lace roda num grupo de processos
-próprio, continuariam rodando depois que o Studio saísse (API.md do Lace,
-seção 9, "Limites").
+terminais. Sem isso, no Linux e no macOS, as ferramentas, que o Lace roda
+num grupo de processos próprio, continuariam rodando depois que o Studio
+saísse (API.md do Lace, seção 9, "Limites"). No Windows, cada passo roda
+num Job Object do Core e termina junto com o Studio mesmo se ele for
+derrubado, e nenhuma ferramenta abre janela de console; a CLI chamada pelo
+`run_cli` (`lace install`, `lace update`) usa o mesmo `ProcessJob` e o mesmo
+`hide_console`.
 
 ## 4. Interface
 
@@ -360,10 +364,11 @@ Um xterm.js somente leitura por canal, como os terminais da AURORA:
 | Verilog | TVERI | `check_syntax`, `lint` |
 | Wave | TWAVE | `elaborate`, `verilate`, `simulate` |
 | PRISM | TPRISM | `synthesize`, `graph`, `render` |
-| Lace | (nenhum) | os comandos que o Studio rodou, resumos, `lace install` |
 
 Cada linha vai para o console do passo que a escreveu (`STEP_CHANNEL` em
-`state/jobs.ts`). Links `arquivo:linha[:coluna]` abrem o arquivo no editor.
+`state/jobs.ts`); o comando de cada operação e os avisos dela vão para o
+console onde ela começa (`START_CHANNEL`). A saída do `lace install` e do
+`lace update` fica na tela do bundle (`cliLog`, em `views/ToolchainView.tsx`). Links `arquivo:linha[:coluna]` abrem o arquivo no editor.
 O terminal de shell (o TCMD) é outro xterm.js, ligado a um pseudoterminal
 do backend: no Windows, o PowerShell ou o `cmd.exe`, pela preferência
 `terminal_shell`; nos outros sistemas, o `$SHELL` do usuário.

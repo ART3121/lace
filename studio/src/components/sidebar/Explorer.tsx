@@ -364,8 +364,11 @@ function VerilogRow({ file, kind }: { file: ProjectFile; kind: 'module' | 'testb
       // lista); o nome tb_x.v ou x_tb.v, não.
       if (canBeTop(file.path)) items.push(topItem(file.path, false));
     }
+    // O check elabora Verilog; um testbench cocotb (.py) só roda simulado.
+    if (extension(file.path) !== 'py') {
+      items.push({ label: t('explorer.checkFile'), run: () => void runCheck(false, file.path) });
+    }
     items.push(
-      { label: t('explorer.checkFile'), run: () => void runCheck(false, file.path) },
       { separator: true },
       {
         label: t('explorer.moveUp'),
@@ -668,7 +671,7 @@ function SourcesView() {
               onContextMenu={(e) =>
                 openContextMenu(e, [
                   { label: t('explorer.addToProject'), run: () => void addVerilogFiles([path]) },
-                  topItem(path, false),
+                  ...(extension(path) === 'py' ? [] : [topItem(path, false)]),
                   {
                     label: t('explorer.addAsTestbench'),
                     run: async () => {
@@ -973,6 +976,8 @@ function DirNode({
   const menu = (e: React.MouseEvent) => {
     const dir = entry.is_dir ? entry.path : dirName(entry.path);
     const verilog = ['v', 'sv'].includes(extension(entry.path));
+    // Um .py entra no projeto como testbench cocotb; topo, nunca.
+    const cocotb = !entry.is_dir && extension(entry.path) === 'py';
     openContextMenu(e, [
       ...(entry.is_dir ? [] : openItems(entry.path)),
       { label: t('action.newFile'), run: () => void newFileIn(dir) },
@@ -987,6 +992,9 @@ function DirNode({
               run: () => void setTopFile(entry.path),
             },
           ]
+        : []),
+      ...(cocotb && !registered
+        ? [{ separator: true }, { label: t('explorer.addToProject'), run: () => void addVerilogFiles([entry.path]) }]
         : []),
       { separator: true },
       { label: t('common.rename'), keys: 'F2', run: () => void rename() },

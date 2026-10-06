@@ -13,7 +13,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use camino::Utf8Path;
-use lace_core::{CancelToken, FileMismatch, component};
+use lace_core::{CancelToken, FileMismatch, ProcessJob, component};
 use serde_json::{Value, json};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
@@ -139,7 +139,7 @@ fn start_cli_job(
                 JobMessage::Finished {
                     outcome: json!({
                         "flow": flow,
-                        "succeeded": run.code == Some(0),
+                        "succeeded": run.code == Some(0) && !run.cancelled,
                         "cancelled": run.cancelled,
                         "exit_code": run.code,
                         "result": parsed,
@@ -177,6 +177,12 @@ struct CliRun {
 
 /// Roda a CLI, entrega cada linha do stderr (e do stdout, se não for JSON)
 /// a `on_line` e espera ela terminar, o cancelamento ou o prazo.
+///
+/// No Windows a CLI roda sem janela de console e presa a um Job Object
+/// ([`ProcessJob`]): cancelar encerra ela e o que ela iniciou (o `curl` de
+/// um download), e o que sobrar termina quando a função volta, ou junto com
+/// o Studio, se ele morrer. O assistente de instalação que o `lace update`
+/// abre sai do job (`allow_breakaway`), porque precisa continuar depois.
 fn run_cli(
     cli: &Utf8Path,
     args: &[String],
@@ -184,14 +190,19 @@ fn run_cli(
     timeout: Option<Duration>,
     on_line: Arc<dyn Fn(&'static str, String) + Send + Sync>,
 ) -> IpcResult<CliRun> {
-    let mut child = Command::new(cli)
+    let mut command = Command::new(cli);
+    command
         .args(args)
         .env("NO_COLOR", "1")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+    lace_core::hide_console(&mut command);
+    let mut job = ProcessJob::new(true);
+    let mut child = command
         .spawn()
         .map_err(|e| IpcError::new(codes::CLI, format!("Could not run {cli}: {e}")))?;
+    job.adopt(&child);
 
     let stderr = child.stderr.take().expect("piped stderr");
     let stderr_lines = on_line.clone();
@@ -221,10 +232,14 @@ fn run_cli(
         if cancel.is_some_and(CancelToken::is_cancelled) || expired {
             cancelled = true;
             let _ = child.kill();
+            job.kill();
             break child.wait().ok();
         }
         std::thread::sleep(Duration::from_millis(50));
     };
+    // O que a CLI deixou rodando (fora o assistente, que saiu do job) termina
+    // aqui, antes de esperar o fim dos pipes, que um processo preso seguraria.
+    job.kill();
     Ok(CliRun {
         code: status.and_then(|s| s.code()),
         stdout: stdout_reader.join().unwrap_or_default(),

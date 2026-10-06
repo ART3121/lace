@@ -338,23 +338,24 @@ testbench (`FileRole::Testbench`). `add_verilog` é a forma normal de
 registrar: decide o papel pelo conteúdo, cria o arquivo que não existe e
 escolhe topo e testbench. `add_file`, `remove_file` e `set_top_level` são a
 forma de baixo nível: recebem o papel de quem chama e não classificam nem
-criam modelo.
+criam modelo. Um `.py` só entra como testbench: é um testbench cocotb, como
+na AURORA (4.4).
 
 | Método | Faz |
 |---|---|
-| `add_verilog(toolchain, caminho, testbench) -> Result<AddedFile>` | registra um arquivo; se ele não existe, cria a partir do modelo |
+| `add_verilog(toolchain, caminho, testbench) -> Result<AddedFile>` | registra um arquivo (`.v`, `.sv`, ou `.py`, testbench cocotb); se ele não existe, cria a partir do modelo |
 | `remove_verilog(caminho) -> Result<bool>` | tira das duas listas e das escolhas de topo e testbench, sem apagar do disco; diz se estava registrado |
 | `set_top(alvo) -> Result<Utf8PathBuf>` | escolhe o topo por arquivo ou por nome de módulo; devolve o arquivo |
 | `top_module() -> Result<Option<String>>` | o nome do módulo de topo |
-| `testbench_module() -> Result<Option<String>>` | o nome do módulo do testbench escolhido |
-| `unregistered_verilog() -> Vec<Utf8PathBuf>` | os `.v` e `.sv` da pasta do projeto que não estão registrados |
+| `testbench_module() -> Result<Option<String>>` | o nome do módulo do testbench escolhido; num `.py`, o módulo Python dos testes (o nome do arquivo) |
+| `unregistered_verilog() -> Vec<Utf8PathBuf>` | os `.v` e `.sv` da pasta do projeto que não estão registrados, e os `.py` com `@cocotb.test` |
 | `files(FileRole)` | lista os arquivos de um papel, na ordem do `.spf`, com caminho absoluto; um arquivo repetido conta uma vez (abaixo) |
 | `reorder_file(caminho, &ListPosition) -> Result<Vec<ProjectFile>>` | muda a posição do arquivo na lista dele (`ListPosition::First`, `Last`, `Before(arquivo)`, `After(arquivo)`) e devolve a lista; a ordem é a dos compiladores, e um `` `define `` só vale para os que vêm depois |
 | `top_level()` | o arquivo de topo: `topLevelFile`, se está na lista dos sintetizáveis e não tem nome de testbench; senão o sintetizável marcado |
 | `testbench()` | `testbenchFile`, se está na lista dos testbenches; senão o testbench marcado, senão o primeiro |
 | `check_add_verilog(caminho)` | confere, sem mudar nada, se `add_verilog` aceitaria o arquivo (extensão e, se não existe, o nome); quem registra vários confere todos antes |
 | `set_testbench(caminho)` | testbench da simulação do projeto: `testbenchFile` + `isTopLevel` exclusivo; registra se não estava |
-| `add_file(papel, caminho, conteúdo)` | registra com o papel dado; com `Some(texto)` cria o arquivo (recusa se existir), com `None` exige que exista; só `.v` e `.sv` (`InvalidName`, sem gravar nada) |
+| `add_file(papel, caminho, conteúdo)` | registra com o papel dado; com `Some(texto)` cria o arquivo (recusa se existir), com `None` exige que exista; só `.v` e `.sv`, e `.py` como testbench (`InvalidName`, sem gravar nada) |
 | `remove_file(papel, caminho)` | tira de uma lista, não apaga do disco |
 | `set_top_level(caminho)` | arquivo de topo: `topLevelFile` + `isTopLevel` exclusivo; registra se não estava; recusa nome de testbench (3.4) |
 | `resolve_path(texto)` | converte um caminho como está no `.spf` para absoluto |
@@ -374,6 +375,10 @@ criam modelo.
   topo; senão, nenhum. As portas vêm de `verilog::read_interfaces` com a
   `toolchain` recebida: com `None`, ou sem o Yosys instalado, o leitor de
   portas embutido.
+- **`.py`:** é sempre testbench. Novo, sai de `cocotb::testbench_template`
+  (4.4), com o módulo testado pela mesma regra (`test_alu.py` testa `alu`)
+  na diretiva `# aurora-toplevel:`; o nome do arquivo precisa ser
+  identificador do Python (`InvalidName`, sem criar nada).
 - O primeiro sintetizável registrado vira o topo, a não ser que tenha nome
   de testbench (3.4) ou não declare módulo (um arquivo só de `` `define ``);
   o primeiro testbench, o testbench escolhido.
@@ -524,7 +529,8 @@ classificado como testbench.
 `testbench_template(testbench, dut)`, com `dut`, instancia o módulo com
 todas as portas (`reg` para as entradas, `wire` para as saídas), gera clock
 se houver uma porta `clk` ou `clock` e reset se houver `rst` ou `reset`,
-grava a onda com `$dumpfile("<testbench>.vcd")` e
+grava a onda com `$dumpfile("<testbench>.fst")` (o Verilator grava
+`<testbench>.vcd`, 5.2) e
 `$dumpvars(0, <testbench>)` e termina com `$finish`. Sem `dut`, o testbench
 não instancia nada: grava a onda com o mesmo `$dumpfile` e `$dumpvars`,
 espera `#100` e chama `$finish`.
@@ -559,6 +565,23 @@ valor que não cabe em `#NUBITS` bits (com ou sem sinal), é aviso, e a
 simulação roda. Um arquivo com menos valores do que o programa lê não é
 conferido (o número de leituras só se sabe rodando; o último valor se
 repete).
+
+### 4.4 O módulo `cocotb`
+
+Um `.py` em `testbenchFiles` é um testbench cocotb: só os testes
+(`@cocotb.test()`), e o Lace monta a simulação (5.3.2). O módulo que os
+testes recebem como `dut` vem da diretiva da AURORA, uma linha só de
+comentário `# aurora-toplevel: <módulo>` (com `:` ou `=`, sem distinção de
+caixa), ou, sem ela, do topo do projeto, com um aviso. O nome do arquivo é o
+módulo Python que o cocotb importa.
+
+| Função ou tipo | Faz |
+|---|---|
+| `is_testbench(caminho) -> bool` | o arquivo é testbench cocotb (termina em `.py`) |
+| `toplevel_directive(texto) -> Option<String>` | o módulo da diretiva `# aurora-toplevel:`, se houver |
+| `testbench_template(dut) -> String` | o testbench-modelo: com `dut`, a diretiva e um teste que liga o clock (`clk`, 10 ns), segura o reset nos primeiros 20 ns (`rst`, ou `rst_n` ativo em baixo), põe as outras entradas em zero e escreve as saídas no log; sem, um teste que só espera. `Timer` e `Clock` com a unidade posicional, que vale no cocotb 1 e no 2 |
+| `TestReport` | o resultado dos testes: `results` (o `results.xml`), `cases` e as contagens `passed`, `failed`, `skipped` |
+| `TestCase` | um teste: `name` (`<módulo>.<teste>`), `status` (`TestStatus`: `passed`, `failed`, `skipped`), `message`, `file`, `line` (numa falha, a linha mais funda do traceback dentro do `.py`) |
 
 ---
 
@@ -650,14 +673,14 @@ Com `<SAPHO>` = a biblioteca SAPHO (`yanc/SAPHO/` do bundle):
 
 | Simulador | Passo | Comando | CWD |
 |---|---|---|---|
-| Icarus | `elaborate` | `iverilog -y <SAPHO> -s <nome>_tb -o T/<nome>_tb.vvp P/Hardware/<nome>.v P/Simulation/<nome>_tb.v` | `T` |
-| Icarus | `simulate` | `vvp -n [-i] T/<nome>_tb.vvp`, com `-i` quando o `Control` tem receptor de eventos (5.8) e `-fst` no fim se o `$dumpfile` termina em `.fst` | `T` |
+| Icarus | `elaborate` | `iverilog -y <SAPHO> -s <nome>_tb -o T/<nome>_tb.vvp P/Hardware/<nome>.v T/instr_<nome>_tb.v` | `T` |
+| Icarus | `simulate` | `vvp -n [-i] T/<nome>_tb.vvp -fst`, com `-i` quando o `Control` tem receptor de eventos (5.8); sem `-fst` só quando a onda não vai para um `.fst` (o formato da onda, abaixo) | `T` |
 | Verilator | `verilate` | `perl verilator --binary --main --trace -j 0 ... --top-module <nome>_tb -Mdir T/obj_dir_<nome>_tb -y <SAPHO> <arquivos>` | `T` |
 | Verilator | `simulate` | `T/obj_dir_<nome>_tb/V<nome>_tb` | `T` |
 
 O CWD é o diretório temporário porque o `.v` do processador lê
 `pc_<nome>_mem.txt` por nome relativo e o testbench grava a onda em
-`<nome>_tb.vcd`, também relativo. As memórias `.mif` e os arquivos de
+`<nome>_tb.fst` (`.vcd` no Verilator), também relativo. As memórias `.mif` e os arquivos de
 `Simulation/` são abertos por caminho absoluto.
 
 O caminho do processador não pode ter caractere fora do ASCII
@@ -680,7 +703,9 @@ arquivo, o `vvp` escreve `WARNING: <entrada>:<linha>: the program reads more
 values than this file has (N)`, que vira aviso com o arquivo e a linha
 seguinte à última (antes, a porta repetia o último valor em silêncio). A
 cópia tem as mesmas linhas, e os diagnósticos dela apontam para o
-testbench original; um testbench sem o trecho esperado roda como está.
+testbench original. A mesma cópia leva a extensão da onda trocada (o formato
+da onda, abaixo); um testbench sem o trecho esperado e com a extensão certa
+roda como está.
 Depois, se
 a simulação deu certo mas o testbench não escreveu `end of program` (o aviso
 que o testbench do `asmcomp` dá quando o programa termina), um diagnóstico de
@@ -732,11 +757,17 @@ reaproveitado depois.
 | `build_jobs` | `None` (`-j 0`, todos os núcleos) | paralelismo da compilação C++ do Verilator |
 | `timeout` | `None` (sem limite) | prazo do passo `simulate` (o `vvp` ou o modelo do Verilator), sem contar elaboração e compilação. Passou dele, o Lace encerra a simulação e o resultado vem com `status: timed_out` e o que o testbench escreveu até ali (5.8) |
 
-O formato da onda não é opção: a onda sai com o nome do `$dumpfile` do
-testbench, e no Icarus o formato segue a extensão dele (`.fst` liga o `-fst`
-do `vvp`; qualquer outra dá VCD). O Verilator sempre grava VCD. O testbench
-que o `asmcomp` gera grava `<nome>_tb.vcd`, então a simulação de um
-processador dá VCD. `SimulationResult.waveform` traz o caminho e o formato.
+O formato da onda não é opção: o Icarus grava FST (`vvp -fst`) e o
+Verilator, VCD (`--trace`), e a onda sai com o nome do `$dumpfile` do
+testbench e a extensão do formato. Um `$dumpfile` com outra
+extensão é trocado numa cópia do testbench, com as mesmas linhas: o
+`<nome>_tb.vcd` que o testbench do `asmcomp` pede vira `<nome>_tb.fst` no
+Icarus, e um `saida.fst` vira `saida.vcd` no Verilator. A cópia é a que o
+Lace já simula, `T/instr_<nome>_tb.v` num processador e
+`.lace/Temp/instr_<testbench>` no projeto (5.3), e o arquivo do usuário não
+muda. Uma chamada de `$dumpfile` quebrada em linhas não é trocada, e o
+Icarus grava VCD no nome que ela der. `SimulationResult.waveform` traz o
+caminho e o formato.
 
 O `vvp` sai com código 0 depois de um `$error`. Por isso as linhas `ERROR:`
 e `FATAL:` que ele escreve (as de `$error` e `$fatal`) viram diagnóstico de
@@ -771,7 +802,10 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
    expressão que o Lace não resolve, nada é injetado, a onda não entra no
    resultado, e `waveform_path` dá `InvalidProject` (antes, o dump injetado e
    o `-fst` dele gravavam FST no `.vcd` do usuário). Um `$dumpfile` sem
-   `$dumpvars` dá um aviso: nenhum sinal é gravado e a onda não sai.
+   `$dumpvars` dá um aviso: nenhum sinal é gravado e a onda não sai. Um
+   `$dumpfile` com a extensão de outro formato vai para uma cópia em
+   `.lace/Temp/instr_<testbench>`, com a extensão trocada (5.2): `saida.vcd`
+   vira `saida.fst` no Icarus.
    Se o testbench não tem `$dumpfile`, simula uma cópia em
    `.lace/Temp/instr_<testbench>` com `$dumpfile("<tb>.fst");
    $dumpvars(0, <tb>);` antes do `endmodule` do módulo do testbench
@@ -784,24 +818,71 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
    onda.
 6. Roda os mesmos comandos de 5.2, com CWD na raiz e `.vvp`/`obj_dir` em
    `.lace/Temp/`, e o mesmo `timeout`. A onda fica na raiz, com o nome do
-   `$dumpfile`.
+   `$dumpfile` e a extensão do formato.
 
 Os processadores não são compilados aqui. Chame `build` para cada um antes.
 
 Uma onda VCD do Icarus acima de 100 MB vem com um aviso: um `$dumpfile`
-terminado em `.fst` grava os mesmos sinais várias vezes menor.
+terminado em `.fst` grava os mesmos sinais várias vezes menor. Só acontece
+quando o Lace não troca a extensão do `$dumpfile` (a chamada quebrada em
+linhas).
 
 Com processador no projeto, a raiz não pode ter caractere fora do ASCII
 (`NonAsciiPath`), pelo mesmo motivo de 5.2.
+
+### 5.3.2 Testbench cocotb
+
+Com um testbench `.py`, `simulate_project` roda os testes cocotb no Icarus
+pelos passos de sempre.
+Com `<B>` = `<raiz>/.lace/Temp/cocotb/<módulo de teste>` e `<dut>` o módulo
+da diretiva (ou o topo):
+
+| Passo | Comando | CWD |
+|---|---|---|
+| `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s lace_cocotb_dump -o <B>/<dut>.vvp <design> <B>/lace_cocotb_dump.v` | raiz |
+| `simulate` | `vvp -n [-i] -m <VPI do cocotb> <B>/<dut>.vvp -fst` | raiz |
+
+`<design>` é o mesmo da simulação de um testbench Verilog (5.3, passo 2),
+sem o testbench, e os `pc_<nome>_mem.txt` dos processadores também vão para
+a raiz. O `cmds.f` traz `+timescale+1ns/1ps`, o padrão do runner do cocotb,
+para os módulos sem `` `timescale ``. O `lace_cocotb_dump` grava
+`<raiz>/<módulo de teste>.fst` com `$dumpvars(0, <dut>)`.
+
+O que o `vvp` precisa para carregar o cocotb vem de uma sonda
+(`cocotb_probe.py`) rodada com o Python do componente `cocotb` e guardada
+em `.lace/Temp/cocotb/probe.json` até o bundle mudar: a VPI para o Icarus,
+a biblioteca do Python, o ponto de entrada e o `sys.path`. Com isso o `vvp`
+recebe `PYGPI_PYTHON_BIN`, `PYTHONPATH` (a pasta do `.py`, a raiz e o
+`sys.path` do Python), `TOPLEVEL_LANG=verilog`, `COCOTB_RESULTS_FILE`, as
+variáveis do cocotb 2 (`GPI_USERS`, `COCOTB_TOPLEVEL`,
+`COCOTB_TEST_MODULES`) ou do 1 (`LIBPYTHON_LOC`, `TOPLEVEL`, `MODULE`), a
+pasta das bibliotecas do cocotb no `PATH`, `PYTHONUTF8=1` e
+`PYTHONPYCACHEPREFIX` na pasta de cache do usuário: os `.pyc` não vão para o
+bundle nem para o projeto.
+
+O `results.xml` vira `SimulationResult::tests` (`TestReport`, 4.4). Cada
+teste que falha é um diagnóstico de erro do `vvp` no `.py`, na linha mais
+funda do traceback dentro dele, e a simulação termina `failed`, com
+`failed_step: simulate`; um `.py` sem teste nenhum também. Um diagnóstico
+`info` resume as contagens. A onda vem em `waveform` mesmo com teste
+falhando, desde que o `vvp` tenha ido até o fim: é nela que se vê a falha.
+
+Erros: `CocotbNeedsIcarus` com o Verilator; `NoCocotbToplevel` sem
+diretiva e sem topo; `InvalidName` se o nome do `.py` não é identificador
+do Python; `ComponentMissing` sem o componente `cocotb`;
+`CocotbUnavailable` se a sonda falha. Testado no Windows com o cocotb 2.1.0
+do bundle; no Linux e no macOS, com o 2.1.0.dev0 do OSS CAD Suite, não foi
+rodado.
 
 ### 5.3.1 `waveform_path(&Project, Option<&Processor>) -> Result<Utf8PathBuf>`
 
 Onde a simulação grava a onda, sem simular: é o que `lace wave` abre sem
 argumento. Com um processador, a do testbench que o `asmcomp` gerou
-(`.lace/Temp/<nome>/<nome>_tb.vcd`); sem, a do testbench do projeto: o
-`$dumpfile` dele, ou, sem `$dumpfile`, a onda que o Lace injeta na raiz
-(5.3, passo 5): `<testbench>.fst` do Icarus ou `<testbench>.vcd` do
-Verilator, a mais recente das duas (a do Icarus se nenhuma existe ainda).
+(`.lace/Temp/<nome>/<nome>_tb.fst` ou `.vcd`); sem, a do testbench do
+projeto: o nome do `$dumpfile` dele, ou, sem `$dumpfile`, a onda que o
+Lace injeta na raiz (5.3, passo 5). Das duas extensões, `.fst` do Icarus e
+`.vcd` do Verilator, vale a mais recente (a do Icarus se nenhuma existe
+ainda). Com um testbench cocotb, `<raiz>/<módulo de teste>.fst` (5.3.2).
 
 Erros: `NoTestbench` sem testbench; `NotBuilt` se o processador ainda não
 foi compilado; `InvalidProject` se o `$dumpfile` do testbench é uma
@@ -1053,13 +1134,13 @@ LUT, DSP, ocupação ou temporização. `None` quando a síntese falhou ou o
 barramentos nas arestas. O visual é o do Graphviz, não o do netlistsvg da
 AURORA.
 
-O `dot` fica muito lento com muitas ligações e portas compartilhadas: 40
-instâncias de um registrador de 8 bits ligadas ao mesmo `clk` e à mesma
-entrada (160 ligações) levaram mais de 40 s. Por isso:
+Não há teto de ligações: qualquer módulo desenha. O `dot` fica lento com
+muitas ligações e portas compartilhadas (40 instâncias de um registrador de 8
+bits ligadas ao mesmo `clk` e à mesma entrada, 160 ligações, levaram mais de
+40 s), e o prazo dele é a única proteção:
 
 | Opção | Padrão | O que faz |
 |---|---|---|
-| `max_connections` | `Some(SCHEMATIC_CONNECTION_LIMIT)`, 120 | conta as ligações do módulo no netlist (portas das células mais portas do módulo) e recusa acima do teto com `SchematicTooLarge`, antes de rodar o Yosys e o `dot`; `None` desliga |
 | `timeout` | `Some(SCHEMATIC_TIMEOUT)`, 60 s | prazo do passo do `dot`; vencido, o passo termina como `timed_out` |
 
 Nomes de módulo com caracteres fora de `[A-Za-z0-9_.-]` (por exemplo
@@ -1129,7 +1210,7 @@ pasta da onda, se ela tem `pc_<nome>_mem.txt`):
 |---|---|---|
 | `trad_opcode.txt` (`<índice> <mnemônico> <operando>`) | `lace_asm_<proc>`, `Bits` = largura do `valr2` | `valr2` |
 | `trad_cmm.txt` (`<linha> <texto>`; -1, -2 e -3 viram `0xFFFFF`, `0xFFFFE`, `0xFFFFD` em 20 bits) | `lace_src_<proc>` | `linetabs` |
-| os valores dos complexos no corpo do VCD | `lace_complex`, um `0b<bits> <re> <im>i` por valor | `comp_me3_*`, `comp_arr_me3_*` |
+| os valores dos complexos no corpo da onda | `lace_complex`, um `0b<bits> <re> <im>i` por valor | `comp_me3_*`, `comp_arr_me3_*` |
 
 Linha de tabela sem texto sai: o Surfer recusa o tradutor inteiro por ela.
 Sem a tabela, o sinal aparece como número (`Unsigned`, `Signed`).
@@ -1140,9 +1221,10 @@ e a linha do C± sairiam deslocados. Nenhuma tabela é usada, o PC e a linha
 aparecem como números, e `WaveProcessor::outdated` diz por quê, para a
 interface avisar ("simule de novo").
 
-O tradutor dos complexos lê o corpo do VCD inteiro, em bytes e só nas linhas
-`b<bits> <id>` de um id complexo, até `MAX_COMPLEX_VALUES` (16384) valores
-distintos. Um complexo que muda a cada clock passa disso, e os valores
+O tradutor dos complexos lê o corpo da onda inteiro, só nos sinais
+complexos: num VCD, em bytes e só nas linhas `b<bits> <id>` de um id
+complexo; num FST, pelo filtro de sinais do leitor. Para em
+`MAX_COMPLEX_VALUES` (16384) valores distintos. Um complexo que muda a cada clock passa disso, e os valores
 seguintes aparecem em binário. Numa onda de 100 MB com um complexo, a
 varredura custa alguns segundos antes de abrir o Surfer.
 
@@ -1157,9 +1239,10 @@ Icarus grava como `real`, ficam sem formato de bits.
 
 Uma onda sem processador SAPHO (um projeto só de Verilog) recebe só o grupo
 `Top-level`, com os sinais da raiz do testbench, como a AURORA; o resto do
-design fica na hierarquia do Surfer. `Ok(None)`: a onda não é VCD (o FST e o
-GHW abrem sem layout, inclusive o `.fst` que o Lace injeta numa simulação do
-projeto sem `$dumpfile`), ou não tem nem sinal na raiz nem processador.
+design fica na hierarquia do Surfer. O FST é lido pela crate `fst-reader`,
+e a hierarquia dele vira o mesmo texto do cabeçalho de um VCD.
+`Ok(None)`: a onda não é VCD nem FST (o GHW abre sem layout), ou não tem
+nem sinal na raiz nem processador.
 `WaveLayout`: `state` (o `.surf.ron`), `mappings` (`MappingTranslator`:
 `name`, `content`) e `processors` (`WaveProcessor`: `instance`,
 `processor`, `variables`, `assembly`, `source`, `outdated`).
@@ -1261,13 +1344,22 @@ Verilator roda o `make`, que roda o compilador C++.
   SIGTERM ao grupo e, se o processo não sair em 1 s, SIGKILL. Fora do grupo
   do Lace, os filhos não recebem o Ctrl+C do terminal: quem os encerra é o
   Lace, ao ver o pedido.
-- **Windows:** o `taskkill /T /F` do `System32` encerra a árvore de uma vez;
-  se ele falhar, o Lace encerra o processo do passo. O `taskkill.exe` é o
-  único programa do sistema que o Lace roda fora da exceção do Verilator, e
-  só serve para encerrar ([ADR 0002](adr/0002-so-ferramentas-do-bundle.md),
+- **Windows:** cada passo roda num Job Object com
+  `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` (`ProcessJob`): encerrar é fechar o
+  job, e tudo o que a ferramenta iniciou termina junto. O que sobrar quando o
+  passo acaba também termina, e o mesmo vale se o processo do Lace morrer,
+  mesmo à força: o sistema fecha o handle do job. Se o sistema recusar o
+  job, o `taskkill /T /F` do `System32` encerra a árvore. O `taskkill.exe` é
+  o único programa do sistema que o Lace roda fora da exceção do Verilator,
+  e só serve para encerrar ([ADR 0002](adr/0002-so-ferramentas-do-bundle.md),
   [BUNDLE.md](BUNDLE.md), seção 4).
-  O Ctrl+C do console chega também ao filho; se ele morrer antes de o Lace
-  encerrá-lo, o passo conta como cancelado do mesmo jeito.
+  Nenhuma ferramenta abre janela de console (`hide_console`): se o Lace tem
+  console (um terminal, ou o que quem o criou lhe deu), ela divide esse
+  console, e o Ctrl+C chega a ela também; se não tem (o Studio), ela leva
+  `CREATE_NO_WINDOW` e ganha um console próprio, sem janela, ao custo de um
+  `conhost.exe`, uns 16 ms por ferramenta. Quem cria processo fora do Core,
+  como o Studio ao chamar a CLI, usa o mesmo `ProcessJob` e o mesmo
+  `hide_console`.
 
 O passo encerrado termina com `Termination::Cancelled` ou
 `Termination::TimedOut`, e a operação, com `Status::Cancelled` ou
@@ -1541,8 +1633,9 @@ encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
       "command": {
         "program": "/bin/bash",
         "args": ["/opt/lace/toolchain/oss-cad-suite/bin/iverilog",
+                 "-grelative-include", "-I", "/home/eu/projetos/soma/soma/Simulation", "-I", "/home/eu/projetos/soma/.lace/Temp/soma",
                  "-y", "/opt/lace/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp",
-                 "/home/eu/projetos/soma/soma/Hardware/soma.v", "/home/eu/projetos/soma/soma/Simulation/soma_tb.v"],
+                 "/home/eu/projetos/soma/soma/Hardware/soma.v", "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v"],
         "cwd": "/home/eu/projetos/soma/.lace/Temp/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
@@ -1557,30 +1650,30 @@ encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
       "tool": "vvp",
       "command": {
         "program": "/bin/bash",
-        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp"],
+        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "-fst"],
         "cwd": "/home/eu/projetos/soma/.lace/Temp/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
       },
       "termination": { "kind": "exited", "value": 0 },
-      "stdout": "VCD info: dumpfile soma_tb.vcd opened for output.\nInfo: end of program!\n/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.v:61: $finish called at 985000 (1ps)\n",
+      "stdout": "FST info: dumpfile soma_tb.fst opened for output.\nInfo: end of program!\n/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)\n",
       "stderr": "",
       "duration_ms": 66
     }
   ],
   "diagnostics": [
-    { "tool": "vvp", "severity": "info", "message": "VCD info: dumpfile soma_tb.vcd opened for output.",
-      "file": null, "line": null, "column": null, "raw": "VCD info: dumpfile soma_tb.vcd opened for output." },
+    { "tool": "vvp", "severity": "info", "message": "FST info: dumpfile soma_tb.fst opened for output.",
+      "file": null, "line": null, "column": null, "raw": "FST info: dumpfile soma_tb.fst opened for output." },
     { "tool": "vvp", "severity": "info", "message": "$finish called at 985000 (1ps)",
-      "file": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.v", "line": 61, "column": null,
-      "raw": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.v:61: $finish called at 985000 (1ps)" }
+      "file": "/home/eu/projetos/soma/soma/Simulation/soma_tb.v", "line": 61, "column": null,
+      "raw": "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)" }
   ],
   "artifacts": [
     { "kind": "icarus_image", "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "required": true, "fresh": true },
-    { "kind": "waveform", "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vcd", "required": true, "fresh": true },
+    { "kind": "waveform", "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.fst", "required": true, "fresh": true },
     { "kind": "simulation_output", "path": "/home/eu/projetos/soma/soma/Simulation/output_0.txt", "required": false, "fresh": true }
   ],
-  "waveform": { "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vcd", "format": "vcd" },
+  "waveform": { "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.fst", "format": "fst" },
   "outputs": ["/home/eu/projetos/soma/soma/Simulation/output_0.txt"],
   "missing_inputs": []
 }
@@ -1649,11 +1742,14 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `PathExists` | `path_exists` | o destino de `move_path` já existe | outro destino, ou tirar o que está lá |
 | `ProcessorExists` | `processor_exists` | `add_processor` com nome repetido | outro nome |
 | `ProcessorNotFound` | `processor_not_found` | nome inexistente | ver `available` |
-| `InvalidName` | `invalid_name` | nome de projeto, processador ou topo da síntese fora das regras de 3.4; arquivo com nome de testbench como topo; arquivo que não é `.v` nem `.sv` nas listas; `build` de processador do `.spf` com nome que não compila | outro nome, ou outro arquivo |
+| `InvalidName` | `invalid_name` | nome de projeto, processador ou topo da síntese fora das regras de 3.4; arquivo com nome de testbench como topo; arquivo que não é `.v` nem `.sv` nas listas, ou `.py` fora dos testbenches; `.py` novo ou simulado com nome que não é identificador do Python; `check` de um `.py`; `build` de processador do `.spf` com nome que não compila | outro nome, ou outro arquivo |
 | `InvalidProjectFile` | `invalid_project_file` | `.spf` ilegível, campo com tipo errado (3.3), processador com nome vazio, com barra ou repetido, ou `clk`/`numClocks` fora da faixa | corrigir o `.spf` |
 | `InvalidSource` | `invalid_source` | fonte ausente, nome errado, `#PRNAME` ausente ou diferente | corrigir o fonte |
 | `NotBuilt` | `not_built` | simular, sintetizar ou elaborar a hierarquia de processador sem `build`; `waveform_path` de processador não compilado | rodar `build` |
 | `NoTestbench` | `no_testbench` | `simulate_project` ou `waveform_path` sem testbench | `add_verilog` de um testbench, ou `set_testbench` |
+| `NoCocotbToplevel` | `no_cocotb_toplevel` | `simulate_project` de um testbench cocotb sem a diretiva `# aurora-toplevel:` num projeto sem topo | a diretiva no `.py`, ou `set_top` |
+| `CocotbNeedsIcarus` | `cocotb_needs_icarus` | `simulate_project` de um testbench cocotb com o Verilator | simular com o Icarus |
+| `CocotbUnavailable` | `cocotb_unavailable` | o Python do componente `cocotb` não carregou o cocotb (a sonda de 5.3.2 falhou); `reason` traz o fim da saída dela | reinstalar o componente |
 | `NoTopLevel` | `no_top_level` | `synthesize(TopLevel)` sem topo | `set_top` |
 | `EmptyProject` | `empty_project` | `check` sem nenhum arquivo Verilog registrado e sem processadores; `hierarchy` sem nada para elaborar | `add_verilog` ou `add_processor` |
 | `ModuleNotFound` | `module_not_found` | `set_top` com um nome que nenhum sintetizável registrado declara; `top_module` ou `testbench_module` num arquivo sem um módulo que dê para usar; `render_schematic` de um módulo fora do netlist | ver `available` |
@@ -1666,7 +1762,6 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `NonUtf8Path` | `non_utf8_path` | caminho não UTF-8 | renomear |
 | `PathTooLong` | `path_too_long` | caminho acima de `YANC_PATH_LIMIT` (259 no Windows, 1000 nos outros) | mover o projeto |
 | `NonAsciiPath` | `non_ascii_path` | processador num caminho com caractere fora do ASCII: o YANC grava o caminho absoluto das memórias e das entradas, e o `vvp` do Icarus não abre nome com acento | mover o projeto para uma pasta sem acento |
-| `SchematicTooLarge` | `schematic_too_large` | módulo com mais ligações que `SchematicOptions::max_connections` | desenhar um submódulo, ou subir o teto |
 | `Spawn` | `spawn` | processo não iniciou | ver permissão e caminho |
 | `Io` | `io` | leitura ou escrita do Lace falhou | ver `context` e `path` |
 | `ProjectNotFound` | `project_not_found` | `Project::discover` sem `.spf` na pasta nem nas de cima | rodar de dentro de um projeto, ou criar um |
@@ -1705,7 +1800,8 @@ Garantias:
 - **Cancelar não deixa processo para trás.** Uma operação cancelada ou que
   passou do prazo encerra o processo do passo com tudo o que ele iniciou:
   no Unix, o grupo de processos do passo (SIGTERM, depois SIGKILL); no
-  Windows, a árvore, pelo `taskkill /T /F` (5.8).
+  Windows, o Job Object do passo, que também encerra a árvore quando o
+  processo do Lace morre (5.8).
 - **Nunca sobrescreve código.** `add_processor` e `add_file` com conteúdo
   recusam se o arquivo já existir; `add_verilog` só cria o arquivo que não
   existe e registra como está o que existe. `move_path` recusa um destino
@@ -1724,12 +1820,14 @@ Limites desta versão:
   acompanhar a saída é pelo `Control` (5.8), de outra thread.
 - Só a simulação tem prazo (`SimulationOptions::timeout`). Build, `check`,
   hierarquia, síntese e esquemático rodam até o fim ou até o cancelamento.
-- Um SIGKILL no processo que usa a biblioteca não tem como encerrar os
-  filhos: no Unix eles rodam num grupo de processos próprio e continuam
+- No Unix, um SIGKILL no processo que usa a biblioteca não tem como
+  encerrar os filhos: eles rodam num grupo de processos próprio e continuam
   rodando. O mesmo vale para um SIGTERM que o processo não trata. Quem
   encerra um cliente do Lace de fora deve mandar SIGTERM, e o cliente deve
   transformá-lo em `cancel()`, como a CLI faz (`cancel_on_signals`, em
-  `crates/lace-cli/src/main.rs`).
+  `crates/lace-cli/src/main.rs`). No Windows os filhos estão no Job Object
+  do passo e terminam junto com o processo, de qualquer jeito que ele
+  morra.
 - Sem build incremental: cada chamada roda tudo de novo (o `obj_dir` do
   Verilator é reaproveitado pelo próprio `make`).
 - O `StepReport` guarda de cada pipe os primeiros e os últimos 2 MiB; o meio
@@ -1767,7 +1865,8 @@ O que muda por sistema, e como o Lace trata:
 | maiúsculas | processadores que diferem só na caixa são recusados (Windows e macOS não distinguem) |
 | ambiente do filho | Windows: `SystemRoot`, `windir`, `ComSpec`, `TEMP`, `TMP`. Surfer: `HOME`, `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_*`, `TMPDIR` (Unix) ou `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` (Windows) |
 | término de processo | sinal no Unix (`Signaled`), NTSTATUS no Windows (`Exception`) |
-| encerrar um passo (cancelamento, prazo) | Unix: grupo de processos próprio por passo, SIGTERM ao grupo e SIGKILL depois de 1 s. Windows: `taskkill /T /F` do `System32` na árvore do passo |
+| encerrar um passo (cancelamento, prazo) | Unix: grupo de processos próprio por passo, SIGTERM ao grupo e SIGKILL depois de 1 s. Windows: Job Object por passo (`KILL_ON_JOB_CLOSE`), que encerra a árvore também quando o Lace morre; `taskkill /T /F` do `System32` se o sistema recusar o job |
+| janela de console | Windows: nenhuma (`hide_console`); com console o filho divide o do Lace, sem console leva `CREATE_NO_WINDOW` |
 | ferramentas do OSS CAD Suite | lançadores bash via `/bin/bash` (Linux, macOS); `.exe` com `PATH=bin;lib` (Windows) |
 | Verilator | script Perl pelo Perl do sistema; Python do bundle no `make`; sem `-march=native` no macOS |
 | fins de linha | CRLF aceito em toda leitura (`.spf`, fontes, saídas); no Windows o YANC grava CRLF |
@@ -1789,7 +1888,8 @@ O que muda por sistema, e como o Lace trata:
 | Verificação | `iverilog -tnull -s <topo>` | `iverilog` sem `-s` (todas as raízes), um por testbench e, com `lint`, `verilator --lint-only` |
 | Hierarquia | montada pelo Yosys | elaborada pelo Icarus, do design e de cada testbench, com a biblioteca SAPHO (`hierarchy`) |
 | Nome de projeto | aceita espaço e acento | só letras sem acento, dígitos, `_` e `-`, começando por letra; os projetos que já existem abrem |
-| Formato da onda (Icarus) | `vvp -fst` sempre | pela extensão do `$dumpfile` |
+| Formato da onda (Icarus) | `vvp -fst` sempre, no nome do `$dumpfile` (um `.vcd` com FST dentro) | FST, com a extensão `.fst` trocada numa cópia do testbench |
+| Testbench cocotb | o runner Python do cocotb, num processo, no Icarus ou no Verilator | os passos `elaborate` e `simulate` do Lace, só no Icarus, com os testes em `SimulationResult::tests` |
 | Testbench sem `$dumpfile` | injeta `$dumpvars(1, <topo>)`: só o nível do testbench | injeta `$dumpvars(0, <tb>)`: todos os sinais, inclusive os do módulo testado |
 | Simulação de processador | só pelo modo projeto | `simulate` direto, além de `simulate_project` |
 | Ferramentas | `components/` baixados pela AURORA | bundle versionado instalado com o Lace |

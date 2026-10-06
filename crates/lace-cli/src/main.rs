@@ -36,6 +36,7 @@ const AFTER_HELP: &str = "\
 Examples:
   lace new demo && cd demo
   lace add counter.v counter_tb.v   create a module and its testbench
+  lace add test_counter.py          create a cocotb (Python) testbench
   lace sim --open                   simulate and open the waveform
   lace proc add adder               create a SAPHO processor
   lace sim -p adder                 build it with YANC and simulate it
@@ -93,9 +94,9 @@ enum Command {
     },
     /// Show the project summary
     Status,
-    /// Add Verilog files; missing ones are created from a template
+    /// Add Verilog files or cocotb testbenches (.py); missing ones are created from a template
     Add {
-        /// Verilog files
+        /// Verilog files (.v, .sv) or cocotb testbenches (.py)
         #[arg(required = true, value_name = "FILE")]
         files: Vec<Utf8PathBuf>,
         /// Add as testbench (default: detected from content or name)
@@ -328,7 +329,7 @@ struct HierarchyArgs {
 
 #[derive(clap::Args)]
 struct SimArgs {
-    /// Testbench to simulate; becomes the project default
+    /// Testbench to simulate (Verilog, or cocotb .py on Icarus); becomes the project default
     #[arg(value_name = "TESTBENCH", conflicts_with = "processor")]
     testbench: Option<Utf8PathBuf>,
     /// Simulate this processor with its YANC testbench (default: the processor of the current folder)
@@ -369,8 +370,9 @@ struct SynthArgs {
     /// Module to draw (default: top; -v lists them)
     #[arg(long, requires = "svg")]
     module: Option<String>,
-    /// Draw even a module with more connections than the schematic limit (Graphviz may take minutes)
-    #[arg(long, requires = "svg")]
+    /// Aceito e ignorado: o esquemático não tem mais teto de ligações. Fica
+    /// para não quebrar quem já o passa.
+    #[arg(long, hide = true)]
     no_schematic_limit: bool,
 }
 

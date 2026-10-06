@@ -92,7 +92,7 @@ fn remove(prefix: &Utf8Path, yes: bool, _text: bool) -> anyhow::Result<bool> {
     if yes {
         command.arg("/SILENT");
     }
-    command.spawn().with_context(|| format!("Opening {exe}"))?;
+    installation::open_wizard(&mut command).with_context(|| format!("Opening {exe}"))?;
     Ok(false)
 }
 

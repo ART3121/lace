@@ -7,10 +7,10 @@ mod common;
 use std::time::Duration;
 
 use lace_core::{
-    BuildOptions, CheckOptions, Control, DesignTarget, FileRole, LaceError, Project,
-    SchematicOptions, Severity, SimulationOptions, Simulator, Status, Step, Tool, ViewerOptions,
-    WaveformFormat, build, check, open_waveform, render_schematic, simulate, simulate_project,
-    synthesize, wave_layout,
+    BuildOptions, CheckOptions, Control, DesignTarget, FileRole, LaceError, Language, NewProcessor,
+    Project, SchematicOptions, Severity, SimulationOptions, Simulator, Status, Step, Tool,
+    ViewerOptions, WaveformFormat, build, check, open_waveform, render_schematic, simulate,
+    simulate_project, synthesize, wave_layout,
 };
 
 fn built(name: &str) -> (tempfile::TempDir, Project) {
@@ -46,14 +46,15 @@ fn icarus_simulates_both_languages() {
         assert_eq!(result.status, Status::Succeeded, "{result:#?}");
         assert_eq!(processor.read_output(0).unwrap().trim(), "55", "{name}");
         assert_eq!(result.outputs, [processor.output_path(0)]);
-        // O testbench do asmcomp grava `<nome>_tb.vcd`, e o formato segue a
-        // extensão do `$dumpfile`: só `.fst` liga o `-fst` do vvp.
+        // O testbench do asmcomp pede `<nome>_tb.vcd`; o Icarus grava sempre
+        // FST, com a extensão trocada numa cópia do testbench.
         let wave = result.waveform.unwrap();
-        assert_eq!(wave.path, processor.temp_dir.join(format!("{name}_tb.vcd")));
-        assert_eq!(wave.format, WaveformFormat::Vcd);
-        assert!(!common::is_fst(&wave.path), "{} não é VCD", wave.path);
-        // O layout do Surfer acha o processador na onda e as tabelas que o
-        // YANC deixou na pasta temporária dele.
+        assert_eq!(wave.path, processor.temp_dir.join(format!("{name}_tb.fst")));
+        assert_eq!(wave.format, WaveformFormat::Fst);
+        assert!(common::is_fst(&wave.path), "{} não é FST", wave.path);
+        assert!(processor.testbench_path().is_file());
+        // O layout do Surfer acha o processador na onda FST e as tabelas que
+        // o YANC deixou na pasta temporária dele.
         let layout = wave_layout(&wave.path).unwrap().expect("a processor wave");
         let found = &layout.processors[..];
         assert_eq!(found.len(), 1, "{found:#?}");
@@ -143,11 +144,81 @@ fn project_simulation_with_processor_testbench() {
     assert_eq!(result.status, Status::Succeeded, "{result:#?}");
     assert_eq!(result.top, "soma_tb");
     assert!(project.root().join("pc_soma_mem.txt").is_file());
+    // O `$dumpfile("soma_tb.vcd")` do testbench vira `.fst` na cópia
+    // simulada; o testbench do usuário não muda.
     assert_eq!(
         result.waveform.unwrap().path,
-        project.root().join("soma_tb.vcd")
+        project.root().join("soma_tb.fst")
+    );
+    assert!(
+        std::fs::read_to_string(&tb)
+            .unwrap()
+            .contains("soma_tb.vcd")
     );
     assert_eq!(processor.read_output(0).unwrap().trim(), "55");
+}
+
+/// Um programa que deixa um complexo na memória: o layout lê o valor dele
+/// da onda FST e o traduz.
+const COMPLEX_PROGRAM: &str = "\
+#PRNAME cx
+#NUBITS 32
+#NBMANT 23
+#NBEXPO 8
+#NDSTAC 8
+#SDEPTH 2
+#NUIOIN 1
+#NUIOOU 1
+
+void main()
+{
+    comp z;
+    z = complex(1.5, -2.0);
+    fout(0, abs(z));
+}
+";
+
+#[test]
+fn the_layout_translates_complexes_from_an_fst_wave() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog, Tool::Vvp]) else {
+        return;
+    };
+    let (_guard, dir) = common::tempdir();
+    let mut project = Project::create(&dir, "cx").unwrap();
+    let processor = project
+        .add_processor(&NewProcessor::new("cx", Language::Cmm))
+        .unwrap()
+        .clone();
+    std::fs::write(&processor.source, COMPLEX_PROGRAM).unwrap();
+    let built = build(
+        &toolchain,
+        &processor,
+        &BuildOptions::default(),
+        &Control::default(),
+    )
+    .unwrap();
+    assert!(built.succeeded(), "{built:#?}");
+    let result = simulate(
+        &toolchain,
+        &processor,
+        &SimulationOptions::new(Simulator::Icarus),
+        &Control::default(),
+    )
+    .unwrap();
+    assert_eq!(result.status, Status::Succeeded, "{result:#?}");
+    let wave = result.waveform.unwrap();
+    assert!(common::is_fst(&wave.path), "{} não é FST", wave.path);
+    let layout = wave_layout(&wave.path).unwrap().expect("a processor wave");
+    let complex = layout
+        .mappings
+        .iter()
+        .find(|m| m.name == "lace_complex")
+        .expect("the complex translator");
+    assert!(
+        complex.content.contains("1.500 -2.000i"),
+        "{}",
+        complex.content
+    );
 }
 
 #[test]
@@ -215,6 +286,11 @@ fn project_simulation_with_verilator() {
         .find(|s| s.step == Step::Simulate)
         .unwrap();
     assert!(run.stdout.contains("q = 10"), "{}", run.stdout);
+    // O Verilator grava VCD: o dump injetado leva a extensão `.vcd`.
+    let wave = result.waveform.unwrap();
+    assert_eq!(wave.path, root.join("contador_tb.vcd"));
+    assert_eq!(wave.format, WaveformFormat::Vcd);
+    assert!(!common::is_fst(&wave.path), "{} não é VCD", wave.path);
 }
 
 /// Só um processador: o Verilog dele e o testbench que o build gerou, sem o
@@ -492,4 +568,142 @@ fn several_processors_simulate_and_synthesize_together() {
             synth.modules
         );
     }
+}
+
+/// Um somador com dois testes cocotb; o segundo confere `y` contra
+/// `expected` na linha 19.
+fn adder_tests(expected: u32) -> String {
+    format!(
+        "# aurora-toplevel: somador\n\
+         import cocotb\n\
+         from cocotb.triggers import Timer\n\
+         \n\
+         \n\
+         @cocotb.test()\n\
+         async def soma(dut):\n\
+         \x20   dut.a.value = 3\n\
+         \x20   dut.b.value = 4\n\
+         \x20   await Timer(1, \"ns\")\n\
+         \x20   assert dut.y.value == 7\n\
+         \n\
+         \n\
+         @cocotb.test()\n\
+         async def vai_um(dut):\n\
+         \x20   dut.a.value = 15\n\
+         \x20   dut.b.value = 1\n\
+         \x20   await Timer(1, \"ns\")\n\
+         \x20   assert dut.y.value == {expected}, f\"y = {{int(dut.y.value)}}\"\n"
+    )
+}
+
+#[test]
+fn cocotb_testbench_runs_its_tests_on_icarus() {
+    let Some(toolchain) = common::toolchain_with_cocotb() else {
+        return;
+    };
+    let (_guard, dir) = common::tempdir();
+    let mut project = Project::create(&dir, "cocotb").unwrap();
+    let root = project.root().to_owned();
+    std::fs::create_dir_all(root.join("rtl")).unwrap();
+    std::fs::write(
+        root.join("rtl/somador.v"),
+        "module somador(input [3:0] a, input [3:0] b, output [4:0] y);\n    assign y = a + b;\nendmodule\n",
+    )
+    .unwrap();
+    project
+        .add_verilog(Some(&toolchain), "rtl/somador.v", false)
+        .unwrap();
+    // Um .py novo sai do modelo, como testbench, com o módulo do nome na
+    // diretiva; um nome que não é módulo Python é recusado.
+    let err = project
+        .check_add_verilog("rtl/test-somador.py")
+        .unwrap_err();
+    assert_eq!(err.code(), "invalid_name");
+    let added = project
+        .add_verilog(Some(&toolchain), "rtl/test_somador.py", false)
+        .unwrap();
+    assert_eq!(added.role, FileRole::Testbench);
+    assert!(added.created && added.selected, "{added:?}");
+    let tb = added.path;
+    let template = std::fs::read_to_string(&tb).unwrap();
+    assert_eq!(
+        lace_core::cocotb::toplevel_directive(&template).as_deref(),
+        Some("somador")
+    );
+    let icarus = SimulationOptions::new(Simulator::Icarus);
+    let run = |project: &Project| {
+        simulate_project(&toolchain, project, &icarus, &Control::default()).unwrap()
+    };
+    let result = run(&project);
+    assert_eq!(result.status, Status::Succeeded, "{result:#?}");
+    assert_eq!(result.top, "somador");
+    let tests = result.tests.as_ref().unwrap();
+    assert_eq!((tests.passed, tests.failed), (1, 0), "{tests:?}");
+
+    // Um teste que falha reprova a simulação, com o erro na linha do assert
+    // no .py, e a onda vem mesmo assim: é nela que se vê a falha.
+    std::fs::write(&tb, adder_tests(17)).unwrap();
+    let result = run(&project);
+    assert_eq!(result.status, Status::Failed, "{result:#?}");
+    assert_eq!(result.failed_step, Some(Step::Simulate));
+    let tests = result.tests.as_ref().unwrap();
+    assert_eq!((tests.passed, tests.failed), (1, 1), "{tests:?}");
+    let error = result
+        .diagnostics
+        .iter()
+        .find(|d| d.severity == Severity::Error)
+        .unwrap();
+    assert!(error.message.contains("test_somador.vai_um"), "{error:?}");
+    assert_eq!(error.line, Some(19), "{error:?}");
+    let wave = result
+        .waveform
+        .as_ref()
+        .expect("a onda do teste que falhou");
+    assert_eq!(wave.path, root.join("test_somador.fst"));
+    assert_eq!(wave.format, WaveformFormat::Fst);
+    assert!(common::is_fst(&wave.path));
+    assert_eq!(lace_core::waveform_path(&project, None).unwrap(), wave.path);
+
+    // Corrigido, passa. Sem a diretiva, vale o topo do projeto, com aviso.
+    std::fs::write(
+        &tb,
+        adder_tests(16).replace("# aurora-toplevel: somador\n", ""),
+    )
+    .unwrap();
+    let result = run(&project);
+    assert_eq!(result.status, Status::Succeeded, "{result:#?}");
+    assert_eq!(result.tests.as_ref().unwrap().passed, 2);
+    assert!(
+        result
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == Severity::Warning && d.message.contains("aurora-toplevel")),
+        "{:#?}",
+        result.diagnostics
+    );
+    // Nem o projeto nem o bundle ganham __pycache__.
+    assert!(!root.join("rtl/__pycache__").exists());
+
+    // O Verilator não roda cocotb; o check verifica o Verilog e deixa o .py
+    // de fora, e não o aceita como arquivo.
+    let err = simulate_project(
+        &toolchain,
+        &project,
+        &SimulationOptions::new(Simulator::Verilator),
+        &Control::default(),
+    )
+    .unwrap_err();
+    assert_eq!(err.code(), "cocotb_needs_icarus");
+    let checked = check(
+        &toolchain,
+        &project,
+        &CheckOptions::default(),
+        &Control::default(),
+    )
+    .unwrap();
+    assert_eq!(checked.status, Status::Succeeded, "{checked:#?}");
+    let mut options = CheckOptions::default();
+    options.file = Some(tb.clone());
+    let err = check(&toolchain, &project, &options, &Control::default()).unwrap_err();
+    assert_eq!(err.code(), "invalid_name");
 }

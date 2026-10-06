@@ -73,7 +73,8 @@ AURORA: `$dumpfile`, `$finish`, módulo sem portas, `initial`, `$display` e
 atrasos como `#10` somam pontos de testbench (a tabela está em
 [API.md, seção 4.2](API.md#42-o-módulo-verilog)). `--tb` registra como
 testbench. Um arquivo fica numa lista só: registrado de novo com outro
-papel, ele muda de lista.
+papel, ele muda de lista. Um `.py` é sempre testbench: um testbench cocotb,
+como na AURORA (ver [Testbench cocotb](#testbench-cocotb)).
 
 **Arquivo novo:** `lace add` o cria a partir de um modelo. É testbench com
 `--tb` ou quando o nome tem `tb`, `test` ou `testbench` como palavra
@@ -84,7 +85,11 @@ reset, se o módulo tiver `clk`/`clock` e `rst`/`reset`), grava a onda com
 todos os sinais e termina com `$finish`. O módulo testado é o `X` de
 `X_tb.v` ou `tb_X.v`, se algum módulo registrado o declara; senão, o módulo
 de topo; sem nenhum dos dois, o testbench não instancia nada: grava a onda,
-espera `#100` e chama `$finish`.
+espera `#100` e chama `$finish`. Um `.py` novo sai do modelo cocotb, com o
+módulo testado pela mesma regra (`test_alu.py` testa `alu`) na linha
+`# aurora-toplevel: alu` e um teste que liga o clock, aplica o reset, põe
+as outras entradas em zero e escreve as saídas no log. O nome do `.py` vira
+o nome do módulo Python: só letras, dígitos e `_`, sem começar por dígito.
 
 **Topo:** o primeiro módulo registrado vira o topo, e o primeiro testbench,
 o testbench simulado. `lace top` troca o topo por arquivo
@@ -163,7 +168,7 @@ testbench, que é ignorado; um processador com nome que não compila.
 
 | Comando | Faz | Função do Core |
 |---|---|---|
-| `lace add <ARQUIVO>... [--tb]` | registra cada arquivo; o que não existe é criado a partir do modelo. Confere todos antes de registrar o primeiro: um nome que não serve recusa o comando inteiro, e nada é criado nem registrado | `Project::check_add_verilog`, `Project::add_verilog` |
+| `lace add <ARQUIVO>... [--tb]` | registra cada arquivo (`.v`, `.sv`, ou `.py`, um testbench cocotb); o que não existe é criado a partir do modelo. Confere todos antes de registrar o primeiro: um nome que não serve recusa o comando inteiro, e nada é criado nem registrado | `Project::check_add_verilog`, `Project::add_verilog` |
 | `lace remove <ARQUIVO>...` | tira do projeto, e do topo ou do testbench simulado se era um deles; não apaga do disco | `Project::remove_verilog` |
 | `lace top` | mostra o arquivo de topo e o módulo de topo, ou diz que não há topo e como escolher | `Project::top_level`, `Project::top_module` |
 | `lace top <ARQUIVO\|MÓDULO>` | escolhe o topo: se o argumento é um arquivo, ele (qualquer `.v` ou `.sv`, inclusive o `Hardware/<proc>.v` gerado; registrado se não estava); senão, o arquivo registrado que declara esse módulo. Recusa nome de testbench (`tb_<nome>.v`, `<nome>_tb.v`, `tb.v`), arquivo que não é Verilog (`invalid_name`) e módulo declarado em mais de um arquivo (`ambiguous_module`, com os arquivos); nada é gravado | `Project::set_top` |
@@ -220,8 +225,8 @@ no `lace status`.
 | Comando | Faz | Função do Core |
 |---|---|---|
 | `lace build [-p NOME]...` | compila os processadores pedidos; sem `-p`, o da pasta ou, fora deles, todos. Num projeto sem processadores, avisa e sai com 0 | `build_processors` (`Continue`) |
-| `lace check [ARQUIVO] [--lint]` | compila os processadores que têm fonte e verifica o Verilog (ver abaixo). Dentro da pasta de um processador, sem `ARQUIVO`, é o mesmo que `-p` com ele | `buildable_processors`, `build_processors` (`Stop`), `check` |
-| `lace check -p NOME [--lint]` | compila o processador e verifica só o Verilog dele e o testbench gerado pelo YANC | `build_processors` (`Stop`), `check` (`CheckOptions::processor`) |
+| `lace check [ARQUIVO] [--lint]` | verifica o Verilog (ver abaixo), sem compilar os processadores: o Verilog que o YANC gerou entra como está no disco. Dentro da pasta de um processador, sem `ARQUIVO`, é o mesmo que `-p` com ele | `check` |
+| `lace check -p NOME [--lint]` | verifica só o Verilog do processador e o testbench gerado pelo YANC, sem recompilá-lo | `check` (`CheckOptions::processor`) |
 | `lace sim [TESTBENCH] [--verilator] [--timeout S] [--open]` | compila os processadores que têm fonte e simula o testbench do projeto. Com `TESTBENCH`, ele passa a ser o testbench simulado (e é registrado, se não estava). Dentro da pasta de um processador, sem `TESTBENCH`, é o mesmo que `-p` com ele | `set_testbench`, `buildable_processors`, `build_processors` (`Stop`), `simulate_project` |
 | `lace sim -p NOME [--verilator] [--timeout S] [--open]` | compila o processador e o simula com o testbench gerado pelo YANC | `build_processors` (`Stop`), `simulate` |
 | `lace synth [--svg] [--module M]` | compila os processadores e sintetiza o módulo de topo do projeto; com `--svg`, desenha o esquemático (Yosys `show` + `dot`). Dentro da pasta de um processador, é o mesmo que `-p` com ele | `build_processors` (`Stop`), `synthesize`, `render_schematic` |
@@ -230,33 +235,37 @@ no `lace status`.
 `TESTBENCH` e `-p` não andam juntos, nem `ARQUIVO` e `-p` no `check`. `--verilator` simula com o Verilator no
 lugar do Icarus; ele usa o compilador do sistema no Linux e no macOS e o
 do bundle no Windows (ver [BUNDLE.md](BUNDLE.md)) e grava a onda sempre em
-VCD.
+VCD (ver [Onde fica a onda](#onde-fica-a-onda)).
 `--timeout <SEGUNDOS>` (inteiro, a partir de 1) encerra a simulação que
 passar desse tempo, sem contar a elaboração e a compilação; sem ele, não há
 limite, e um testbench sem `$finish` roda até o Ctrl+C. No Linux e no
 macOS, o prazo pede ao simulador que saia (SIGTERM), e o que o testbench
-escreveu até ali aparece. No Windows não há esse pedido: o `taskkill` encerra
-o simulador na hora, e o que ainda estava no buffer de saída dele se perde
+escreveu até ali aparece. No Windows não há esse pedido: o Lace encerra o
+simulador na hora, e o que ainda estava no buffer de saída dele se perde
 (um `$fflush` no testbench o escreve antes). `--open` abre a onda
 no surfer-aurora ao terminar. O esquemático sempre traz a largura dos
 barramentos. Para ver os nomes de módulo que `--module` aceita, rode
 `lace synth -v`.
 
-O esquemático recusa um módulo com mais de 120 ligações (portas das células
-mais portas do módulo), porque o Graphviz levaria minutos: o comando sai com
-código 2 (`schematic_too_large`) e sugere desenhar um submódulo com
-`--module`. `--no-schematic-limit` desenha mesmo assim. O passo do `dot` tem
-prazo de 60 s. Um `--module` fora da árvore do topo (que a síntese não
-inclui) sai com código 2 (`module_not_found`, com os módulos sintetizados na
-mensagem). Nos dois casos o relatório da síntese é gravado antes do erro.
+O esquemático desenha qualquer módulo, sem teto de ligações; num módulo
+grande o Graphviz pode levar minutos, e o passo do `dot` tem prazo de 60 s.
+O `--no-schematic-limit` das versões anteriores ainda é aceito e não faz
+nada. Um `--module` fora da árvore do topo (que a síntese não inclui) sai
+com código 2 (`module_not_found`, com os módulos sintetizados na mensagem),
+depois de gravar o relatório da síntese.
 
 Um build ou uma simulação de um processador que já está em outro build ou
 simulação (outro terminal, o Studio) recusa na hora com
 `operation_in_progress`, código 2.
 
-`check`, `sim` e `synth` param no primeiro build que falhar, com código 1,
-sem verificar, simular nem sintetizar. `build` compila todos os pedidos mesmo
-que um falhe, para mostrar todos os erros de uma vez.
+`sim` e `synth` compilam os processadores antes e param no primeiro build
+que falhar, com código 1, sem simular nem sintetizar. `build` compila todos
+os pedidos mesmo que um falhe, para mostrar todos os erros de uma vez.
+`check` não compila. Um processador com fonte que ainda não foi compilado
+fica de fora da verificação, com um aviso; se não sobra nada para verificar,
+ou se o Verilog ou o testbench que o build dele gera está registrado no
+projeto e ainda não existe, o comando sai com `not_built` (código 2) e a
+dica de rodar `lace build`.
 
 #### O que `check` verifica
 
@@ -320,8 +329,10 @@ passo. Avisos, do Icarus ou do Verilator, não fazem o `check` falhar. O
 - com `-p`, um aviso quando o programa lê mais valores do que um
   `input_<n>.txt` tem, com o arquivo e a linha (dali em diante a porta
   repete o último valor);
-- sem `-p`, um aviso quando a onda VCD passa de 100 MB, com a sugestão de
-  `$dumpfile("<nome>.fst")`;
+- sem `-p`, um aviso quando o Icarus grava a onda em VCD e ela passa de
+  100 MB, com a sugestão de `$dumpfile("<nome>.fst")`. Só acontece quando o
+  Lace não consegue trocar a extensão do `$dumpfile` (a chamada quebrada em
+  linhas);
 - uma linha `ERROR: ...` que o testbench escreve com `$display` sai como as
   outras (`| ERROR: ...`) e não reprova; só o `$error` e o `$fatal` do
   Verilog reprovam;
@@ -349,17 +360,58 @@ do `--timeout` também sai com 1.
 
 #### Onde fica a onda
 
-Quem decide é o `$dumpfile` do testbench: o nome, relativo à raiz do
-projeto, e o formato, pela extensão (`.fst` grava FST; qualquer outra, VCD).
-O testbench-modelo do `lace add` grava `<testbench>.vcd`. Num testbench sem
+O nome vem do `$dumpfile` do testbench, relativo à raiz do projeto; a
+extensão é a do formato que o simulador grava: `.fst` no Icarus, `.vcd` no
+Verilator (o FST do Verilator exige a lz4, que o bundle não traz). Um
+`$dumpfile("saida.vcd")` simulado no Icarus grava `saida.fst`: o Lace troca
+a extensão numa cópia do testbench, e o arquivo do usuário não muda. O
+testbench-modelo do `lace add` grava `<testbench>.fst`. Num testbench sem
 `$dumpfile`, o Lace simula uma cópia com `$dumpfile("<tb>.fst")` (`<tb>.vcd`
 com o Verilator) e `$dumpvars(0, <tb>)`, em que `<tb>` é o módulo do
 testbench: a onda fica na raiz, com todos os sinais, inclusive os do módulo
-testado. O arquivo do usuário não muda.
+testado. Com as duas extensões no disco, `lace wave` abre a mais recente.
+Com um `$dumpfile` que é uma expressão que o Lace não resolve, a onda vai
+para onde o testbench mandar, em VCD, e `lace wave` pede o arquivo.
 
 Com `-p`, o testbench é o que o YANC gerou e o build copiou para
 `<NOME>/Simulation/<NOME>_tb.v`, como a AURORA, e a onda fica em
-`.lace/Temp/<NOME>/<NOME>_tb.vcd`.
+`.lace/Temp/<NOME>/<NOME>_tb.fst` (`.vcd` com o Verilator).
+
+#### Testbench cocotb
+
+Um `.py` registrado como testbench é um testbench cocotb: só os testes
+(`@cocotb.test()`), e o Lace monta a simulação, como a AURORA. Os testes
+recebem como `dut` o módulo da linha `# aurora-toplevel: <módulo>` do
+arquivo (a diretiva da AURORA, um comentário para o Python) ou, sem ela, o
+módulo de topo do projeto, com um aviso. `lace sim test_alu.py` (ou `lace
+sim`, com ele como testbench do projeto) roda no Icarus os passos de sempre:
+o `iverilog` elabora o design com o `dut` na raiz, e o `vvp` carrega a VPI
+do cocotb, que roda os testes no Python do bundle. Precisa do componente
+`cocotb` (`lace install cocotb`).
+
+```
+    done      elaborate     iverilog      108 ms
+    failed    simulate      vvp           659 ms
+  test_alu.py:19: error: Test test_alu.vai_um failed: y = 16
+    passed    test_alu.soma
+    failed    test_alu.vai_um
+  Tests: 1 of 2 passed
+  Open the waveform with: lace wave
+```
+
+Cada teste que falha é um erro na linha do `.py` em que falhou e reprova a
+simulação (código 1). A onda sai do mesmo jeito, em `<módulo de teste>.fst`
+na raiz, com todos os sinais do `dut`, e `--open` a abre: é nela que se vê
+a falha. Um `.py` sem nenhum `@cocotb.test()` também reprova. O log do
+cocotb sai como a saída do testbench, e no JSON os testes estão em
+`simulation.tests` (`cases`, com nome, `status`, mensagem, arquivo e
+linha, e as contagens `passed`, `failed` e `skipped`).
+
+O cocotb roda só no Icarus: `--verilator` recusa (`cocotb_needs_icarus`).
+O `check` e o `hierarchy` deixam o `.py` de fora, porque elaboram Verilog,
+e `lace check test_alu.py` recusa (`invalid_name`). A primeira simulação
+cocotb da máquina leva alguns segundos a mais: o Python compila o cocotb, e os
+`.pyc` ficam na pasta de cache do usuário, não no projeto nem no bundle.
 
 ### Hierarquia
 
@@ -526,7 +578,7 @@ Report run-000001: lace report show 1
   (com `-v`, também os intermediários); numa falha, `Written before it
   stopped` lista o que saiu, talvez pela metade, e `Not generated`, o que
   faltou, com `(left from an earlier run)` quando sobrou um de antes.
-- Quando um build falha antes de `check`, `sim` ou `synth`, uma linha diz
+- Quando um build falha antes de `sim` ou `synth`, uma linha diz
   que a fase seguinte não rodou e por quê.
 - Num terminal, uma barra mostra que um passo está rodando: o que ele faz
   (`Simulating (vvp)`, `Compiling the model (verilator)`), uma animação e o
@@ -548,9 +600,12 @@ CLI acrescenta o comando que resolve:
 | `error.code` | Dica |
 |---|---|
 | `no_top_level` | `Choose it with: lace top <file\|module>` |
-| `no_testbench` | `Create it with: lace add <name>_tb.v` |
+| `no_testbench` | `Create it with: lace add <name>_tb.v, or a cocotb one with: lace add test_<name>.py` |
+| `no_cocotb_toplevel` | `` Add a line `# aurora-toplevel: <module>` to the testbench, or choose the top with: lace top <file\|module> `` |
+| `cocotb_needs_icarus` | `Simulate it without --verilator` |
+| `cocotb_unavailable` | `Reinstall it with: lace install cocotb` |
 | `empty_project` | `Add one with: lace add <file.v>, or create a processor with: lace proc add <name>` |
-| `not_built` | `Build and simulate with: lace sim -p <processor>` |
+| `not_built` | sem o Verilog do processador (o `check` não compila), `Build it with: lace build -p <processor>`; sem o testbench, `Build and simulate with: lace sim -p <processor>` |
 | `processor_not_found` | num projeto sem processadores, `Create it with: lace proc add <name>`; com processadores, nenhuma: a mensagem lista os que existem |
 | `system_compiler_missing` | `Or set its location with --compiler <DIR> or LACE_COMPILER` |
 | `module_not_found` | nenhuma: a mensagem já lista os módulos do projeto |
@@ -580,7 +635,7 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `order` | `order.json` | o `.spf` e a lista do arquivo, na ordem nova |
 | `proc add`, `proc set` | `proc.json` | o `Processor` criado ou atualizado |
 | `build` | `build.json` | o `.spf` e um `BuildResult` por processador compilado; nenhum num projeto sem processadores |
-| `check` | `check.json` | os builds feitos antes e o `CheckResult` |
+| `check` | `check.json` | o `CheckResult` |
 | `hierarchy` | `hierarchy.json` | o `HierarchyResult`: o design e cada testbench, com a árvore de instâncias e o status de cada elaboração |
 | `sim` | `sim.json` | os builds feitos antes, o `SimulationResult`, os valores das portas de saída (com `-p`, depois de uma simulação que deu certo; uma porta que não pôde ser lida, como o `x` de uma divisão por zero, vem com `values` vazio e o motivo em `error`) e o PID do surfer-aurora (com `--open`) |
 | `wave` | `wave.json` | a onda aberta, o PID do surfer-aurora e o log dele; o `.surf.ron` gerado (`layout`, `null` sem processador ou com `--no-layout`) e os processadores dele (`processors`) |
@@ -601,7 +656,7 @@ O que o schema não mostra:
 - `build`, `check`, `sim` e `synth` trazem em `report` o relatório que
   gravaram (`run-000042`), ou `null` se nada rodou ou se ele não pôde ser
   gravado.
-- Em `check`, `sim` e `synth`, se um build falha ou é cancelado antes, o
+- Em `sim` e `synth`, se um build falha ou é cancelado antes, o
   resultado da operação sai `null`, e `sim` escreve `outputs: []` e
   `surfer_pid: null`: os campos aparecem sempre.
 - Em `tools`, as chaves de `tools` (o nome de cada executável) saem em ordem
@@ -674,8 +729,11 @@ Simulation infinito_tb: Cancelled, vvp stopped (icarus)
 ```
 
 Quem roda o `lace` a partir de outro programa e precisa pará-lo deve
-mandar SIGTERM. Um SIGKILL mata só o `lace`: a ferramenta roda num grupo
-de processos próprio e continua rodando sozinha.
+mandar SIGTERM no Linux e no macOS. Lá, um SIGKILL mata só o `lace`: a
+ferramenta roda num grupo de processos próprio e continua rodando sozinha.
+No Windows, encerrar o processo do `lace` (o `child.kill()` do Node, o
+Gerenciador de Tarefas) encerra também a ferramenta, que roda num Job Object
+preso a ele, e nenhuma ferramenta abre janela de console.
 
 ### Códigos de saída
 

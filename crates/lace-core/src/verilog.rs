@@ -499,7 +499,7 @@ pub fn module_template(name: &str) -> String {
     )
 }
 
-fn is_clock(name: &str) -> bool {
+pub(crate) fn is_clock(name: &str) -> bool {
     matches!(
         name.to_ascii_lowercase().as_str(),
         "clk" | "clock" | "clk_i" | "i_clk" | "clk_in" | "sys_clk"
@@ -507,7 +507,7 @@ fn is_clock(name: &str) -> bool {
 }
 
 /// `Some(true)` para reset ativo em alto, `Some(false)` em baixo.
-fn reset_polarity(name: &str) -> Option<bool> {
+pub(crate) fn reset_polarity(name: &str) -> Option<bool> {
     match name.to_ascii_lowercase().as_str() {
         "rst" | "reset" | "rst_i" | "i_rst" | "areset" => Some(true),
         "rst_n" | "rstn" | "reset_n" | "resetn" | "nrst" | "arst_n" | "rst_ni" => Some(false),
@@ -527,8 +527,9 @@ fn range(port: &Port) -> String {
 /// portas: `reg` para as entradas, `wire` para as saídas e bidirecionais,
 /// clock de 10 ns se houver uma porta `clk`/`clock`, reset nos primeiros 20
 /// ns se houver `rst`/`reset` (ou `rst_n`, ativo em baixo). Grava a onda
-/// (`$dumpfile("<testbench>.vcd")`, `$dumpvars(0, <testbench>)`, todos os
-/// sinais) e termina com `$finish`.
+/// (`$dumpfile("<testbench>.fst")`, `$dumpvars(0, <testbench>)`, todos os
+/// sinais; o FST é o formato do Icarus, e o Verilator grava `.vcd`) e
+/// termina com `$finish`.
 pub fn testbench_template(testbench: &str, dut: Option<&ModuleInterface>) -> String {
     let mut out = String::from("`timescale 1ns / 1ps\n\n");
     let Some(dut) = dut else {
@@ -536,7 +537,7 @@ pub fn testbench_template(testbench: &str, dut: Option<&ModuleInterface>) -> Str
             "module {testbench};\n\
              \n\
              \x20   initial begin\n\
-             \x20       $dumpfile(\"{testbench}.vcd\");\n\
+             \x20       $dumpfile(\"{testbench}.fst\");\n\
              \x20       $dumpvars(0, {testbench});\n\
              \n\
              \x20       #100;\n\
@@ -612,7 +613,7 @@ pub fn testbench_template(testbench: &str, dut: Option<&ModuleInterface>) -> Str
 
     out.push_str("    initial begin\n");
     out.push_str(&format!(
-        "        $dumpfile(\"{testbench}.vcd\");\n        $dumpvars(0, {testbench});\n\n"
+        "        $dumpfile(\"{testbench}.fst\");\n        $dumpvars(0, {testbench});\n\n"
     ));
     for port in &inputs {
         // O reset começa ativo; o resto, em zero.
@@ -1017,6 +1018,7 @@ mod tests {
             "rst_n = 0;",
             "#20 rst_n = 1;",
             "en = 0;",
+            "$dumpfile(\"counter_tb.fst\");",
             "$dumpvars(0, counter_tb);",
             "$finish;",
         ] {

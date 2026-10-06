@@ -11,6 +11,7 @@
 //! | arquivos e pastas | [`Project::create`], [`Project::add_processor`], [`Project::add_file`], [`Project::set_top_level`], [`Project::set_testbench`], [`Project::move_path`], [`Processor::write_input`] | `.spf` e diretórios no formato da AURORA |
 //! | YANC | [`build`] | Verilog, memórias e testbench de um processador |
 //! | Icarus Verilog | [`simulate`], [`simulate_project`], [`check`], [`hierarchy`] | [`SimulationResult`], [`CheckResult`], [`HierarchyResult`] |
+//! | cocotb (com o Icarus) | [`simulate_project`] com um testbench `.py` ([`cocotb`]) | [`SimulationResult`] com [`TestReport`] |
 //! | Verilator | [`simulate`], [`simulate_project`] | [`SimulationResult`] |
 //! | Yosys | [`synthesize`] | [`SynthesisResult`] (netlist JSON) |
 //! | Yosys + Graphviz | [`render_schematic`] | [`SchematicResult`] (SVG) |
@@ -109,7 +110,10 @@
 //!   thread; os tipos são `Send`. O [`Control`] passado a cada operação
 //!   cancela ([`CancelToken`]) e avisa cada linha que as ferramentas
 //!   escrevem enquanto rodam ([`Event`]). Cancelar encerra o processo e tudo
-//!   o que ele iniciou: nenhum processo do Lace sobra depois da operação.
+//!   o que ele iniciou: nenhum processo do Lace sobra depois da operação. No
+//!   Windows a árvore fica num Job Object ([`ProcessJob`]) e termina também
+//!   quando o processo do Lace morre, e nenhuma ferramenta abre janela de
+//!   console ([`hide_console`]).
 //!
 //! # Plataformas
 //!
@@ -123,6 +127,7 @@
 #![deny(missing_docs)]
 
 mod build;
+pub mod cocotb;
 mod control;
 mod diagnostics;
 mod error;
@@ -144,6 +149,7 @@ mod wave;
 mod wave_layout;
 
 pub use build::{BuildOptions, BuildResult, OnFailure, build, build_processors};
+pub use cocotb::{TestCase, TestReport, TestStatus};
 pub use control::{CancelToken, Control, Event, Stream};
 pub use diagnostics::{Diagnostic, Severity};
 pub use error::{LaceError, Result};
@@ -151,7 +157,7 @@ pub use files::{AddedFile, FileRole, ListPosition, MovedPath, ProjectFile, read_
 pub use hierarchy::{Elaboration, HierarchyOptions, HierarchyResult, ModuleInstance, hierarchy};
 pub use paths::YANC_PATH_LIMIT;
 pub use pipeline::{Artifact, ArtifactKind, Status, Step, StepReport};
-pub use process::{Invocation, RunningProcess, Termination};
+pub use process::{Invocation, ProcessJob, RunningProcess, Termination, hide_console};
 pub use project::{
     DEFAULT_CLOCKS, DEFAULT_FREQUENCY_MHZ, IssueKind, Language, MAX_CLOCKS, MAX_FREQUENCY_MHZ,
     MAX_PORTS, MAX_PROCESSOR_NAME, MAX_PROJECT_NAME, NewProcessor, Processor, ProcessorConfig,
@@ -163,8 +169,8 @@ pub use simulate::{
 };
 pub use stats::{CellUsage, SynthesisMetric, SynthesisStatistics};
 pub use synth::{
-    CheckOptions, CheckResult, DesignTarget, SCHEMATIC_CONNECTION_LIMIT, SCHEMATIC_TIMEOUT,
-    SchematicOptions, SchematicResult, SynthesisResult, check, render_schematic, synthesize,
+    CheckOptions, CheckResult, DesignTarget, SCHEMATIC_TIMEOUT, SchematicOptions, SchematicResult,
+    SynthesisResult, check, render_schematic, synthesize,
 };
 pub use toolchain::{
     BUNDLE_SCHEMA, BundleComponent, BundleManifest, COMPONENTS_DIR, FileMismatch, MANIFEST_FILE,

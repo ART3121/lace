@@ -371,14 +371,22 @@ export type Change =
  */
 export type Availability = 'available' | 'partial' | 'unavailable';
 /**
- * O formato do conteúdo de uma onda. Pode não bater com a extensão: o
- * testbench gerado sempre chama a onda de `.vcd`, e com FST o conteúdo é
- * FST mesmo assim.
+ * O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
+ * extensão é a do formato, menos quando o testbench nomeia a onda com uma
+ * expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
+ * testbench der.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "WaveformFormat".
  */
 export type WaveformFormat = 'vcd' | 'fst';
+/**
+ * Como um teste terminou. Em JSON: `"passed"`, `"failed"` ou `"skipped"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TestStatus".
+ */
+export type TestStatus = 'passed' | 'failed' | 'skipped';
 /**
  * O tipo de um [`ProjectIssue`]. Em JSON, `snake_case`.
  *
@@ -604,7 +612,9 @@ export interface Invocation {
    */
   program: string;
   /**
-   * Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.
+   * Argumentos, na ordem. Caminhos já estão no formato que a ferramenta
+   * aceita: o nativo do sistema, menos os do `iverilog` no Windows, que
+   * vão com `/`.
    */
   args: string[];
   /**
@@ -767,7 +777,9 @@ export interface Invocation1 {
    */
   program: string;
   /**
-   * Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.
+   * Argumentos, na ordem. Caminhos já estão no formato que a ferramenta
+   * aceita: o nativo do sistema, menos os do `iverilog` no Windows, que
+   * vão com `/`.
    */
   args: string[];
   /**
@@ -851,7 +863,9 @@ export interface Invocation2 {
    */
   program: string;
   /**
-   * Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.
+   * Argumentos, na ordem. Caminhos já estão no formato que a ferramenta
+   * aceita: o nativo do sistema, menos os do `iverilog` no Windows, que
+   * vão com `/`.
    */
   args: string[];
   /**
@@ -1774,6 +1788,12 @@ export interface SimulationResult {
    */
   missing_inputs: string[];
   /**
+   * Os testes de um testbench cocotb (`.py`), lidos do `results.xml`;
+   * `null` num testbench Verilog, ou se o cocotb não chegou a gravar o
+   * resultado.
+   */
+  tests: TestReport | null;
+  /**
    * Quanto a simulação levou, do começo ao fim (preparar, compilar e
    * rodar), em milissegundos.
    */
@@ -1795,6 +1815,64 @@ export interface Waveform {
    * O formato do conteúdo.
    */
   format: 'vcd' | 'fst';
+}
+/**
+ * O resultado dos testes de um testbench cocotb, lido do `results.xml`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TestReport".
+ */
+export interface TestReport {
+  /**
+   * O `results.xml` que o cocotb gravou.
+   */
+  results: string;
+  /**
+   * Os testes, na ordem em que rodaram.
+   */
+  cases: TestCase[];
+  /**
+   * Quantos passaram.
+   */
+  passed: number;
+  /**
+   * Quantos falharam.
+   */
+  failed: number;
+  /**
+   * Quantos não rodaram (`@cocotb.test(skip=True)`).
+   */
+  skipped: number;
+}
+/**
+ * Um teste (`@cocotb.test()`).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TestCase".
+ */
+export interface TestCase {
+  /**
+   * `<módulo>.<teste>`, como o cocotb mostra (`test_somador.basic_test`).
+   */
+  name: string;
+  /**
+   * Como terminou.
+   */
+  status: 'passed' | 'failed' | 'skipped';
+  /**
+   * Por que falhou (a mensagem da exceção) ou não rodou; `null` quando
+   * passou.
+   */
+  message: string | null;
+  /**
+   * O `.py` do teste.
+   */
+  file: string | null;
+  /**
+   * Numa falha, a linha mais funda do traceback dentro do `.py`; senão, a
+   * linha do teste.
+   */
+  line: number | null;
 }
 /**
  * O que a simulação de um processador escreveu numa porta de saída.
@@ -2270,19 +2348,44 @@ export interface BuildReport {
  * via the `definition` "CheckReport".
  */
 export interface CheckReport {
-  /**
-   * Os processadores, compilados antes. Se um falha, `check` é `null`.
-   */
-  builds: BuildResult[];
-  /**
-   * A verificação.
-   */
-  check: CheckResult | null;
+  check: CheckResult1;
   /**
    * O relatório gravado no histórico do projeto (`run-000042`), para
    * `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
    */
   report: string | null;
+}
+/**
+ * A verificação. Não compila os processadores: verifica o Verilog que
+ * está no disco.
+ */
+export interface CheckResult1 {
+  /**
+   * Os módulos elaborados como raiz: os do projeto (ou os do arquivo
+   * pedido) e cada testbench.
+   */
+  targets: string[];
+  /**
+   * `Succeeded` se tudo elabora sem erro.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * O primeiro passo que falhou.
+   */
+  failed_step: Step | null;
+  /**
+   * Um `iverilog -t null` para o projeto, um por testbench e, com
+   * `lint`, o `verilator --lint-only`.
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos, com arquivo e linha.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Quanto a verificação levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
 }
 /**
  * Qualquer comando que não conseguiu rodar (código de saída 2).
@@ -2995,7 +3098,7 @@ export interface WaveReport {
   /**
    * O estado do Surfer gerado para os processadores SAPHO da onda
    * (`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda
-   * que não é VCD.
+   * que não é VCD nem FST.
    */
   layout: string | null;
   /**

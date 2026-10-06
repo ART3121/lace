@@ -208,14 +208,34 @@ mostrar as abas, esconder os números de linha.
    enquanto roda.
 7. **PRISM** (F10): sintetiza o topo com o Yosys e abre o esquemático.
 
-Arquivos que já existem entram por **Projeto > Adicionar arquivos Verilog**
-ou arrastando-os para Módulos ou Testbenches, no explorador (seção 2.1). O
+Arquivos que já existem entram por **Projeto > Adicionar arquivos Verilog
+ou cocotb** ou arrastando-os para Módulos ou Testbenches, no explorador
+(seção 2.1). O
 Lace decide pelo conteúdo se cada um é módulo ou testbench (a regra da
 AURORA); soltar em Testbenches marca o arquivo como testbench. Um arquivo de
 fora da pasta do projeto é registrado no lugar, sem cópia: no mesmo
 repositório git do projeto, o `.spf` guarda o caminho relativo
 (`../../rtl/x.v`), que vale em qualquer clone; fora de repositório, o
 absoluto.
+
+**Testbench em Python (cocotb).** **Projeto > Novo testbench cocotb
+(Python)**, ou **Novo testbench** com a linguagem Python, cria um `.py` com
+os testes do cocotb; o nome sugerido é `test_<topo>.py`, e o `test_X.py`
+sai com a linha `# aurora-toplevel: X`, que diz qual módulo os testes
+recebem como `dut` (a diretiva da AURORA). Sem essa linha, os testes recebem
+o módulo de topo, com um aviso. O nome do arquivo vira o nome do módulo
+Python: só letras, números e `_`, sem começar por número. Um `.py` que já
+existe entra como os outros arquivos, sempre em Testbenches; o explorador
+lista na seção dos não registrados os `.py` da pasta que têm
+`@cocotb.test`. Com o `.py` como testbench simulado, **Wave** (F8) e
+**Rápida** (F9) rodam os testes no Icarus: o log do cocotb sai no console
+Wave, cada teste aparece lá com o resultado, e o que falhou vai também para o
+painel Problemas, na linha do `.py`. A onda abre mesmo com teste falhando,
+porque é nela que se vê a falha. O cocotb roda só no Icarus (com o Verilator
+nas preferências, a simulação recusa), precisa do componente cocotb
+(**Ferramentas**), e o **Verilog** (F7) verifica o design sem o `.py`. A
+primeira simulação cocotb da máquina leva alguns segundos a mais, enquanto o
+Python compila o cocotb.
 
 **A ordem dos arquivos** em Módulos e em Testbenches é a ordem em que os
 compiladores os leem, e um `` `define `` só vale para os arquivos de baixo
@@ -281,8 +301,7 @@ depois da simulação, porque as tabelas novas deslocariam o assembly e a
 linha: o resumo da aba avisa "compilado depois desta simulação", e basta
 simular de novo. A onda de um projeto só de Verilog abre com o grupo
 Top-level, com os sinais do testbench; o resto do design fica na
-hierarquia do Surfer (só ondas VCD; a `.fst` que o Lace grava quando o
-testbench não tem `$dumpfile` abre sem grupos).
+hierarquia do Surfer.
 
 Onde a onda abre é uma preferência (Preferências > Simulação): **numa
 aba** do Studio (o padrão) ou **em janela separada**. Na aba, o Surfer roda
@@ -304,13 +323,13 @@ em janela.
 | Botão | Tecla | Faz | Comando equivalente do Lace |
 |---|---|---|---|
 | C± | F6 | compila os processadores (o alvo, ou todos) | `lace build [-p NOME]` |
-| Verilog | F7 | compila os processadores que têm fonte e verifica o Verilog; com um processador no alvo, compila só ele e verifica o Verilog dele com o testbench do YANC | `lace check [-p NOME]` |
+| Verilog | F7 | verifica o Verilog com o Icarus, sem compilar os processadores (o Verilog do YANC entra como está no disco; compile antes com F6); com um processador no alvo, verifica o Verilog dele com o testbench do YANC | `lace check [-p NOME]` |
 | (menu Fluxo) | Shift+F7 | o mesmo, com o lint do Verilator | `lace check [-p NOME] --lint` |
 | Wave | F8 | compila, simula e abre a onda | `lace sim [-p NOME] --open` |
 | Rápida | F9 | compila e simula, sem abrir a onda | `lace sim [-p NOME]` |
 | Onda | Ctrl+F8 | abre a onda da última simulação | `lace wave [-p NOME]` |
 | PRISM | F10 | compila, sintetiza e desenha o esquemático | `lace synth [-p NOME] --svg` |
-| (menu Fluxo) | F5 | verifica e, se passar, simula | |
+| (menu Fluxo) | F5 | compila os processadores, verifica e, se passar, simula | |
 | Parar | Shift+F5 | cancela a operação; a ferramenta é encerrada com tudo o que iniciou. A atualização do Lace não para no meio | Ctrl+C na CLI |
 
 Antes de cada operação, o Studio salva os arquivos abertos: compila o que
@@ -339,7 +358,10 @@ Cada etapa escreve no seu console, com os nomes da AURORA:
 | Verilog | TVERI | a verificação do Icarus e o lint do Verilator |
 | Wave | TWAVE | a elaboração e a simulação: o que o testbench escreve, as saídas do processador, onde ficou a onda |
 | PRISM | TPRISM | o Yosys e o Graphviz |
-| Lace | | os comandos que o Studio rodou, a instalação de componentes |
+
+O comando que o Studio rodou (`> lace ...`) aparece no console onde a
+operação começa: o C± no build, o Verilog na verificação, o Wave na
+simulação, o PRISM na síntese.
 
 O painel troca sozinho para o console da etapa que está rodando (a não ser
 que você esteja no Terminal). Uma aba com saída nova ganha um ponto. Um
@@ -357,7 +379,11 @@ ignorado; um processador com nome que não compila.
 
 **Terminal** é um shell de verdade, aberto na pasta do projeto, com o
 `lace` no `PATH`: `lace status`, `lace report compare`, tudo o que a CLI
-faz. O botão `+` abre outro no lugar do atual. No Linux e no macOS é o seu
+faz. Ao abrir outro projeto, o terminal vai junto: o Studio digita no shell
+o `cd` para a pasta nova (`Set-Location` no PowerShell, `cd /d` no Prompt
+de Comando), e o histórico e o que estava na tela ficam. Um programa
+rodando no terminal nessa hora recebe o `cd` como entrada; encerre-o antes
+de trocar de projeto. O botão `+` abre outro no lugar do atual. No Linux e no macOS é o seu
 shell (a variável `SHELL`). No Windows, Preferências > Terminal escolhe
 entre o PowerShell (o padrão) e o Prompt de Comando (`cmd`); trocar
 reinicia o terminal aberto com o shell novo.
@@ -394,7 +420,8 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
 
 - o bundle, a plataforma, a pasta e como o Studio a achou;
 - os componentes instalados e os que faltam, com **Instalar** (roda o
-  `lace install` da sua instalação; o progresso aparece no console Lace);
+  `lace install` da sua instalação; a saída aparece nesta tela, em
+  **Saída de lace install**);
 - cada executável e onde está;
 - o compilador do Verilator (do sistema no Linux e no macOS, do bundle no
   Windows);
@@ -405,8 +432,8 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
 - **Atualizar para X**: aparece depois da busca, quando há um Lace mais
   novo publicado. Pede confirmação e roda o `lace update` da sua
   instalação. No Linux e no macOS, o instalador da release troca o `lace`
-  e o bundle inteiro, com os mesmos componentes, e a saída dele aparece no
-  console Lace. No Windows, abre o assistente de instalação; depois de
+  e o bundle inteiro, com os mesmos componentes, e a saída dele aparece
+  nesta tela. No Windows, abre o assistente de instalação; depois de
   terminar nele, clique em **Atualizar** no alto da tela para reler o
   bundle.
 

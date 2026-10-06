@@ -137,6 +137,7 @@ pub fn run() {
             jobs::flow_running,
             terminal::terminal_spawn,
             terminal::terminal_write,
+            terminal::terminal_cd,
             terminal::terminal_resize,
             terminal::terminal_kill,
             wave_tab::wave_tab_open,

@@ -73,6 +73,10 @@ export function FlowNavigator() {
         <Item label={t('action.addVerilog')} onClick={() => runAction('addVerilog')} />
         <Item label={t('action.newVerilog')} onClick={() => openDialog({ kind: 'newVerilog', testbench: false })} />
         <Item label={t('action.newTestbench')} onClick={() => openDialog({ kind: 'newVerilog', testbench: true })} />
+        <Item
+          label={t('action.newCocotb')}
+          onClick={() => openDialog({ kind: 'newVerilog', testbench: true, cocotb: true })}
+        />
         <Item label={t('action.newProcessor')} keys="Ctrl+Alt+P" onClick={() => openDialog({ kind: 'newProcessor' })} />
         <Item
           label={t('action.chooseTop')}

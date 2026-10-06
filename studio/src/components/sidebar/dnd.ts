@@ -102,7 +102,8 @@ export function sameTarget(a: DropTarget | null, b: DropTarget | null): boolean 
   return a.kind === 'section' && b.kind === 'section' && a.section === b.section;
 }
 
-const isVerilog = (path: string) => ['v', 'sv'].includes(extension(path));
+/** O que entra nas listas do projeto: Verilog e testbench cocotb (.py). */
+const isVerilog = (path: string) => ['v', 'sv', 'py'].includes(extension(path));
 
 /** Pastas e arquivos que não se movem: o `.spf`, `.lace/` e as pastas dos
  * processadores (o backend recusa também). */

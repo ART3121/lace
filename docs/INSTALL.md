@@ -82,7 +82,7 @@ Os dois instaladores oferecem os mesmos tipos:
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim |
 | Icarus Verilog | simulador Verilog, o padrão da AURORA | sim |
 | Verilator | simulador compilado; no Linux e no macOS precisa de compilador C++, `make` e Perl do sistema, no Windows vem com eles | não |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus e simula também no Verilator, se instalado. O Lace ainda não roda o cocotb | não |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave no Studio); com o Verilator, ainda não | não |
 | Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim |
@@ -90,8 +90,8 @@ Os dois instaladores oferecem os mesmos tipos:
 O Verilator fica fora da instalação Recommended porque, no Linux e no macOS, só
 funciona com o compilador do sistema instalado (ver [BUNDLE.md](BUNDLE.md),
 seção 4). No Windows ele já traz o g++, o `make` e o Perl, e fica fora da
-Recommended do mesmo jeito. O cocotb fica fora porque o Lace ainda não tem
-fluxo para ele, e porque acrescenta 115 MiB no Linux (42 MiB com o
+Recommended do mesmo jeito. O cocotb fica fora porque só serve a quem
+escreve testbench em Python e acrescenta 115 MiB no Linux (42 MiB com o
 Verilator, que traz o mesmo Python).
 Marcar o Graphviz marca o Yosys; desmarcar o Yosys desmarca o Graphviz.
 
@@ -159,13 +159,15 @@ no menu Iniciar (o atalho é do assistente): abra
 com o Studio marcado.
 
 O desinstalador do Windows apaga o `toolchain/` inteiro, com o que o
-`lace install` pôs. Rodar o assistente de novo também refaz o `toolchain/`
-com a seleção dele, que não conhece os aplicativos acrescentados depois:
-marque-os lá também.
+`lace install` pôs. Rodar o assistente de novo à mão também refaz o
+`toolchain/` com a seleção dele, que não conhece os aplicativos
+acrescentados depois: marque-os lá também. O `lace update` já abre o
+assistente com eles marcados.
 
 **Atualizar:** `lace update --check` compara as versões; `lace update`
-baixa o assistente da release nova, confere o SHA-256 e o abre, e ele lembra
-a pasta e os componentes.
+baixa o assistente da release nova, confere o SHA-256 e o abre. Ele lembra
+a pasta, e os componentes instalados vêm marcados: os do assistente e os que
+o `lace install` acrescentou.
 
 **Mudar os componentes:** rode o instalador de novo. Ele lembra a pasta e a
 seleção anteriores; o que for desmarcado é removido.

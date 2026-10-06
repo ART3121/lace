@@ -409,22 +409,8 @@ fn check(cli: &Cli, args: &CheckArgs, out: &Output, control: &Control) -> anyhow
         (None, None) => processor_here(cli, &project)?,
         (None, Some(_)) => None,
     };
-    let targets = match processor {
-        Some(processor) => vec![processor],
-        None => project.buildable_processors(),
-    };
-    let builds = build_first(&toolchain, &project, targets, out, control)?;
-    if !builds.iter().all(BuildResult::succeeded) {
-        out.not_run("Check", &builds);
-        let operation = Operation::new(command_line(), started).with_builds(&builds);
-        let report = record(&project, &toolchain, &operation, out);
-        out.json(&CheckReport {
-            builds,
-            check: None,
-            report,
-        })?;
-        return Ok(false);
-    }
+    // Só o Icarus (e o Verilator, com --lint) sobre o que está no disco: o
+    // check não recompila os processadores.
     let mut options = CheckOptions::default();
     options.file = args.file.as_deref().map(settings::absolute).transpose()?;
     options.lint = args.lint;
@@ -440,13 +426,10 @@ fn check(cli: &Cli, args: &CheckArgs, out: &Output, control: &Control) -> anyhow
         ));
     }
     let ok = result.succeeded();
-    let operation = Operation::new(command_line(), started)
-        .with_builds(&builds)
-        .with_check(&result);
+    let operation = Operation::new(command_line(), started).with_check(&result);
     let report = record(&project, &toolchain, &operation, out);
     out.json(&CheckReport {
-        builds,
-        check: Some(result),
+        check: result,
         report,
     })?;
     Ok(ok)
@@ -701,25 +684,23 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
     out.synthesis(&result, project.root());
 
     let mut schematic = None;
-    // Um módulo fora do netlist ou grande demais para desenhar não desfaz a
-    // síntese: o relatório dela é gravado, e o erro vem depois.
+    // Um módulo fora do netlist não desfaz a síntese: o relatório dela é
+    // gravado, e o erro vem depois.
     let mut refused = None;
+    if args.no_schematic_limit {
+        tracing::debug!("--no-schematic-limit is ignored: the schematic has no connection limit");
+    }
     if args.svg
         && let Some(netlist) = &result.netlist
     {
         let module = args.module.as_deref().unwrap_or(&result.top);
-        let mut options = SchematicOptions::default();
-        if args.no_schematic_limit {
-            options.max_connections = None;
-        }
+        let options = SchematicOptions::default();
         match lace_core::render_schematic(&toolchain, netlist, module, &options, control) {
             Ok(svg) => {
                 out.schematic(&svg, project.root());
                 schematic = Some(svg);
             }
-            Err(
-                error @ (LaceError::ModuleNotFound { .. } | LaceError::SchematicTooLarge { .. }),
-            ) => refused = Some(error),
+            Err(error @ LaceError::ModuleNotFound { .. }) => refused = Some(error),
             Err(error) => return Err(error.into()),
         }
     }

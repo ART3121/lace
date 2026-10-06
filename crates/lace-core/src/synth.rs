@@ -43,7 +43,7 @@ use crate::pipeline::{
     elapsed_ms, final_status,
 };
 use crate::process::Invocation;
-use crate::project::Project;
+use crate::project::{Processor, Project};
 use crate::stats::SynthesisStatistics;
 use crate::toolchain::{Tool, Toolchain};
 
@@ -144,19 +144,11 @@ pub struct SchematicOptions {
     /// Escreve a largura dos barramentos nas arestas (`show -width`). Padrão:
     /// sim.
     pub bus_widths: bool,
-    /// O teto de ligações (portas das células mais portas do módulo) do
-    /// módulo desenhado. Acima dele, [`render_schematic`] recusa com
-    /// [`LaceError::SchematicTooLarge`]: o `dot` leva minutos e muita memória
-    /// num grafo assim (40 instâncias de um registrador de 8 bits, 160
-    /// ligações, levaram mais de 40 s). `None`: sem teto. Padrão:
-    /// [`SCHEMATIC_CONNECTION_LIMIT`].
-    pub max_connections: Option<usize>,
     /// O prazo do `dot`. Padrão: [`SCHEMATIC_TIMEOUT`]. `None`: sem prazo.
+    /// Não há teto de ligações: um módulo grande desenha, por mais que o
+    /// `dot` demore, até o prazo.
     pub timeout: Option<Duration>,
 }
-
-/// O teto padrão de ligações do esquemático ([`SchematicOptions::max_connections`]).
-pub const SCHEMATIC_CONNECTION_LIMIT: usize = 120;
 
 /// O prazo padrão do `dot` ([`SchematicOptions::timeout`]).
 pub const SCHEMATIC_TIMEOUT: Duration = Duration::from_secs(60);
@@ -165,7 +157,6 @@ impl Default for SchematicOptions {
     fn default() -> Self {
         SchematicOptions {
             bus_widths: true,
-            max_connections: Some(SCHEMATIC_CONNECTION_LIMIT),
             timeout: Some(SCHEMATIC_TIMEOUT),
         }
     }
@@ -235,6 +226,11 @@ impl SchematicResult {
 /// - [`LaceError::EmptyProject`]: sem arquivos Verilog e sem processadores;
 /// - [`LaceError::InvalidProject`]: um arquivo registrado ou o `file`
 ///   pedido não existe;
+/// - [`LaceError::NotBuilt`]: nada para verificar porque nenhum processador
+///   foi compilado, um arquivo registrado que o build de um processador gera
+///   e ainda não existe, ou, com `processor`, o processador não compilado.
+///   `check` não compila: verifica o que está no disco, e um processador não
+///   compilado num projeto com outro Verilog fica de fora, com um aviso;
 /// - [`LaceError::ModuleNotFound`]: o `file` não declara módulo;
 /// - [`LaceError::ProcessorNotFound`] / [`LaceError::NotBuilt`]: com
 ///   `processor`, processador inexistente ou não compilado;
@@ -248,6 +244,18 @@ pub fn check(
 ) -> Result<CheckResult> {
     let _span = tracing::info_span!("check").entered();
     let started = Instant::now();
+    // O check não compila: o Verilog de um processador com fonte que nunca
+    // foi compilado fica de fora, com um aviso. Com um arquivo pedido, só ele
+    // importa, e uma instância do processador acusa o que falta.
+    let unbuilt: Vec<&Processor> = if options.processor.is_none() && options.file.is_none() {
+        project
+            .buildable_processors()
+            .into_iter()
+            .filter(|p| !p.hardware_dir().join(format!("{}.v", p.name)).is_file())
+            .collect()
+    } else {
+        Vec::new()
+    };
     // O design, os testbenches elaborados com ele e o topo do lint.
     let (design, testbenches, mut lint_top) = match &options.processor {
         Some(name) => {
@@ -263,11 +271,16 @@ pub fn check(
         None => {
             let mut testbenches = Vec::new();
             for tb in project.files(FileRole::Testbench) {
+                // Um testbench cocotb é Python: o check elabora Verilog.
+                if crate::cocotb::is_testbench(&tb.path) {
+                    continue;
+                }
                 if !tb.path.is_file() {
-                    return Err(LaceError::InvalidProject {
-                        path: tb.path,
-                        reason: "Testbench added to the project does not exist".into(),
-                    });
+                    return Err(missing_registered(
+                        project,
+                        tb.path,
+                        "Testbench added to the project does not exist",
+                    ));
                 }
                 testbenches.push(tb.path);
             }
@@ -279,6 +292,16 @@ pub fn check(
         }
     };
     if design.is_empty() && testbenches.is_empty() && options.file.is_none() {
+        // Nada para verificar porque nenhum processador foi compilado: a
+        // recusa diz qual compilar.
+        if let Some(processor) = unbuilt.first() {
+            return Err(LaceError::NotBuilt {
+                processor: processor.name.clone(),
+                missing: processor
+                    .hardware_dir()
+                    .join(format!("{}.v", processor.name)),
+            });
+        }
         return Err(LaceError::EmptyProject(project.spf_path().to_owned()));
     }
     let library = toolchain.sapho_library(!project.processors().is_empty())?;
@@ -292,9 +315,9 @@ pub fn check(
         if systemverilog {
             invocation = invocation.arg("-g2012");
         }
-        invocation = include_paths(invocation.arg("-tnull").arg("-Wall"), project.root());
+        invocation = include_paths(invocation.arg("-tnull").arg("-Wall"), None, project.root());
         if let Some(library) = &library {
-            invocation = invocation.arg("-y").path_arg(library);
+            invocation = invocation.arg("-y").icarus_path_arg(library);
         }
         Ok(invocation)
     };
@@ -317,7 +340,7 @@ pub fn check(
                 }
                 targets.extend(roots.names);
                 for file in &design {
-                    invocation = invocation.path_arg(file);
+                    invocation = invocation.icarus_path_arg(file);
                 }
                 runner.run(PlannedStep::new(
                     Step::CheckSyntax,
@@ -332,9 +355,9 @@ pub fn check(
                 let module = crate::files::testbench_module_of(testbench)?;
                 let mut invocation = iverilog()?.arg("-s").arg(&module);
                 for file in &design {
-                    invocation = invocation.path_arg(file);
+                    invocation = invocation.icarus_path_arg(file);
                 }
-                invocation = invocation.path_arg(testbench);
+                invocation = invocation.icarus_path_arg(testbench);
                 targets.push(module);
                 runner.run(PlannedStep::new(
                     Step::CheckSyntax,
@@ -345,6 +368,12 @@ pub fn check(
         }
         Some(file) => {
             let file = crate::paths::normalize(&project.root().join(file));
+            if crate::cocotb::is_testbench(&file) {
+                return Err(LaceError::InvalidName {
+                    name: file.file_name().unwrap_or_default().to_owned(),
+                    reason: "check verifies Verilog; a cocotb testbench (.py) runs its tests when it is simulated".into(),
+                });
+            }
             if !file.is_file() {
                 return Err(LaceError::InvalidProject {
                     path: file,
@@ -379,7 +408,7 @@ pub fn check(
                 files.push(file.clone());
             }
             for f in &files {
-                invocation = invocation.path_arg(f);
+                invocation = invocation.icarus_path_arg(f);
             }
             if is_testbench {
                 // O testbench não vai para o lint (o Verilator reclama de
@@ -441,6 +470,18 @@ pub fn check(
         runner.run(PlannedStep::new(Step::Lint, Tool::Verilator, invocation))?;
     }
 
+    diagnostics.extend(unbuilt.iter().map(|processor| Diagnostic {
+        tool: Tool::Iverilog,
+        severity: crate::diagnostics::Severity::Warning,
+        message: format!(
+            "Processor {} has not been built: its Verilog is not in the check",
+            processor.name
+        ),
+        file: Some(processor.source.clone()),
+        line: None,
+        column: None,
+        raw: String::new(),
+    }));
     diagnostics.extend(runner.diagnostics);
     Ok(CheckResult {
         targets,
@@ -627,8 +668,6 @@ pub fn synthesize(
 ///
 /// - [`LaceError::ModuleNotFound`]: o netlist não tem o módulo (um fora da
 ///   árvore do topo não é sintetizado); `available` lista os que tem;
-/// - [`LaceError::SchematicTooLarge`]: acima de
-///   [`SchematicOptions::max_connections`];
 /// - [`LaceError::InvalidNetlist`]: o netlist não é JSON;
 /// - [`LaceError::ComponentMissing`]: o bundle não tem o Yosys ou o `dot`.
 pub fn render_schematic(
@@ -646,16 +685,6 @@ pub fn render_schematic(
             name: module.to_owned(),
             available,
         });
-    }
-    if let Some(limit) = options.max_connections {
-        let connections = module_connections(netlist, module)?;
-        if connections > limit {
-            return Err(LaceError::SchematicTooLarge {
-                module: module.to_owned(),
-                connections,
-                limit,
-            });
-        }
     }
 
     let dir = netlist.parent().expect("File has a parent").to_owned();
@@ -738,6 +767,22 @@ pub(crate) fn processor_verilog(project: &Project, name: &str) -> Result<Utf8Pat
     Ok(verilog)
 }
 
+/// O erro de um arquivo registrado que não existe: se é um dos que o build de
+/// um processador gera, o processador não foi compilado ([`LaceError::NotBuilt`]);
+/// senão, o projeto aponta para um arquivo que sumiu.
+pub(crate) fn missing_registered(project: &Project, path: Utf8PathBuf, reason: &str) -> LaceError {
+    match project.generated_by(&path) {
+        Some(processor) => LaceError::NotBuilt {
+            processor: processor.name.clone(),
+            missing: path,
+        },
+        None => LaceError::InvalidProject {
+            path,
+            reason: reason.into(),
+        },
+    }
+}
+
 /// Os fontes do projeto para checagem, síntese e hierarquia, na ordem da
 /// AURORA: sintetizáveis do `.spf`, `.v` de `<raiz>/TopLevel/` (legado da
 /// AURORA) e o `Hardware/*.v` de cada processador, sem testbenches.
@@ -745,10 +790,11 @@ pub(crate) fn project_sources(project: &Project) -> Result<Vec<Utf8PathBuf>> {
     let mut files = Vec::new();
     for file in project.files(FileRole::Synthesizable) {
         if !file.path.is_file() {
-            return Err(LaceError::InvalidProject {
-                path: file.path,
-                reason: "Synthesizable file added to the project does not exist".into(),
-            });
+            return Err(missing_registered(
+                project,
+                file.path,
+                "Synthesizable file added to the project does not exist",
+            ));
         }
         files.push(file.path);
     }
@@ -858,14 +904,26 @@ fn yosys_script(
 }
 
 /// Os caminhos de busca do `include` no Icarus: a pasta do arquivo que
-/// inclui (`-grelative-include`, como o Yosys faz) e depois a raiz do
-/// projeto. Sem isso, o Icarus procura no CWD, e o mesmo `include` passava
-/// na simulação e quebrava na síntese, ou o contrário.
-pub(crate) fn include_paths(invocation: Invocation, root: &Utf8Path) -> Invocation {
-    invocation
-        .arg("-grelative-include")
-        .arg("-I")
-        .path_arg(root)
+/// inclui (`-grelative-include`, como o Yosys faz), depois `before`, se
+/// houver, e por fim a raiz do projeto. Sem isso, o Icarus procura no CWD, e
+/// o mesmo `include` passava na simulação e quebrava na síntese, ou o
+/// contrário.
+///
+/// `before` é a pasta do testbench original quando o Icarus compila a cópia
+/// com o dump injetado, que fica em `.lace/Temp`: o `include` relativo à
+/// pasta dele continua achando o arquivo. Os caminhos vão com `/`
+/// ([`icarus_path`](crate::process::icarus_path)), sem o que o
+/// `-grelative-include` não funciona no Windows.
+pub(crate) fn include_paths(
+    invocation: Invocation,
+    before: Option<&Utf8Path>,
+    root: &Utf8Path,
+) -> Invocation {
+    let mut invocation = invocation.arg("-grelative-include");
+    if let Some(dir) = before {
+        invocation = invocation.arg("-I").icarus_path_arg(dir);
+    }
+    invocation.arg("-I").icarus_path_arg(root)
 }
 
 /// Conserta o texto fora do ASCII que o `write_json` do Yosys estraga: cada
@@ -908,29 +966,6 @@ fn repair_escaped_bytes(text: &str) -> String {
     }
     out.push_str(rest);
     out
-}
-
-/// As ligações de `module` no netlist: as portas de cada célula mais as
-/// portas do módulo. É o que vira aresta no `show` do Yosys.
-fn module_connections(netlist: &Utf8Path, module: &str) -> Result<usize> {
-    let text =
-        std::fs::read_to_string(netlist).map_err(LaceError::io("Reading netlist", netlist))?;
-    let doc: Value = serde_json::from_str(&text).map_err(|e| LaceError::InvalidNetlist {
-        path: netlist.to_owned(),
-        reason: e.to_string(),
-    })?;
-    let module = &doc["modules"][module];
-    let cells: usize = module["cells"]
-        .as_object()
-        .map(|cells| {
-            cells
-                .values()
-                .map(|c| c["connections"].as_object().map_or(0, |p| p.len()))
-                .sum()
-        })
-        .unwrap_or(0);
-    let ports = module["ports"].as_object().map_or(0, |p| p.len());
-    Ok(cells + ports)
 }
 
 /// Os módulos do netlist que dá para desenhar: sem as caixas-pretas (um
@@ -1001,7 +1036,7 @@ fn check_warnings(log: &str) -> Vec<Diagnostic> {
             && let Some((file, rest)) = place.rsplit_once(':')
             && let Some(number) = rest.split(['.', '-']).next().and_then(|n| n.parse().ok())
         {
-            last.file = Some(file.trim().into());
+            last.file = Some(crate::paths::native_separators(file.trim()));
             last.line = Some(number);
         }
     }
@@ -1142,23 +1177,6 @@ mod tests {
         let doc: Value = serde_json::from_str(&fixed).unwrap();
         assert_eq!(doc["src"], "/p/Ação/x.v:4.1-4.2");
         assert_eq!(repair_escaped_bytes("sem nada"), "sem nada");
-    }
-
-    #[test]
-    fn schematic_connections_count_cell_and_module_ports() {
-        let guard = tempfile::tempdir().unwrap();
-        let netlist = Utf8Path::from_path(guard.path())
-            .unwrap()
-            .join("hierarchy.json");
-        std::fs::write(
-            &netlist,
-            r#"{"modules": {"topo": {"ports": {"clk": {}, "x": {}, "z": {}},
-                "cells": {"c0": {"connections": {"a": [], "b": [], "clk": [], "y": []}},
-                          "c1": {"connections": {"a": [], "b": [], "clk": [], "y": []}}}}}}"#,
-        )
-        .unwrap();
-        assert_eq!(module_connections(&netlist, "topo").unwrap(), 11);
-        assert_eq!(module_connections(&netlist, "outro").unwrap(), 0);
     }
 
     #[test]

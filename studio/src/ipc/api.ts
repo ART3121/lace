@@ -200,6 +200,8 @@ export const api = {
       return call<number>('terminal_spawn', { cwd, cols, rows, channel });
     },
     write: (id: number, data: string) => call<void>('terminal_write', { id, data }),
+    /** Digita no shell o `cd` para `path`, na sintaxe do shell dele. */
+    cd: (id: number, path: string) => call<void>('terminal_cd', { id, path }),
     resize: (id: number, cols: number, rows: number) =>
       call<void>('terminal_resize', { id, cols, rows }),
     kill: (id: number) => call<void>('terminal_kill', { id }),

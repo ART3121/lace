@@ -138,7 +138,7 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 |---|---|
 | `lib.rs` | a lista de módulos, os `pub use` que formam a API pública, a documentação do crate (fluxo típico, garantias) e os atributos que valem para o crate todo |
 | `toolchain.rs` | o bundle: `Toolchain` (`open`, `locate`, `tool`, `verify`, `sapho_library`), `Tool` e o caminho fixo de cada executável (`Tool::location`), `Platform`, o manifesto (`BundleManifest`, `BundleComponent`), `SystemCompiler` e o ambiente de cada ferramenta (`Toolchain::invocation`) |
-| `process.rs` | o único módulo que cria processos: `Invocation`, `run` (lê a saída linha a linha, confere cancelamento e prazo, encerra o grupo de processos), `Watch`, `spawn`, `RunningProcess`, `Termination`; o ambiente vazio (`INHERITED_ENV`, `GUI_ENV`) |
+| `process.rs` | o único módulo que cria processos: `Invocation`, `run` (lê a saída linha a linha, confere cancelamento e prazo, encerra o grupo de processos no Unix e o Job Object no Windows), `Watch`, `spawn`, `RunningProcess`, `Termination`; o ambiente vazio (`INHERITED_ENV`, `GUI_ENV`); `ProcessJob` e `hide_console`, que o Studio também usa |
 | `control.rs` | `Control`, `CancelToken`, `Event` e `Stream`: o que a interface passa a cada operação para cancelá-la e acompanhar a saída ([Cancelamento e saída ao vivo](#cancelamento-e-saída-ao-vivo)) |
 | `pipeline.rs` | o que todo resultado tem: `Step`, `Status`, `StepReport`, `Artifact`, `ArtifactKind`; por dentro, `PlannedStep`, `Runner` (roda os passos em sequência, emite os eventos do `Control` e para no primeiro que falha ou no cancelamento) e `ArtifactTracker` (o `fresh` dos artefatos) |
 | `diagnostics.rs` | `Diagnostic` e `Severity`; `parse` traduz a saída de cada ferramenta em diagnósticos; `is_message` diz, linha a linha, se uma linha é mensagem da ferramenta (o campo `diagnostic` do `Event::Output`) |
@@ -481,8 +481,9 @@ let control = Control::new()
 
 - **Cancelar** (`cancel.cancel()`, de qualquer thread) encerra o processo
   que roda, com tudo o que ele iniciou: no Unix o grupo de processos, no
-  Windows a árvore. Os passos seguintes não começam. A operação volta como
-  `Ok`, com `Status::Cancelled` e os passos que chegaram a rodar.
+  Windows o Job Object do passo.
+  Os passos seguintes não começam. A operação volta como `Ok`, com
+  `Status::Cancelled` e os passos que chegaram a rodar.
 - **Prazo** é só o da simulação, `SimulationOptions::timeout`. Passou dele:
   `Status::TimedOut`, com o que o testbench escreveu até ali.
 - **Eventos**: `StepStarted` (com o comando), `Output` (uma linha, com

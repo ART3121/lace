@@ -46,6 +46,26 @@ pub(crate) fn to_utf8(path: impl AsRef<Path>) -> Result<Utf8PathBuf> {
         .map_err(|p| LaceError::NonUtf8Path(p.display().to_string()))
 }
 
+/// A pasta de cache do Lace, só do usuário (o `/tmp` do Linux é de todos):
+/// `$XDG_CACHE_HOME/lace` ou `~/.cache/lace` no Linux,
+/// `~/Library/Caches/lace` no macOS, `%TEMP%\lace` no Windows. Não é
+/// criada aqui.
+pub(crate) fn user_cache_dir() -> Result<Utf8PathBuf> {
+    let home = || std::env::var_os("HOME").filter(|h| !h.is_empty());
+    let base = if cfg!(windows) {
+        None
+    } else if cfg!(target_os = "macos") {
+        home().map(|h| std::path::PathBuf::from(h).join("Library/Caches"))
+    } else {
+        std::env::var_os("XDG_CACHE_HOME")
+            .map(std::path::PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .or_else(|| home().map(|h| std::path::PathBuf::from(h).join(".cache")))
+    };
+    let base = base.unwrap_or_else(std::env::temp_dir);
+    to_utf8(base.join("lace"))
+}
+
 /// Recusa um caminho com caractere fora do ASCII onde o simulador abre
 /// arquivo por nome. O YANC grava no Verilog e no testbench o caminho
 /// absoluto das memórias (`<proc>/Hardware/<proc>_inst.mif`) e das entradas
@@ -96,6 +116,20 @@ pub(crate) fn is_windows_absolute(path: &str) -> bool {
         && bytes[0].is_ascii_alphabetic()
         && bytes[1] == b':'
         && matches!(bytes[2], b'\\' | b'/')
+}
+
+/// Um caminho que uma ferramenta escreveu, com o separador do sistema: no
+/// Windows, `/` vira `\`. O Icarus recebe os fontes com `/`
+/// ([`icarus_path`](crate::process::icarus_path)) e os devolve assim nas
+/// mensagens e no `.vvp`. Com o separador nativo, cada arquivo tem um só nome
+/// nos resultados, igual ao das outras operações (o Studio abre o arquivo de
+/// um diagnóstico pelo caminho, e um nome com `/` viraria outra aba).
+pub(crate) fn native_separators(path: &str) -> Utf8PathBuf {
+    if cfg!(windows) {
+        Utf8PathBuf::from(path.replace('/', "\\"))
+    } else {
+        Utf8PathBuf::from(path)
+    }
 }
 
 /// Caminho relativo que não sai do diretório base: sem raiz, sem prefixo de

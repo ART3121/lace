@@ -368,7 +368,7 @@
           "type": "string"
         },
         "args": {
-          "description": "Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.",
+          "description": "Argumentos, na ordem. Caminhos já estão no formato que a ferramenta\naceita: o nativo do sistema, menos os do `iverilog` no Windows, que\nvão com `/`.",
           "type": "array",
           "items": {
             "type": "string"
@@ -792,6 +792,17 @@
             "type": "string"
           }
         },
+        "tests": {
+          "description": "Os testes de um testbench cocotb (`.py`), lidos do `results.xml`;\n`null` num testbench Verilog, ou se o cocotb não chegou a gravar o\nresultado.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TestReport"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "duration_ms": {
           "description": "Quanto a simulação levou, do começo ao fim (preparar, compilar e\nrodar), em milissegundos.",
           "type": "integer",
@@ -810,6 +821,7 @@
         "waveform",
         "outputs",
         "missing_inputs",
+        "tests",
         "duration_ms"
       ]
     },
@@ -847,7 +859,7 @@
       ]
     },
     "WaveformFormat": {
-      "description": "O formato do conteúdo de uma onda. Pode não bater com a extensão: o\ntestbench gerado sempre chama a onda de `.vcd`, e com FST o conteúdo é\nFST mesmo assim.",
+      "description": "O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A\nextensão é a do formato, menos quando o testbench nomeia a onda com uma\nexpressão que o Lace não resolve: aí o Icarus grava VCD no nome que o\ntestbench der.",
       "oneOf": [
         {
           "description": "Value Change Dump, texto.",
@@ -858,6 +870,112 @@
           "description": "Fast Signal Trace, binário e comprimido.",
           "type": "string",
           "const": "fst"
+        }
+      ]
+    },
+    "TestReport": {
+      "description": "O resultado dos testes de um testbench cocotb, lido do `results.xml`.",
+      "type": "object",
+      "properties": {
+        "results": {
+          "description": "O `results.xml` que o cocotb gravou.",
+          "type": "string"
+        },
+        "cases": {
+          "description": "Os testes, na ordem em que rodaram.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestCase"
+          }
+        },
+        "passed": {
+          "description": "Quantos passaram.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "failed": {
+          "description": "Quantos falharam.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "skipped": {
+          "description": "Quantos não rodaram (`@cocotb.test(skip=True)`).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "results",
+        "cases",
+        "passed",
+        "failed",
+        "skipped"
+      ]
+    },
+    "TestCase": {
+      "description": "Um teste (`@cocotb.test()`).",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "`<módulo>.<teste>`, como o cocotb mostra (`test_somador.basic_test`).",
+          "type": "string"
+        },
+        "status": {
+          "description": "Como terminou.",
+          "$ref": "#/$defs/TestStatus"
+        },
+        "message": {
+          "description": "Por que falhou (a mensagem da exceção) ou não rodou; `null` quando\npassou.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "file": {
+          "description": "O `.py` do teste.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "description": "Numa falha, a linha mais funda do traceback dentro do `.py`; senão, a\nlinha do teste.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "message",
+        "file",
+        "line"
+      ]
+    },
+    "TestStatus": {
+      "description": "Como um teste terminou. Em JSON: `\"passed\"`, `\"failed\"` ou `\"skipped\"`.",
+      "oneOf": [
+        {
+          "description": "Passou.",
+          "type": "string",
+          "const": "passed"
+        },
+        {
+          "description": "Falhou: um `assert` ou uma exceção.",
+          "type": "string",
+          "const": "failed"
+        },
+        {
+          "description": "Não rodou.",
+          "type": "string",
+          "const": "skipped"
         }
       ]
     },

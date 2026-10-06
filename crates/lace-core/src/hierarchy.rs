@@ -205,6 +205,10 @@ pub fn hierarchy(
         None => {
             let design = project_sources(project)?;
             for tb in project.files(FileRole::Testbench) {
+                // Um testbench cocotb é Python: não tem hierarquia de Verilog.
+                if crate::cocotb::is_testbench(&tb.path) {
+                    continue;
+                }
                 if !tb.path.is_file() {
                     return Err(LaceError::InvalidProject {
                         path: tb.path,
@@ -277,25 +281,25 @@ pub fn hierarchy(
         let image = work.join(format!("{}.vvp", target.name));
         tracker.expect(ArtifactKind::IcarusImage, &image, true);
         // Os caminhos que podem ir para a tabela de arquivos do `.vvp` (as
-        // fontes, a biblioteca e a pasta dos `include`) vão por
-        // `icarus_path`; o `-I` é o de `synth::include_paths`.
-        let mut invocation = toolchain
-            .invocation(Tool::Iverilog, project.root())?
-            .arg("-grelative-include")
-            .arg("-I")
-            .arg(icarus_path(project.root()));
+        // fontes, a biblioteca e a pasta dos `include`) vão com `/`
+        // (`process::icarus_path`), como no `synth::include_paths`.
+        let mut invocation = crate::synth::include_paths(
+            toolchain.invocation(Tool::Iverilog, project.root())?,
+            None,
+            project.root(),
+        );
         if target.files.iter().any(|f| f.extension() == Some("sv")) {
             invocation = invocation.arg("-g2012");
         }
         if let Some(library) = &library {
-            invocation = invocation.arg("-y").arg(icarus_path(library));
+            invocation = invocation.arg("-y").icarus_path_arg(library);
         }
         for top in &target.tops {
             invocation = invocation.arg("-s").arg(top);
         }
         invocation = invocation.arg("-o").path_arg(&image);
         for file in &target.files {
-            invocation = invocation.arg(icarus_path(file));
+            invocation = invocation.icarus_path_arg(file);
         }
 
         // Um Runner por elaboração: a falha de uma não pula as outras.
@@ -392,22 +396,6 @@ struct Scope {
     parent: Option<String>,
 }
 
-/// Um caminho como o `iverilog` da hierarquia o recebe: no Windows, com `/`.
-/// O `.vvp` guarda os nomes da tabela `:file_names` como vieram, sem escapar
-/// a `\`, e na leitura a `\` de `C:\Users` sumiria ([`unescape`] a lê como
-/// escape). O Windows aceita a `/`, e o `Utf8Path` do resultado compara igual
-/// ao caminho com `\`.
-fn icarus_path(path: &Utf8Path) -> String {
-    let native = dunce::simplified(path.as_std_path())
-        .to_string_lossy()
-        .into_owned();
-    if cfg!(windows) {
-        native.replace('\\', "/")
-    } else {
-        native
-    }
-}
-
 /// A árvore de módulos de um `.vvp`. Os blocos `generate`, `begin` e `fork`
 /// não viram nós: as instâncias de dentro deles sobem para o módulo de cima,
 /// com o caminho dos blocos no nome. Funções e tarefas ficam de fora.
@@ -433,7 +421,10 @@ fn parse_vvp(text: &str, root: &Utf8Path, library: Option<&Utf8Path>) -> Vec<Mod
                     .map(unescape)
                     .unwrap_or_default();
                 let real = !name.is_empty() && name != "N/A" && !name.starts_with('<');
-                files.push(real.then(|| root.join(name)));
+                // O `iverilog` recebe os fontes com `/` (`process::icarus_path`),
+                // porque o `unescape` comeria a `\` de `C:\Users`; no
+                // resultado, o separador volta a ser o do sistema.
+                files.push(real.then(|| root.join(crate::paths::native_separators(&name))));
             }
         }
     }

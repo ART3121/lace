@@ -39,3 +39,6 @@ schemars = "1"
 jsonschema = { version = "0.58", default-features = false }
 rustix = { version = "1", default-features = false, features = ["std", "process", "system"] }
 signal-hook = { version = "0.3", default-features = false }
+win32job = "2"
+fst-reader = "0.17"
+roxmltree = "0.21"

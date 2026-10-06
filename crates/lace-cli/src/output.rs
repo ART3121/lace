@@ -23,7 +23,7 @@ use lace_core::{
     Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, ModuleInstance, MovedPath,
     Platform, PreparedLayout, Processor, Project, ProjectFile, RunningProcess, SchematicResult,
     Severity, SimulationResult, Simulator, Status, Step, StepReport, SynthesisMetric,
-    SynthesisResult, Termination, Tool, Toolchain, component,
+    SynthesisResult, Termination, TestStatus, Tool, Toolchain, component,
 };
 use serde::Serialize;
 
@@ -673,6 +673,29 @@ impl Output {
                 relative(missing, root)
             );
         }
+        // cocotb: um teste por linha, e quantos passaram. As falhas já saíram
+        // nos diagnósticos, com a linha do `.py`.
+        if let Some(tests) = &result.tests {
+            for case in &tests.cases {
+                let (style, state) = match case.status {
+                    TestStatus::Passed => (OK, "passed"),
+                    TestStatus::Failed => (ERROR, "failed"),
+                    _ => (DIM, "skipped"),
+                };
+                println!("    {} {}", paint(style, format!("{state:<9}")), case.name);
+            }
+            let total = tests.passed + tests.failed + tests.skipped;
+            let style = if tests.failed > 0 || total == 0 {
+                ERROR
+            } else {
+                OK
+            };
+            println!(
+                "  {}: {} of {total} passed",
+                paint(style, "Tests"),
+                tests.passed
+            );
+        }
     }
 
     pub fn check(&self, result: &CheckResult, lint: bool, root: &Utf8Path) {
@@ -1229,10 +1252,25 @@ const TITLE_TARGETS: usize = 5;
 fn hint(error: &LaceError) -> Option<String> {
     Some(match error {
         LaceError::NoTopLevel(_) => "Choose it with: lace top <file|module>".into(),
-        LaceError::NoTestbench(_) => "Create it with: lace add <name>_tb.v".into(),
+        LaceError::NoTestbench(_) => {
+            "Create it with: lace add <name>_tb.v, or a cocotb one with: lace add test_<name>.py"
+                .into()
+        }
+        LaceError::NoCocotbToplevel(_) => {
+            "Add a line `# aurora-toplevel: <module>` to the testbench, or choose the top with: lace top <file|module>".into()
+        }
+        LaceError::CocotbNeedsIcarus(_) => "Simulate it without --verilator".into(),
+        LaceError::CocotbUnavailable { .. } => "Reinstall it with: lace install cocotb".into(),
         LaceError::EmptyProject(_) => {
             "Add one with: lace add <file.v>, or create a processor with: lace proc add <name>"
                 .into()
+        }
+        // Sem o Verilog do processador (o check não compila), compilar basta;
+        // sem o testbench (a onda de quem nunca simulou), é simular.
+        LaceError::NotBuilt { processor, missing }
+            if missing.file_name() == Some(format!("{processor}.v").as_str()) =>
+        {
+            format!("Build it with: lace build -p {processor}")
         }
         LaceError::NotBuilt { processor, .. } => {
             format!("Build and simulate with: lace sim -p {processor}")
@@ -1246,9 +1284,6 @@ fn hint(error: &LaceError) -> Option<String> {
         }
         LaceError::NonAsciiPath { .. } => {
             "Move the project to a folder without accents or other non-ASCII characters".into()
-        }
-        LaceError::SchematicTooLarge { .. } => {
-            "Draw a submodule with --module <name> (lace synth -v lists them), or lift the limit with --no-schematic-limit".into()
         }
         LaceError::ProcessorNotFound { name, available } if available.is_empty() => {
             format!("Create it with: lace proc add {name}")

@@ -61,6 +61,39 @@ pub fn prefix() -> anyhow::Result<Utf8PathBuf> {
     }
 }
 
+/// Abre o assistente do Inno Setup (o instalador do `lace update`, o
+/// desinstalador do `lace uninstall`), que continua aberto depois que o
+/// `lace` sai.
+///
+/// - Sem stdin, stdout nem stderr do `lace`: quem lê a saída dele até o fim,
+///   como o Studio com `--json`, recebe o fim quando o `lace` termina, e não
+///   quando o assistente fecha.
+/// - Fora do Job Object de quem chamou o `lace` (`CREATE_BREAKAWAY_FROM_JOB`):
+///   o Studio prende a CLI num job que encerra o que sobra quando ela
+///   termina. Se o job não deixa sair, o sistema recusa, e o assistente abre
+///   dentro dele, como antes.
+pub fn open_wizard(command: &mut std::process::Command) -> std::io::Result<()> {
+    use std::process::Stdio;
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // `CREATE_BREAKAWAY_FROM_JOB`, de `WinBase.h`.
+        const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
+        command.creation_flags(CREATE_BREAKAWAY_FROM_JOB);
+        match command.spawn() {
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+                command.creation_flags(0);
+            }
+            other => return other.map(|_| ()),
+        }
+    }
+    command.spawn().map(|_| ())
+}
+
 /// O desinstalador do Inno Setup na pasta: `unins000.exe` (o número sobe se
 /// houver mais de um).
 pub fn uninstaller_exe(prefix: &Utf8Path) -> Option<Utf8PathBuf> {

@@ -340,6 +340,47 @@ pub fn inno_name(name: &str) -> String {
     name.replace('-', "_")
 }
 
+/// O componente de cima de cada um, na árvore do Inno Setup: quem exige
+/// exatamente um outro fica embaixo dele (marcar o filho marca o pai,
+/// desmarcar o pai desmarca o filho). Os pares são `(nome, requires)`. O Inno
+/// não expressa dependência de mais de um componente.
+fn inno_parents<'a>(
+    components: &[(&'a str, &'a [String])],
+) -> anyhow::Result<BTreeMap<&'a str, &'a str>> {
+    let mut parent = BTreeMap::new();
+    for &(name, requires) in components {
+        match requires {
+            [] => {}
+            [p] if components.iter().any(|&(n, _)| n == p.as_str()) => {
+                parent.insert(name, p.as_str());
+            }
+            _ => bail!("{name}: Inno Setup can only express a dependency on a single component"),
+        }
+    }
+    Ok(parent)
+}
+
+fn inno_full_name(parent: &BTreeMap<&str, &str>, name: &str) -> String {
+    match parent.get(name) {
+        Some(p) => format!("{}\\{}", inno_name(p), inno_name(name)),
+        None => inno_name(name),
+    }
+}
+
+/// O nome completo de cada componente no Inno Setup, com o de cima quando
+/// há: `icarus\cocotb`, `surfer_aurora`. É o nome que `[Components]` declara
+/// e que o `/COMPONENTS=` do assistente aceita. Os pares são `(nome,
+/// requires)`, como no índice do payload.
+pub fn inno_component_names<'a>(
+    components: &[(&'a str, &'a [String])],
+) -> anyhow::Result<BTreeMap<&'a str, String>> {
+    let parent = inno_parents(components)?;
+    Ok(components
+        .iter()
+        .map(|&(name, _)| (name, inno_full_name(&parent, name)))
+        .collect())
+}
+
 /// "a, b e c".
 fn human_list(items: &[&str]) -> String {
     match items {
@@ -363,32 +404,13 @@ pub fn inno(toolchain: &Path, contents: &Contents, lace: &Path, out: &Path) -> a
     fs::copy(lace, out.join("bin/lace.exe"))
         .with_context(|| format!("Copying {}", lace.display()))?;
 
-    // Um componente que exige exatamente um outro fica embaixo dele na
-    // árvore: marcar o filho marca o pai, desmarcar o pai desmarca o filho.
-    let names: Vec<&str> = contents
+    let pairs: Vec<(&str, &[String])> = contents
         .components
         .iter()
-        .map(|c| c.name.as_str())
+        .map(|c| (c.name.as_str(), c.requires.as_slice()))
         .collect();
-    let mut parent: BTreeMap<&str, &str> = BTreeMap::new();
-    for c in &contents.components {
-        match c.requires.as_slice() {
-            [] => {}
-            [p] if names.contains(&p.as_str()) => {
-                parent.insert(&c.name, p);
-            }
-            _ => bail!(
-                "{}: Inno Setup can only express a dependency on a single component",
-                c.name
-            ),
-        }
-    }
-    let full = |name: &str| -> String {
-        match parent.get(name) {
-            Some(p) => format!("{}\\{}", inno_name(p), inno_name(name)),
-            None => inno_name(name),
-        }
-    };
+    let parent = inno_parents(&pairs)?;
+    let full = |name: &str| inno_full_name(&parent, name);
 
     let recommended: Vec<&str> = contents
         .components
@@ -608,5 +630,27 @@ mod tests {
             "bundle.json"
         );
         assert!(out.join("chunks/01/toolchain/oss/lib/libc").is_file());
+    }
+
+    #[test]
+    fn inno_component_names_are_the_ones_the_script_declares() {
+        let c = contents();
+        let pairs: Vec<(&str, &[String])> = c
+            .components
+            .iter()
+            .map(|c| (c.name.as_str(), c.requires.as_slice()))
+            .collect();
+        let names = inno_component_names(&pairs).unwrap();
+        assert_eq!(names["icarus"], "icarus");
+        assert_eq!(names["graphviz"], "yosys\\graphviz");
+        assert_eq!(names["surfer-aurora"], "surfer_aurora");
+
+        let two = vec!["icarus".to_owned(), "yosys".to_owned()];
+        let invalid = [
+            ("icarus", &[][..]),
+            ("yosys", &[][..]),
+            ("x", two.as_slice()),
+        ];
+        assert!(inno_component_names(&invalid).is_err());
     }
 }

@@ -27,9 +27,13 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write as _;
+use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use fst_reader::{
+    FstFilter, FstHierarchyEntry, FstReader, FstSignalHandle, FstSignalValue, ReadSignalsError,
+};
 use schemars::JsonSchema;
 use serde::Serialize;
 
@@ -116,8 +120,8 @@ pub struct PreparedLayout {
 }
 
 /// Monta o layout de `waveform` sem gravar nada. `Ok(None)` quando a onda
-/// não é VCD (o FST é binário; o Surfer abre sem layout) ou não tem sinal
-/// nenhum na raiz nem processador.
+/// não é VCD nem FST (o GHW abre sem layout) ou não tem sinal nenhum na raiz
+/// nem processador.
 ///
 /// Uma onda sem processador SAPHO (projeto só de Verilog) recebe o grupo
 /// Top-level com os sinais do testbench, como a AURORA; o resto do design
@@ -133,9 +137,8 @@ pub struct PreparedLayout {
 ///
 /// [`LaceError::Io`] se a onda ou uma tabela existente não puder ser lida.
 pub fn wave_layout(waveform: &Utf8Path) -> Result<Option<WaveLayout>> {
-    let file = std::fs::File::open(waveform).map_err(LaceError::io("Reading", waveform))?;
-    let mut reader = BufReader::new(file);
-    let Some(header) = read_header(&mut reader, waveform)? else {
+    let mut wave = Wave::open(waveform)?;
+    let Some(header) = wave.header(waveform)? else {
         return Ok(None);
     };
     let scopes = parse_scopes(&header);
@@ -168,7 +171,7 @@ pub fn wave_layout(waveform: &Utf8Path) -> Result<Option<WaveLayout>> {
     let complex = if complex_ids.is_empty() {
         None
     } else {
-        complex_mapping(&mut reader, &complex_ids, waveform)?
+        complex_mapping(&wave.complex_values(&complex_ids, waveform)?)
     };
     Ok(Some(build_layout(
         waveform,
@@ -233,6 +236,94 @@ fn layout_dir_name(waveform: &Utf8Path) -> String {
         (h ^ u32::from(b)).wrapping_mul(0x0100_0193)
     });
     format!("{stem}-{hash:08x}")
+}
+
+// Cabeçalho da onda ----------------------------------------------------------
+
+/// Uma onda aberta: VCD (texto) ou FST (binário, o que o Icarus grava).
+enum Wave {
+    Vcd(BufReader<File>),
+    Fst(Box<FstReader<BufReader<File>>>),
+}
+
+impl Wave {
+    fn open(waveform: &Utf8Path) -> Result<Wave> {
+        let file = File::open(waveform).map_err(LaceError::io("Reading", waveform))?;
+        let mut reader = BufReader::new(file);
+        if fst_reader::is_fst_file(&mut reader) {
+            let fst = FstReader::open(reader).map_err(|e| fst_error(waveform, e))?;
+            return Ok(Wave::Fst(Box::new(fst)));
+        }
+        Ok(Wave::Vcd(reader))
+    }
+
+    /// O cabeçalho como texto de VCD (`$scope`, `$var`, `$upscope`). `None`
+    /// se a onda não for VCD nem FST (o GHW).
+    fn header(&mut self, waveform: &Utf8Path) -> Result<Option<String>> {
+        match self {
+            Wave::Vcd(reader) => read_header(reader, waveform),
+            Wave::Fst(fst) => fst_header(fst, waveform).map(Some),
+        }
+    }
+
+    /// Os valores distintos que os sinais `ids` (id do cabeçalho e largura)
+    /// assumem, em bits, até [`MAX_COMPLEX_VALUES`].
+    fn complex_values(
+        &mut self,
+        ids: &HashMap<String, u32>,
+        waveform: &Utf8Path,
+    ) -> Result<BTreeSet<String>> {
+        match self {
+            Wave::Vcd(reader) => vcd_complex_values(reader, ids, waveform),
+            Wave::Fst(fst) => fst_complex_values(fst, ids, waveform),
+        }
+    }
+}
+
+/// Um erro de leitura do FST como o de qualquer arquivo que não se lê.
+fn fst_error(waveform: &Utf8Path, error: impl std::fmt::Display) -> LaceError {
+    LaceError::io("Reading", waveform)(std::io::Error::other(error.to_string()))
+}
+
+/// O cabeçalho de uma onda FST escrito como o de um VCD, para o resto do
+/// layout ler os dois formatos do mesmo jeito. O id de cada sinal é o índice
+/// do handle dele no FST.
+fn fst_header(fst: &mut FstReader<BufReader<File>>, waveform: &Utf8Path) -> Result<String> {
+    let mut header = String::new();
+    fst.read_hierarchy(|entry| match entry {
+        FstHierarchyEntry::Scope { name, .. } => {
+            let _ = writeln!(header, "$scope module {name} $end");
+        }
+        FstHierarchyEntry::UpScope => header.push_str("$upscope $end\n"),
+        FstHierarchyEntry::Var {
+            tpe,
+            name,
+            length,
+            handle,
+            ..
+        } => {
+            let kind = if tpe.is_real() { "real" } else { "wire" };
+            let _ = writeln!(
+                header,
+                "$var {kind} {length} {} {name} $end",
+                handle.get_index()
+            );
+        }
+        _ => {}
+    })
+    .map_err(|e| fst_error(waveform, e))?;
+    header.push_str("$enddefinitions $end\n");
+    Ok(header)
+}
+
+/// Os bits de um valor com a largura do sinal: o VCD e o FST podem omitir os
+/// zeros à esquerda.
+fn fit_bits(bits: &str, width: usize) -> String {
+    if bits.len() >= width {
+        bits[bits.len() - width..].to_owned()
+    } else {
+        format!("{}{bits}", "0".repeat(width - bits.len()))
+    }
 }
 
 // Cabeçalho do VCD ---------------------------------------------------------
@@ -576,14 +667,29 @@ fn is_complex(name: &str) -> bool {
 }
 
 /// O tradutor dos complexos: o Surfer não roda programa para traduzir, então
-/// os valores distintos que os complexos assumem na onda são lidos do corpo
-/// do VCD e cada um vira uma linha `0b<bits> <re> <im>i`. Um tradutor só,
-/// sem largura, serve a todos: a tradução só depende dos bits.
-fn complex_mapping(
+/// os valores distintos que os complexos assumem na onda (`values`, lidos do
+/// corpo do VCD ou dos blocos do FST) viram cada um uma linha
+/// `0b<bits> <re> <im>i`. Um tradutor só, sem largura, serve a todos: a
+/// tradução só depende dos bits.
+fn complex_mapping(values: &BTreeSet<String>) -> Option<MappingTranslator> {
+    let name = "lace_complex".to_owned();
+    let mut content = format!("Name = {name}\n");
+    let mut any = false;
+    for bits in values {
+        if let Some(text) = decode_complex(bits) {
+            let _ = writeln!(content, "0b{bits} {text}");
+            any = true;
+        }
+    }
+    any.then_some(MappingTranslator { name, content })
+}
+
+/// Os valores dos complexos no corpo de um VCD.
+fn vcd_complex_values(
     reader: &mut impl BufRead,
     ids: &HashMap<String, u32>,
     waveform: &Utf8Path,
-) -> Result<Option<MappingTranslator>> {
+) -> Result<BTreeSet<String>> {
     // O corpo de uma onda longa tem milhões de linhas: a leitura é em bytes,
     // num buffer só, e só as linhas `b<bits> <id>` de um id complexo viram
     // texto.
@@ -614,24 +720,47 @@ fn complex_mapping(
         };
         if bits.iter().all(|&b| b == b'0' || b == b'1') {
             let bits = std::str::from_utf8(bits).expect("0 and 1 are ASCII");
-            let bits = if bits.len() >= width {
-                bits[bits.len() - width..].to_owned()
-            } else {
-                format!("{}{bits}", "0".repeat(width - bits.len()))
-            };
-            values.insert(bits);
+            values.insert(fit_bits(bits, width));
         }
     }
-    let name = "lace_complex".to_owned();
-    let mut content = format!("Name = {name}\n");
-    let mut any = false;
-    for bits in &values {
-        if let Some(text) = decode_complex(bits) {
-            let _ = writeln!(content, "0b{bits} {text}");
-            any = true;
+    Ok(values)
+}
+
+/// Os valores dos complexos numa onda FST: só os blocos desses sinais são
+/// lidos, e a leitura para no teto.
+fn fst_complex_values(
+    fst: &mut FstReader<BufReader<File>>,
+    ids: &HashMap<String, u32>,
+    waveform: &Utf8Path,
+) -> Result<BTreeSet<String>> {
+    let widths: HashMap<usize, usize> = ids
+        .iter()
+        .filter_map(|(id, width)| Some((id.parse().ok()?, *width as usize)))
+        .collect();
+    let filter = FstFilter::filter_signals(
+        widths
+            .keys()
+            .map(|&index| FstSignalHandle::from_index(index))
+            .collect(),
+    );
+    let mut values = BTreeSet::new();
+    let read = fst.read_signals(&filter, |_time, handle, value| {
+        if values.len() >= MAX_COMPLEX_VALUES {
+            return Err(());
         }
+        if let FstSignalValue::String(bits) = value
+            && let Some(&width) = widths.get(&handle.get_index())
+            && bits.iter().all(|&b| b == b'0' || b == b'1')
+        {
+            let bits = std::str::from_utf8(bits).expect("0 and 1 are ASCII");
+            values.insert(fit_bits(bits, width));
+        }
+        Ok(())
+    });
+    match read {
+        Ok(()) | Err(ReadSignalsError::CallbackError(())) => Ok(values),
+        Err(error) => Err(fst_error(waveform, error)),
     }
-    Ok(any.then_some(MappingTranslator { name, content }))
 }
 
 /// Um complexo do SAPHO como texto, como o `comp2gtkw` do YANC: os 8
@@ -1558,7 +1687,7 @@ $upscope $end $upscope $end $enddefinitions $end";
             !layout.state.contains("name: \"q\""),
             "o DUT fica na hierarquia"
         );
-        // Sem sinal nenhum, e o FST, ficam sem layout.
+        // Sem sinal nenhum, e o GHW, ficam sem layout.
         let empty = dir.join("b_tb.vcd");
         std::fs::write(
             &empty,
@@ -1566,9 +1695,9 @@ $upscope $end $upscope $end $enddefinitions $end";
         )
         .unwrap();
         assert_eq!(wave_layout(&empty).unwrap(), None);
-        let fst = dir.join("a_tb.fst");
-        std::fs::write(&fst, [0u8, 1, 2, 0xff, 0xfe]).unwrap();
-        assert_eq!(wave_layout(&fst).unwrap(), None);
+        let ghw = dir.join("a_tb.ghw");
+        std::fs::write(&ghw, b"GHDLwave\n\x00\x01\x02\xff\xfe").unwrap();
+        assert_eq!(wave_layout(&ghw).unwrap(), None);
     }
 
     #[test]

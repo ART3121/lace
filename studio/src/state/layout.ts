@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 
 export type SidebarView = 'explorer' | 'flow' | 'search' | 'reports';
-export type ConsoleChannel = 'cmm' | 'asm' | 'verilog' | 'wave' | 'prism' | 'lace';
+export type ConsoleChannel = 'cmm' | 'asm' | 'verilog' | 'wave' | 'prism';
 export type PanelTab = ConsoleChannel | 'problems' | 'terminal';
 export type ExplorerMode = 'sources' | 'hierarchy' | 'files';
 
@@ -72,7 +72,8 @@ export const useLayout = create<LayoutState>((set, get) => ({
   sidebarVisible: saved.sidebarVisible ?? true,
   panelVisible: saved.panelVisible ?? true,
   panelMaximized: false,
-  panelTab: saved.panelTab ?? 'lace',
+  // O console "Lace" saiu do painel; quem o deixou aberto volta ao C±.
+  panelTab: !saved.panelTab || (saved.panelTab as string) === 'lace' ? 'cmm' : saved.panelTab,
   explorerMode: saved.explorerMode ?? 'sources',
   showHidden: saved.showHidden ?? false,
   unread: {},

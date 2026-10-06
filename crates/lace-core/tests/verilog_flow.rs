@@ -991,9 +991,22 @@ endmodule
 ",
     );
     project.add_verilog(None, &tb, false).unwrap();
+    // O Icarus grava sempre FST: `saida.fst`, enquanto não há onda nenhuma.
+    assert_eq!(
+        waveform_path(&project, None).unwrap(),
+        root.join("saida.fst")
+    );
+    // A do Verilator (`.vcd`) vale quando é a única, ou a mais nova.
+    write(root.join("saida.vcd"), "$enddefinitions $end\n");
     assert_eq!(
         waveform_path(&project, None).unwrap(),
         root.join("saida.vcd")
+    );
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    write(root.join("saida.fst"), "");
+    assert_eq!(
+        waveform_path(&project, None).unwrap(),
+        root.join("saida.fst")
     );
 
     // Sem `$dumpfile`: `<módulo do testbench>.fst` na raiz (Icarus).
@@ -1430,6 +1443,136 @@ fn verilog_flow_from_scratch() {
     assert_eq!(read(&tb.path), tb_text, "o testbench do usuário não muda");
 }
 
+/// Um `include` relativo à pasta de quem o faz: `rtl/cpu.v` inclui
+/// `defs.vh` de `rtl/`, e o testbench, em `tb/`, inclui `vetores.vh` de
+/// `tb/`. No Windows o Icarus só os acha com os caminhos em `/`; e o
+/// testbench sem `$dumpfile` é compilado numa cópia em `.lace/Temp`, que
+/// precisa da pasta do original nos `include`.
+#[test]
+fn include_next_to_the_including_file() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog, Tool::Vvp]) else {
+        return;
+    };
+    let (_guard, mut project) = project();
+    let root = project.root().to_owned();
+    write(root.join("rtl/defs.vh"), "`define LARGURA 4\n");
+    let cpu = write(
+        root.join("rtl/cpu.v"),
+        "`include \"defs.vh\"\n\
+         module cpu (input wire [`LARGURA-1:0] a, output wire [`LARGURA-1:0] y);\n\
+         \x20   assign y = ~a;\n\
+         endmodule\n",
+    );
+    write(
+        root.join("tb/vetores.vh"),
+        "localparam [3:0] ENTRADA = 4'b0101;\n",
+    );
+    // O `timescale` só no testbench faz o Icarus avisar dos módulos sem
+    // ele, com o arquivo numa linha de continuação ("declared here").
+    let tb = write(
+        root.join("tb/cpu_tb.v"),
+        "`timescale 1ns/1ps\n\
+         module cpu_tb;\n\
+         \x20   `include \"vetores.vh\"\n\
+         \x20   reg [3:0] a = ENTRADA;\n\
+         \x20   wire [3:0] y;\n\
+         \x20   cpu dut (.a(a), .y(y));\n\
+         \x20   initial begin\n\
+         \x20       #1 $display(\"y = %b\", y);\n\
+         \x20       $finish;\n\
+         \x20   end\n\
+         endmodule\n",
+    );
+    let cpu = project.add_verilog(Some(&toolchain), &cpu, false).unwrap();
+    assert_eq!(cpu.role, FileRole::Synthesizable);
+    let tb = project.add_verilog(Some(&toolchain), &tb, false).unwrap();
+    assert_eq!(tb.role, FileRole::Testbench);
+
+    let checked = check(
+        &toolchain,
+        &project,
+        &CheckOptions::default(),
+        &Control::default(),
+    )
+    .unwrap();
+    assert!(checked.succeeded(), "{checked:#?}");
+    // Todo arquivo de diagnóstico vem com o separador do sistema, inclusive
+    // o do aviso de `timescale`, que o Icarus escreve com `/`.
+    let timescale = checked
+        .diagnostics
+        .iter()
+        .find(|d| d.message.contains("timescale"))
+        .unwrap_or_else(|| panic!("{:#?}", checked.diagnostics));
+    assert_eq!(
+        timescale.file.as_ref().map(|f| f.as_str()),
+        Some(cpu.path.as_str()),
+        "{timescale:#?}"
+    );
+
+    let sim = simulate_project(
+        &toolchain,
+        &project,
+        &SimulationOptions::new(Simulator::Icarus),
+        &Control::default(),
+    )
+    .unwrap();
+    assert!(sim.succeeded(), "{sim:#?}");
+    let vvp = sim.steps.iter().find(|s| s.step == Step::Simulate).unwrap();
+    assert!(vvp.stdout.contains("y = 1010"), "{}", vvp.stdout);
+
+    let tree = hierarchy(
+        &toolchain,
+        &project,
+        &HierarchyOptions::default(),
+        &Control::default(),
+    )
+    .unwrap();
+    assert_eq!(tree.status, Status::Succeeded, "{tree:#?}");
+    // O arquivo de cada módulo vem como o projeto o chama, com o separador
+    // do sistema, embora o Icarus o tenha recebido com `/`.
+    let design = tree.design.as_ref().expect("a elaboração do design");
+    let node = design.roots.iter().find(|m| m.module == "cpu").unwrap();
+    assert_eq!(
+        node.file.as_ref().map(|f| f.as_str()),
+        Some(cpu.path.as_str())
+    );
+}
+
+/// O diagnóstico aponta o arquivo com o mesmo nome que o projeto usa, com o
+/// separador do sistema: o Studio abre o arquivo do erro pelo caminho, e um
+/// nome com `/` no Windows viraria outra aba do mesmo arquivo.
+#[test]
+fn diagnostics_name_the_file_as_the_project_does() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog]) else {
+        return;
+    };
+    let (_guard, mut project) = project();
+    let root = project.root().to_owned();
+    let bad = write(
+        root.join("rtl/ruim.v"),
+        "module ruim (input wire a, output wire y);\n    assign y = a\nendmodule\n",
+    );
+    let bad = project.add_verilog(Some(&toolchain), &bad, false).unwrap();
+    let checked = check(
+        &toolchain,
+        &project,
+        &CheckOptions::default(),
+        &Control::default(),
+    )
+    .unwrap();
+    assert!(!checked.succeeded(), "{checked:#?}");
+    let error = checked
+        .diagnostics
+        .iter()
+        .find(|d| d.severity == Severity::Error)
+        .unwrap_or_else(|| panic!("{:#?}", checked.diagnostics));
+    assert_eq!(
+        error.file.as_ref().map(|f| f.as_str()),
+        Some(bad.path.as_str()),
+        "{error:#?}"
+    );
+}
+
 /// `and_gate` (topo) e `orphan`, que ninguém instancia e não elabora.
 fn project_with_orphan(toolchain: &lace_core::Toolchain) -> (tempfile::TempDir, Project) {
     let (guard, mut project) = project();
@@ -1743,7 +1886,7 @@ fn processor_waveform_path_matches_simulation() {
     .unwrap();
     assert!(built.succeeded(), "{built:#?}");
     let expected = waveform_path(&project, Some(soma)).unwrap();
-    assert_eq!(expected, soma.temp_dir.join("soma_tb.vcd"));
+    assert_eq!(expected, soma.temp_dir.join("soma_tb.fst"));
 
     let sim = simulate(
         &toolchain,
@@ -1755,7 +1898,7 @@ fn processor_waveform_path_matches_simulation() {
     assert!(sim.succeeded(), "{sim:#?}");
     let wave = sim.waveform.unwrap();
     assert_eq!(wave.path, expected);
-    assert_eq!(wave.format, WaveformFormat::Vcd);
+    assert_eq!(wave.format, WaveformFormat::Fst);
 }
 
 #[test]

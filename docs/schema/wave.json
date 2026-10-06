@@ -19,7 +19,7 @@
       "type": "string"
     },
     "layout": {
-      "description": "O estado do Surfer gerado para os processadores SAPHO da onda\n(`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda\nque não é VCD.",
+      "description": "O estado do Surfer gerado para os processadores SAPHO da onda\n(`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda\nque não é VCD nem FST.",
       "type": [
         "string",
         "null"

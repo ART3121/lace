@@ -11,8 +11,13 @@
 //! operação é cancelada ou passa do prazo. Encerrar é encerrar tudo o que a
 //! ferramenta iniciou: o `iverilog` roda o `ivlpp` e o `ivl`, o Verilator
 //! roda o `make`, que roda o compilador C++. No Unix cada passo roda num
-//! grupo de processos próprio, e o Lace sinaliza o grupo; no Windows, o
-//! `taskkill /T` encerra a árvore.
+//! grupo de processos próprio, e o Lace sinaliza o grupo. No Windows cada
+//! passo roda num Job Object ([`ProcessJob`]), que encerra a árvore inteira,
+//! também quando o próprio Lace morre (fechado à força, o Studio derrubado):
+//! o sistema fecha o handle do job, e o que estava nele termina junto.
+//!
+//! Nenhuma ferramenta abre janela de console ([`hide_console`]): a saída vai
+//! pelos pipes, para o terminal ou para os consoles do Studio.
 
 use std::io::{BufRead, BufReader, Read};
 use std::process::{Child, Command, Stdio};
@@ -105,7 +110,9 @@ pub struct Invocation {
     /// Caminho absoluto do executável. Nunca é procurado no `PATH`.
     #[schemars(with = "String")]
     pub program: Utf8PathBuf,
-    /// Argumentos, na ordem. Caminhos já estão no formato nativo do sistema.
+    /// Argumentos, na ordem. Caminhos já estão no formato que a ferramenta
+    /// aceita: o nativo do sistema, menos os do `iverilog` no Windows, que
+    /// vão com `/`.
     pub args: Vec<String>,
     /// Diretório de trabalho. Faz parte do contrato de várias ferramentas (o
     /// `appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench
@@ -142,6 +149,11 @@ impl Invocation {
         self.arg(arg)
     }
 
+    /// Acrescenta um caminho para o `iverilog`, como [`icarus_path`].
+    pub(crate) fn icarus_path_arg(self, path: &Utf8Path) -> Self {
+        self.arg(icarus_path(path))
+    }
+
     pub(crate) fn env(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.env.push((key.into(), value.into()));
         self
@@ -159,6 +171,26 @@ impl Invocation {
         self.env("PATH", joined)
     }
 
+    /// Acrescenta `dirs` ao fim do `PATH` que [`Invocation::search_path`]
+    /// definiu; sem `PATH` ainda, é o mesmo que ela.
+    pub(crate) fn append_search_path(mut self, dirs: &[Utf8PathBuf]) -> Self {
+        let Some(at) = self.env.iter().position(|(key, _)| key == "PATH") else {
+            return self.search_path(dirs);
+        };
+        let (_, current) = self.env.remove(at);
+        let all: Vec<std::path::PathBuf> = std::env::split_paths(&current)
+            .chain(
+                dirs.iter()
+                    .map(|d| dunce::simplified(d.as_std_path()).to_owned()),
+            )
+            .collect();
+        let joined = std::env::join_paths(all)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or(current);
+        self.env.insert(at, ("PATH".into(), joined));
+        self
+    }
+
     /// Copia do ambiente do Lace as variáveis `keys`, se existirem.
     pub(crate) fn inherit(mut self, keys: &[&str]) -> Self {
         self.inherit.extend(keys.iter().map(|k| (*k).to_owned()));
@@ -174,6 +206,26 @@ impl Invocation {
             .map(quote_if_needed)
             .collect::<Vec<_>>()
             .join(" ")
+    }
+}
+
+/// Um caminho como o `iverilog` o recebe: no Windows, com `/`.
+///
+/// O pré-processador do Icarus (`ivlpp`) só reconhece `/` ao montar a pasta
+/// de quem faz o `include` (`-grelative-include`): com `\`, o
+/// `` `include "defs.vh" `` de `rtl\cpu.v` não acha `rtl\defs.vh`. E o
+/// `.vvp` guarda os nomes da tabela `:file_names` como vieram, sem escapar a
+/// `\`, que na leitura sumiria. O Windows aceita a `/`; o que volta das
+/// ferramentas retoma o separador nativo
+/// ([`native_separators`](crate::paths::native_separators)).
+pub(crate) fn icarus_path(path: &Utf8Path) -> String {
+    let native = dunce::simplified(path.as_std_path())
+        .to_string_lossy()
+        .into_owned();
+    if cfg!(windows) {
+        native.replace('\\', "/")
+    } else {
+        native
     }
 }
 
@@ -233,7 +285,7 @@ pub struct ProcessOutput {
 }
 
 /// O `Command` de `invocation`: programa, argumentos, CWD e ambiente, com
-/// stdin vazio.
+/// stdin vazio e sem janela de console.
 fn command(invocation: &Invocation) -> Command {
     let mut command = Command::new(invocation.program.as_std_path());
     command
@@ -241,6 +293,7 @@ fn command(invocation: &Invocation) -> Command {
         .current_dir(invocation.cwd.as_std_path())
         .env_clear()
         .stdin(Stdio::null());
+    hide_console(&mut command);
 
     let inherited = INHERITED_ENV
         .iter()
@@ -287,11 +340,15 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
 
     tracing::debug!(command = %invocation.display_command(), cwd = %invocation.cwd, "Running");
 
+    // O job existe antes do processo, para prendê-lo assim que ele nasce: o
+    // que ele iniciar depois disso já nasce preso também.
+    let mut job = ProcessJob::new(false);
     let started = Instant::now();
     let mut child = command.spawn().map_err(|source| LaceError::Spawn {
         program: invocation.program.clone(),
         source,
     })?;
+    job.adopt(&child);
 
     // Uma thread por pipe: ler um depois do outro trava quando o pipe do
     // segundo enche. As linhas chegam aqui por um canal só, com limite: se
@@ -363,12 +420,12 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
                     };
                     if let Some(reason) = reason {
                         tracing::debug!(?reason, "Stopping");
-                        terminate(&mut child);
+                        terminate(&mut child, &mut job);
                         stopped = Some((reason, Instant::now()));
                     }
                 }
                 Some((_, since)) if !killed && since.elapsed() >= KILL_GRACE => {
-                    kill(&mut child);
+                    kill(&mut child, &mut job);
                     killed = true;
                 }
                 Some(_) => {}
@@ -381,10 +438,10 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
             // Terminou, mas alguém que ele iniciou ainda segura o pipe: o
             // Lace o encerra e para de ler. No Unix o número do grupo
             // continua reservado enquanto esse processo existir, então o
-            // sinal não atinge outro.
+            // sinal não atinge outro; no Windows quem encerra é o job.
             if at.elapsed() >= DRAIN_LIMIT {
                 tracing::warn!(program = %invocation.program, "Output did not close after the process exited");
-                kill(&mut child);
+                kill(&mut child, &mut job);
                 break;
             }
         }
@@ -394,6 +451,8 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
             let _ = reader.join();
         }
     }
+    // O que a ferramenta deixou rodando termina com o job.
+    job.kill();
     let duration = started.elapsed();
     let status = status.expect("The loop only exits after the process ends");
 
@@ -401,8 +460,10 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
     if let Some((reason, _)) = stopped {
         termination = reason;
     } else if !termination.success() && watch.cancel.is_some_and(CancelToken::is_cancelled) {
-        // No Windows, o Ctrl+C do console chega também ao filho, que morre
-        // sozinho antes de o Lace encerrá-lo.
+        // O filho morreu sozinho enquanto o cancelamento era pedido, antes
+        // de o Lace encerrá-lo: no Windows, quando o Lace tem console, o
+        // filho divide esse console (`hide_console`), e o Ctrl+C chega aos
+        // dois.
         termination = Termination::Cancelled;
     }
     let result = ProcessOutput {
@@ -497,9 +558,164 @@ fn own_process_group(command: &mut Command) {
 #[cfg(not(unix))]
 fn own_process_group(_command: &mut Command) {}
 
+/// Faz `command` rodar sem janela de console no Windows.
+///
+/// Um programa de console iniciado por um programa gráfico, como o Lace
+/// Studio, ganharia uma janela própria por ferramenta, e fechar essa janela
+/// mataria a ferramenta. Sem console, então, o filho vai com
+/// `CREATE_NO_WINDOW`: um console próprio, sem janela, que os processos que
+/// ele iniciar herdam. Com console ([`has_console`]: o de um terminal, ou o
+/// que quem criou o Lace lhe deu), o filho divide o do Lace, como sempre: não
+/// abre janela nenhuma, e o `CREATE_NO_WINDOW` só custaria um console novo
+/// (um `conhost.exe`) por ferramenta, uns 16 ms em cada uma. A saída vai
+/// pelos pipes nos dois casos. Fora do Windows não faz nada.
+pub fn hide_console(command: &mut Command) {
+    #[cfg(windows)]
+    if !has_console() {
+        use std::os::windows::process::CommandExt;
+        // `CREATE_NO_WINDOW`, de `WinBase.h`.
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    #[cfg(not(windows))]
+    let _ = command;
+}
+
+/// O Lace tem console, com janela ou sem, mesmo com os três fluxos padrão
+/// redirecionados. O `CONOUT$`, a tela do console do processo, só abre
+/// quando ele existe: é o jeito de saber sem código `unsafe`.
+#[cfg(windows)]
+fn has_console() -> bool {
+    std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(r"\\.\CONOUT$")
+        .is_ok()
+}
+
+/// Um processo filho e tudo o que ele iniciar, presos juntos.
+///
+/// No Windows é um Job Object com `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`:
+/// [`ProcessJob::kill`] encerra a árvore inteira, e soltar o valor também.
+/// Como o sistema fecha os handles de um processo que morre, as ferramentas
+/// terminam junto com o Lace mesmo quando ele é encerrado à força (o Studio
+/// fechado pelo Gerenciador de Tarefas, o `child.kill()` de uma extensão de
+/// editor) em vez de ficarem órfãs. Fora do Windows não faz nada: lá cada
+/// passo roda num grupo de processos próprio.
+///
+/// Quem cria processo fora do Core, como o Studio ao chamar a CLI `lace`,
+/// usa o mesmo mecanismo:
+///
+/// ```no_run
+/// let mut command = std::process::Command::new("lace");
+/// lace_core::hide_console(&mut command);
+/// let mut job = lace_core::ProcessJob::new(false);
+/// let mut child = command.spawn()?;
+/// job.adopt(&child);
+/// // Para cancelar: o processo e, pelo job, tudo o que ele iniciou.
+/// let _ = child.kill();
+/// job.kill();
+/// # Ok::<(), std::io::Error>(())
+/// ```
+pub struct ProcessJob {
+    #[cfg(windows)]
+    job: Option<win32job::Job>,
+}
+
+impl ProcessJob {
+    /// Um job vazio. Com `allow_breakaway`, um processo preso pode iniciar
+    /// outro fora do job (`CREATE_BREAKAWAY_FROM_JOB`): o assistente de
+    /// instalação que o `lace update` abre precisa continuar aberto depois
+    /// que o `lace` termina.
+    ///
+    /// Se o sistema recusar o job, o valor fica inativo:
+    /// [`ProcessJob::adopt`] devolve `false`, e quem chama encerra a árvore de
+    /// outro jeito.
+    pub fn new(allow_breakaway: bool) -> ProcessJob {
+        #[cfg(windows)]
+        {
+            let mut limits = win32job::ExtendedLimitInfo::new();
+            limits.limit_kill_on_job_close();
+            if allow_breakaway {
+                limits.limit_breakaway_ok();
+            }
+            let job = win32job::Job::create_with_limit_info(&limits)
+                .inspect_err(|error| tracing::warn!(%error, "Creating the job object"))
+                .ok();
+            ProcessJob { job }
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = allow_breakaway;
+            ProcessJob {}
+        }
+    }
+
+    /// Prende `child` ao job; o que ele iniciar daqui em diante nasce preso
+    /// também. `false` se não deu, e sempre fora do Windows.
+    pub fn adopt(&mut self, child: &Child) -> bool {
+        #[cfg(windows)]
+        {
+            use std::os::windows::io::AsRawHandle;
+            let Some(job) = &self.job else {
+                return false;
+            };
+            // O job só usa o handle durante a chamada; ele continua de `child`.
+            match job.assign_process(child.as_raw_handle() as isize) {
+                Ok(()) => true,
+                Err(error) => {
+                    tracing::warn!(%error, "Assigning the process to the job object");
+                    self.job = None;
+                    false
+                }
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = child;
+            false
+        }
+    }
+
+    /// Encerra todos os processos do job e o fecha. `false` se não havia job
+    /// ativo: aí cabe a quem chama encerrar o processo.
+    pub fn kill(&mut self) -> bool {
+        // Fechar o último handle de um job com `KILL_ON_JOB_CLOSE` encerra
+        // todos os processos dele.
+        #[cfg(windows)]
+        {
+            self.job.take().is_some()
+        }
+        #[cfg(not(windows))]
+        {
+            false
+        }
+    }
+
+    /// `true` enquanto há um job prendendo processos (só no Windows).
+    pub fn is_active(&self) -> bool {
+        #[cfg(windows)]
+        {
+            self.job.is_some()
+        }
+        #[cfg(not(windows))]
+        {
+            false
+        }
+    }
+}
+
+impl std::fmt::Debug for ProcessJob {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProcessJob")
+            .field("active", &self.is_active())
+            .finish()
+    }
+}
+
 /// Pede ao processo e a tudo o que ele iniciou que terminem.
 #[cfg(unix)]
-fn terminate(child: &mut Child) {
+fn terminate(child: &mut Child, _job: &mut ProcessJob) {
     signal_group(child, rustix::process::Signal::TERM);
 }
 
@@ -507,7 +723,7 @@ fn terminate(child: &mut Child) {
 /// ser colhido (`try_wait`), quando o número do grupo ainda é dele, ou
 /// depois, quando um processo do grupo continua vivo segurando o pipe.
 #[cfg(unix)]
-fn kill(child: &mut Child) {
+fn kill(child: &mut Child, _job: &mut ProcessJob) {
     signal_group(child, rustix::process::Signal::KILL);
 }
 
@@ -519,37 +735,46 @@ fn signal_group(child: &Child, signal: rustix::process::Signal) {
     }
 }
 
-/// No Windows não há SIGTERM: o `taskkill /T /F` encerra a árvore de uma vez.
+/// No Windows não há SIGTERM: a árvore termina de uma vez, pelo job. Sem
+/// job (o sistema o recusou), o `taskkill /T /F` percorre a árvore.
 #[cfg(windows)]
-fn terminate(child: &mut Child) {
+fn terminate(child: &mut Child, job: &mut ProcessJob) {
+    if job.is_active() {
+        kill(child, job);
+        return;
+    }
     let system32 = std::env::var("SystemRoot")
         .map(|root| Utf8PathBuf::from(root).join("System32"))
         .unwrap_or_else(|_| Utf8PathBuf::from(r"C:\Windows\System32"));
-    let killed = Command::new(system32.join("taskkill.exe").as_std_path())
+    let mut taskkill = Command::new(system32.join("taskkill.exe").as_std_path());
+    taskkill
         .args(["/T", "/F", "/PID", &child.id().to_string()])
         .current_dir(system32.as_std_path())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success());
+        .stderr(Stdio::null());
+    hide_console(&mut taskkill);
+    let killed = taskkill.status().is_ok_and(|s| s.success());
     if !killed {
         let _ = child.kill();
     }
 }
 
+/// Mata o processo (código de saída 1) e, pelo job, o resto da árvore. Sem
+/// job, só o processo.
 #[cfg(windows)]
-fn kill(child: &mut Child) {
+fn kill(child: &mut Child, job: &mut ProcessJob) {
+    let _ = child.kill();
+    job.kill();
+}
+
+#[cfg(not(any(unix, windows)))]
+fn terminate(child: &mut Child, _job: &mut ProcessJob) {
     let _ = child.kill();
 }
 
 #[cfg(not(any(unix, windows)))]
-fn terminate(child: &mut Child) {
-    let _ = child.kill();
-}
-
-#[cfg(not(any(unix, windows)))]
-fn kill(child: &mut Child) {
+fn kill(child: &mut Child, _job: &mut ProcessJob) {
     let _ = child.kill();
 }
 
@@ -1043,5 +1268,265 @@ mod windows_tests {
         assert_eq!(out.termination, Termination::Cancelled);
         assert!(started.elapsed() < Duration::from_secs(10));
         assert!(out.stdout.contains("iniciou"), "{}", out.stdout);
+    }
+
+    /// Um script do PowerShell, por `-EncodedCommand`: sem as aspas do `cmd`
+    /// no meio. Só tipos do .NET, que não dependem dos módulos do PowerShell
+    /// (o ambiente do filho é limpo).
+    fn powershell(script: &str) -> Invocation {
+        let root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
+        let exe = Utf8PathBuf::from(root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
+        let utf16: Vec<u8> = script.encode_utf16().flat_map(u16::to_le_bytes).collect();
+        Invocation::new(exe, std::env::temp_dir().to_string_lossy().into_owned())
+            .arg("-NoProfile")
+            .arg("-NonInteractive")
+            .arg("-EncodedCommand")
+            .arg(base64(&utf16))
+    }
+
+    fn base64(bytes: &[u8]) -> String {
+        const TABLE: &[u8; 64] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut out = String::new();
+        for chunk in bytes.chunks(3) {
+            let byte = |i: usize| u32::from(chunk.get(i).copied().unwrap_or(0));
+            let group = (byte(0) << 16) | (byte(1) << 8) | byte(2);
+            for i in 0..4 {
+                if i <= chunk.len() {
+                    out.push(char::from(TABLE[((group >> (18 - 6 * i)) & 63) as usize]));
+                } else {
+                    out.push('=');
+                }
+            }
+        }
+        out
+    }
+
+    /// Script que inicia um "neto": outro PowerShell, que dorme um minuto, e
+    /// grava o PID dele em `pid_file`.
+    fn start_grandchild(pid_file: &std::path::Path) -> String {
+        format!(
+            "$ps = $env:SystemRoot + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'; \
+             $info = [Diagnostics.ProcessStartInfo]::new($ps, \
+                 '-NoProfile -NonInteractive -Command [Threading.Thread]::Sleep(60000)'); \
+             $info.UseShellExecute = $false; \
+             $neto = [Diagnostics.Process]::Start($info); \
+             [IO.File]::WriteAllText('{}', [string]$neto.Id)",
+            pid_file.display()
+        )
+    }
+
+    /// O PID gravado em `pid_file`, esperando até ele aparecer.
+    fn wait_for_pid(pid_file: &std::path::Path) -> u32 {
+        let started = Instant::now();
+        loop {
+            if let Some(pid) = std::fs::read_to_string(pid_file)
+                .ok()
+                .and_then(|text| text.trim().parse().ok())
+            {
+                return pid;
+            }
+            assert!(
+                started.elapsed() < Duration::from_secs(60),
+                "o PID não apareceu em {}",
+                pid_file.display()
+            );
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
+    /// Espera o processo `pid` sumir da lista do sistema.
+    fn gone(pid: u32) -> bool {
+        let root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
+        let tasklist = std::path::Path::new(&root).join(r"System32\tasklist.exe");
+        let started = Instant::now();
+        while started.elapsed() < Duration::from_secs(10) {
+            let listed = Command::new(&tasklist)
+                .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+                .output()
+                .map(|out| String::from_utf8_lossy(&out.stdout).contains(&format!("\"{pid}\"")));
+            if listed.is_ok_and(|alive| !alive) {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        false
+    }
+
+    #[test]
+    fn cancel_stops_the_process_and_what_it_started() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("neto.pid");
+        let script = format!(
+            "{}; [Console]::Out.WriteLine('iniciou'); [Threading.Thread]::Sleep(60000)",
+            start_grandchild(&pid_file)
+        );
+        let token = CancelToken::new();
+        let from_ui = token.clone();
+        let pid_path = pid_file.clone();
+        // Cancela só depois que o neto existe.
+        std::thread::spawn(move || {
+            wait_for_pid(&pid_path);
+            from_ui.cancel();
+        });
+        let watch = Watch {
+            cancel: Some(&token),
+            ..Watch::default()
+        };
+        let out = super::run(&powershell(&script), &watch).unwrap();
+        assert_eq!(out.termination, Termination::Cancelled, "{out:?}");
+        let pid = wait_for_pid(&pid_file);
+        assert!(
+            gone(pid),
+            "o processo que a ferramenta iniciou continuou vivo"
+        );
+    }
+
+    #[test]
+    fn what_outlives_the_process_is_stopped_too() {
+        // O PowerShell termina na hora, mas o neto que ele deixou rodando
+        // herdou o stdout e o segura.
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("neto.pid");
+        let started = Instant::now();
+        let out = run(&powershell(&start_grandchild(&pid_file))).unwrap();
+        assert!(out.termination.success(), "{out:?}");
+        assert!(started.elapsed() < Duration::from_secs(30));
+        let pid = wait_for_pid(&pid_file);
+        assert!(gone(pid), "o neto continuou vivo");
+    }
+
+    /// Roda num processo à parte, criado por
+    /// `the_tools_die_with_the_lace_process`: prende uma ferramenta que dorme
+    /// e grava o PID dela em `LACE_TEST_PID_FILE`. Sem a variável, não faz
+    /// nada.
+    #[test]
+    #[ignore = "processo auxiliar de the_tools_die_with_the_lace_process"]
+    fn helper_runs_a_long_tool() {
+        let Ok(pid_file) = std::env::var("LACE_TEST_PID_FILE") else {
+            return;
+        };
+        let _ = run(&powershell(&format!(
+            "[IO.File]::WriteAllText('{pid_file}', [string]$PID); [Threading.Thread]::Sleep(120000)"
+        )));
+    }
+
+    #[test]
+    fn the_tools_die_with_the_lace_process() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_file = dir.path().join("ferramenta.pid");
+        let mut lace = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "process::windows_tests::helper_runs_a_long_tool",
+                "--ignored",
+                "--test-threads=1",
+            ])
+            .env("LACE_TEST_PID_FILE", &pid_file)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let pid = wait_for_pid(&pid_file);
+        // Como o Gerenciador de Tarefas: TerminateProcess, sem chance de o
+        // Lace limpar nada.
+        lace.kill().unwrap();
+        lace.wait().unwrap();
+        assert!(
+            gone(pid),
+            "a ferramenta ficou órfã depois que o Lace morreu"
+        );
+    }
+
+    /// Roda num processo à parte, criado por [`tool_console_under`]: inicia
+    /// uma ferramenta e escreve a janela de console dela (0 sem janela) e os
+    /// processos que dividem o console dela. Sem `LACE_TEST_CONSOLE`, não faz
+    /// nada.
+    #[test]
+    #[ignore = "processo auxiliar dos testes de console"]
+    // O stdout é o canal com o teste que criou este processo.
+    #[allow(clippy::print_stdout)]
+    fn helper_reports_the_tool_console() {
+        if std::env::var_os("LACE_TEST_CONSOLE").is_none() {
+            return;
+        }
+        let script = "Add-Type -Namespace Lace -Name Console -MemberDefinition \
+                      '[DllImport(\"kernel32.dll\")] public static extern System.IntPtr GetConsoleWindow(); \
+                       [DllImport(\"kernel32.dll\")] public static extern uint GetConsoleProcessList(uint[] list, uint count);'; \
+                      $list = [uint32[]]::new(64); \
+                      $n = [Lace.Console]::GetConsoleProcessList($list, 64); \
+                      [Console]::Out.WriteLine([Lace.Console]::GetConsoleWindow()); \
+                      [Console]::Out.WriteLine($list[0..($n - 1)] -join ',')";
+        let out = run(&powershell(script).inherit(GUI_ENV)).unwrap();
+        let mut lines = out.stdout.lines();
+        println!(
+            "LACE_CONSOLE {} {}",
+            lines.next().unwrap_or("?"),
+            lines.next().unwrap_or_default()
+        );
+    }
+
+    /// O que a ferramenta viu, iniciada por um Lace (o processo auxiliar)
+    /// criado com `flags`: a janela de console dela, os processos do console
+    /// dela e o PID do Lace.
+    fn tool_console_under(flags: u32) -> (String, Vec<u32>, u32) {
+        use std::os::windows::process::CommandExt;
+        let lace = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "process::windows_tests::helper_reports_the_tool_console",
+                "--ignored",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env("LACE_TEST_CONSOLE", "1")
+            .creation_flags(flags)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let pid = lace.id();
+        let out = lace.wait_with_output().unwrap();
+        let text = String::from_utf8_lossy(&out.stdout);
+        // O libtest escreve a saída do teste na linha do nome dele.
+        let line = text
+            .lines()
+            .find_map(|l| l.split_once("LACE_CONSOLE ").map(|(_, rest)| rest))
+            .unwrap_or_else(|| panic!("o auxiliar não respondeu: {text}"));
+        let mut parts = line.split(' ');
+        let window = parts.next().unwrap_or_default().to_owned();
+        let attached = parts
+            .next()
+            .unwrap_or_default()
+            .split(',')
+            .filter_map(|p| p.trim().parse().ok())
+            .collect();
+        (window, attached, pid)
+    }
+
+    #[test]
+    fn without_a_console_the_tool_gets_no_window() {
+        // Um Lace sem console, como o Studio: sem CREATE_NO_WINDOW, a
+        // ferramenta ganharia um console novo, com janela.
+        const DETACHED_PROCESS: u32 = 0x0000_0008;
+        let (window, attached, _) = tool_console_under(DETACHED_PROCESS);
+        assert_eq!(window, "0", "a ferramenta abriu janela de console");
+        assert!(!attached.is_empty(), "a ferramenta ficou sem console");
+    }
+
+    #[test]
+    fn with_a_console_the_tool_shares_it() {
+        // Um Lace com console, aqui um sem janela e com os três fluxos fora
+        // dele, como o de uma IDE: a ferramenta divide o console do Lace em
+        // vez de ganhar um próprio, que custaria um conhost.exe por
+        // ferramenta.
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let (window, attached, lace) = tool_console_under(CREATE_NO_WINDOW);
+        assert_eq!(window, "0", "a ferramenta abriu janela de console");
+        assert!(
+            attached.contains(&lace),
+            "a ferramenta não divide o console do Lace: {attached:?}"
+        );
     }
 }

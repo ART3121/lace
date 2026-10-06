@@ -14,6 +14,9 @@
 //!   escolhido pelo nome, `structure.topLevelModule` (campo do Lace).
 //! - `structure.testbenchFile`: o testbench que a simulação do projeto roda.
 //!
+//! Um `.py` só entra como testbench: é um testbench cocotb, como na AURORA
+//! ([`cocotb`](crate::cocotb)).
+//!
 //! As listas são lidas do documento a cada chamada: o `.spf` é a única fonte,
 //! e nada fica duplicado em memória para sair de sincronia.
 //!
@@ -144,8 +147,8 @@ pub struct MovedPath {
 }
 
 impl Project {
-    /// Registra um arquivo Verilog, criando-o a partir do modelo se ele não
-    /// existir, e grava o `.spf`.
+    /// Registra um arquivo Verilog, ou um testbench cocotb (`.py`), criando-o
+    /// a partir do modelo se ele não existir, e grava o `.spf`.
     ///
     /// - Arquivo existente: o papel vem do conteúdo
     ///   ([`classify`](crate::verilog::classify)), ou é testbench com
@@ -154,6 +157,10 @@ impl Project {
     ///   `tb_`, `test`); senão, módulo. O testbench-modelo instancia o módulo
     ///   do nome (`and_gate_tb.v` testa `and_gate`) ou, sem ele, o de topo,
     ///   com as portas lidas por [`read_interfaces`](crate::verilog::read_interfaces).
+    /// - Um `.py` é sempre testbench. Novo, sai do modelo cocotb
+    ///   ([`cocotb::testbench_template`](crate::cocotb::testbench_template)),
+    ///   com o módulo testado escolhido pela mesma regra (`test_somador.py`
+    ///   testa `somador`) na diretiva `# aurora-toplevel:`.
     /// - O primeiro sintetizável vira o topo; o primeiro testbench, o
     ///   testbench escolhido.
     ///
@@ -168,10 +175,12 @@ impl Project {
         self.check_add_verilog(&path)?;
         let file_name = path.file_name().unwrap_or_default().to_owned();
         let created = !path.exists();
+        let python = crate::cocotb::is_testbench(&path);
         let mut declares_module = true;
         let role = if created {
             let stem = path.file_stem().unwrap_or_default().to_owned();
-            let role = if testbench || crate::verilog::name_suggests_testbench(&file_name) {
+            let role = if python || testbench || crate::verilog::name_suggests_testbench(&file_name)
+            {
                 FileRole::Testbench
             } else {
                 FileRole::Synthesizable
@@ -180,7 +189,11 @@ impl Project {
                 FileRole::Synthesizable => crate::verilog::module_template(&stem),
                 FileRole::Testbench => {
                     let dut = self.module_under_test(toolchain, &stem)?;
-                    crate::verilog::testbench_template(&stem, dut.as_ref())
+                    if python {
+                        crate::cocotb::testbench_template(dut.as_ref())
+                    } else {
+                        crate::verilog::testbench_template(&stem, dut.as_ref())
+                    }
                 }
             };
             if let Some(parent) = path.parent() {
@@ -192,7 +205,7 @@ impl Project {
         } else {
             let text = std::fs::read_to_string(&path).map_err(LaceError::io("Reading", &path))?;
             declares_module = !crate::verilog::modules_in(&text).is_empty();
-            if testbench {
+            if testbench || python {
                 FileRole::Testbench
             } else {
                 crate::verilog::classify(&text, &file_name)
@@ -227,19 +240,24 @@ impl Project {
     }
 
     /// Confere, sem mudar nada, se [`Project::add_verilog`] aceitaria `path`:
-    /// termina em `.v` ou `.sv` e, se ainda não existe, o nome do arquivo
-    /// serve de nome de módulo. Quem registra vários arquivos confere todos
-    /// antes, para não registrar metade.
+    /// termina em `.v`, `.sv` ou `.py` e, se ainda não existe, o nome do
+    /// arquivo serve de nome de módulo (do Verilog, ou do Python num `.py`).
+    /// Quem registra vários arquivos confere todos antes, para não registrar
+    /// metade.
     ///
     /// # Erros
     ///
     /// [`LaceError::InvalidName`], com o motivo.
     pub fn check_add_verilog(&self, path: impl AsRef<Utf8Path>) -> Result<()> {
         let path = self.absolute(path.as_ref());
-        check_verilog_extension(&path)?;
+        check_extension(&path, None)?;
         if !path.exists() {
-            let stem = path.file_stem().unwrap_or_default();
-            crate::project::validate_identifier(stem, "The file name becomes the module name")?;
+            if crate::cocotb::is_testbench(&path) {
+                crate::cocotb::test_module(&path)?;
+            } else {
+                let stem = path.file_stem().unwrap_or_default();
+                crate::project::validate_identifier(stem, "The file name becomes the module name")?;
+            }
         }
         Ok(())
     }
@@ -387,17 +405,26 @@ impl Project {
     /// O nome do módulo do testbench escolhido: o único do arquivo, o que
     /// tem o nome dele, ou, com vários e nenhum com o nome, o único que
     /// nenhum outro do arquivo instancia (`bancada_tb.v` com `gerador` e
-    /// `principal`, que instancia `gerador`, simula `principal`).
+    /// `principal`, que instancia `gerador`, simula `principal`). Num
+    /// testbench cocotb (`.py`), o módulo Python dos testes: o nome do
+    /// arquivo.
     pub fn testbench_module(&self) -> Result<Option<String>> {
         self.testbench()
-            .map(|f| testbench_module_of(&f))
+            .map(|f| {
+                if crate::cocotb::is_testbench(&f) {
+                    Ok(f.file_stem().unwrap_or_default().to_owned())
+                } else {
+                    testbench_module_of(&f)
+                }
+            })
             .transpose()
     }
 
     /// Os `.v` e `.sv` da pasta do projeto e das subpastas (até 4 níveis;
     /// fora `.lace/`, as ocultas, as dos processadores, a `TopLevel/`
     /// legada, que entra sozinha, e as de outro projeto, com `.spf` próprio)
-    /// que não estão registrados.
+    /// que não estão registrados, e os `.py` com testes cocotb
+    /// (`@cocotb.test`).
     pub fn unregistered_verilog(&self) -> Vec<Utf8PathBuf> {
         let registered: Vec<Utf8PathBuf> = self
             .files(FileRole::Synthesizable)
@@ -430,7 +457,10 @@ impl Project {
                     if depth < 4 && !skip.contains(&path) && !other_project {
                         pending.push((path, depth + 1));
                     }
-                } else if matches!(path.extension(), Some("v" | "sv"))
+                } else if (matches!(path.extension(), Some("v" | "sv"))
+                    || (crate::cocotb::is_testbench(&path)
+                        && std::fs::read_to_string(&path)
+                            .is_ok_and(|t| t.contains("@cocotb.test"))))
                     && !registered.contains(&path)
                 {
                     found.push(path);
@@ -724,7 +754,7 @@ impl Project {
     ) -> Result<Utf8PathBuf> {
         self.begin_write()?;
         let path = self.absolute(path.as_ref());
-        check_verilog_extension(&path)?;
+        check_extension(&path, Some(role))?;
         match contents {
             Some(text) => {
                 if path.exists() {
@@ -1221,22 +1251,37 @@ fn store(root: &Utf8Path, path: &Utf8Path) -> String {
     }
 }
 
-/// Termina em `.v` ou `.sv`: o que entra nas listas do `.spf`.
-fn check_verilog_extension(path: &Utf8Path) -> Result<()> {
-    if matches!(path.extension(), Some("v" | "sv")) {
-        Ok(())
-    } else {
+/// O que entra nas listas do `.spf`: `.v` e `.sv`, e `.py` (testbench
+/// cocotb) fora dos sintetizáveis. `role` `None`: o papel ainda não foi
+/// decidido.
+fn check_extension(path: &Utf8Path, role: Option<FileRole>) -> Result<()> {
+    let refuse = |reason: &str| {
         Err(LaceError::InvalidName {
             name: path.file_name().unwrap_or_default().to_owned(),
-            reason: "A Verilog file must end in .v or .sv".into(),
+            reason: reason.into(),
         })
+    };
+    if matches!(path.extension(), Some("v" | "sv")) {
+        Ok(())
+    } else if crate::cocotb::is_testbench(path) {
+        if role == Some(FileRole::Synthesizable) {
+            refuse(
+                "A Python file is a cocotb testbench; it cannot be synthesizable or the top level",
+            )
+        } else {
+            Ok(())
+        }
+    } else {
+        refuse("A Verilog file must end in .v or .sv (a cocotb testbench, in .py)")
     }
 }
 
-/// A lista de um arquivo que está nas duas: testbench se o nome indica
-/// (`_tb`, `tb_`, `test`), sintetizável senão.
+/// A lista de um arquivo que está nas duas: testbench se é `.py` ou se o
+/// nome indica (`_tb`, `tb_`, `test`), sintetizável senão.
 fn owner(path: &Utf8Path) -> FileRole {
-    if crate::verilog::name_suggests_testbench(path.file_name().unwrap_or_default()) {
+    if crate::cocotb::is_testbench(path)
+        || crate::verilog::name_suggests_testbench(path.file_name().unwrap_or_default())
+    {
         FileRole::Testbench
     } else {
         FileRole::Synthesizable

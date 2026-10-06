@@ -1,5 +1,64 @@
 # Mudanças
 
+## Não publicada
+
+Windows:
+
+- Nenhuma ferramenta abre janela de console: no Lace Studio, cada passo de
+  build, verificação, simulação e síntese abria uma, e fechá-la matava a
+  ferramenta. A saída continua nos consoles do Studio e no terminal.
+- As ferramentas não ficam mais órfãs. Cada passo roda num Job Object, e o
+  que a ferramenta iniciou termina com ela: ao cancelar, no fim do passo e
+  quando o Lace ou o Studio morrem, mesmo encerrados pelo Gerenciador de
+  Tarefas (antes, o `iverilog` e o `vvp` seguiam rodando). Quando o Lace tem
+  console, como num terminal, as ferramentas continuam nele, sem o custo de
+  um console novo por ferramenta (`ProcessJob` e `hide_console` no
+  `lace-core`).
+- `lace update` abre o assistente da versão nova com os componentes
+  instalados marcados, inclusive os que o `lace install` acrescentou, que
+  antes saíam na atualização. O assistente e o desinstalador abrem sem a
+  saída do `lace` e fora do job de quem o chamou: o Studio não fica mais
+  ocupado até o assistente fechar.
+- No Studio, cancelar um `lace install` encerra também o download em
+  andamento, e "Novo arquivo" ou "Nova pasta" numa pasta que ainda não
+  existe (`rtl/modulo.v` num projeto sem `rtl/`) não dá mais "fora do
+  projeto".
+
+Todos os sistemas:
+
+- Um `include` relativo à pasta de quem o faz falhava no `check` e no `sim`
+  no Windows (o Icarus recebia o caminho com `\`) e, em qualquer sistema, no
+  `sim` de um testbench sem `$dumpfile`, cuja cópia com o dump injetado fica
+  em `.lace/Temp`. Os diagnósticos e a hierarquia trazem os caminhos com o
+  separador do sistema, iguais aos do projeto.
+- No Studio, um caminho com `..` passando por uma pasta que não existe não
+  escapa mais da pasta do projeto.
+- Testbench em Python, com o cocotb: um `.py` entra no projeto como
+  testbench (`lace add test_alu.py`, criado a partir de um modelo se não
+  existe), e `lace sim` roda os testes no Icarus. Cada teste sai na saída da
+  CLI e em `simulation.tests` no JSON; o que falha é um erro na linha do
+  `.py` e reprova a simulação, e a onda sai do mesmo jeito. O módulo testado
+  vem da linha `# aurora-toplevel: <módulo>` do `.py`, como na AURORA, ou do
+  topo do projeto. Com o Verilator o Lace recusa (`cocotb_needs_icarus`); o
+  `check` e o `hierarchy` deixam o `.py` de fora.
+- `lace check` não compila mais os processadores: verifica o Verilog que
+  está no disco, como o nome diz. Um processador que nunca foi compilado fica
+  de fora, com um aviso; se não sobra nada para verificar, sai com
+  `not_built` e a dica de compilar. O JSON do `check` não tem mais
+  `builds`.
+- O esquemático não recusa mais um módulo com mais de 120 ligações
+  (`schematic_too_large` deixou de existir); continua o prazo de 60 s do
+  `dot`. `--no-schematic-limit` é aceito e ignorado.
+- A onda do Icarus sai sempre em FST, com a extensão `.fst`: o
+  `$dumpfile("<proc>_tb.vcd")` do testbench que o YANC gera vira
+  `<proc>_tb.fst` numa cópia do testbench, e o modelo do `lace add` grava
+  `.fst`. O Verilator continua em VCD, agora sempre com a extensão `.vcd`
+  (antes, um `$dumpfile("x.fst")` gravava VCD em `x.fst`). O layout do
+  Surfer dos processadores SAPHO lê também o FST.
+- No Studio, o terminal acompanha o projeto aberto (o shell entra na pasta
+  do projeto novo), e a aba Lace saiu do painel inferior: a saída do
+  `lace install` e do `lace update` aparece na tela de Ferramentas.
+
 ## 0.2.0 (2026-10-05)
 
 A 0.1.0 saiu com o nome Solar; esta é a mesma linha com o nome Lace (o

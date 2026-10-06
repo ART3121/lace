@@ -284,18 +284,46 @@ function NewProcessorDialog() {
   );
 }
 
-function NewVerilogDialog({ testbench: initialTb, folder: initialFolder }: { testbench: boolean; folder?: string }) {
+function NewVerilogDialog({
+  testbench: initialTb,
+  folder: initialFolder,
+  cocotb: initialCocotb,
+}: {
+  testbench: boolean;
+  folder?: string;
+  cocotb?: boolean;
+}) {
   const t = useT();
   const snapshot = useProject((s) => s.snapshot)!;
-  const [testbench, setTestbench] = useState(initialTb);
+  const [testbench, setTestbench] = useState(initialTb || !!initialCocotb);
+  // O testbench em Verilog ou em Python (cocotb, que o Lace roda no Icarus).
+  const [cocotb, setCocotb] = useState(!!initialCocotb);
   const [folder, setFolder] = useState(initialFolder ?? '');
-  const [name, setName] = useState(() => {
-    if (!initialTb) return '';
-    return snapshot.top_module ? `${snapshot.top_module}_tb.v` : '';
-  });
+  const suggested = (tb: boolean, py: boolean) => {
+    if (!tb || !snapshot.top_module) return '';
+    return py ? `test_${snapshot.top_module}.py` : `${snapshot.top_module}_tb.v`;
+  };
+  const [name, setName] = useState(() => suggested(initialTb || !!initialCocotb, !!initialCocotb));
 
-  const fileName = name && !/\.(s?v|vh|svh)$/i.test(name) ? `${name}.v` : name;
-  const invalid = !fileName || /[\\:*?"<>|]/.test(fileName);
+  const python = testbench && cocotb;
+  const fileName = !name
+    ? name
+    : python
+      ? /\.py$/i.test(name)
+        ? name
+        : `${name}.py`
+      : /\.(s?v|vh|svh|py)$/i.test(name)
+        ? name
+        : `${name}.v`;
+  // O cocotb importa o .py como módulo Python: o nome precisa ser um
+  // identificador (o Core recusa o resto).
+  const badPythonName = /\.py$/i.test(fileName) && !/^[A-Za-z_][A-Za-z0-9_]*\.py$/i.test(baseName(fileName));
+  const invalid = !fileName || /[\\:*?"<>|]/.test(fileName) || badPythonName;
+  // O nome sugerido acompanha a linguagem enquanto o usuário não escreveu outro.
+  const chooseCocotb = (py: boolean) => {
+    if (name === suggested(testbench, cocotb)) setName(suggested(testbench, py));
+    setCocotb(py);
+  };
   const submit = async () => {
     if (invalid) return;
     const path = folder ? joinPath(snapshot.root, folder, fileName) : joinPath(snapshot.root, fileName);
@@ -309,18 +337,39 @@ function NewVerilogDialog({ testbench: initialTb, folder: initialFolder }: { tes
 
   return (
     <Dialog
-      title={testbench ? t('dialog.newVerilog.titleTb') : t('dialog.newVerilog.title')}
+      title={
+        python
+          ? t('dialog.newVerilog.titleCocotb')
+          : testbench
+            ? t('dialog.newVerilog.titleTb')
+            : t('dialog.newVerilog.title')
+      }
       onSubmit={() => void submit()}
       footer={<Footer submit={t('common.create')} disabled={invalid} />}
     >
-      <Field label={t('dialog.newVerilog.fileName')}>
-        <input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={testbench ? 'alu_tb.v' : 'alu.v'} />
+      <Field label={t('dialog.newVerilog.fileName')} error={badPythonName ? t('dialog.newVerilog.pythonName') : null}>
+        <input
+          className="input"
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={python ? 'test_alu.py' : testbench ? 'alu_tb.v' : 'alu.v'}
+          aria-invalid={badPythonName}
+        />
       </Field>
       <Field label={t('dialog.newVerilog.folder')}>
         <input className="input" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="rtl" />
       </Field>
       <Checkbox checked={testbench} onChange={setTestbench} label={t('dialog.newVerilog.testbench')} />
-      <p className="muted">{t('dialog.newVerilog.hint')}</p>
+      {testbench && (
+        <Field label={t('dialog.newVerilog.language')}>
+          <select className="select" value={cocotb ? 'cocotb' : 'verilog'} onChange={(e) => chooseCocotb(e.target.value === 'cocotb')}>
+            <option value="verilog">Verilog</option>
+            <option value="cocotb">{t('dialog.newVerilog.cocotb')}</option>
+          </select>
+        </Field>
+      )}
+      <p className="muted">{python ? t('dialog.newVerilog.cocotbHint') : t('dialog.newVerilog.hint')}</p>
     </Dialog>
   );
 }
@@ -775,7 +824,9 @@ export function Dialogs() {
     case 'newProcessor':
       return hasProject ? <NewProcessorDialog /> : null;
     case 'newVerilog':
-      return hasProject ? <NewVerilogDialog testbench={dialog.testbench} folder={dialog.folder} /> : null;
+      return hasProject ? (
+        <NewVerilogDialog testbench={dialog.testbench} folder={dialog.folder} cocotb={dialog.cocotb} />
+      ) : null;
     case 'newInput':
       return hasProject ? <NewInputDialog processor={dialog.processor} /> : null;
     case 'chooseTop':

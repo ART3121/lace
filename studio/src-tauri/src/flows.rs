@@ -1,10 +1,11 @@
 //! Os fluxos: compilar, verificar, simular, sintetizar e desenhar.
 //!
 //! Cada fluxo é a mesma composição de funções do Core que o comando da CLI
-//! faz (`crates/lace-cli/src/commands.rs`): compila os processadores
-//! antes (`build_processors`, parando no primeiro que falhar), roda a
-//! operação, lê as portas de saída, grava o relatório no histórico do
-//! projeto e, na simulação, abre a onda.
+//! faz (`crates/lace-cli/src/commands.rs`): antes da simulação e da
+//! síntese, compila os processadores (`build_processors`, parando no
+//! primeiro que falhar); roda a operação, lê as portas de saída, grava o
+//! relatório no histórico do projeto e, na simulação, abre a onda. A
+//! verificação não compila: roda o Icarus sobre o que está no disco.
 //!
 //! A ADR 0001 do Lace diz que regra posta na CLI é regra que a GUI tem de
 //! copiar. Esta cópia é o que ela prevê, e está isolada aqui para sair
@@ -219,7 +220,7 @@ pub struct FlowOutcome {
     /// O resultado do esquemático.
     pub schematic: Option<SchematicResult>,
     /// Por que o esquemático não foi desenhado depois da síntese (o módulo
-    /// grande demais, `schematic_too_large`); a síntese em si vale.
+    /// pedido não está no netlist, `module_not_found`); a síntese em si vale.
     pub schematic_error: Option<IpcError>,
     /// A onda aberta no surfer-aurora.
     pub wave: Option<WaveOpened>,
@@ -370,11 +371,9 @@ pub fn run(
                 .collect::<Result<_, _>>()?,
             OnFailure::Continue,
         ),
-        FlowRequest::Check {
-            processor: Some(name),
-            ..
-        }
-        | FlowRequest::Simulate {
+        // A verificação só roda o Icarus sobre o que está no disco.
+        FlowRequest::Check { .. } => (Vec::new(), OnFailure::Stop),
+        FlowRequest::Simulate {
             processor: Some(name),
             ..
         }
@@ -467,9 +466,9 @@ pub fn run(
                     control,
                 ) {
                     Ok(svg) => outcome.schematic = Some(svg),
-                    // Grande demais para o `dot`: a síntese e as estatísticas
+                    // Um módulo fora do netlist: a síntese e as estatísticas
                     // ficam, e a interface explica e oferece outro módulo.
-                    Err(error @ lace_core::LaceError::SchematicTooLarge { .. }) => {
+                    Err(error @ lace_core::LaceError::ModuleNotFound { .. }) => {
                         outcome.schematic_error = Some(error.into());
                     }
                     Err(error) => return Err(error.into()),
@@ -498,7 +497,8 @@ pub fn run(
     (outcome.report, outcome.report_error) = (report, report_error);
 
     // Como o botão Wave da AURORA e o `lace sim --open`: a onda abre
-    // depois que a simulação deu certo e o relatório foi gravado.
+    // quando a simulação a entrega (deu certo, ou um teste cocotb falhou com
+    // a simulação indo até o fim) e o relatório foi gravado.
     if let FlowRequest::Simulate {
         open_wave: true, ..
     } = request
@@ -571,8 +571,8 @@ fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValu
 
 /// Abre uma onda no surfer-aurora, com o layout dos processadores SAPHO
 /// quando ela tem processador (como o `lace wave`), e confere que ele não
-/// fechou logo. Sem layout (a onda não é VCD, ou ele falhou), abre a onda
-/// crua.
+/// fechou logo. Sem layout (a onda não é VCD nem FST, ou ele falhou), abre a
+/// onda crua.
 ///
 /// O Surfer continua aberto depois desta chamada; uma thread espera ele
 /// fechar, para o processo não ficar zumbi (`<defunct>`) até o Studio sair.

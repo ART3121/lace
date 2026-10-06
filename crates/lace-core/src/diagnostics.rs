@@ -225,7 +225,7 @@ fn parse_stream(
                 && let Some((file, number)) = place.rsplit_once(':')
                 && let Ok(number) = number.trim().parse()
             {
-                last.file = Some(file.trim().into());
+                last.file = Some(crate::paths::native_separators(file.trim()));
                 last.line = Some(number);
             }
             continue;
@@ -294,7 +294,7 @@ impl Parsed {
     }
 
     fn at(mut self, location: Location<'_>) -> Self {
-        self.file = Some(Utf8PathBuf::from(location.file));
+        self.file = Some(crate::paths::native_separators(location.file));
         self.line = Some(location.line);
         self.column = location.column;
         self
@@ -360,7 +360,7 @@ fn data_file_location(message: &str) -> Option<(Utf8PathBuf, u32)> {
     let (line, rest) = split_number(after)?;
     let rest = rest.strip_prefix(" of file '")?;
     let file = &rest[..rest.find('\'')?];
-    Some((Utf8PathBuf::from(file), line))
+    Some((crate::paths::native_separators(file), line))
 }
 
 /// `"42: resto"` vira `(42, ": resto")`.
@@ -493,7 +493,7 @@ fn parse_icarus(raw: &str, simulation: bool) -> Option<Parsed> {
     }
     if let Some(file) = text.strip_suffix(": No such file or directory") {
         let mut parsed = Parsed::new(Severity::Error, "File not found");
-        parsed.file = Some(file.into());
+        parsed.file = Some(crate::paths::native_separators(file));
         return Some(parsed);
     }
     // `2 error(s) during elaboration.`: resumo, a contagem já está nos erros.
@@ -579,7 +579,7 @@ fn parse_graphviz(raw: &str) -> Option<Parsed> {
             .map(|i| &message[i + " in line ".len()..])
         && let Some((line, _)) = split_number(after)
     {
-        parsed.file = Some(file.into());
+        parsed.file = Some(crate::paths::native_separators(file));
         parsed.line = Some(line);
     }
     Some(parsed)
