@@ -25,7 +25,7 @@
 //!    `<dir>/../toolchain`), como a CLI.
 //!
 //! O `PATH` só serve para achar a instalação. As ferramentas continuam saindo
-//! do bundle, como manda a ADR 0002 do Lace.
+//! do bundle.
 //!
 //! O compilador do Verilator segue a regra da CLI (`settings.rs` dela):
 //! `compiler_dir` das preferências ou `LACE_COMPILER`; sem eles, o que o Core

@@ -181,7 +181,7 @@ pub(crate) fn repository_top(dir: &Utf8Path) -> Option<&Utf8Path> {
 /// dois estão no mesmo repositório git; `None` fora de repositório ou em
 /// repositórios diferentes. Os dois caminhos são absolutos e canônicos.
 ///
-/// É a regra do `.spf` para arquivo de fora da pasta do projeto (ADR 0012):
+/// É a regra do `.spf` para arquivo de fora da pasta do projeto:
 /// dentro do mesmo repositório, o caminho relativo vale em qualquer clone.
 pub(crate) fn relative_in_repository(root: &Utf8Path, path: &Utf8Path) -> Option<String> {
     let top = repository_top(root)?;

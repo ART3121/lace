@@ -155,7 +155,7 @@ de 10 s. Um script que espera a janela (o `smoke.sh` da seção anterior, o
    `src/ipc/api.ts`.
 4. Documente em [IPC.md](IPC.md).
 5. Lógica de orquestração (que ferramenta rodar, em que ordem) não entra
-   aqui: vai para o Lace (ADR 0001 do Lace). Se precisar mesmo, isole-a em
+   aqui: vai para o Lace. Se precisar mesmo, isole-a em
    `flows.rs` e anote em ARCHITECTURE.md, seção 8.
 
 ### Uma vista nova (aba central)
@@ -177,7 +177,7 @@ git diff src/ipc/lace-types.ts
 
 ### Cores, temas e medidas
 
-As cores ficam nos temas, em `src/themes/catalog.ts` (ADR 0010); cada tema
+As cores ficam nos temas, em `src/themes/catalog.ts`; cada tema
 dá as cores da interface, da sintaxe, do editor e dos terminais, e o Monaco
 e os consoles saem dele. Componente usa variável CSS (`var(--text-1)`),
 nunca cor literal. Uma variável nova entra em `UiColors`
@@ -188,7 +188,7 @@ Para um tema novo, um objeto a mais no catálogo, com a fonte das cores na
 tabela do começo do arquivo. O id não muda depois de lançado: ele fica
 gravado no `settings.json` de quem escolheu o tema.
 
-O padrão, Atlas, é neutro e sem enfeite (ADRs 0005 e 0007): cor só onde
+O padrão, Atlas, é neutro e sem enfeite: cor só onde
 informa algo, azul do CERN nos detalhes. As medidas (fontes, espaços, raios,
 alturas) ficam em `src/styles/tokens.css`.
 

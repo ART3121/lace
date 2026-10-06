@@ -3,9 +3,7 @@
 Guia para quem vai mexer no código do Lace pela primeira vez: como preparar
 a máquina, onde mora cada coisa, como fazer as mudanças mais comuns e o que
 conferir antes de mandar. O que o Lace faz para o usuário está no
-[README](README.md). Por que ele é como é está nas
-[decisões de arquitetura](docs/adr/README.md); leia-as antes de uma
-mudança grande, porque as regras deste guia saem delas.
+[README](README.md).
 
 A referência da API está em [docs/API.md](docs/API.md) e na documentação do
 código (`cargo doc -p lace-core --no-deps --open`). A da linha de comando,
@@ -130,7 +128,7 @@ bundle.
 O workspace tem três crates. `lace-core` é a biblioteca, com toda a regra
 de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 `lace-installer` é o instalador em terminal (Linux, macOS) e o empacotador
-`lace-pack`. A divisão está na [ADR 0001](docs/adr/0001-biblioteca-com-interfaces-finas.md).
+`lace-pack`.
 
 ### `crates/lace-core/src/`
 
@@ -155,7 +153,7 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 | `stats.rs` | `SynthesisStatistics`: lê o `stat -json` do Yosys que a síntese grava (`SynthesisMetric`, `CellUsage`) |
 | `history.rs` | módulo público `lace_core::history`: o relatório de cada operação e o histórico em `.lace/reports/` (`record`, `list`, `load`, `latest`, `report_text`), a comparação (`compare`, `compare_reports`, `previous_comparable`) e o texto do `report.txt` (`render`) |
 | `wave.rs` | `open_waveform` (surfer-aurora) e `ViewerOptions` |
-| `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho do VCD e das tabelas do YANC (ADR 0011) |
+| `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho do VCD e das tabelas do YANC |
 | `paths.rs` | `YANC_PATH_LIMIT`, `canonicalize` sem o prefixo `\\?\` do Windows, normalização de caminhos |
 
 ### `crates/lace-cli/src/`
@@ -189,7 +187,7 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 | `installer/windows/lace.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
 | `.github/workflows/` | `ci.yml` (verificação a cada push), `installers.yml` (bundle, instaladores e testes contra a instalação), `release.yml` (rascunho de release numa tag) |
-| `docs/` | API, CLI, bundle, instalação, release e as ADRs |
+| `docs/` | API, CLI, bundle, instalação e release |
 
 ### Como uma operação anda
 
@@ -246,7 +244,7 @@ Exemplo: uma opção nova do `iverilog` no `lace check`.
 
 Uma variável de ambiente nova para a ferramenta entra por
 `Invocation::env` (veja `Toolchain::invocation`, em `toolchain.rs`), nunca
-herdada do ambiente do usuário ([ADR 0002](docs/adr/0002-so-ferramentas-do-bundle.md)).
+herdada do ambiente do usuário.
 
 ### Acrescentar um comando ou uma opção à CLI
 
@@ -266,8 +264,7 @@ herdada do ambiente do usuário ([ADR 0002](docs/adr/0002-so-ferramentas-do-bund
    [Contrato do `--json`](#contrato-do---json)). Com `--json`, o comando
    escreve um único objeto JSON no stdout e nada mais.
 4. Se a opção pede uma regra nova (decidir, validar, escolher arquivo), a
-   regra vai para o Core, e a CLI só repassa
-   ([ADR 0001](docs/adr/0001-biblioteca-com-interfaces-finas.md)).
+   regra vai para o Core, e a CLI só repassa.
 5. Testes:
    - `cli_definition_is_valid`, em `main.rs`, confere a definição do
      `clap` (nomes repetidos, conflitos): `cargo test -p lace-cli --bins`;
@@ -319,8 +316,7 @@ auxiliares `is_clock`, `reset_polarity` e `range`. Quem os chama é
 `Project::add_verilog`, em `files.rs`; o módulo testado vem de
 `module_under_test`.
 
-1. O modelo precisa continuar classificado como o que é
-   ([ADR 0005](docs/adr/0005-classificacao-de-arquivos-pela-regra-da-aurora.md)):
+1. O modelo precisa continuar classificado como o que é:
    o módulo-modelo precisa ter portas (um módulo sem portas soma 3 pontos de
    testbench), e o testbench-modelo, `$dumpfile` e `$finish`.
 2. Testes sem ferramenta: `templates_are_classified_as_intended` e
@@ -339,7 +335,8 @@ auxiliares `is_clock`, `reset_polarity` e `range`. Quem os chama é
 3. Documente em [docs/CLI.md](docs/CLI.md), "Arquivo novo", e em
    [docs/API.md](docs/API.md), seção 4.2.
 
-Mudar os pesos de `classify` não é esta receita: é mudar a ADR 0005.
+Mudar os pesos de `classify` não é esta receita: eles são os da AURORA, e
+mudá-los muda a classificação dos arquivos de todos os projetos.
 
 ### Atualizar a versão de uma ferramenta do bundle
 
@@ -379,8 +376,7 @@ que se confirma que a versão nova funciona no macOS e no Windows.
 
 Antes, decida se é mesmo um erro: `Err(LaceError)` é para quando o Lace
 não consegue rodar. Se a ferramenta rodou e recusou o código do usuário, o
-lugar é um diagnóstico no resultado
-([ADR 0001](docs/adr/0001-biblioteca-com-interfaces-finas.md)).
+lugar é um diagnóstico no resultado.
 
 1. `crates/lace-core/src/error.rs`: a variante em `LaceError`, com
    documentação na variante e em cada campo (o crate não compila sem ela),
@@ -419,8 +415,7 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
 - **Só ferramentas do bundle.** Programa externo roda por
   `Toolchain::invocation` e `process::run`. Nada de
   `std::process::Command` fora de `process.rs`, nada do `PATH`, nenhuma
-  variável herdada sem estar declarada
-  ([ADR 0002](docs/adr/0002-so-ferramentas-do-bundle.md)).
+  variável herdada sem estar declarada.
 - **Regra de negócio no Core.** A CLI abre, chama e mostra. As mensagens do
   Core não citam comandos; os comandos aparecem só em `hint`, na CLI.
 - **O Core nunca sobrescreve código do usuário.** Criar processador ou
@@ -464,9 +459,7 @@ Toda operação que executa ferramentas (`build`, `build_processors`,
 `check`, `hierarchy`, `simulate`, `simulate_project`, `synthesize`,
 `render_schematic`)
 recebe um `Control` como último argumento. `Control::default()` roda até o
-fim e não avisa nada; é o que os testes usam quando não testam isso. A
-decisão e o porquê estão na
-[ADR 0007](docs/adr/0007-cancelamento-e-saida-ao-vivo.md).
+fim e não avisa nada; é o que os testes usam quando não testam isso.
 
 Uma interface usa assim (o exemplo completo está na documentação de
 `control.rs`):
@@ -514,8 +507,7 @@ cargo test -p lace-core --test control
 O que cada comando escreve com `--json` tem um JSON Schema em
 `docs/schema/<comando>.json` (`events.json` para as linhas do `--events`,
 `error.json` para o código de saída 2). Os arquivos são gerados dos tipos;
-não edite à mão. A decisão está na
-[ADR 0008](docs/adr/0008-contrato-do-json-gerado-dos-tipos.md).
+não edite à mão.
 
 - A CLI só escreve JSON por `Output::json`, que só aceita tipos de
   `crates/lace-cli/src/report.rs` registrados na macro `reports!`.
@@ -566,8 +558,6 @@ Depois confira:
       para o bundle e a documentação do código para todo item público.
 - [ ] Se o usuário percebe a mudança, há uma linha no `CHANGELOG.md`, na
       seção da versão não publicada.
-- [ ] Se a mudança contraria uma ADR, há uma ADR nova que a substitui
-      ([docs/adr/README.md](docs/adr/README.md)).
 - [ ] Você leu o diff inteiro (`git diff`) antes de mandar.
 
 Toda mudança precisa ser explicável por quem a submete: o que ela faz, por

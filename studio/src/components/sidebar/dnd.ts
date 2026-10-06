@@ -264,8 +264,7 @@ export async function copyInto(paths: string[], dir: string): Promise<string[]> 
 /** Registra arquivos Verilog com o papel da seção, no lugar onde estão. Um
  * arquivo de fora da pasta do projeto não é copiado: uma cópia divergiria
  * do original (o `rtl/` de um repositório como o HITS). O Core grava o
- * caminho relativo quando o arquivo está no mesmo repositório git (ADR 0012
- * do Lace). */
+ * caminho relativo quando o arquivo está no mesmo repositório git. */
 export async function register(paths: string[], section: DropSection): Promise<void> {
   const snapshot = useProject.getState().snapshot;
   if (!snapshot) return;

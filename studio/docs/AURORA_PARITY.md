@@ -104,10 +104,10 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Recurso da AURORA | Estado | No Studio, ou o que falta |
 |---|---|---|
 | Abrir a onda no Surfer em janela | Feito | Onda (Ctrl+F8), com a preferência em janela |
-| Surfer embutido numa aba | Feito | o padrão; o cliente web lê o arquivo, sem `surfer server` (ADR 0011) |
+| Surfer embutido numa aba | Feito | o padrão; o cliente web lê o arquivo, sem `surfer server` |
 | Escolher layout `.gtkw`, `.surf.ron`, `.sucl` | Fase 2 | o Core já recebe um layout (`ViewerOptions::layout`); falta a interface |
 | Wave Configuration: escolher sinais por testbench | Depende do Lace | o Lace grava todos os sinais (`$dumpvars(0, tb)`) |
-| Layouts gerados (grupos do processador, tradutores ASM e C±, números complexos) | Feito | `wave_layout` do Core (ADR 0011 do Lace), na aba e na janela |
+| Layouts gerados (grupos do processador, tradutores ASM e C±, números complexos) | Feito | `wave_layout` do Core, na aba e na janela |
 | Esquemático: escolher módulo, zoom, arrastar, ajustar, abrir o SVG | Feito | aba Esquemático |
 | Duplo clique num módulo abre o fonte | Fase 2 | |
 | 82 skins do netlistsvg | Diferente | o desenho é o do Graphviz (decisão do Lace) |
@@ -120,7 +120,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 |---|---|---|
 | Monaco, abas provisórias, marcador de alteração, reabrir aba fechada | Feito | |
 | Reordenar abas arrastando | Fase 2 | |
-| Dividir o editor (até 3) | Feito | lado a lado, cada grupo com as suas abas; arrastar abas entre grupos, abrir ao lado, `Ctrl+\` e Ctrl+1..3 ([ADR 0009](adr/0009-editor-dividido-em-grupos.md)) |
+| Dividir o editor (até 3) | Feito | lado a lado, cada grupo com as suas abas; arrastar abas entre grupos, abrir ao lado, `Ctrl+\` e Ctrl+1..3 |
 | Realce de C± | Feito | gramática portada e conferida contra o léxico do YANC; corrige pontos em que a AURORA divergia (ver `src/editor/languages/cmm.ts`) |
 | Realce do assembly do SAPHO | Feito | os 114 opcodes do YANC |
 | Realce de Verilog e SystemVerilog | Feito | o do Monaco |
@@ -146,14 +146,14 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Atalhos configuráveis | Fase 2 | a tabela já está em `actions.ts` |
 | Componentes: baixar, remover, conferir | Feito | Ferramentas do Lace: componentes, executáveis, compilador do Verilator, conferência dos hashes, instalar (`lace install`); remover componente o Lace não faz |
 | Inglês e português | Feito | o YANC roda sempre em inglês (`-en`), por decisão do Lace |
-| Temas | Feito | a AURORA tinha só o escuro; o Studio tem 15, com o Atlas de padrão e o Aurora Legacy nas cores da AURORA (ADR 0010) |
+| Temas | Feito | a AURORA tinha só o escuro; o Studio tem 15, com o Atlas de padrão e o Aurora Legacy nas cores da AURORA |
 | Atualização | Parcial | procura e instala atualização do Lace e do bundle (`lace update`), na tela de ferramentas; atualização do próprio Studio, Fase 2 |
 | Manual offline num navegador interno | Fase 2 | hoje, Ajuda > Manual do SAPHO abre o site |
 | Sobre | Feito | |
 | Assistente (Aurora Intelligence) | Fase 3 | ver abaixo |
 | Painel de Git (GitHub e GitLab) | Fase 3 | |
 | Gerenciador de bibliotecas Python (cocotb) | Depende do Lace | só faz sentido quando o Lace rodar cocotb |
-| Tela de abertura, fundo animado, ícone personalizado | Diferente | o visual do Studio é neutro e sem enfeite (ADR 0005) |
+| Tela de abertura, fundo animado, ícone personalizado | Diferente | o visual do Studio é neutro e sem enfeite |
 | Extras do Windows (bateria, rede, Smart App Control, jumplist) | Diferente | fora do escopo |
 
 ## Também no Studio

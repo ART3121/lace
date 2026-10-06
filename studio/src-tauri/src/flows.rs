@@ -7,10 +7,9 @@
 //! relatório no histórico do projeto e, na simulação, abre a onda. A
 //! verificação não compila: roda o Icarus sobre o que está no disco.
 //!
-//! A ADR 0001 do Lace diz que regra posta na CLI é regra que a GUI tem de
-//! copiar. Esta cópia é o que ela prevê, e está isolada aqui para sair
-//! inteira quando o Core ganhar os fluxos compostos (ver
-//! `docs/ARCHITECTURE.md`, "Pendências no Lace").
+//! Regra posta na CLI é regra que a GUI tem de copiar. Esta cópia está
+//! isolada aqui para sair inteira quando o Core ganhar os fluxos compostos
+//! (ver `docs/ARCHITECTURE.md`, "Pendências no Lace").
 //!
 //! Nada aqui fala com a interface: o progresso sai pela função `progress`,
 //! e quem a transforma em mensagens é `jobs.rs`.

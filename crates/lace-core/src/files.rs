@@ -6,9 +6,9 @@
 //! - `structure.synthesizableFiles` e `structure.testbenchFiles`: listas de
 //!   `{ "name", "path", "isTopLevel" }`. O caminho é relativo à raiz quando o
 //!   arquivo está dentro dela; fora dela, relativo com `..` quando o arquivo
-//!   e o projeto estão no mesmo repositório git, e absoluto quando não (ADR
-//!   0012). Um absoluto de outra máquina que não existe aqui é procurado pela
-//!   cauda dentro da raiz, como a AURORA faz.
+//!   e o projeto estão no mesmo repositório git, e absoluto quando não. Um
+//!   absoluto de outra máquina que não existe aqui é procurado pela cauda
+//!   dentro da raiz, como a AURORA faz.
 //! - `structure.topLevelFile`: o arquivo do módulo de topo, que a síntese
 //!   usa; o módulo é o único do arquivo, o que tem o nome dele ou, se foi
 //!   escolhido pelo nome, `structure.topLevelModule` (campo do Lace).
@@ -1242,7 +1242,7 @@ pub(crate) fn module_of(file: &Utf8Path) -> Result<String> {
 
 /// Como o `.spf` guarda `path` (absoluto e canônico): relativo à raiz
 /// quando dentro dela, como a AURORA; relativo com `..` quando fora dela mas
-/// no mesmo repositório git (ADR 0012); absoluto no resto. Sempre com `/`.
+/// no mesmo repositório git; absoluto no resto. Sempre com `/`.
 fn store(root: &Utf8Path, path: &Utf8Path) -> String {
     match path.strip_prefix(root) {
         Ok(rel) => rel.as_str().replace('\\', "/"),

@@ -4,7 +4,7 @@ Este documento explica como o Studio é feito: as duas metades (backend em
 Rust e interface em React), como elas conversam, como uma operação roda do
 clique até o resultado, onde mora cada estado e o que o Studio faz por conta
 própria em vez de deixar para o Lace. A referência de cada comando está em
-[IPC.md](IPC.md); as decisões e o porquê delas, em [adr/](adr/README.md).
+[IPC.md](IPC.md).
 
 Sumário:
 
@@ -44,7 +44,7 @@ Sumário:
 Três regras orientam tudo:
 
 - **A regra mora no Lace.** O backend chama o `lace-core` como biblioteca
-  Rust, do jeito que a ADR 0001 do Lace prevê para uma GUI: abre o projeto,
+  Rust, do jeito que o Lace prevê para uma GUI: abre o projeto,
   chama a função, devolve o resultado serializado. O Studio não sabe montar
   a linha de comando do `iverilog` nem ler a saída do `cmmcomp`; quem sabe é
   o Core. A exceção, isolada e documentada, é a composição dos fluxos
@@ -126,7 +126,7 @@ interface.
 | `commands::toolchain` | `lace tools [--verify]`, `lace update [--check]`, `lace install` |
 | `jobs` | começar, cancelar e consultar a operação (build, check, sim, synth, esquemático) |
 | `terminal` | abrir, escrever, redimensionar e encerrar o terminal de shell |
-| `wave_tab` | a onda numa aba: registra a onda e o layout no servidor local que serve o cliente web do Surfer (ADR 0011) |
+| `wave_tab` | a onda numa aba: registra a onda e o layout no servidor local que serve o cliente web do Surfer |
 
 ### 3.3 Erros
 
@@ -150,7 +150,7 @@ a pasta das preferências, `LACE_TOOLCHAIN`, a pasta padrão do instalador, o
 `lace` do `PATH` (resolvendo o atalho até a instalação) e a pasta do próprio
 Studio. Uma pasta declarada e inválida é erro, sem cair para as outras, como
 o `--toolchain` da CLI. O `PATH` só serve para achar a instalação; as
-ferramentas continuam saindo do bundle (ADR 0002 do Lace).
+ferramentas continuam saindo do bundle.
 
 O compilador do Verilator segue o `--compiler` da CLI: preferência ou
 `LACE_COMPILER`. Uma pasta declarada sem `perl`, `make` e um compilador C++
@@ -307,7 +307,7 @@ fica com as teclas antes do Monaco. No terminal o Ctrl+K é do shell.
 
 ### 4.4 Editor
 
-A área central tem de um a três grupos lado a lado (ADR 0009), num `Group`
+A área central tem de um a três grupos lado a lado, num `Group`
 do `react-resizable-panels`. `useEditor` guarda cada aba aberta uma vez
 (`tabs`) e, em `groups`, os ids das abas de cada grupo, na ordem da barra,
 com a ativa de cada um; `activeId` é a ativa do grupo ativo, a que os menus,
@@ -379,7 +379,7 @@ Os textos ficam em `i18n/pt.ts` (a referência) e `i18n/en.ts`, com as
 mesmas chaves (o TypeScript confere). `useT()` faz o componente se
 redesenhar quando o idioma muda.
 
-As cores vêm do tema (ADR 0010). Cada tema de `themes/catalog.ts` é um
+As cores vêm do tema. Cada tema de `themes/catalog.ts` é um
 objeto com as cores da interface, os papéis da sintaxe, as cores do editor
 e as dos terminais, e dele saem:
 
@@ -430,7 +430,7 @@ com `status: cancelled`, que chega pelo mesmo caminho.
 
 - **Tipos do Core:** `src/ipc/lace-types.ts` é gerado por
   `npm run gen:types` a partir de `docs/schema/*.json` da raiz, que o próprio
-  Lace gera dos tipos Rust e confere por teste (ADR 0008 do Lace). Mudou um
+  Lace gera dos tipos Rust e confere por teste. Mudou um
   tipo público no Lace: rode de novo e confira o diff.
 - **Tipos do Studio:** os structs de `src-tauri/src` e as interfaces de
   `src/ipc/types.ts` são mantidos à mão, lado a lado, com o arquivo Rust
@@ -457,8 +457,8 @@ com `status: cancelled`, que chega pelo mesmo caminho.
 
 ## 8. Pendências no Lace
 
-Coisas que o Studio faz por conta própria e que, pela ADR 0001 do Lace,
-deveriam ir para o Core. Ficam isoladas para sair inteiras quando isso
+Coisas que o Studio faz por conta própria e que deveriam ir para o Core,
+onde mora a regra de negócio. Ficam isoladas para sair inteiras quando isso
 acontecer.
 
 | No Studio | Onde | Proposta para o Lace |

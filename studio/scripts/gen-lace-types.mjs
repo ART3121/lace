@@ -1,6 +1,6 @@
 // Gera src/ipc/lace-types.ts a partir dos JSON Schemas do Lace
-// (lace/docs/schema/*.json), que o próprio Lace gera dos tipos do Core
-// (ADR 0008 do Lace). Assim a interface usa o mesmo contrato da CLI.
+// (lace/docs/schema/*.json), que o próprio Lace gera dos tipos do Core.
+// Assim a interface usa o mesmo contrato da CLI.
 //
 // Uso: npm run gen:types            (o Lace deste repositório, em ..)
 //      LACE_REPO=/outro/lace npm run gen:types

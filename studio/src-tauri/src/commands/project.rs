@@ -1,7 +1,7 @@
 //! Comandos do projeto: abrir, criar, fechar, o retrato do projeto e o que
 //! muda o `.spf` (arquivos Verilog, topo, testbench, processadores).
 //!
-//! Cada comando chama uma função do Core e nada mais (ADR 0001 do Lace). O
+//! Cada comando chama uma função do Core e nada mais. O
 //! retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns campos a
 //! mais que a interface usa para habilitar botões.
 

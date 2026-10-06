@@ -183,7 +183,6 @@ as ferramentas rodam. O formato de cada um está em
 | [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando |
 | [docs/RELEASE.md](docs/RELEASE.md) | como fazer uma release |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | como contribuir: preparar a máquina, onde mudar o quê, o que conferir |
-| [docs/adr/](docs/adr/README.md) | as decisões de arquitetura e o porquê de cada uma |
 | [CHANGELOG.md](CHANGELOG.md) | mudanças por versão |
 
 ## Compilar do fonte

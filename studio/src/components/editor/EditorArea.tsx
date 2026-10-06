@@ -1,4 +1,4 @@
-// A área central: até três grupos lado a lado (ADR 0009), cada um com a
+// A área central: até três grupos lado a lado, cada um com a
 // sua barra de abas e o conteúdo da aba ativa. O editor de texto de um grupo
 // fica montado enquanto o grupo tiver aba de arquivo, só escondido quando a
 // aba ativa é uma vista, para trocar de aba sem recriar o Monaco.

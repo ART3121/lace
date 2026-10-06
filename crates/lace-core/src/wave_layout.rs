@@ -23,7 +23,7 @@
 //! pelo caminho e pelo nome, então os identificadores do arquivo são só
 //! marcadores. Os tradutores vão para `.surfer/mappings/` na pasta onde o
 //! Surfer roda, que é onde ele os procura além da pasta de configuração do
-//! usuário (ADR 0011).
+//! usuário.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write as _;

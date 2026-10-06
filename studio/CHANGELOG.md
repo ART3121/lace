@@ -42,7 +42,7 @@ A primeira versão com o Studio, junto com a 0.2.0 do Lace.
   Recommended e com `lace install studio` para depois. Fica no bundle
   (`toolchain/studio/`) e ganha atalho no menu de aplicativos: o
   `lace-studio.desktop` no Linux, o `Lace Studio.app` em `~/Applications` no
-  macOS, o menu Iniciar no Windows (ADR 0013 do Lace).
+  macOS, o menu Iniciar no Windows.
 - Instalado no bundle, o Studio usa o bundle em que está, antes da pasta
   padrão da instalação (origem `bundled`, "bundle do Studio" na tela de
   ferramentas): uma instalação em outra pasta não abre o bundle de outra.
@@ -89,7 +89,7 @@ A primeira versão com o Studio, junto com a 0.2.0 do Lace.
 - Atalhos de duas etapas, como no VS Code (Ctrl+K Z), que convivem com os
   do Monaco (Ctrl+K Ctrl+C continua comentando a linha).
 - Documentação: guia do usuário, arquitetura, referência do IPC,
-  desenvolvimento, paridade com a AURORA e ADRs.
+  desenvolvimento e paridade com a AURORA.
 - Testes do backend, inclusive dos fluxos contra o bundle instalado.
 - Hierarquia do design no explorador (Fontes, Hierarquia, Arquivos): a
   árvore de instâncias do design e de cada testbench, elaborada pelo Icarus,
@@ -118,32 +118,29 @@ A primeira versão com o Studio, junto com a 0.2.0 do Lace.
   o seu editor (`Ctrl+\`, "Dividir à direita", "Abrir ao lado" no
   explorador ou Ctrl+Enter na árvore); arrastar abas entre grupos ou para
   um grupo novo, Ctrl+1/2/3 para ir a um grupo; o mesmo arquivo em dois
-  grupos é o mesmo texto. Os grupos voltam com o projeto
-  ([ADR 0009](docs/adr/0009-editor-dividido-em-grupos.md)).
+  grupos é o mesmo texto. Os grupos voltam com o projeto.
 - Explorador: um botão no título recolhe a árvore inteira e, de novo,
   expande tudo, nas Fontes, na Hierarquia e na árvore de arquivos.
 - A onda de um processador SAPHO abre arrumada como na AURORA: um grupo por
   processador com I/O, a instrução de assembly e a linha do C± de cada
-  ciclo, as variáveis do programa e as flags (o `wave_layout` do Core, ADR
-  0011 do Lace). Vale na aba e na janela.
+  ciclo, as variáveis do programa e as flags (o `wave_layout` do Core). Vale na
+  aba e na janela.
 - A onda numa aba: o cliente web do Surfer dentro do Studio, servido por um
   servidor local em `127.0.0.1`. Preferências > Simulação escolhe aba (o
-  padrão) ou janela separada; simular de novo recarrega a aba aberta
-  ([ADR 0011](docs/adr/0011-onda-numa-aba.md)).
+  padrão) ou janela separada; simular de novo recarrega a aba aberta.
 - Ferramentas do Lace: **Atualizar para X**, depois de procurar
   atualizações, quando há um Lace mais novo. Confirma e roda o
   `lace update --yes --json` da instalação como operação, com a saída do
   instalador no console Lace; no Windows, abre o assistente. Não pode ser
   cancelada no meio.
 - O azul do CERN (Pantone 286 C, #0033A0) nos detalhes: foco, aba e item
-  ativos, botão principal, seleção, destino de arrastar
-  ([ADR 0007](docs/adr/0007-azul-do-cern-nos-detalhes.md)).
+  ativos, botão principal, seleção, destino de arrastar.
 
 ### Mudado
 
 - O símbolo do Lace passou a ser a torção (dois fios que trocam de posição
   duas vezes) no lugar do octógono entrelaçado: barra de menus,
-  boas-vindas, aba Sobre, favicon e ícones do app. Ver a ADR 0008.
+  boas-vindas, aba Sobre, favicon e ícones do app.
 - As marcas do explorador começam com maiúscula: Topo, Simulado, Gerado,
   Compilado, Não compilado (Top, Simulated, Generated, Built, Not built).
 - O seletor Icarus/Verilator saiu da barra de ferramentas; o simulador se
@@ -153,8 +150,7 @@ A primeira versão com o Studio, junto com a 0.2.0 do Lace.
   links da documentação; "Copiar informações" para relatar um problema.
 
 - O logo provisório (um L entre dois pinos) deu lugar à marca do Lace na
-  barra de menus, nas boas-vindas, no Sobre, no favicon e nos ícones do app
-  ([ADR 0008](docs/adr/0008-a-marca-do-lace.md)).
+  barra de menus, nas boas-vindas, no Sobre, no favicon e nos ícones do app.
 - Nome de projeto novo só com letras sem acento, números, `_` e `-`,
   começando por letra; o diálogo avisa enquanto se digita.
 - As ações do explorador e dos relatórios ficam na linha do título da barra
@@ -189,7 +185,7 @@ As pendências do teste de fogo de 2026-10-04 estão em `docs/PENDENCIAS.md`
 - Arrastar um `.v` de fora da pasta do projeto para Módulos ou Testbenches
   copiava o arquivo para a raiz, e a cópia divergia do original. Agora
   registra no lugar, como o menu Adicionar; no mesmo repositório git, o
-  `.spf` guarda o caminho relativo (ADR 0012 do Lace).
+  `.spf` guarda o caminho relativo.
 - Os avisos do `.spf` (caminho de outra máquina achado dentro da pasta, topo
   fora da lista, processador com nome que não compila) aparecem no painel
   Problemas enquanto o projeto está aberto.

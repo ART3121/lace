@@ -9,8 +9,8 @@ operação.
 
 É um aplicativo [Tauri 2](https://tauri.app): o backend em Rust usa o
 `lace-core` como biblioteca, sem passar pela linha de comando, e a interface
-é React com o editor Monaco. A regra de negócio continua toda no Lace (ADR
-0001 do Lace); o Studio só pede e mostra.
+é React com o editor Monaco. A regra de negócio continua toda no Lace; o
+Studio só pede e mostra.
 
 Estado: **0.1.0, em desenvolvimento.** O que já funciona e o que falta para
 cobrir tudo o que a AURORA fazia está em
@@ -101,7 +101,6 @@ cd src-tauri && cargo test              # Rust, inclusive os fluxos contra o bun
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | como o Studio é feito: backend, interface, operações, estado, segurança |
 | [docs/IPC.md](docs/IPC.md) | a referência de cada comando entre a interface e o backend |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | preparar a máquina, rodar, testar, onde mudar o quê |
-| [docs/adr/](docs/adr/README.md) | as decisões de arquitetura e o porquê de cada uma |
 | [CHANGELOG.md](CHANGELOG.md) | mudanças por versão |
 
 NIPS-CERN, Núcleo de Instrumentação e Processamento de Sinais, Faculdade de

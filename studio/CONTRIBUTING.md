@@ -9,7 +9,7 @@
    [docs/AURORA_PARITY.md](docs/AURORA_PARITY.md). Mudou algo visível:
    [CHANGELOG.md](CHANGELOG.md).
 5. Regra de negócio (que ferramenta rodar, com que argumentos, como ler a
-   saída) vai para o Lace, não para cá (ADR 0001 do Lace e ADR 0002 daqui).
+   saída) vai para o Lace, não para cá.
 
 Dúvidas sobre o SAPHO, o C± e o YANC: o manual em
 <https://nipscern.com/library/sapho> e o repositório do YANC.

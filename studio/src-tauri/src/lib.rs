@@ -1,8 +1,8 @@
 //! Lace Studio: o backend do ambiente gráfico do Lace.
 //!
-//! O backend é uma casca fina sobre o `lace-core`, como a CLI (ADR 0001 do
-//! Lace): cada comando Tauri abre o projeto, chama uma função do Core e
-//! devolve o resultado serializado. A interface (React, em `src/`) só mostra
+//! O backend é uma casca fina sobre o `lace-core`, como a CLI: cada comando
+//! Tauri abre o projeto, chama uma função do Core e devolve o resultado
+//! serializado. A interface (React, em `src/`) só mostra
 //! e pede.
 //!
 //! | Módulo | O que tem |

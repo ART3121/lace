@@ -96,7 +96,7 @@ Verilator, que traz o mesmo Python).
 Marcar o Graphviz marca o Yosys; desmarcar o Yosys desmarca o Graphviz.
 
 O Lace Studio fica no bundle, em `toolchain/studio/`, e usa o bundle em que
-está ([ADR 0013](adr/0013-studio-no-repositorio-e-no-bundle.md)). O atalho
+está. O atalho
 dele vai para o menu de aplicativos: o `lace-studio.desktop` em
 `~/.local/share/applications` no Linux, o `Lace Studio.app` em
 `~/Applications` no macOS (um symlink para o do bundle), o menu Iniciar no
@@ -265,8 +265,7 @@ para cada aplicativo, a versão instalada, a do bundle da última release e a
 aplicativos, a mesma pasta e o mesmo atalho. Uma ferramenta mais nova
 upstream não é instalada sozinha: o bundle compila o YANC e o surfer-aurora e
 divide o OSS CAD Suite por ferramenta, então cada versão nova passa pelo
-`bundle.py` e pelo CI e chega numa release nova do Lace
-([ADR 0006](adr/0006-um-bundle-por-plataforma-dividido-por-ferramenta.md)).
+`bundle.py` e pelo CI e chega numa release nova do Lace.
 
 **Mudar os componentes:** rode o instalador de novo na mesma pasta; a
 instalação é trocada pela nova seleção.

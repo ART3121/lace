@@ -3,7 +3,7 @@
 // processador).
 //
 // A área se divide em até três grupos lado a lado, cada um com as suas
-// abas e o seu editor (ADR 0009). `tabs` tem cada aba aberta uma vez, em
+// abas e o seu editor. `tabs` tem cada aba aberta uma vez, em
 // qualquer grupo; os grupos guardam só os ids, na ordem da barra. Um
 // arquivo pode estar em dois grupos ao mesmo tempo (o mesmo modelo em dois
 // editores); uma vista, só em um. `activeId` é a aba ativa do grupo ativo,

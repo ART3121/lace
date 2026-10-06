@@ -16,9 +16,8 @@ As duas famílias de plataforma montam o bundle de fontes diferentes:
   também o g++, o `make` e o Perl que o Verilator usa, e o Python com o
   cocotb. O Yosys continua vindo do OSS CAD Suite, e o `dot` do Graphviz.
 
-O motivo está no [ADR 0009](adr/0009-windows-com-o-bloco-msys2-do-lace-toolchain.md):
-no Windows o OSS CAD Suite não traz compilador, `make`, Perl nem cocotb, e o
-cocotb precisa de simulador, compilador e Python que casem.
+O motivo: no Windows o OSS CAD Suite não traz compilador, `make`, Perl nem
+cocotb, e o cocotb precisa de simulador, compilador e Python que casem.
 
 ## 1. O que vem no bundle
 
@@ -50,7 +49,7 @@ Os componentes, que o instalador deixa escolher, estão em
 
 O Lace não roda o Studio: ele está no bundle para o instalador e o
 `lace install` o oferecerem como os outros, e o Studio instalado usa o
-bundle em que está ([ADR 0013](adr/0013-studio-no-repositorio-e-no-bundle.md)).
+bundle em que está.
 Liga só às bibliotecas do sistema (`closure: false`): no Linux, ao
 webkit2gtk 4.1 e ao GTK 3; no Windows, ao WebView2.
 
@@ -182,7 +181,7 @@ síntese, a partir do modelo que o pacote traz (como fazem os lançadores do
 | `libc` (Linux e macOS) | o `lace` e o YANC são binários nativos ligados à `libc` do sistema; as ferramentas do OSS CAD Suite não, carregam as bibliotecas do pacote | sistema base |
 | fontes (macOS e Windows) | os pacotes dessas plataformas não trazem fontes; o `dot` usa as do sistema | as do sistema |
 | compilador C++, `make`, Perl (Linux e macOS) | exceção decidida pelo autor: o Verilator compila o modelo em C++, e o OSS CAD Suite não traz compilador. No Windows os três vêm no bundle, com o Verilator | locais fixos: `/usr/bin` (Linux); `/usr/bin` com as Command Line Tools do Xcode (macOS) |
-| `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho ([ADR 0007](adr/0007-cancelamento-e-saida-ao-vivo.md)); no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
+| `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho; no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
 
 Sem o compilador, tudo funciona menos a simulação com Verilator, e
 `lace tools` avisa. Para um compilador fora do local padrão, a opção global

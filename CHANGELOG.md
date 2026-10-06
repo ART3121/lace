@@ -75,7 +75,7 @@ Lace Studio e instaladores:
   aplicativos: o `lace-studio.desktop` no Linux, o `Lace Studio.app` em
   `~/Applications` no macOS, o menu Iniciar (e, se marcado, a área de
   trabalho) no Windows. `lace install studio` o instala depois, e o
-  `uninstall.sh` tira o atalho (ADR 0013, `lace_installer::desktop`).
+  `uninstall.sh` tira o atalho (`lace_installer::desktop`).
 - Os instaladores avisam quando falta o WebView do Studio: o webkit2gtk 4.1
   no Linux, o WebView2 no Windows.
 - O cocotb também é componente no Windows, do bloco MSYS2 do lace-toolchain
@@ -135,7 +135,7 @@ Comandos e opções novos:
   flags). As tabelas do YANC (`trad_opcode.txt`, `trad_cmm.txt`) viram
   tradutores do Surfer em `.lace/Temp/surfer/`, sem tocar na configuração
   do usuário. `--no-layout` abre a onda crua. No Core, `wave_layout` e
-  `prepare_wave_layout` (ADR 0011).
+  `prepare_wave_layout`.
 - O bundle traz o cliente web do surfer-aurora (`surfer-aurora/web/`, da
   mesma tag do executável), para interfaces que mostram a onda numa página;
   `Toolchain::surfer_web_dir` o acha.
@@ -228,8 +228,7 @@ Relatórios:
   máquina, ferramentas do bundle com versão e caminho, projeto, tempo de
   cada fase e de cada ferramenta, estatísticas de síntese, artefatos e, numa
   falha, o erro e o fim da saída do passo. É a função de relatório do
-  Alpha-Solar, trazida para o Core
-  ([ADR 0010](docs/adr/0010-relatorio-e-historico-de-cada-operacao.md)).
+  Alpha-Solar, trazida para o Core.
 - `lace report` mostra o mais novo; `lace report show <ID>`, um deles;
   `lace report list [--limit N]`, todos; `lace report compare [ID]
   [--against ID] [--summary]` compara as estatísticas de síntese e os tempos
@@ -251,8 +250,7 @@ Bundle de Windows:
   O Verilator funciona sem instalar o MSYS2, e o Lace não procura mais o
   MSYS2 em `C:\msys64`; `--compiler` continua trocando o compilador, para
   desenvolvimento. O Yosys continua vindo do OSS CAD Suite. No Linux e no
-  macOS nada muda: tudo do OSS CAD Suite, com o compilador do sistema
-  ([ADR 0009](docs/adr/0009-windows-com-o-bloco-msys2-do-lace-toolchain.md)).
+  macOS nada muda: tudo do OSS CAD Suite, com o compilador do sistema.
 - `lace tools` diz se o compilador do Verilator é do bundle ou do sistema;
   no `--json`, `system_compiler.bundled`.
 - `lace update` compara o Icarus e o Verilator do Windows com as releases
@@ -381,7 +379,7 @@ Saída em inglês:
 
 `lace-core`:
 
-- `Control`, `CancelToken`, `Event` e `Stream` (ADR 0007). Toda operação que
+- `Control`, `CancelToken`, `Event` e `Stream`. Toda operação que
   executa ferramentas recebe `&Control` como último argumento: `build`,
   `build_processors` (antes do `on_result`), `check`, `simulate`,
   `simulate_project`, `synthesize` e `render_schematic`. Com
@@ -394,7 +392,7 @@ Saída em inglês:
   Verilator compila o modelo com `--autoflush`: como a linha de comando
   mudou, a primeira simulação depois da atualização pode compilar o modelo
   de novo.
-- Os resultados derivam `schemars::JsonSchema` (ADR 0008).
+- Os resultados derivam `schemars::JsonSchema`.
 - `check(toolchain, project, &CheckOptions)` substitui `check_syntax`;
   `CheckResult` ganhou `targets`, e `Step` ganhou `Lint`.
 - `SimulationOptions` perdeu o campo `fst`; `waveform_path` diz onde a
@@ -445,7 +443,7 @@ Correções do teste de fogo (2026-10-04):
 
 Correções médias do teste de fogo (2026-10-04):
 
-- Caminhos no `.spf` (ADR 0012, emenda a 0003). Um arquivo de fora da pasta
+- Caminhos no `.spf`. Um arquivo de fora da pasta
   do projeto é gravado com `..` quando está no mesmo repositório git (o
   `rtl/` do HITS), e absoluto quando não. Um absoluto de outra máquina
   (`C:\Users\...`) é procurado pela cauda dentro da pasta, como a AURORA, e

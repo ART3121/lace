@@ -1,6 +1,7 @@
 // O catálogo de temas, na ordem em que aparecem nas Preferências.
 //
-// Os do Lace (Atlas, Atlas Branco) são o visual neutro das ADRs 0005 e 0007.
+// Os do Lace (Atlas, Atlas Branco) são o visual neutro do Studio, com o azul
+// do CERN nos detalhes.
 // O Aurora Legacy traz a paleta da AURORA. Os outros seguem a paleta oficial
 // de cada tema, conferida na fonte em 2026-10-04:
 //
@@ -31,7 +32,7 @@ import { alpha, mix, type Theme } from './model';
  * O azul do CERN: Pantone 286 C, #0033A0 (R0 G51 B160), com os quatro tons
  * da paleta oficial, conforme design-guidelines.web.cern.ch/guidelines/colours.
  * Sobre o fundo escuro o #0033A0 quase some numa linha fina, então linhas e
- * textos usam os tons claros, e o #0033A0 fica para preenchimentos (ADR 0007).
+ * textos usam os tons claros, e o #0033A0 fica para preenchimentos.
  */
 const CERN_BLUE = {
   base: '#0033A0',

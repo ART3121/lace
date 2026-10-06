@@ -267,7 +267,7 @@ e o `toolchain/` sozinho.
 (`/web/`), a onda (`/wave/<id>/<nome>`), o `.surf.ron` (`/layout/<id>`), os
 tradutores e os comandos de partida (`/doc/<id>/<nome>`). A `url` abre o
 cliente com `load_url` na onda e `startup_commands` que carregam os
-tradutores e o estado (ADR 0011). Erros: `no_waveform`;
+tradutores e o estado. Erros: `no_waveform`;
 `surfer_web_missing`, bundle sem cliente web; `wave_too_large`, onda acima
 de 256 MB. A interface oferece a janela nos dois últimos.
 

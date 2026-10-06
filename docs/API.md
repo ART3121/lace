@@ -467,7 +467,7 @@ repetido numa lista conta uma vez, marcado se alguma das entradas está;
 nas duas listas, conta como testbench se o nome indica (`_tb`, `tb_`,
 `test`), e como sintetizável senão. A marca de testbench escolhido aceita
 também o `isMarkedTestbench` legado da AURORA, que ela lê como
-`isTopLevel`; escolher um testbench tira a marca legada dos outros. O `.spf` guarda (ADR 0012), sempre com `/`:
+`isTopLevel`; escolher um testbench tira a marca legada dos outros. O `.spf` guarda, sempre com `/`:
 
 - relativo à raiz, quando o arquivo está dentro dela, como a AURORA;
 - relativo com `..` (`../../rtl/x.v`), quando está fora dela mas no mesmo
@@ -1186,7 +1186,7 @@ um layout preparado (5.7.1).
 ### 5.7.1 O layout dos processadores SAPHO: `wave_layout(&onda) -> Result<Option<WaveLayout>>`
 
 Monta, em memória, o estado do Surfer que mostra cada processador SAPHO da
-onda como a AURORA mostrava (ADR 0011). O YANC já põe na onda as variáveis
+onda como a AURORA mostrava. O YANC já põe na onda as variáveis
 do programa, o PC (`valr2`) e a linha do fonte (`linetabs`); o layout dá
 nome a esses números e os arruma em grupos:
 
@@ -1270,8 +1270,7 @@ Toda operação que executa ferramentas (`build`, `build_processors`, `check`,
 `simulate`, `simulate_project`, `synthesize`, `render_schematic`) recebe um
 `&Control` como último argumento; em `build_processors`, antes de
 `on_result`. Ele leva o pedido de cancelamento e, se houver, quem recebe os
-eventos. `Control::default()` não cancela e não avisa nada. A decisão está
-na [ADR 0007](adr/0007-cancelamento-e-saida-ao-vivo.md).
+eventos. `Control::default()` não cancela e não avisa nada.
 
 | Tipo | O que é |
 |---|---|
@@ -1351,8 +1350,7 @@ Verilator roda o `make`, que roda o compilador C++.
   mesmo à força: o sistema fecha o handle do job. Se o sistema recusar o
   job, o `taskkill /T /F` do `System32` encerra a árvore. O `taskkill.exe` é
   o único programa do sistema que o Lace roda fora da exceção do Verilator,
-  e só serve para encerrar ([ADR 0002](adr/0002-so-ferramentas-do-bundle.md),
-  [BUNDLE.md](BUNDLE.md), seção 4).
+  e só serve para encerrar ([BUNDLE.md](BUNDLE.md), seção 4).
   Nenhuma ferramenta abre janela de console (`hide_console`): se o Lace tem
   console (um terminal, ou o que quem o criou lhe deu), ela divide esse
   console, e o Ctrl+C chega a ela também; se não tem (o Studio), ela leva
@@ -1477,7 +1475,7 @@ O JSON Schema de cada tipo é gerado do próprio tipo e fica em
 `SimulationResult` em `sim.json`, `SynthesisResult` e `SchematicResult` em
 `synth.json`, `HierarchyResult` em `hierarchy.json`, `MovedPath` em
 `move.json`, `Event` em `events.json`. Um teste confere que os arquivos são
-o que os tipos geram ([ADR 0008](adr/0008-contrato-do-json-gerado-dos-tipos.md)).
+o que os tipos geram.
 
 ### 6.1 Estrutura comum
 

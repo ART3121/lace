@@ -4,8 +4,8 @@
 //!
 //! Instalar e atualizar ficam na CLI (`lace install`, `lace update`), no
 //! crate `lace-installer`, e não no Core. O Studio chama o `lace` da própria
-//! instalação com `--json` em vez de copiar essa lógica (ADR 0001 do Lace:
-//! interfaces em outra camada chamam `lace ... --json`).
+//! instalação com `--json` em vez de copiar essa lógica: interfaces em outra
+//! camada chamam `lace ... --json`.
 
 use std::io::{BufRead, BufReader, Read};
 use std::process::{Command, Stdio};

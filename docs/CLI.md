@@ -179,8 +179,8 @@ Para cada arquivo, `add` diz se o criou ou só o registrou, se ele ficou como
 módulo ou como testbench e se virou o topo ou o testbench simulado. Um
 arquivo sem módulo (só `` `define ``) não vira o topo. Um arquivo de fora da
 pasta do projeto é gravado no `.spf` com caminho relativo (`../../rtl/x.v`)
-quando está no mesmo repositório git do projeto, e absoluto quando não
-(ADR 0012). As portas
+quando está no mesmo repositório git do projeto, e absoluto quando não.
+As portas
 que o testbench-modelo instancia são lidas pelo Yosys, quando ele está
 instalado; sem ele, por um leitor de portas no estilo ANSI do próprio Lace.
 
@@ -619,8 +619,7 @@ CLI acrescenta o comando que resolve:
 
 Com `--json`, o stdout tem exatamente um objeto JSON e nada mais. Cada
 comando escreve um tipo só, com JSON Schema em `docs/schema/`, gerado dos
-tipos e conferido por teste
-([ADR 0008](adr/0008-contrato-do-json-gerado-dos-tipos.md)). Os campos estão
+tipos e conferido por teste. Os campos estão
 no schema; os resultados de operação são os tipos do Core serializados
 ([API.md, seção 6](API.md#6-resultados)).
 

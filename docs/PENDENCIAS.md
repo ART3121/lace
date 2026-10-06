@@ -9,7 +9,7 @@ reproduzido com os comandos indicados, salvo os marcados como suspeita.
 Todos os casos do Lace e do Lace Studio foram corrigidos na mesma data
 (CHANGELOG: "Correções do teste de fogo", "Correções médias do teste de
 fogo" e "Correções baixas do teste de fogo"); as duas decisões pendentes
-viraram a ADR 0012. Ficaram só os defeitos das ferramentas que o Lace
+foram tomadas: os caminhos de fora da raiz e o resgate pela cauda. Ficaram só os defeitos das ferramentas que o Lace
 embrulha e de um projeto de usuário, que se corrigem nos repositórios
 deles.
 

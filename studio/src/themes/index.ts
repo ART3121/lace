@@ -10,7 +10,7 @@
 //
 // Nenhuma cor de tema fica fora deste módulo: os componentes usam as
 // variáveis, e as medidas (fontes, espaços, raios) continuam em
-// styles/tokens.css. Os temas estão em catalog.ts; a decisão, na ADR 0010.
+// styles/tokens.css. Os temas estão em catalog.ts.
 
 import { THEMES } from './catalog';
 import { alpha, type Theme, type UiColors } from './model';
