@@ -100,6 +100,52 @@ fn verilator_simulates_processor() {
     assert!(result.waveform.unwrap().path.is_file());
 }
 
+/// A simulação rápida de um processador: no Verilator, mesmo pedindo o
+/// Icarus, as mesmas saídas e nenhuma onda.
+#[test]
+fn fast_simulation_of_a_processor() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Verilator]) else {
+        return;
+    };
+    let (_guard, project) = built("soma");
+    let processor = project.require_processor("soma").unwrap();
+    let mut options = SimulationOptions::new(Simulator::Icarus);
+    options.fast = true;
+    let run = || simulate(&toolchain, processor, &options, &Control::default()).unwrap();
+    let result = run();
+    assert_eq!(
+        result.status,
+        Status::Succeeded,
+        "{:#?}",
+        result.diagnostics
+    );
+    assert!(result.fast);
+    assert_eq!(result.simulator, Simulator::Verilator);
+    assert!(result.waveform.is_none());
+    assert_eq!(processor.read_output(0).unwrap().trim(), "55");
+    let verilate = result
+        .steps
+        .iter()
+        .find(|s| s.step == Step::Verilate)
+        .unwrap();
+    assert!(
+        !verilate.command.args.iter().any(|a| a == "--trace"),
+        "{:?}",
+        verilate.command.args
+    );
+    // Nenhuma onda no disco, e o modelo fica à parte do da simulação com onda.
+    for wave in ["soma_tb.vcd", "soma_tb.fst"] {
+        assert!(!processor.temp_dir.join(wave).exists(), "{wave}");
+    }
+    assert!(processor.temp_dir.join("obj_dir_fast_soma_tb").is_dir());
+    assert!(!processor.temp_dir.join("obj_dir_soma_tb").exists());
+    // De novo, com o modelo em dia: o executável não é refeito, e a
+    // simulação continua completa.
+    let again = run();
+    assert_eq!(again.status, Status::Succeeded, "{again:#?}");
+    assert_eq!(processor.read_output(0).unwrap().trim(), "55");
+}
+
 #[test]
 fn simulation_requires_a_build() {
     let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog, Tool::Vvp]) else {
@@ -291,6 +337,75 @@ fn project_simulation_with_verilator() {
     assert_eq!(wave.path, root.join("contador_tb.vcd"));
     assert_eq!(wave.format, WaveformFormat::Vcd);
     assert!(!common::is_fst(&wave.path), "{} não é VCD", wave.path);
+}
+
+/// A simulação rápida do testbench do projeto: no Verilator, sem o dump que
+/// o Lace injetaria e sem gravar o `$dumpfile` do testbench.
+#[test]
+fn fast_project_simulation_writes_no_waveform() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Verilator]) else {
+        return;
+    };
+    let (_guard, root) = common::example("contador");
+    let project = Project::open(&root).unwrap();
+    let mut options = SimulationOptions::new(Simulator::Icarus);
+    options.fast = true;
+    let run = || simulate_project(&toolchain, &project, &options, &Control::default()).unwrap();
+    let result = run();
+    assert_eq!(
+        result.status,
+        Status::Succeeded,
+        "{:#?}",
+        result.diagnostics
+    );
+    assert!(result.fast);
+    assert_eq!(result.simulator, Simulator::Verilator);
+    assert!(result.waveform.is_none());
+    let simulated = result
+        .steps
+        .iter()
+        .find(|s| s.step == Step::Simulate)
+        .unwrap();
+    assert!(simulated.stdout.contains("q = 10"), "{}", simulated.stdout);
+    // Sem `$dumpfile`, nada é injetado: o Verilator recebe o testbench do
+    // usuário, e não sai onda.
+    let verilate = result
+        .steps
+        .iter()
+        .find(|s| s.step == Step::Verilate)
+        .unwrap();
+    let args = &verilate.command.args;
+    assert!(!args.iter().any(|a| a == "--trace"), "{args:?}");
+    assert!(
+        args.iter()
+            .any(|a| a.ends_with("contador_tb.v") && !a.contains("instr_")),
+        "{args:?}"
+    );
+    for wave in ["contador_tb.vcd", "contador_tb.fst"] {
+        assert!(!root.join(wave).exists(), "{wave}");
+    }
+    assert!(project.temp_dir().join("obj_dir_fast_contador_tb").is_dir());
+
+    // Com `$dumpfile` e `$dumpvars`, o Verilator sem `--trace` os ignora.
+    let tb = root.join("rtl/contador_tb.v");
+    let text = std::fs::read_to_string(&tb).unwrap().replace(
+        "    initial begin\n        #12",
+        "    initial begin\n        $dumpfile(\"onda.vcd\");\n        $dumpvars(0, contador_tb);\n        #12",
+    );
+    assert!(text.contains("$dumpfile"));
+    std::fs::write(&tb, text).unwrap();
+    let result = run();
+    assert_eq!(result.status, Status::Succeeded, "{result:#?}");
+    assert!(result.waveform.is_none());
+    assert!(!root.join("onda.vcd").exists());
+    assert!(
+        !result
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == Severity::Warning),
+        "{:#?}",
+        result.diagnostics
+    );
 }
 
 /// Só um processador: o Verilog dele e o testbench que o build gerou, sem o
@@ -684,16 +799,29 @@ fn cocotb_testbench_runs_its_tests_on_icarus() {
     // Nem o projeto nem o bundle ganham __pycache__.
     assert!(!root.join("rtl/__pycache__").exists());
 
-    // O Verilator não roda cocotb; o check verifica o Verilog e deixa o .py
-    // de fora, e não o aceita como arquivo.
-    let err = simulate_project(
-        &toolchain,
-        &project,
-        &SimulationOptions::new(Simulator::Verilator),
-        &Control::default(),
-    )
-    .unwrap_err();
-    assert_eq!(err.code(), "cocotb_needs_icarus");
+    // A simulação rápida roda os testes no Icarus sem gravar a onda.
+    std::fs::remove_file(root.join("test_somador.fst")).unwrap();
+    let mut fast = SimulationOptions::new(Simulator::Icarus);
+    fast.fast = true;
+    let result = simulate_project(&toolchain, &project, &fast, &Control::default()).unwrap();
+    assert_eq!(result.status, Status::Succeeded, "{result:#?}");
+    assert!(result.fast && result.waveform.is_none());
+    assert_eq!(result.simulator, Simulator::Icarus);
+    assert_eq!(result.tests.as_ref().unwrap().passed, 2);
+    assert!(!root.join("test_somador.fst").exists());
+    let vvp = result
+        .steps
+        .iter()
+        .find(|s| s.step == Step::Simulate)
+        .unwrap();
+    assert!(
+        vvp.command.args.iter().any(|a| a == "-none"),
+        "{:?}",
+        vvp.command.args
+    );
+
+    // O check verifica o Verilog e deixa o .py de fora, e não o aceita como
+    // arquivo.
     let checked = check(
         &toolchain,
         &project,
@@ -706,4 +834,78 @@ fn cocotb_testbench_runs_its_tests_on_icarus() {
     options.file = Some(tb.clone());
     let err = check(&toolchain, &project, &options, &Control::default()).unwrap_err();
     assert_eq!(err.code(), "invalid_name");
+}
+
+#[test]
+fn cocotb_testbench_runs_its_tests_on_verilator() {
+    let Some(toolchain) = common::toolchain_with_cocotb() else {
+        return;
+    };
+    let Some(toolchain) = toolchain.tool(Tool::Verilator).is_ok().then_some(toolchain) else {
+        eprintln!("PULADO: falta o Verilator no bundle");
+        return;
+    };
+    let (_guard, dir) = common::tempdir();
+    let mut project = Project::create(&dir, "cocotb").unwrap();
+    let root = project.root().to_owned();
+    std::fs::write(
+        root.join("somador.v"),
+        "module somador(input [3:0] a, input [3:0] b, output [4:0] y);\n    assign y = a + b;\nendmodule\n",
+    )
+    .unwrap();
+    project
+        .add_verilog(Some(&toolchain), "somador.v", false)
+        .unwrap();
+    let tb = root.join("test_somador.py");
+    std::fs::write(&tb, adder_tests(17)).unwrap();
+    project
+        .add_verilog(Some(&toolchain), "test_somador.py", false)
+        .unwrap();
+
+    // O teste que falha reprova, com o erro na linha do assert, e a onda vem
+    // em VCD, a do Verilator.
+    let verilator = SimulationOptions::new(Simulator::Verilator);
+    let result = simulate_project(&toolchain, &project, &verilator, &Control::default()).unwrap();
+    assert_eq!(result.status, Status::Failed, "{result:#?}");
+    assert_eq!(result.simulator, Simulator::Verilator);
+    let tests = result.tests.as_ref().unwrap();
+    assert_eq!((tests.passed, tests.failed), (1, 1), "{tests:?}");
+    let error = result
+        .diagnostics
+        .iter()
+        .find(|d| d.severity == Severity::Error)
+        .unwrap();
+    assert_eq!(error.tool, Tool::Verilator);
+    assert_eq!(error.line, Some(19), "{error:?}");
+    let wave = result.waveform.clone().expect("a onda do teste que falhou");
+    assert_eq!(wave.path, root.join("test_somador.vcd"));
+    assert_eq!(wave.format, WaveformFormat::Vcd);
+    assert_eq!(lace_core::waveform_path(&project, None).unwrap(), wave.path);
+    // Os avisos do compilador sobre a biblioteca do Verilator e a VPI do
+    // cocotb, do bundle, não são do projeto.
+    assert!(
+        !result
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == Severity::Warning),
+        "{:#?}",
+        result.diagnostics
+    );
+
+    // Corrigido, na simulação rápida: os testes passam e não sai onda.
+    std::fs::write(&tb, adder_tests(16)).unwrap();
+    std::fs::remove_file(&wave.path).unwrap();
+    let mut fast = SimulationOptions::new(Simulator::Verilator);
+    fast.fast = true;
+    let result = simulate_project(&toolchain, &project, &fast, &Control::default()).unwrap();
+    assert_eq!(result.status, Status::Succeeded, "{result:#?}");
+    assert!(result.fast && result.waveform.is_none());
+    assert_eq!(result.tests.as_ref().unwrap().passed, 2);
+    assert!(!root.join("test_somador.vcd").exists());
+    assert!(
+        project
+            .temp_dir()
+            .join("cocotb/test_somador/obj_dir_fast_somador")
+            .is_dir()
+    );
 }

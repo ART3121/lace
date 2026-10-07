@@ -39,6 +39,7 @@ import { activeEditor } from './editor/host';
 import { vimActive } from './editor/vim';
 import { t, type Key } from './i18n';
 import { api } from './ipc/api';
+import type { Simulator } from './ipc/lace-types';
 import { useApp } from './state/app';
 import { openDialog, prompt } from './state/dialogs';
 import { MAX_GROUPS, saveActive, useEditor } from './state/editor';
@@ -49,7 +50,7 @@ import { useProject } from './state/project';
 import { guarded, showError, useToasts } from './state/toasts';
 import { openWaveTab, waveInTab } from './state/waves';
 import { toggledTheme } from './themes';
-import { baseName, joinPath, resolveFrom } from './util/paths';
+import { baseName, extension, joinPath, resolveFrom } from './util/paths';
 
 export type ActionCategory = 'file' | 'edit' | 'view' | 'project' | 'flow' | 'tools' | 'help';
 
@@ -110,6 +111,8 @@ export function runCheck(lint = false, file?: string) {
   return useJobs.getState().run({ flow: 'check', lint, file: file ?? null, processor: name }, key);
 }
 
+/** A simulação com onda (Wave, F8), no simulador das preferências; abre a
+ * onda no fim com `openWave`. */
 export function runSimulation(openWave: boolean, processor?: string | null) {
   const name = processor === undefined ? target() : processor;
   const s = settings();
@@ -125,10 +128,41 @@ export function runSimulation(openWave: boolean, processor?: string | null) {
   );
 }
 
+/** O simulador da simulação rápida do alvo (ou do processador dado), pela
+ * regra do Core (`SimulationOptions::fast`): o Verilator, menos para um
+ * testbench cocotb, que roda os testes no simulador das preferências. */
+export function fastSimulator(processor?: string | null): Simulator {
+  const name = processor === undefined ? target() : processor;
+  const testbench = useProject.getState().snapshot?.selected_testbench;
+  if (!name && testbench && extension(testbench) === 'py') return settings()?.simulator ?? 'icarus';
+  return 'verilator';
+}
+
+/** A simulação rápida (Rápida, F9), o Fast Sim da AURORA: roda sem gravar
+ * onda, para ver a saída do testbench, as portas do processador e os testes
+ * cocotb na velocidade do simulador (`fastSimulator`). */
+export function runFastSimulation(processor?: string | null) {
+  const name = processor === undefined ? target() : processor;
+  const s = settings();
+  return useJobs.getState().run(
+    {
+      flow: 'simulate',
+      processor: name,
+      simulator: s?.simulator ?? 'icarus',
+      fast: true,
+      timeout_s: s?.sim_timeout_s ?? null,
+    },
+    name ? `fastSim:${name}` : 'fastSim',
+  );
+}
+
+/** A síntese (PRISM, F10). O esquemático é o Studio que desenha, a partir
+ * do netlist (src/schematic); o do Graphviz (`schematic: true`) fica para a
+ * CLI. */
 export function runSynthesis(processor?: string | null) {
   const name = processor === undefined ? target() : processor;
   return useJobs.getState().run(
-    { flow: 'synthesize', processor: name, schematic: true },
+    { flow: 'synthesize', processor: name, schematic: false },
     name ? `synthesize:${name}` : 'synthesize',
   );
 }
@@ -414,7 +448,15 @@ export const ACTIONS: Action[] = [
   { id: 'check', label: 'action.check', category: 'flow', keys: 'F7', icon: ListChecks, enabled: canRun, run: () => runCheck(false) },
   { id: 'lint', label: 'action.lint', category: 'flow', keys: 'Shift+F7', enabled: () => canRun() && hasComponent('verilator'), run: () => runCheck(true) },
   { id: 'simulate', label: 'action.simulate', category: 'flow', keys: 'F8', icon: Play, enabled: canRun, run: () => runSimulation(settings()?.open_wave_after_sim ?? true) },
-  { id: 'fastSim', label: 'action.fastSim', category: 'flow', keys: 'F9', icon: Zap, enabled: canRun, run: () => runSimulation(false) },
+  {
+    id: 'fastSim',
+    label: 'action.fastSim',
+    category: 'flow',
+    keys: 'F9',
+    icon: Zap,
+    enabled: () => canRun() && hasComponent(fastSimulator()),
+    run: () => runFastSimulation(),
+  },
   { id: 'openWave', label: 'action.openWave', category: 'flow', keys: 'Ctrl+F8', icon: Activity, enabled: hasWave, run: () => openWave() },
   { id: 'synthesize', label: 'action.synthesize', category: 'flow', keys: 'F10', icon: CircuitBoard, enabled: canRun, run: () => runSynthesis() },
   { id: 'showSchematic', label: 'action.showSchematic', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('schematic') },
@@ -639,6 +681,8 @@ export function handleShortcut(event: KeyboardEvent): void {
   const a = BY_KEYS.get(combo);
   if (!a) return;
   if (inEditor && (EDITOR_KEYS.has(combo) || (VIM_KEYS.has(combo) && vimActive()))) return;
+  // No PRISM, o Ctrl+F é a busca dele (SchematicView).
+  if (combo === 'Ctrl+F' && target?.closest('.prism')) return;
   if (inShell && !/^(Shift\+)?F\d+$/.test(combo) && !combo.startsWith('Ctrl+Shift+') && combo !== 'Ctrl+`') return;
   if (inDialog && a.id !== 'commandPalette' && a.id !== 'quickOpen') return;
   event.preventDefault();

@@ -68,7 +68,8 @@ lace-studio/
       api.ts                 uma função por comando Tauri
       types.ts               os tipos do Studio (espelho dos structs Rust)
       lace-types.ts          os tipos do Core, GERADOS dos JSON Schemas do Lace
-    state/                   stores: app, project, editor, jobs, layout, dialogs, toasts, hierarchy, reports
+    state/                   stores: app, project, editor, jobs, layout, dialogs, toasts, hierarchy, reports, schematic
+    schematic/               o PRISM: netlist do Yosys, grafo, layout (ELK num worker), desenho, painéis, exportação
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
     console/                 os consoles xterm.js e o terminal de shell
     components/              layout/, sidebar/, editor/, panel/, views/, dialogs/
@@ -272,7 +273,8 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useApp` | `state/app.ts` | versão, preferências, bundle, recentes, tema resolvido |
 | `useProject` | `state/project.ts` | o retrato do projeto, o alvo (projeto ou processador), a versão da árvore |
 | `useEditor` | `state/editor.ts` | as abas, os grupos do editor dividido e as abas de cada um, os documentos abertos, a aba e o grupo ativos, o cursor, a sessão |
-| `useJobs` | `state/jobs.ts` | a operação rodando, o último resultado de cada fluxo, problemas, última síntese e esquemático |
+| `useJobs` | `state/jobs.ts` | a operação rodando, o último resultado de cada fluxo, problemas, última síntese |
+| `useSchematic` | `state/schematic.ts` | o PRISM: o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista (no `localStorage`) |
 | `useLayout` | `state/layout.ts` | o que está visível e o modo zen; guardado no `localStorage` por conveniência (o zen não) |
 | `useDialogs` | `state/dialogs.ts` | o diálogo aberto; `prompt()` e `confirm()` devolvem promessas |
 | `useToasts` | `state/toasts.ts` | os avisos rápidos; `showError` e `guarded` |
@@ -363,7 +365,7 @@ Um xterm.js somente leitura por canal, como os terminais da AURORA:
 | ASM | TASM | `pre_assemble`, `assemble` |
 | Verilog | TVERI | `check_syntax`, `lint` |
 | Wave | TWAVE | `elaborate`, `verilate`, `simulate` |
-| PRISM | TPRISM | `synthesize`, `graph`, `render` |
+| PRISM | TPRISM | `synthesize` (`graph` e `render` só no fluxo `schematic`, que o Studio não usa mais) |
 
 Cada linha vai para o console do passo que a escreveu (`STEP_CHANNEL` em
 `state/jobs.ts`); o comando de cada operação e os avisos dela vão para o
@@ -394,6 +396,32 @@ Branco). `App.tsx` repassa a troca aos consoles e ao shell; o `MonacoHost`,
 ao Monaco. As medidas (fontes, espaços, raios, alturas) ficam em
 `styles/tokens.css`.
 
+### 4.7 PRISM
+
+O esquemático sai do netlist da síntese (`hierarchy.json`, o `write_json`
+do Yosys), sem Graphviz. A síntese do Studio pede `schematic: false`; o
+`show` + `dot` do Core fica para a CLI (`lace synth --svg`).
+
+| Etapa | Arquivo | O que faz |
+|---|---|---|
+| Netlist | `schematic/yosys.ts` | tipos do JSON, nomes legíveis (`$paramod...` → `fir_tap`), parâmetros, constantes, o `src` |
+| Grafo | `schematic/graph.ts` | nós, redes e arestas de um módulo: liga os bits em barramentos, com split e join onde o barramento se parte ou se junta; constantes e redes globais (entrada com 8 destinos ou mais) viram etiqueta na porta, sem nó |
+| Símbolos | `schematic/cells.ts` | a família de cada célula (a cor), o símbolo e a geometria, com as portas em posição fixa |
+| Layout | `schematic/layout.ts`, `engine.ts` | o ELK (layered, ortogonal, `BRANDES_KOEPF`) num Web Worker, com cache por netlist e módulo |
+| Desenho | `schematic/Scene.tsx` | SVG no DOM; as cores são as `--sch-*` do tema (`schematicColors`, em `themes/index.ts`) |
+| Vista | `components/views/SchematicView.tsx`, `schematic/Canvas.tsx`, `panels.tsx` | barra, trilha, busca, zoom e arraste, destaque, árvore e detalhes |
+| Exportar | `schematic/export.ts` | o desenho sem destaque, com as cores calculadas escritas em cada elemento |
+
+As cores das famílias vêm da paleta dos terminais do tema (amarelo,
+azul, magenta, ciano, verde), que todo tema define com matizes distintos;
+o preenchimento é a mistura com o fundo do editor. Trocar o tema repinta
+sem refazer o layout.
+
+O `NETWORK_SIMPLEX` alinha melhor que o `BRANDES_KOEPF`, mas levou 199 s
+no `ula_fdiv` do proc_fft; o `BRANDES_KOEPF`, menos de 2 s. Constante
+e rede global como nó atrasavam o layout e, numa cadeia de instâncias (os
+32 taps do fir), empurravam cada vizinho e o desenho descia em diagonal.
+
 ## 5. Uma operação, do clique ao resultado
 
 Exemplo: F8 (Wave) com o alvo no projeto.
@@ -419,8 +447,8 @@ Exemplo: F8 (Wave) com o alvo no projeto.
 7. No fim, a mensagem `finished` traz o `FlowOutcome` (com a saída de cada
    passo cortada em 256 KiB, guardando o fim: as linhas já chegaram pelos
    eventos). A interface escreve o resumo, preenche Problemas e os
-   marcadores, relê o retrato do projeto e, numa síntese, abre o
-   esquemático.
+   marcadores, relê o retrato do projeto e, numa síntese, abre o PRISM
+   (seção 4.7).
 
 Parar (Shift+F5) chama `flow_cancel`, que marca o `CancelToken`. O Core
 encerra o processo do passo com tudo o que ele iniciou e devolve o resultado
@@ -445,8 +473,8 @@ com `status: cancelled`, que chega pelo mesmo caminho.
 
 - A interface só carrega o próprio código: CSP com `default-src 'self'`,
   sem script de fora (`tauri.conf.json`).
-- O esquemático entra como imagem (`<img>` com data URL), não como SVG no
-  DOM: um SVG com script não roda.
+- O esquemático é desenhado pelo Studio (React), não um SVG de fora posto
+  no DOM.
 - Os plugins têm só as permissões da janela principal
   (`capabilities/default.json`): diálogos de arquivo, abrir caminhos e URLs
   no sistema, título, zoom e fechar a janela.

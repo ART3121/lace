@@ -616,8 +616,14 @@ impl Output {
                 ],
             ),
         };
+        // A simulação rápida diz que é, porque não deixa onda.
+        let title = if result.fast {
+            format!("Fast simulation of {}", result.top)
+        } else {
+            format!("Simulation of {}", result.top)
+        };
         self.summary(Summary {
-            title: &format!("Simulation of {}", result.top),
+            title: &title,
             detail,
             status: result.status,
             failed_step: result.failed_step,
@@ -1259,7 +1265,6 @@ fn hint(error: &LaceError) -> Option<String> {
         LaceError::NoCocotbToplevel(_) => {
             "Add a line `# aurora-toplevel: <module>` to the testbench, or choose the top with: lace top <file|module>".into()
         }
-        LaceError::CocotbNeedsIcarus(_) => "Simulate it without --verilator".into(),
         LaceError::CocotbUnavailable { .. } => "Reinstall it with: lace install cocotb".into(),
         LaceError::EmptyProject(_) => {
             "Add one with: lace add <file.v>, or create a processor with: lace proc add <name>"

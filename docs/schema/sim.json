@@ -608,7 +608,7 @@
           "type": "boolean"
         },
         "fresh": {
-          "description": "Existe e foi escrito por esta operação (não é sobra de uma anterior).",
+          "description": "Existe e foi escrito por esta operação (não é sobra de uma anterior).\nO executável do Verilator, que o `make` só refaz quando o modelo\nmuda, conta como escrito quando a compilação terminou bem: ele está\nem dia com a entrada.",
           "type": "boolean"
         }
       },
@@ -728,8 +728,12 @@
           "type": "string"
         },
         "simulator": {
-          "description": "O simulador usado.",
+          "description": "O simulador usado. Na simulação rápida de um testbench Verilog, o\nVerilator, qualquer que fosse o pedido.",
           "$ref": "#/$defs/Simulator"
+        },
+        "fast": {
+          "description": "A simulação rápida ([`SimulationOptions::fast`]): rodou sem gravar\nonda, e `waveform` é `null`.",
+          "type": "boolean"
         },
         "status": {
           "description": "Como a simulação terminou.",
@@ -768,7 +772,7 @@
           }
         },
         "waveform": {
-          "description": "A onda gerada, se a simulação chegou ao fim.",
+          "description": "A onda gerada, se a simulação chegou ao fim; nunca na simulação\nrápida.",
           "anyOf": [
             {
               "$ref": "#/$defs/Waveform"
@@ -813,6 +817,7 @@
       "required": [
         "top",
         "simulator",
+        "fast",
         "status",
         "failed_step",
         "steps",

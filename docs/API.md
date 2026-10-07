@@ -743,11 +743,21 @@ no macOS). As três mudanças:
   fim, o que permite mostrar a saída enquanto roda (5.8). Entra sempre, com
   ou sem receptor de eventos.
 
+Na simulação rápida saem `--trace` e `--no-trace-top` (abaixo).
+
 O script `verilator` roda pelo Perl do `SystemCompiler`, com `PATH` = o
 diretório do script (`bin/` do OSS CAD Suite, `ucrt64/bin` do `msys/`),
-depois os diretórios do compilador, e `LC_ALL=C`. A
-primeira compilação do modelo leva dezenas de segundos; o `obj_dir` é
-reaproveitado depois.
+depois os diretórios do compilador, e `LC_ALL=C`. No Windows ele recebe
+também `--no-unlimited-stack` e `VERILATOR_BIN=verilator_bin.exe`: sem a
+primeira, o script tenta `ulimit -s unlimited 2>/dev/null` pelo `cmd.exe`,
+que escreve um erro de caminho no stderr a cada chamada; sem a segunda, o
+Verilator anota entre as entradas do modelo (`__verFiles.dat`) um
+`verilator_bin` sem extensão, que não existe, e o `--skip-identical` nunca
+reconhece um modelo em dia. A primeira compilação do modelo leva dezenas de
+segundos. Depois, com os fontes e as flags iguais, o Verilator não gera o
+C++ de novo, o `make` não recompila nada e a simulação só roda o executável
+(medido no Windows em 2026-10-07, num contador: 0,4 s, contra 9 s antes); o
+`verilated_model` conta como `fresh`, porque está em dia.
 
 `SimulationOptions`:
 
@@ -756,6 +766,7 @@ reaproveitado depois.
 | `simulator` | (obrigatório em `new`) | `Icarus` ou `Verilator` |
 | `build_jobs` | `None` (`-j 0`, todos os núcleos) | paralelismo da compilação C++ do Verilator |
 | `timeout` | `None` (sem limite) | prazo do passo `simulate` (o `vvp` ou o modelo do Verilator), sem contar elaboração e compilação. Passou dele, o Lace encerra a simulação e o resultado vem com `status: timed_out` e o que o testbench escreveu até ali (5.8) |
+| `fast` | `false` | a simulação rápida, sem onda (abaixo) |
 
 O formato da onda não é opção: o Icarus grava FST (`vvp -fst`) e o
 Verilator, VCD (`--trace`), e a onda sai com o nome do `$dumpfile` do
@@ -768,6 +779,23 @@ Lace já simula, `T/instr_<nome>_tb.v` num processador e
 muda. Uma chamada de `$dumpfile` quebrada em linhas não é trocada, e o
 Icarus grava VCD no nome que ela der. `SimulationResult.waveform` traz o
 caminho e o formato.
+
+**A simulação rápida.** Com `fast`, a simulação é o Fast Sim da AURORA
+(`runFastSim`): roda sem gravar onda, para ver a saída do testbench, as
+portas do processador e os testes cocotb na velocidade do simulador. O
+testbench Verilog, de `simulate` ou de `simulate_project`, roda no
+Verilator, qualquer que seja o `simulator`: o passo `verilate` não leva
+`--trace` nem `--no-trace-top`, o `-Mdir` é `obj_dir_fast_<topo>`, ao lado
+do `obj_dir_<topo>` da simulação com onda (alternar entre as duas não
+recompila tudo a cada vez), e o modelo ignora os `$dumpfile` e `$dumpvars`
+do testbench (escreve na saída `$dumpvar ignored, as Verilated without
+--trace`). O Lace não injeta o dump padrão nem troca a extensão do
+`$dumpfile`; o `+define+YANC_TRACE` continua, porque o testbench que o YANC
+gera lê os sinais de simulação do processador para achar o fim do programa.
+Um testbench cocotb roda os testes no `simulator` (5.3.2). O resultado vem
+com `fast: true`, o simulador que rodou em `simulator` e `waveform: null`.
+A AURORA comenta os `$dumpfile` e `$dumpvars` numa cópia do testbench; o
+Lace não precisa: o Verilator 5 do bundle os ignora sozinho.
 
 O `vvp` sai com código 0 depois de um `$error`. Por isso as linhas `ERROR:`
 e `FATAL:` que ele escreve (as de `$error` e `$fatal`) viram diagnóstico de
@@ -815,7 +843,8 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
    profundidade 0 grava todos os sinais da hierarquia, inclusive os do
    módulo testado. A onda injetada não é exigida: um testbench que chega ao
    `$finish` no tempo 0, antes do bloco injetado, termina como sucesso, sem
-   onda.
+   onda. Na simulação rápida (5.2), nada disso: o testbench roda como está,
+   e não há onda.
 6. Roda os mesmos comandos de 5.2, com CWD na raiz e `.vvp`/`obj_dir` em
    `.lace/Temp/`, e o mesmo `timeout`. A onda fica na raiz, com o nome do
    `$dumpfile` e a extensão do formato.
@@ -833,26 +862,45 @@ Com processador no projeto, a raiz não pode ter caractere fora do ASCII
 ### 5.3.2 Testbench cocotb
 
 Com um testbench `.py`, `simulate_project` roda os testes cocotb no Icarus
-pelos passos de sempre.
+ou no Verilator, pelos passos de sempre.
 Com `<B>` = `<raiz>/.lace/Temp/cocotb/<módulo de teste>` e `<dut>` o módulo
 da diretiva (ou o topo):
 
-| Passo | Comando | CWD |
-|---|---|---|
-| `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s lace_cocotb_dump -o <B>/<dut>.vvp <design> <B>/lace_cocotb_dump.v` | raiz |
-| `simulate` | `vvp -n [-i] -m <VPI do cocotb> <B>/<dut>.vvp -fst` | raiz |
+| Simulador | Passo | Comando | CWD |
+|---|---|---|---|
+| Icarus | `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s lace_cocotb_dump -o <B>/<dut>.vvp <design> <B>/lace_cocotb_dump.v` | raiz |
+| Icarus | `simulate` | `vvp -n [-i] -m <VPI do cocotb> <B>/<dut>.vvp -fst` | raiz |
+| Verilator | `verilate` | `perl verilator --cc --exe --build --vpi --public-flat-rw --prefix Vtop -o V<dut> --timescale 1ns/1ps -LDFLAGS <VPI do cocotb> ... --trace --no-trace-top <as flags de 5.2> --top-module <dut> -Mdir <B>/obj_dir_<dut> [-y <SAPHO>] <verilator.cpp do cocotb> <design>` | `<B>` |
+| Verilator | `simulate` | `<B>/obj_dir_<dut>/V<dut> --trace --trace-file <raiz>/<módulo de teste>.vcd` | raiz |
 
 `<design>` é o mesmo da simulação de um testbench Verilog (5.3, passo 2),
 sem o testbench, e os `pc_<nome>_mem.txt` dos processadores também vão para
 a raiz. O `cmds.f` traz `+timescale+1ns/1ps`, o padrão do runner do cocotb,
-para os módulos sem `` `timescale ``. O `lace_cocotb_dump` grava
-`<raiz>/<módulo de teste>.fst` com `$dumpvars(0, <dut>)`.
+para os módulos sem `` `timescale `` (no Verilator, `--timescale`). O
+`lace_cocotb_dump` grava `<raiz>/<módulo de teste>.fst` com
+`$dumpvars(0, <dut>)`.
 
-O que o `vvp` precisa para carregar o cocotb vem de uma sonda
+No Verilator, o modelo tem o `main` do cocotb (`share/lib/verilator/verilator.cpp`),
+que carrega a VPI dele e deixa os testes dirigirem o tempo, e grava a onda
+com `--trace` em `<raiz>/<módulo de teste>.vcd`. A VPI do cocotb entra na
+ligação: no Windows a estática, `libcocotbvpi_verilator.a`, com `-L<libs>
+-lgpi`; no Linux e no macOS a compartilhada, com `-Wl,-rpath,<libs>
+-L<libs>`, como no `Makefile.verilator` do cocotb. No Windows, o
+`PYTHONPATH` começa por `.lace/Temp/cocotb/site/`, com um
+`sitecustomize.py` que põe a pasta do Python entre as que o Windows procura
+ao carregar DLLs (`os.add_dll_directory`): o Python dentro do modelo não
+acha as DLLs das extensões dele pelo `PATH` (o `binascii` carrega a do
+`zlib`), e o modelo, ao contrário do `vvp`, não fica na pasta do Python.
+
+Na simulação rápida (5.2) os testes rodam sem onda: no Icarus sem o
+`lace_cocotb_dump` e com `vvp ... -none`; no Verilator com o modelo sem
+`--trace`, em `<B>/obj_dir_fast_<dut>`.
+
+O que o simulador precisa para carregar o cocotb vem de uma sonda
 (`cocotb_probe.py`) rodada com o Python do componente `cocotb` e guardada
 em `.lace/Temp/cocotb/probe.json` até o bundle mudar: a VPI para o Icarus,
-a biblioteca do Python, o ponto de entrada e o `sys.path`. Com isso o `vvp`
-recebe `PYGPI_PYTHON_BIN`, `PYTHONPATH` (a pasta do `.py`, a raiz e o
+a VPI e o `verilator.cpp` para o Verilator, a biblioteca do Python, o ponto
+de entrada e o `sys.path`. Com isso o simulador recebe `PYGPI_PYTHON_BIN`, `PYTHONPATH` (a pasta do `.py`, a raiz e o
 `sys.path` do Python), `TOPLEVEL_LANG=verilog`, `COCOTB_RESULTS_FILE`, as
 variáveis do cocotb 2 (`GPI_USERS`, `COCOTB_TOPLEVEL`,
 `COCOTB_TEST_MODULES`) ou do 1 (`LIBPYTHON_LOC`, `TOPLEVEL`, `MODULE`), a
@@ -861,18 +909,19 @@ pasta das bibliotecas do cocotb no `PATH`, `PYTHONUTF8=1` e
 bundle nem para o projeto.
 
 O `results.xml` vira `SimulationResult::tests` (`TestReport`, 4.4). Cada
-teste que falha é um diagnóstico de erro do `vvp` no `.py`, na linha mais
-funda do traceback dentro dele, e a simulação termina `failed`, com
-`failed_step: simulate`; um `.py` sem teste nenhum também. Um diagnóstico
-`info` resume as contagens. A onda vem em `waveform` mesmo com teste
-falhando, desde que o `vvp` tenha ido até o fim: é nela que se vê a falha.
+teste que falha é um diagnóstico de erro do simulador (`vvp`, ou
+`verilator` no Verilator) no `.py`, na linha mais funda do traceback dentro
+dele, e a simulação termina `failed`, com `failed_step: simulate`; um `.py`
+sem teste nenhum também. Um diagnóstico `info` resume as contagens. A onda
+vem em `waveform` mesmo com teste falhando, desde que a simulação tenha ido
+até o fim: é nela que se vê a falha.
 
-Erros: `CocotbNeedsIcarus` com o Verilator; `NoCocotbToplevel` sem
-diretiva e sem topo; `InvalidName` se o nome do `.py` não é identificador
-do Python; `ComponentMissing` sem o componente `cocotb`;
-`CocotbUnavailable` se a sonda falha. Testado no Windows com o cocotb 2.1.0
-do bundle; no Linux e no macOS, com o 2.1.0.dev0 do OSS CAD Suite, não foi
-rodado.
+Erros: `NoCocotbToplevel` sem diretiva e sem topo; `InvalidName` se o nome
+do `.py` não é identificador do Python; `ComponentMissing` sem o
+componente `cocotb`; `CocotbUnavailable` se a sonda falha ou o cocotb não
+traz a biblioteca do simulador. Testado no Windows com o cocotb 2.1.0 e o
+Verilator 5.050 do bundle, nos dois simuladores; no Linux e no macOS, com o
+2.1.0.dev0 do OSS CAD Suite, não foi rodado.
 
 ### 5.3.1 `waveform_path(&Project, Option<&Processor>) -> Result<Utf8PathBuf>`
 
@@ -882,7 +931,8 @@ argumento. Com um processador, a do testbench que o `asmcomp` gerou
 projeto: o nome do `$dumpfile` dele, ou, sem `$dumpfile`, a onda que o
 Lace injeta na raiz (5.3, passo 5). Das duas extensões, `.fst` do Icarus e
 `.vcd` do Verilator, vale a mais recente (a do Icarus se nenhuma existe
-ainda). Com um testbench cocotb, `<raiz>/<módulo de teste>.fst` (5.3.2).
+ainda). Com um testbench cocotb, `<raiz>/<módulo de teste>.fst` (Icarus)
+ou `.vcd` (Verilator), a mais recente (5.3.2).
 
 Erros: `NoTestbench` sem testbench; `NotBuilt` se o processador ainda não
 foi compilado; `InvalidProject` se o `$dumpfile` do testbench é uma
@@ -1550,7 +1600,7 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 | `compiler_log` | `T/cmm_log.txt` | `build` |
 | `pre_assembler_log` | `T/app_log.txt` | `build` |
 | `icarus_image` | `<trabalho>/<topo>.vvp`; na hierarquia, `hierarchy/design.vvp`, `hierarchy/tb-<n>.vvp`, `hierarchy/proc-<nome>.vvp` | `simulate*` Icarus, `hierarchy` |
-| `verilated_model` | `<trabalho>/obj_dir_<topo>/V<topo>` | `simulate*` Verilator |
+| `verilated_model` | `<trabalho>/obj_dir_<topo>/V<topo>`; na simulação rápida, `obj_dir_fast_<topo>` | `simulate*` Verilator |
 | `waveform` | nome do `$dumpfile`, ou o da onda injetada (5.3) | `simulate*` |
 | `simulation_output` | `Simulation/output_<n>.txt` | `simulate*` |
 | `netlist` | `synth/<topo>/hierarchy.json` | `synthesize` |
@@ -1746,8 +1796,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `NotBuilt` | `not_built` | simular, sintetizar ou elaborar a hierarquia de processador sem `build`; `waveform_path` de processador não compilado | rodar `build` |
 | `NoTestbench` | `no_testbench` | `simulate_project` ou `waveform_path` sem testbench | `add_verilog` de um testbench, ou `set_testbench` |
 | `NoCocotbToplevel` | `no_cocotb_toplevel` | `simulate_project` de um testbench cocotb sem a diretiva `# aurora-toplevel:` num projeto sem topo | a diretiva no `.py`, ou `set_top` |
-| `CocotbNeedsIcarus` | `cocotb_needs_icarus` | `simulate_project` de um testbench cocotb com o Verilator | simular com o Icarus |
-| `CocotbUnavailable` | `cocotb_unavailable` | o Python do componente `cocotb` não carregou o cocotb (a sonda de 5.3.2 falhou); `reason` traz o fim da saída dela | reinstalar o componente |
+| `CocotbUnavailable` | `cocotb_unavailable` | o Python do componente `cocotb` não carregou o cocotb (a sonda de 5.3.2 falhou), ou o cocotb dele não traz a biblioteca do simulador; `reason` traz o fim da saída da sonda ou a biblioteca que falta | reinstalar o componente |
 | `NoTopLevel` | `no_top_level` | `synthesize(TopLevel)` sem topo | `set_top` |
 | `EmptyProject` | `empty_project` | `check` sem nenhum arquivo Verilog registrado e sem processadores; `hierarchy` sem nada para elaborar | `add_verilog` ou `add_processor` |
 | `ModuleNotFound` | `module_not_found` | `set_top` com um nome que nenhum sintetizável registrado declara; `top_module` ou `testbench_module` num arquivo sem um módulo que dê para usar; `render_schematic` de um módulo fora do netlist | ver `available` |
@@ -1826,8 +1875,9 @@ Limites desta versão:
   `crates/lace-cli/src/main.rs`). No Windows os filhos estão no Job Object
   do passo e terminam junto com o processo, de qualquer jeito que ele
   morra.
-- Sem build incremental: cada chamada roda tudo de novo (o `obj_dir` do
-  Verilator é reaproveitado pelo próprio `make`).
+- Sem build incremental: cada chamada roda tudo de novo (o modelo do
+  Verilator em dia é reaproveitado pelo próprio Verilator e pelo `make`,
+  5.2).
 - O `StepReport` guarda de cada pipe os primeiros e os últimos 2 MiB; o meio
   de uma saída maior (um testbench que imprime sem parar) sai, e uma linha
   `[Lace: N bytes of output left out here]` marca o corte. A saída ao vivo do
@@ -1888,11 +1938,12 @@ O que muda por sistema, e como o Lace trata:
 | Hierarquia | montada pelo Yosys | elaborada pelo Icarus, do design e de cada testbench, com a biblioteca SAPHO (`hierarchy`) |
 | Nome de projeto | aceita espaço e acento | só letras sem acento, dígitos, `_` e `-`, começando por letra; os projetos que já existem abrem |
 | Formato da onda (Icarus) | `vvp -fst` sempre, no nome do `$dumpfile` (um `.vcd` com FST dentro) | FST, com a extensão `.fst` trocada numa cópia do testbench |
-| Testbench cocotb | o runner Python do cocotb, num processo, no Icarus ou no Verilator | os passos `elaborate` e `simulate` do Lace, só no Icarus, com os testes em `SimulationResult::tests` |
+| Testbench cocotb | o runner Python do cocotb, num processo, no Icarus ou no Verilator | os passos `elaborate` (ou `verilate`) e `simulate` do Lace, no Icarus ou no Verilator, com os testes em `SimulationResult::tests` |
+| Simulação rápida (Fast Sim) | Verilator sem `--trace-fst`, com os `$dumpfile`/`$dumpvars` comentados numa cópia do testbench; o botão só habilita com o Verilator escolhido; cocotb no simulador escolhido | Verilator sem `--trace`, com o testbench como está (o Verilator ignora o dump), qualquer que seja o simulador escolhido; cocotb no simulador escolhido (`SimulationOptions::fast`) |
 | Testbench sem `$dumpfile` | injeta `$dumpvars(1, <topo>)`: só o nível do testbench | injeta `$dumpvars(0, <tb>)`: todos os sinais, inclusive os do módulo testado |
 | Simulação de processador | só pelo modo projeto | `simulate` direto, além de `simulate_project` |
 | Ferramentas | `components/` baixados pela AURORA | bundle versionado instalado com o Lace |
-| Esquemático | netlistsvg (fork próprio), dentro do processo, ~50 skins | `show` do Yosys + `dot` do Graphviz |
+| Esquemático | netlistsvg (fork próprio), dentro do processo, ~50 skins | `show` do Yosys + `dot` do Graphviz; o Studio desenha o próprio, do `hierarchy.json`, com o ELK |
 | Onda do Verilator | FST | VCD (o FST do Verilator do bundle exige lz4 e zlib do sistema) |
 | Layout do Surfer | gera `.surf.ron` e tradutores na pasta de configuração do usuário | gera o mesmo layout (`wave_layout`), com os tradutores em `.lace/Temp/surfer/` |
 | Sinais fora dos processadores no layout | todos os escopos | só os da raiz do testbench |

@@ -27,6 +27,20 @@
       "version": "v0.7.0-nips.10",
       "repository": "https://gitlab.com/nips-cern/surfer-aurora.git",
       "commit": "d0af8a742728005c61d2ec414da96eef963cb4ff",
+      "prebuilt": {
+        "linux-x64": {
+          "url": "https://github.com/ART3121/lace/releases/download/surfer-aurora-v0.7.0-nips.10/surfer-aurora-v0.7.0-nips.10-linux-x64.tar.gz",
+          "sha256": "b826fb17e318c030e3bdface0ec97e2ba697fa5c4ba490fdf7ca250a0d573ab6"
+        },
+        "darwin-arm64": {
+          "url": "https://github.com/ART3121/lace/releases/download/surfer-aurora-v0.7.0-nips.10/surfer-aurora-v0.7.0-nips.10-darwin-arm64.tar.gz",
+          "sha256": "75ea1cbc385a750091a1b1e6378cfe2627a72d52616ae73e4babd928586f4616"
+        },
+        "windows-x64": {
+          "url": "https://github.com/ART3121/lace/releases/download/surfer-aurora-v0.7.0-nips.10/surfer-aurora-v0.7.0-nips.10-windows-x64.tar.gz",
+          "sha256": "4422b5e8f5ecf1f07acbfa9523eda21f8df482e228c3bf44a95db7e2e3664177"
+        }
+      },
       "web": {
         "url": "https://gitlab.com/api/v4/projects/84576006/packages/generic/surfer-aurora/v0.7.0-nips.10/surfer-aurora_web_v0.7.0-nips.10.zip",
         "sha256": "159c6c1dc3d378d6474e7c86ea6d937f9d1c740006bc3af33304e1fd6727d092"

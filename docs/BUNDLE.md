@@ -145,7 +145,7 @@ Como cada ferramenta é executada:
 | YANC | o binário em `yanc/bin/` | `yanc/bin/*.exe` |
 | Icarus | `/bin/bash oss-cad-suite/bin/<ferramenta>`: o lançador do pacote, que carrega o binário de `libexec/` com as bibliotecas do próprio pacote | o `.exe` de `msys/ucrt64/bin/`, com `PATH` nesse diretório, onde estão as DLLs |
 | Yosys, `dot` | como o Icarus | o `.exe` de `oss-cad-suite/bin/` (ou `graphviz/bin/dot.exe`) com `PATH` em `bin;lib` do pacote, como o `environment.bat` |
-| Verilator | Perl do sistema com o script `oss-cad-suite/bin/verilator`, que roda o `bin/verilator_bin` do pacote; o `make` e o compilador são os do sistema; o `make` gerado usa o Python do pacote (`PYTHON3=`) | o `msys/ucrt64/bin/perl.exe` com o script `msys/ucrt64/bin/verilator`, que roda o `verilator_bin.exe` ao lado; o `make` é o da camada MSYS (`msys/usr/bin/make.exe`), que roda o `verilated.mk` com o `sh` dela e compila com o `g++` de `ucrt64/bin`; o `make` gerado usa `msys/ucrt64/bin/python.exe` |
+| Verilator | Perl do sistema com o script `oss-cad-suite/bin/verilator`, que roda o `bin/verilator_bin` do pacote; o `make` e o compilador são os do sistema; o `make` gerado usa o Python do pacote (`PYTHON3=`) | o `msys/ucrt64/bin/perl.exe` com o script `msys/ucrt64/bin/verilator`, que roda o `verilator_bin.exe` ao lado (`VERILATOR_BIN=verilator_bin.exe`, com `--no-unlimited-stack`; ver [API.md, seção 5.2](API.md#52-simulatetoolchain-processor-simulationoptions-control---resultsimulationresult)); o `make` é o da camada MSYS (`msys/usr/bin/make.exe`), que roda o `verilated.mk` com o `sh` dela e compila com o `g++` de `ucrt64/bin`; o `make` gerado usa `msys/ucrt64/bin/python.exe` |
 | surfer-aurora | o binário, com as variáveis de display | o `.exe` |
 
 Todo processo parte de um ambiente vazio. Os lançadores recebem
@@ -154,11 +154,15 @@ Windows, o `PATH` das ferramentas do pacote termina em
 `%SystemRoot%\System32`, e o `ComSpec` é repassado: o `iverilog` roda o
 `ivlpp` e o `ivl` pelo `system()` da biblioteca C, que usa o `cmd.exe`.
 
-O Lace roda o cocotb com o Icarus ([API.md, seção 5.3.2](API.md#532-testbench-cocotb)):
-o Python do componente (`oss-cad-suite/bin/tabbypy3` no Linux e no macOS,
+O Lace roda o cocotb com o Icarus e com o Verilator ([API.md, seção
+5.3.2](API.md#532-testbench-cocotb)): o Python do componente
+(`oss-cad-suite/bin/tabbypy3` no Linux e no macOS,
 `msys/ucrt64/bin/python.exe` no Windows) roda uma sonda que diz ao Lace
-onde estão a VPI e a biblioteca do Python, e o `vvp` carrega a VPI com o
-ambiente que ela descreve. Com o Verilator o Lace ainda não roda o cocotb.
+onde estão as VPIs, o `verilator.cpp` do cocotb e a biblioteca do Python.
+O `vvp` carrega a VPI com o ambiente que ela descreve; no Verilator, a VPI
+entra na ligação do modelo, que roda com o mesmo ambiente. No Windows o
+cocotb do MSYS2 traz a VPI do Verilator estática (`libcocotbvpi_verilator.a`).
+O cocotb no Verilator foi testado no Windows; no Linux e no macOS, não.
 Quem rodar à mão com o Verilator tem de passar ao `make` o Python do pacote
 (`PYTHON3=oss-cad-suite/bin/tabbypy3`, no `MAKEFLAGS`, por exemplo): sem
 isso, o `verilated.mk` chama o `python3` do sistema com o `PYTHONHOME` do

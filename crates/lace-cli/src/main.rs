@@ -38,6 +38,7 @@ Examples:
   lace add counter.v counter_tb.v   create a module and its testbench
   lace add test_counter.py          create a cocotb (Python) testbench
   lace sim --open                   simulate and open the waveform
+  lace sim --fast                   simulate without waveform, on Verilator
   lace proc add adder               create a SAPHO processor
   lace sim -p adder                 build it with YANC and simulate it
 
@@ -329,7 +330,7 @@ struct HierarchyArgs {
 
 #[derive(clap::Args)]
 struct SimArgs {
-    /// Testbench to simulate (Verilog, or cocotb .py on Icarus); becomes the project default
+    /// Testbench to simulate (Verilog, or cocotb .py); becomes the project default
     #[arg(value_name = "TESTBENCH", conflicts_with = "processor")]
     testbench: Option<Utf8PathBuf>,
     /// Simulate this processor with its YANC testbench (default: the processor of the current folder)
@@ -338,6 +339,9 @@ struct SimArgs {
     /// Use Verilator instead of Icarus
     #[arg(long)]
     verilator: bool,
+    /// Fast simulation, without waveform: Verilator for a Verilog testbench or a processor; a cocotb testbench runs its tests on Icarus (on Verilator with --verilator)
+    #[arg(long, conflicts_with = "open")]
+    fast: bool,
     /// Stop the simulation after this many seconds
     #[arg(long, value_name = "SECONDS", value_parser = clap::value_parser!(u64).range(1..))]
     timeout: Option<u64>,

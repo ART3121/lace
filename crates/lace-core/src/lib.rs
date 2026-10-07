@@ -11,8 +11,8 @@
 //! | arquivos e pastas | [`Project::create`], [`Project::add_processor`], [`Project::add_file`], [`Project::set_top_level`], [`Project::set_testbench`], [`Project::move_path`], [`Processor::write_input`] | `.spf` e diretórios no formato da AURORA |
 //! | YANC | [`build`] | Verilog, memórias e testbench de um processador |
 //! | Icarus Verilog | [`simulate`], [`simulate_project`], [`check`], [`hierarchy`] | [`SimulationResult`], [`CheckResult`], [`HierarchyResult`] |
-//! | cocotb (com o Icarus) | [`simulate_project`] com um testbench `.py` ([`cocotb`]) | [`SimulationResult`] com [`TestReport`] |
-//! | Verilator | [`simulate`], [`simulate_project`] | [`SimulationResult`] |
+//! | cocotb (com o Icarus ou o Verilator) | [`simulate_project`] com um testbench `.py` ([`cocotb`]) | [`SimulationResult`] com [`TestReport`] |
+//! | Verilator | [`simulate`], [`simulate_project`]; sem onda, a simulação rápida ([`SimulationOptions::fast`]) | [`SimulationResult`] |
 //! | Yosys | [`synthesize`] | [`SynthesisResult`] (netlist JSON) |
 //! | Yosys + Graphviz | [`render_schematic`] | [`SchematicResult`] (SVG) |
 //! | surfer-aurora | [`open_waveform`] | [`RunningProcess`] |

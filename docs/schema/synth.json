@@ -602,7 +602,7 @@
           "type": "boolean"
         },
         "fresh": {
-          "description": "Existe e foi escrito por esta operação (não é sobra de uma anterior).",
+          "description": "Existe e foi escrito por esta operação (não é sobra de uma anterior).\nO executável do Verilator, que o `make` só refaz quando o modelo\nmuda, conta como escrito quando a compilação terminou bem: ele está\nem dia com a entrada.",
           "type": "boolean"
         }
       },

@@ -62,8 +62,8 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | C± (F6) | Feito | C± (F6): `build` dos processadores, ou só o alvo |
 | Verilog (F7) | Feito | Verilog (F7): `check`, que roda só o Icarus e não compila os processadores (a AURORA compila); Shift+F7 acrescenta o lint do Verilator |
 | Wave (F8) | Feito | Wave (F8): simula e abre a onda no surfer-aurora |
-| Fast Sim (F9) | Feito | Rápida (F9): simula sem abrir a onda |
-| PRISM (F10) | Diferente | PRISM (F10): síntese do Yosys e esquemático do `show` + Graphviz, não o netlistsvg (decisão do Lace, API.md seção 10) |
+| Fast Sim (F9) | Feito | Rápida (F9): `lace sim --fast`, sem gravar onda; o testbench Verilog no Verilator, como na AURORA, mas sem exigir o Verilator escolhido; o cocotb no simulador escolhido |
+| PRISM (F10) | Feito | síntese do Yosys, e o esquemático desenhado pelo próprio Studio a partir do netlist, com o layout do ELK (o motor do netlistsvg) e as cores do tema; não o netlistsvg (API.md seção 10) |
 | Full Build (F5) | Feito | F5: verifica e, se passou, simula |
 | Cancelar (Shift+F5) | Feito | Parar (Shift+F5); o Core encerra a ferramenta com tudo o que ela iniciou |
 | Icarus ou Verilator | Feito | menu Fluxo e preferência |
@@ -71,7 +71,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Prazo da simulação | Feito | preferência "Prazo da simulação" (o `--timeout` da CLI) |
 | Botões habilitados conforme o `.spf` (topo, testbench) | Parcial | habilitados com projeto aberto; sem topo ou testbench, o erro do Core aparece traduzido, com a dica de onde resolver |
 | Selo de command overrides | Depende do Lace | o Lace preserva `commandOverrides` no `.spf`, mas não os aplica |
-| Testbench em Python (cocotb) | Depende do Lace | o bundle prevê o componente, o Core ainda não roda |
+| Testbench em Python (cocotb) | Feito | no Icarus e no Verilator, pela Wave e pela Rápida; os testes vão para o console e o painel Problemas |
 | GTKWave | Diferente | o bundle do Lace traz só o surfer-aurora |
 
 ## Consoles e terminal
@@ -108,9 +108,12 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Escolher layout `.gtkw`, `.surf.ron`, `.sucl` | Fase 2 | o Core já recebe um layout (`ViewerOptions::layout`); falta a interface |
 | Wave Configuration: escolher sinais por testbench | Depende do Lace | o Lace grava todos os sinais (`$dumpvars(0, tb)`) |
 | Layouts gerados (grupos do processador, tradutores ASM e C±, números complexos) | Feito | `wave_layout` do Core, na aba e na janela |
-| Esquemático: escolher módulo, zoom, arrastar, ajustar, abrir o SVG | Feito | aba Esquemático |
-| Duplo clique num módulo abre o fonte | Fase 2 | |
-| 82 skins do netlistsvg | Diferente | o desenho é o do Graphviz (decisão do Lace) |
+| Esquemático: entrar no submódulo, voltar (Esc, botões laterais do mouse), trilha, zoom, arrastar, ajustar | Feito | aba PRISM; a hierarquia também numa árvore |
+| Dois cliques num símbolo abrem o fonte | Feito | na linha do atributo `src` do Yosys |
+| Destacar as ligações (clique no fio, Shift+clique no módulo) | Feito | pelo netlist, não pela geometria dos fios: a rede inteira, com as fatias, e o que liga a uma célula |
+| Exportar SVG | Feito | com as cores do tema escritas no arquivo, sem destaque |
+| Busca, detalhes da célula e da rede, minimapa | A mais | não há na AURORA |
+| 82 skins do netlistsvg | Diferente | um desenho só, que segue o tema do Studio (as famílias de célula pegam a paleta do tema) |
 | Simulação interativa com DigitalJS | Fase 3 | |
 | Estatísticas da síntese | Feito | aba Síntese: células, fios, memórias e células por tipo (sem LUT nem temporização: não há mapeamento para FPGA) |
 

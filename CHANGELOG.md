@@ -1,5 +1,29 @@
 # Mudanças
 
+## Não publicada
+
+- Simulação rápida, o Fast Sim da AURORA: `lace sim --fast` roda sem gravar
+  onda, para ver a saída do testbench, as saídas do processador e os testes
+  cocotb na velocidade do simulador. O testbench Verilog, do projeto ou de um
+  processador (`-p`), roda no Verilator compilado sem `--trace`, num
+  `obj_dir_fast_<topo>` à parte, e o Verilator ignora os `$dumpfile` e
+  `$dumpvars` dele; um testbench cocotb roda os testes sem a onda, no Icarus
+  (`vvp -none`) ou, com `--verilator`, no Verilator. No JSON, a simulação
+  traz `fast`; na API, `SimulationOptions::fast` e `SimulationResult::fast`.
+- O cocotb também roda no Verilator: `lace sim --verilator` com um testbench
+  `.py` compila o design com o `main` e a VPI do cocotb e grava a onda em
+  `<módulo de teste>.vcd`. `cocotb_needs_icarus` deixou de existir; um
+  cocotb sem a biblioteca do simulador dá `cocotb_unavailable`. Testado no
+  Windows; no Linux e no macOS, não.
+- Windows: o Verilator reaproveita o modelo em dia. Ele anotava o
+  `verilator_bin` sem `.exe` entre as entradas do modelo, não reconhecia
+  nada como em dia, gerava o C++ de novo e recompilava tudo a cada simulação,
+  a biblioteca dele junto; agora, com o design igual, a compilação leva
+  menos de 1 s (num contador, 9 s antes). Sai também o "o sistema não pode
+  encontrar o caminho especificado" que o script dele escrevia a cada
+  chamada, e os avisos do g++ sobre a biblioteca do próprio Verilator viram
+  informação.
+
 ## 0.3.0 (2026-10-06)
 
 Windows:

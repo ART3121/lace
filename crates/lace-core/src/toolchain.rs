@@ -872,10 +872,28 @@ impl Toolchain {
                 if windows && system.bundled {
                     let _ = std::fs::create_dir_all(dir.join("tmp"));
                 }
-                Invocation::new(system.perl.clone(), cwd)
-                    .path_arg(&program)
-                    .env("LC_ALL", "C")
-                    .search_path(&path)
+                let invocation = Invocation::new(system.perl.clone(), cwd).path_arg(&program);
+                // No Windows, duas correções do script:
+                // - ele tenta `ulimit -s unlimited 2>/dev/null` pelo `cmd.exe`
+                //   a cada chamada, que não tem `ulimit` nem `/dev/null` e
+                //   escreve "o sistema não pode encontrar o caminho
+                //   especificado" no stderr; o `ulimit` só vale num shell Unix;
+                // - ele chama o `verilator_bin` sem o `.exe`, e esse é o nome
+                //   que o Verilator anota entre as entradas do modelo
+                //   (`__verFiles.dat`): sem arquivo com esse nome, o
+                //   `--skip-identical` nunca reconhece um modelo em dia, e
+                //   cada simulação gerava o C++ de novo e recompilava tudo, a
+                //   biblioteca do Verilator junto (medido em 2026-10-07: 9 s,
+                //   contra 0,4 s com o nome inteiro, num contador).
+                let invocation = if windows {
+                    invocation.arg("--no-unlimited-stack").env(
+                        "VERILATOR_BIN",
+                        format!("verilator_bin{}", self.platform.exe()),
+                    )
+                } else {
+                    invocation
+                };
+                invocation.env("LC_ALL", "C").search_path(&path)
             }
             Tool::Iverilog | Tool::Vvp | Tool::Yosys | Tool::Dot if windows => {
                 let dir = self.component_dir(tool.component().expect("Tool from the bundle"))?;

@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 
-import { action, isEnabled, openWave, runAction, runBuild, runSimulation } from '../../actions';
+import { action, fastSimulator, isEnabled, openWave, runAction, runBuild, runSimulation } from '../../actions';
 import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
@@ -39,13 +39,15 @@ function Item({
   );
 }
 
-function ActionItem({ id, statusKey }: { id: string; statusKey?: string }) {
+function ActionItem({ id, statusKey, hint }: { id: string; statusKey?: string; hint?: ReactNode }) {
   const t = useT();
   const a = action(id);
   const status = useJobs((s) => s.statusByKey[statusKey ?? id]);
   useJobs((s) => s.running);
   useProject((s) => s.snapshot);
-  return <Item label={t(a.label)} keys={a.keys} status={status} disabled={!isEnabled(a)} onClick={() => runAction(id)} />;
+  return (
+    <Item label={t(a.label)} keys={a.keys} status={status} disabled={!isEnabled(a)} onClick={() => runAction(id)} hint={hint} />
+  );
 }
 
 export function FlowNavigator() {
@@ -112,7 +114,12 @@ export function FlowNavigator() {
 
       <Section title={`${t('flow.simulation')} (${simulator === 'icarus' ? 'Icarus' : 'Verilator'})`}>
         <ActionItem id="simulate" statusKey={target ? `simulate:${target}` : 'simulate'} />
-        <ActionItem id="fastSim" statusKey={target ? `simulate:${target}` : 'simulate'} />
+        {/* A Rápida tem simulador próprio: o Verilator, menos com cocotb. */}
+        <ActionItem
+          id="fastSim"
+          statusKey={target ? `fastSim:${target}` : 'fastSim'}
+          hint={fastSimulator() === 'icarus' ? 'Icarus' : 'Verilator'}
+        />
         <Item label={t('action.openWave')} keys="Ctrl+F8" onClick={() => void openWave()} />
         {snapshot.processors.map((p) => (
           <Item

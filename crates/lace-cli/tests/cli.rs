@@ -2029,8 +2029,67 @@ fn cocotb_testbench_from_the_command_line() {
     );
     let text = stdout(&mut lace(&["sim"]), 0);
     assert!(text.contains("Tests: 1 of 1 passed"), "{text}");
-    lace(&["sim", "--verilator"])
+
+    // A simulação rápida roda os testes no Icarus, sem a onda.
+    std::fs::remove_file(root.join("test_somador.fst")).unwrap();
+    let fast = json(&mut lace(&["--json", "sim", "--fast"]), 0);
+    assert_eq!(fast["simulation"]["fast"], true, "{fast}");
+    assert_eq!(fast["simulation"]["simulator"], "icarus");
+    assert_eq!(fast["simulation"]["waveform"], Value::Null);
+    assert_eq!(fast["simulation"]["tests"]["passed"], 1, "{fast}");
+    assert!(!root.join("test_somador.fst").exists());
+
+    // E no Verilator, com a onda em VCD.
+    if bundle_has(&tc, "verilator") {
+        let sim = json(&mut lace(&["--json", "sim", "--verilator"]), 0);
+        assert_eq!(sim["simulation"]["simulator"], "verilator", "{sim}");
+        assert_eq!(sim["simulation"]["tests"]["passed"], 1, "{sim}");
+        assert_eq!(sim["simulation"]["waveform"]["format"], "vcd");
+        assert!(root.join("test_somador.vcd").is_file());
+    }
+}
+
+#[test]
+fn fast_sim_runs_on_verilator_without_waveform() {
+    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+        return;
+    };
+    if !bundle_has(&tc, "verilator") {
+        return;
+    }
+    let (_guard, root) = example("contador");
+    let lace = |args: &[&str]| {
+        let mut cmd = lace_in(&root);
+        cmd.args(args).env("LACE_TOOLCHAIN", &tc);
+        cmd
+    };
+    let text = stdout(&mut lace(&["sim", "--fast"]), 0);
+    assert!(
+        text.contains("Fast simulation of contador_tb (Verilator): finished in"),
+        "{text}"
+    );
+    assert!(text.contains("| q = 10"), "{text}");
+    assert!(!text.contains("Open the waveform"), "{text}");
+    for wave in ["contador_tb.vcd", "contador_tb.fst"] {
+        assert!(!root.join(wave).exists(), "{wave}");
+    }
+
+    let sim = json(&mut lace(&["--json", "sim", "--fast"]), 0);
+    assert_eq!(sim["simulation"]["fast"], true, "{sim}");
+    assert_eq!(sim["simulation"]["simulator"], "verilator");
+    assert_eq!(sim["simulation"]["waveform"], Value::Null);
+    // O relatório diz que foi a rápida.
+    let report = json(&mut lace(&["--json", "report"]), 0);
+    assert!(
+        report
+            .to_string()
+            .contains("Fast simulation contador_tb (Verilator)"),
+        "{report}"
+    );
+
+    // Sem onda não há o que abrir.
+    lace(&["sim", "--fast", "--open"])
         .assert()
         .code(2)
-        .stderr(predicate::str::contains("Simulate it without --verilator"));
+        .stderr(predicate::str::contains("--open"));
 }

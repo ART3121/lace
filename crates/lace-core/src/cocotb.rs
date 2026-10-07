@@ -9,25 +9,40 @@
 //! precisa ser um identificador (`test_somador.py`, não `test-somador.py`).
 //!
 //! A simulação ([`simulate_project`](crate::simulate_project)) tem os passos
-//! de um testbench Verilog, no Icarus:
+//! de um testbench Verilog, no Icarus ou no Verilator:
 //!
 //! ```text
+//! Icarus
 //! elaborate  iverilog [-g2012] -f <build>/cmds.f [-y <SAPHO>] -s <dut> -s lace_cocotb_dump
 //!            -o <build>/<dut>.vvp <design> <build>/lace_cocotb_dump.v          cwd raiz
 //! simulate   vvp -n [-i] -m <VPI do cocotb> <build>/<dut>.vvp -fst             cwd raiz
+//!
+//! Verilator
+//! verilate   verilator --cc --exe --build --vpi --public-flat-rw --prefix Vtop
+//!            -o V<dut> --timescale 1ns/1ps -LDFLAGS <VPI do cocotb> --trace ...
+//!            --top-module <dut> -Mdir <build>/obj_dir_<dut> <verilator.cpp> <design>
+//! simulate   <build>/obj_dir_<dut>/V<dut> --trace --trace-file <raiz>/<teste>.vcd   cwd raiz
 //! ```
 //!
 //! em que `<build>` é `.lace/Temp/cocotb/<módulo de teste>/`. O `cmds.f`
-//! traz `+timescale+1ns/1ps`, o padrão do runner do cocotb, para os módulos
-//! sem `` `timescale ``: sem ele, o `Timer(1, "ns")` de um teste falha num
-//! design sem `` `timescale ``, cuja precisão é de 1 s. O
-//! `lace_cocotb_dump` grava a onda na raiz, `<módulo de teste>.fst`, com
-//! todos os sinais do DUT. No `vvp`, a VPI do cocotb sobe o Python do bundle
+//! traz `+timescale+1ns/1ps` (no Verilator, `--timescale`), o padrão do
+//! runner do cocotb, para os módulos sem `` `timescale ``: sem ele, o
+//! `Timer(1, "ns")` de um teste falha num design sem `` `timescale ``, cuja
+//! precisão é de 1 s. No Icarus, o `lace_cocotb_dump` grava a onda na raiz,
+//! `<módulo de teste>.fst`, com todos os sinais do DUT; no Verilator, quem
+//! grava é o `main` do cocotb (`verilator.cpp`), em `<módulo de teste>.vcd`,
+//! com as outras flags do Lace (`--timing`, `-O3`; ver
+//! [`simulate`](crate::simulate)). A VPI do cocotb sobe o Python do bundle
 //! dentro da simulação e roda os testes; o resultado sai em
 //! `<build>/results.xml` (JUnit), que vira [`TestReport`], e cada teste que
 //! falha vira um diagnóstico de erro no `.py`.
 //!
-//! O que o `vvp` precisa para carregar o cocotb (a VPI, a biblioteca do
+//! Na simulação rápida ([`SimulationOptions::fast`](crate::SimulationOptions::fast))
+//! os testes rodam sem onda: no Icarus sem o `lace_cocotb_dump` e com `vvp
+//! -none`, no Verilator com o modelo compilado sem `--trace`, em
+//! `<build>/obj_dir_fast_<dut>`.
+//!
+//! O que o simulador precisa para carregar o cocotb (a VPI, a biblioteca do
 //! Python e as variáveis de ambiente, que mudam do cocotb 1 para o 2) vem de
 //! uma sonda rodada com o Python do componente `cocotb` (`cocotb_probe.py`),
 //! guardada em `.lace/Temp/cocotb/probe.json` até o bundle mudar. Os `.pyc`
@@ -36,6 +51,12 @@
 //! `__pycache__`. Sem isso, o cocotb do bundle, que não vem compilado, levava
 //! de 4 a 5 s a mais em cada simulação num bundle só leitura (medido no
 //! Windows em 2026-10-06: 5,3 s na primeira sonda, 0,5 s nas seguintes).
+//!
+//! No Windows, o Python que roda dentro do modelo do Verilator não acharia as
+//! DLLs das extensões dele (a do `zlib`, que o `binascii` carrega): o Python
+//! não as procura no `PATH`, e o modelo, ao contrário do `vvp`, não fica na
+//! pasta do Python. O Lace põe no `PYTHONPATH` um `sitecustomize.py` que
+//! acrescenta essa pasta (`os.add_dll_directory`).
 
 use std::time::Duration;
 
@@ -48,14 +69,16 @@ use crate::diagnostics::{Diagnostic, Severity};
 use crate::error::{LaceError, Result};
 use crate::process::{Termination, Watch};
 use crate::project::Project;
+use crate::simulate::Simulator;
 use crate::toolchain::{Tool, Toolchain};
 use crate::verilog::{ModuleInterface, Port, PortDirection, is_clock, reset_polarity};
 
-/// O módulo que grava a onda de um testbench cocotb.
+/// O módulo que grava a onda de um testbench cocotb no Icarus.
 pub(crate) const DUMP_MODULE: &str = "lace_cocotb_dump";
 
-/// O padrão de tempo do runner do cocotb, para os módulos sem `` `timescale ``.
-const TIMESCALE: &str = "+timescale+1ns/1ps";
+/// O padrão de tempo do runner do cocotb, para os módulos sem `` `timescale ``:
+/// `+timescale+` no `iverilog`, `--timescale` no Verilator.
+pub(crate) const TIMESCALE: &str = "1ns/1ps";
 
 /// Quanto a sonda pode levar. A primeira compila os `.pyc` do cocotb (uns 5
 /// s); as outras, menos de 1 s.
@@ -300,18 +323,31 @@ pub(crate) fn test_module(testbench: &Utf8Path) -> Result<String> {
     }
 }
 
-/// A onda de um testbench cocotb: `<raiz>/<módulo de teste>.fst`.
-pub(crate) fn wave_path(root: &Utf8Path, testbench: &Utf8Path) -> Utf8PathBuf {
-    root.join(format!("{}.fst", testbench.file_stem().unwrap_or("cocotb")))
+/// A onda de um testbench cocotb no `simulator`: `<raiz>/<módulo de
+/// teste>.fst` no Icarus, `.vcd` no Verilator.
+pub(crate) fn wave_path(
+    root: &Utf8Path,
+    testbench: &Utf8Path,
+    simulator: Simulator,
+) -> Utf8PathBuf {
+    root.join(format!(
+        "{}.{}",
+        testbench.file_stem().unwrap_or("cocotb"),
+        crate::simulate::wave_extension(simulator)
+    ))
 }
 
 /// O DUT de `testbench`: o da diretiva ou, sem ela, o topo do projeto, com
-/// um aviso, como a AURORA (`decideCocotbDut`).
+/// um aviso de `tool`, como a AURORA (`decideCocotbDut`).
 ///
 /// # Erros
 ///
 /// [`LaceError::NoCocotbToplevel`] sem diretiva e sem topo; os de leitura.
-pub(crate) fn dut(project: &Project, testbench: &Utf8Path) -> Result<(String, Vec<Diagnostic>)> {
+pub(crate) fn dut(
+    project: &Project,
+    testbench: &Utf8Path,
+    tool: Tool,
+) -> Result<(String, Vec<Diagnostic>)> {
     let source = std::fs::read_to_string(testbench)
         .map_err(LaceError::io("Reading testbench", testbench))?;
     if let Some(module) = toplevel_directive(&source) {
@@ -321,7 +357,7 @@ pub(crate) fn dut(project: &Project, testbench: &Utf8Path) -> Result<(String, Ve
         return Err(LaceError::NoCocotbToplevel(testbench.to_owned()));
     };
     let note = Diagnostic {
-        tool: Tool::Vvp,
+        tool,
         severity: Severity::Warning,
         message: format!(
             "{} has no `# aurora-toplevel: <module>` line: the tests drive the project top module, {top}",
@@ -335,7 +371,8 @@ pub(crate) fn dut(project: &Project, testbench: &Utf8Path) -> Result<(String, Ve
     Ok((top, vec![note]))
 }
 
-/// O que a sonda diz do cocotb do bundle.
+/// O que a sonda diz do cocotb do bundle. Uma biblioteca que o cocotb não
+/// traz vem vazia.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct Probe {
     version: String,
@@ -345,9 +382,33 @@ struct Probe {
     python: String,
     libpython: String,
     entry_point: String,
+    /// A VPI para o Icarus, que o `vvp` carrega (`-m`).
     vpi: String,
+    /// A VPI para o Verilator, que o modelo liga.
+    verilator_vpi: String,
+    /// O `main` do modelo do Verilator (`share/lib/verilator/verilator.cpp`).
+    verilator_main: String,
     libs: String,
     sys_path: Vec<String>,
+}
+
+impl Probe {
+    /// O que `simulator` usa do cocotb: a VPI e, no Verilator, o `main`.
+    fn files(&self, simulator: Simulator) -> Vec<&str> {
+        match simulator {
+            Simulator::Icarus => vec![&self.vpi],
+            _ => vec![&self.verilator_vpi, &self.verilator_main],
+        }
+    }
+
+    /// As bibliotecas que a sonda achou continuam no lugar: um bundle
+    /// reinstalado em outra pasta invalida a sonda guardada.
+    fn still_valid(&self) -> bool {
+        [&self.vpi, &self.verilator_vpi, &self.verilator_main]
+            .into_iter()
+            .filter(|path| !path.is_empty())
+            .all(|path| Utf8Path::new(path).is_file())
+    }
 }
 
 /// A sonda guardada, com a chave que diz se ela ainda vale.
@@ -363,29 +424,36 @@ struct CachedProbe {
 pub(crate) struct CocotbRun {
     /// O `.py`.
     pub testbench: Utf8PathBuf,
-    /// O `.vvp`.
-    pub image: Utf8PathBuf,
-    /// O módulo que grava a onda.
-    pub dump_module: Utf8PathBuf,
+    /// A pasta do testbench em `.lace/Temp/cocotb/`: o `.vvp` ou o
+    /// `obj_dir` do Verilator, o `cmds.f`, o módulo de dump e o
+    /// `results.xml`.
+    pub build: Utf8PathBuf,
+    /// O módulo que grava a onda no Icarus; `None` no Verilator, em que
+    /// quem grava é o modelo, e na simulação rápida.
+    pub dump_module: Option<Utf8PathBuf>,
     /// O arquivo de comandos do `iverilog` (`-f`), com o timescale.
     pub commands: Utf8PathBuf,
-    /// A onda.
-    pub wave: Utf8PathBuf,
+    /// A onda; `None` na simulação rápida.
+    pub wave: Option<Utf8PathBuf>,
     /// O `results.xml` que o cocotb grava.
     pub results: Utf8PathBuf,
-    /// A VPI do cocotb para o Icarus, para o `-m` do `vvp`.
+    /// A VPI do cocotb para o simulador: o `-m` do `vvp`, ou a biblioteca
+    /// que o modelo do Verilator liga.
     pub vpi: String,
-    /// As variáveis que o `vvp` precisa para o cocotb.
+    /// Só no Verilator: o `main` do modelo (`verilator.cpp`).
+    pub main: Option<Utf8PathBuf>,
+    /// As variáveis que o simulador precisa para o cocotb.
     pub env: Vec<(String, String)>,
     /// As bibliotecas do cocotb, que vão para o `PATH` (no Windows, as DLLs
     /// que a VPI carrega).
     pub libs: Utf8PathBuf,
 }
 
-/// Prepara a simulação de `testbench` com `dut` no topo: roda a sonda (ou
-/// usa a guardada) e grava o módulo de dump e o `cmds.f` em
-/// `.lace/Temp/cocotb/<módulo de teste>/`. `None` se o cancelamento foi
-/// pedido durante a sonda.
+/// Prepara a simulação de `testbench` com `dut` no topo, no `simulator`:
+/// roda a sonda (ou usa a guardada) e grava o `cmds.f` e, no Icarus com
+/// onda, o módulo de dump em `.lace/Temp/cocotb/<módulo de teste>/`. `fast`
+/// é a simulação rápida, sem onda. `None` se o cancelamento foi pedido
+/// durante a sonda.
 ///
 /// # Erros
 ///
@@ -393,13 +461,15 @@ pub(crate) struct CocotbRun {
 /// - [`LaceError::ComponentMissing`]: o componente `cocotb` não está
 ///   instalado;
 /// - [`LaceError::CocotbUnavailable`]: o Python do bundle não carrega o
-///   cocotb;
+///   cocotb, ou o cocotb não traz a biblioteca do simulador;
 /// - os de I/O.
 pub(crate) fn prepare(
     toolchain: &Toolchain,
     project: &Project,
     testbench: &Utf8Path,
     dut: &str,
+    simulator: Simulator,
+    fast: bool,
     control: &Control,
 ) -> Result<Option<CocotbRun>> {
     let module = test_module(testbench)?;
@@ -407,36 +477,73 @@ pub(crate) fn prepare(
     let build = dir.join(&module);
     std::fs::create_dir_all(&build).map_err(LaceError::io("Creating directory", &build))?;
     let pycache = crate::paths::user_cache_dir()?.join("pycache");
-    let Some(probe) = probe(toolchain, &dir, &pycache, control)? else {
+    let Some((probe, command)) = probe(toolchain, &dir, &pycache, control)? else {
         return Ok(None);
     };
+    if let Some(missing) = probe
+        .files(simulator)
+        .into_iter()
+        .find(|f| f.is_empty() || !Utf8Path::new(f).is_file())
+    {
+        let (name, what) = match simulator {
+            Simulator::Icarus => ("Icarus", "VPI library"),
+            _ => ("Verilator", "VPI library and main"),
+        };
+        return Err(LaceError::CocotbUnavailable {
+            python: command,
+            reason: if missing.is_empty() {
+                format!("cocotb {} has no {what} for {name}", probe.version)
+            } else {
+                format!(
+                    "cocotb {} has no {what} for {name} ({missing})",
+                    probe.version
+                )
+            },
+        });
+    }
 
-    let wave = wave_path(project.root(), testbench);
-    let dump_module = build.join(format!("{DUMP_MODULE}.v"));
-    let dump = format!(
-        "// Gerado pelo Lace: grava a onda do testbench cocotb {file}.\n\
-         module {DUMP_MODULE};\n\
-         \x20   initial begin\n\
-         \x20       $dumpfile(\"{wave}\");\n\
-         \x20       $dumpvars(0, {dut});\n\
-         \x20   end\n\
-         endmodule\n",
-        file = testbench.file_name().unwrap_or_default(),
-        wave = wave.file_name().unwrap_or_default(),
-    );
-    std::fs::write(&dump_module, dump).map_err(LaceError::io("Writing", &dump_module))?;
+    let wave = (!fast).then(|| wave_path(project.root(), testbench, simulator));
+    // No Verilator, quem grava a onda é o `main` do cocotb, pelo `--trace`.
+    let dump_module = match &wave {
+        Some(wave) if simulator == Simulator::Icarus => {
+            let path = build.join(format!("{DUMP_MODULE}.v"));
+            let dump = format!(
+                "// Gerado pelo Lace: grava a onda do testbench cocotb {file}.\n\
+                 module {DUMP_MODULE};\n\
+                 \x20   initial begin\n\
+                 \x20       $dumpfile(\"{wave}\");\n\
+                 \x20       $dumpvars(0, {dut});\n\
+                 \x20   end\n\
+                 endmodule\n",
+                file = testbench.file_name().unwrap_or_default(),
+                wave = wave.file_name().unwrap_or_default(),
+            );
+            std::fs::write(&path, dump).map_err(LaceError::io("Writing", &path))?;
+            Some(path)
+        }
+        _ => None,
+    };
     let commands = build.join("cmds.f");
-    std::fs::write(&commands, format!("{TIMESCALE}\n"))
+    std::fs::write(&commands, format!("+timescale+{TIMESCALE}\n"))
         .map_err(LaceError::io("Writing", &commands))?;
     let results = build.join("results.xml");
     // Um `results.xml` de antes não pode passar por resultado desta.
     let _ = std::fs::remove_file(&results);
 
+    // No Windows, o Python dentro do modelo do Verilator só acha as DLLs das
+    // extensões pela pasta dele (ver o começo do módulo).
+    let site = (simulator == Simulator::Verilator && cfg!(windows))
+        .then(|| dll_directory_site(&dir, &probe.python))
+        .transpose()?;
     let tb_dir = testbench.parent().unwrap_or(project.root());
     let python_path = std::env::join_paths(
-        [tb_dir.as_std_path(), project.root().as_std_path()]
-            .into_iter()
-            .map(std::path::Path::to_path_buf)
+        site.iter()
+            .map(|s| s.as_std_path().to_path_buf())
+            .chain(
+                [tb_dir.as_std_path(), project.root().as_std_path()]
+                    .into_iter()
+                    .map(std::path::Path::to_path_buf),
+            )
             .chain(probe.sys_path.iter().map(std::path::PathBuf::from)),
     )
     .map(|p| p.to_string_lossy().into_owned())
@@ -464,28 +571,62 @@ pub(crate) fn prepare(
         env.push(("TOPLEVEL".into(), dut.to_owned()));
         env.push(("MODULE".into(), module.clone()));
     }
+    let (vpi, main) = match simulator {
+        Simulator::Icarus => (probe.vpi, None),
+        _ => (
+            probe.verilator_vpi,
+            Some(crate::paths::native_separators(&probe.verilator_main)),
+        ),
+    };
     Ok(Some(CocotbRun {
         testbench: testbench.to_owned(),
-        image: build.join(format!("{dut}.vvp")),
+        build,
         dump_module,
         commands,
         wave,
         results,
-        vpi: probe.vpi.replace('\\', "/"),
+        vpi: vpi.replace('\\', "/"),
+        main,
         env,
         libs: Utf8PathBuf::from(probe.libs),
     }))
 }
 
+/// Grava em `dir/site/` o `sitecustomize.py` que põe a pasta do Python do
+/// bundle (a de `python`) entre as que o Windows procura ao carregar as DLLs
+/// das extensões, e devolve a pasta, para o `PYTHONPATH`.
+fn dll_directory_site(dir: &Utf8Path, python: &str) -> Result<Utf8PathBuf> {
+    let site = dir.join("site");
+    std::fs::create_dir_all(&site).map_err(LaceError::io("Creating directory", &site))?;
+    let bin = Utf8Path::new(python)
+        .parent()
+        .map(|p| p.as_str().replace('\\', "/"))
+        .unwrap_or_default();
+    let script = site.join("sitecustomize.py");
+    std::fs::write(
+        &script,
+        format!(
+            "# Gerado pelo Lace: o Python dentro do modelo do Verilator procura as\n\
+             # DLLs das extensões na pasta dele, e não no PATH.\n\
+             import os\n\
+             os.add_dll_directory(\"{}\")\n",
+            bin.replace('"', "\\\"")
+        ),
+    )
+    .map_err(LaceError::io("Writing", &script))?;
+    Ok(site)
+}
+
 /// A sonda do cocotb, guardada em `dir/probe.json` enquanto a chave (o
-/// bundle, o Python e a versão do Lace) não muda e a VPI continua no lugar.
-/// `None` se o cancelamento foi pedido.
+/// bundle, o Python e a versão do Lace) não muda e as bibliotecas continuam
+/// no lugar. Vem com o comando que a rodou, para os erros. `None` se o
+/// cancelamento foi pedido.
 fn probe(
     toolchain: &Toolchain,
     dir: &Utf8Path,
     pycache: &Utf8Path,
     control: &Control,
-) -> Result<Option<Probe>> {
+) -> Result<Option<(Probe, String)>> {
     let script = dir.join("lace_cocotb_probe.py");
     let invocation = toolchain
         .cocotb_python(&script, dir)?
@@ -497,13 +638,14 @@ fn probe(
         toolchain.manifest().bundle,
         invocation.display_command()
     );
+    let python = invocation.display_command();
     let cache = dir.join("probe.json");
     if let Some(cached) = std::fs::read_to_string(&cache)
         .ok()
         .and_then(|text| serde_json::from_str::<CachedProbe>(&text).ok())
-        .filter(|c| c.key == key && Utf8Path::new(&c.probe.vpi).is_file())
+        .filter(|c| c.key == key && c.probe.still_valid())
     {
-        return Ok(Some(cached.probe));
+        return Ok(Some((cached.probe, python)));
     }
     std::fs::write(&script, PROBE_SOURCE).map_err(LaceError::io("Writing", &script))?;
     let output = crate::process::run(
@@ -515,7 +657,7 @@ fn probe(
         },
     )?;
     let unavailable = |reason: String| LaceError::CocotbUnavailable {
-        python: invocation.display_command(),
+        python: python.clone(),
         reason,
     };
     match output.termination {
@@ -536,12 +678,6 @@ fn probe(
         .find(|l| !l.trim().is_empty())
         .and_then(|line| serde_json::from_str(line.trim()).ok())
         .ok_or_else(|| unavailable(tail(&output.stderr, &output.stdout)))?;
-    if !Utf8Path::new(&probe.vpi).is_file() {
-        return Err(unavailable(format!(
-            "cocotb {} has no VPI library for Icarus ({})",
-            probe.version, probe.vpi
-        )));
-    }
     let cached = CachedProbe {
         key,
         probe: probe.clone(),
@@ -550,7 +686,7 @@ fn probe(
         // Sem o cache, a próxima simulação só roda a sonda de novo.
         let _ = std::fs::write(&cache, text);
     }
-    Ok(Some(probe))
+    Ok(Some((probe, python)))
 }
 
 /// As últimas linhas do que a sonda escreveu, para o erro.
@@ -570,13 +706,17 @@ fn tail(stderr: &str, stdout: &str) -> String {
     }
 }
 
-/// Lê o `results.xml` depois do `vvp`: o relatório dos testes e um
-/// diagnóstico de erro por teste que falhou, mais um resumo. `completed`
-/// diz se o `vvp` terminou com 0: sem ele, faltar o `results.xml` já está
-/// explicado pela falha do passo.
-pub(crate) fn finish(run: &CocotbRun, completed: bool) -> (Option<TestReport>, Vec<Diagnostic>) {
+/// Lê o `results.xml` depois da simulação: o relatório dos testes e um
+/// diagnóstico de erro de `tool` (o simulador) por teste que falhou, mais um
+/// resumo. `completed` diz se a simulação terminou com 0: sem isso, faltar o
+/// `results.xml` já está explicado pela falha do passo.
+pub(crate) fn finish(
+    run: &CocotbRun,
+    completed: bool,
+    tool: Tool,
+) -> (Option<TestReport>, Vec<Diagnostic>) {
     let diagnostic = |severity, message: String, line: Option<u32>| Diagnostic {
-        tool: Tool::Vvp,
+        tool,
         severity,
         message,
         file: Some(run.testbench.clone()),
@@ -632,7 +772,7 @@ pub(crate) fn finish(run: &CocotbRun, completed: bool) -> (Option<TestReport>, V
         .iter()
         .filter(|c| c.status == TestStatus::Failed)
         .map(|c| Diagnostic {
-            tool: Tool::Vvp,
+            tool,
             severity: Severity::Error,
             // O cocotb 2 explica o `assert` em várias linhas (os valores de
             // cada lado): a primeira vai na mensagem, o resto no `raw`.
@@ -814,8 +954,12 @@ mod tests {
             assert_eq!(err.code(), "invalid_name", "{bad}");
         }
         assert_eq!(
-            wave_path(Utf8Path::new("/p"), ok),
+            wave_path(Utf8Path::new("/p"), ok, Simulator::Icarus),
             Utf8PathBuf::from("/p/test_alu.fst")
+        );
+        assert_eq!(
+            wave_path(Utf8Path::new("/p"), ok, Simulator::Verilator),
+            Utf8PathBuf::from("/p/test_alu.vcd")
         );
         assert!(is_testbench(Utf8Path::new("a/t.PY")));
         assert!(!is_testbench(Utf8Path::new("a/t.v")));

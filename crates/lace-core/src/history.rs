@@ -185,7 +185,16 @@ impl<'a> Operation<'a> {
         }
         if let Some(s) = self.simulation {
             phases.push(Phase {
-                label: format!("Simulation {} ({})", s.top, simulator_name(s.simulator)),
+                label: format!(
+                    "{} {} ({})",
+                    if s.fast {
+                        "Fast simulation"
+                    } else {
+                        "Simulation"
+                    },
+                    s.top,
+                    simulator_name(s.simulator)
+                ),
                 status: s.status,
                 duration_ms: s.duration_ms,
                 steps: &s.steps,

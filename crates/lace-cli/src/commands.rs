@@ -488,7 +488,14 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
     };
     let builds = build_first(&toolchain, &project, targets, out, control)?;
     if !builds.iter().all(BuildResult::succeeded) {
-        out.not_run("Simulation", &builds);
+        out.not_run(
+            if args.fast {
+                "Fast simulation"
+            } else {
+                "Simulation"
+            },
+            &builds,
+        );
         let operation = Operation::new(command_line(), started).with_builds(&builds);
         let report = record(&project, &toolchain, &operation, out);
         out.json(&SimReport {
@@ -507,6 +514,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
         Simulator::Icarus
     });
     options.timeout = args.timeout.map(Duration::from_secs);
+    options.fast = args.fast;
     let result = match processor {
         Some(processor) => lace_core::simulate(&toolchain, processor, &options, control)?,
         None => lace_core::simulate_project(&toolchain, &project, &options, control)?,

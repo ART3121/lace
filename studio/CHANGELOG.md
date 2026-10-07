@@ -3,6 +3,43 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Mudado
+
+- O PRISM (F10) tem esquemático próprio: o Studio desenha o netlist da
+  síntese em vez de mostrar a imagem do Graphviz. As cores seguem o tema,
+  com um tom por família de célula (aritmética, lógica, comparação,
+  multiplexador, registrador, memória, submódulo) e a legenda no rodapé.
+  No uso é o PRISM da AURORA: entrar no submódulo (dois cliques ou o ícone
+  da caixa), voltar com Esc, Alt+← ou o botão lateral do mouse, ir ao
+  código com dois cliques num símbolo, destacar as ligações, exportar o
+  SVG. A mais: árvore de hierarquia, trilha do caminho, busca (Ctrl+F),
+  painel de detalhes com parâmetros, código e a rede de cada porta,
+  minimapa, e o destaque segue a rede no netlist (com as fatias), não a
+  geometria dos fios. Constantes e redes globais (`clk`, `rst`) aparecem
+  escritas na porta, sem fio. O layout roda num worker e um módulo grande
+  não trava a janela: o `ula_fdiv` do proc_fft leva 1,4 s, o `fir` com
+  32 taps, 0,13 s. A síntese do Studio não roda mais o Graphviz; a CLI
+  continua com ele (`lace synth --svg`).
+
+- A Rápida (F9) é a simulação rápida, o Fast Sim da AURORA: roda sem gravar
+  onda (`lace sim --fast`). O testbench Verilog e o de um processador rodam
+  no Verilator, qualquer que seja o simulador escolhido; um testbench cocotb
+  roda os testes no simulador escolhido. Antes, a Rápida era a Wave sem
+  abrir a onda. O navegador de fluxo mostra o simulador que ela usa, o
+  console e a barra de status a chamam de simulação rápida, e a página do
+  processador ganhou o botão.
+- O item do Explorer que marca o testbench só marca: chama-se **Marcar como
+  o testbench simulado** (era **Simular este testbench**), e sai do menu o
+  item de simulação rápida que trocava o testbench e já simulava. Quem
+  simula é a Wave ou a Rápida.
+
+### Acrescentado
+
+- Testbench cocotb no Verilator: com o Verilator escolhido, a Wave e a Rápida
+  rodam os testes nele, e a onda sai em `.vcd`.
+
 ## [0.3.0] - 2026-10-06
 
 ### Acrescentado

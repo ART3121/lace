@@ -12,7 +12,7 @@
 //! ```
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::{Control, Simulator, Status};
+use lace_core::{Control, Simulator, Status, Tool};
 use lace_studio_lib::flows::{self, FlowOutcome, FlowRequest, Progress};
 use lace_studio_lib::settings::Settings;
 use lace_studio_lib::toolchain;
@@ -39,6 +39,14 @@ fn settings() -> Option<Settings> {
 fn has(settings: &Settings, component: &str) -> bool {
     toolchain::require(settings)
         .map(|t| t.component(component).is_some())
+        .unwrap_or(false)
+}
+
+/// O Verilator roda: o componente e o compilador C++ (no Linux e no macOS,
+/// o do sistema).
+fn has_verilator(settings: &Settings) -> bool {
+    toolchain::require(settings)
+        .map(|t| t.tool(Tool::Verilator).is_ok() && t.tool(Tool::Perl).is_ok())
         .unwrap_or(false)
 }
 
@@ -101,6 +109,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
             processor: None,
             testbench: None,
             simulator: Simulator::Icarus,
+            fast: false,
             timeout_s: Some(60),
             open_wave: false,
         },
@@ -121,6 +130,35 @@ fn verilog_project_checks_simulates_and_synthesizes() {
             .is_some_and(|w| w.path.is_file())
     );
     assert!(sim.wave.is_none(), "open_wave falso não abre o Surfer");
+
+    // A Rápida (F9): o testbench Verilog no Verilator, mesmo com o Icarus
+    // escolhido, e sem onda, então nada abre.
+    if has_verilator(&settings) {
+        let fast = run(
+            FlowRequest::Simulate {
+                processor: None,
+                testbench: None,
+                simulator: Simulator::Icarus,
+                fast: true,
+                timeout_s: Some(300),
+                open_wave: true,
+            },
+            &settings,
+            &spf,
+        );
+        assert_eq!(fast.command, "lace-studio sim --fast --timeout 300");
+        let simulation = fast.simulation.expect("simulou");
+        assert_eq!(
+            simulation.status,
+            Status::Succeeded,
+            "{:?}",
+            simulation.diagnostics
+        );
+        assert!(simulation.fast);
+        assert_eq!(simulation.simulator, Simulator::Verilator);
+        assert!(simulation.waveform.is_none());
+        assert!(fast.wave.is_none() && fast.wave_tab.is_none());
+    }
 
     let synth = run(
         FlowRequest::Synthesize {
@@ -190,6 +228,7 @@ fn processor_builds_and_simulates_with_port_values() {
             processor: Some("soma".into()),
             testbench: None,
             simulator: Simulator::Icarus,
+            fast: false,
             timeout_s: Some(60),
             open_wave: false,
         },
@@ -200,6 +239,30 @@ fn processor_builds_and_simulates_with_port_values() {
     // soma.cmm escreve 1 + 2 + ... + 10 na porta 0.
     let port0 = sim.outputs.iter().find(|p| p.port == 0).expect("porta 0");
     assert_eq!(port0.values.last(), Some(&55));
+
+    // A Rápida no processador: as mesmas saídas, sem onda.
+    if has_verilator(&settings) {
+        let fast = run(
+            FlowRequest::Simulate {
+                processor: Some("soma".into()),
+                testbench: None,
+                simulator: Simulator::Icarus,
+                fast: true,
+                timeout_s: Some(300),
+                open_wave: false,
+            },
+            &settings,
+            &spf,
+        );
+        assert!(
+            fast.succeeded,
+            "{:?}",
+            fast.simulation.map(|s| s.diagnostics)
+        );
+        let port0 = fast.outputs.iter().find(|p| p.port == 0).expect("porta 0");
+        assert_eq!(port0.values.last(), Some(&55));
+        assert!(fast.simulation.as_ref().unwrap().waveform.is_none());
+    }
 
     // O alvo no F7: verifica o Verilog do soma, que o build acima compilou,
     // com o testbench do YANC, sem compilar de novo.
@@ -262,6 +325,7 @@ fn command_line_mirrors_the_cli() {
         processor: Some("soma".into()),
         testbench: None,
         simulator: Simulator::Verilator,
+        fast: false,
         timeout_s: Some(30),
         open_wave: true,
     };
@@ -269,6 +333,16 @@ fn command_line_mirrors_the_cli() {
         request.command_line(),
         "lace-studio sim -p soma --verilator --timeout 30 --open"
     );
+    // A Rápida não tem onda para abrir: o `--open` sai, como a CLI exige.
+    let request = FlowRequest::Simulate {
+        processor: None,
+        testbench: None,
+        simulator: Simulator::Icarus,
+        fast: true,
+        timeout_s: None,
+        open_wave: true,
+    };
+    assert_eq!(request.command_line(), "lace-studio sim --fast");
     let request = FlowRequest::Check {
         file: Some("rtl/a b.v".into()),
         processor: None,

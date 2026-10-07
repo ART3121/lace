@@ -45,6 +45,7 @@ import {
   openWave,
   runBuild,
   runCheck,
+  runFastSimulation,
   runSimulation,
   runSynthesis,
 } from '../../actions';
@@ -342,24 +343,16 @@ function VerilogRow({ file, kind }: { file: ProjectFile; kind: 'module' | 'testb
         },
       );
     } else {
-      items.push(
-        {
-          label: t('explorer.setTestbench'),
-          disabled: isSim,
-          run: async () => {
-            await guarded(() => api.project.setTestbench(file.path));
-            await afterProjectChange();
-          },
+      // Só marca: quem simula é a Wave (F8) ou a Rápida (F9), quando o
+      // usuário pedir.
+      items.push({
+        label: t('explorer.setTestbench'),
+        disabled: isSim,
+        run: async () => {
+          await guarded(() => api.project.setTestbench(file.path));
+          await afterProjectChange();
         },
-        {
-          label: t('action.fastSim'),
-          run: async () => {
-            await guarded(() => api.project.setTestbench(file.path));
-            await afterProjectChange();
-            await runSimulation(false, null);
-          },
-        },
-      );
+      });
       // Um testbench sem nome de testbench também pode virar o topo (muda de
       // lista); o nome tb_x.v ou x_tb.v, não.
       if (canBeTop(file.path)) items.push(topItem(file.path, false));
@@ -453,7 +446,7 @@ function GeneratedRow({ processor, path, kind }: { processor: ProcessorStatus; p
       ...(kind === 'testbench'
         ? [
             { label: t('action.simulate'), run: () => void runSimulation(true, name) },
-            { label: t('action.fastSim'), run: () => void runSimulation(false, name) },
+            { label: t('action.fastSim'), run: () => void runFastSimulation(name) },
             { label: t('action.openWave'), disabled: !processor.waveform, run: () => void openWave(name) },
           ]
         : [{ label: t('action.synthesize'), run: () => void runSynthesis(name) }]),
@@ -490,7 +483,7 @@ function ProcessorNode({ processor }: { processor: ProcessorStatus }) {
     openContextMenu(e, [
       { label: t('toolbar.build'), keys: 'F6', run: () => void runBuild(name) },
       { label: t('action.simulate'), run: () => void runSimulation(true, name) },
-      { label: t('action.fastSim'), run: () => void runSimulation(false, name) },
+      { label: t('action.fastSim'), run: () => void runFastSimulation(name) },
       { label: t('action.openWave'), disabled: !processor.waveform, run: () => void openWave(name) },
       { label: t('action.synthesize'), run: () => void runSynthesis(name) },
       { separator: true },

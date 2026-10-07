@@ -164,7 +164,7 @@ Com o tipo no campo `flow`:
 |---|---|---|
 | `build` | `processors: string[]` (vazio: todos) | `lace build [-p NOME]...` |
 | `check` | `file?`, `processor?`, `lint?` | `lace check [ARQUIVO] [-p NOME] [--lint]` |
-| `simulate` | `processor?`, `testbench?`, `simulator` (`icarus`, `verilator`), `timeout_s?`, `open_wave?` | `lace sim [TESTBENCH] [-p NOME] [--verilator] [--timeout S] [--open]` |
+| `simulate` | `processor?`, `testbench?`, `simulator` (`icarus`, `verilator`), `fast?` (a simulação rápida: sem onda, com o testbench Verilog no Verilator; `simulator` só vale para um testbench cocotb), `timeout_s?`, `open_wave?` (ignorado com `fast`) | `lace sim [TESTBENCH] [-p NOME] [--verilator] [--fast] [--timeout S] [--open]` |
 | `synthesize` | `processor?`, `schematic?`, `module?` | `lace synth [-p NOME] [--svg] [--module M]` |
 | `schematic` | `netlist`, `module`, `bus_widths?` (padrão `true`) | desenha outro módulo de um netlist que já existe; sem relatório |
 

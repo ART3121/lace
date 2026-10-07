@@ -240,6 +240,9 @@ export type FlowRequest =
       processor?: string | null;
       testbench?: string | null;
       simulator: Simulator;
+      /** A simulação rápida: sem onda, com o testbench Verilog no
+       * Verilator; `simulator` só vale para um testbench cocotb. */
+      fast?: boolean;
       timeout_s?: number | null;
       open_wave?: boolean;
     }

@@ -11,7 +11,7 @@ import { setVimStatusNode } from '../../editor/vim';
 import { formatDuration, useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { useEditor } from '../../state/editor';
-import { useJobs } from '../../state/jobs';
+import { lastFlowKey, phaseKey, useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
 import { baseName } from '../../util/paths';
@@ -74,15 +74,15 @@ export function StatusBar() {
         ) : running ? (
           <span className="statusbar__item">
             <Spinner size={12} />
-            {running.phase ? t(`console.phase.${running.phase}` as Key) : t('common.running')}
+            {running.phase ? t(phaseKey(running.phase, running.statusKey)) : t('common.running')}
             <Elapsed since={running.startedAt} />
           </span>
         ) : last ? (
           <span className={`statusbar__item ${last.succeeded ? 'text-ok' : 'text-error'}`}>
             {last.succeeded
-              ? t('status.lastOk', { flow: t(`flowName.${last.flow}` as Key), time: formatDuration(last.durationMs) })
+              ? t('status.lastOk', { flow: t(lastFlowKey(last)), time: formatDuration(last.durationMs) })
               : t('status.lastFailed', {
-                  flow: t(`flowName.${last.flow}` as Key),
+                  flow: t(lastFlowKey(last)),
                   status: last.status === 'error' ? t('console.status.failed') : t(`console.status.${last.status}` as Key),
                 })}
           </span>

@@ -58,7 +58,7 @@ pub enum FlowRequest {
         #[serde(default)]
         lint: bool,
     },
-    /// `lace sim [TESTBENCH] [-p NOME] [--verilator] [--timeout S] [--open]`.
+    /// `lace sim [TESTBENCH] [-p NOME] [--verilator] [--fast] [--timeout S] [--open]`.
     Simulate {
         /// Simula este processador com o testbench do YANC; `None`, a
         /// simulação do projeto.
@@ -67,12 +67,18 @@ pub enum FlowRequest {
         /// Troca o testbench da simulação do projeto antes de simular.
         #[serde(default)]
         testbench: Option<Utf8PathBuf>,
-        /// Icarus ou Verilator.
+        /// Icarus ou Verilator. Na simulação rápida, só o de um testbench
+        /// cocotb (`SimulationOptions::fast`).
         simulator: Simulator,
+        /// A simulação rápida, o Fast Sim da AURORA: sem onda, com o
+        /// testbench Verilog no Verilator.
+        #[serde(default)]
+        fast: bool,
         /// Prazo do passo `simulate`, em segundos.
         #[serde(default)]
         timeout_s: Option<u64>,
-        /// Abrir a onda no surfer-aurora se a simulação der certo.
+        /// Abrir a onda no surfer-aurora se a simulação der certo. A
+        /// simulação rápida não tem onda.
         #[serde(default)]
         open_wave: bool,
     },
@@ -146,6 +152,7 @@ impl FlowRequest {
                 processor,
                 testbench,
                 simulator,
+                fast,
                 timeout_s,
                 open_wave,
             } => {
@@ -157,10 +164,14 @@ impl FlowRequest {
                 if *simulator == Simulator::Verilator {
                     parts.push("--verilator".into());
                 }
+                if *fast {
+                    parts.push("--fast".into());
+                }
                 if let Some(t) = timeout_s {
                     parts.extend(["--timeout".into(), t.to_string()]);
                 }
-                if *open_wave {
+                // O `--open` e o `--fast` não andam juntos na CLI.
+                if *open_wave && !*fast {
                     parts.push("--open".into());
                 }
             }
@@ -421,12 +432,14 @@ pub fn run(
         FlowRequest::Simulate {
             processor,
             simulator,
+            fast,
             timeout_s,
             ..
         } => {
             progress(Progress::Phase(Phase::Simulate));
             let mut options = SimulationOptions::new(*simulator);
             options.timeout = timeout_s.map(Duration::from_secs);
+            options.fast = *fast;
             let processor = processor
                 .as_deref()
                 .map(|name| project.require_processor(name))

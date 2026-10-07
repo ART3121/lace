@@ -49,8 +49,6 @@ export interface UiColors {
   overlay?: string;
   scrollbar?: string;
   shadowPop?: string;
-  /** O fundo do esquemático, que é desenhado para fundo claro em todo tema. */
-  schematicBg?: string;
 }
 
 /** Os papéis da sintaxe. Cada um vira regras de token do Monaco. */

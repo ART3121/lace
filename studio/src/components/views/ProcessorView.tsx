@@ -2,10 +2,10 @@
 // arrays, o painel do botão C± da AURORA), as entradas e as saídas da
 // última simulação.
 
-import { Activity, CircuitBoard, FileCode, Hammer, Play, Plus } from 'lucide-react';
+import { Activity, CircuitBoard, FileCode, Hammer, Play, Plus, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { openWave, runBuild, runSimulation, runSynthesis } from '../../actions';
+import { hasComponent, openWave, runBuild, runFastSimulation, runSimulation, runSynthesis } from '../../actions';
 import { useLang, useT } from '../../i18n';
 import { api } from '../../ipc/api';
 import { openDialog } from '../../state/dialogs';
@@ -106,6 +106,14 @@ export function ProcessorView({ name }: { name: string }) {
           </Button>
           <Button icon={<Play size={14} />} disabled={busy} onClick={() => void runSimulation(true, name)}>
             {t('toolbar.simulate')}
+          </Button>
+          <Button
+            icon={<Zap size={14} />}
+            disabled={busy || !hasComponent('verilator')}
+            title={t('action.fastSim')}
+            onClick={() => void runFastSimulation(name)}
+          >
+            {t('toolbar.fastSim')}
           </Button>
           <Button icon={<Activity size={14} />} disabled={!processor.waveform} onClick={() => void openWave(name)}>
             {t('toolbar.openWave')}

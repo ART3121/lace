@@ -6,8 +6,9 @@
  * e src/themes/index.ts as põe na página como variáveis CSS (--bg-0 a
  * --bg-4, --text-0 a --text-3, --border*, --brand*, --ok, --warn, --error,
  * --info e os fundos *-soft, --hover, --active, --overlay, --scrollbar,
- * --shadow-pop, --schematic-bg). Nenhum componente usa cor literal; a lista
- * completa, com o uso de cada uma, está em UiColors, src/themes/model.ts.
+ * --shadow-pop e as do PRISM, --sch-*). Nenhum componente usa cor literal; a
+ * lista completa, com o uso de cada uma, está em UiColors, src/themes/model.ts,
+ * e as do PRISM em schematicColors, src/themes/index.ts.
  */
 
 :root {

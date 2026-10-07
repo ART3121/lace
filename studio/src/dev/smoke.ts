@@ -32,6 +32,10 @@
 //   osdrop:<seletor>|<caminho>[|<caminho>...] simula arquivos do sistema
 //                  soltos no centro do elemento: emite o evento de arrastar
 //                  do Tauri, o mesmo que o gerenciador de arquivos gera
+//   menu:<seletor> abre o menu de contexto do elemento (o botão direito no
+//                  centro dele) e escreve no log os itens, com `-` nos
+//                  separadores e `(off)` nos desabilitados
+//   choose:<rótulo> clica no item do menu aberto que tem esse rótulo
 //
 // Cada passo concluído vai para o log do backend como "smoke: <passo>", e o
 // fim como "smoke: done".
@@ -188,6 +192,26 @@ export async function runSmokeScript(): Promise<void> {
         case 'key': {
           const target = document.activeElement ?? document.body;
           target.dispatchEvent(new KeyboardEvent('keydown', { key: arg, code: arg, bubbles: true, cancelable: true }));
+          break;
+        }
+        case 'menu': {
+          const { x, y } = center(element(arg));
+          element(arg).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 2 }));
+          await sleep(200);
+          const items = [...document.querySelectorAll<HTMLElement>('.menu__item, .menu__sep')].map((el) =>
+            el.classList.contains('menu__sep')
+              ? '-'
+              : `${el.querySelector('.menu__label')?.textContent ?? ''}${(el as HTMLButtonElement).disabled ? ' (off)' : ''}`,
+          );
+          await log(`menu ${arg}: ${items.join(' | ') || 'none'}`);
+          break;
+        }
+        case 'choose': {
+          const item = [...document.querySelectorAll<HTMLButtonElement>('.menu__item')].find(
+            (el) => el.querySelector('.menu__label')?.textContent === arg,
+          );
+          if (!item) throw new Error(`no menu item ${arg}`);
+          item.click();
           break;
         }
         default: {

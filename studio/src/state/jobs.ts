@@ -19,7 +19,6 @@ import type {
   Diagnostic,
   Event,
   Invocation,
-  SchematicResult,
   Status,
   Step,
   SynthesisResult,
@@ -41,6 +40,7 @@ import { useEditor } from './editor';
 import { useHierarchy } from './hierarchy';
 import { useLayout, type ConsoleChannel } from './layout';
 import { useProject } from './project';
+import { useSchematic } from './schematic';
 import { showError, useToasts } from './toasts';
 import { openWaveTab } from './waves';
 
@@ -57,6 +57,8 @@ export interface RunningJob {
 
 export interface LastRun {
   flow: FlowName | CliFlow;
+  /** Foi a simulação rápida. */
+  fast?: boolean;
   succeeded: boolean;
   status: Status | 'error';
   durationMs: number;
@@ -90,8 +92,6 @@ interface JobsState {
   problems: Diagnostic[];
   /** A última síntese que rodou (de qualquer fluxo), para as vistas. */
   synthesis: SynthesisResult | null;
-  /** O último esquemático desenhado. */
-  schematic: SchematicResult | null;
 
   run: (request: FlowRequest, statusKey?: string) => Promise<FlowOutcome | null>;
   cancel: () => Promise<void>;
@@ -192,6 +192,18 @@ function statusStyle(status: Status): LineStyle {
 
 function statusText(status: Status): string {
   return t(`console.status.${status}` as Key);
+}
+
+/** O rótulo de uma fase. A simulação rápida (a chave `fastSim`) tem o
+ * dela: a fase que o backend manda é a mesma da simulação com onda. */
+export function phaseKey(phase: Phase, statusKey: string): Key {
+  if (phase === 'simulate' && statusKey.split(':')[0] === 'fastSim') return 'console.phase.fastSimulate';
+  return `console.phase.${phase}` as Key;
+}
+
+/** O nome da última operação, para a barra de status. */
+export function lastFlowKey(last: LastRun): Key {
+  return last.fast ? 'flowName.fastSimulate' : (`flowName.${last.flow}` as Key);
 }
 
 /** Uma mensagem de evento do Core no console do passo. */
@@ -299,7 +311,7 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
     const s = outcome.simulation;
     write(
       channel,
-      t('console.simTitle', {
+      t(s.fast ? 'console.fastSimTitle' : 'console.simTitle', {
         top: s.top,
         simulator: s.simulator === 'icarus' ? 'Icarus' : 'Verilator',
         status: statusText(s.status),
@@ -459,7 +471,6 @@ export const useJobs = create<JobsState>((set, get) => ({
   statusByKey: {},
   problems: [],
   synthesis: null,
-  schematic: null,
 
   run: async (request, statusKey) => {
     if (get().running) {
@@ -488,10 +499,10 @@ export const useJobs = create<JobsState>((set, get) => ({
             problems: diagnostics,
             outcomes: { ...get().outcomes, [outcome.flow]: outcome },
             synthesis: outcome.synthesis ?? get().synthesis,
-            schematic: outcome.schematic ?? get().schematic,
             statusByKey: { ...get().statusByKey, [key]: outcome.succeeded ? 'ok' : 'failed' },
             last: {
               flow: outcome.flow,
+              fast: request.flow === 'simulate' && !!request.fast,
               succeeded: outcome.succeeded,
               status: outcomeStatus(outcome),
               durationMs,
@@ -508,11 +519,10 @@ export const useJobs = create<JobsState>((set, get) => ({
           // A onda numa aba: abre, ou recarrega a que já está aberta, porque
           // a simulação acabou de regravar o arquivo.
           if (outcome.wave_tab) openWaveTab(outcome.wave_tab, true);
-          // Depois da síntese com esquemático, ele abre sozinho, como o
-          // PRISM da AURORA.
-          if (outcome.schematic?.svg) useEditor.getState().openView('schematic');
-          else if (outcome.flow === 'synthesize' && outcome.synthesis?.status === 'succeeded') {
-            useEditor.getState().openView('synthesis');
+          // Depois da síntese o PRISM abre sozinho, como na AURORA, e
+          // desenha o netlist que ela gravou.
+          if (outcome.flow === 'synthesize' && outcome.synthesis?.netlist) {
+            useEditor.getState().openView('schematic');
           }
           void useProject.getState().refresh();
           useProject.getState().bumpTree();
@@ -524,7 +534,14 @@ export const useJobs = create<JobsState>((set, get) => ({
           set({
             running: null,
             statusByKey: { ...get().statusByKey, [key]: 'failed' },
-            last: { flow: request.flow, succeeded: false, status: 'error', durationMs, finishedAt: Date.now() },
+            last: {
+              flow: request.flow,
+              fast: request.flow === 'simulate' && !!request.fast,
+              succeeded: false,
+              status: 'error',
+              durationMs,
+              finishedAt: Date.now(),
+            },
           });
           if (error) {
             write(START_CHANNEL[request.flow], t('console.failedToRun', { message: error.message }), 'error');
@@ -543,7 +560,7 @@ export const useJobs = create<JobsState>((set, get) => ({
           case 'phase': {
             set({ running: { ...get().running!, phase: message.phase } });
             const channel = PHASE_CHANNEL[message.phase];
-            write(channel, `${t(`console.phase.${message.phase}` as Key)}...`, 'title');
+            write(channel, `${t(phaseKey(message.phase, key))}...`, 'title');
             show(channel);
             break;
           }
@@ -621,6 +638,7 @@ export const useJobs = create<JobsState>((set, get) => ({
 // recomeçam; uma operação ainda rodando segue até o fim.
 useProject.subscribe((state, previous) => {
   if (state.snapshot?.spf === previous.snapshot?.spf) return;
-  useJobs.setState({ last: null, outcomes: {}, statusByKey: {}, problems: [], synthesis: null, schematic: null });
+  useJobs.setState({ last: null, outcomes: {}, statusByKey: {}, problems: [], synthesis: null });
+  useSchematic.getState().clear();
   setDiagnostics([]);
 });

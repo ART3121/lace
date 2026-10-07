@@ -8,7 +8,7 @@ import { CircleStop } from 'lucide-react';
 import { action, isEnabled, runAction } from '../../actions';
 import { useT, t as translate } from '../../i18n';
 import { useApp } from '../../state/app';
-import { useJobs } from '../../state/jobs';
+import { phaseKey, useJobs } from '../../state/jobs';
 import { useProject } from '../../state/project';
 import type { Key } from '../../i18n';
 import { Spinner } from '../common';
@@ -20,9 +20,7 @@ function ToolButton({ id, label }: { id: string; label?: Key }) {
   const status = useJobs((s) => {
     const running = s.running;
     if (!running) return undefined;
-    return running.statusKey.split(':')[0] === id || (id === 'fastSim' && running.statusKey.startsWith('simulate'))
-      ? 'running'
-      : undefined;
+    return running.statusKey.split(':')[0] === id ? 'running' : undefined;
   });
   return (
     <button
@@ -83,7 +81,7 @@ export function Toolbar() {
       {running && (
         <div className="toolbar__running">
           <Spinner size={13} />
-          <span>{running.phase ? translate(`console.phase.${running.phase}` as Key) : running.command || '...'}</span>
+          <span>{running.phase ? translate(phaseKey(running.phase, running.statusKey)) : running.command || '...'}</span>
           {running.flow !== 'update' && (
             <button type="button" className="tool-btn tool-btn--stop" title={`${t('action.cancel')} (Shift+F5)`} onClick={() => runAction('cancel')}>
               <CircleStop size={15} />

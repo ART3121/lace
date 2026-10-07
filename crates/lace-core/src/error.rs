@@ -237,13 +237,9 @@ pub enum LaceError {
     )]
     NoCocotbToplevel(Utf8PathBuf),
 
-    /// Um testbench cocotb (`.py`) simulado com o Verilator: o Lace roda o
-    /// cocotb só com o Icarus.
-    #[error("The cocotb testbench {0} runs on Icarus; Lace does not run cocotb with Verilator")]
-    CocotbNeedsIcarus(Utf8PathBuf),
-
-    /// O Python do componente `cocotb` não carregou o cocotb: a sonda que diz
-    /// onde estão a VPI e a biblioteca do Python falhou.
+    /// O Python do componente `cocotb` não carregou o cocotb (a sonda que diz
+    /// onde estão a VPI e a biblioteca do Python falhou), ou o cocotb dele
+    /// não traz a biblioteca do simulador pedido.
     #[error("cocotb could not be loaded by {python}: {reason}")]
     CocotbUnavailable {
         /// O comando da sonda.
@@ -475,7 +471,6 @@ impl LaceError {
             LaceError::NotBuilt { .. } => "not_built",
             LaceError::NoTestbench(_) => "no_testbench",
             LaceError::NoCocotbToplevel(_) => "no_cocotb_toplevel",
-            LaceError::CocotbNeedsIcarus(_) => "cocotb_needs_icarus",
             LaceError::CocotbUnavailable { .. } => "cocotb_unavailable",
             LaceError::NoTopLevel(_) => "no_top_level",
             LaceError::EmptyProject(_) => "empty_project",

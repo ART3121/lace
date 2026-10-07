@@ -747,6 +747,9 @@ export interface Artifact {
   required: boolean;
   /**
    * Existe e foi escrito por esta operação (não é sobra de uma anterior).
+   * O executável do Verilator, que o `make` só refaz quando o modelo
+   * muda, conta como escrito quando a compilação terminou bem: ele está
+   * em dia com a entrada.
    */
   fresh: boolean;
 }
@@ -1747,9 +1750,15 @@ export interface SimulationResult {
    */
   top: string;
   /**
-   * O simulador usado.
+   * O simulador usado. Na simulação rápida de um testbench Verilog, o
+   * Verilator, qualquer que fosse o pedido.
    */
   simulator: 'icarus' | 'verilator';
+  /**
+   * A simulação rápida ([`SimulationOptions::fast`]): rodou sem gravar
+   * onda, e `waveform` é `null`.
+   */
+  fast: boolean;
   /**
    * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
    */
@@ -1774,7 +1783,8 @@ export interface SimulationResult {
    */
   artifacts: Artifact[];
   /**
-   * A onda gerada, se a simulação chegou ao fim.
+   * A onda gerada, se a simulação chegou ao fim; nunca na simulação
+   * rápida.
    */
   waveform: Waveform | null;
   /**

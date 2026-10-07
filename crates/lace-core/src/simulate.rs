@@ -37,6 +37,13 @@
 //! testbench que o YANC gera simulado no Icarus, é trocado numa cópia do
 //! testbench; o arquivo dele não muda. Sem `$dumpfile`, o Lace injeta
 //! `<topo>.fst` (`<topo>.vcd` no Verilator) com todos os sinais.
+//!
+//! A simulação rápida ([`SimulationOptions::fast`]), o Fast Sim da AURORA
+//! (`runFastSim`, em `js/compilation/compilation_module.js`), não grava onda:
+//! o testbench Verilog roda no Verilator compilado sem `--trace`, num
+//! `obj_dir_fast_<topo>` à parte, e o Verilator ignora os `$dumpfile` e
+//! `$dumpvars` dele; o testbench cocotb roda os testes sem o módulo que grava
+//! a onda (no Icarus, com `vvp -none`).
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -88,7 +95,8 @@ pub enum WaveformFormat {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct SimulationOptions {
-    /// Qual simulador.
+    /// Qual simulador. Na simulação rápida ([`fast`](Self::fast)), só o de
+    /// um testbench cocotb: o testbench Verilog roda no Verilator.
     pub simulator: Simulator,
     /// Só Verilator: processos paralelos na compilação C++ do modelo. `None`
     /// usa todos os núcleos (`-j 0`), como a AURORA.
@@ -100,10 +108,19 @@ pub struct SimulationOptions {
     /// escreveu até ali. `None`, o padrão, é sem limite: um testbench sem
     /// `$finish` roda até ser cancelado.
     pub timeout: Option<Duration>,
+    /// A simulação rápida, o Fast Sim da AURORA: roda sem gravar onda, para
+    /// ver a saída do testbench, as saídas do processador e os testes na
+    /// velocidade do simulador. O testbench Verilog, do projeto ou de um
+    /// processador, roda no Verilator, compilado sem `--trace`, qualquer que
+    /// seja o [`simulator`](Self::simulator): os `$dumpfile` e `$dumpvars`
+    /// dele não gravam nada. Um testbench cocotb roda os testes no
+    /// `simulator`, sem o módulo que grava a onda. O resultado vem com
+    /// [`SimulationResult::fast`] e sem onda.
+    pub fast: bool,
 }
 
 impl SimulationOptions {
-    /// `simulator`, com `-j 0` no Verilator.
+    /// `simulator`, com `-j 0` no Verilator, gravando a onda.
     ///
     /// ```
     /// use lace_core::{SimulationOptions, Simulator};
@@ -111,12 +128,27 @@ impl SimulationOptions {
     /// let mut options = SimulationOptions::new(Simulator::Verilator);
     /// options.build_jobs = Some(4);
     /// options.timeout = Some(std::time::Duration::from_secs(60));
+    ///
+    /// // A simulação rápida: o Verilog no Verilator, o cocotb no Icarus.
+    /// let mut fast = SimulationOptions::new(Simulator::Icarus);
+    /// fast.fast = true;
     /// ```
     pub fn new(simulator: Simulator) -> Self {
         SimulationOptions {
             simulator,
             build_jobs: None,
             timeout: None,
+            fast: false,
+        }
+    }
+
+    /// O simulador que roda o testbench: o [`simulator`](Self::simulator),
+    /// menos na simulação rápida de um testbench Verilog, que é no Verilator.
+    fn simulator_for(&self, cocotb: bool) -> Simulator {
+        if self.fast && !cocotb {
+            Simulator::Verilator
+        } else {
+            self.simulator
         }
     }
 }
@@ -127,7 +159,8 @@ impl SimulationOptions {
 /// das duas; sem `$dumpfile`, `<testbench>.fst`
 /// (Icarus) ou `<testbench>.vcd` (Verilator) na raiz do projeto. Sem
 /// nenhuma no disco, a do Icarus, o simulador padrão. Com um testbench
-/// cocotb (`.py`), `<raiz>/<módulo de teste>.fst` ([`cocotb`](crate::cocotb)).
+/// cocotb (`.py`), `<raiz>/<módulo de teste>.fst` (Icarus) ou `.vcd`
+/// (Verilator), a mais recente ([`cocotb`](crate::cocotb)).
 ///
 /// # Erros
 ///
@@ -156,7 +189,10 @@ pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result
         .testbench()
         .ok_or_else(|| LaceError::NoTestbench(project.spf_path().to_owned()))?;
     if crate::cocotb::is_testbench(&testbench) {
-        return Ok(crate::cocotb::wave_path(project.root(), &testbench));
+        return Ok(newest(
+            &[Simulator::Icarus, Simulator::Verilator]
+                .map(|s| crate::cocotb::wave_path(project.root(), &testbench, s)),
+        ));
     }
     let text = read(&testbench)?;
     match dump_of(&text, project.root()) {
@@ -190,7 +226,7 @@ fn newest_wave(wave: Utf8PathBuf) -> Utf8PathBuf {
 
 /// A extensão da onda que cada simulador grava: FST no Icarus, VCD no
 /// Verilator (o FST dele exige a lz4).
-fn wave_extension(simulator: Simulator) -> &'static str {
+pub(crate) fn wave_extension(simulator: Simulator) -> &'static str {
     match simulator {
         Simulator::Icarus => "fst",
         _ => "vcd",
@@ -225,8 +261,12 @@ fn injected_wave(top: &str, simulator: Simulator) -> String {
 pub struct SimulationResult {
     /// O módulo de topo simulado (o testbench).
     pub top: String,
-    /// O simulador usado.
+    /// O simulador usado. Na simulação rápida de um testbench Verilog, o
+    /// Verilator, qualquer que fosse o pedido.
     pub simulator: Simulator,
+    /// A simulação rápida ([`SimulationOptions::fast`]): rodou sem gravar
+    /// onda, e `waveform` é `null`.
+    pub fast: bool,
     /// Como a simulação terminou.
     pub status: Status,
     /// O passo que falhou, quando for o caso: `elaborate` / `verilate`
@@ -240,7 +280,8 @@ pub struct SimulationResult {
     /// O `.vvp` ou o executável do Verilator, a onda, e cada
     /// `output_<n>.txt` escrito.
     pub artifacts: Vec<Artifact>,
-    /// A onda gerada, se a simulação chegou ao fim.
+    /// A onda gerada, se a simulação chegou ao fim; nunca na simulação
+    /// rápida.
     pub waveform: Option<Waveform>,
     /// `Simulation/output_<n>.txt` escritos nesta simulação.
     #[schemars(with = "Vec<String>")]
@@ -283,7 +324,9 @@ pub struct Waveform {
 ///
 /// Roda no diretório temporário do processador. A onda sai em
 /// `<temp>/<nome>_tb.fst` (`.vcd` no Verilator) e as saídas em
-/// `Simulation/output_<n>.txt`.
+/// `Simulation/output_<n>.txt`. Na simulação rápida
+/// ([`SimulationOptions::fast`]), roda no Verilator e não grava onda; as
+/// saídas saem do mesmo jeito.
 ///
 /// ```no_run
 /// use lace_core::*;
@@ -344,13 +387,21 @@ pub fn simulate(
     let _lock = crate::paths::run_lock(&processor.temp_dir, name)?;
     let (notes, counts) = check_inputs(processor, &text)?;
 
-    let wave = match dump_of(&text, &processor.temp_dir) {
-        Dump::Path(wave) => wave,
-        _ => processor.temp_dir.join(format!("{name}_tb.vcd")),
+    let simulator = options.simulator_for(false);
+    // Na simulação rápida não há onda: o Verilator sem `--trace` ignora o
+    // `$dumpfile` e os `$dumpvars` do testbench gerado.
+    let (wave, renamed) = if options.fast {
+        (None, None)
+    } else {
+        let wave = match dump_of(&text, &processor.temp_dir) {
+            Dump::Path(wave) => wave,
+            _ => processor.temp_dir.join(format!("{name}_tb.vcd")),
+        };
+        // No Icarus, o `$dumpfile("<nome>_tb.vcd")` do testbench gerado
+        // vira `.fst` na cópia simulada.
+        let (wave, renamed) = named_by_format(&text, wave, simulator);
+        (Some(wave), renamed)
     };
-    // No Icarus, o `$dumpfile("<nome>_tb.vcd")` do testbench gerado vira
-    // `.fst` na cópia simulada.
-    let (wave, renamed) = named_by_format(&text, wave, options.simulator);
     // Uma cópia do testbench que avisa quando o programa lê mais valores do
     // que uma entrada tem; sem o trecho esperado, vai a cópia só com a onda
     // renomeada, ou o testbench como está.
@@ -366,8 +417,10 @@ pub fn simulate(
     let plan = Plan {
         missing_inputs,
         top: format!("{name}_tb"),
-        wave: Some(wave),
-        wave_required: true,
+        simulator,
+        fast: options.fast,
+        wave_required: wave.is_some(),
+        wave,
         files: vec![verilog, simulated],
         cwd: processor.temp_dir.clone(),
         work: processor.temp_dir.clone(),
@@ -541,12 +594,16 @@ fn watch_inputs(testbench: &str, counts: &HashMap<Utf8PathBuf, usize>) -> Option
 /// `ERROR:` ou `FATAL:` (`$error`, `$fatal`) reprova a simulação, mesmo com
 /// o vvp saindo com 0.
 ///
-/// Um testbench cocotb (`.py`) simula, só no Icarus, o módulo da diretiva
+/// Um testbench cocotb (`.py`) simula o módulo da diretiva
 /// `# aurora-toplevel:` do arquivo (ou o topo do projeto, com um aviso), com
-/// os testes em Python ([`cocotb`](crate::cocotb)). O resultado traz os
-/// testes em [`SimulationResult::tests`], cada teste que falha é um
-/// diagnóstico de erro no `.py` e reprova a simulação, e a onda vem mesmo
-/// assim: é nela que se vê a falha.
+/// os testes em Python ([`cocotb`](crate::cocotb)), no Icarus ou no
+/// Verilator. O resultado traz os testes em [`SimulationResult::tests`],
+/// cada teste que falha é um diagnóstico de erro no `.py` e reprova a
+/// simulação, e a onda vem mesmo assim: é nela que se vê a falha.
+///
+/// Na simulação rápida ([`SimulationOptions::fast`]) não há onda: o
+/// testbench Verilog roda no Verilator e o Lace não injeta o dump padrão; o
+/// testbench cocotb roda os testes sem gravar a onda.
 ///
 /// Os processadores não são compilados aqui: chame [`build`](crate::build)
 /// para cada um antes, como o botão Wave da AURORA.
@@ -556,12 +613,11 @@ fn watch_inputs(testbench: &str, counts: &HashMap<Utf8PathBuf, usize>) -> Option
 /// - [`LaceError::NoTestbench`]: o projeto não tem testbench;
 /// - [`LaceError::InvalidProject`]: o testbench ou um arquivo sintetizável
 ///   registrado não existe;
-/// - com um testbench cocotb: [`LaceError::CocotbNeedsIcarus`] com o
-///   Verilator, [`LaceError::NoCocotbToplevel`] sem diretiva e sem topo,
-///   [`LaceError::InvalidName`] com um nome de arquivo que não é
+/// - com um testbench cocotb: [`LaceError::NoCocotbToplevel`] sem diretiva e
+///   sem topo, [`LaceError::InvalidName`] com um nome de arquivo que não é
 ///   identificador do Python, [`LaceError::ComponentMissing`] sem o
 ///   componente `cocotb` e [`LaceError::CocotbUnavailable`] se o Python dele
-///   não carrega o cocotb;
+///   não carrega o cocotb ou o cocotb não traz a biblioteca do simulador;
 /// - os mesmos de [`simulate`] para ferramenta e I/O.
 pub fn simulate_project(
     toolchain: &Toolchain,
@@ -581,11 +637,9 @@ pub fn simulate_project(
     }
     // Um testbench cocotb (`.py`) simula o DUT, com os testes em Python.
     let cocotb = crate::cocotb::is_testbench(&testbench);
-    if cocotb && options.simulator != Simulator::Icarus {
-        return Err(LaceError::CocotbNeedsIcarus(testbench));
-    }
+    let simulator = options.simulator_for(cocotb);
     let (top, cocotb_notes) = if cocotb {
-        crate::cocotb::dut(project, &testbench)?
+        crate::cocotb::dut(project, &testbench, simulate_tool(simulator))?
     } else {
         let top = project
             .testbench_module()?
@@ -652,19 +706,34 @@ pub fn simulate_project(
     }
 
     if cocotb {
-        let Some(run) = crate::cocotb::prepare(toolchain, project, &testbench, &top, control)?
+        let Some(run) = crate::cocotb::prepare(
+            toolchain,
+            project,
+            &testbench,
+            &top,
+            simulator,
+            options.fast,
+            control,
+        )?
         else {
-            return Ok(cancelled(top, options.simulator, started));
+            return Ok(cancelled(top, simulator, options.fast, started));
         };
-        files.push(run.dump_module.clone());
+        // No Icarus, o módulo que grava a onda entra como segunda raiz.
+        if let Some(dump) = &run.dump_module {
+            files.push(dump.clone());
+        }
         let plan = Plan {
             missing_inputs: Vec::new(),
             top,
-            wave: Some(run.wave.clone()),
+            simulator,
+            fast: options.fast,
+            wave: run.wave.clone(),
             wave_required: false,
             files,
             cwd: root,
-            work,
+            // O `.vvp` e o `obj_dir` ficam na pasta do testbench cocotb, com
+            // o `cmds.f` e o `results.xml`.
+            work: run.build.clone(),
             output_dirs: project
                 .processors()
                 .iter()
@@ -689,8 +758,17 @@ pub fn simulate_project(
     // injetada não é exigida: o testbench que termina no tempo 0 (antes do
     // `initial` injetado) não pediu onda e não reprova por falta dela.
     let original = testbench.clone();
-    let dump = dump_of(&text, &root);
-    if !matches!(dump, Dump::Absent) && !strip_comments(&text).contains("$dumpvars") {
+    let dump = if options.fast {
+        // Sem onda: o Verilator sem `--trace` ignora o `$dumpfile` e os
+        // `$dumpvars` do testbench, e o Lace não injeta o dele.
+        None
+    } else {
+        Some(dump_of(&text, &root))
+    };
+    if dump
+        .as_ref()
+        .is_some_and(|d| !matches!(d, Dump::Absent) && !strip_comments(&text).contains("$dumpvars"))
+    {
         notes.push(note(
             crate::diagnostics::Severity::Warning,
             "The testbench calls $dumpfile but not $dumpvars: no signal is recorded, and the waveform is not written".into(),
@@ -698,7 +776,8 @@ pub fn simulate_project(
         ));
     }
     let (testbench, wave, wave_required, instrumented) = match dump {
-        Dump::Path(wave) => match named_by_format(&text, wave, options.simulator) {
+        None => (testbench, None, false, None),
+        Some(Dump::Path(wave)) => match named_by_format(&text, wave, simulator) {
             // A onda sai com a extensão do formato do simulador: a cópia
             // simulada leva o `$dumpfile` com ela, e o arquivo do usuário não
             // muda.
@@ -722,13 +801,13 @@ pub fn simulate_project(
         // `$dumpfile(ONDA)` com um nome que o Lace não resolve: o testbench
         // grava onde quiser, e o Lace não injeta outro dump (o `-fst` do
         // injetado mudaria o formato do arquivo dele).
-        Dump::Unknown => (testbench, None, false, None),
-        Dump::Absent => {
+        Some(Dump::Unknown) => (testbench, None, false, None),
+        Some(Dump::Absent) => {
             let instrumented = work.join(format!(
                 "instr_{}",
                 testbench.file_name().expect("File has a name")
             ));
-            let wave = injected_wave(&top, options.simulator);
+            let wave = injected_wave(&top, simulator);
             let text = with_default_dump(&text, &top, &wave);
             std::fs::write(&instrumented, text)
                 .map_err(LaceError::io("Writing testbench", &instrumented))?;
@@ -750,6 +829,8 @@ pub fn simulate_project(
     let plan = Plan {
         missing_inputs,
         top,
+        simulator,
+        fast: options.fast,
         wave,
         wave_required,
         files,
@@ -772,7 +853,7 @@ pub fn simulate_project(
     // não abre acima de 256 MB.
     if let Some(wave) = &result.waveform
         && wave.format == WaveformFormat::Vcd
-        && options.simulator == Simulator::Icarus
+        && simulator == Simulator::Icarus
         && let Ok(size) = std::fs::metadata(&wave.path).map(|m| m.len())
         && size > LARGE_VCD
     {
@@ -798,8 +879,13 @@ const LARGE_VCD: u64 = 100_000_000;
 struct Plan {
     missing_inputs: Vec<Utf8PathBuf>,
     top: String,
-    /// Onde a onda vai aparecer; `None` quando o testbench a nomeia com uma
-    /// expressão que o Lace não resolve.
+    /// O simulador que roda, já com a regra da simulação rápida
+    /// ([`SimulationOptions::simulator_for`]).
+    simulator: Simulator,
+    /// A simulação rápida: sem onda, e o Verilator sem `--trace`.
+    fast: bool,
+    /// Onde a onda vai aparecer; `None` na simulação rápida, e quando o
+    /// testbench a nomeia com uma expressão que o Lace não resolve.
     wave: Option<Utf8PathBuf>,
     /// A onda é do testbench (`$dumpfile` dele) e faltar é falha. A onda
     /// que o Lace injeta não é exigida.
@@ -808,7 +894,8 @@ struct Plan {
     files: Vec<Utf8PathBuf>,
     /// CWD da simulação.
     cwd: Utf8PathBuf,
-    /// Onde ficam o `.vvp` e o `obj_dir` do Verilator.
+    /// Onde ficam o `.vvp` e o `obj_dir` do Verilator (o da simulação
+    /// rápida à parte, `obj_dir_fast_<topo>`).
     work: Utf8PathBuf,
     /// Onde procurar `output_<n>.txt`.
     output_dirs: Vec<Utf8PathBuf>,
@@ -820,19 +907,32 @@ struct Plan {
     /// O testbench com o dump injetado e o original: os diagnósticos da
     /// cópia apontam para o original, que tem as mesmas linhas.
     instrumented: Option<(Utf8PathBuf, Utf8PathBuf)>,
-    /// Testbench cocotb: a VPI e o ambiente do `vvp`, o `cmds.f` e o módulo
-    /// que grava a onda (que já está em `files`).
+    /// Testbench cocotb: a VPI e o ambiente do simulador, o `cmds.f` e o
+    /// módulo que grava a onda no Icarus (que já está em `files`).
     cocotb: Option<crate::cocotb::CocotbRun>,
+}
+
+/// A ferramenta do passo `simulate` de cada simulador: a que assina os
+/// diagnósticos dos testes cocotb.
+fn simulate_tool(simulator: Simulator) -> Tool {
+    match simulator {
+        Simulator::Icarus => Tool::Vvp,
+        _ => Tool::Verilator,
+    }
 }
 
 /// O resultado de uma simulação cancelada antes do primeiro passo (na sonda
 /// do cocotb).
-fn cancelled(top: String, simulator: Simulator, started: Instant) -> SimulationResult {
+fn cancelled(top: String, simulator: Simulator, fast: bool, started: Instant) -> SimulationResult {
     SimulationResult {
         top,
         simulator,
+        fast,
         status: Status::Cancelled,
-        failed_step: Some(Step::Elaborate),
+        failed_step: Some(match simulator {
+            Simulator::Icarus => Step::Elaborate,
+            _ => Step::Verilate,
+        }),
         steps: Vec::new(),
         diagnostics: Vec::new(),
         artifacts: Vec::new(),
@@ -857,16 +957,12 @@ fn execute(
     let mut runner = Runner::new(control);
     let outputs_before = output_files(&plan.output_dirs);
     let mut tests = None;
-    // O `vvp` do cocotb foi até o fim, com os testes passando ou não.
+    // O simulador do cocotb foi até o fim, com os testes passando ou não.
     let mut tests_ran = false;
 
-    match options.simulator {
+    match plan.simulator {
         Simulator::Icarus => {
-            // O `.vvp` do cocotb fica na pasta dele, com o `cmds.f` e o dump.
-            let image = plan
-                .cocotb
-                .as_ref()
-                .map_or_else(|| plan.work.join(format!("{top}.vvp")), |c| c.image.clone());
+            let image = plan.work.join(format!("{top}.vvp"));
             tracker.expect(ArtifactKind::IcarusImage, &image, true);
             if let Some(wave) = &plan.wave {
                 tracker.expect(ArtifactKind::Waveform, wave, plan.wave_required);
@@ -892,14 +988,13 @@ fn execute(
                 elaborate = elaborate.arg("-y").icarus_path_arg(hdl);
             }
             let mut elaborate = elaborate.arg("-s").arg(top);
-            // cocotb: o timescale padrão do runner dele e o módulo que grava a
-            // onda, como segunda raiz.
+            // cocotb: o timescale padrão do runner dele e, com onda, o módulo
+            // que a grava, como segunda raiz.
             if let Some(cocotb) = &plan.cocotb {
-                elaborate = elaborate
-                    .arg("-f")
-                    .icarus_path_arg(&cocotb.commands)
-                    .arg("-s")
-                    .arg(crate::cocotb::DUMP_MODULE);
+                elaborate = elaborate.arg("-f").icarus_path_arg(&cocotb.commands);
+                if cocotb.dump_module.is_some() {
+                    elaborate = elaborate.arg("-s").arg(crate::cocotb::DUMP_MODULE);
+                }
             }
             let mut elaborate = elaborate.arg("-o").path_arg(&image);
             for file in &plan.files {
@@ -927,7 +1022,11 @@ fn execute(
                     }
                 }
                 run = run.path_arg(&image);
-                if plan.wave.as_deref().and_then(Utf8Path::extension) == Some("fst") {
+                // Na simulação rápida, `-none`: os `$dumpvars` do testbench
+                // não gravam nada.
+                if plan.fast {
+                    run = run.arg("-none");
+                } else if plan.wave.as_deref().and_then(Utf8Path::extension) == Some("fst") {
                     run = run.arg("-fst");
                 }
                 runner.run(
@@ -936,11 +1035,8 @@ fn execute(
                 // cocotb: o resultado dos testes. Cada teste que falhou é um
                 // diagnóstico de erro, que reprova a simulação logo abaixo.
                 if let Some(cocotb) = &plan.cocotb {
-                    tests_ran = runner.steps.last().is_some_and(|s| {
-                        s.step == Step::Simulate
-                            && matches!(s.termination, crate::process::Termination::Exited(0))
-                    });
-                    let (report, found) = crate::cocotb::finish(cocotb, tests_ran);
+                    tests_ran = simulated(&runner);
+                    let (report, found) = crate::cocotb::finish(cocotb, tests_ran, Tool::Vvp);
                     runner.diagnostics.extend(found);
                     tests = report;
                 }
@@ -950,7 +1046,14 @@ fn execute(
             }
         }
         Simulator::Verilator => {
-            let obj_dir = plan.work.join(format!("obj_dir_{top}"));
+            // A simulação rápida compila sem `--trace`, num `obj_dir` à parte:
+            // alternar entre ela e a simulação com onda não recompila o
+            // modelo inteiro a cada vez.
+            let obj_dir = plan.work.join(if plan.fast {
+                format!("obj_dir_fast_{top}")
+            } else {
+                format!("obj_dir_{top}")
+            });
             let model = obj_dir.join(format!("V{top}{}", std::env::consts::EXE_SUFFIX));
             tracker.expect(ArtifactKind::VerilatedModel, &model, true);
             if let Some(wave) = &plan.wave {
@@ -963,15 +1066,41 @@ fn execute(
             let jobs = options
                 .build_jobs
                 .map_or_else(|| "0".to_owned(), |j| j.to_string());
-            let mut verilate = toolchain
-                .invocation(Tool::Verilator, &plan.work)?
-                .arg("--binary")
-                .arg("--main")
+            let mut verilate = toolchain.invocation(Tool::Verilator, &plan.work)?;
+            verilate = match &plan.cocotb {
+                // O modelo do cocotb tem o `main` dele (`verilator.cpp`), que
+                // carrega a VPI do cocotb e deixa os testes em Python dirigirem
+                // o tempo; as flags são as do runner do cocotb
+                // (`cocotb_tools/runner.py`), com o executável no nome do
+                // modelo do Lace.
+                Some(cocotb) => {
+                    let mut model = verilate
+                        .arg("--cc")
+                        .arg("--exe")
+                        .arg("--build")
+                        .arg("--vpi")
+                        .arg("--public-flat-rw")
+                        .arg("--prefix")
+                        .arg("Vtop")
+                        .arg("-o")
+                        .arg(format!("V{top}"))
+                        .arg("--timescale")
+                        .arg(crate::cocotb::TIMESCALE);
+                    for flag in cocotb_link_flags(cocotb) {
+                        model = model.arg("-LDFLAGS").arg(flag);
+                    }
+                    model
+                }
+                None => verilate.arg("--binary").arg("--main"),
+            };
+            if !plan.fast {
                 // VCD sempre: no Linux e no macOS, o FST do Verilator do
                 // bundle compila contra lz4 e zlib do sistema, que ficam fora
                 // da exceção do compilador (decisão do autor: só compilador,
                 // make e Perl). O mesmo formato nas três plataformas.
-                .arg("--trace")
+                verilate = verilate.arg("--trace").arg("--no-trace-top");
+            }
+            let mut verilate = verilate
                 .arg("-j")
                 .arg(jobs)
                 .arg("-MAKEFLAGS")
@@ -989,11 +1118,12 @@ fn execute(
                 .arg("--timing")
                 .arg("--x-assign")
                 .arg("fast")
-                .arg("--no-trace-top")
                 // O `$display` sai na hora, e não em blocos no fim: é o que
                 // mostra a saída ao vivo. Sem isso o modelo guarda o stdout
                 // em buffer, como o vvp sem `-i`.
                 .arg("--autoflush")
+                // Também na simulação rápida: o testbench que o YANC gera lê
+                // os sinais de simulação do processador (o fim do programa).
                 .arg("+define+YANC_TRACE");
             for &flag in verilator_cflags() {
                 verilate = verilate.arg("-CFLAGS").arg(flag);
@@ -1006,6 +1136,9 @@ fn execute(
             if let Some(hdl) = &hdl {
                 verilate = verilate.arg("-y").path_arg(hdl);
             }
+            if let Some(main) = plan.cocotb.as_ref().and_then(|c| c.main.as_ref()) {
+                verilate = verilate.path_arg(main);
+            }
             for file in &plan.files {
                 verilate = verilate.path_arg(file);
             }
@@ -1013,12 +1146,37 @@ fn execute(
             // bundle no Windows) e o LC_ALL=C vêm de Toolchain::invocation; o
             // VERILATOR_ROOT fica sem definir, e o script o deduz do próprio
             // caminho.
-            if runner.run(PlannedStep::new(Step::Verilate, Tool::Verilator, verilate))? {
-                let run = crate::process::Invocation::new(model.clone(), &plan.cwd)
+            let verilated =
+                runner.run(PlannedStep::new(Step::Verilate, Tool::Verilator, verilate))?;
+            quiet_runtime_warnings(&mut runner.diagnostics, toolchain.root());
+            if verilated {
+                // Com o modelo em dia, o `make` não refaz o executável.
+                tracker.mark_current(&model);
+                let mut run = crate::process::Invocation::new(model.clone(), &plan.cwd)
                     .search_path(&toolchain.verilated_model_path());
+                // cocotb: as bibliotecas e o ambiente que a VPI dele lê, e a
+                // onda pelas opções do `main` dele.
+                if let Some(cocotb) = &plan.cocotb {
+                    run = run.append_search_path(std::slice::from_ref(&cocotb.libs));
+                    for (key, value) in &cocotb.env {
+                        run = run.env(key, value);
+                    }
+                    if let Some(wave) = &plan.wave {
+                        run = run.arg("--trace").arg("--trace-file").path_arg(wave);
+                    }
+                }
                 runner.run(
                     PlannedStep::new(Step::Simulate, Tool::Verilator, run).timeout(options.timeout),
                 )?;
+                if let Some(cocotb) = &plan.cocotb {
+                    tests_ran = simulated(&runner);
+                    let (report, found) = crate::cocotb::finish(cocotb, tests_ran, Tool::Verilator);
+                    runner.diagnostics.extend(found);
+                    tests = report;
+                    // O modelo sai com 0 com testes falhando: quem reprova
+                    // são os diagnósticos deles, como no Icarus.
+                    runner.fail_on_error_diagnostics(Tool::Verilator);
+                }
             }
         }
     }
@@ -1069,7 +1227,8 @@ fn execute(
     }
     Ok(SimulationResult {
         top: top.clone(),
-        simulator: options.simulator,
+        simulator: plan.simulator,
+        fast: plan.fast,
         status,
         failed_step: runner.failed_step,
         steps: runner.steps,
@@ -1081,6 +1240,58 @@ fn execute(
         tests,
         duration_ms: crate::pipeline::elapsed_ms(started),
     })
+}
+
+/// O último passo foi o `simulate` e saiu com 0.
+fn simulated(runner: &Runner<'_>) -> bool {
+    runner.steps.last().is_some_and(|s| {
+        s.step == Step::Simulate && matches!(s.termination, crate::process::Termination::Exited(0))
+    })
+}
+
+/// O que o modelo do cocotb liga além do Verilator: a VPI do cocotb para o
+/// Verilator, pelo caminho que a sonda achou. No Windows ela é estática
+/// (`libcocotbvpi_verilator.a`) e chama a `libgpi.dll` da mesma pasta; no
+/// Linux e no macOS é compartilhada, e o executável a acha pelo `rpath`,
+/// como no `Makefile.verilator` do cocotb.
+fn cocotb_link_flags(cocotb: &crate::cocotb::CocotbRun) -> Vec<String> {
+    let libs = make_path(&cocotb.libs);
+    let vpi = make_path(Utf8Path::new(&cocotb.vpi));
+    if cfg!(windows) {
+        vec![vpi, format!("-L{libs}"), "-lgpi".to_owned()]
+    } else {
+        vec![format!("-Wl,-rpath,{libs}"), format!("-L{libs}"), vpi]
+    }
+}
+
+/// Rebaixa a informação os avisos do compilador C++ sobre a biblioteca do
+/// próprio Verilator, que mora no bundle (`verilated.cpp`,
+/// `verilated_vpi.cpp`), e as linhas `In file included from` que os
+/// precedem. No Windows o g++ avisa de `STDOUT_FILENO` redefinido e, no
+/// modelo do cocotb, de cada função da VPI sem `dllimport`: nada disso é do
+/// projeto, nem tem como ser corrigido por quem simula.
+fn quiet_runtime_warnings(diagnostics: &mut [Diagnostic], bundle: &Utf8Path) {
+    use crate::diagnostics::Severity;
+    // `In file included from <arquivo>:<linha>,` e `from <arquivo>:<linha>:`.
+    let included = |message: &str| {
+        let place = message
+            .strip_prefix("In file included from ")
+            .or_else(|| message.strip_prefix("from "))?
+            .trim_end_matches([',', ':']);
+        let (file, line) = place.rsplit_once(':')?;
+        line.parse::<u32>().ok()?;
+        Some(crate::paths::native_separators(file))
+    };
+    for d in diagnostics.iter_mut().filter(|d| d.tool == Tool::Verilator) {
+        let in_bundle = match d.severity {
+            Severity::Warning => d.file.as_deref().is_some_and(|f| f.starts_with(bundle)),
+            Severity::Unknown => included(&d.message).is_some_and(|f| f.starts_with(bundle)),
+            _ => false,
+        };
+        if in_bundle {
+            d.severity = Severity::Info;
+        }
+    }
 }
 
 /// Flags do compilador C++ do modelo, as da AURORA. No macOS sai o
@@ -1563,6 +1774,72 @@ pub fn missing_inputs(processor: &Processor) -> Result<Vec<Utf8PathBuf>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_fast_simulation_runs_verilog_on_verilator() {
+        let mut options = SimulationOptions::new(Simulator::Icarus);
+        assert_eq!(options.simulator_for(false), Simulator::Icarus);
+        options.fast = true;
+        // O testbench Verilog vai para o Verilator; o cocotb fica no pedido.
+        assert_eq!(options.simulator_for(false), Simulator::Verilator);
+        assert_eq!(options.simulator_for(true), Simulator::Icarus);
+        options.simulator = Simulator::Verilator;
+        assert_eq!(options.simulator_for(true), Simulator::Verilator);
+    }
+
+    #[test]
+    fn compiler_warnings_about_the_bundle_become_info() {
+        use crate::diagnostics::Severity;
+        let bundle = Utf8Path::new(if cfg!(windows) {
+            "C:\\l\\toolchain"
+        } else {
+            "/l/toolchain"
+        });
+        let inside = bundle.join("msys/ucrt64/share/verilator/include/verilated.cpp");
+        let mine = Utf8PathBuf::from(if cfg!(windows) {
+            "C:\\p\\top.v"
+        } else {
+            "/p/top.v"
+        });
+        let diagnostic = |severity, message: &str, file: Option<&Utf8Path>| Diagnostic {
+            tool: Tool::Verilator,
+            severity,
+            message: message.into(),
+            file: file.map(Utf8Path::to_owned),
+            line: None,
+            column: None,
+            raw: String::new(),
+        };
+        let included = format!(
+            "In file included from {}:51:",
+            inside.as_str().replace('\\', "/")
+        );
+        let mut found = vec![
+            diagnostic(
+                Severity::Warning,
+                "'STDOUT_FILENO' redefined",
+                Some(&inside),
+            ),
+            diagnostic(Severity::Unknown, &included, None),
+            diagnostic(
+                Severity::Warning,
+                "Signal is not used [UNUSEDSIGNAL]",
+                Some(&mine),
+            ),
+            diagnostic(Severity::Unknown, "make: *** [Vtop.mk:12] Error 1", None),
+        ];
+        quiet_runtime_warnings(&mut found, bundle);
+        let severities: Vec<Severity> = found.iter().map(|d| d.severity).collect();
+        assert_eq!(
+            severities,
+            [
+                Severity::Info,
+                Severity::Info,
+                Severity::Warning,
+                Severity::Unknown
+            ]
+        );
+    }
 
     #[test]
     fn make_paths_have_no_backslash_on_windows() {

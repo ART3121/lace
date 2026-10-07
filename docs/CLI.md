@@ -29,6 +29,7 @@ lace add contador_tb.v           # cria o testbench, que já instancia contador
 lace check                       # Icarus: o design inteiro e cada testbench
 lace hierarchy                   # a árvore de instâncias do design e do testbench
 lace sim                         # simula o testbench e mostra o que ele escreve
+lace sim --fast                  # no Verilator, sem gravar onda
 lace wave                        # abre a onda da simulação no surfer-aurora
 lace synth --svg                 # Yosys + Graphviz: o esquemático do topo
 ```
@@ -43,6 +44,7 @@ lace proc add soma               # cria soma/Software/soma.cmm
 # ponha os valores de entrada em soma/Simulation/input_0.txt, um por linha
 lace build                       # C± -> Verilog, memórias e testbench, pelo YANC
 lace sim -p soma                 # simula e mostra as saídas
+lace sim -p soma --fast          # as mesmas saídas, no Verilator e sem onda
 lace wave -p soma                # abre a onda da simulação do processador
 ```
 
@@ -227,8 +229,8 @@ no `lace status`.
 | `lace build [-p NOME]...` | compila os processadores pedidos; sem `-p`, o da pasta ou, fora deles, todos. Num projeto sem processadores, avisa e sai com 0 | `build_processors` (`Continue`) |
 | `lace check [ARQUIVO] [--lint]` | verifica o Verilog (ver abaixo), sem compilar os processadores: o Verilog que o YANC gerou entra como está no disco. Dentro da pasta de um processador, sem `ARQUIVO`, é o mesmo que `-p` com ele | `check` |
 | `lace check -p NOME [--lint]` | verifica só o Verilog do processador e o testbench gerado pelo YANC, sem recompilá-lo | `check` (`CheckOptions::processor`) |
-| `lace sim [TESTBENCH] [--verilator] [--timeout S] [--open]` | compila os processadores que têm fonte e simula o testbench do projeto. Com `TESTBENCH`, ele passa a ser o testbench simulado (e é registrado, se não estava). Dentro da pasta de um processador, sem `TESTBENCH`, é o mesmo que `-p` com ele | `set_testbench`, `buildable_processors`, `build_processors` (`Stop`), `simulate_project` |
-| `lace sim -p NOME [--verilator] [--timeout S] [--open]` | compila o processador e o simula com o testbench gerado pelo YANC | `build_processors` (`Stop`), `simulate` |
+| `lace sim [TESTBENCH] [--verilator] [--fast] [--timeout S] [--open]` | compila os processadores que têm fonte e simula o testbench do projeto. Com `TESTBENCH`, ele passa a ser o testbench simulado (e é registrado, se não estava). Dentro da pasta de um processador, sem `TESTBENCH`, é o mesmo que `-p` com ele | `set_testbench`, `buildable_processors`, `build_processors` (`Stop`), `simulate_project` |
+| `lace sim -p NOME [--verilator] [--fast] [--timeout S] [--open]` | compila o processador e o simula com o testbench gerado pelo YANC | `build_processors` (`Stop`), `simulate` |
 | `lace synth [--svg] [--module M]` | compila os processadores e sintetiza o módulo de topo do projeto; com `--svg`, desenha o esquemático (Yosys `show` + `dot`). Dentro da pasta de um processador, é o mesmo que `-p` com ele | `build_processors` (`Stop`), `synthesize`, `render_schematic` |
 | `lace synth -p NOME [--svg] [--module M]` | compila o processador e o sintetiza sozinho | `build_processors` (`Stop`), `synthesize`, `render_schematic` |
 
@@ -246,6 +248,27 @@ simulador na hora, e o que ainda estava no buffer de saída dele se perde
 no surfer-aurora ao terminar. O esquemático sempre traz a largura dos
 barramentos. Para ver os nomes de módulo que `--module` aceita, rode
 `lace synth -v`.
+
+`--fast` é a simulação rápida, o Fast Sim da AURORA: roda sem gravar onda,
+para ver a saída do testbench, as portas do processador e os testes cocotb
+na velocidade do simulador. O testbench Verilog, do projeto ou de um
+processador (`-p`), roda no Verilator, com ou sem `--verilator`, compilado
+sem `--trace` num `obj_dir_fast_<topo>` à parte do da simulação com onda;
+os `$dumpfile` e `$dumpvars` dele não gravam nada (o Verilator avisa, na
+saída, que os ignora), e o Lace não injeta o dump padrão. Um testbench
+cocotb roda os testes sem o módulo que grava a onda: no Icarus, com `vvp
+-none`, ou no Verilator, com `--verilator`. O título diz `Fast
+simulation`, o JSON traz `simulation.fast: true` e `waveform: null`, e
+`--open` não anda junto. A primeira simulação rápida compila o modelo (de
+segundos a minutos, conforme o design); as seguintes, com o design igual,
+só rodam o executável que já existe.
+
+```
+$ lace sim --fast
+Fast simulation of contador_tb (Verilator): finished in 383 ms
+    done      verilate      verilator    346 ms
+    done      simulate      verilator     34 ms
+```
 
 O esquemático desenha qualquer módulo, sem teto de ligações; num módulo
 grande o Graphviz pode levar minutos, e o passo do `dot` tem prazo de 60 s.
@@ -386,8 +409,9 @@ arquivo (a diretiva da AURORA, um comentário para o Python) ou, sem ela, o
 módulo de topo do projeto, com um aviso. `lace sim test_alu.py` (ou `lace
 sim`, com ele como testbench do projeto) roda no Icarus os passos de sempre:
 o `iverilog` elabora o design com o `dut` na raiz, e o `vvp` carrega a VPI
-do cocotb, que roda os testes no Python do bundle. Precisa do componente
-`cocotb` (`lace install cocotb`).
+do cocotb, que roda os testes no Python do bundle. Com `--verilator`, o
+Verilator compila o design com o `main` e a VPI do cocotb, e o executável
+roda os testes. Precisa do componente `cocotb` (`lace install cocotb`).
 
 ```
     done      elaborate     iverilog      108 ms
@@ -401,13 +425,14 @@ do cocotb, que roda os testes no Python do bundle. Precisa do componente
 
 Cada teste que falha é um erro na linha do `.py` em que falhou e reprova a
 simulação (código 1). A onda sai do mesmo jeito, em `<módulo de teste>.fst`
-na raiz, com todos os sinais do `dut`, e `--open` a abre: é nela que se vê
-a falha. Um `.py` sem nenhum `@cocotb.test()` também reprova. O log do
+na raiz (`.vcd` no Verilator), com todos os sinais do `dut`, e `--open` a
+abre: é nela que se vê a falha. Um `.py` sem nenhum `@cocotb.test()` também reprova. O log do
 cocotb sai como a saída do testbench, e no JSON os testes estão em
 `simulation.tests` (`cases`, com nome, `status`, mensagem, arquivo e
 linha, e as contagens `passed`, `failed` e `skipped`).
 
-O cocotb roda só no Icarus: `--verilator` recusa (`cocotb_needs_icarus`).
+Com `--fast`, os testes rodam sem gravar onda, no Icarus ou, com
+`--verilator`, no Verilator.
 O `check` e o `hierarchy` deixam o `.py` de fora, porque elaboram Verilog,
 e `lace check test_alu.py` recusa (`invalid_name`). A primeira simulação
 cocotb da máquina leva alguns segundos a mais: o Python compila o cocotb, e os
@@ -602,7 +627,6 @@ CLI acrescenta o comando que resolve:
 | `no_top_level` | `Choose it with: lace top <file\|module>` |
 | `no_testbench` | `Create it with: lace add <name>_tb.v, or a cocotb one with: lace add test_<name>.py` |
 | `no_cocotb_toplevel` | `` Add a line `# aurora-toplevel: <module>` to the testbench, or choose the top with: lace top <file\|module> `` |
-| `cocotb_needs_icarus` | `Simulate it without --verilator` |
 | `cocotb_unavailable` | `Reinstall it with: lace install cocotb` |
 | `empty_project` | `Add one with: lace add <file.v>, or create a processor with: lace proc add <name>` |
 | `not_built` | sem o Verilog do processador (o `check` não compila), `Build it with: lace build -p <processor>`; sem o testbench, `Build and simulate with: lace sim -p <processor>` |

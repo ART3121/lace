@@ -76,7 +76,9 @@ Todo divisor entre as áreas pode ser arrastado.
   módulo, e o Verilog que o build de cada processador gerou
   (`<proc>/Hardware/<proc>.v`), marcado como **Gerado**.
 - *Testbenches*: os registrados, com o simulado marcado, e o testbench que o
-  YANC gerou para cada processador (`<proc>/Simulation/<proc>_tb.v`).
+  YANC gerou para cada processador (`<proc>/Simulation/<proc>_tb.v`). O
+  menu de um testbench tem **Marcar como o testbench simulado**, que só
+  marca: quem simula é a Wave (F8) ou a Rápida (F9).
 - *Processadores SAPHO*: cada um com o **Programa** (o fonte e o assembly
   gerado), as **Memórias** (`.mif`), a **Simulação** (entradas, saídas e a
   onda) e, recolhidos, os **Intermediários do YANC** (logs e traduções da
@@ -206,7 +208,8 @@ mostrar as abas, esconder os números de linha.
 6. **Wave** (F8): simula e abre a onda no surfer-aurora, numa aba (seção
    4.1). O que o testbench escreve (`$display`) aparece no console Wave
    enquanto roda.
-7. **PRISM** (F10): sintetiza o topo com o Yosys e abre o esquemático.
+7. **PRISM** (F10): sintetiza o topo com o Yosys e abre o esquemático
+   (seção 7).
 
 Arquivos que já existem entram por **Projeto > Adicionar arquivos Verilog
 ou cocotb** ou arrastando-os para Módulos ou Testbenches, no explorador
@@ -228,14 +231,16 @@ Python: só letras, números e `_`, sem começar por número. Um `.py` que já
 existe entra como os outros arquivos, sempre em Testbenches; o explorador
 lista na seção dos não registrados os `.py` da pasta que têm
 `@cocotb.test`. Com o `.py` como testbench simulado, **Wave** (F8) e
-**Rápida** (F9) rodam os testes no Icarus: o log do cocotb sai no console
-Wave, cada teste aparece lá com o resultado, e o que falhou vai também para o
-painel Problemas, na linha do `.py`. A onda abre mesmo com teste falhando,
-porque é nela que se vê a falha. O cocotb roda só no Icarus (com o Verilator
-nas preferências, a simulação recusa), precisa do componente cocotb
+**Rápida** (F9) rodam os testes no simulador das preferências, o Icarus ou o
+Verilator: o log do cocotb sai no console Wave, cada teste aparece lá com o
+resultado, e o que falhou vai também para o painel Problemas, na linha do
+`.py`. Com a Wave, a onda abre mesmo com teste falhando, porque é nela que
+se vê a falha (`.fst` no Icarus, `.vcd` no Verilator); a Rápida roda os
+testes sem gravar onda. O cocotb precisa do componente cocotb
 (**Ferramentas**), e o **Verilog** (F7) verifica o design sem o `.py`. A
 primeira simulação cocotb da máquina leva alguns segundos a mais, enquanto o
-Python compila o cocotb.
+Python compila o cocotb; no Verilator, a primeira de cada testbench compila
+também o modelo.
 
 **A ordem dos arquivos** em Módulos e em Testbenches é a ordem em que os
 compiladores os leem, e um `` `define `` só vale para os arquivos de baixo
@@ -272,8 +277,9 @@ simulado, clique com o botão direito no arquivo, no explorador.
 6. **C±** (F6): compila (cmmcomp, appcomp, asmcomp). Os erros do YANC
    apontam a linha do fonte.
 7. **Wave** (F8) ou **Rápida** (F9): simula o processador com o testbench
-   que o YANC gerou. No fim, o console Wave mostra os valores de cada porta
-   de saída (`Saída 0: 55`), e a aba do processador também.
+   que o YANC gerou; a Rápida, no Verilator e sem gravar onda. No fim, o
+   console Wave mostra os valores de cada porta de saída (`Saída 0: 55`), e
+   a aba do processador também.
 
 A **aba do processador** (duplo clique nele no explorador) tem a frequência,
 o número de clocks, a exportação de arrays para a onda e o tempo simulado
@@ -326,9 +332,9 @@ em janela.
 | Verilog | F7 | verifica o Verilog com o Icarus, sem compilar os processadores (o Verilog do YANC entra como está no disco; compile antes com F6); com um processador no alvo, verifica o Verilog dele com o testbench do YANC | `lace check [-p NOME]` |
 | (menu Fluxo) | Shift+F7 | o mesmo, com o lint do Verilator | `lace check [-p NOME] --lint` |
 | Wave | F8 | compila, simula e abre a onda | `lace sim [-p NOME] --open` |
-| Rápida | F9 | compila e simula, sem abrir a onda | `lace sim [-p NOME]` |
+| Rápida | F9 | a simulação rápida, o Fast Sim da AURORA: compila e simula sem gravar onda, para ver a saída, as portas e os testes. O testbench Verilog e o de um processador rodam no Verilator, qualquer que seja o simulador escolhido; um testbench cocotb, no simulador escolhido. O navegador de fluxo mostra qual | `lace sim [-p NOME] --fast` |
 | Onda | Ctrl+F8 | abre a onda da última simulação | `lace wave [-p NOME]` |
-| PRISM | F10 | compila, sintetiza e desenha o esquemático | `lace synth [-p NOME] --svg` |
+| PRISM | F10 | compila, sintetiza e abre o esquemático (seção 7) | `lace synth [-p NOME]`; o `--svg` desenha com o Graphviz |
 | (menu Fluxo) | F5 | compila os processadores, verifica e, se passar, simula | |
 | Parar | Shift+F5 | cancela a operação; a ferramenta é encerrada com tudo o que iniciou. A atualização do Lace não para no meio | Ctrl+C na CLI |
 
@@ -357,7 +363,7 @@ Cada etapa escreve no seu console, com os nomes da AURORA:
 | ASM | TASM | o pré-montador e o montador (appcomp, asmcomp) e o resumo do build |
 | Verilog | TVERI | a verificação do Icarus e o lint do Verilator |
 | Wave | TWAVE | a elaboração e a simulação: o que o testbench escreve, as saídas do processador, onde ficou a onda |
-| PRISM | TPRISM | o Yosys e o Graphviz |
+| PRISM | TPRISM | a síntese do Yosys |
 
 O comando que o Studio rodou (`> lace ...`) aparece no console onde a
 operação começa: o C± no build, o Verilog na verificação, o Wave na
@@ -390,13 +396,37 @@ reinicia o terminal aberto com o shell novo.
 
 ## 7. Esquemático, síntese e relatórios
 
-- **Esquemático**: o SVG do `show` do Yosys desenhado pelo Graphviz. Roda do
-  mouse dá zoom, arrastar move, duplo clique ajusta à janela. O seletor
-  troca o módulo desenhado sem sintetizar de novo; "Largura dos
-  barramentos" escreve os bits em cada aresta. O botão de abrir manda o SVG
-  para o programa do sistema. Um módulo com mais de 120 ligações não é
-  desenhado, porque o Graphviz levaria minutos: a síntese e as estatísticas
-  saem mesmo assim, e o seletor deixa escolher um submódulo.
+- **PRISM** (o esquemático): o Studio desenha o netlist da síntese
+  (`hierarchy.json`) com as cores do tema, sem Graphviz. Cada família de
+  célula tem um tom da paleta do tema (aritmética, lógica, comparação,
+  multiplexador, registrador, memória, submódulo), listado no rodapé;
+  passar o mouse numa família da legenda acende as células dela. O uso
+  segue o PRISM da AURORA:
+
+  | Gesto | O que faz |
+  |---|---|
+  | Roda do mouse, `+`, `-` | zoom no ponto do mouse; `0` volta ao tamanho real, `F` ajusta à janela |
+  | Arrastar, setas | move o desenho |
+  | Passar o mouse num fio | acende a rede, com as fatias dela, e mostra nome, largura e destinos |
+  | Clique | seleciona a célula ou a rede: as ligações acendem e os detalhes aparecem à direita |
+  | Dois cliques | numa caixa de submódulo, entra nele; num símbolo ou fio, abre o código na linha |
+  | Ícone ↗ da caixa, Enter | entra no submódulo |
+  | Esc, Alt+←, botão lateral do mouse | tira a seleção; sem seleção, volta |
+  | Alt+→, o outro botão lateral | avança |
+  | Ctrl+F | busca célula, rede ou porta no módulo; Enter vai ao próximo, Shift+Enter ao anterior |
+  | Botão direito | abrir o módulo, ir ao código, destacar, copiar o nome, exportar |
+
+  A árvore à esquerda é a hierarquia de instâncias desde o topo, e a trilha
+  no alto mostra o caminho até o módulo desenhado. Os detalhes mostram
+  tipo, parâmetros, o código de origem e, por porta, a rede ligada; sem
+  seleção, o resumo do módulo. Na barra: nomes das redes nos fios, largura
+  dos barramentos, redes globais como rótulo (uma entrada do módulo com 8
+  destinos ou mais, como `clk` e `rst`, aparece escrita em cada destino em
+  vez de roteada), os dois painéis, exportar SVG (com as cores do tema,
+  pronto para documento) e sintetizar de novo. Constantes aparecem escritas
+  na porta que recebem. O layout é do ELK e roda fora da interface; um
+  módulo com mais de 1500 células pede confirmação antes. Depois de reabrir
+  o Studio, "Mostrar a última síntese" abre o netlist que ficou no disco.
 - **Síntese** (Fluxo > Estatísticas da síntese): células, fios, memórias e
   processos do `stat` do Yosys, e as células por tipo. São células
   genéricas, sem mapeamento para FPGA: não há LUT, DSP nem temporização.

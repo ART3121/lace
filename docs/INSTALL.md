@@ -82,7 +82,7 @@ Os dois instaladores oferecem os mesmos tipos:
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim |
 | Icarus Verilog | simulador Verilog, o padrão da AURORA | sim |
 | Verilator | simulador compilado; no Linux e no macOS precisa de compilador C++, `make` e Perl do sistema, no Windows vem com eles | não |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave no Studio); com o Verilator, ainda não | não |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) | não |
 | Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim |

@@ -106,6 +106,8 @@ Os passos são ids de ação de `actions.ts` (`build`, `check`, `lint`,
 | `editor` | escreve no log os grupos do editor e as abas de cada um (`*` marca o grupo ativo, `>` a aba ativa) |
 | `rects:<seletor>` | escreve no log a posição e o tamanho de cada elemento que casa |
 | `count:<seletor>` | escreve no log quantos elementos casam |
+| `menu:<seletor>` | abre o menu de contexto do elemento (o botão direito no centro dele) e escreve no log os itens, com `-` nos separadores e `(off)` nos desabilitados |
+| `choose:<rótulo>` | clica no item do menu aberto que tem esse rótulo |
 
 Cada passo concluído sai no log como `smoke: <passo>`, com o diálogo aberto
 entre colchetes (`newFolder [prompt]`), e o fim como `smoke: done`. Uma

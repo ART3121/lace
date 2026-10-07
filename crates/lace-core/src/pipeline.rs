@@ -175,6 +175,9 @@ pub struct Artifact {
     /// Sem ele a operação não está completa.
     pub required: bool,
     /// Existe e foi escrito por esta operação (não é sobra de uma anterior).
+    /// O executável do Verilator, que o `make` só refaz quando o modelo
+    /// muda, conta como escrito quando a compilação terminou bem: ele está
+    /// em dia com a entrada.
     pub fresh: bool,
 }
 
@@ -329,7 +332,9 @@ impl<'a> Runner<'a> {
 /// saber depois quais foram realmente reescritos. Sem isso, um `.v` que sobrou
 /// de um build anterior pareceria sucesso.
 pub(crate) struct ArtifactTracker {
-    entries: Vec<(ArtifactKind, Utf8PathBuf, bool, Option<SystemTime>)>,
+    /// O papel, o caminho, se é obrigatório, se basta existir (um build
+    /// incremental que o deixa como está) e o horário de antes.
+    entries: Vec<(ArtifactKind, Utf8PathBuf, bool, bool, Option<SystemTime>)>,
 }
 
 impl ArtifactTracker {
@@ -342,7 +347,16 @@ impl ArtifactTracker {
     pub fn expect(&mut self, kind: ArtifactKind, path: impl Into<Utf8PathBuf>, required: bool) {
         let path = path.into();
         let before = mtime(&path);
-        self.entries.push((kind, path, required, before));
+        self.entries.push((kind, path, required, false, before));
+    }
+
+    /// O artefato em `path`, esperado antes, é de um build incremental (o
+    /// `make` do Verilator) que terminou bem e só o refaz quando a entrada
+    /// muda: existir basta.
+    pub fn mark_current(&mut self, path: &Utf8Path) {
+        for entry in self.entries.iter_mut().filter(|e| e.1 == path) {
+            entry.3 = true;
+        }
     }
 
     /// Os artefatos, com `fresh` calculado. Intermediário que não existe fica
@@ -350,9 +364,9 @@ impl ArtifactTracker {
     pub fn finish(self) -> Vec<Artifact> {
         self.entries
             .into_iter()
-            .filter_map(|(kind, path, required, before)| {
+            .filter_map(|(kind, path, required, current, before)| {
                 let after = mtime(&path);
-                let fresh = after.is_some() && after != before;
+                let fresh = after.is_some() && (current || after != before);
                 (required || after.is_some()).then_some(Artifact {
                     kind,
                     path,
