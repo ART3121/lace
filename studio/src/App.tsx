@@ -1,7 +1,8 @@
-// A janela inteira: menus, barra de ferramentas, a área de trabalho
-// (Workbench.tsx: barra de atividades, barras laterais, editor e painel) e
-// barra de status. Aqui também ficam as ligações globais: atalhos, vigia de
-// arquivos, arrastar e soltar, fechar com arquivos não salvos.
+// A janela inteira: a barra de título integrada (TitleBar.tsx) ou a barra de
+// menus, barra de ferramentas, a área de trabalho (Workbench.tsx: barra de
+// atividades, barras laterais, editor e painel) e barra de status. Aqui
+// também ficam as ligações globais: atalhos, vigia de arquivos, arrastar e
+// soltar, fechar com arquivos não salvos.
 
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -12,6 +13,7 @@ import { ContextMenuHost } from './components/common';
 import { Dialogs } from './components/dialogs/Dialogs';
 import { MenuBar } from './components/layout/MenuBar';
 import { StatusBar } from './components/layout/StatusBar';
+import { TitleBar } from './components/layout/TitleBar';
 import { Toolbar } from './components/layout/Toolbar';
 import { Workbench } from './components/layout/Workbench';
 import { watchZen, ZenHud, zenWidth } from './components/layout/Zen';
@@ -29,6 +31,7 @@ import { useHierarchy } from './state/hierarchy';
 import { takeFreshStart, useLayout } from './state/layout';
 import { useProject } from './state/project';
 import { activeLayout } from './state/savedLayouts';
+import { applyTitleBar, useTitleBar, watchWindow } from './state/titleBar';
 import { showError } from './state/toasts';
 import type { Theme } from './themes';
 import { extension, resolveFrom } from './util/paths';
@@ -56,6 +59,11 @@ async function start(): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
   const settings = await useApp.getState().init();
+  // A barra de título integrada antes de a janela aparecer: no Windows e no
+  // Linux, a moldura do sistema sai (state/titleBar.ts).
+  const os = useApp.getState().info?.os;
+  if (os) await applyTitleBar(os);
+  cleanups.push(await watchWindow());
   // Sem a janela guardada no localStorage (a primeira abertura, ou o
   // armazenamento da WebView limpo), ela abre no layout em uso. A janela
   // ainda está escondida: o primeiro quadro já sai nele.
@@ -163,12 +171,18 @@ async function start(): Promise<() => void> {
 export function App() {
   const zen = useLayout((s) => s.zen);
   const bars = useLayout((s) => s.live.bars);
+  const menus = !zen && bars.menubar;
+  // A faixa integrada sai em tela cheia (o zen com tela cheia, a tela cheia
+  // do macOS): não há janela para mover, e os menus, se à vista, voltam para
+  // a barra de menus. Esconder a barra de menus no layout tira só os menus
+  // da faixa: ela é a barra de título.
+  const titleBar = useTitleBar((s) => s.integrated && !s.fullscreen);
   // Sem a barra de status, o indicador do zen fica no lugar dela: a linha do
   // Vim, a espera de um atalho e o resultado da operação continuam à vista.
   const hud = zen || !bars.statusbar;
   const zenShell = useLayout((s) => s.zenShell);
   // No zen, com um grupo só, o editor e a gaveta do shell ficam numa coluna
-  // centralizada (Preferências > Modo zen).
+  // centralizada (Preferências > Editor > Modo zen).
   const centered = useApp((s) => s.settings?.zen?.center_layout ?? true);
   const fontSize = useApp((s) => s.settings?.editor.font_size ?? 13);
   const singleGroup = useEditor((s) => s.groups.length === 1);
@@ -202,7 +216,7 @@ export function App() {
   const appClass = `app${zen ? ' app--zen' : ''}${hud ? ' app--hud' : ''}${zenCentered ? ' app--zen-centered' : ''}${zen && zenShell ? ' app--zen-shell' : ''}`;
   return (
     <div className={appClass} style={zenCentered ? ({ '--zen-width': `${zenWidth(fontSize)}px` } as CSSProperties) : undefined}>
-      {!zen && bars.menubar && <MenuBar />}
+      {titleBar ? <TitleBar menus={menus} /> : menus && <MenuBar />}
       {!zen && bars.toolbar && <Toolbar />}
       <Workbench />
       {hud ? <ZenHud /> : <StatusBar />}

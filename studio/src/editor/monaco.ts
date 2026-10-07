@@ -10,7 +10,7 @@ import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
 
 import type { Diagnostic } from '../ipc/lace-types';
-import { alpha, tokenRule, type Theme } from '../themes';
+import { alpha, tokenRule, uiTokens, type Theme } from '../themes';
 import { asmTokenRules, registerAsm } from './languages/asm';
 import { cmmTokenRules, registerCmm } from './languages/cmm';
 
@@ -27,6 +27,22 @@ self.MonacoEnvironment = {
 
 registerCmm(monaco);
 registerAsm(monaco);
+
+// A gramática de Verilog e SystemVerilog do Monaco declara module/endmodule e
+// begin/end como pares. Casar um com o outro serve; colori-los como
+// colchetes, não: a cor do par (a dos operadores, na maioria dos temas)
+// cobria a de palavra reservada. Só os símbolos ganham cor de par. O Monaco
+// junta as configurações campo a campo, e a da gramática, carregada depois,
+// não tem este campo.
+for (const id of ['verilog', 'systemverilog']) {
+  monaco.languages.setLanguageConfiguration(id, {
+    colorizedBracketPairs: [
+      ['(', ')'],
+      ['[', ']'],
+      ['{', '}'],
+    ],
+  });
+}
 
 // O .spf é JSON (formato da AURORA). O Core aceita comentários e vírgula
 // sobrando na leitura, então o editor não os marca como erro.
@@ -109,6 +125,8 @@ function halfAlpha(color: string): string {
  */
 function monacoTheme(theme: Theme): monaco.editor.IStandaloneThemeData {
   const { ui, syntax: s, editor: e } = theme;
+  // As cores da interface com os padrões preenchidos (`active`, `hover`...).
+  const tokens = uiTokens(theme);
   const dark = theme.scheme === 'dark';
   const style = { comment: 'italic', directive: 'bold', ...s.style };
   const brackets = e.brackets ?? [s.operator];
@@ -190,9 +208,14 @@ function monacoTheme(theme: Theme): monaco.editor.IStandaloneThemeData {
       'editorWarning.foreground': ui.warn,
       'editorInfo.foreground': ui.info,
       focusBorder: ui.brand,
-      // Sem `brackets` no tema, todos os níveis na cor dos operadores: a
-      // gramática de SystemVerilog declara module/endmodule e begin/end como
-      // pares, e a coloração de pares os pintaria de cores diferentes.
+      // O menu do botão direito, como os menus do Studio (.menu, app.css).
+      'menu.background': ui.bg2,
+      'menu.foreground': ui.text0,
+      'menu.border': ui.borderStrong,
+      'menu.selectionBackground': tokens.active!,
+      'menu.selectionForeground': ui.text0,
+      'menu.separatorBackground': ui.border,
+      // Sem `brackets` no tema, todos os níveis na cor dos operadores.
       ...bracketColors,
       'editorBracketHighlight.unexpectedBracket.foreground': ui.error,
     },

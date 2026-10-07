@@ -36,7 +36,7 @@ o que o Studio grava continua legível pela AURORA. Os temporários ficam em
 ## 2. A janela
 
 ```
- menus        Arquivo Editar Exibir Projeto Fluxo Ferramentas Ajuda
+ título       Arquivo Editar Exibir Projeto Fluxo Ferramentas Ajuda   projeto - Lace Studio   _ □ X
  ferramentas  Novo Abrir Salvar | Alvo [Projeto] | C± Verilog Wave Rápida Onda PRISM | Parar
  ┌──┬────────────────┬──────────────────────────────────┬──────────────┐
  │  │ barra lateral  │ abas: arquivos e vistas          │ barra lateral│
@@ -52,6 +52,11 @@ o que o Studio grava continua legível pela AURORA. Os temporários ficam em
 Esse é o layout Padrão. Cada vista pode ir para outra região, e cada barra
 e item pode ser escondido (seção 2.4).
 
+- **Barra de título**: os menus, o nome do projeto e os botões de
+  minimizar, maximizar e fechar numa faixa só. Arrastar a faixa move a
+  janela, e dois cliques nela maximizam e restauram. No macOS, os botões
+  coloridos do sistema ficam no canto esquerdo da faixa. Em tela cheia a
+  faixa some, e os menus ficam numa linha própria.
 - **Barra de atividades**, à esquerda: as vistas da barra lateral esquerda
   em cima; Ferramentas do Lace e Preferências embaixo. Clicar na vista
   aberta esconde a barra lateral (Ctrl+B faz o mesmo).
@@ -171,7 +176,9 @@ Ctrl+K Z (aperte Ctrl+K, solte, aperte Z), Exibir > Modo zen ou a paleta.
 Some tudo menos o editor: barras de menus, de ferramentas, de atividades e
 de status, a barra lateral, o painel inferior e as abas. A janela entra em
 tela cheia e, com um grupo só, o editor fica numa coluna de umas 110
-colunas no meio da tela, sem o minimapa.
+colunas no meio da tela, sem o minimapa. Sem a tela cheia (Preferências >
+Editor > Modo zen), a barra de título fica, sem os menus, para mover e
+fechar a janela.
 
 | Para | Faça |
 |---|---|
@@ -193,8 +200,8 @@ de programas como `vim` e `less`) nem no editor com o modo Vim ligado (o Esc
 a janela voltam como estavam; se a janela já estava em tela cheia antes,
 continua. O Studio sempre abre fora do zen.
 
-Preferências > Modo zen: entrar em tela cheia, centralizar o editor,
-mostrar as abas, esconder os números de linha.
+Preferências > Editor, no grupo Modo zen: entrar em tela cheia,
+centralizar o editor, mostrar as abas, esconder os números de linha.
 
 ### 2.4 Layout da janela
 
@@ -215,6 +222,9 @@ Terminal) vão para qualquer uma delas. O editor fica sempre no meio.
 A barra de atividades escolhe a vista da barra lateral do lado dela. A
 outra barra lateral, ou as duas com a barra de atividades escondida,
 mostram as vistas em abas com ícone no cabeçalho.
+
+Esconder a barra de menus tira só os menus: a barra de título continua,
+com o título e os botões da janela.
 
 O que foi escondido sempre tem volta: a paleta (Ctrl+Shift+P) e o botão
 direito na barra de abas do editor, que nunca some, mostram todas as barras
@@ -448,7 +458,7 @@ o `cd` para a pasta nova (`Set-Location` no PowerShell, `cd /d` no Prompt
 de Comando), e o histórico e o que estava na tela ficam. Um programa
 rodando no terminal nessa hora recebe o `cd` como entrada; encerre-o antes
 de trocar de projeto. O botão `+` abre outro no lugar do atual. No Linux e no macOS é o seu
-shell (a variável `SHELL`). No Windows, Preferências > Terminal escolhe
+shell (a variável `SHELL`). No Windows, Preferências > Geral escolhe
 entre o PowerShell (o padrão) e o Prompt de Comando (`cmd`); trocar
 reinicia o terminal aberto com o shell novo.
 
@@ -534,16 +544,16 @@ ferramentas mostra o erro, e o Studio também precisa ser atualizado.
 
 ## 9. Preferências
 
-Ctrl+, ou a engrenagem. Tudo vale na hora e fica gravado.
+Ctrl+, ou a engrenagem. Tudo vale na hora e fica gravado. As páginas ficam
+numa lista à esquerda (numa área estreita, numa faixa em cima, que as setas
+do teclado também percorrem); a última aberta volta na próxima vez.
 
-| Grupo | Preferência |
+| Página | Preferência |
 |---|---|
-| Geral | idioma (do sistema, português, inglês), reabrir o último projeto |
+| Geral | idioma (do sistema, português, inglês), reabrir o último projeto; no Windows, o shell do terminal: PowerShell ou Prompt de Comando (`cmd`) |
 | Aparência | o tema (ver abaixo) |
-| Layout da janela | o layout em uso (trocar, salvar, restaurar, renomear, excluir), as barras, as regiões, a posição do painel, a região e a ordem de cada vista e os itens das barras de ferramentas e de status (seção 2.4) |
-| Terminal | no Windows, o shell: PowerShell ou Prompt de Comando (`cmd`) |
-| Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim |
-| Modo zen | tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
+| Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem) e os itens das barras de ferramentas e de status (seção 2.4) |
+| Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
 | Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI) e a do compilador do Verilator (o `--compiler`) |
 
@@ -556,14 +566,15 @@ caminho exato aparece em Ajuda > Sobre.
 ### Temas
 
 Em Preferências > Aparência, cada tema tem um cartão com uma prévia nas
-cores dele; clicar aplica na hora. Também dá para escolher em Exibir >
-Selecionar tema, que abre a lista na paleta. O tema pinta a interface, o
-editor (inclusive C± e o assembly) e os consoles.
+cores dele; clicar aplica na hora. Também dá para escolher com Ctrl+K T
+(aperte Ctrl+K, solte, aperte T) ou em Exibir > Selecionar tema, que abrem
+a lista na paleta. O tema pinta a interface, o editor (inclusive C± e o
+assembly) e os consoles.
 
 | Tema | Esquema | Origem |
 |---|---|---|
-| Atlas (padrão) | escuro | o do Studio: cinzas neutros, azul do CERN nos detalhes |
-| Atlas Branco | claro | o Atlas claro |
+| Atlas (padrão) | escuro | o do Studio: o azul do ATLAS sobre fundos de ardósia, sintaxe com um tom por papel |
+| Atlas Branco | claro | o claro do Studio, no azul do CERN |
 | Aurora Legacy | escuro | as cores da AURORA |
 | Dark Modern, Light Modern | escuro, claro | os padrões do VS Code |
 | Dracula | escuro | |
@@ -615,6 +626,7 @@ No macOS, Ctrl é Cmd. A lista também está em Ajuda > Atalhos de teclado.
 | Formatar documento | Shift+Alt+F |
 | Explorador, barra lateral esquerda, barra lateral direita, painel | Ctrl+Shift+E, Ctrl+B, Ctrl+Alt+B, Ctrl+J |
 | Selecionar layout | Ctrl+K L |
+| Selecionar tema | Ctrl+K T |
 | Terminal, Problemas | Ctrl+`, Ctrl+Shift+M |
 | Modo zen (entrar e sair) | Ctrl+K Z; Esc Esc também sai |
 | Histórico de relatórios | Ctrl+Shift+H |
@@ -653,7 +665,7 @@ status está escondida; Esc duas vezes não sai do zen, Ctrl+K Z sai.
 | A simulação não termina | o testbench chega ao `$finish`? Use Parar, ou defina um prazo em Preferências > Simulação |
 | "O projeto não tem módulo de topo" | botão direito num módulo, no explorador > Definir como topo; ou Projeto > Escolher o módulo de topo |
 | "O processador ainda não foi compilado" | C± (F6) com o processador no alvo |
-| O Verilator falha por falta de compilador | instale g++ (ou clang++), make e Perl; ou indique a pasta deles em Preferências > Compilador do Verilator |
+| O Verilator falha por falta de compilador | instale g++ (ou clang++), make e Perl; ou indique a pasta deles em Preferências > Bundle do Lace > Compilador do Verilator |
 | O surfer-aurora fecha logo ao abrir | sem display gráfico, ou onda inválida; o log dele fica em `.lace/Temp/surfer/<onda>.log` |
 | A aba da onda diz que o bundle não traz o cliente web | o bundle é anterior ao cliente web do Surfer; a onda abre em janela até um bundle novo |
 | A aba da onda recusa uma onda grande | acima de 256 MB a onda abre em janela (o ícone de janela, no alto da aba) |

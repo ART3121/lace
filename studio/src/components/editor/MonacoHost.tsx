@@ -136,5 +136,10 @@ export function MonacoHost({ path, group }: { path: string; group: string }) {
     editor.focus();
   }, [reveal, path, group]);
 
-  return <div ref={container} className="editor-host" />;
+  // `monaco-component`: o menu do botão direito do Monaco é desenhado num
+  // shadow root pendurado neste contêiner, fora do `.monaco-editor`, e as
+  // cores do tema (`--vscode-*`) só são declaradas em `.monaco-editor` e
+  // `.monaco-component`. Sem a classe, o menu saía transparente, com texto
+  // preto.
+  return <div ref={container} className="editor-host monaco-component" />;
 }

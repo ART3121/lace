@@ -20,8 +20,14 @@
         "minHeight": 600,
         "center": true,
         "visible": false,
-        "backgroundColor": "#161616",
-        "dragDropEnabled": true
+        "backgroundColor": "#12171D",
+        "dragDropEnabled": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 12,
+          "y": 15
+        }
       }
     ],
     "security": {

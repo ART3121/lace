@@ -1,7 +1,7 @@
 // O catálogo de temas, na ordem em que aparecem nas Preferências.
 //
-// Os do Lace (Atlas, Atlas Branco) são o visual neutro do Studio, com o azul
-// do CERN nos detalhes.
+// Os do Lace são o Atlas, no azul da identidade visual do ATLAS, e o Atlas
+// Branco, no azul do CERN.
 // O Aurora Legacy traz a paleta da AURORA. Os outros seguem a paleta oficial
 // de cada tema, conferida na fonte em 2026-10-04:
 //
@@ -26,13 +26,13 @@
 // do próprio tema, e onde faltava um tom (texto secundário, borda forte) ele
 // sai de `mix` entre duas cores do tema.
 
-import { alpha, mix, type Theme } from './model';
+import { alpha, mix, tokenRule, type Theme } from './model';
 
 /**
  * O azul do CERN: Pantone 286 C, #0033A0 (R0 G51 B160), com os quatro tons
  * da paleta oficial, conforme design-guidelines.web.cern.ch/guidelines/colours.
- * Sobre o fundo escuro o #0033A0 quase some numa linha fina, então linhas e
- * textos usam os tons claros, e o #0033A0 fica para preenchimentos.
+ * É o destaque do Atlas Branco, onde serve para linhas, texto e
+ * preenchimento.
  */
 const CERN_BLUE = {
   base: '#0033A0',
@@ -42,86 +42,124 @@ const CERN_BLUE = {
   t20: '#CDD6ED',
 };
 
+/**
+ * O azul do ATLAS: #0B80C3 (R11 G128 B195), a única cor da identidade visual
+ * do experimento, conforme atlas.cern/design (conferido em 2026-10-07). Os
+ * tons seguem a regra dos do CERN: `t70` e `t50` são o azul com 70% e 50%
+ * de cor, o resto branco. O branco sobre o #0B80C3 fica em 4,3:1, abaixo dos
+ * 4,5:1 de texto; o preenchimento dos botões é o mesmo azul 3% mais escuro,
+ * o tom mais claro que segura o texto branco, e o sob o mouse, 12%. `vivid`
+ * é o mesmo matiz (202°) com 90% de saturação, para o que precisa saltar.
+ */
+const ATLAS_BLUE = {
+  base: '#0B80C3',
+  fill: '#0B7CBD',
+  fillHover: '#0A71AC',
+  t70: '#54A6D5',
+  t50: '#85C0E1',
+  vivid: '#2AAAF4',
+};
+
 // Lace -------------------------------------------------------------------
 
-/** O padrão: cinzas sem matiz, cor só com função, azul do CERN nos detalhes.
- * A sintaxe usa poucos tons foscos (aço, sálvia, areia, argila). */
+/** O padrão: o azul do ATLAS de destaque sobre fundos de ardósia, um cinza
+ * puxado para o mesmo azul, com o editor um tom abaixo da barra lateral e
+ * das barras. A sintaxe tem um tom por papel, com a palavra reservada no
+ * azul do ATLAS; todo texto tem pelo menos 4,5:1 com o fundo do editor,
+ * menos o comentário (4,1:1). */
 const atlas: Theme = {
   id: 'atlas',
   name: 'Atlas',
   scheme: 'dark',
   pair: 'atlas-light',
   ui: {
-    bg0: '#161616',
-    bg1: '#1B1B1B',
-    bg2: '#1F1F1F',
-    bg3: '#262626',
-    bg4: '#2E2E2E',
-    bgEditor: '#1B1B1B',
-    border: '#2A2A2A',
-    borderStrong: '#3A3A3A',
-    text0: '#E4E4E4',
-    text1: '#B8B8B8',
-    text2: '#8C8C8C',
-    text3: '#5E5E5E',
-    brand: CERN_BLUE.t60,
-    brandText: CERN_BLUE.t40,
-    brandFill: CERN_BLUE.base,
-    brandFillHover: CERN_BLUE.t80,
+    bg0: '#12171D',
+    bg1: '#171D24',
+    bg2: '#1C232B',
+    bg3: '#232B35',
+    bg4: '#2B3540',
+    bgEditor: '#0F1419',
+    border: '#252E38',
+    borderStrong: '#36424F',
+    text0: '#E6EDF3',
+    text1: '#B6C2CD',
+    text2: '#8693A0',
+    text3: '#5A6673',
+    brand: ATLAS_BLUE.base,
+    brandText: ATLAS_BLUE.t70,
+    brandFill: ATLAS_BLUE.fill,
+    brandFillHover: ATLAS_BLUE.fillHover,
     brandContrast: '#FFFFFF',
-    ok: '#7FB07F',
-    warn: '#CFA55A',
-    error: '#D9685F',
-    info: '#8FA3BF',
+    ok: '#4FBF7F',
+    warn: '#E3A548',
+    error: '#EF6461',
+    info: ATLAS_BLUE.t70,
   },
   syntax: {
-    fg: '#D4D4D4',
-    comment: '#6A6A6A',
-    keyword: '#8FA1BA',
-    control: '#BE8A73',
-    type: '#9DB08A',
-    func: '#9DB08A',
-    number: '#C2A06C',
-    string: '#BE8A73',
-    constant: '#C2A06C',
-    variable: '#A6B5CA',
-    tag: '#8FA1BA',
-    operator: '#A0A0A0',
-    delimiter: '#A0A0A0',
-    directive: '#C8C8C8',
+    fg: '#D7DFE7',
+    comment: '#6B7886',
+    keyword: ATLAS_BLUE.t70,
+    control: '#E8737A',
+    type: '#3FC1A5',
+    func: '#E6C26E',
+    number: '#F29E5C',
+    string: '#97CF78',
+    constant: '#F29E5C',
+    variable: '#A9BED3',
+    tag: ATLAS_BLUE.t70,
+    operator: '#9FB0C0',
+    delimiter: '#8794A1',
+    directive: '#C49AF0',
   },
   editor: {
-    selection: alpha(CERN_BLUE.base, 0.55),
-    selectionInactive: alpha(CERN_BLUE.base, 0.3),
-    lineHighlight: '#222222',
-    lineNumber: '#4A4A4A',
-    lineNumberActive: '#A0A0A0',
-    cursor: '#E4E4E4',
-    findMatch: '#5A5A5A',
-    findMatchHighlight: '#3A3A3A',
-    indentGuide: '#262626',
-    indentGuideActive: '#3A3A3A',
+    selection: alpha(ATLAS_BLUE.base, 0.4),
+    selectionInactive: alpha(ATLAS_BLUE.base, 0.22),
+    lineHighlight: '#151B22',
+    lineNumber: '#4E5A66',
+    lineNumberActive: '#B6C2CD',
+    cursor: ATLAS_BLUE.t70,
+    findMatch: '#7A5A14',
+    findMatchHighlight: '#4A3B16',
+    indentGuide: '#1C232B',
+    indentGuideActive: '#33404D',
   },
   terminal: {
-    foreground: '#C8C8C8',
-    selection: alpha(CERN_BLUE.base, 0.55),
-    black: '#161616',
-    red: '#D9685F',
-    green: '#7FB07F',
-    yellow: '#CFA55A',
-    blue: '#8FA1BA',
-    magenta: '#A9A2B8',
-    cyan: '#8FA3BF',
-    white: '#D4D4D4',
-    brightBlack: '#6A6A6A',
-    brightRed: '#E3857D',
-    brightGreen: '#97C297',
-    brightYellow: '#DBB878',
-    brightBlue: '#A6B5CA',
-    brightMagenta: '#BDB7CA',
-    brightCyan: '#A6B6CC',
-    brightWhite: '#EEEEEE',
+    foreground: '#CBD5DF',
+    selection: alpha(ATLAS_BLUE.base, 0.4),
+    black: '#12171D',
+    red: '#EF6461',
+    green: '#4FBF7F',
+    yellow: '#E6C26E',
+    blue: ATLAS_BLUE.t70,
+    magenta: '#C49AF0',
+    cyan: '#45C3D1',
+    white: '#D7DFE7',
+    brightBlack: '#6B7886',
+    brightRed: '#FF8580',
+    brightGreen: '#74D69B',
+    brightYellow: '#F0D592',
+    brightBlue: ATLAS_BLUE.t50,
+    brightMagenta: '#D7B8F6',
+    brightCyan: '#77D7E2',
+    brightWhite: '#F2F6FA',
   },
+  // O começo e o fim de cada unidade do Verilog (module e endmodule, e os
+  // pares de primitive, interface, package e program) em negrito, no azul
+  // vivo: a moldura do arquivo salta das outras palavras reservadas. A
+  // gramática do Monaco dá `keyword.<palavra>.sv` ao .v e ao .sv.
+  rules: [
+    'module',
+    'macromodule',
+    'endmodule',
+    'primitive',
+    'endprimitive',
+    'interface',
+    'endinterface',
+    'package',
+    'endpackage',
+    'program',
+    'endprogram',
+  ].map((word) => tokenRule(`keyword.${word}.sv`, ATLAS_BLUE.vivid, 'bold')),
 };
 
 /** O Atlas claro. O #0033A0 serve para linhas, texto e preenchimento. */

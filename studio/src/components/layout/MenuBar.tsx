@@ -2,8 +2,11 @@
 // Ajuda. Cada item é uma ação de actions.ts; o atalho aparece ao lado, e a
 // marca nas que ligam e desligam. O Exibir tem submenus (Consoles,
 // Aparência): solto, ele não caberia na altura mínima da janela.
+//
+// Os menus (`Menus`) ficam na barra de título integrada (TitleBar.tsx) ou,
+// sem ela, numa linha própria (`MenuBar`).
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
@@ -117,7 +120,9 @@ function Menu({
   const t = useT();
   const items = useItems(entries);
   return (
-    <div className="menubar__menu">
+    // Na barra de título integrada, um clique no menu aberto (num separador,
+    // na borda) não arrasta a janela.
+    <div className="menubar__menu" data-tauri-drag-region="false">
       <button
         type="button"
         className={`menubar__item${open ? ' is-open' : ''}`}
@@ -135,7 +140,15 @@ function Menu({
   );
 }
 
-export function MenuBar() {
+/** Botão direito no vazio da barra: o menu de aparência (layoutMenus.ts). */
+export function chromeContextMenu(event: ReactMouseEvent<HTMLElement>) {
+  if (event.target instanceof Element && event.target.closest('button, [role="menu"]')) return;
+  openContextMenu(event, chromeMenu());
+}
+
+/** Os menus, um aberto de cada vez: na barra de menus e na barra de título
+ * integrada (TitleBar.tsx). Com um aberto, passar o mouse noutro o abre. */
+export function Menus() {
   const [open, setOpen] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -158,14 +171,7 @@ export function MenuBar() {
   }, [open]);
 
   return (
-    <div
-      className="menubar"
-      ref={ref}
-      onContextMenu={(e) => {
-        if (e.target === e.currentTarget) openContextMenu(e, chromeMenu());
-      }}
-    >
-      <LaceMark className="menubar__logo" />
+    <div className="menubar__menus" ref={ref}>
       {MENUS.map((menu, index) => (
         <Menu
           key={menu.label}
@@ -177,6 +183,18 @@ export function MenuBar() {
           onClose={() => setOpen(null)}
         />
       ))}
+    </div>
+  );
+}
+
+/** A barra de menus numa linha própria, quando a barra de título integrada
+ * não está à vista: em tela cheia, ou com a janela ainda com a moldura do
+ * sistema (state/titleBar.ts). */
+export function MenuBar() {
+  return (
+    <div className="menubar" onContextMenu={chromeContextMenu}>
+      <LaceMark className="menubar__logo" />
+      <Menus />
     </div>
   );
 }

@@ -3,8 +3,8 @@
 // problemas, o cursor, a linguagem, o simulador e o bundle.
 //
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
-// Preferências > Layout). A espera de um atalho de duas etapas e a linha do
-// Vim aparecem sempre: sem elas, o teclado parece não responder.
+// Preferências > Layout da janela). A espera de um atalho de duas etapas e a
+// linha do Vim aparecem sempre: sem elas, o teclado parece não responder.
 
 import { CircleAlert, LayoutTemplate, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';

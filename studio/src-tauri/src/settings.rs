@@ -305,6 +305,18 @@ mod tests {
         assert!(settings.layouts.saved.is_empty());
     }
 
+    /// Um campo que esta versão não conhece (que saiu, ou de uma versão mais
+    /// nova) não leva o arquivo para o `.bad`: é ignorado e some na próxima
+    /// gravação.
+    #[test]
+    fn unknown_fields_are_ignored() {
+        let settings: Settings =
+            serde_json::from_str(r#"{ "theme": "dracula", "retired": "native" }"#).unwrap();
+        assert_eq!(settings.theme, "dracula");
+        let saved = serde_json::to_value(&settings).unwrap();
+        assert!(saved.get("retired").is_none());
+    }
+
     #[test]
     fn saved_layouts_pass_through_untouched() {
         let dir = tempfile::tempdir().unwrap();

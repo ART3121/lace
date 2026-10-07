@@ -97,6 +97,68 @@ export function Checkbox({
   );
 }
 
+/** Um interruptor, para uma preferência que liga e desliga na hora. O nome
+ * fica fora dele (uma `<label htmlFor>` com o `id`, ou `label`). */
+export function Switch({
+  checked,
+  onChange,
+  id,
+  label,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  id?: string;
+  /** O nome para leitores de tela, quando não há `<label>` ligada ao `id`. */
+  label?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      id={id}
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      className={`switch${checked ? ' is-on' : ''}`}
+      onClick={() => onChange(!checked)}
+    >
+      <span className="switch__thumb" aria-hidden />
+    </button>
+  );
+}
+
+/** Uma escolha entre poucas opções, todas à vista. */
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  label: string;
+}) {
+  return (
+    <div className="segmented" role="radiogroup" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={value === option.value}
+          className={value === option.value ? 'is-active' : ''}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Badge({
   tone = 'muted',
   children,

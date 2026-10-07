@@ -68,6 +68,8 @@ export function uiTokens(theme: Theme): Record<string, string> {
     overlay: ui.overlay ?? (dark ? '#0000008C' : '#00000040'),
     scrollbar: ui.scrollbar ?? (dark ? '#FFFFFF1F' : '#00000026'),
     shadowPop: ui.shadowPop ?? (dark ? '0 8px 24px #00000073' : '0 8px 24px #0000001F'),
+    windowClose: ui.windowClose ?? '#C42B1C',
+    windowCloseText: ui.windowCloseText ?? '#FFFFFF',
   };
   const tokens: Record<string, string> = {};
   for (const [key, value] of Object.entries({ ...complete, ...schematicColors(theme) })) {

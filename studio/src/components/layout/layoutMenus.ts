@@ -61,15 +61,19 @@ const MOVE_LABELS: Record<RegionId, Key> = {
   panel: 'layout.moveTo.panel',
 };
 
+/** "Mover para" as outras duas regiões. */
+export function moveItems(view: ViewId): MenuItem[] {
+  const from = regionOf(useLayout.getState().live, view);
+  return REGION_IDS.filter((region) => region !== from).map((region) => ({
+    label: t(MOVE_LABELS[region]),
+    run: () => useLayout.getState().moveView(view, region),
+  }));
+}
+
 /** O menu de uma aba de vista ou de um ícone da barra de atividades. */
 export function viewMenu(view: ViewId): MenuItem[] {
-  const layout = useLayout.getState();
-  const from = regionOf(layout.live, view);
   return [
-    ...REGION_IDS.filter((region) => region !== from).map((region) => ({
-      label: t(MOVE_LABELS[region]),
-      run: () => useLayout.getState().moveView(view, region),
-    })),
+    ...moveItems(view),
     { label: t('layout.hideView', { view: t(VIEW_INFO[view].label) }), run: () => useLayout.getState().setViewHidden(view, true) },
     SEPARATOR,
     appearanceSubmenu(),

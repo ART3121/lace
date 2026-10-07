@@ -49,6 +49,11 @@ export interface UiColors {
   overlay?: string;
   scrollbar?: string;
   shadowPop?: string;
+  /** O botão de fechar da barra de título integrada sob o mouse, e o X
+   * nele. Padrão: o vermelho do Windows e branco, em todos os temas, como
+   * no sistema. */
+  windowClose?: string;
+  windowCloseText?: string;
 }
 
 /** Os papéis da sintaxe. Cada um vira regras de token do Monaco. */
@@ -147,7 +152,8 @@ export interface Theme {
   editor: EditorColors;
   terminal: TerminalColors;
   /** Regras de token por cima das que saem de `syntax`, para um tema que
-   * pinta uma gramática do seu jeito (o Aurora Legacy, com o Dirac). */
+   * pinta uma gramática do seu jeito (o Aurora Legacy, com o Dirac; o Atlas,
+   * com o module do Verilog). */
   rules?: TokenRule[];
 }
 

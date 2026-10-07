@@ -32,9 +32,15 @@ interface ProjectState {
   bumpTree: () => void;
 }
 
+/** O título da janela, o do sistema (barra de tarefas, Alt+Tab) e o da barra
+ * de título integrada (TitleBar.tsx). */
+export function windowTitle(name: string | null): string {
+  return name ? `${name} - Lace Studio` : 'Lace Studio';
+}
+
 async function setTitle(name: string | null): Promise<void> {
   try {
-    await getCurrentWindow().setTitle(name ? `${name} - Lace Studio` : 'Lace Studio');
+    await getCurrentWindow().setTitle(windowTitle(name));
   } catch {
     // Fora do Tauri (vite no navegador) não há janela.
   }

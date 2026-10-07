@@ -68,7 +68,7 @@ lace-studio/
       api.ts                 uma função por comando Tauri
       types.ts               os tipos do Studio (espelho dos structs Rust)
       lace-types.ts          os tipos do Core, GERADOS dos JSON Schemas do Lace
-    state/                   stores: app, project, editor, jobs, layout, dialogs, toasts, hierarchy, reports, schematic;
+    state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic;
                              layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela)
     schematic/               o PRISM: netlist do Yosys, grafo, layout (ELK num worker), desenho, painéis, exportação
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
@@ -222,11 +222,38 @@ derrubado, e nenhuma ferramenta abre janela de console; a CLI chamada pelo
 
 ### 4.1 Estrutura da janela
 
-`App.tsx` monta, de cima para baixo: barra de menus, barra de ferramentas,
-a área de trabalho (`components/layout/Workbench.tsx`) e a barra de status.
-Diálogos, menu de contexto e avisos ficam por cima. O `.app` é um grid com
-uma área por barra e linhas `auto`: uma barra que o layout esconde não é
-montada, e a linha dela some sem deslocar as outras.
+`App.tsx` monta, de cima para baixo: a barra de título integrada ou a barra
+de menus, barra de ferramentas, a área de trabalho
+(`components/layout/Workbench.tsx`) e a barra de status. Diálogos, menu de
+contexto e avisos ficam por cima. O `.app` é um grid com uma área por barra
+e linhas `auto`: uma barra que o layout esconde não é montada, e a linha
+dela some sem deslocar as outras.
+
+**Barra de título** (`state/titleBar.ts`, `components/layout/TitleBar.tsx`).
+O Studio não usa a barra de título do sistema: uma faixa na linha da barra
+de menus leva os menus (`Menus`, de `MenuBar.tsx`), o título
+(`windowTitle`, o mesmo que `state/project.ts` põe na janela para a barra
+de tarefas) e, no Windows e no Linux, os botões de minimizar, maximizar ou
+restaurar e fechar; fechar passa pelo `onCloseRequested` de `App.tsx`. A
+faixa arrasta a janela por `data-tauri-drag-region="deep"`: o script do
+Tauri não arrasta por elementos clicáveis, e os menus abertos têm
+`data-tauri-drag-region="false"`. Ela sai em tela cheia, e os menus, se à
+vista, voltam para a barra de menus. As permissões são as de
+`capabilities/default.json`: `set-decorations`, `minimize`,
+`toggle-maximize`, `close` e `start-dragging`. Como cada sistema chega lá:
+
+- **Windows e Linux.** A janela nasce com a moldura do sistema, e
+  `applyTitleBar` a tira (`setDecorations(false)`) antes do `reveal`.
+  Bordas e cantos continuam redimensionando (o tao trata a borda de cima no
+  Windows e todas no Linux). Se a interface não carregar, a janela do
+  `REVEAL_FALLBACK` tem a moldura; se a moldura não sair, os menus ficam na
+  barra de menus. O menu de encaixe do Windows 11 sobre o maximizar não
+  aparece: o Tauri não o oferece para botões desenhados pela página.
+- **macOS.** O estilo `Overlay` (os botões coloridos por cima da página), o
+  título do sistema escondido e a posição dos botões só se definem na
+  criação da janela: são o `titleBarStyle`, o `hiddenTitle` e o
+  `trafficLightPosition` do `tauri.conf.json`, que o Tauri só lê no macOS.
+  A faixa deixa 78 px para os botões (`.titlebar--mac`).
 
 **Abertura.** A janela nasce escondida e com fundo escuro (`visible: false`
 e `backgroundColor` em `tauri.conf.json`). A interface a mostra
@@ -334,6 +361,8 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useSchematic` | `state/schematic.ts` | o PRISM: o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista (no `localStorage`) |
 | `useLayout` | `state/layout.ts` | a janela agora (`live`: regiões, vistas, barras, tamanhos), a maximização do painel, as marcas de não lido, o modo do explorador, o zoom e o zen; guardado no `localStorage` por conveniência (o zen não) |
 | (sem store) | `state/savedLayouts.ts` | os layouts com nome: os prontos e os gravados no `settings.json`; aplicar, salvar, restaurar, renomear, excluir; `useLayoutStatus` (o em uso e se a janela está diferente dele) |
+| `useSettingsPage` | `state/settingsPage.ts` | a página aberta das Preferências (no `localStorage`); "Personalizar layout..." a troca para a do layout antes de abrir a aba |
+| `useTitleBar` | `state/titleBar.ts` | o sistema, se a janela já está sem a barra de título do sistema, se está maximizada, em tela cheia, com foco |
 | `useDialogs` | `state/dialogs.ts` | o diálogo aberto; `prompt()` e `confirm()` devolvem promessas |
 | `useToasts` | `state/toasts.ts` | os avisos rápidos; `showError` e `guarded` |
 | `useHierarchy` | `state/hierarchy.ts` | a última hierarquia elaborada, se está desatualizada; atualiza depois de cada fluxo que passa |

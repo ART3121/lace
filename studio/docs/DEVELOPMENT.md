@@ -212,9 +212,11 @@ Para um tema novo, um objeto a mais no catálogo, com a fonte das cores na
 tabela do começo do arquivo. O id não muda depois de lançado: ele fica
 gravado no `settings.json` de quem escolheu o tema.
 
-O padrão, Atlas, é neutro e sem enfeite: cor só onde
-informa algo, azul do CERN nos detalhes. As medidas (fontes, espaços, raios,
-alturas) ficam em `src/styles/tokens.css`.
+O padrão, Atlas, tem de destaque o azul do ATLAS (#0B80C3, a cor da
+identidade visual do experimento, atlas.cern/design) sobre fundos de ardósia,
+e a sintaxe com um tom por papel; todo texto dele tem pelo menos 4,5:1 com o
+fundo, menos o comentário. As medidas (fontes, espaços, raios, alturas) ficam
+em `src/styles/tokens.css`.
 
 ### Gramáticas de C± e do assembly
 

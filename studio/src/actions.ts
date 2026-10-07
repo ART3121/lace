@@ -49,6 +49,7 @@ import { isOnScreen, useLayout, type RegionId, type ViewId } from './state/layou
 import { CONSOLE_CHANNELS, regionOf, VIEW_INFO } from './state/layoutModel';
 import { useProject } from './state/project';
 import { resetLayout, restoreLayout, saveLayout, saveLayoutAs } from './state/savedLayouts';
+import { useSettingsPage } from './state/settingsPage';
 import { guarded, showError, useToasts } from './state/toasts';
 import { openWaveTab, waveInTab } from './state/waves';
 import { toggledTheme } from './themes';
@@ -107,28 +108,10 @@ function toggleBar(bar: 'menubar' | 'toolbar' | 'statusbar') {
   useLayout.getState().setBar(bar, !live().bars[bar]);
 }
 
-/**
- * Preferências > Layout: abre as Preferências e rola até a seção. A aba
- * monta depois; a rolagem é a do contêiner da vista (o `scrollIntoView`
- * rolaria também os ancestrais, até a janela).
- */
+/** Preferências > Layout da janela: as Preferências abertas nessa página. */
 function customizeLayout() {
+  useSettingsPage.getState().setPage('layout');
   useEditor.getState().openView('settings');
-  let tries = 0;
-  const scroll = () => {
-    const section = document.getElementById('settings-layout');
-    if (!section) {
-      if (tries++ < 40) window.setTimeout(scroll, 50);
-      return;
-    }
-    let container = section.parentElement;
-    while (container && !(container.scrollHeight > container.clientHeight && /auto|scroll/.test(getComputedStyle(container).overflowY))) {
-      container = container.parentElement;
-    }
-    if (!container) return;
-    container.scrollTop += section.getBoundingClientRect().top - container.getBoundingClientRect().top - 16;
-  };
-  window.setTimeout(scroll, 0);
 }
 
 /** O componente está no bundle. Sem a informação do bundle ainda, `true`:
@@ -569,7 +552,7 @@ export const ACTIONS: Action[] = [
     run: () =>
       useApp.getState().updateSettings((s) => ({ ...s, theme: toggledTheme(useApp.getState().theme) })),
   },
-  { id: 'selectTheme', label: 'action.selectTheme', category: 'view', run: () => openDialog({ kind: 'theme' }) },
+  { id: 'selectTheme', label: 'action.selectTheme', category: 'view', keys: 'Ctrl+K T', run: () => openDialog({ kind: 'theme' }) },
 
   // Projeto
   { id: 'addVerilog', label: 'action.addVerilog', category: 'project', enabled: hasProject, run: () => addVerilogFiles() },

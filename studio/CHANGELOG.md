@@ -26,6 +26,15 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - **Fluxo > Escolher o alvo** e **Exibir > Consoles**, para quando o
   seletor de alvo ou um console estiver escondido.
 - Ctrl+Alt+B mostra e esconde a barra lateral direita.
+- Ctrl+K T abre a lista de temas (Exibir > Selecionar tema), como o
+  Ctrl+K Ctrl+T do VS Code.
+- Barra de título integrada: os menus, o nome do projeto e os botões de
+  minimizar, maximizar e fechar numa faixa só, no lugar da barra de título
+  do sistema mais a barra de menus. Arrastar a faixa move a janela, e dois
+  cliques maximizam. No macOS, os botões coloridos do sistema ficam no
+  canto da faixa. No Windows 11, o menu de encaixe que aparece sobre o
+  maximizar não existe nessa faixa; Win+Z e arrastar até a borda
+  continuam.
 
 ### Mudado
 
@@ -44,7 +53,6 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   não trava a janela: o `ula_fdiv` do proc_fft leva 1,4 s, o `fir` com
   32 taps, 0,13 s. A síntese do Studio não roda mais o Graphviz; a CLI
   continua com ele (`lace synth --svg`).
-
 - A Rápida (F9) é a simulação rápida, o Fast Sim da AURORA: roda sem gravar
   onda (`lace sim --fast`). O testbench Verilog e o de um processador rodam
   no Verilator, qualquer que seja o simulador escolhido; um testbench cocotb
@@ -60,6 +68,30 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   ocultar a barra lateral e o painel foi para Aparência.
 - O terminal e a Busca só pegam o foco quando são pedidos. Aparecer porque
   um layout foi aplicado não tira o foco do editor.
+- As Preferências têm uma página por assunto (Geral, Aparência, Layout da
+  janela, Editor, Simulação, Bundle do Lace), com a lista à esquerda, em
+  vez de uma página só com tudo. Cada preferência é uma linha, com o
+  controle à direita: interruptor para ligar e desligar, escolha à vista
+  para duas ou três opções. O shell do terminal foi para Geral e o Modo zen,
+  para Editor. A página aberta é lembrada.
+- O tema Atlas ficou mais vivo. O destaque passou do azul do CERN ao azul
+  do ATLAS (#0B80C3, a cor da identidade visual do experimento), os fundos
+  ganharam um tom de ardósia puxado para esse azul, com o editor um tom
+  abaixo da barra lateral, e a sintaxe tem um tom por papel, com as
+  palavras reservadas no azul do ATLAS e `module` e `endmodule` em negrito,
+  num azul mais vivo. O Atlas Branco continua no azul do CERN.
+- O assembly do editor conhece as leituras da divisão do YANC 6.0
+  (`QUO`, `REM`, `F_QUO`), e a ajuda de `DIV`, `MOD` e `F_DIV` mostra a
+  sequência de três palavras que o `asmcomp` passou a exigir.
+
+### Corrigido
+
+- O menu do botão direito do editor saía transparente, com o texto preto,
+  em todos os temas. Agora segue o tema, como os menus do Studio.
+- No Verilog, `module` e `endmodule`, `begin` e `end` saíam na cor dos
+  operadores, pintados como pares de parênteses. Agora têm a cor das
+  palavras reservadas, e só parênteses, colchetes e chaves ganham cor de
+  par.
 
 ## [0.3.0] - 2026-10-06
 

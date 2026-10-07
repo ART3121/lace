@@ -4,7 +4,8 @@
 // Preferências.
 //
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
-// Preferências > Layout); um grupo sem nenhum botão some com o separador.
+// Preferências > Layout da janela); um grupo sem nenhum botão some com o
+// separador.
 
 import { CircleStop } from 'lucide-react';
 import type { ReactNode } from 'react';

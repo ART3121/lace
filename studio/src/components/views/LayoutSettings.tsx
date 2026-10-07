@@ -1,12 +1,16 @@
-// Preferências > Layout: o layout em uso (trocar, salvar, restaurar,
-// renomear, excluir) e o arranjo da janela agora: as barras, as regiões, em
-// que região fica cada vista e os itens das barras de ferramentas e de
-// status. As mudanças valem na hora para a janela; "Salvar layout" as grava
-// no layout em uso, como no resto do Studio.
+// Preferências > Layout da janela: o layout em uso e o arranjo da janela
+// agora. As mudanças valem na hora; "Salvar" as grava no layout em uso, como
+// no resto do Studio.
+//
+// Para não pesar: do layout em uso, só o que serve agora fica à vista (Salvar
+// e Restaurar aparecem quando a janela está diferente dele; o resto vai no
+// menu ⋯); as vistas aparecem agrupadas por região, como na janela, cada uma
+// com o olho e o menu dela; e os itens das barras ficam recolhidos.
 
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { Eye, EyeOff, MoreHorizontal } from 'lucide-react';
+import type { MouseEvent } from 'react';
 
-import { useT } from '../../i18n';
+import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { useLayout, type RegionId, type ViewId } from '../../state/layout';
 import {
@@ -19,50 +23,84 @@ import {
   type LayoutBars,
   type PanelPosition,
 } from '../../state/layoutModel';
-import { applyLayout, deleteLayout, namedLayouts, renameLayout, restoreLayout, saveLayout, saveLayoutAs, useLayoutStatus } from '../../state/savedLayouts';
-import { Button, Checkbox, IconButton } from '../common';
+import {
+  applyLayout,
+  deleteLayout,
+  namedLayouts,
+  renameLayout,
+  resetLayout,
+  restoreLayout,
+  saveLayout,
+  saveLayoutAs,
+  useLayoutStatus,
+} from '../../state/savedLayouts';
+import { Button, Checkbox, IconButton, openContextMenu, Segmented, Switch, type MenuItem } from '../common';
+import { moveItems } from '../layout/layoutMenus';
+import { VIEW_ICONS } from '../layout/viewCatalog';
+import { SettingRow, SettingsGroup } from './settingsParts';
 
-function ViewRow({ view, region, index, count }: { view: ViewId; region: RegionId; index: number; count: number }) {
+/** Abre um menu logo abaixo do botão que o pediu. */
+function menuBelow(e: MouseEvent<HTMLElement>, items: MenuItem[]) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  openContextMenu({ clientX: rect.left, clientY: rect.bottom + 4, preventDefault: () => e.preventDefault() }, items);
+}
+
+function ViewItem({ view, region, index, count }: { view: ViewId; region: RegionId; index: number; count: number }) {
   const t = useT();
   const hidden = useLayout((s) => s.live.hidden.views.includes(view));
-  const layout = useLayout.getState;
+  const name = t(VIEW_INFO[view].label);
+  const Icon = VIEW_ICONS[view];
+  const move = (to: number) => useLayout.getState().moveView(view, region, to);
   return (
-    <tr>
-      <td>{t(VIEW_INFO[view].label)}</td>
-      <td>
-        <select
-          className="select select--small"
-          aria-label={t('settings.layout.viewRegion', { view: t(VIEW_INFO[view].label) })}
-          value={region}
-          onChange={(e) => layout().moveView(view, e.target.value as RegionId)}
-        >
-          {REGION_IDS.map((id) => (
-            <option key={id} value={id}>
-              {t(REGION_LABELS[id])}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td>
-        <label className="check check--small" title={t('settings.layout.shown')}>
-          <input
-            type="checkbox"
-            checked={!hidden}
-            aria-label={t('settings.layout.viewShown', { view: t(VIEW_INFO[view].label) })}
-            onChange={(e) => layout().setViewHidden(view, !e.target.checked)}
+    <li className={`settings-view${hidden ? ' is-hidden' : ''}`}>
+      <Icon size={14} strokeWidth={1.7} className="settings-view__icon" aria-hidden />
+      <span className="settings-view__name">{name}</span>
+      <IconButton
+        label={t(hidden ? 'layout.showView' : 'layout.hideView', { view: name })}
+        aria-pressed={!hidden}
+        onClick={() => useLayout.getState().setViewHidden(view, !hidden)}
+      >
+        {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+      </IconButton>
+      <IconButton
+        label={t('settings.layout.viewMenu', { view: name })}
+        onClick={(e) =>
+          menuBelow(e, [
+            ...moveItems(view),
+            { separator: true },
+            { label: t('settings.layout.up'), disabled: index === 0, run: () => move(index - 1) },
+            { label: t('settings.layout.down'), disabled: index === count - 1, run: () => move(index + 1) },
+          ])
+        }
+      >
+        <MoreHorizontal size={14} />
+      </IconButton>
+    </li>
+  );
+}
+
+/** Os itens de uma barra, recolhidos: a lista só abre quando se quer mexer. */
+function BarItems({ bar, title, items }: { bar: 'toolbar' | 'statusbar'; title: string; items: { id: string; label: Key }[] }) {
+  const t = useT();
+  const hidden = useLayout((s) => s.live.hidden[bar]);
+  const shown = items.filter((item) => !hidden.includes(item.id)).length;
+  return (
+    <details className="settings-details">
+      <summary>
+        <span className="settings-details__title">{title}</span>
+        <span className="settings-details__count">{t('settings.layout.itemsShown', { shown, total: items.length })}</span>
+      </summary>
+      <div className="settings-details__body">
+        {items.map((item) => (
+          <Checkbox
+            key={item.id}
+            checked={!hidden.includes(item.id)}
+            onChange={(value) => useLayout.getState().setItemHidden(bar, item.id, !value)}
+            label={t(item.label)}
           />
-          <span className="check__box" aria-hidden />
-        </label>
-      </td>
-      <td className="layout-settings__order">
-        <IconButton label={t('settings.layout.up')} disabled={index === 0} onClick={() => layout().moveView(view, region, index - 1)}>
-          <ArrowUp size={14} />
-        </IconButton>
-        <IconButton label={t('settings.layout.down')} disabled={index === count - 1} onClick={() => layout().moveView(view, region, index + 1)}>
-          <ArrowDown size={14} />
-        </IconButton>
-      </td>
-    </tr>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -75,133 +113,121 @@ export function LayoutSettings() {
   const layouts = namedLayouts(settings);
   const state = useLayout.getState;
 
+  const status = dirty ? t('settings.layout.modified') : layout.readOnly ? t('settings.layout.readOnly') : t('settings.layout.saved');
   const bar = (key: Exclude<keyof LayoutBars, 'activitybar'>, label: string) => (
-    <Checkbox checked={live.bars[key]} onChange={(value) => state().setBar(key, value)} label={label} />
+    <SettingRow label={label}>{(id) => <Switch id={id} checked={live.bars[key]} onChange={(value) => state().setBar(key, value)} />}</SettingRow>
+  );
+  const region = (id: RegionId) => (
+    <SettingRow key={id} label={t(REGION_LABELS[id])}>
+      {(control) => <Switch id={control} checked={live.regions[id].visible} onChange={(value) => state().setRegionVisible(id, value)} />}
+    </SettingRow>
   );
 
   return (
-    <section className="form-section" id="settings-layout">
-      <h2>{t('settings.layout')}</h2>
-      <p className="muted">{t('settings.layout.hint')}</p>
-      {zen && <p className="text-warn">{t('settings.layout.zen')}</p>}
-      <fieldset className="layout-settings" disabled={zen}>
-        {/* Não são Fields: o <label> passaria o clique no título ao primeiro botão. */}
-        <div className="field">
-          <span className="field__label">{t('settings.layout.active')}</span>
-          <div className="input-group layout-settings__actions">
-            <select className="select" value={layout.id} onChange={(e) => void applyLayout(e.target.value)}>
-              {layouts.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.preset ? `${candidate.name} (${t('layout.tag.preset')})` : candidate.name}
-                </option>
-              ))}
-            </select>
-            <Button variant="primary" disabled={!dirty && !layout.readOnly} onClick={() => void saveLayout()}>
-              {t('action.saveLayout')}
-            </Button>
-            <Button onClick={() => void saveLayoutAs()}>{t('settings.layout.saveAs')}</Button>
-            <Button disabled={!dirty} onClick={restoreLayout}>
-              {t('action.restoreLayout')}
-            </Button>
-            <Button disabled={layout.readOnly} onClick={() => void renameLayout(layout.id)}>
-              {t('settings.layout.rename')}
-            </Button>
-            <Button variant="danger" disabled={layout.readOnly} onClick={() => void deleteLayout(layout.id)}>
-              {t('settings.layout.delete')}
-            </Button>
-          </div>
-          <span className="field__hint">
-            {dirty ? t('settings.layout.modified') : layout.readOnly ? t('settings.layout.readOnly') : t('settings.layout.saved')}
-          </span>
-        </div>
+    <>
+      <p className="settings__intro">{t('settings.layout.hint')}</p>
+      {zen && <p className="settings__note">{t('settings.layout.zen')}</p>}
+      <fieldset className="settings-fieldset" disabled={zen}>
+        <SettingsGroup>
+          <SettingRow label={t('settings.layout.active')} hint={status} stack>
+            {(id) => (
+              <div className="settings-inline">
+                <select id={id} className="select" value={layout.id} onChange={(e) => void applyLayout(e.target.value)}>
+                  {layouts.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      {candidate.preset ? `${candidate.name} (${t('layout.tag.preset')})` : candidate.name}
+                    </option>
+                  ))}
+                </select>
+                {dirty && (
+                  <Button variant="primary" onClick={() => void saveLayout()}>
+                    {layout.readOnly ? t('settings.layout.saveAs') : t('common.save')}
+                  </Button>
+                )}
+                {dirty && <Button onClick={restoreLayout}>{t('settings.layout.restore')}</Button>}
+                <IconButton
+                  label={t('settings.layout.more')}
+                  onClick={(e) =>
+                    menuBelow(e, [
+                      { label: t('settings.layout.saveAs'), run: () => void saveLayoutAs() },
+                      { label: t('settings.layout.rename'), disabled: layout.readOnly, run: () => void renameLayout(layout.id) },
+                      { label: t('settings.layout.delete'), disabled: layout.readOnly, danger: true, run: () => void deleteLayout(layout.id) },
+                      { separator: true },
+                      { label: t('action.resetLayout'), run: () => void resetLayout() },
+                    ])
+                  }
+                >
+                  <MoreHorizontal size={15} />
+                </IconButton>
+              </div>
+            )}
+          </SettingRow>
+        </SettingsGroup>
 
-        <h3 className="layout-settings__subtitle">{t('settings.layout.bars')}</h3>
-        <div className="layout-settings__grid">
+        <SettingsGroup title={t('settings.layout.bars')}>
           {bar('menubar', t('layout.bar.menubar'))}
           {bar('toolbar', t('layout.bar.toolbar'))}
           {bar('statusbar', t('layout.bar.statusbar'))}
-        </div>
-        <div className="form-row">
-          <label className="field">
-            <span className="field__label">{t('layout.bar.activitybar')}</span>
-            <select
-              className="select"
-              value={live.bars.activitybar}
-              onChange={(e) => state().setBar('activitybar', e.target.value as ActivityBarSide)}
-            >
-              <option value="left">{t('settings.layout.side.left')}</option>
-              <option value="right">{t('settings.layout.side.right')}</option>
-              <option value="hidden">{t('settings.layout.side.hidden')}</option>
-            </select>
-          </label>
-          <label className="field">
-            <span className="field__label">{t('settings.layout.panelPosition')}</span>
-            <select
-              className="select"
-              value={live.panelPosition}
-              onChange={(e) => state().setPanelPosition(e.target.value as PanelPosition)}
-            >
-              <option value="bottom">{t('settings.layout.panel.bottom')}</option>
-              <option value="right">{t('settings.layout.panel.right')}</option>
-            </select>
-          </label>
-        </div>
-
-        <h3 className="layout-settings__subtitle">{t('settings.layout.regions')}</h3>
-        <div className="layout-settings__grid">
-          {REGION_IDS.map((id) => (
-            <Checkbox
-              key={id}
-              checked={live.regions[id].visible}
-              onChange={(value) => state().setRegionVisible(id, value)}
-              label={t(REGION_LABELS[id])}
-            />
-          ))}
-        </div>
-
-        <h3 className="layout-settings__subtitle">{t('settings.layout.views')}</h3>
-        <table className="table layout-settings__views">
-          <thead>
-            <tr>
-              <th>{t('settings.layout.view')}</th>
-              <th>{t('settings.layout.region')}</th>
-              <th>{t('settings.layout.visibility')}</th>
-              <th>{t('settings.layout.order')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {REGION_IDS.flatMap((region) =>
-              live.regions[region].views.map((view, index, views) => (
-                <ViewRow key={view} view={view} region={region} index={index} count={views.length} />
-              )),
+          <SettingRow label={t('layout.bar.activitybar')}>
+            {() => (
+              <Segmented
+                label={t('layout.bar.activitybar')}
+                value={live.bars.activitybar}
+                options={[
+                  { value: 'left' as ActivityBarSide, label: t('settings.layout.side.left') },
+                  { value: 'right' as ActivityBarSide, label: t('settings.layout.side.right') },
+                  { value: 'hidden' as ActivityBarSide, label: t('settings.layout.side.hidden') },
+                ]}
+                onChange={(value) => state().setBar('activitybar', value)}
+              />
             )}
-          </tbody>
-        </table>
+          </SettingRow>
+        </SettingsGroup>
 
-        <h3 className="layout-settings__subtitle">{t('settings.layout.toolbarItems')}</h3>
-        <div className="layout-settings__grid">
-          {TOOLBAR_ITEMS.map((item) => (
-            <Checkbox
-              key={item.id}
-              checked={!live.hidden.toolbar.includes(item.id)}
-              onChange={(shown) => state().setItemHidden('toolbar', item.id, !shown)}
-              label={t(item.label)}
-            />
-          ))}
-        </div>
+        <SettingsGroup title={t('settings.layout.regions')}>
+          {REGION_IDS.map(region)}
+          <SettingRow label={t('settings.layout.panelPosition')}>
+            {() => (
+              <Segmented
+                label={t('settings.layout.panelPosition')}
+                value={live.panelPosition}
+                options={[
+                  { value: 'bottom' as PanelPosition, label: t('settings.layout.panel.bottom') },
+                  { value: 'right' as PanelPosition, label: t('settings.layout.panel.right') },
+                ]}
+                onChange={(value) => state().setPanelPosition(value)}
+              />
+            )}
+          </SettingRow>
+        </SettingsGroup>
 
-        <h3 className="layout-settings__subtitle">{t('settings.layout.statusItems')}</h3>
-        <div className="layout-settings__grid">
-          {STATUS_ITEMS.map((item) => (
-            <Checkbox
-              key={item.id}
-              checked={!live.hidden.statusbar.includes(item.id)}
-              onChange={(shown) => state().setItemHidden('statusbar', item.id, !shown)}
-              label={t(item.label)}
-            />
-          ))}
-        </div>
+        <SettingsGroup title={t('settings.layout.views')} hint={t('settings.layout.viewsHint')}>
+          <div className="settings-views">
+            {REGION_IDS.map((id) => {
+              const views = live.regions[id].views;
+              return (
+                <section key={id} className="settings-views__region" aria-label={t(REGION_LABELS[id])}>
+                  <h4 className="settings-views__title">{t(REGION_LABELS[id])}</h4>
+                  {views.length === 0 ? (
+                    <p className="settings-views__empty">{t('settings.layout.noViews')}</p>
+                  ) : (
+                    <ul className="settings-views__list">
+                      {views.map((view, index) => (
+                        <ViewItem key={view} view={view} region={id} index={index} count={views.length} />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </SettingsGroup>
+
+        <SettingsGroup title={t('settings.layout.items')} hint={t('settings.layout.itemsHint')}>
+          <BarItems bar="toolbar" title={t('layout.bar.toolbar')} items={TOOLBAR_ITEMS} />
+          <BarItems bar="statusbar" title={t('layout.bar.statusbar')} items={STATUS_ITEMS} />
+        </SettingsGroup>
       </fieldset>
-    </section>
+    </>
   );
 }
