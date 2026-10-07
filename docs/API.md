@@ -307,7 +307,8 @@ void main()
 ```
 
 O `cmmcomp` recusa função de corpo vazio, e um corpo só com comentário conta
-como vazio (a fonte-modelo da AURORA, que é assim, não compila no YANC 5.6).
+como vazio (a fonte-modelo da AURORA, que é assim, não compila no YANC:
+conferido na 5.6 e na 6.0).
 Por isso o modelo traz uma instrução. Com `output_ports = 0` não há porta
 para o `out`, e o corpo é `int x = 0;`, que compila com um aviso de variável
 não usada.

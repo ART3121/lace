@@ -21,12 +21,12 @@ cocotb, e o cocotb precisa de simulador, compilador e Python que casem.
 
 ## 1. O que vem no bundle
 
-Bundle `2026.09.29`. Os pacotes, com as versões fixadas em
+Bundle `2026.10.07`. Os pacotes, com as versões fixadas em
 `bundle/versions.json`:
 
 | Pacote | Versão | O que traz | De onde vem |
 |---|---|---|---|
-| YANC | v5.6 (`e1ad149`) | `cmmcomp`, `appcomp`, `asmcomp`, `cpppp`, `cppcomp`, a biblioteca SAPHO, macros e headers | compilado do fonte pelo empacotamento |
+| YANC | v6.0 (`6cafe47`) | `cmmcomp`, `appcomp`, `asmcomp`, `cpppp`, `cppcomp`, a biblioteca SAPHO, macros e headers | compilado do fonte pelo empacotamento |
 | surfer-aurora | v0.7.0-nips.10 (`d0af8a7`) | o fork do Surfer da AURORA e o cliente web (WASM) dele | o executável, pré-compilado do commit fixado pelo workflow `surfer-aurora.yml` numa pré-release deste repositório e conferido pelo SHA-256 fixado (`prebuilt`); sem ele, compilado do fonte pelo empacotamento; o cliente web, o zip que a CI do fork publica na mesma tag, conferido pelo SHA-256 fixado |
 | OSS CAD Suite | release 2026-09-29 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys e o `dot` do Graphviz. Windows: só o Yosys | pacote oficial, conferido pelo SHA-256 publicado |
 | msys | `ucrt64-v1` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
@@ -301,12 +301,12 @@ a instalação.
    quatro fluxos e publica) e troque a tag, as duas URLs e os dois hashes,
    que estão no `SHA256SUMS` da release.
 2. Mudar `bundle`, o identificador do bundle.
-3. No YANC, trocar também o `ref:` do passo "YANC (fonte dos testes)" em
-   `.github/workflows/installers.yml` pelo mesmo `commit` de
-   `bundle/versions.json`. Esse passo baixa o fonte do YANC para
-   `vendor/yanc`, de onde `crates/lace-core/tests/yanc_regression.rs` lê os
-   casos de teste do próprio YANC; com outro commit, o CI compara o
-   compilador novo com os casos de teste antigos.
+3. No YANC, pôr o `vendor/yanc` no mesmo `commit` de
+   `bundle/versions.json` (ou apontar `LACE_TEST_YANC_SRC` para um fonte
+   nesse commit): é dele que `crates/lace-core/tests/yanc_regression.rs` lê
+   os casos de teste do próprio YANC, e com outro commit os testes comparam
+   o compilador novo com os casos de teste antigos. A release não roda
+   testes: esses rodam à mão.
 4. Montar o bundle e rodar os testes
    (`LACE_TEST_BUNDLE="$PWD/dist/toolchain" cargo test`; ver a seção 7).
 

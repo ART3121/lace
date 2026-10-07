@@ -714,8 +714,8 @@ impl Toolchain {
     }
 
     /// Biblioteca SAPHO (`yanc/SAPHO`): `-d` do `asmcomp`, `-y` do Icarus e
-    /// do Verilator. O YANC 5.6 ainda copia a mesma pasta como `HDL/` para a
-    /// AURORA, e avisa que essa cópia vai sair; o Lace usa o nome novo.
+    /// do Verilator. Até a 5.6, o YANC copiava a mesma pasta também como
+    /// `HDL/`, para a AURORA; a 6.0 só traz `SAPHO/`, o nome que o Lace usa.
     pub fn hdl_dir(&self) -> Result<Utf8PathBuf> {
         self.yanc_dir("SAPHO")
     }

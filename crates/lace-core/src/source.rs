@@ -2,12 +2,13 @@
 //!
 //! O nome dos artefatos de hardware NÃO vem do `-n` passado ao compilador: o
 //! `asmcomp` usa o `#PRNAME` que o `appcomp` registrou em `app_log.txt`.
-//! Conferido no YANC 5.6:
+//! Conferido no YANC 5.6 e no 6.0:
 //!
 //! - `#PRNAME outro` num processador `foo` gera `Hardware/outro.v` ao lado de
 //!   `Temp/pc_foo_mem.txt`, e o Verilog lê o arquivo de memória pelo nome
 //!   errado;
-//! - sem `#PRNAME`, os artefatos saem com nome de lixo (`Hardware/5.v`).
+//! - sem `#PRNAME`, os artefatos saem com um número no lugar do nome
+//!   (`Hardware/5.v` na 5.6, `Hardware/1.v` na 6.0).
 //!
 //! Por isso o Lace lê o nome declarado no fonte antes de compilar.
 

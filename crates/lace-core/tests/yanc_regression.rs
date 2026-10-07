@@ -108,17 +108,28 @@ fn cmm_negative_tests_are_rejected_with_expected_message() {
         let (fixture, expected) = line.split_once('|').unwrap();
         checked += 1;
 
-        // Como o regress.sh: a fixture vira p/Software/p.cmm.
+        // Como o regress.sh: a fixture vira <nome>/Software/<nome>.cmm, com o
+        // nome do #PRNAME dela, porque o Lace recusa um nome diferente do
+        // processador antes de compilar (`recursion.cmm`, do YANC 5.7, declara
+        // `recursion`); sem #PRNAME, `p`.
+        let source = std::fs::read_to_string(neg.join(fixture)).unwrap();
+        let name = source
+            .lines()
+            .find_map(|line| line.trim().strip_prefix("#PRNAME"))
+            .and_then(|rest| rest.split_whitespace().next())
+            .unwrap_or("p")
+            .to_owned();
         let (_guard, root) = common::tempdir();
-        std::fs::create_dir_all(root.join("p/Software")).unwrap();
-        std::fs::copy(neg.join(fixture), root.join("p/Software/p.cmm")).unwrap();
+        let software = root.join(&name).join("Software");
+        std::fs::create_dir_all(&software).unwrap();
+        std::fs::write(software.join(format!("{name}.cmm")), &source).unwrap();
         std::fs::write(
             root.join("t.spf"),
-            r#"{"structure": {"processors": ["p"]}}"#,
+            format!(r#"{{"structure": {{"processors": ["{name}"]}}}}"#),
         )
         .unwrap();
         let project = Project::open(root.join("t.spf")).unwrap();
-        let processor = project.require_processor("p").unwrap();
+        let processor = project.require_processor(&name).unwrap();
 
         match build(
             &toolchain,

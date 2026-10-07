@@ -345,9 +345,9 @@ mudá-los muda a classificação dos arquivos de todos os projetos.
    surfer-aurora). O SHA-256 do OSS CAD Suite está no campo `digest` da API
    de releases do GitHub; o do Graphviz, no `.sha256` ao lado do zip.
 2. Troque `bundle`, o identificador do bundle.
-3. YANC: troque também o `ref:` do passo "YANC (fonte dos testes)" em
-   `.github/workflows/installers.yml`, que baixa o fonte para
-   `yanc_regression`, e atualize o seu `vendor/yanc`.
+3. YANC: ponha o seu `vendor/yanc` no mesmo commit (ou aponte
+   `LACE_TEST_YANC_SRC` para um fonte nele), de onde o `yanc_regression` lê
+   os casos de teste do próprio YANC.
 4. Monte e confira:
 
    ```sh

@@ -7,7 +7,10 @@
  *
  * Conferido contra o YANC: lace/vendor/yanc/Compilers/ASMComp/Sources/ASMComp.l,
  * APPComp/Sources/app.l e Compilers/common/isa.tsv (a tabela de referência da
- * ISA). Onde a AURORA e o YANC divergem vale o YANC, anotado no ponto.
+ * ISA). Onde a AURORA e o YANC divergem vale o YANC, anotado no ponto. As
+ * leituras da divisão (QUO, REM, F_QUO) são do YANC 6.0, em que DIV, MOD e
+ * F_DIV levam três ciclos e o asmcomp recusa a divisão sem NOP e leitura
+ * depois (docs/pipeln-and-division.md do YANC, seção 4).
  *
  * Só tipos do Monaco são importados: quem registra recebe o namespace pronto.
  */
@@ -99,10 +102,12 @@ const OPCODES: readonly Opcode[] = [
   ['S_ADD', 'none', 'Soma inteira com a pilha.'],
   ['MLT', 'data', 'Multiplicação inteira com a memória.'],
   ['S_MLT', 'none', 'Multiplicação inteira com a pilha.'],
-  ['DIV', 'data', 'Divisão inteira com a memória.'],
-  ['S_DIV', 'none', 'Divisão inteira com a pilha.'],
-  ['MOD', 'data', 'Resto inteiro com a memória.'],
-  ['S_MOD', 'none', 'Resto inteiro com a pilha.'],
+  ['DIV', 'data', 'Começa a divisão inteira com a memória; o quociente sai duas palavras depois: DIV x, NOP, QUO.'],
+  ['S_DIV', 'none', 'Começa a divisão inteira com a pilha: S_DIV, NOP, QUO.'],
+  ['QUO', 'none', 'Quociente da divisão de duas palavras antes (DIV x, NOP, QUO). Apelido de DIV, sem operando.'],
+  ['MOD', 'data', 'Começa o resto inteiro com a memória; o resto sai duas palavras depois: MOD x, NOP, REM.'],
+  ['S_MOD', 'none', 'Começa o resto inteiro com a pilha: S_MOD, NOP, REM.'],
+  ['REM', 'none', 'Resto da divisão de duas palavras antes (MOD x, NOP, REM). Apelido de MOD, sem operando.'],
   ['SGN', 'data', 'Sinal, inteiro, com a memória.'],
   ['S_SGN', 'none', 'Sinal, inteiro, com a pilha.'],
   ['F_ADD', 'data', 'Soma float com a memória.'],
@@ -113,8 +118,9 @@ const OPCODES: readonly Opcode[] = [
   ['SF_SU2', 'none', 'Subtração float, pilha na entrada 2.'],
   ['F_MLT', 'data', 'Multiplicação float com a memória.'],
   ['SF_MLT', 'none', 'Multiplicação float com a pilha.'],
-  ['F_DIV', 'data', 'Divisão float com a memória.'],
-  ['SF_DIV', 'none', 'Divisão float com a pilha.'],
+  ['F_DIV', 'data', 'Começa a divisão float com a memória; o quociente sai duas palavras depois: F_DIV x, NOP, F_QUO.'],
+  ['SF_DIV', 'none', 'Começa a divisão float com a pilha: SF_DIV, NOP, F_QUO.'],
+  ['F_QUO', 'none', 'Quociente float da divisão de duas palavras antes (F_DIV x, NOP, F_QUO). Apelido de F_DIV, sem operando.'],
   ['F_SGN', 'data', 'Sinal, float, com a memória.'],
   ['SF_SGN', 'none', 'Sinal, float, com a pilha.'],
   ['F_SCL', 'data', 'Escala o float por 2^k, k da memória.'],
