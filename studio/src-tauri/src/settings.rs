@@ -63,6 +63,8 @@ pub struct Settings {
     pub editor: EditorSettings,
     /// Preferências do modo zen.
     pub zen: ZenSettings,
+    /// Os layouts da janela.
+    pub layouts: LayoutSettings,
     /// Projetos abertos recentemente, do mais novo para o mais antigo.
     pub recent_projects: Vec<RecentProject>,
 }
@@ -96,6 +98,7 @@ impl Default for Settings {
             terminal_shell: "powershell".into(),
             editor: EditorSettings::default(),
             zen: ZenSettings::default(),
+            layouts: LayoutSettings::default(),
             recent_projects: Vec::new(),
         }
     }
@@ -154,6 +157,33 @@ impl Default for ZenSettings {
             center_layout: true,
             show_tabs: false,
             hide_line_numbers: false,
+        }
+    }
+}
+
+/// Os layouts da janela: o que está em uso e os que o usuário gravou
+/// (Exibir > Layout, Preferências > Layout).
+///
+/// O formato de um layout é da interface (`src/state/layoutModel.ts`, com a
+/// versão em `v`), e o backend não o lê: guarda cada um como veio. Assim um
+/// layout malformado, ou gravado por uma versão mais nova do Studio, não leva
+/// o `settings.json` inteiro para o `.bad`, e um Studio mais velho não corta
+/// os campos que não conhece ao gravar outra preferência.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct LayoutSettings {
+    /// O layout em uso: o id de um dos gravados ou de um pronto da
+    /// interface (`default`, o Padrão).
+    pub active: String,
+    /// Os layouts gravados, na ordem em que aparecem.
+    pub saved: Vec<serde_json::Value>,
+}
+
+impl Default for LayoutSettings {
+    fn default() -> Self {
+        LayoutSettings {
+            active: "default".into(),
+            saved: Vec::new(),
         }
     }
 }
@@ -271,6 +301,64 @@ mod tests {
         assert_eq!(settings.editor.tab_size, 4);
         assert!(settings.zen.fullscreen);
         assert!(!settings.zen.show_tabs);
+        assert_eq!(settings.layouts.active, "default");
+        assert!(settings.layouts.saved.is_empty());
+    }
+
+    #[test]
+    fn saved_layouts_pass_through_untouched() {
+        let dir = tempfile::tempdir().unwrap();
+        let dir = Utf8Path::from_path(dir.path()).unwrap();
+        // Um layout de uma versão futura, com um campo que esta não conhece,
+        // e duas entradas que nem são layouts.
+        let layouts = serde_json::json!({
+            "active": "u-1",
+            "saved": [
+                { "v": 9, "id": "u-1", "name": "Simulação", "future": [1, 2] },
+                42,
+                "nem é objeto",
+            ],
+        });
+        let text = serde_json::json!({ "theme": "dracula", "layouts": layouts }).to_string();
+        std::fs::write(dir.join("settings.json"), text).unwrap();
+
+        let store = SettingsStore::load(dir);
+        assert!(!dir.join("settings.json.bad").exists());
+        let settings = store.get();
+        assert_eq!(settings.layouts.active, "u-1");
+        assert_eq!(serde_json::json!(settings.layouts.saved), layouts["saved"]);
+
+        // Gravar outra preferência devolve os layouts como vieram.
+        store
+            .set(Settings {
+                theme: "atlas".into(),
+                ..settings
+            })
+            .unwrap();
+        let reloaded = SettingsStore::load(dir).get();
+        assert_eq!(reloaded.theme, "atlas");
+        assert_eq!(serde_json::json!(reloaded.layouts.saved), layouts["saved"]);
+    }
+
+    #[test]
+    fn layouts_come_from_the_interface() {
+        // Ao contrário dos recentes, que `set` mantém, os layouts gravados
+        // são os que a interface manda.
+        let dir = tempfile::tempdir().unwrap();
+        let dir = Utf8Path::from_path(dir.path()).unwrap();
+        let store = SettingsStore::load(dir);
+        let mut settings = store.get();
+        settings.layouts.active = "u-2".into();
+        settings
+            .layouts
+            .saved
+            .push(serde_json::json!({ "v": 1, "id": "u-2", "name": "Painel à direita" }));
+        store.set(settings).unwrap();
+
+        let reloaded = SettingsStore::load(dir).get();
+        assert_eq!(reloaded.layouts.active, "u-2");
+        assert_eq!(reloaded.layouts.saved.len(), 1);
+        assert_eq!(reloaded.layouts.saved[0]["name"], "Painel à direita");
     }
 
     #[test]

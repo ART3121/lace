@@ -1,40 +1,49 @@
-// A barra de atividades, à esquerda: as vistas da barra lateral em cima,
-// ferramentas e preferências embaixo.
+// A barra de atividades, à esquerda ou à direita da janela: em cima, as
+// vistas da barra lateral do mesmo lado (a que o layout pôs ali); embaixo,
+// ferramentas e preferências. Clicar na vista que já está na frente esconde
+// a barra lateral, como no VS Code.
 
-import { FolderTree, ScrollText, Search, Settings, Workflow, Wrench, type LucideIcon } from 'lucide-react';
+import { Settings, Wrench } from 'lucide-react';
 
-import { useT, type Key } from '../../i18n';
+import { useT } from '../../i18n';
 import { useApp } from '../../state/app';
 import { useEditor } from '../../state/editor';
-import { useLayout, type SidebarView } from '../../state/layout';
+import { useLayout } from '../../state/layout';
+import { VIEW_INFO, visibleViews } from '../../state/layoutModel';
+import { openContextMenu } from '../common';
+import { activityBarMenu, viewMenu } from './layoutMenus';
+import { viewTitle } from './Region';
+import { VIEW_ICONS, ViewBadge } from './viewCatalog';
 
-const VIEWS: { id: SidebarView; icon: LucideIcon; label: Key; keys?: string }[] = [
-  { id: 'explorer', icon: FolderTree, label: 'sidebar.explorer', keys: 'Ctrl+Shift+E' },
-  { id: 'flow', icon: Workflow, label: 'sidebar.flow' },
-  { id: 'search', icon: Search, label: 'sidebar.search', keys: 'Ctrl+Shift+F' },
-  { id: 'reports', icon: ScrollText, label: 'sidebar.reports' },
-];
-
-export function ActivityBar() {
+export function ActivityBar({ side }: { side: 'left' | 'right' }) {
   const t = useT();
-  const view = useLayout((s) => s.sidebarView);
-  const visible = useLayout((s) => s.sidebarVisible);
+  const live = useLayout((s) => s.live);
   const toolchainMissing = useApp((s) => s.toolchain !== null && !s.toolchain.found);
+  const region = live.regions[side];
 
   return (
-    <nav className="activitybar">
-      {VIEWS.map(({ id, icon: Icon, label, keys }) => (
-        <button
-          key={id}
-          type="button"
-          className={`activitybar__item${visible && view === id ? ' is-active' : ''}`}
-          title={keys ? `${t(label)} (${keys})` : t(label)}
-          aria-label={t(label)}
-          onClick={() => useLayout.getState().showSidebar(id)}
-        >
-          <Icon size={20} strokeWidth={1.6} />
-        </button>
-      ))}
+    <nav className={`activitybar activitybar--${side}`} onContextMenu={(e) => openContextMenu(e, activityBarMenu(side))}>
+      {visibleViews(live, side).map((view) => {
+        const Icon = VIEW_ICONS[view];
+        return (
+          <button
+            key={view}
+            type="button"
+            className={`activitybar__item${region.visible && region.active === view ? ' is-active' : ''}`}
+            title={viewTitle(t, view)}
+            aria-label={t(VIEW_INFO[view].label)}
+            data-view-tab={view}
+            onClick={() => useLayout.getState().toggleView(view)}
+            onContextMenu={(e) => {
+              e.stopPropagation();
+              openContextMenu(e, viewMenu(view));
+            }}
+          >
+            <Icon size={20} strokeWidth={1.6} />
+            <ViewBadge view={view} compact />
+          </button>
+        );
+      })}
       <div className="activitybar__spacer" />
       <button
         type="button"

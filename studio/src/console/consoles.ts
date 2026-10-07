@@ -16,6 +16,10 @@
 // Os terminais vivem fora do React: são criados uma vez e o elemento deles
 // é movido para dentro do componente quando ele aparece. Assim a saída não
 // se perde ao trocar de aba, e escrever não redesenha a interface.
+//
+// Quem mostra um console é o dono dele, e o último a montar fica com o
+// elemento. Ao sair, o dono devolve o console ao anterior, se ainda houver
+// um: um console que muda de região passa pelos dois sem ficar órfão.
 
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
@@ -68,6 +72,8 @@ interface ConsoleEntry {
   fit: FitAddon;
   search: SearchAddon;
   opened: boolean;
+  /** Os contêineres que mostram o console, do mais antigo ao atual. */
+  owners: HTMLElement[];
 }
 
 const consoles = new Map<ConsoleChannel, ConsoleEntry>();
@@ -124,7 +130,7 @@ function create(channel: ConsoleChannel): ConsoleEntry {
   const host = document.createElement('div');
   host.className = 'console-host';
   host.dataset.channel = channel;
-  return { term, host, fit, search, opened: false };
+  return { term, host, fit, search, opened: false, owners: [] };
 }
 
 export function getConsole(channel: ConsoleChannel): ConsoleEntry {
@@ -139,6 +145,8 @@ export function getConsole(channel: ConsoleChannel): ConsoleEntry {
 /** Põe o console dentro de `container` (quando a aba dele aparece). */
 export function attachConsole(channel: ConsoleChannel, container: HTMLElement): void {
   const entry = getConsole(channel);
+  entry.owners = entry.owners.filter((owner) => owner !== container);
+  entry.owners.push(container);
   container.appendChild(entry.host);
   if (!entry.opened) {
     entry.term.open(entry.host);
@@ -147,8 +155,21 @@ export function attachConsole(channel: ConsoleChannel, container: HTMLElement): 
   fitConsole(channel);
 }
 
-export function detachConsole(channel: ConsoleChannel): void {
-  consoles.get(channel)?.host.remove();
+/** Tira o console de `container`. Se ele era o dono atual, o console volta
+ * ao dono anterior que ainda está na página; sem nenhum, sai da página. */
+export function detachConsole(channel: ConsoleChannel, container: HTMLElement): void {
+  const entry = consoles.get(channel);
+  if (!entry) return;
+  const current = entry.owners[entry.owners.length - 1] === container;
+  entry.owners = entry.owners.filter((owner) => owner !== container && owner.isConnected);
+  if (!current) return;
+  const previous = entry.owners[entry.owners.length - 1];
+  if (previous) {
+    previous.appendChild(entry.host);
+    requestAnimationFrame(() => fitConsole(channel));
+  } else {
+    entry.host.remove();
+  }
 }
 
 export function fitConsole(channel: ConsoleChannel): void {

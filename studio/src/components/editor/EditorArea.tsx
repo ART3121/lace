@@ -22,6 +22,7 @@ import { useProject } from '../../state/project';
 import { showError } from '../../state/toasts';
 import { baseName, relativeTo } from '../../util/paths';
 import { IconButton, openContextMenu, type MenuItem } from '../common';
+import { chromeMenu } from '../layout/layoutMenus';
 import { AboutView } from '../views/AboutView';
 import { CompareView } from '../views/CompareView';
 import { ProcessorView } from '../views/ProcessorView';
@@ -208,7 +209,14 @@ function TabBar({ group, count }: { group: EditorGroup; count: number }) {
   }, [group.activeId, tabs.length]);
 
   return (
-    <div className="editor-group__header">
+    <div
+      className="editor-group__header"
+      // Fora das abas, as barras e as regiões da janela: a barra de abas nunca
+      // some, então daqui sempre se volta ao que o layout escondeu.
+      onContextMenu={(e) => {
+        if (!(e.target as HTMLElement).closest('.tab')) openContextMenu(e, chromeMenu());
+      }}
+    >
       <div className="tabbar" ref={strip} role="tablist">
         {tabs.map((tab, index) => {
           const Icon = tabIcon(tab);

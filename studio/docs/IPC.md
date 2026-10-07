@@ -62,6 +62,16 @@ não vale.
 zen. Entrar e sair do zen não passa pelo backend; a tela cheia vem do
 `setFullscreen` da janela, pela permissão `core:window:allow-set-fullscreen`.
 
+`Settings.layouts` tem `active` (o id do layout em uso; padrão `default`, o
+Padrão) e `saved` (os layouts gravados pelo usuário). Cada item de `saved`
+é guardado como a interface o escreveu (`src/state/layoutModel.ts`, com a
+versão do formato em `v`) e o backend não o lê: um layout malformado ou de
+uma versão mais nova não leva o `settings.json` para o `.bad`, e gravar
+outra preferência o devolve como veio. Ao contrário dos recentes, os
+layouts enviados em `settings_set` são gravados. A janela de agora (o que o
+usuário mexeu depois de aplicar um layout) não passa pelo backend: fica no
+`localStorage` da WebView.
+
 ## Projeto (`commands/project.rs`)
 
 | Comando | Argumentos | Devolve | Equivale a |

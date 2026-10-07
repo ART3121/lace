@@ -39,7 +39,8 @@ import { relativeTo } from '../util/paths';
 import { useApp } from './app';
 import { useEditor } from './editor';
 import { useHierarchy } from './hierarchy';
-import { useLayout, type ConsoleChannel } from './layout';
+import { isOnScreen, useLayout, type ConsoleChannel } from './layout';
+import { regionOf } from './layoutModel';
 import { useProject } from './project';
 import { showError, useToasts } from './toasts';
 import { openWaveTab } from './waves';
@@ -164,14 +165,17 @@ function rel(path: string): string {
   return relativeTo(path, root());
 }
 
+/** Traz o console da etapa para a frente da região dele. Quem está no
+ * terminal de shell, na mesma região, não é tirado de lá; e um console que o
+ * layout escondeu não reaparece sozinho. Nos dois casos, a aba ganha o ponto
+ * de saída nova. */
 function show(channel: ConsoleChannel): void {
   const layout = useLayout.getState();
-  // Quem está no terminal de shell não é tirado de lá.
-  if (layout.panelTab === 'terminal' && layout.panelVisible) {
+  if (isOnScreen(layout, 'terminal') && regionOf(layout.live, 'terminal') === regionOf(layout.live, channel)) {
     layout.markUnread(channel);
     return;
   }
-  layout.showPanel(channel);
+  if (!layout.revealView(channel)) layout.markUnread(channel);
 }
 
 function write(channel: ConsoleChannel, text: string, style: LineStyle = 'plain'): void {

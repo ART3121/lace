@@ -68,7 +68,8 @@ lace-studio/
       api.ts                 uma função por comando Tauri
       types.ts               os tipos do Studio (espelho dos structs Rust)
       lace-types.ts          os tipos do Core, GERADOS dos JSON Schemas do Lace
-    state/                   stores: app, project, editor, jobs, layout, dialogs, toasts, hierarchy, reports
+    state/                   stores: app, project, editor, jobs, layout, dialogs, toasts, hierarchy, reports;
+                             layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome)
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
     console/                 os consoles xterm.js e o terminal de shell
     components/              layout/, sidebar/, editor/, panel/, views/, dialogs/
@@ -221,9 +222,10 @@ derrubado, e nenhuma ferramenta abre janela de console; a CLI chamada pelo
 ### 4.1 Estrutura da janela
 
 `App.tsx` monta, de cima para baixo: barra de menus, barra de ferramentas,
-a área de trabalho (barra de atividades, barra lateral, área central e
-painel inferior, com divisões redimensionáveis de `react-resizable-panels`)
-e a barra de status. Diálogos, menu de contexto e avisos ficam por cima.
+a área de trabalho (`components/layout/Workbench.tsx`) e a barra de status.
+Diálogos, menu de contexto e avisos ficam por cima. O `.app` é um grid com
+uma área por barra e linhas `auto`: uma barra que o layout esconde não é
+montada, e a linha dela some sem deslocar as outras.
 
 **Abertura.** A janela nasce escondida e com fundo escuro (`visible: false`
 e `backgroundColor` em `tauri.conf.json`). A interface a mostra
@@ -236,22 +238,77 @@ o backend a mostra depois de 10 s (`REVEAL_FALLBACK`, em `lib.rs`). O log
 registra quanto a abertura levou (`Startup: modules loaded in ... ms, first
 frame at ... ms`).
 
-Os botões de cada vista da barra lateral ficam na linha do título dela: a
-vista os declara com `SidebarActions`, e um portal os leva para lá
-(`components/sidebar/SidebarActions.tsx`).
+**Layout** (`state/layoutModel.ts`, `state/layout.ts`,
+`state/savedLayouts.ts`). Três regiões fixas, como no VS Code: a barra
+lateral esquerda, a direita e o painel (embaixo ou à direita do editor). As
+onze vistas (as quatro da barra lateral, os cinco consoles, Problemas e
+Terminal) ficam cada uma em uma região e podem ir para qualquer outra. O
+arranjo é um `LayoutBody`: as vistas de cada região, a ativa e se ela
+aparece; a posição do painel; os tamanhos em pixels CSS; as barras; e o que
+está escondido (vistas e itens das barras de ferramentas e de status). O
+layout guarda o escondido, não o que aparece: um item ou uma vista que uma
+versão futura acrescentar aparece sozinho, e uma vista que não está em
+região nenhuma vai para a região padrão dela (`normalizeBody`, o único
+validador). `useLayout.live` é a janela agora, guardada no `localStorage`;
+os layouts com nome são fotos dela no `settings.json` (`layouts`), que o
+backend guarda sem ler. "Modificado" é `sameBody` entre a janela (sem o
+zen, `effectiveLive`) e a foto do layout em uso; a vista ativa de cada
+região não entra.
+
+**Área de trabalho** (`components/layout/Workbench.tsx`). A barra de
+atividades de um lado, um `Group` horizontal com a esquerda, o centro e a
+direita e, no centro, um `Group` com o editor e o painel, vertical ou
+horizontal conforme a posição dele. Os lugares na árvore não mudam e nada
+tem `key` tirada do layout, para o `EditorArea` nunca remontar. Três
+cuidados com o `react-resizable-panels`:
+
+- o grupo lembra um tamanho por conjunto de ids de painéis, e essa memória
+  vence o `defaultSize`. Por isso os tamanhos do layout entram com `resize`
+  (`enforce`), um quadro depois de um layout aplicado, de uma região
+  aparecer e de toda mudança de layout que não veio do usuário; e o painel
+  tem um id por orientação (`panel`, `panel-right`);
+- os tamanhos só são gravados quando o usuário arrasta uma divisão
+  (`onLayoutChanged` com `isUserInteraction`), e as laterais e o painel
+  mantêm os pixels quando a janela muda (`preserve-pixel-size`);
+- maximizado, o painel é o único do grupo e volta a `preserve-relative-size`,
+  porque a biblioteca exige um painel que acompanhe o grupo.
+
+Numa janela estreita (`fitWorkbench`), primeiro os mínimos diminuem; se
+ainda não couber, a barra lateral direita não é desenhada e depois o painel
+vai para baixo. Isso só muda o desenho, não o layout.
+
+**Regiões** (`components/layout/Region.tsx`). O cabeçalho é o título da
+vista na barra lateral do lado da barra de atividades, que escolhe a vista;
+nas outras regiões, são abas (com texto no painel, com ícone nas laterais).
+Cada vista vem do catálogo (`components/layout/viewCatalog.tsx`: ícone,
+componente e as marcas de Problemas e de saída nova) e leva o seu fundo
+para a região onde estiver. Os botões de uma vista ficam no cabeçalho da
+região: a vista os declara com `ViewActions`, e um portal os leva para lá
+(`components/layout/ViewActions.tsx`). Os menus de contexto do layout
+(`components/layout/layoutMenus.ts`) terminam todos com o submenu
+Aparência, e a barra de abas do editor, que nunca some, tem o mesmo menu:
+de qualquer parte à vista se volta às escondidas.
+
+**Os terminais mudam de lugar.** Os consoles e o shell (`console/`) têm uma
+pilha de donos: o último contêiner a montar fica com o elemento do xterm, e
+ao sair o devolve ao anterior que ainda está na página. Um console que muda
+de região, ou o shell disputado pela aba Terminal e pela gaveta do zen,
+nunca fica órfão. O shell só pega o foco quando o usuário o pediu
+(`revealView` com `explicit` e `takeFocus`); aparecer porque um layout foi
+aplicado não tira o foco do editor. A Busca faz o mesmo.
 
 **Modo zen** (`components/layout/Zen.tsx`). `useLayout.zen` faz o `App.tsx`
 não montar a barra de menus, a de ferramentas, a de atividades e a de status;
-ao entrar, `toggleZen` guarda em `zenSaved` a barra lateral e o painel e os
-esconde, e ao sair os devolve (o `localStorage` guarda os de antes do zen).
-No lugar da barra de status fica o `ZenHud`, que também recebe a linha do
-Vim (`setVimStatusNode`). A gaveta do shell (`ZenShell`) é um `Panel` a
-mais no grupo vertical da área central e usa o mesmo xterm do painel:
-`attachShell` move o elemento, e `detachShell(container)` só o tira se
-ainda estiver ali. `watchZen` põe e tira a tela cheia (permissão
-`core:window:allow-set-fullscreen`) e mostra o aviso de como sair. A
-coluna centralizada é a classe `app--zen-centered` com a largura em
-`--zen-width`.
+ao entrar, `toggleZen` guarda em `zenSaved` a visibilidade das três regiões
+e a maximização do painel, e ao sair as devolve (o `localStorage` guarda a
+janela de antes do zen). No lugar da barra de status fica o `ZenHud`, que
+também recebe a linha do Vim (`setVimStatusNode`); ele aparece também fora
+do zen, quando o layout esconde a barra de status. A gaveta do shell
+(`ZenShell`) é um `Panel` a mais no grupo da área central, que no zen é
+sempre vertical, e usa o mesmo xterm da aba Terminal. `watchZen` põe e tira
+a tela cheia (permissão `core:window:allow-set-fullscreen`) e mostra o
+aviso de como sair. A coluna centralizada é a classe `app--zen-centered`
+com a largura em `--zen-width`. Aplicar um layout sai do zen.
 
 **Arrastar e soltar** (`components/sidebar/dnd.ts`). Dentro da janela, o
 arrasto é feito com eventos de ponteiro, não com o drag-and-drop do HTML: no
@@ -273,7 +330,8 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useProject` | `state/project.ts` | o retrato do projeto, o alvo (projeto ou processador), a versão da árvore |
 | `useEditor` | `state/editor.ts` | as abas, os grupos do editor dividido e as abas de cada um, os documentos abertos, a aba e o grupo ativos, o cursor, a sessão |
 | `useJobs` | `state/jobs.ts` | a operação rodando, o último resultado de cada fluxo, problemas, última síntese e esquemático |
-| `useLayout` | `state/layout.ts` | o que está visível e o modo zen; guardado no `localStorage` por conveniência (o zen não) |
+| `useLayout` | `state/layout.ts` | a janela agora (`live`: regiões, vistas, barras, tamanhos), a maximização do painel, as marcas de não lido, o modo do explorador, o zoom e o zen; guardado no `localStorage` por conveniência (o zen não) |
+| (sem store) | `state/savedLayouts.ts` | os layouts com nome: os prontos e os gravados no `settings.json`; aplicar, salvar, restaurar, renomear, excluir; `useLayoutStatus` (o em uso e se a janela está diferente dele) |
 | `useDialogs` | `state/dialogs.ts` | o diálogo aberto; `prompt()` e `confirm()` devolvem promessas |
 | `useToasts` | `state/toasts.ts` | os avisos rápidos; `showError` e `guarded` |
 | `useHierarchy` | `state/hierarchy.ts` | a última hierarquia elaborada, se está desatualizada; atualiza depois de cada fluxo que passa |
@@ -289,7 +347,10 @@ linha de simulação não redesenha componente nenhum.
 `actions.ts` tem todas as ações do Studio, cada uma com rótulo (chave de
 tradução), categoria, atalho, ícone, condição de habilitação e o que faz. A
 barra de menus, a barra de ferramentas, o navegador de fluxo, a paleta de
-comandos, a tabela de atalhos e o tratador de teclado leem dessa lista.
+comandos, a tabela de atalhos e o tratador de teclado leem dessa lista. Uma
+ação que liga e desliga tem `checked` (a marca nos menus) e, quando o nome
+no menu é outro, `menuLabel`: "Barra de status" com a marca no menu,
+"Mostrar ou ocultar a barra de status" na paleta.
 
 O tratador de teclado roda na fase de captura, antes do Monaco e do
 xterm.js, para F8 (Wave) não virar "próximo problema" do Monaco. Dentro do

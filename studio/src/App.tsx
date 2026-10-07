@@ -1,25 +1,21 @@
-// A janela inteira: menus, barra de ferramentas, barra de atividades,
-// barra lateral, área central, painel inferior e barra de status, com as
-// divisões redimensionáveis. Aqui também ficam as ligações globais: atalhos,
-// vigia de arquivos, arrastar e soltar, fechar com arquivos não salvos.
+// A janela inteira: menus, barra de ferramentas, a área de trabalho
+// (Workbench.tsx: barra de atividades, barras laterais, editor e painel) e
+// barra de status. Aqui também ficam as ligações globais: atalhos, vigia de
+// arquivos, arrastar e soltar, fechar com arquivos não salvos.
 
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useEffect, type CSSProperties } from 'react';
-import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import { chordActions, handleShortcut, runAction } from './actions';
 import { ContextMenuHost } from './components/common';
 import { Dialogs } from './components/dialogs/Dialogs';
-import { EditorArea } from './components/editor/EditorArea';
-import { ActivityBar } from './components/layout/ActivityBar';
 import { MenuBar } from './components/layout/MenuBar';
 import { StatusBar } from './components/layout/StatusBar';
 import { Toolbar } from './components/layout/Toolbar';
-import { watchZen, ZenHud, ZenShell, zenWidth } from './components/layout/Zen';
-import { BottomPanel } from './components/panel/BottomPanel';
+import { Workbench } from './components/layout/Workbench';
+import { watchZen, ZenHud, zenWidth } from './components/layout/Zen';
 import { externalDrop, externalLeave, externalOver } from './components/sidebar/dnd';
-import { SideBar } from './components/sidebar/SideBar';
 import { Toasts } from './components/Toasts';
 import { setConsoleTheme, setLinkHandler } from './console/consoles';
 import { setShellTheme } from './console/shell';
@@ -30,8 +26,9 @@ import { useApp } from './state/app';
 import { confirm } from './state/dialogs';
 import { useEditor } from './state/editor';
 import { useHierarchy } from './state/hierarchy';
-import { useLayout } from './state/layout';
+import { takeFreshStart, useLayout } from './state/layout';
 import { useProject } from './state/project';
+import { activeLayout } from './state/savedLayouts';
 import { showError } from './state/toasts';
 import type { Theme } from './themes';
 import { extension, resolveFrom } from './util/paths';
@@ -59,6 +56,10 @@ async function start(): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
   const settings = await useApp.getState().init();
+  // Sem a janela guardada no localStorage (a primeira abertura, ou o
+  // armazenamento da WebView limpo), ela abre no layout em uso. A janela
+  // ainda está escondida: o primeiro quadro já sai nele.
+  if (takeFreshStart() && settings) useLayout.getState().applyBody(activeLayout(settings).body);
   const applyTheme = (theme: Theme) => {
     setConsoleTheme(theme);
     setShellTheme(theme);
@@ -160,10 +161,11 @@ async function start(): Promise<() => void> {
 }
 
 export function App() {
-  const sidebarVisible = useLayout((s) => s.sidebarVisible);
-  const panelVisible = useLayout((s) => s.panelVisible);
-  const panelMaximized = useLayout((s) => s.panelMaximized);
   const zen = useLayout((s) => s.zen);
+  const bars = useLayout((s) => s.live.bars);
+  // Sem a barra de status, o indicador do zen fica no lugar dela: a linha do
+  // Vim, a espera de um atalho e o resultado da operação continuam à vista.
+  const hud = zen || !bars.statusbar;
   const zenShell = useLayout((s) => s.zenShell);
   // No zen, com um grupo só, o editor e a gaveta do shell ficam numa coluna
   // centralizada (Preferências > Modo zen).
@@ -197,50 +199,13 @@ export function App() {
     };
   }, []);
 
-  const appClass = `app${zen ? ' app--zen' : ''}${zenCentered ? ' app--zen-centered' : ''}${zen && zenShell ? ' app--zen-shell' : ''}`;
+  const appClass = `app${zen ? ' app--zen' : ''}${hud ? ' app--hud' : ''}${zenCentered ? ' app--zen-centered' : ''}${zen && zenShell ? ' app--zen-shell' : ''}`;
   return (
     <div className={appClass} style={zenCentered ? ({ '--zen-width': `${zenWidth(fontSize)}px` } as CSSProperties) : undefined}>
-      {!zen && <MenuBar />}
-      {!zen && <Toolbar />}
-      <div className="workbench">
-        {!zen && <ActivityBar />}
-        <Group orientation="horizontal" className="workbench__main">
-          {sidebarVisible && (
-            <>
-              <Panel id="sidebar" defaultSize={290} minSize={190} maxSize="40%">
-                <SideBar />
-              </Panel>
-              <Separator className="resize-handle resize-handle--vertical" />
-            </>
-          )}
-          <Panel id="center" minSize={320}>
-            <Group orientation="vertical" className="workbench__center">
-              {!(panelVisible && panelMaximized) && (
-                <Panel id="editor" minSize={120}>
-                  <EditorArea />
-                </Panel>
-              )}
-              {zen && zenShell && (
-                <>
-                  <Separator className="resize-handle resize-handle--horizontal resize-handle--zen" />
-                  <Panel id="zen-shell" defaultSize="35%" minSize={100}>
-                    <ZenShell />
-                  </Panel>
-                </>
-              )}
-              {panelVisible && (
-                <>
-                  {!panelMaximized && <Separator className="resize-handle resize-handle--horizontal" />}
-                  <Panel id="panel" defaultSize={260} minSize={90}>
-                    <BottomPanel />
-                  </Panel>
-                </>
-              )}
-            </Group>
-          </Panel>
-        </Group>
-      </div>
-      {zen ? <ZenHud /> : <StatusBar />}
+      {!zen && bars.menubar && <MenuBar />}
+      {!zen && bars.toolbar && <Toolbar />}
+      <Workbench />
+      {hud ? <ZenHud /> : <StatusBar />}
       <Dialogs />
       <ContextMenuHost />
       <Toasts />

@@ -1,17 +1,22 @@
 // A barra de menus: Arquivo, Editar, Exibir, Projeto, Fluxo, Ferramentas,
-// Ajuda. Cada item é uma ação de actions.ts; o atalho aparece ao lado.
+// Ajuda. Cada item é uma ação de actions.ts; o atalho aparece ao lado, e a
+// marca nas que ligam e desligam. O Exibir tem submenus (Consoles,
+// Aparência): solto, ele não caberia na altura mínima da janela.
 
-import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { action, isEnabled, runAction } from '../../actions';
 import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { useJobs } from '../../state/jobs';
+import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
-import { LaceMark, MenuList, type MenuItem } from '../common';
+import { LaceMark, MenuList, openContextMenu, type MenuItem } from '../common';
+import { actionItem, APPEARANCE_ENTRIES, chromeMenu, LAYOUT_ENTRIES } from './layoutMenus';
 
-type Entry = string | '-';
+/** Uma ação, um separador ou um submenu (um nível só). */
+type Entry = string | { submenu: Key; entries: readonly string[] };
+
+const CONSOLE_ENTRIES = ['viewConsoleCmm', 'viewConsoleAsm', 'viewConsoleVerilog', 'viewConsoleWave', 'viewConsolePrism'];
 
 const MENUS: { label: Key; entries: Entry[] }[] = [
   {
@@ -21,7 +26,32 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
   { label: 'menu.edit', entries: ['undo', 'redo', '-', 'find', 'replace', 'findInFiles', '-', 'goToLine', 'formatDocument', '-', 'toggleVim'] },
   {
     label: 'menu.view',
-    entries: ['commandPalette', 'quickOpen', '-', 'viewExplorer', 'viewFlow', 'viewSearch', 'viewReports', '-', 'toggleSidebar', 'togglePanel', 'toggleTerminal', 'showProblems', 'toggleZen', '-', 'splitEditor', 'closeEditorGroup', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'selectTheme', 'toggleTheme'],
+    entries: [
+      'commandPalette',
+      'quickOpen',
+      '-',
+      'viewExplorer',
+      'viewFlow',
+      'viewSearch',
+      'viewReports',
+      { submenu: 'menu.consoles', entries: CONSOLE_ENTRIES },
+      'toggleTerminal',
+      'showProblems',
+      '-',
+      { submenu: 'menu.appearance', entries: APPEARANCE_ENTRIES },
+      { submenu: 'menu.layout', entries: LAYOUT_ENTRIES },
+      'toggleZen',
+      '-',
+      'splitEditor',
+      'closeEditorGroup',
+      '-',
+      'zoomIn',
+      'zoomOut',
+      'zoomReset',
+      '-',
+      'selectTheme',
+      'toggleTheme',
+    ],
   },
   {
     label: 'menu.project',
@@ -38,42 +68,35 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
 function useItems(entries: Entry[]): MenuItem[] {
   const t = useT();
   const recent = useApp((s) => s.recent);
-  const simulator = useApp((s) => s.settings?.simulator);
-  const vim = useApp((s) => s.settings?.editor.vim_mode);
-  // Redesenha quando muda o que habilita as ações.
+  // Redesenha quando muda o que habilita as ações ou o que elas marcam.
+  useApp((s) => s.settings);
   useApp((s) => s.toolchain);
   useJobs((s) => s.running);
   useProject((s) => s.snapshot);
+  useLayout((s) => s.live);
+  useLayout((s) => s.panelMaximized);
 
-  const items: MenuItem[] = [];
-  for (const entry of entries) {
-    if (entry === '-') {
-      items.push({ separator: true });
-      continue;
-    }
-    if (entry === 'recent') {
-      const existing = recent.filter((r) => r.exists).slice(0, 8);
-      items.push({ label: t('menu.openRecent'), disabled: true });
-      if (existing.length === 0) items.push({ label: `   ${t('menu.noRecent')}`, disabled: true });
-      for (const r of existing) {
-        items.push({ label: `   ${r.name}`, run: () => void useProject.getState().open(r.spf) });
+  const build = (list: readonly Entry[]): MenuItem[] => {
+    const items: MenuItem[] = [];
+    for (const entry of list) {
+      if (entry === '-') {
+        items.push({ separator: true });
+      } else if (typeof entry === 'object') {
+        items.push({ label: t(entry.submenu), submenu: build(entry.entries) });
+      } else if (entry === 'recent') {
+        const existing = recent.filter((r) => r.exists).slice(0, 8);
+        items.push({ label: t('menu.openRecent'), disabled: true });
+        if (existing.length === 0) items.push({ label: `   ${t('menu.noRecent')}`, disabled: true });
+        for (const r of existing) {
+          items.push({ label: `   ${r.name}`, run: () => void useProject.getState().open(r.spf) });
+        }
+      } else {
+        items.push(actionItem(entry));
       }
-      continue;
     }
-    const a = action(entry);
-    const checked =
-      (entry === 'useIcarus' && simulator === 'icarus') ||
-      (entry === 'useVerilator' && simulator === 'verilator') ||
-      (entry === 'toggleVim' && vim);
-    items.push({
-      label: t(a.label),
-      keys: a.keys,
-      icon: checked ? <Check size={13} /> : undefined,
-      disabled: !isEnabled(a),
-      run: () => runAction(entry),
-    });
-  }
-  return items;
+    return items;
+  };
+  return build(entries);
 }
 
 function Menu({
@@ -123,17 +146,25 @@ export function MenuBar() {
       setOpen(null);
     };
     const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
+    const blur = () => setOpen(null);
     window.addEventListener('mousedown', close, true);
     window.addEventListener('keydown', key, true);
-    window.addEventListener('blur', () => setOpen(null));
+    window.addEventListener('blur', blur);
     return () => {
       window.removeEventListener('mousedown', close, true);
       window.removeEventListener('keydown', key, true);
+      window.removeEventListener('blur', blur);
     };
   }, [open]);
 
   return (
-    <div className="menubar" ref={ref}>
+    <div
+      className="menubar"
+      ref={ref}
+      onContextMenu={(e) => {
+        if (e.target === e.currentTarget) openContextMenu(e, chromeMenu());
+      }}
+    >
       <LaceMark className="menubar__logo" />
       {MENUS.map((menu, index) => (
         <Menu

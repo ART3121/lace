@@ -15,7 +15,7 @@ import { useProject } from '../../state/project';
 import { removeReport, useReports } from '../../state/reports';
 import { showError } from '../../state/toasts';
 import { Empty, IconButton, openContextMenu, StatusDot } from '../common';
-import { SidebarActions } from './SidebarActions';
+import { ViewActions } from '../layout/ViewActions';
 
 function when(timestamp: string | null): string {
   if (!timestamp) return '';
@@ -55,14 +55,14 @@ export function ReportsPanel() {
 
   return (
     <>
-      <SidebarActions>
+      <ViewActions>
         <IconButton label={t('action.cleanReports')} disabled={reports.length === 0} onClick={() => openDialog({ kind: 'cleanReports' })}>
           <Trash2 size={14} />
         </IconButton>
         <IconButton label={t('common.refresh')} onClick={() => useReports.getState().bump()}>
           <RefreshCw size={14} />
         </IconButton>
-      </SidebarActions>
+      </ViewActions>
       <div className="sidebar__toolbar">
         <span className="sidebar__subtitle">{t('reports.count', { count: reports.length })}</span>
       </div>

@@ -101,7 +101,7 @@ export function ZenHud() {
             type="button"
             className={`zen-hud__item zen-hud__result ${last.succeeded ? 'text-ok' : 'text-error'}`}
             title={t('action.showProblems')}
-            onClick={() => useLayout.getState().showPanel('problems')}
+            onClick={() => useLayout.getState().revealView('problems', { explicit: true })}
           >
             {last.succeeded ? <CircleCheck size={13} /> : <CircleAlert size={13} />}
             {last.succeeded

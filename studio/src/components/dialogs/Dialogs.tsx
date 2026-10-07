@@ -15,6 +15,7 @@ import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { useProject } from '../../state/project';
 import { removeReports } from '../../state/reports';
+import { applyLayout, namedLayouts, useLayoutStatus, type NamedLayout } from '../../state/savedLayouts';
 import { guarded } from '../../state/toasts';
 import { SYSTEM_THEME, THEMES, themeById } from '../../themes';
 import { baseName, joinPath, relativeTo } from '../../util/paths';
@@ -654,6 +655,60 @@ function ThemePicker() {
   );
 }
 
+/** Os layouts com nome: os prontos primeiro, depois os gravados. O em uso
+ * tem a marca, e "modificado" se a janela está diferente da foto dele. */
+function LayoutPicker() {
+  const t = useT();
+  const settings = useApp((s) => s.settings);
+  const { layout: active, dirty } = useLayoutStatus();
+  const items = namedLayouts(settings);
+  const detail = (layout: NamedLayout) => {
+    if (layout.id === active.id && dirty) return t('layout.tag.modified');
+    if (layout.preset) return t('layout.tag.preset');
+    return layout.readOnly ? t('layout.tag.newer') : '';
+  };
+  return (
+    <ListPicker
+      placeholder={t('dialog.layout.placeholder')}
+      items={items}
+      filter={(layout, q) => layout.name.toLowerCase().includes(q.trim())}
+      render={(layout) => (
+        <>
+          <span className="palette__label">{layout.name}</span>
+          <span className="palette__category">{detail(layout)}</span>
+          {layout.id === active.id && <Check size={14} className="palette__check" />}
+        </>
+      )}
+      onPick={(layout) => void applyLayout(layout.id)}
+    />
+  );
+}
+
+/** O alvo dos botões do fluxo, como o seletor da barra de ferramentas, que
+ * pode estar escondido pelo layout. */
+function TargetPicker() {
+  const t = useT();
+  const processors = useProject((s) => s.snapshot?.processors);
+  const target = useProject((s) => s.target);
+  const items = useMemo(() => ['', ...(processors ?? []).map((p) => p.name)], [processors]);
+  const name = (id: string) => id || t('toolbar.targetProject');
+  return (
+    <ListPicker
+      placeholder={t('dialog.target.placeholder')}
+      items={items}
+      filter={(id, q) => name(id).toLowerCase().includes(q.trim())}
+      render={(id) => (
+        <>
+          <span className="palette__label">{name(id)}</span>
+          <span className="palette__category">{id ? t('dialog.target.processor') : t('dialog.target.project')}</span>
+          {id === (target ?? '') && <Check size={14} className="palette__check" />}
+        </>
+      )}
+      onPick={(id) => useProject.getState().setTarget(id || null)}
+    />
+  );
+}
+
 // Informação ---------------------------------------------------------------------
 
 function ShortcutsDialog() {
@@ -841,6 +896,10 @@ export function Dialogs() {
       return hasProject ? <QuickOpen /> : null;
     case 'theme':
       return <ThemePicker />;
+    case 'target':
+      return hasProject ? <TargetPicker /> : null;
+    case 'layout':
+      return <LayoutPicker />;
     case 'shortcuts':
       return <ShortcutsDialog />;
     case 'prompt':

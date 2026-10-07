@@ -15,9 +15,15 @@
 //   add:<caminho>  registra um Verilog, como Projeto > Adicionar arquivos
 //                  Verilog depois do diálogo (caminho absoluto, ou relativo à
 //                  pasta do projeto)
-//   panel:<aba>    mostra uma aba do painel inferior
+//   panel:<vista>  mostra uma vista (cmm, terminal, explorer...) na região
+//                  onde ela está; sidebar:<vista> é o mesmo
+//   move:<vista>:<região> leva a vista para left, right ou panel
+//   region:<região>:<on|off> mostra ou esconde uma região
+//   bar:<barra>:<valor> menubar, toolbar ou statusbar com on ou off;
+//                  activitybar com left, right ou hidden
+//   layoutlog      escreve no log a janela: regiões, vistas, barras, tamanhos
+//   layout:<id>    aplica um layout com nome (default, ou o id de um gravado)
 //   target:<nome>  escolhe o alvo (vazio: o projeto)
-//   sidebar:<vista> mostra uma vista da barra lateral
 //   click:<seletor> clica no primeiro elemento que casa com o seletor CSS
 //   focus:<seletor> põe o foco no elemento (para um key: depois)
 //   key:<tecla>    manda a tecla (Escape, Enter) ao elemento com foco
@@ -42,8 +48,10 @@ import { emitTo } from '@tauri-apps/api/event';
 import { action, addVerilogFiles } from '../actions';
 import { useDialogs } from '../state/dialogs';
 import { useEditor, type ViewKind } from '../state/editor';
-import { useLayout, type ExplorerMode, type PanelTab, type SidebarView } from '../state/layout';
+import { effectiveLive, useLayout, type ExplorerMode, type ViewId } from '../state/layout';
+import { isRegionId, isViewId, REGION_IDS, type LayoutBars } from '../state/layoutModel';
 import { useProject } from '../state/project';
+import { applyLayout } from '../state/savedLayouts';
 import { resolveFrom } from '../util/paths';
 
 function log(message: string) {
@@ -61,6 +69,32 @@ function element(selector: string): HTMLElement {
 function center(el: HTMLElement): { x: number; y: number } {
   const r = el.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+function viewId(name: string): ViewId {
+  if (!isViewId(name)) throw new Error(`unknown view ${name}`);
+  return name;
+}
+
+/** A janela numa linha: cada região com as vistas (a ativa com `>`, as
+ * escondidas entre parênteses), as barras e os tamanhos. */
+function layoutSummary(): string {
+  const live = effectiveLive(useLayout.getState());
+  const regions = REGION_IDS.map((id) => {
+    const region = live.regions[id];
+    const views = region.views.map((v) => {
+      const name = `${v === region.active ? '>' : ''}${v}`;
+      return live.hidden.views.includes(v) ? `(${name})` : name;
+    });
+    return `${id}${region.visible ? '' : '(off)'}[${views.join(',')}]`;
+  });
+  const bars = Object.entries(live.bars)
+    .map(([bar, value]) => `${bar}=${String(value)}`)
+    .join(',');
+  const sizes = Object.entries(live.sizes)
+    .map(([size, value]) => `${size}=${value}`)
+    .join(',');
+  return `${regions.join(' ')} panel@${live.panelPosition} ${bars} ${sizes}`;
 }
 
 export async function runSmokeScript(): Promise<void> {
@@ -98,10 +132,38 @@ export async function runSmokeScript(): Promise<void> {
           break;
         }
         case 'panel':
-          useLayout.getState().showPanel(arg as PanelTab);
-          break;
         case 'sidebar':
-          useLayout.setState({ sidebarView: arg as SidebarView, sidebarVisible: true });
+          useLayout.getState().revealView(viewId(arg), { explicit: true });
+          break;
+        case 'move': {
+          const [name, region] = arg.split(':');
+          if (!isRegionId(region)) throw new Error(`unknown region ${region}`);
+          useLayout.getState().moveView(viewId(name), region);
+          break;
+        }
+        case 'region': {
+          const [region, value] = arg.split(':');
+          if (!isRegionId(region)) throw new Error(`unknown region ${region}`);
+          useLayout.getState().setRegionVisible(region, value !== 'off');
+          break;
+        }
+        case 'bar': {
+          const [bar, value] = arg.split(':');
+          if (bar === 'activitybar') {
+            if (value !== 'left' && value !== 'right' && value !== 'hidden') throw new Error(`bad side ${value}`);
+            useLayout.getState().setBar('activitybar', value);
+          } else if (bar === 'menubar' || bar === 'toolbar' || bar === 'statusbar') {
+            useLayout.getState().setBar(bar as Exclude<keyof LayoutBars, 'activitybar'>, value !== 'off');
+          } else {
+            throw new Error(`unknown bar ${bar}`);
+          }
+          break;
+        }
+        case 'layoutlog':
+          await log(`layout ${layoutSummary()}`);
+          break;
+        case 'layout':
+          await applyLayout(arg);
           break;
         case 'target':
           useProject.getState().setTarget(arg || null);
@@ -134,7 +196,8 @@ export async function runSmokeScript(): Promise<void> {
           await log(`count ${arg}: ${document.querySelectorAll(arg).length}`);
           break;
         case 'explorer':
-          useLayout.setState({ sidebarView: 'explorer', sidebarVisible: true, explorerMode: arg as ExplorerMode });
+          useLayout.getState().setExplorerMode(arg as ExplorerMode);
+          useLayout.getState().revealView('explorer', { explicit: true });
           break;
         case 'type': {
           const [selector, text] = arg.split('|');

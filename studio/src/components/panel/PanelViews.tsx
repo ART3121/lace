@@ -1,8 +1,9 @@
-// O painel inferior: os consoles de cada etapa, os problemas da última
-// operação e o terminal de shell. A aba de um console com saída nova que
-// não está à vista ganha um ponto.
+// As vistas que nasceram no painel: os consoles de cada etapa, os problemas
+// da última operação e o terminal de shell. Elas ficam em qualquer região
+// (Region.tsx); os consoles e o terminal são elementos que vivem fora do
+// React (console/), e a vista só os põe dentro dela enquanto está montada.
 
-import { ChevronDown, Eraser, Maximize2, Minimize2, Plus } from 'lucide-react';
+import { Eraser, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { attachConsole, clearConsole, detachConsole, fitConsole } from '../../console/consoles';
@@ -11,13 +12,11 @@ import { useT, type Key } from '../../i18n';
 import type { Diagnostic, ProjectIssue } from '../../ipc/lace-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
-import { useLayout, type ConsoleChannel, type PanelTab } from '../../state/layout';
+import { useLayout, type ConsoleChannel } from '../../state/layout';
 import { useProject } from '../../state/project';
 import { relativeUp } from '../../util/paths';
 import { Empty, IconButton } from '../common';
-
-const TABS: PanelTab[] = ['cmm', 'asm', 'verilog', 'wave', 'prism', 'problems', 'terminal'];
-const CONSOLES = new Set<PanelTab>(['cmm', 'asm', 'verilog', 'wave', 'prism']);
+import { ViewActions } from '../layout/ViewActions';
 
 /** Chama `fit` quando o elemento muda de tamanho. */
 function useResize(ref: React.RefObject<HTMLElement | null>, fit: () => void) {
@@ -29,28 +28,51 @@ function useResize(ref: React.RefObject<HTMLElement | null>, fit: () => void) {
   }, [ref, fit]);
 }
 
-function ConsoleView({ channel }: { channel: ConsoleChannel }) {
+export function ConsoleView({ channel }: { channel: ConsoleChannel }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const fit = useMemo(() => () => fitConsole(channel), [channel]);
   useEffect(() => {
-    if (!ref.current) return;
-    attachConsole(channel, ref.current);
-    return () => detachConsole(channel);
+    const node = ref.current;
+    if (!node) return;
+    attachConsole(channel, node);
+    return () => detachConsole(channel, node);
   }, [channel]);
   useResize(ref, fit);
-  return <div ref={ref} className="console" />;
+  return (
+    <>
+      <ViewActions>
+        <IconButton label={t('panel.clear')} onClick={() => clearConsole(channel)}>
+          <Eraser size={14} />
+        </IconButton>
+      </ViewActions>
+      <div ref={ref} className="console" />
+    </>
+  );
 }
 
-function ShellView() {
+export function ShellView() {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    attachShell(node);
+    // O foco vai para o terminal só quando o usuário o pediu (a aba, Ctrl+`);
+    // aparecer porque um layout foi aplicado não tira o foco do editor.
+    attachShell(node, { focus: useLayout.getState().takeFocus('terminal') });
     return () => detachShell(node);
   }, []);
   useResize(ref, fitShell);
-  return <div ref={ref} className="console" />;
+  return (
+    <>
+      <ViewActions>
+        <IconButton label={t('panel.newTerminal')} onClick={() => void restartShell()}>
+          <Plus size={15} />
+        </IconButton>
+      </ViewActions>
+      <div ref={ref} className="console" />
+    </>
+  );
 }
 
 /** Uma linha do painel: um diagnóstico da última operação, ou um aviso do
@@ -81,7 +103,21 @@ function useIssueRows(): Row[] {
   );
 }
 
-function ProblemsView() {
+/** Erros e avisos da última operação mais os avisos do `.spf`: o número da
+ * aba Problemas e do ícone dela. */
+export function useProblemCount(): { errors: number; warnings: number } {
+  const problems = useJobs((s) => s.problems);
+  const issues = useProject((s) => s.snapshot?.issues.length ?? 0);
+  return useMemo(
+    () => ({
+      errors: problems.filter((p) => p.severity === 'error').length,
+      warnings: problems.filter((p) => p.severity === 'warning').length + issues,
+    }),
+    [problems, issues],
+  );
+}
+
+export function ProblemsView() {
   const t = useT();
   const diagnostics = useJobs((s) => s.problems);
   const issues = useIssueRows();
@@ -128,68 +164,6 @@ function ProblemsView() {
           </tbody>
         </table>
       )}
-    </div>
-  );
-}
-
-export function BottomPanel() {
-  const t = useT();
-  const tab = useLayout((s) => s.panelTab);
-  const unread = useLayout((s) => s.unread);
-  const maximized = useLayout((s) => s.panelMaximized);
-  const problems = useJobs((s) => s.problems);
-  const issues = useProject((s) => s.snapshot?.issues.length ?? 0);
-  const errors = problems.filter((p) => p.severity === 'error').length;
-  const warnings = problems.filter((p) => p.severity === 'warning').length + issues;
-
-  return (
-    <div className="panel">
-      <div className="panel__header">
-        <div className="panel__tabs" role="tablist">
-          {TABS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={`panel__tab${tab === id ? ' is-active' : ''}`}
-              onClick={() => useLayout.getState().showPanel(id)}
-            >
-              {t(`panel.${id}` as Key)}
-              {id === 'problems' && errors + warnings > 0 && (
-                <span className={`count${errors ? ' count--error' : ' count--warn'}`}>{errors + warnings}</span>
-              )}
-              {unread[id] && <span className="panel__unread" aria-hidden />}
-            </button>
-          ))}
-        </div>
-        <div className="panel__actions">
-          {CONSOLES.has(tab) && (
-            <IconButton label={t('panel.clear')} onClick={() => clearConsole(tab as ConsoleChannel)}>
-              <Eraser size={14} />
-            </IconButton>
-          )}
-          {tab === 'terminal' && (
-            <IconButton label={t('panel.newTerminal')} onClick={() => void restartShell()}>
-              <Plus size={15} />
-            </IconButton>
-          )}
-          <IconButton
-            label={t('panel.maximize')}
-            onClick={() => useLayout.getState().setPanelMaximized(!maximized)}
-          >
-            {maximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </IconButton>
-          <IconButton label={t('panel.hide')} onClick={() => useLayout.getState().togglePanel()}>
-            <ChevronDown size={15} />
-          </IconButton>
-        </div>
-      </div>
-      <div className="panel__body">
-        {CONSOLES.has(tab) && <ConsoleView key={tab} channel={tab as ConsoleChannel} />}
-        {tab === 'problems' && <ProblemsView />}
-        {tab === 'terminal' && <ShellView />}
-      </div>
     </div>
   );
 }

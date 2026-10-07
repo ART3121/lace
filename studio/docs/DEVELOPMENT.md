@@ -95,7 +95,13 @@ Os passos são ids de ação de `actions.ts` (`build`, `check`, `lint`,
 | `add:<caminho>` | registra um Verilog como Projeto > Adicionar arquivos Verilog, sem o diálogo (caminho absoluto, ou relativo à pasta do projeto) |
 | `target:<processador>` | escolhe o alvo (vazio: o projeto) |
 | `view:<tipo>[:<nome>]` | abre uma vista |
-| `panel:<aba>`, `sidebar:<vista>`, `explorer:<modo>` | mostra uma aba do painel, uma vista da barra lateral, um modo do explorador |
+| `panel:<vista>`, `sidebar:<vista>` | mostra a vista (`cmm`, `terminal`, `explorer`...) na região onde o layout a pôs; os dois são o mesmo |
+| `explorer:<modo>` | mostra o explorador num modo (`sources`, `hierarchy`, `files`) |
+| `move:<vista>:<região>` | leva a vista para `left`, `right` ou `panel` |
+| `region:<região>:<on\|off>` | mostra ou esconde uma região |
+| `bar:<barra>:<valor>` | `menubar`, `toolbar` ou `statusbar` com `on` ou `off`; `activitybar` com `left`, `right` ou `hidden` |
+| `layoutlog` | escreve no log a janela numa linha: cada região com as vistas (`>` a ativa, entre parênteses as escondidas), a posição do painel, as barras e os tamanhos |
+| `layout:<id>` | aplica um layout com nome: `default` (o Padrão) ou o id de um gravado |
 | `click:<seletor>` | clica no elemento |
 | `focus:<seletor>` | põe o foco no elemento |
 | `key:<tecla>` | manda a tecla ao elemento com foco |
@@ -165,6 +171,22 @@ de 10 s. Um script que espera a janela (o `smoke.sh` da seção anterior, o
    tiver parâmetro, o identificador em `viewTabId`.
 3. Ligue em `ViewContent`, `tabTitle` (`EditorArea.tsx`) e `tabIcon`
    (`tabIcons.ts`).
+
+### Uma vista nova numa região (barra lateral ou painel)
+
+1. Acrescente o id em `VIEW_IDS` e a entrada em `VIEW_INFO`
+   (`src/state/layoutModel.ts`): rótulo, região padrão e a ação que a revela.
+2. Ligue o ícone e o componente em `src/components/layout/viewCatalog.tsx`.
+   Os botões da vista vão em `<ViewActions>`; eles aparecem no cabeçalho da
+   região onde ela estiver.
+3. Acrescente a ação que a revela em `actions.ts` (`revealView` com
+   `explicit`) e, se fizer sentido, no menu Exibir.
+
+Os layouts gravados antes não precisam de migração: uma vista que não está
+em região nenhuma vai para a região padrão dela (`normalizeBody`). Pelo
+mesmo motivo, um item novo da barra de ferramentas ou de status
+(`TOOLBAR_ITEMS`, `STATUS_ITEMS`) aparece sozinho: o layout guarda o que
+está escondido, não o que aparece.
 
 ### Um tipo do Core mudou
 

@@ -38,20 +38,23 @@ o que o Studio grava continua legível pela AURORA. Os temporários ficam em
 ```
  menus        Arquivo Editar Exibir Projeto Fluxo Ferramentas Ajuda
  ferramentas  Novo Abrir Salvar | Alvo [Projeto] | C± Verilog Wave Rápida Onda PRISM | Parar
- ┌──┬────────────────┬──────────────────────────────────────────────┐
- │  │ barra lateral  │ abas: arquivos e vistas                       │
- │at│ (explorador,   │                                              │
- │iv│  fluxo, busca, │                                              │
- │id│  relatórios)   ├──────────────────────────────────────────────┤
- │ad│                │ painel: C±, ASM, Verilog, Wave, PRISM, Lace, │
- │es│                │ Problemas, Terminal                          │
- └──┴────────────────┴──────────────────────────────────────────────┘
- status       projeto, topo, testbench | operação ou último resultado | problemas, cursor, simulador, bundle
+ ┌──┬────────────────┬──────────────────────────────────┬──────────────┐
+ │  │ barra lateral  │ abas: arquivos e vistas          │ barra lateral│
+ │at│ esquerda       │                                  │ direita      │
+ │iv│ (explorador,   │                                  │ (vazia no    │
+ │id│  fluxo, busca, ├──────────────────────────────────┤  Padrão)     │
+ │ad│  relatórios)   │ painel: C±, ASM, Verilog, Wave,  │              │
+ │es│                │ PRISM, Problemas, Terminal       │              │
+ └──┴────────────────┴──────────────────────────────────┴──────────────┘
+ status       projeto, topo, testbench | operação ou último resultado | problemas, cursor, simulador, bundle, layout
 ```
 
-- **Barra de atividades**, à esquerda: Explorador, Fluxo, Busca e
-  Relatórios em cima; Ferramentas do Lace e Preferências embaixo. Clicar na
-  vista aberta esconde a barra lateral (Ctrl+B faz o mesmo).
+Esse é o layout Padrão. Cada vista pode ir para outra região, e cada barra
+e item pode ser escondido (seção 2.4).
+
+- **Barra de atividades**, à esquerda: as vistas da barra lateral esquerda
+  em cima; Ferramentas do Lace e Preferências embaixo. Clicar na vista
+  aberta esconde a barra lateral (Ctrl+B faz o mesmo).
 - **Explorador**, com três modos (seção 2.1): *Fontes*, *Hierarquia* e
   *Arquivos*. Os botões de cada modo ficam na linha do título, à direita.
 - **Fluxo**: as etapas do projeto em ordem, como o Flow Navigator do
@@ -60,13 +63,18 @@ o que o Studio grava continua legível pela AURORA. Os temporários ficam em
   (título em itálico), que a próxima abertura troca; editar ou dar duplo
   clique a fixa. Vistas como o esquemático e as preferências também abrem
   em abas. O editor se divide em até três grupos lado a lado (seção 2.2).
-- **Painel inferior**: os consoles de cada etapa, Problemas e o terminal.
-  Ctrl+J esconde e mostra; o botão de maximizar dá a altura toda a ele.
+- **Painel**: os consoles de cada etapa, Problemas e o terminal, embaixo do
+  editor ou à direita dele. Ctrl+J esconde e mostra; o botão de maximizar dá
+  ao painel o lugar do editor.
+- **Barra lateral direita**: vazia no Padrão; recebe as vistas que você
+  mover para ela. Ctrl+Alt+B esconde e mostra.
 - **Barra de status**: o que está sendo feito agora e há quanto tempo, ou
   como terminou a última operação. Clicar nos contadores de problemas abre
-  o painel Problemas; clicar no bundle abre as Ferramentas do Lace.
+  o painel Problemas; clicar no bundle abre as Ferramentas do Lace; clicar
+  no nome do layout troca de layout.
 
-Todo divisor entre as áreas pode ser arrastado.
+Todo divisor entre as áreas pode ser arrastado, e o tamanho fica guardado.
+Duplo clique num divisor volta ao tamanho do layout em uso.
 
 ### 2.1 Explorador
 
@@ -169,7 +177,7 @@ colunas no meio da tela, sem o minimapa.
 | usar o terminal | Ctrl+` abre o shell numa gaveta embaixo do editor, o mesmo do painel (o `lace` está no `PATH`); Ctrl+` de novo fecha e o foco volta ao editor. A divisa entre os dois se arrasta |
 | trocar de arquivo | Ctrl+P, ou a paleta (Ctrl+Shift+P) |
 | rodar o fluxo | F5 a F10, como sempre |
-| ver o painel ou a barra lateral | Ctrl+J, Ctrl+B; valem só enquanto o zen durar |
+| ver o painel ou uma barra lateral | Ctrl+J, Ctrl+B, Ctrl+Alt+B; valem só enquanto o zen durar |
 
 Durante uma operação, um indicador pequeno no canto inferior direito mostra
 a etapa e o tempo; ao terminar, mostra o resultado e os erros e avisos por
@@ -179,12 +187,62 @@ cima.
 
 O Esc duas vezes não sai do zen com o foco no terminal (o Esc é do shell,
 de programas como `vim` e `less`) nem no editor com o modo Vim ligado (o Esc
-é do Vim); nesses casos, Ctrl+K Z. Ao sair, a barra lateral, o painel e a
-janela voltam como estavam; se a janela já estava em tela cheia antes,
+é do Vim); nesses casos, Ctrl+K Z. Ao sair, as barras laterais, o painel e
+a janela voltam como estavam; se a janela já estava em tela cheia antes,
 continua. O Studio sempre abre fora do zen.
 
 Preferências > Modo zen: entrar em tela cheia, centralizar o editor,
 mostrar as abas, esconder os números de linha.
+
+### 2.4 Layout da janela
+
+Há três regiões: a barra lateral esquerda, a direita e o painel, que fica
+embaixo ou à direita do editor. As onze vistas (Explorador, Fluxo, Busca,
+Relatórios, os consoles C±, ASM, Verilog, Wave e PRISM, Problemas e
+Terminal) vão para qualquer uma delas. O editor fica sempre no meio.
+
+| Para | Faça |
+|---|---|
+| mover uma vista | botão direito na aba ou no ícone dela > Mover para |
+| esconder uma vista | botão direito > Esconder; ela volta pelo menu Exibir (Exibir > Consoles, para um console), pela paleta ou por Preferências > Layout da janela |
+| esconder uma barra ou uma região | Exibir > Aparência, ou o botão direito em qualquer barra |
+| esconder um botão da barra de ferramentas ou um item da barra de status | botão direito na barra: a lista marca o que aparece |
+| pôr o painel à direita do editor | Exibir > Aparência > Painel à direita |
+| pôr a barra de atividades à direita, ou escondê-la | Exibir > Aparência |
+
+A barra de atividades escolhe a vista da barra lateral do lado dela. A
+outra barra lateral, ou as duas com a barra de atividades escondida,
+mostram as vistas em abas com ícone no cabeçalho.
+
+O que foi escondido sempre tem volta: a paleta (Ctrl+Shift+P) e o botão
+direito na barra de abas do editor, que nunca some, mostram todas as barras
+e regiões. Sem a barra de status, o indicador do canto, o mesmo do zen,
+mostra a operação, o resultado e a linha do Vim. Sem o seletor de alvo na
+barra de ferramentas, o alvo se escolhe em Fluxo > Escolher o alvo.
+
+Numa janela estreita demais para tudo, a barra lateral direita deixa de
+aparecer e depois o painel volta para baixo do editor. O layout continua o
+mesmo: com a janela larga de novo, tudo volta.
+
+**Layouts com nome.** Um layout é uma foto da janela. Mexer na janela
+(Ctrl+B, Ctrl+J, arrastar um divisor, mover uma vista) não muda a foto. O
+nome do layout em uso fica na barra de status, com um ponto quando a janela
+está diferente da foto.
+
+| Para | Faça |
+|---|---|
+| gravar a janela no layout em uso | Exibir > Layout > Salvar layout, ou o botão direito no nome do layout |
+| criar outro layout | Exibir > Layout > Salvar layout como |
+| voltar à foto | Exibir > Layout > Restaurar layout |
+| trocar de layout | Ctrl+K L, ou clique no nome do layout |
+| voltar ao Padrão | Exibir > Layout > Voltar ao layout padrão |
+| renomear, excluir, ajustar tudo numa tela | Preferências > Layout da janela |
+
+O Padrão é a janela de antes dos layouts e não muda: salvar sobre ele pede
+um nome e cria outro. Trocar de layout descarta o que não foi gravado no
+anterior. Os layouts ficam nas preferências (`settings.json`, seção 9),
+valem em qualquer projeto e são os mesmos no Windows, no Linux e no macOS;
+a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
 
 ## 3. Projeto Verilog
 
@@ -452,6 +510,7 @@ Ctrl+, ou a engrenagem. Tudo vale na hora e fica gravado.
 |---|---|
 | Geral | idioma (do sistema, português, inglês), reabrir o último projeto |
 | Aparência | o tema (ver abaixo) |
+| Layout da janela | o layout em uso (trocar, salvar, restaurar, renomear, excluir), as barras, as regiões, a posição do painel, a região e a ordem de cada vista e os itens das barras de ferramentas e de status (seção 2.4) |
 | Terminal | no Windows, o shell: PowerShell ou Prompt de Comando (`cmd`) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim |
 | Modo zen | tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
@@ -524,7 +583,8 @@ No macOS, Ctrl é Cmd. A lista também está em Ajuda > Atalhos de teclado.
 | Localizar, substituir, ir para a linha | Ctrl+F, Ctrl+H, Ctrl+G |
 | Localizar nos arquivos | Ctrl+Shift+F |
 | Formatar documento | Shift+Alt+F |
-| Explorador, barra lateral, painel inferior | Ctrl+Shift+E, Ctrl+B, Ctrl+J |
+| Explorador, barra lateral esquerda, barra lateral direita, painel | Ctrl+Shift+E, Ctrl+B, Ctrl+Alt+B, Ctrl+J |
+| Selecionar layout | Ctrl+K L |
 | Terminal, Problemas | Ctrl+`, Ctrl+Shift+M |
 | Modo zen (entrar e sair) | Ctrl+K Z; Esc Esc também sai |
 | Histórico de relatórios | Ctrl+Shift+H |

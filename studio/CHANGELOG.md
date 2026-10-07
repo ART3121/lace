@@ -3,6 +3,35 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Acrescentado
+
+- Layout da janela. Há uma barra lateral direita, e o painel pode ficar à
+  direita do editor. Cada vista (Explorador, Fluxo, Busca, Relatórios, os
+  consoles, Problemas e Terminal) vai para qualquer região pelo botão
+  direito > **Mover para**. Também pelo botão direito, cada vista, barra,
+  botão da barra de ferramentas e item da barra de status pode ser
+  escondido. **Exibir > Aparência** liga e desliga as barras e as regiões.
+  A barra de atividades fica à esquerda, à direita ou escondida.
+- Layouts com nome: **Exibir > Layout** salva a janela como um layout,
+  restaura, troca (Ctrl+K L ou o nome do layout na barra de status) e volta
+  ao Padrão, que é a janela de antes. **Preferências > Layout da janela**
+  junta tudo numa tela, com renomear e excluir. Os layouts ficam no
+  `settings.json`.
+- Os tamanhos das barras laterais e do painel ficam guardados. Duplo clique
+  numa divisão volta ao tamanho do layout em uso.
+- **Fluxo > Escolher o alvo** e **Exibir > Consoles**, para quando o
+  seletor de alvo ou um console estiver escondido.
+- Ctrl+Alt+B mostra e esconde a barra lateral direita.
+
+### Mudado
+
+- O menu Exibir tem os submenus Consoles, Aparência e Layout. Mostrar ou
+  ocultar a barra lateral e o painel foi para Aparência.
+- O terminal e a Busca só pegam o foco quando são pedidos. Aparecer porque
+  um layout foi aplicado não tira o foco do editor.
+
 ## [0.3.0] - 2026-10-06
 
 ### Acrescentado

@@ -1,8 +1,12 @@
 // A barra de status: o projeto (topo, testbench, alvo) à esquerda, a
 // operação rodando ou o último resultado no meio, e à direita os
 // problemas, o cursor, a linguagem, o simulador e o bundle.
+//
+// Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
+// Preferências > Layout). A espera de um atalho de duas etapas e a linha do
+// Vim aparecem sempre: sem elas, o teclado parece não responder.
 
-import { CircleAlert, TriangleAlert } from 'lucide-react';
+import { CircleAlert, LayoutTemplate, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useChord } from '../../actions';
@@ -14,8 +18,11 @@ import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
+import { openDialog } from '../../state/dialogs';
+import { useLayoutStatus } from '../../state/savedLayouts';
 import { baseName } from '../../util/paths';
-import { Kbd, Spinner } from '../common';
+import { Kbd, openContextMenu, Spinner } from '../common';
+import { layoutItems, statusBarMenu } from './layoutMenus';
 
 export function Elapsed({ since }: { since: number }) {
   const [now, setNow] = useState(Date.now());
@@ -24,6 +31,29 @@ export function Elapsed({ since }: { since: number }) {
     return () => window.clearInterval(timer);
   }, []);
   return <span className="mono">{formatDuration(Math.max(0, now - since))}</span>;
+}
+
+/** O layout em uso, com um ponto quando a janela está diferente da foto
+ * dele. O clique troca de layout; o botão direito salva ou restaura. */
+function LayoutIndicator() {
+  const t = useT();
+  const { layout, dirty } = useLayoutStatus();
+  return (
+    <button
+      type="button"
+      className="statusbar__item statusbar__button statusbar__layout"
+      title={t(dirty ? 'layout.indicator.modified' : 'layout.indicator', { name: layout.name })}
+      onClick={() => openDialog({ kind: 'layout' })}
+      onContextMenu={(e) => {
+        e.stopPropagation();
+        openContextMenu(e, layoutItems());
+      }}
+    >
+      <LayoutTemplate size={12} />
+      {layout.name}
+      {dirty && <span className="statusbar__dirty" aria-hidden />}
+    </button>
+  );
 }
 
 export function StatusBar() {
@@ -40,28 +70,38 @@ export function StatusBar() {
   const toolchain = useApp((s) => s.toolchain);
   const vim = useApp((s) => s.settings?.editor.vim_mode ?? false);
   const pending = useChord((s) => s.pending);
+  const hidden = useLayout((s) => s.live.hidden.statusbar);
+  const shown = (id: string) => !hidden.includes(id);
 
   const errors = problems.filter((p) => p.severity === 'error').length;
   const warnings = problems.filter((p) => p.severity === 'warning').length;
 
   return (
-    <footer className="statusbar">
+    <footer className="statusbar" onContextMenu={(e) => openContextMenu(e, statusBarMenu())}>
       <div className="statusbar__left">
         {snapshot ? (
           <>
-            <span className="statusbar__item statusbar__project">{snapshot.name}</span>
-            <span className="statusbar__item" title={snapshot.top_level ?? undefined}>
-              {snapshot.top_module ? t('status.top', { name: snapshot.top_module }) : t('status.noTop')}
-            </span>
-            <span className="statusbar__item" title={snapshot.selected_testbench ?? undefined}>
-              {snapshot.selected_testbench
-                ? t('status.testbench', { name: snapshot.testbench_module ?? baseName(snapshot.selected_testbench) })
-                : t('status.noTestbench')}
-            </span>
-            {target && <span className="statusbar__item">{t('toolbar.target')}: {target}</span>}
+            {shown('project') && <span className="statusbar__item statusbar__project">{snapshot.name}</span>}
+            {shown('top') && (
+              <span className="statusbar__item" title={snapshot.top_level ?? undefined}>
+                {snapshot.top_module ? t('status.top', { name: snapshot.top_module }) : t('status.noTop')}
+              </span>
+            )}
+            {shown('testbench') && (
+              <span className="statusbar__item" title={snapshot.selected_testbench ?? undefined}>
+                {snapshot.selected_testbench
+                  ? t('status.testbench', { name: snapshot.testbench_module ?? baseName(snapshot.selected_testbench) })
+                  : t('status.noTestbench')}
+              </span>
+            )}
+            {target && shown('target') && (
+              <span className="statusbar__item">
+                {t('toolbar.target')}: {target}
+              </span>
+            )}
           </>
         ) : (
-          <span className="statusbar__item">{t('status.noProject')}</span>
+          shown('project') && <span className="statusbar__item">{t('status.noProject')}</span>
         )}
       </div>
 
@@ -71,7 +111,7 @@ export function StatusBar() {
             <Kbd keys={pending} />
             {t('status.chordPending')}
           </span>
-        ) : running ? (
+        ) : !shown('operation') ? null : running ? (
           <span className="statusbar__item">
             <Spinner size={12} />
             {running.phase ? t(`console.phase.${running.phase}` as Key) : t('common.running')}
@@ -92,24 +132,29 @@ export function StatusBar() {
       </div>
 
       <div className="statusbar__right">
-        <button type="button" className="statusbar__item statusbar__button" onClick={() => useLayout.getState().showPanel('problems')}>
-          <CircleAlert size={12} /> {errors}
-          <TriangleAlert size={12} /> {warnings}
-        </button>
+        {shown('problems') && (
+          <button type="button" className="statusbar__item statusbar__button" onClick={() => useLayout.getState().revealView('problems', { explicit: true })}>
+            <CircleAlert size={12} /> {errors}
+            <TriangleAlert size={12} /> {warnings}
+          </button>
+        )}
         {/* O modo do Vim e a linha de comando (`:w`, `/busca`), escritos pelo monaco-vim. */}
         <span ref={setVimStatusNode} className={`statusbar__item statusbar__vim${vim && activeIsFile ? '' : ' is-hidden'}`} />
-        {activeIsFile && cursor && (
+        {activeIsFile && cursor && shown('cursor') && (
           <span className="statusbar__item">{t('status.cursor', { line: cursor.line, col: cursor.column })}</span>
         )}
-        {activeIsFile && languageId && <span className="statusbar__item">{languageLabel(languageId)}</span>}
-        <span className="statusbar__item">{simulator === 'icarus' ? 'Icarus' : 'Verilator'}</span>
-        <button
-          type="button"
-          className={`statusbar__item statusbar__button${toolchain && !toolchain.found ? ' text-warn' : ''}`}
-          onClick={() => useEditor.getState().openView('toolchain')}
-        >
-          {toolchain?.found ? t('status.bundle', { bundle: toolchain.bundle ?? '' }) : toolchain ? t('status.toolchainMissing') : ''}
-        </button>
+        {activeIsFile && languageId && shown('language') && <span className="statusbar__item">{languageLabel(languageId)}</span>}
+        {shown('simulator') && <span className="statusbar__item">{simulator === 'icarus' ? 'Icarus' : 'Verilator'}</span>}
+        {shown('bundle') && (
+          <button
+            type="button"
+            className={`statusbar__item statusbar__button${toolchain && !toolchain.found ? ' text-warn' : ''}`}
+            onClick={() => useEditor.getState().openView('toolchain')}
+          >
+            {toolchain?.found ? t('status.bundle', { bundle: toolchain.bundle ?? '' }) : toolchain ? t('status.toolchainMissing') : ''}
+          </button>
+        )}
+        {shown('layout') && <LayoutIndicator />}
       </div>
     </footer>
   );

@@ -7,6 +7,7 @@ import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
 import type { IpcError, SearchMatch } from '../../ipc/types';
 import { useEditor } from '../../state/editor';
+import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
 import { relativeTo } from '../../util/paths';
 import { Empty, IconButton, Spinner } from '../common';
@@ -24,7 +25,11 @@ export function SearchPanel() {
   const [searching, setSearching] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
-  useEffect(() => input.current?.focus(), []);
+  // O campo pega o foco quando o usuário pediu a busca (o ícone, Ctrl+Shift+F);
+  // aparecer porque um layout foi aplicado não tira o foco do editor.
+  useEffect(() => {
+    if (useLayout.getState().takeFocus('search')) input.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!snapshot || !query) {

@@ -39,6 +39,8 @@ export type DialogSpec =
   | { kind: 'palette' }
   | { kind: 'quickOpen' }
   | { kind: 'theme' }
+  | { kind: 'layout' }
+  | { kind: 'target' }
   | { kind: 'chooseTop' }
   | { kind: 'chooseTestbench' }
   | { kind: 'cleanReports' }

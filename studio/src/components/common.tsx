@@ -1,7 +1,7 @@
 // Componentes pequenos usados em toda a interface: botões, campos,
 // marcadores, seções recolhíveis, o menu de contexto e o símbolo do Lace.
 
-import { ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react';
 import {
   createContext,
   useContext,
@@ -222,9 +222,14 @@ export interface MenuItem {
   label?: string;
   keys?: string;
   icon?: ReactNode;
+  /** Um item que liga e desliga: `true` mostra a marca no lugar do ícone.
+   * Ausente, o item não é desses. */
+  checked?: boolean;
   disabled?: boolean;
   danger?: boolean;
   separator?: boolean;
+  /** Um submenu (um nível só), aberto ao passar o mouse ou clicar. */
+  submenu?: MenuItem[];
   run?: () => void;
 }
 
@@ -246,29 +251,77 @@ export function openContextMenu(event: { clientX: number; clientY: number; preve
   useContextMenu.getState().show(event.clientX, event.clientY, items);
 }
 
+/**
+ * Um submenu ao lado do item que o abriu. A posição é fixa, calculada pelo
+ * retângulo do item (sem a Popover API nem o posicionamento por âncora do
+ * CSS, que o WebKit do macOS 13 e do Linux não têm); perto da borda da tela,
+ * ele abre para a esquerda. Fica dentro do menu de cima no DOM, então um
+ * clique nele não conta como clique fora do menu.
+ */
+function Submenu({ items, anchor, onDone }: { items: MenuItem[]; anchor: DOMRect; onDone: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: anchor.right - 2, y: anchor.top - 5 });
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const right = anchor.right - 2;
+    const x = right + rect.width > window.innerWidth - 8 ? Math.max(8, anchor.left - rect.width + 2) : right;
+    const y = Math.max(8, Math.min(anchor.top - 5, window.innerHeight - rect.height - 8));
+    setPosition({ x, y });
+  }, [anchor]);
+  return (
+    <div ref={ref} className="menu menu--floating menu--submenu" style={{ left: position.x, top: position.y }} role="menu">
+      <MenuList items={items} onDone={onDone} />
+    </div>
+  );
+}
+
 export function MenuList({ items, onDone }: { items: MenuItem[]; onDone: () => void }) {
+  const [open, setOpen] = useState<{ index: number; anchor: DOMRect } | null>(null);
+  const openAt = (index: number, element: HTMLElement) => setOpen({ index, anchor: element.getBoundingClientRect() });
+  const submenu = open ? items[open.index]?.submenu : undefined;
   return (
     <>
       {items.map((item, index) =>
         item.separator ? (
           <div key={`sep-${index}`} className="menu__sep" />
+        ) : item.submenu ? (
+          <button
+            key={`${item.label}-${index}`}
+            type="button"
+            className={`menu__item menu__item--submenu${open?.index === index ? ' is-open' : ''}`}
+            role="menuitem"
+            aria-haspopup="menu"
+            aria-expanded={open?.index === index}
+            disabled={item.disabled}
+            onMouseEnter={(e) => openAt(index, e.currentTarget)}
+            onClick={(e) => openAt(index, e.currentTarget)}
+          >
+            <span className="menu__icon">{item.icon}</span>
+            <span className="menu__label">{item.label}</span>
+            <ChevronRight size={13} className="menu__chevron" />
+          </button>
         ) : (
           <button
             key={`${item.label}-${index}`}
             type="button"
             className={`menu__item${item.danger ? ' is-danger' : ''}`}
+            role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+            aria-checked={item.checked}
             disabled={item.disabled}
+            onMouseEnter={() => setOpen(null)}
             onClick={() => {
               onDone();
               item.run?.();
             }}
           >
-            <span className="menu__icon">{item.icon}</span>
+            <span className="menu__icon">{item.icon ?? (item.checked ? <Check size={13} /> : null)}</span>
             <span className="menu__label">{item.label}</span>
             {item.keys && <span className="menu__keys">{item.keys}</span>}
           </button>
         ),
       )}
+      {open && submenu && <Submenu items={submenu} anchor={open.anchor} onDone={onDone} />}
     </>
   );
 }
