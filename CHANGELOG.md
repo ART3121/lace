@@ -1,6 +1,6 @@
 # Mudanças
 
-## Não publicada
+## 0.4.0 (2026-10-07)
 
 - Simulação rápida, o Fast Sim da AURORA: `lace sim --fast` roda sem gravar
   onda, para ver a saída do testbench, as saídas do processador e os testes
@@ -15,6 +15,14 @@
   `<módulo de teste>.vcd`. `cocotb_needs_icarus` deixou de existir; um
   cocotb sem a biblioteca do simulador dá `cocotb_unavailable`. Testado no
   Windows; no Linux e no macOS, não.
+- YANC 6.0 no bundle (era a 5.6; a 5.7 ficou no meio). Pelo CHANGELOG dele:
+  `DIV`, `MOD` e `F_DIV` levam três ciclos, e cada divisão vira
+  `<divisão> x; NOP; <leitura>`, com as leituras novas `QUO`, `REM` e
+  `F_QUO` (o Fmax do `sapho_all` foi de 9,43 para 21,9 MHz na DE10-Nano); o
+  `asmcomp` recusa um `.asm` escrito à mão com divisão sem essa sequência.
+  O código que nenhum caminho alcança sai do programa e do hardware, a pilha
+  sem `#NDSTAC`/`#SDEPTH` fica com a profundidade que o programa usa, e
+  recursão em C± é erro. No Studio, o assembly conhece as três leituras.
 - Windows: o Verilator reaproveita o modelo em dia. Ele anotava o
   `verilator_bin` sem `.exe` entre as entradas do modelo, não reconhecia
   nada como em dia, gerava o C++ de novo e recompilava tudo a cada simulação,
@@ -23,6 +31,18 @@
   encontrar o caminho especificado" que o script dele escrevia a cada
   chamada, e os avisos do g++ sobre a biblioteca do próprio Verilator viram
   informação.
+- Lace Studio (os detalhes estão em `studio/CHANGELOG.md`):
+  - o PRISM (F10) desenha o esquemático no próprio Studio, a partir do
+    netlist da síntese, com as cores do tema, a hierarquia, a busca e o
+    destaque das redes; a CLI continua com o Graphviz (`lace synth --svg`);
+  - a Rápida (F9) é a simulação rápida, e o item do Explorador que marca o
+    testbench só marca, sem simular;
+  - layout da janela: cada vista vai para qualquer região, há uma barra
+    lateral direita, e os layouts com nome guardam a janela inteira;
+  - barra de título integrada, com os menus, o nome do projeto e os botões
+    da janela numa faixa só;
+  - as Preferências têm uma página por assunto, e o tema Atlas passou ao
+    azul do ATLAS.
 
 ## 0.3.0 (2026-10-06)
 
