@@ -18,7 +18,7 @@ import { activeEditor } from '../../editor/host';
 import { setVimStatusNode } from '../../editor/vim';
 import { formatDuration, t, useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
-import { useJobs } from '../../state/jobs';
+import { lastFlowKey, phaseKey, useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { showError, useToasts } from '../../state/toasts';
 import { Kbd, Spinner } from '../common';
@@ -91,7 +91,7 @@ export function ZenHud() {
       {running ? (
         <span className="zen-hud__item">
           <Spinner size={12} />
-          {running.phase ? t(`console.phase.${running.phase}` as Key) : t('common.running')}
+          {running.phase ? t(phaseKey(running.phase, running.statusKey)) : t('common.running')}
           <Elapsed since={running.startedAt} />
         </span>
       ) : (
@@ -101,13 +101,13 @@ export function ZenHud() {
             type="button"
             className={`zen-hud__item zen-hud__result ${last.succeeded ? 'text-ok' : 'text-error'}`}
             title={t('action.showProblems')}
-            onClick={() => useLayout.getState().showPanel('problems')}
+            onClick={() => useLayout.getState().revealView('problems', { explicit: true })}
           >
             {last.succeeded ? <CircleCheck size={13} /> : <CircleAlert size={13} />}
             {last.succeeded
-              ? t('status.lastOk', { flow: t(`flowName.${last.flow}` as Key), time: formatDuration(last.durationMs) })
+              ? t('status.lastOk', { flow: t(lastFlowKey(last)), time: formatDuration(last.durationMs) })
               : t('status.lastFailed', {
-                  flow: t(`flowName.${last.flow}` as Key),
+                  flow: t(lastFlowKey(last)),
                   status: last.status === 'error' ? t('console.status.failed') : t(`console.status.${last.status}` as Key),
                 })}
             {errors + warnings > 0 && (

@@ -78,7 +78,16 @@ export interface Settings {
   terminal_shell: 'powershell' | 'cmd';
   editor: EditorSettings;
   zen: ZenSettings;
+  layouts: LayoutSettings;
   recent_projects: RecentProject[];
+}
+
+/** `settings.rs`: LayoutSettings. Cada layout gravado vai como a interface o
+ * escreveu (state/layoutModel.ts); o backend não o lê. */
+export interface LayoutSettings {
+  /** O id do layout em uso: um dos gravados ou um pronto (`default`). */
+  active: string;
+  saved: unknown[];
 }
 
 /** `settings.rs`: ZenSettings. */

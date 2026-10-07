@@ -9,6 +9,7 @@ import type { Settings } from '../../ipc/types';
 import { useApp } from '../../state/app';
 import { DEFAULT_LIGHT_THEME, DEFAULT_THEME, SYSTEM_THEME, THEMES, themeById, type SyntaxColors, type Theme } from '../../themes';
 import { Button, Checkbox, Field } from '../common';
+import { LayoutSettings } from './LayoutSettings';
 
 export function SettingsView() {
   const t = useT();
@@ -69,6 +70,8 @@ export function SettingsView() {
           <ThemeGrid value={settings.theme} onChange={(id) => set('theme', id)} />
         </div>
       </section>
+
+      <LayoutSettings />
 
       <section className="form-section">
         <h2>{t('settings.terminal')}</h2>

@@ -45,8 +45,10 @@ import { openDialog, prompt } from './state/dialogs';
 import { MAX_GROUPS, saveActive, useEditor } from './state/editor';
 import { useHierarchy } from './state/hierarchy';
 import { useJobs } from './state/jobs';
-import { useLayout } from './state/layout';
+import { isOnScreen, useLayout, type RegionId, type ViewId } from './state/layout';
+import { CONSOLE_CHANNELS, regionOf, VIEW_INFO } from './state/layoutModel';
 import { useProject } from './state/project';
+import { resetLayout, restoreLayout, saveLayout, saveLayoutAs } from './state/savedLayouts';
 import { guarded, showError, useToasts } from './state/toasts';
 import { openWaveTab, waveInTab } from './state/waves';
 import { toggledTheme } from './themes';
@@ -56,11 +58,18 @@ export type ActionCategory = 'file' | 'edit' | 'view' | 'project' | 'flow' | 'to
 
 export interface Action {
   id: string;
+  /** O nome na paleta de comandos e, sem `menuLabel`, nos menus. */
   label: Key;
+  /** O nome nos menus, quando é outro: um item que liga e desliga se chama
+   * pelo que mostra ("Barra de status", com a marca), e na paleta pelo que
+   * faz ("Mostrar ou ocultar a barra de status"). */
+  menuLabel?: Key;
   category: ActionCategory;
   keys?: string;
   icon?: LucideIcon;
   enabled?: () => boolean;
+  /** Liga e desliga: os menus mostram a marca quando é `true`. */
+  checked?: () => boolean;
   run: () => unknown;
 }
 
@@ -70,6 +79,57 @@ const hasProject = () => useProject.getState().snapshot !== null;
 const idle = () => useJobs.getState().running === null;
 const canRun = () => hasProject() && idle();
 const hasEditor = () => activeEditor() !== null;
+
+/** Mostra uma vista que o usuário pediu, mesmo se estava escondida, na
+ * região onde o layout a pôs. */
+function reveal(view: ViewId) {
+  useLayout.getState().revealView(view, { explicit: true });
+}
+
+const live = () => useLayout.getState().live;
+const regionShown = (region: RegionId) => live().regions[region].visible;
+
+/** O lado da barra de atividades antes de ela ser escondida, para voltar a
+ * ele (na sessão; depois de reabrir, volta à esquerda). */
+let activitySide: 'left' | 'right' = 'left';
+
+function toggleActivityBar() {
+  const side = live().bars.activitybar;
+  if (side === 'hidden') {
+    useLayout.getState().setBar('activitybar', activitySide);
+  } else {
+    activitySide = side;
+    useLayout.getState().setBar('activitybar', 'hidden');
+  }
+}
+
+function toggleBar(bar: 'menubar' | 'toolbar' | 'statusbar') {
+  useLayout.getState().setBar(bar, !live().bars[bar]);
+}
+
+/**
+ * Preferências > Layout: abre as Preferências e rola até a seção. A aba
+ * monta depois; a rolagem é a do contêiner da vista (o `scrollIntoView`
+ * rolaria também os ancestrais, até a janela).
+ */
+function customizeLayout() {
+  useEditor.getState().openView('settings');
+  let tries = 0;
+  const scroll = () => {
+    const section = document.getElementById('settings-layout');
+    if (!section) {
+      if (tries++ < 40) window.setTimeout(scroll, 50);
+      return;
+    }
+    let container = section.parentElement;
+    while (container && !(container.scrollHeight > container.clientHeight && /auto|scroll/.test(getComputedStyle(container).overflowY))) {
+      container = container.parentElement;
+    }
+    if (!container) return;
+    container.scrollTop += section.getBoundingClientRect().top - container.getBoundingClientRect().top - 16;
+  };
+  window.setTimeout(scroll, 0);
+}
 
 /** O componente está no bundle. Sem a informação do bundle ainda, `true`:
  * o erro, se houver, vem da operação. */
@@ -351,12 +411,13 @@ export const ACTIONS: Action[] = [
     enabled: hasEditor,
     run: () => editorCommand('editor.action.startFindReplaceAction'),
   },
-  { id: 'findInFiles', label: 'action.findInFiles', category: 'edit', keys: 'Ctrl+Shift+F', icon: Search, enabled: hasProject, run: () => useLayout.setState({ sidebarView: 'search', sidebarVisible: true }) },
+  { id: 'findInFiles', label: 'action.findInFiles', category: 'edit', keys: 'Ctrl+Shift+F', icon: Search, enabled: hasProject, run: () => reveal('search') },
   { id: 'goToLine', label: 'action.goToLine', category: 'edit', keys: 'Ctrl+G', enabled: hasEditor, run: () => editorCommand('editor.action.gotoLine') },
   {
     id: 'toggleVim',
     label: 'action.toggleVim',
     category: 'edit',
+    checked: () => !!settings()?.editor.vim_mode,
     run: () =>
       useApp.getState().updateSettings((s) => ({ ...s, editor: { ...s.editor, vim_mode: !s.editor.vim_mode } })),
   },
@@ -372,10 +433,10 @@ export const ACTIONS: Action[] = [
   // Exibir
   { id: 'commandPalette', label: 'action.commandPalette', category: 'view', keys: 'Ctrl+Shift+P', run: () => openDialog({ kind: 'palette' }) },
   { id: 'quickOpen', label: 'action.quickOpen', category: 'view', keys: 'Ctrl+P', enabled: hasProject, run: () => openDialog({ kind: 'quickOpen' }) },
-  { id: 'viewExplorer', label: 'action.viewExplorer', category: 'view', keys: 'Ctrl+Shift+E', run: () => useLayout.setState({ sidebarView: 'explorer', sidebarVisible: true }) },
-  { id: 'viewFlow', label: 'action.viewFlow', category: 'view', icon: Workflow, run: () => useLayout.setState({ sidebarView: 'flow', sidebarVisible: true }) },
-  { id: 'viewSearch', label: 'action.viewSearch', category: 'view', run: () => useLayout.setState({ sidebarView: 'search', sidebarVisible: true }) },
-  { id: 'viewReports', label: 'action.viewReports', category: 'view', run: () => useLayout.setState({ sidebarView: 'reports', sidebarVisible: true }) },
+  { id: 'viewExplorer', label: 'action.viewExplorer', category: 'view', keys: 'Ctrl+Shift+E', run: () => reveal('explorer') },
+  { id: 'viewFlow', label: 'action.viewFlow', category: 'view', icon: Workflow, run: () => reveal('flow') },
+  { id: 'viewSearch', label: 'action.viewSearch', category: 'view', run: () => reveal('search') },
+  { id: 'viewReports', label: 'action.viewReports', category: 'view', run: () => reveal('reports') },
   {
     id: 'splitEditor',
     label: 'action.splitEditor',
@@ -403,8 +464,78 @@ export const ACTIONS: Action[] = [
     enabled: () => useEditor.getState().groups.length > index,
     run: () => useEditor.getState().focusGroupAt(index),
   })),
-  { id: 'toggleSidebar', label: 'action.toggleSidebar', category: 'view', keys: 'Ctrl+B', run: () => useLayout.getState().toggleSidebar() },
-  { id: 'togglePanel', label: 'action.togglePanel', category: 'view', keys: 'Ctrl+J', run: () => useLayout.getState().togglePanel() },
+  {
+    id: 'toggleSidebar',
+    label: 'action.toggleSidebar',
+    menuLabel: 'layout.region.left',
+    category: 'view',
+    keys: 'Ctrl+B',
+    checked: () => regionShown('left'),
+    run: () => useLayout.getState().toggleRegion('left'),
+  },
+  {
+    id: 'toggleRightSidebar',
+    label: 'action.toggleRightSidebar',
+    menuLabel: 'layout.region.right',
+    category: 'view',
+    keys: 'Ctrl+Alt+B',
+    checked: () => regionShown('right'),
+    run: () => useLayout.getState().toggleRegion('right'),
+  },
+  {
+    id: 'togglePanel',
+    label: 'action.togglePanel',
+    menuLabel: 'layout.region.panel',
+    category: 'view',
+    keys: 'Ctrl+J',
+    checked: () => regionShown('panel'),
+    run: () => useLayout.getState().toggleRegion('panel'),
+  },
+  {
+    id: 'togglePanelPosition',
+    label: 'action.togglePanelPosition',
+    menuLabel: 'layout.panelRight',
+    category: 'view',
+    checked: () => live().panelPosition === 'right',
+    run: () => useLayout.getState().setPanelPosition(live().panelPosition === 'right' ? 'bottom' : 'right'),
+  },
+  {
+    id: 'maximizePanel',
+    label: 'action.maximizePanel',
+    menuLabel: 'panel.maximize',
+    category: 'view',
+    checked: () => useLayout.getState().panelMaximized && regionShown('panel'),
+    run: () => {
+      const layout = useLayout.getState();
+      layout.setPanelMaximized(!(layout.panelMaximized && regionShown('panel')));
+    },
+  },
+  { id: 'toggleMenuBar', label: 'action.toggleMenuBar', menuLabel: 'layout.bar.menubar', category: 'view', checked: () => live().bars.menubar, run: () => toggleBar('menubar') },
+  { id: 'toggleToolbar', label: 'action.toggleToolbar', menuLabel: 'layout.bar.toolbar', category: 'view', checked: () => live().bars.toolbar, run: () => toggleBar('toolbar') },
+  {
+    id: 'toggleActivityBar',
+    label: 'action.toggleActivityBar',
+    menuLabel: 'layout.bar.activitybar',
+    category: 'view',
+    checked: () => live().bars.activitybar !== 'hidden',
+    run: toggleActivityBar,
+  },
+  {
+    id: 'activityBarRight',
+    label: 'action.activityBarRight',
+    menuLabel: 'layout.bar.activitybarRight',
+    category: 'view',
+    checked: () => live().bars.activitybar === 'right',
+    run: () => useLayout.getState().setBar('activitybar', live().bars.activitybar === 'right' ? 'left' : 'right'),
+  },
+  { id: 'toggleStatusBar', label: 'action.toggleStatusBar', menuLabel: 'layout.bar.statusbar', category: 'view', checked: () => live().bars.statusbar, run: () => toggleBar('statusbar') },
+  // Layouts com nome (state/savedLayouts.ts)
+  { id: 'selectLayout', label: 'action.selectLayout', category: 'view', keys: 'Ctrl+K L', run: () => openDialog({ kind: 'layout' }) },
+  { id: 'saveLayout', label: 'action.saveLayout', category: 'view', run: saveLayout },
+  { id: 'saveLayoutAs', label: 'action.saveLayoutAs', category: 'view', run: saveLayoutAs },
+  { id: 'restoreLayout', label: 'action.restoreLayout', category: 'view', run: restoreLayout },
+  { id: 'resetLayout', label: 'action.resetLayout', category: 'view', run: resetLayout },
+  { id: 'customizeLayout', label: 'action.customizeLayout', category: 'view', run: customizeLayout },
   {
     id: 'toggleTerminal',
     label: 'action.toggleTerminal',
@@ -413,14 +544,21 @@ export const ACTIONS: Action[] = [
     icon: SquareTerminal,
     run: () => {
       const layout = useLayout.getState();
-      // No zen, o terminal abre numa gaveta embaixo do editor, sem o painel.
+      // No zen, o terminal abre numa gaveta embaixo do editor, sem as regiões.
       if (layout.zen) layout.toggleZenShell();
-      else if (layout.panelVisible && layout.panelTab === 'terminal') layout.togglePanel();
-      else layout.showPanel('terminal');
+      else if (isOnScreen(layout, 'terminal')) layout.setRegionVisible(regionOf(layout.live, 'terminal'), false);
+      else reveal('terminal');
     },
   },
   { id: 'toggleZen', label: 'action.toggleZen', category: 'view', keys: 'Ctrl+K Z', run: () => useLayout.getState().toggleZen() },
-  { id: 'showProblems', label: 'action.showProblems', category: 'view', keys: 'Ctrl+Shift+M', run: () => useLayout.getState().showPanel('problems') },
+  { id: 'showProblems', label: 'action.showProblems', category: 'view', keys: 'Ctrl+Shift+M', run: () => reveal('problems') },
+  // Os consoles, um por um: o caminho de volta para um console escondido.
+  ...CONSOLE_CHANNELS.map((channel) => ({
+    id: VIEW_INFO[channel].action,
+    label: `action.${VIEW_INFO[channel].action}` as Key,
+    category: 'view' as const,
+    run: () => reveal(channel),
+  })),
   { id: 'zoomIn', label: 'action.zoomIn', category: 'view', keys: 'Ctrl+=', run: () => applyZoom(useLayout.getState().zoom + 0.1) },
   { id: 'zoomOut', label: 'action.zoomOut', category: 'view', keys: 'Ctrl+-', run: () => applyZoom(useLayout.getState().zoom - 0.1) },
   { id: 'zoomReset', label: 'action.zoomReset', category: 'view', keys: 'Ctrl+0', run: () => applyZoom(1) },
@@ -477,6 +615,7 @@ export const ACTIONS: Action[] = [
     label: 'action.useIcarus',
     category: 'flow',
     enabled: () => hasComponent('icarus'),
+    checked: () => settings()?.simulator === 'icarus',
     run: () => useApp.getState().updateSettings((s) => ({ ...s, simulator: 'icarus' })),
   },
   {
@@ -484,8 +623,10 @@ export const ACTIONS: Action[] = [
     label: 'action.useVerilator',
     category: 'flow',
     enabled: () => hasComponent('verilator'),
+    checked: () => settings()?.simulator === 'verilator',
     run: () => useApp.getState().updateSettings((s) => ({ ...s, simulator: 'verilator' })),
   },
+  { id: 'chooseTarget', label: 'action.chooseTarget', category: 'flow', enabled: () => hasProject() && idle(), run: () => openDialog({ kind: 'target' }) },
   {
     id: 'viewHierarchy',
     label: 'action.viewHierarchy',
@@ -493,7 +634,8 @@ export const ACTIONS: Action[] = [
     icon: Boxes,
     enabled: hasProject,
     run: () => {
-      useLayout.setState({ sidebarView: 'explorer', sidebarVisible: true, explorerMode: 'hierarchy' });
+      useLayout.getState().setExplorerMode('hierarchy');
+      reveal('explorer');
       if (idle()) void useHierarchy.getState().refresh();
     },
   },
@@ -507,7 +649,7 @@ export const ACTIONS: Action[] = [
     category: 'tools',
     run: () => useEditor.getState().openView('toolchain', { check: String(Date.now()) }),
   },
-  { id: 'history', label: 'action.history', category: 'tools', keys: 'Ctrl+Shift+H', enabled: hasProject, run: () => useLayout.setState({ sidebarView: 'reports', sidebarVisible: true }) },
+  { id: 'history', label: 'action.history', category: 'tools', keys: 'Ctrl+Shift+H', enabled: hasProject, run: () => reveal('reports') },
   {
     id: 'lastReport',
     label: 'action.lastReport',

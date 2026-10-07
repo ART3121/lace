@@ -63,7 +63,7 @@ import { baseName, dirName, extension, isInside, joinPath, relativeTo, relativeU
 import { Badge, Empty, FoldContext, IconButton, openContextMenu, Section, Spinner, useFoldable, type MenuItem } from '../common';
 import { fileIcon } from '../editor/tabIcons';
 import { beginDrag, movePath, reorder, sameTarget, useDrag, type DragSource, type DropSection } from './dnd';
-import { SidebarActions } from './SidebarActions';
+import { ViewActions } from '../layout/ViewActions';
 
 // Uma linha da árvore ----------------------------------------------------
 
@@ -1255,7 +1255,7 @@ export function Explorer() {
 
   return (
     <>
-      <SidebarActions>
+      <ViewActions>
         {mode === 'files' && (
           <>
             <IconButton label={t('action.newFile')} onClick={() => void newFileIn()}>
@@ -1296,7 +1296,7 @@ export function Explorer() {
         <IconButton label={folded ? t('explorer.expandAll') : t('explorer.collapseAll')} onClick={() => void foldAll(folded)}>
           {folded ? <ChevronsUpDown size={15} /> : <ChevronsDownUp size={15} />}
         </IconButton>
-      </SidebarActions>
+      </ViewActions>
       <div className="sidebar__toolbar">
         <div className="segmented segmented--full" role="tablist">
           {modes.map((m) => (

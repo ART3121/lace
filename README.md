@@ -16,15 +16,6 @@
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-2e4374" alt="Windows 10 e 11 x64">
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Rust-1.89%2B-2e4374?logo=rust&logoColor=white" alt="Rust 1.89 ou mais novo">
-  <img src="https://img.shields.io/badge/TypeScript-Studio-2e4374?logo=typescript&logoColor=white" alt="TypeScript, no Studio">
-  <img src="https://img.shields.io/badge/Tauri-2-2e4374?logo=tauri&logoColor=white" alt="Tauri 2">
-  <img src="https://img.shields.io/badge/HDL-Verilog-2e4374" alt="Verilog">
-  <img src="https://img.shields.io/badge/SAPHO-C%C2%B1-2e4374" alt="SAPHO e C±">
-  <img src="https://img.shields.io/badge/testbench-cocotb-2e4374?logo=python&logoColor=white" alt="Testbench em Python com o cocotb">
-</p>
-
 Orquestrador do desenvolvimento em Verilog e de processadores SAPHO, o
 processador soft-core do NIPS-CERN (UFJF). Cria projetos, compila C± e C com
 o YANC, verifica e simula com Icarus Verilog e Verilator, sintetiza com
