@@ -39,6 +39,7 @@ import { useApp } from './app';
 import { useEditor } from './editor';
 import { useHierarchy } from './hierarchy';
 import { isOnScreen, useLayout, type ConsoleChannel } from './layout';
+import { learnSession } from './learnSession';
 import { regionOf } from './layoutModel';
 import { useProject } from './project';
 import { useSchematic } from './schematic';
@@ -125,6 +126,7 @@ const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   synthesize: 'prism',
   schematic: 'prism',
   wave: 'wave',
+  learn: 'verilog',
 };
 
 /** O console onde cada operação começa: o comando dela e os avisos (falha
@@ -135,6 +137,7 @@ const START_CHANNEL: Record<FlowName, ConsoleChannel> = {
   simulate: 'wave',
   synthesize: 'prism',
   schematic: 'prism',
+  learn: 'verilog',
 };
 
 /** Uma linha no registro da instalação ou da atualização. */
@@ -151,6 +154,7 @@ const FLOW_CHANNEL: Record<FlowName, ConsoleChannel> = {
   simulate: 'wave',
   synthesize: 'prism',
   schematic: 'prism',
+  learn: 'verilog',
 };
 
 function verbose(): boolean {
@@ -171,6 +175,11 @@ function rel(path: string): string {
  * de saída nova. */
 function show(channel: ConsoleChannel): void {
   const layout = useLayout.getState();
+  // Numa sessão de exercícios o painel só aparece quando o aluno o chama.
+  if (learnSession.active()) {
+    layout.markUnread(channel);
+    return;
+  }
   if (isOnScreen(layout, 'terminal') && regionOf(layout.live, 'terminal') === regionOf(layout.live, channel)) {
     layout.markUnread(channel);
     return;
@@ -285,6 +294,7 @@ function collectDiagnostics(outcome: FlowOutcome): Diagnostic[] {
     ...(outcome.simulation?.diagnostics ?? []),
     ...(outcome.synthesis?.diagnostics ?? []),
     ...(outcome.schematic?.diagnostics ?? []),
+    ...(outcome.learn?.diagnostics ?? []),
   ];
 }
 
@@ -387,6 +397,19 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
     channel = 'cmm';
     show('cmm');
   }
+  if (outcome.learn) {
+    const g = outcome.learn;
+    const style: LineStyle = g.verdict === 'solved' ? 'success' : g.verdict === 'cancelled' ? 'warning' : 'error';
+    write(
+      channel,
+      t('console.learnTitle', { exercise: g.exercise, verdict: t(`learn.short.${g.verdict}` as Key), time: formatDuration(g.duration_ms) }),
+      style,
+    );
+    for (const o of g.outputs.filter((o) => o.mismatches > 0)) {
+      write(channel, t('console.learnOutput', { output: o.name, wrong: o.mismatches, samples: g.samples, first: o.first_ns ?? '-' }), 'error');
+    }
+    writeDiagnostics(channel, g.diagnostics);
+  }
   if (outcome.report) write(channel, t('console.report', { id: outcome.report }), 'dim');
   if (outcome.report_error) write(channel, t('console.reportError', { error: outcome.report_error }), 'warning');
   return channel;
@@ -396,6 +419,7 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
 function outcomeStatus(outcome: FlowOutcome): Status {
   const failedBuild = outcome.builds.find((b) => b.status !== 'succeeded');
   if (failedBuild) return failedBuild.status as Status;
+  if (outcome.learn) return outcome.learn.verdict === 'cancelled' ? 'cancelled' : outcome.succeeded ? 'succeeded' : 'failed';
   return (outcome.schematic?.status ??
     outcome.synthesis?.status ??
     outcome.simulation?.status ??

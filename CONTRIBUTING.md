@@ -125,8 +125,9 @@ bundle.
 
 ## Mapa do código
 
-O workspace tem três crates. `lace-core` é a biblioteca, com toda a regra
-de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
+O workspace tem quatro crates. `lace-core` é a biblioteca, com toda a
+regra de negócio. `lace-learn` são os exercícios do `lace learn`, sobre o
+Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 `lace-installer` é o instalador em terminal (Linux, macOS) e o empacotador
 `lace-pack`.
 
@@ -171,6 +172,24 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 | `uninstall.rs` | `lace uninstall`: acha a instalação ao redor do executável e roda o desinstalador que o instalador deixou (`uninstall.sh`, ou o do Inno no Windows) |
 | `settings.rs` | de onde vem o bundle (`ToolchainArgs::resolve`: `--toolchain`, `LACE_TOOLCHAIN` ou ao lado do executável), o compilador declarado (`--compiler`, `LACE_COMPILER`, `compiler_in`) e `absolute` |
 
+### `crates/lace-learn/src/`
+
+Os exercícios do `lace learn` ([docs/LEARN.md](docs/LEARN.md)), sobre a API
+pública do Core: o crate não roda ferramenta por conta própria, só chama o
+`check` e o `simulate_project`.
+
+| Arquivo | O que mora lá |
+|---|---|
+| `lib.rs` | os módulos, os `pub use` e a documentação do crate |
+| `track.rs` | a trilha: `Track`, `Chapter`, `Exercise`, o `exercise.json` (`Spec`, `Kind`, `Stimulus`, `Reset`), a pasta das trilhas (`tracks_dir`, `LACE_LEARN_DIR`) |
+| `text.rs` | o título, o corpo e as dicas de um `.md`, e a escolha do idioma (`prompt.en.md`) |
+| `testbench.rs` | o testbench gerado: o estímulo, a comparação com a referência e o resumo `LACE-LEARN` |
+| `reference.rs` | a cópia da solução com `_ref` no nome de cada módulo |
+| `workspace.rs` | a pasta de exercícios: `Workspace` (`init`, `open`, `discover`, `record`, `reset`), o estado `.lace-learn.json` e as soluções liberadas |
+| `grade.rs` | a correção: `grade`, `Grade`, `Verdict`, `Finding`; os diagnósticos que o aluno vê |
+| `layout.rs` | o `.sucl` que abre a onda arrumada (`commands`, `layout_of`) |
+| `dev.rs` | o `lace learn dev check` (`check_track`) |
+
 ### O resto do repositório
 
 | Caminho | O que é |
@@ -178,6 +197,9 @@ de negócio. `lace-cli` é o binário `lace`, uma casca fina sobre o Core.
 | `crates/lace-core/tests/` | `api_contract.rs` (garantias da API), `build.rs` (YANC, com snapshots em `snapshots/`), `control.rs` (cancelamento, prazo e eventos com o Icarus), `tools.rs` (simulação, síntese, esquemático, Surfer), `verilog_flow.rs` (o fluxo Verilog, mover arquivos e a hierarquia; a primeira metade roda sem ferramenta), `yanc_regression.rs` (os casos de teste do YANC), `common/mod.rs` (como achar o bundle) |
 | `crates/lace-cli/tests/cli.rs` | a CLI de ponta a ponta: códigos de saída, texto, JSON, eventos e Ctrl+C |
 | `crates/lace-cli/tests/schema.rs` | a saída `--json` de cada comando, validada contra `docs/schema/` |
+| `crates/lace-cli/tests/learn.rs` | o `lace learn` de ponta a ponta, com a trilha de teste e o `--json` validado |
+| `crates/lace-learn/tests/` | `grading.rs` (a pasta de exercícios e a correção, com a trilha de `fixtures/teste`), `track.rs` (as trilhas de `lace-learn/` passam no `dev check`) |
+| `lace-learn/` | as trilhas de exercícios, que viram o componente `lace-learn` ([docs/LEARN.md](docs/LEARN.md)) |
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
 | `crates/lace-installer/` | o instalador em terminal e o `lace-pack`; `tests/install.rs` empacota um bundle pequeno e instala de verdade |
 | `examples/` | os projetos `soma`, `com_erro` e `contador`, usados pelos testes |

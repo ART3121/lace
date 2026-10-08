@@ -38,6 +38,10 @@ pub struct Settings {
     /// Onde estão `perl`, `make` e o compilador C++ do Verilator, como o
     /// `--compiler` da CLI. No Windows, a raiz de um MSYS2.
     pub compiler_dir: Option<String>,
+    /// As trilhas do `lace learn` de outra pasta, como o `LACE_LEARN_DIR` da
+    /// CLI: é como quem escreve exercícios os testa no Studio. `None`: as do
+    /// componente `lace-learn`.
+    pub learn_dir: Option<String>,
     /// Simulador padrão: `icarus` ou `verilator`.
     pub simulator: String,
     /// Abrir a onda no surfer-aurora quando a simulação terminar bem, como o
@@ -89,6 +93,7 @@ impl Default for Settings {
             theme: "atlas".into(),
             toolchain_dir: None,
             compiler_dir: None,
+            learn_dir: None,
             simulator: "icarus".into(),
             open_wave_after_sim: true,
             wave_viewer: "tab".into(),

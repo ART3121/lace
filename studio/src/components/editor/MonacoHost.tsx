@@ -11,8 +11,16 @@ import { setVimMode, showVimStatus } from '../../editor/vim';
 import { useApp } from '../../state/app';
 import { fileTabId, useEditor } from '../../state/editor';
 import { useLayout } from '../../state/layout';
+import { learnSession } from '../../state/learnSession';
 
 const viewStates = new Map<string, monaco.editor.ICodeEditorViewState | null>();
+
+/** Gravar sozinho ao trocar de aba ou de janela: a preferência, menos numa
+ * sessão de exercícios do lace learn, em que gravar é o que pede a correção
+ * (state/learn.ts). */
+function autoSave(): boolean {
+  return !!useApp.getState().settings?.editor.auto_save && !learnSession.active();
+}
 
 export function MonacoHost({ path, group }: { path: string; group: string }) {
   const container = useRef<HTMLDivElement>(null);
@@ -59,7 +67,7 @@ export function MonacoHost({ path, group }: { path: string; group: string }) {
       report();
     });
     const blur = editor.onDidBlurEditorText(() => {
-      if (useApp.getState().settings?.editor.auto_save && currentPath.current) {
+      if (autoSave() && currentPath.current) {
         void useEditor.getState().save(fileTabId(currentPath.current));
       }
     });
@@ -81,7 +89,7 @@ export function MonacoHost({ path, group }: { path: string; group: string }) {
     if (!editor) return;
     if (currentPath.current && currentPath.current !== path) {
       viewStates.set(currentPath.current, editor.saveViewState());
-      if (useApp.getState().settings?.editor.auto_save) void useEditor.getState().save(fileTabId(currentPath.current));
+      if (autoSave()) void useEditor.getState().save(fileTabId(currentPath.current));
     }
     const model = getModel(path);
     editor.setModel(model);

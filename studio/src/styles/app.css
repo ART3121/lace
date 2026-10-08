@@ -4195,3 +4195,302 @@ body.is-dragging * {
 .wave-view__message {
   padding: var(--space-5);
 }
+
+/* Exercícios (lace learn) ------------------------------------------------- */
+
+.learn-start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.learn-start__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.learn-start__error {
+  color: var(--error);
+  font-size: var(--text-sm);
+}
+
+.learn-start__hint {
+  overflow-wrap: anywhere;
+  font-size: var(--text-xs);
+}
+
+.learn-progress {
+  padding: var(--space-1) var(--space-3) var(--space-2);
+}
+
+.learn-progress__text {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.learn-progress__title {
+  color: var(--text-0);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.learn-progress__bar {
+  height: 4px;
+  margin-top: var(--space-1);
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--bg-4);
+}
+
+.learn-progress__bar > div {
+  height: 100%;
+  background: var(--ok);
+  transition: width var(--transition);
+}
+
+.learn-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.learn-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 4px var(--space-3) 4px var(--space-4);
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+.learn-list__item:hover {
+  background: var(--hover);
+}
+
+.learn-list__item.is-current {
+  background: var(--active);
+  color: var(--text-0);
+}
+
+.learn-list__item.is-open .learn-list__title {
+  font-weight: 600;
+}
+
+.learn-list__done {
+  flex: none;
+  color: var(--ok);
+}
+
+.learn-list__todo {
+  flex: none;
+  color: var(--text-3);
+}
+
+.learn-list__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learn-view__crumbs {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.learn-view__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.learn-view__auto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.learn-view__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.learn-view__notice {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  font-size: var(--text-sm);
+}
+
+.markdown {
+  color: var(--text-1);
+  line-height: 1.6;
+}
+
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--text-0);
+  font-size: var(--text-md);
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown table,
+.markdown pre {
+  margin: 0 0 var(--space-3);
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: var(--space-5);
+}
+
+.markdown code {
+  padding: 0 3px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.markdown pre {
+  overflow-x: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-editor);
+}
+
+.markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.markdown table,
+.learn-result__outputs {
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.markdown th,
+.markdown td,
+.learn-result__outputs th,
+.learn-result__outputs td {
+  padding: 3px var(--space-3);
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.markdown th,
+.learn-result__outputs th {
+  background: var(--bg-2);
+  color: var(--text-0);
+}
+
+.learn-hint {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft);
+}
+
+.learn-hint__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-1);
+  color: var(--text-0);
+  font-weight: 600;
+}
+
+.learn-hint .markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.learn-result {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+}
+
+.learn-result--ok {
+  border-left-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.learn-result--error {
+  border-left-color: var(--error);
+  background: var(--error-soft);
+}
+
+.learn-result--warn {
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.learn-result__headline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  color: var(--text-0);
+  font-weight: 600;
+}
+
+.learn-result__line,
+.learn-result__finding {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+}
+
+.learn-result__outputs {
+  margin-top: var(--space-2);
+}
+
+.learn-result__diagnostics {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.learn-result__diagnostic {
+  padding: 2px 0;
+}
+
+.learn-result__diagnostic--error > span {
+  color: var(--error);
+}
+
+.learn-result__diagnostic--warning > span {
+  color: var(--warn);
+}
+
+.learn-result__output {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+}

@@ -1,0 +1,68 @@
+---
+source: crates/lace-learn/src/testbench.rs
+expression: tb
+---
+// O testbench do exercício conta.
+// Gerado pelo lace learn, que grava de novo este arquivo quando a trilha
+// muda: não edite.
+
+`timescale 1ns / 1ps
+`default_nettype wire
+`include "conta_ref.v"
+
+module tb_conta;
+    reg clk = 0;
+    reg reset = 1'b1;
+    reg en = 0;
+    wire [3:0] q;
+    wire [3:0] q_ref;
+    reg mismatch = 0;
+
+    conta dut (.clk(clk), .reset(reset), .en(en), .q(q));
+    conta_ref reference (.clk(clk), .reset(reset), .en(en), .q(q_ref));
+
+    integer lace_samples = 0;
+    integer lace_mismatched = 0;
+    integer lace_q_errors = 0;
+    integer lace_q_first = -1;
+    integer lace_q_unknown = 0;
+    integer lace_reset_errors = 0;
+    integer lace_seed = 1;
+    integer lace_i;
+
+    task compare;
+        begin
+            lace_samples = lace_samples + 1;
+            mismatch = 0;
+            if ((q_ref ^ q ^ q_ref) !== q_ref) begin
+                lace_q_errors = lace_q_errors + 1;
+                if (lace_q_first < 0) lace_q_first = $time;
+                if ((^q) === 1'bx) lace_q_unknown = lace_q_unknown + 1;
+                mismatch = 1;
+            end
+            if (mismatch) lace_mismatched = lace_mismatched + 1;
+            if (mismatch && reset === 1'b1) lace_reset_errors = lace_reset_errors + 1;
+        end
+    endtask
+
+    always #5 clk = ~clk;
+
+    initial begin
+        $dumpfile(".lace-learn/wave.fst");
+        $dumpvars(0, tb_conta);
+        for (lace_i = 0; lace_i < 40; lace_i = lace_i + 1) begin
+            @(posedge clk);
+            #2 compare;
+            #3;
+            en = $random(lace_seed);
+            reset = (lace_i < 1 || ($unsigned($random(lace_seed)) % 8) == 0) ? 1'b1 : 1'b0;
+            #3 compare;
+        end
+        $display("LACE-LEARN samples %0d", lace_samples);
+        $display("LACE-LEARN mismatched %0d", lace_mismatched);
+        $display("LACE-LEARN output q %0d %0d %0d", lace_q_errors, lace_q_first, lace_q_unknown);
+        $display("LACE-LEARN reset %0d", lace_reset_errors);
+        $display("LACE-LEARN end");
+        $finish;
+    end
+endmodule

@@ -333,6 +333,34 @@ export type Stream = 'stdout' | 'stderr';
  */
 export type ResultTag = 'result';
 /**
+ * O que a correção percebeu sobre a causa do erro.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Finding".
+ */
+export type Finding =
+  | {
+      kind: 'interface_changed';
+    }
+  | {
+      /**
+       * A saída.
+       */
+      output: string;
+      kind: 'undriven_output';
+    }
+  | {
+      kind: 'reset_only';
+    };
+/**
+ * Como terminou a correção.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Verdict".
+ */
+export type Verdict =
+  'solved' | 'compile_error' | 'mismatch' | 'incomplete' | 'timed_out' | 'cancelled';
+/**
  * Qual simulador usar. Em JSON: `"icarus"` ou `"verilator"`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -978,6 +1006,144 @@ export interface ModuleInstance {
    * As instâncias de dentro, na ordem do fonte.
    */
   children: ModuleInstance[];
+}
+/**
+ * O resultado da correção.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Grade".
+ */
+export interface Grade {
+  /**
+   * O exercício.
+   */
+  exercise: string;
+  /**
+   * Como terminou.
+   */
+  verdict: 'solved' | 'compile_error' | 'mismatch' | 'incomplete' | 'timed_out' | 'cancelled';
+  /**
+   * Quantas amostras o testbench comparou.
+   */
+  samples: number;
+  /**
+   * Em quantas amostras alguma saída errou.
+   */
+  mismatched: number;
+  /**
+   * Cada saída, na ordem das portas.
+   */
+  outputs: OutputCheck[];
+  /**
+   * Com reset: quantas amostras erradas foram com ele ativo.
+   */
+  reset_mismatches: number | null;
+  /**
+   * O que se percebeu sobre a causa do erro.
+   */
+  findings: Finding[];
+  /**
+   * Os erros e avisos dos compiladores sobre o código do aluno.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * O que o testbench escreveu, fora o resumo (um `tb.v` escrito à mão
+   * pode explicar o erro aqui).
+   */
+  output: string[];
+  /**
+   * A onda da simulação.
+   */
+  waveform: string | null;
+  /**
+   * O arquivo de comandos do Surfer que mostra a onda com as entradas, as
+   * saídas lado a lado com as da referência e o primeiro erro marcado.
+   */
+  layout: string | null;
+  /**
+   * Quanto a correção levou, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * O resultado de uma saída do módulo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "OutputCheck".
+ */
+export interface OutputCheck {
+  /**
+   * O nome da porta.
+   */
+  name: string;
+  /**
+   * Em quantas amostras ela diferiu da referência.
+   */
+  mismatches: number;
+  /**
+   * O instante do primeiro erro, em ns.
+   */
+  first_ns: number | null;
+  /**
+   * Das amostras erradas, quantas tinham bit em X ou Z.
+   */
+  unknown: number;
+}
+/**
+ * Um exercício conferido.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "DevExercise".
+ */
+export interface DevExercise {
+  /**
+   * O nome.
+   */
+  name: string;
+  /**
+   * O que está errado; vazio quando está tudo certo.
+   */
+  problems: string[];
+  /**
+   * Como o `start.v` se saiu (não pode ser `solved`).
+   */
+  start: Verdict | null;
+  /**
+   * Como a `solution.v` se saiu (tem que ser `solved`).
+   */
+  solution: Verdict | null;
+}
+/**
+ * Um exercício na lista, com o que o aluno já fez.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ExerciseStatus".
+ */
+export interface ExerciseStatus {
+  /**
+   * O nome.
+   */
+  name: string;
+  /**
+   * O capítulo (a pasta dele).
+   */
+  chapter: string;
+  /**
+   * O título.
+   */
+  title: string;
+  /**
+   * Já resolvido.
+   */
+  solved: boolean;
+  /**
+   * É o exercício atual.
+   */
+  current: boolean;
+  /**
+   * O arquivo que o aluno edita.
+   */
+  file: string;
 }
 /**
  * O que [`Project::move_path`] fez.
@@ -2486,6 +2652,159 @@ export interface InstallReport {
    * Os que entraram nesta chamada (com os que eles exigem).
    */
   added: string[];
+}
+/**
+ * `lace learn check`: a correção de cada exercício pedido, que também
+ * grava se ele está resolvido.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnCheckReport".
+ */
+export interface LearnCheckReport {
+  /**
+   * Uma por exercício, na ordem da trilha.
+   */
+  results: Grade[];
+  /**
+   * Quantos exercícios da trilha estão resolvidos agora.
+   */
+  solved: number;
+  /**
+   * Quantos a trilha tem.
+   */
+  total: number;
+}
+/**
+ * O resultado da conferência.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "DevReport".
+ */
+export interface DevReport {
+  /**
+   * A trilha.
+   */
+  track: string;
+  /**
+   * Cada exercício, na ordem.
+   */
+  exercises: DevExercise[];
+}
+/**
+ * `lace learn hint`: as dicas de um exercício.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnHintReport".
+ */
+export interface LearnHintReport {
+  /**
+   * O exercício.
+   */
+  exercise: string;
+  /**
+   * O título.
+   */
+  title: string;
+  /**
+   * As dicas, em markdown, na ordem.
+   */
+  hints: string[];
+}
+/**
+ * `lace learn init`: a pasta de exercícios criada.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnInitReport".
+ */
+export interface LearnInitReport {
+  /**
+   * A pasta de exercícios.
+   */
+  root: string;
+  /**
+   * A trilha (`verilog`).
+   */
+  track: string;
+  /**
+   * Quantos exercícios a trilha tem.
+   */
+  exercises: number;
+  /**
+   * O exercício atual (o primeiro).
+   */
+  current: string;
+}
+/**
+ * `lace learn list`: os exercícios e o que já foi resolvido.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnListReport".
+ */
+export interface LearnListReport {
+  /**
+   * A pasta de exercícios.
+   */
+  root: string;
+  /**
+   * A trilha.
+   */
+  track: string;
+  /**
+   * O título dela.
+   */
+  title: string;
+  /**
+   * Quantos resolvidos.
+   */
+  solved: number;
+  /**
+   * Quantos exercícios.
+   */
+  total: number;
+  /**
+   * Cada exercício, na ordem.
+   */
+  exercises: ExerciseStatus[];
+}
+/**
+ * `lace learn reset`: o arquivo que voltou ao começo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnResetReport".
+ */
+export interface LearnResetReport {
+  /**
+   * O exercício.
+   */
+  exercise: string;
+  /**
+   * O arquivo do aluno.
+   */
+  file: string;
+}
+/**
+ * `lace learn wave`: a onda aberta no Surfer.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnWaveReport".
+ */
+export interface LearnWaveReport {
+  /**
+   * O exercício.
+   */
+  exercise: string;
+  /**
+   * A onda da última correção.
+   */
+  waveform: string;
+  /**
+   * O arquivo de comandos com que ela abriu.
+   */
+  layout: string | null;
+  /**
+   * O processo do Surfer.
+   */
+  pid: number;
 }
 /**
  * `lace move`.

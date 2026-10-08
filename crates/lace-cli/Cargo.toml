@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 lace-core.workspace = true
 lace-installer.workspace = true
+lace-learn.workspace = true
 anyhow.workspace = true
 anstream.workspace = true
 anstyle.workspace = true
@@ -26,6 +27,9 @@ sha2.workspace = true
 signal-hook.workspace = true
 tar.workspace = true
 flate2.workspace = true
+# A tela do modo watch do `lace learn` (learn_tui.rs), como a TUI do
+# instalador; `line_count` limita a rolagem do enunciado.
+ratatui = { workspace = true, features = ["unstable-rendered-line-info"] }
 tempfile.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

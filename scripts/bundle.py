@@ -31,7 +31,9 @@ Os pacotes, com as versões exatas, estão em bundle/versions.json:
   conferido pelo SHA-256 publicado;
 - studio: o Lace Studio, compilado de studio/ deste repositório
   (npm ci e tauri build); a versão de versions.json tem que ser a do
-  studio/package.json e a do tauri.conf.json.
+  studio/package.json e a do tauri.conf.json;
+- lace-learn: as trilhas de exercícios do `lace learn`, copiadas de
+  lace-learn/ deste repositório. Só dados: quem as corrige é o Lace.
 
 Os componentes que o instalador oferece estão em bundle/components.json. O
 OSS CAD Suite vira quatro (icarus, verilator, yosys, graphviz): cada um leva
@@ -292,6 +294,18 @@ def pkg_studio(spec, plat, work, cache):
     return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
 
 
+def pkg_lace_learn(spec, plat, work, cache):
+    """As trilhas do `lace learn`, de lace-learn/ deste repositório: textos,
+    `.v` e `.json`, iguais nas três plataformas."""
+    src = ROOT / spec["path"]
+    if not any(src.glob("*/track.json")):
+        sys.exit(f"lace-learn: {src} não tem nenhuma trilha (<trilha>/track.json)")
+    stage = work / "lace-learn"
+    shutil.rmtree(stage, ignore_errors=True)
+    shutil.copytree(src, stage, ignore=shutil.ignore_patterns(".*"))
+    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+
+
 def pkg_graphviz(spec, plat, work, cache):
     asset = spec["assets"][plat]
     archive = download(asset["url"], asset["sha256"], cache)
@@ -365,6 +379,7 @@ PACKAGES = {
     "surfer-aurora": pkg_surfer_aurora,
     "graphviz": pkg_graphviz,
     "studio": pkg_studio,
+    "lace-learn": pkg_lace_learn,
 }
 
 

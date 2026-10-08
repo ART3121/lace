@@ -2,12 +2,12 @@
 
 ## Pelo GitHub
 
-1. Subir a versão nos cinco lugares que a guardam, todos iguais: o
+1. Subir a versão nos seis lugares que a guardam, todos iguais: o
    `Cargo.toml` (`[workspace.package] version`), o `studio/package.json` e o
    `studio/package-lock.json` (o `npm version <versão> --no-git-tag-version`
    em `studio/` troca os dois), o `studio/src-tauri/Cargo.toml`, o
-   `studio/src-tauri/tauri.conf.json` e o pacote `studio` de
-   `bundle/versions.json`. O `bundle.py` recusa o Studio com versões
+   `studio/src-tauri/tauri.conf.json` e os pacotes `studio` e `lace-learn`
+   de `bundle/versions.json`. O `bundle.py` recusa o Studio com versões
    diferentes, e o `release.yml` recusa a tag se o Studio não for a versão
    do Lace.
 2. Acrescentar a seção `## <versão> (<data>)` no `CHANGELOG.md`.

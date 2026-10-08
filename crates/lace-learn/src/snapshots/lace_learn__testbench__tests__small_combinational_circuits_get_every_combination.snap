@@ -1,0 +1,60 @@
+---
+source: crates/lace-learn/src/testbench.rs
+expression: tb
+---
+// O testbench do exercício mux2.
+// Gerado pelo lace learn, que grava de novo este arquivo quando a trilha
+// muda: não edite.
+
+`timescale 1ns / 1ps
+`default_nettype wire
+`include "mux2_ref.v"
+
+module tb_mux2;
+    reg a = 0;
+    reg b = 0;
+    reg sel = 0;
+    wire y;
+    wire y_ref;
+    reg mismatch = 0;
+
+    mux2 dut (.a(a), .b(b), .sel(sel), .y(y));
+    mux2_ref reference (.a(a), .b(b), .sel(sel), .y(y_ref));
+
+    integer lace_samples = 0;
+    integer lace_mismatched = 0;
+    integer lace_y_errors = 0;
+    integer lace_y_first = -1;
+    integer lace_y_unknown = 0;
+    integer lace_seed = 1;
+    integer lace_i;
+
+    task compare;
+        begin
+            lace_samples = lace_samples + 1;
+            mismatch = 0;
+            if ((y_ref ^ y ^ y_ref) !== y_ref) begin
+                lace_y_errors = lace_y_errors + 1;
+                if (lace_y_first < 0) lace_y_first = $time;
+                if ((^y) === 1'bx) lace_y_unknown = lace_y_unknown + 1;
+                mismatch = 1;
+            end
+            if (mismatch) lace_mismatched = lace_mismatched + 1;
+        end
+    endtask
+
+    initial begin
+        $dumpfile(".lace-learn/wave.fst");
+        $dumpvars(0, tb_mux2);
+        for (lace_i = 0; lace_i < 8; lace_i = lace_i + 1) begin
+            {a, b, sel} = lace_i;
+            #5 compare;
+            #5;
+        end
+        $display("LACE-LEARN samples %0d", lace_samples);
+        $display("LACE-LEARN mismatched %0d", lace_mismatched);
+        $display("LACE-LEARN output y %0d %0d %0d", lace_y_errors, lace_y_first, lace_y_unknown);
+        $display("LACE-LEARN end");
+        $finish;
+    end
+endmodule

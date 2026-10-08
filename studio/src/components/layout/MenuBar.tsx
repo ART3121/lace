@@ -37,6 +37,7 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
       'viewFlow',
       'viewSearch',
       'viewReports',
+      'viewLearn',
       { submenu: 'menu.consoles', entries: CONSOLE_ENTRIES },
       'toggleTerminal',
       'showProblems',
@@ -64,7 +65,21 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
     label: 'menu.flow',
     entries: ['build', 'check', 'lint', '-', 'simulate', 'fastSim', 'openWave', '-', 'synthesize', 'showSchematic', 'showStatistics', 'viewHierarchy', '-', 'fullFlow', 'cancel', '-', 'useIcarus', 'useVerilator'],
   },
-  { label: 'menu.tools', entries: ['toolchain', 'installComponents', 'checkUpdates', '-', 'history', 'lastReport', 'compareReports', 'cleanReports'] },
+  {
+    label: 'menu.tools',
+    entries: [
+      'toolchain',
+      'installComponents',
+      'checkUpdates',
+      '-',
+      'history',
+      'lastReport',
+      'compareReports',
+      'cleanReports',
+      '-',
+      { submenu: 'menu.learn', entries: ['viewLearn', 'learnCheck', 'learnHint', 'learnWave', 'learnNext'] },
+    ],
+  },
   { label: 'menu.help', entries: ['laceDocs', 'saphoManual', '-', 'shortcuts', 'about'] },
 ];
 

@@ -302,7 +302,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
   const set = setter(useApp((s) => s.updateSettings));
   const toolchain = useApp((s) => s.toolchain);
 
-  const browse = async (key: 'toolchain_dir' | 'compiler_dir') => {
+  const browse = async (key: 'toolchain_dir' | 'compiler_dir' | 'learn_dir') => {
     const chosen = await open({ directory: true, multiple: false });
     if (typeof chosen === 'string') set(key, chosen);
   };
@@ -332,6 +332,14 @@ function ToolchainPage({ settings }: { settings: Settings }) {
             </div>
             {toolchain?.compiler_error && <p className="text-error">{toolchain.compiler_error.message}</p>}
           </>
+        )}
+      </SettingRow>
+      <SettingRow label={t('settings.learnDir')} hint={t('settings.learnDirHint')} stack>
+        {(id) => (
+          <div className="input-group">
+            <input id={id} className="input" value={settings.learn_dir ?? ''} onChange={(e) => set('learn_dir', e.target.value || null)} />
+            <Button onClick={() => void browse('learn_dir')}>{t('common.browse')}</Button>
+          </div>
         )}
       </SettingRow>
     </SettingsGroup>

@@ -56,6 +56,9 @@ mod package {
     pub const MSYS: &str = "msys";
     /// O Lace Studio, do próprio repositório: a versão é a do Lace.
     pub const STUDIO: &str = "studio";
+    /// As trilhas do `lace learn`, do próprio repositório: a versão é a do
+    /// Lace.
+    pub const LACE_LEARN: &str = "lace-learn";
 }
 
 /// O repositório do bloco de Windows (o pacote `msys`).
@@ -226,8 +229,9 @@ impl Sources for Network {
             package::OSS_CAD_SUITE => release::latest_github_tag("YosysHQ/oss-cad-suite-build"),
             package::MSYS => release::latest_github_tag(LACE_TOOLCHAIN),
             package::YANC => release::latest_github_tag("nipscernlab/yanc"),
-            // O Studio sai com o Lace: o mais novo é o da última release.
-            package::STUDIO => release::latest_lace_version(),
+            // O Studio e as trilhas saem com o Lace: o mais novo é o da
+            // última release.
+            package::STUDIO | package::LACE_LEARN => release::latest_lace_version(),
             package::SURFER_AURORA => {
                 let text = release::fetch_text(SURFER_AURORA_TAGS)?;
                 let tags: Vec<GitlabTag> = serde_json::from_str(&text)
@@ -279,13 +283,14 @@ struct ReleasePackage {
 /// `bundle/components.json`: no Windows, Icarus, Verilator e cocotb vêm do
 /// bloco MSYS2 do lace-toolchain e o Graphviz do pacote oficial dele; o
 /// resto, e tudo isso no Linux e no macOS, do OSS CAD Suite. O YANC, o
-/// surfer-aurora e o Studio têm pacote próprio.
+/// surfer-aurora, o Studio e as trilhas do `lace learn` têm pacote próprio.
 fn package_of(name: &str, platform: &str) -> Option<&'static str> {
     let windows = platform == "windows-x64";
     match name {
         component::YANC => Some(package::YANC),
         component::SURFER_AURORA => Some(package::SURFER_AURORA),
         component::STUDIO => Some(package::STUDIO),
+        component::LACE_LEARN => Some(package::LACE_LEARN),
         // O cocotb do Windows sai do bloco MSYS2, com o Icarus e o Verilator.
         component::ICARUS | component::VERILATOR | component::COCOTB if windows => {
             Some(package::MSYS)
@@ -946,6 +951,7 @@ mod tests {
             Some("surfer-aurora")
         );
         assert_eq!(package_of("studio", "darwin-arm64"), Some("studio"));
+        assert_eq!(package_of("lace-learn", "windows-x64"), Some("lace-learn"));
         assert_eq!(package_of("outro", "linux-x64"), None);
         // Todo componente que o Lace conhece sai de algum pacote.
         for name in component::ALL {

@@ -29,6 +29,7 @@ import { confirm } from './state/dialogs';
 import { useEditor } from './state/editor';
 import { useHierarchy } from './state/hierarchy';
 import { takeFreshStart, useLayout } from './state/layout';
+import { useLearn } from './state/learn';
 import { useProject } from './state/project';
 import { activeLayout } from './state/savedLayouts';
 import { applyTitleBar, useTitleBar, watchWindow } from './state/titleBar';
@@ -88,6 +89,10 @@ async function start(): Promise<() => void> {
   const revealTimer = window.setTimeout(reveal, REVEAL_WAIT_MS);
   cleanups.push(() => window.clearTimeout(revealTimer));
 
+  // A pasta de exercícios do lace learn, se houver uma lembrada: a vista
+  // Exercícios e a aba do enunciado a usam mesmo sem a vista à mostra.
+  void useLearn.getState().load();
+
   // Links arquivo:linha dos consoles abrem no editor.
   setLinkHandler((path, line, column) => {
     const root = useProject.getState().snapshot?.root;
@@ -99,6 +104,7 @@ async function start(): Promise<() => void> {
   const unlistenFs = await api.events.onFsChanged(({ paths }) => {
     useProject.getState().bumpTree();
     void useEditor.getState().onDiskChange(paths);
+    useLearn.getState().onDiskChange(paths);
     if (paths.some((p) => ['v', 'sv', 'vh', 'svh'].includes(extension(p)))) useHierarchy.getState().markStale();
     window.clearTimeout(refreshTimer);
     refreshTimer = window.setTimeout(() => void useProject.getState().refresh(), 400);

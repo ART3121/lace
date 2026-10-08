@@ -31,6 +31,7 @@ import { SchematicView } from '../views/SchematicView';
 import { SettingsView } from '../views/SettingsView';
 import { SynthesisView } from '../views/SynthesisView';
 import { ToolchainView } from '../views/ToolchainView';
+import { LearnView } from '../views/LearnView';
 import { WaveView } from '../views/WaveView';
 import { WelcomeView } from '../views/WelcomeView';
 import { MonacoHost } from './MonacoHost';
@@ -61,6 +62,8 @@ export function tabTitle(tab: Tab): string {
       return t('about.tab');
     case 'wave':
       return baseName(tab.data?.path ?? '');
+    case 'learn':
+      return t('learn.tab');
   }
 }
 
@@ -298,6 +301,8 @@ function ViewContent({ tab }: { tab: Tab }) {
       return <AboutView />;
     case 'wave':
       return <WaveView path={tab.data?.path ?? ''} />;
+    case 'learn':
+      return <LearnView />;
     default:
       return null;
   }

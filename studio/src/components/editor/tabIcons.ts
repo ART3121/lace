@@ -9,6 +9,7 @@ import {
   FileCode,
   FileText,
   GitCompare,
+  GraduationCap,
   House,
   Info,
   ScrollText,
@@ -69,5 +70,7 @@ export function tabIcon(tab: Tab): LucideIcon {
       return Info;
     case 'wave':
       return AudioWaveform;
+    case 'learn':
+      return GraduationCap;
   }
 }

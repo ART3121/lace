@@ -1,0 +1,39 @@
+---
+source: crates/lace-cli/src/learn_tui.rs
+assertion_line: 1711
+expression: "screen(&app, 120, 34).replace('\\\\', \"/\")"
+---
+╭ Lace learn ─────────────────────────────────────────────────────────────────────────────────────────────────── Teste ╮
+│                                                    0 of 4 solved                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ Combinacional › Multiplexador 2:1  mux2  ·  1 of 4                                                                     
+ edit exercises/01_comb/mux2/mux2.v and save to check it                                                                
+╭ Exercise · hints 1/1 ──────────────────────────────────────────────╮╭ Result ────────────────────────────────────────╮
+│ Quando sel é 0, y é a; quando é 1, y é b.                          ││  NOT CHECKED YET                               │
+│                                                                    ││                                                │
+│ Hint 1                                                             ││ Save the file to check it, or press r.         │
+│ Use o operador ?:.                                                 ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+│                                                                    ││                                                │
+╰────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────╯
+ r check   l list   w wave   c check all   x reset   ? help   q quit

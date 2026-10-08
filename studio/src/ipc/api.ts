@@ -24,6 +24,8 @@ import type {
   HierarchyResult,
   IpcError,
   JobMessage,
+  LearnSnapshot,
+  LearnTracks,
   ListPosition,
   MovedPath,
   NewProcessorDefaults,
@@ -157,6 +159,16 @@ export const api = {
       call<RunComparison>('history_compare', { id: id ?? null, against: against ?? null }),
     planCleanup: (cleanup: CleanupRequest) => call<string[]>('history_plan_cleanup', { cleanup }),
     clean: (ids: string[]) => call<CleanReport>('history_clean', { ids }),
+  },
+  /** Os exercícios do `lace learn` (commands/learn.rs); a correção é o fluxo `learn`. */
+  learn: {
+    tracks: () => call<LearnTracks>('learn_tracks'),
+    open: (root: string, lang?: string | null) => call<LearnSnapshot>('learn_open', { root, lang: lang ?? null }),
+    init: (dir: string, track?: string | null, lang?: string | null) =>
+      call<LearnSnapshot>('learn_init', { dir, track: track ?? null, lang: lang ?? null }),
+    setCurrent: (root: string, name: string, lang?: string | null) =>
+      call<LearnSnapshot>('learn_set_current', { root, name, lang: lang ?? null }),
+    reset: (root: string, name: string) => call<void>('learn_reset', { root, name }),
   },
 
   toolchain: {

@@ -192,6 +192,17 @@
         "darwin-arm64": ["Lace Studio.app/Contents/MacOS/lace-studio"],
         "windows-x64": ["lace-studio.exe"]
       }
+    },
+    {
+      "name": "lace-learn",
+      "label": "Lace Learn",
+      "description": "Verilog exercises in the style of rustlings: lace learn and the Exercises view of the Studio",
+      "recommended": false,
+      "requires": ["icarus"],
+      "package": "lace-learn",
+      "closure": false,
+      "select": { "*": ["**"] },
+      "run": {}
     }
   ]
 }

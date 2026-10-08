@@ -125,7 +125,11 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
 
         let id = new_id();
         let name = waveform.file_name().unwrap_or("wave.vcd");
-        let startup = startup_commands(&origin, &id, layout.as_ref());
+        // A onda de um exercício do `lace learn` vem com os comandos da
+        // correção: as saídas ao lado das da referência e o primeiro erro.
+        let learn = lace_learn::layout::layout_of(&waveform)
+            .and_then(|path| std::fs::read_to_string(path).ok());
+        let startup = startup_commands(&origin, &id, layout.as_ref(), learn.as_deref());
         let mut query = format!("load_url={}", encode(&format!("{origin}/wave/{id}/{name}")));
         if !startup.is_empty() {
             let command = format!("run_command_file_from_url {origin}/doc/{id}/startup.sucl");
@@ -213,22 +217,35 @@ fn new_id() -> String {
 }
 
 /// Os comandos de partida do cliente: carregar cada tradutor e depois o
-/// estado, que os usa. Vazio sem layout.
-fn startup_commands(origin: &str, id: &str, layout: Option<&WaveLayout>) -> String {
-    let Some(layout) = layout else {
-        return String::new();
-    };
-    let mut lines: Vec<String> = layout
-        .mappings
-        .iter()
-        .map(|m| {
+/// estado, que os usa; numa onda de exercício do `lace learn`, os comandos
+/// da correção (`learn`). Vazio sem nenhum dos dois.
+fn startup_commands(
+    origin: &str,
+    id: &str,
+    layout: Option<&WaveLayout>,
+    learn: Option<&str>,
+) -> String {
+    let mut lines: Vec<String> = Vec::new();
+    if let Some(layout) = layout {
+        lines.extend(layout.mappings.iter().map(|m| {
             format!(
                 "load_mapping_translator_from_url {origin}/doc/{id}/{}",
                 m.name
             )
-        })
-        .collect();
-    lines.push(format!("load_state_from_url {origin}/layout/{id}"));
+        }));
+        lines.push(format!("load_state_from_url {origin}/layout/{id}"));
+    }
+    if let Some(learn) = learn {
+        lines.extend(
+            learn
+                .lines()
+                .filter(|l| !l.trim().is_empty())
+                .map(str::to_owned),
+        );
+    }
+    if lines.is_empty() {
+        return String::new();
+    }
     lines.join("\n") + "\n"
 }
 

@@ -32,6 +32,7 @@ Bundle `2026.10.07`. Os pacotes, com as versões fixadas em
 | msys | `ucrt64-v1` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
 | studio | a versão do Lace | o Lace Studio: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
+| lace-learn | a versão do Lace | as trilhas de exercícios do `lace learn` ([LEARN.md](LEARN.md)): textos, `.v` e `.json` | copiadas de `lace-learn/` deste repositório |
 
 Os componentes, que o instalador deixa escolher, estão em
 `bundle/components.json`:
@@ -46,6 +47,7 @@ Os componentes, que o instalador deixa escolher, estão em
 | `graphviz` | OSS CAD Suite (Linux, macOS), Graphviz (Windows) | `oss-cad-suite/` ou `graphviz/` |
 | `surfer-aurora` | surfer-aurora | `surfer-aurora/` |
 | `studio` | studio | `studio/` |
+| `lace-learn` | lace-learn | `lace-learn/` |
 
 O Lace não roda o Studio: ele está no bundle para o instalador e o
 `lace install` o oferecerem como os outros, e o Studio instalado usa o

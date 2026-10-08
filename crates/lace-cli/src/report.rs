@@ -22,6 +22,7 @@ use lace_core::{
     MovedPath, Processor, ProjectFile, ProjectIssue, SchematicResult, SimulationResult,
     SynthesisResult, SystemCompiler, WaveProcessor,
 };
+use lace_learn::{DevReport, ExerciseStatus, Grade};
 use schemars::JsonSchema;
 use serde::Serialize;
 
@@ -77,6 +78,13 @@ reports! {
     "install" => InstallReport,
     "uninstall" => UninstallReport,
     "update" => crate::update::UpdateReport,
+    "learn-init" => LearnInitReport,
+    "learn-check" => LearnCheckReport,
+    "learn-list" => LearnListReport,
+    "learn-hint" => LearnHintReport,
+    "learn-reset" => LearnResetReport,
+    "learn-wave" => LearnWaveReport,
+    "learn-dev-check" => DevReport,
     "error" => ErrorReport,
 }
 
@@ -407,6 +415,86 @@ pub struct ErrorInfo {
     /// O comando que resolve, quando há um.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hint: Option<String>,
+}
+
+/// `lace learn init`: a pasta de exercícios criada.
+#[derive(Serialize, JsonSchema)]
+pub struct LearnInitReport {
+    /// A pasta de exercícios.
+    #[schemars(with = "String")]
+    pub root: Utf8PathBuf,
+    /// A trilha (`verilog`).
+    pub track: String,
+    /// Quantos exercícios a trilha tem.
+    pub exercises: usize,
+    /// O exercício atual (o primeiro).
+    pub current: String,
+}
+
+/// `lace learn check`: a correção de cada exercício pedido, que também
+/// grava se ele está resolvido.
+#[derive(Serialize, JsonSchema)]
+pub struct LearnCheckReport {
+    /// Uma por exercício, na ordem da trilha.
+    pub results: Vec<Grade>,
+    /// Quantos exercícios da trilha estão resolvidos agora.
+    pub solved: usize,
+    /// Quantos a trilha tem.
+    pub total: usize,
+}
+
+/// `lace learn list`: os exercícios e o que já foi resolvido.
+#[derive(Serialize, JsonSchema)]
+pub struct LearnListReport {
+    /// A pasta de exercícios.
+    #[schemars(with = "String")]
+    pub root: Utf8PathBuf,
+    /// A trilha.
+    pub track: String,
+    /// O título dela.
+    pub title: String,
+    /// Quantos resolvidos.
+    pub solved: usize,
+    /// Quantos exercícios.
+    pub total: usize,
+    /// Cada exercício, na ordem.
+    pub exercises: Vec<ExerciseStatus>,
+}
+
+/// `lace learn hint`: as dicas de um exercício.
+#[derive(Serialize, JsonSchema)]
+pub struct LearnHintReport {
+    /// O exercício.
+    pub exercise: String,
+    /// O título.
+    pub title: String,
+    /// As dicas, em markdown, na ordem.
+    pub hints: Vec<String>,
+}
+
+/// `lace learn reset`: o arquivo que voltou ao começo.
+#[derive(Serialize, JsonSchema)]
+pub struct LearnResetReport {
+    /// O exercício.
+    pub exercise: String,
+    /// O arquivo do aluno.
+    #[schemars(with = "String")]
+    pub file: Utf8PathBuf,
+}
+
+/// `lace learn wave`: a onda aberta no Surfer.
+#[derive(Serialize, JsonSchema)]
+pub struct LearnWaveReport {
+    /// O exercício.
+    pub exercise: String,
+    /// A onda da última correção.
+    #[schemars(with = "String")]
+    pub waveform: Utf8PathBuf,
+    /// O arquivo de comandos com que ela abriu.
+    #[schemars(with = "Option<String>")]
+    pub layout: Option<Utf8PathBuf>,
+    /// O processo do Surfer.
+    pub pid: u32,
 }
 
 /// Uma linha do `--events`: um evento do Core enquanto as ferramentas rodam,

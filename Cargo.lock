@@ -847,7 +847,9 @@ dependencies = [
  "jsonschema",
  "lace-core",
  "lace-installer",
+ "lace-learn",
  "predicates",
+ "ratatui",
  "schemars",
  "serde",
  "serde_json",
@@ -895,6 +897,22 @@ dependencies = [
  "tar",
  "tempfile",
  "zstd",
+]
+
+[[package]]
+name = "lace-learn"
+version = "0.4.0"
+dependencies = [
+ "camino",
+ "dunce",
+ "insta",
+ "lace-core",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]

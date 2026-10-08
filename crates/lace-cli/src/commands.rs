@@ -84,6 +84,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Wave(args) => wave(cli, args, out)?,
         Command::Synth(args) => return synth(cli, args, out, control),
         Command::Report(args) => report(cli, args, out)?,
+        Command::Learn(args) => return crate::learn::run(cli, args, out, control),
         Command::Tools { verify } => return tools(cli, *verify, out),
         Command::Install(args) => {
             let from = args.from.as_deref().map(settings::absolute).transpose()?;

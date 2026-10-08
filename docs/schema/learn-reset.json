@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LearnResetReport",
+  "description": "`lace learn reset`: o arquivo que voltou ao começo.",
+  "type": "object",
+  "properties": {
+    "exercise": {
+      "description": "O exercício.",
+      "type": "string"
+    },
+    "file": {
+      "description": "O arquivo do aluno.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "exercise",
+    "file"
+  ]
+}

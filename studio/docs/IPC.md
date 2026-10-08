@@ -177,6 +177,7 @@ Com o tipo no campo `flow`:
 | `simulate` | `processor?`, `testbench?`, `simulator` (`icarus`, `verilator`), `fast?` (a simulação rápida: sem onda, com o testbench Verilog no Verilator; `simulator` só vale para um testbench cocotb), `timeout_s?`, `open_wave?` (ignorado com `fast`) | `lace sim [TESTBENCH] [-p NOME] [--verilator] [--fast] [--timeout S] [--open]` |
 | `synthesize` | `processor?`, `schematic?`, `module?` | `lace synth [-p NOME] [--svg] [--module M]` |
 | `schematic` | `netlist`, `module`, `bus_widths?` (padrão `true`) | desenha outro módulo de um netlist que já existe; sem relatório |
+| `learn` | `root` (a pasta de exercícios, ou uma pasta dentro dela), `exercise` | `lace learn check NOME`: corrige o exercício e grava se está resolvido; sem relatório |
 
 A composição é a da CLI (`flows.rs`): `check`, `simulate` e `synthesize`
 compilam antes os processadores que têm fonte e param no primeiro build que
@@ -190,7 +191,7 @@ As mensagens chegam pelo `channel`, nesta ordem, com o tipo no campo `type`:
 | `type` | Campos | Quando |
 |---|---|---|
 | `started` | `job`, `command` | logo depois de `flow_start` |
-| `phase` | `phase`: `build`, `check`, `simulate`, `synthesize`, `schematic`, `wave` | uma fase começou |
+| `phase` | `phase`: `build`, `check`, `simulate`, `synthesize`, `schematic`, `wave`, `learn` | uma fase começou |
 | `events` | `events: Event[]` | lotes de eventos do Core (`step_started`, `output`, `step_finished`; API.md do Lace, 5.8), no máximo a cada 30 ms ou 500 eventos |
 | `build` | `result: BuildResult` | um processador terminou de compilar |
 | `cli_output` | `stream`, `line` | uma linha da CLI (só em `lace_install` e `lace_update`) |
@@ -212,9 +213,28 @@ Toda operação termina com exatamente um `finished` ou um `failed`.
 | `wave_tab` | a onda que a interface abre numa aba (`wave_viewer: tab`), no lugar da janela |
 | `schematic_error` | por que o esquemático não saiu depois da síntese (`module_not_found`: o módulo pedido não está no netlist); a síntese vale |
 | `report`, `report_error` | o relatório gravado (`run-000042`), ou por que não foi |
+| `learn` | a correção de um exercício (fluxo `learn`): o `Grade` do lace-learn |
 
 O `stdout` e o `stderr` de cada passo vêm cortados em 256 KiB, guardando o
 fim; o que foi cortado já chegou linha a linha pelos eventos.
+
+## Exercícios (`commands/learn.rs`)
+
+| Comando | Argumentos | Devolve | Equivale a |
+|---|---|---|---|
+| `learn_open` | `root` (a pasta de exercícios, ou uma pasta dentro dela), `lang?` | `LearnSnapshot` | abrir a pasta e pô-la em dia com a trilha, como o `lace learn` ao começar |
+| `learn_init` | `dir`, `track?` (padrão `verilog`), `lang?` | `LearnSnapshot` | `lace learn init` |
+| `learn_set_current` | `root`, `name`, `lang?` | `LearnSnapshot` | escolher o exercício atual |
+| `learn_reset` | `root`, `name` | | `lace learn reset NOME --yes` |
+
+O `LearnSnapshot` traz a pasta, a trilha (`track`, `title`, `welcome`,
+`farewell`), os capítulos com os exercícios (`name`, `title`, `prompt`,
+`hints`, `module`, `file`, `spf`, `waveform`, `solved`, `solution`), o
+atual e quantos estão resolvidos. Com `lang` (`en`), os textos que têm
+tradução vêm traduzidos. As trilhas vêm da preferência `learn_dir`, de
+`LACE_LEARN_DIR` ou do componente `lace-learn`, nessa ordem; sem nenhum, o
+erro é `learn_component_missing`. A correção é o fluxo `learn` de
+`flow_start`, que traz o resultado em `FlowOutcome.learn`.
 
 ## Histórico (`commands/history.rs`)
 

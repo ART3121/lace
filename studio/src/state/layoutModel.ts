@@ -4,7 +4,7 @@
 // mesmas funções.
 //
 // Três regiões fixas, como no VS Code: a barra lateral esquerda, a direita e
-// o painel (embaixo ou à direita do editor). Cada uma das onze vistas fica em
+// o painel (embaixo ou à direita do editor). Cada uma das doze vistas fica em
 // exatamente uma delas e pode ir para qualquer outra. O editor e as abas de
 // vista (Preferências, Wave, Esquemático) ficam no centro, fora disso.
 //
@@ -17,7 +17,7 @@ import type { Key } from '../i18n';
 export const CONSOLE_CHANNELS = ['cmm', 'asm', 'verilog', 'wave', 'prism'] as const;
 export type ConsoleChannel = (typeof CONSOLE_CHANNELS)[number];
 
-export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
+export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', 'learn', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
 export type ViewId = (typeof VIEW_IDS)[number];
 
 export const REGION_IDS = ['left', 'right', 'panel'] as const;
@@ -39,6 +39,7 @@ export const VIEW_INFO: Record<ViewId, ViewInfo> = {
   flow: { label: 'sidebar.flow', region: 'left', action: 'viewFlow' },
   search: { label: 'sidebar.search', region: 'left', action: 'findInFiles' },
   reports: { label: 'sidebar.reports', region: 'left', action: 'viewReports' },
+  learn: { label: 'sidebar.learn', region: 'left', action: 'viewLearn' },
   cmm: { label: 'panel.cmm', region: 'panel', action: 'viewConsoleCmm' },
   asm: { label: 'panel.asm', region: 'panel', action: 'viewConsoleAsm' },
   verilog: { label: 'panel.verilog', region: 'panel', action: 'viewConsoleVerilog' },

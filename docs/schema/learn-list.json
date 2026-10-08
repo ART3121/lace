@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LearnListReport",
+  "description": "`lace learn list`: os exercícios e o que já foi resolvido.",
+  "type": "object",
+  "properties": {
+    "root": {
+      "description": "A pasta de exercícios.",
+      "type": "string"
+    },
+    "track": {
+      "description": "A trilha.",
+      "type": "string"
+    },
+    "title": {
+      "description": "O título dela.",
+      "type": "string"
+    },
+    "solved": {
+      "description": "Quantos resolvidos.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "total": {
+      "description": "Quantos exercícios.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "exercises": {
+      "description": "Cada exercício, na ordem.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ExerciseStatus"
+      }
+    }
+  },
+  "required": [
+    "root",
+    "track",
+    "title",
+    "solved",
+    "total",
+    "exercises"
+  ],
+  "$defs": {
+    "ExerciseStatus": {
+      "description": "Um exercício na lista, com o que o aluno já fez.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome.",
+          "type": "string"
+        },
+        "chapter": {
+          "description": "O capítulo (a pasta dele).",
+          "type": "string"
+        },
+        "title": {
+          "description": "O título.",
+          "type": "string"
+        },
+        "solved": {
+          "description": "Já resolvido.",
+          "type": "boolean"
+        },
+        "current": {
+          "description": "É o exercício atual.",
+          "type": "boolean"
+        },
+        "file": {
+          "description": "O arquivo que o aluno edita.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "chapter",
+        "title",
+        "solved",
+        "current",
+        "file"
+      ]
+    }
+  }
+}

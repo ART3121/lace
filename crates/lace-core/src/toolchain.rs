@@ -98,6 +98,10 @@ pub mod component {
     /// `lace install` o oferecerem como os outros componentes, e o Studio
     /// instalado acha o bundle por estar dentro dele.
     pub const STUDIO: &str = "studio";
+    /// As trilhas de exercícios do `lace learn` (`lace-learn/` no
+    /// repositório). Só dados: o código que as corrige está no Lace e no
+    /// Studio, no crate `lace-learn`.
+    pub const LACE_LEARN: &str = "lace-learn";
 
     /// Todos, na ordem em que o Lace os lista.
     pub const ALL: &[&str] = &[
@@ -109,6 +113,7 @@ pub mod component {
         GRAPHVIZ,
         SURFER_AURORA,
         STUDIO,
+        LACE_LEARN,
     ];
 }
 

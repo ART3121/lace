@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LearnWaveReport",
+  "description": "`lace learn wave`: a onda aberta no Surfer.",
+  "type": "object",
+  "properties": {
+    "exercise": {
+      "description": "O exercício.",
+      "type": "string"
+    },
+    "waveform": {
+      "description": "A onda da última correção.",
+      "type": "string"
+    },
+    "layout": {
+      "description": "O arquivo de comandos com que ela abriu.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pid": {
+      "description": "O processo do Surfer.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "exercise",
+    "waveform",
+    "layout",
+    "pid"
+  ]
+}

@@ -1,0 +1,20 @@
+[package]
+name = "lace-learn"
+description = "Exercícios de Verilog no estilo rustlings, corrigidos pelo lace-core: a API que o lace learn e o Studio usam"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+lace-core.workspace = true
+camino.workspace = true
+dunce.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+tempfile.workspace = true

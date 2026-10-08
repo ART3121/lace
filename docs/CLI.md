@@ -542,12 +542,36 @@ medida à parte. O tempo simulado é outra grandeza, o quanto o tempo andou
 dentro do modelo: vem do `$finish called at` do `vvp`, e o Verilator não o
 informa. Uma rodada só não é medida de desempenho.
 
+### Exercícios: `lace learn`
+
+Os exercícios de Verilog do componente `lace-learn`, no estilo do
+rustlings: `lace learn init` cria a pasta de exercícios, e `lace learn`,
+dentro dela, entra no modo watch, que corrige o exercício atual a cada
+gravação. A correção roda o `check` e a simulação no Icarus do projeto do
+exercício e compara cada saída com a de uma solução de referência; ela não
+grava relatório.
+
+| Comando | Faz | Função |
+|---|---|---|
+| `lace learn` | o modo watch (precisa de terminal) | `lace_learn::grade` a cada gravação |
+| `lace learn init [PASTA] [--track ID]` | cria a pasta de exercícios (padrão `lace-learn`) | `Workspace::init` |
+| `lace learn check [NOME] [--all]` | corrige e grava se está resolvido; 0 se tudo pedido está | `grade`, `Workspace::record` |
+| `lace learn list` | os exercícios, o atual e os resolvidos | `Workspace::statuses` |
+| `lace learn hint [NOME]` | as dicas | `Exercise::hints` |
+| `lace learn reset NOME [--yes]` | volta o arquivo do exercício ao começo | `Workspace::reset` |
+| `lace learn wave [NOME]` | abre a onda da última correção, com as saídas ao lado das da referência e o primeiro erro marcado | `open_waveform` com o `.sucl` da correção |
+| `lace learn dev check [TRILHA]` | confere uma trilha: o arquivo inicial não passa, a solução passa | `check_track` |
+
+`LACE_LEARN_DIR` aponta a pasta das trilhas no lugar do componente. As
+teclas do modo watch, a pasta de exercícios e o formato das trilhas estão em
+[LEARN.md](LEARN.md).
+
 ### Bundle
 
 | Comando | Faz |
 |---|---|
 | `lace tools [--verify]` | o bundle (identificador, plataforma, componentes instalados com versão e origem, e os não instalados), cada ferramenta (`OK`, `--` se o componente dela não foi instalado, `!!` se falta o executável), o compilador do Verilator, com `(bundle)` ou `(system)`. Com `--verify`, confere o SHA-256 de cada executável e sai com 1 se algum não conferir |
-| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, studio) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador). Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
+| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, studio, lace-learn) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador). Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
 | `lace update [--check] [--yes]` | compara o Lace, o bundle e cada aplicativo instalado com a última release (o `bundle/versions.json` da tag dela) e com a última versão upstream (releases do OSS CAD Suite, do lace-toolchain e do YANC no GitHub, tags do surfer-aurora e releases do Graphviz no GitLab), e marca `(new)` o que é mais novo; `?` é uma fonte que não respondeu. Com `--check`, só mostra. Sem ele, se há Lace mais novo, pergunta (sem terminal, exige `--yes`) e baixa o instalador da release, conferido pelo `SHA256SUMS`: no Linux e no macOS reinstala com os mesmos aplicativos, a mesma pasta e o mesmo atalho; no Windows abre o assistente. Ferramenta mais nova upstream não é instalada: chega num bundle novo, numa release nova do Lace. Sem rede ou com o GitHub fora, sai com 2. Recusa atualizar um `lace` que não foi instalado pelo instalador |
 | `lace uninstall [--yes]` | remove a instalação de onde este `lace` roda, com o bundle inteiro: no Linux e no macOS roda o `uninstall.sh` da pasta (sai `toolchain/`, `bin/lace`, o atalho e a pasta), no Windows abre o desinstalador do Inno (que também tira a pasta do PATH). Pergunta antes; sem terminal, exige `--yes`. Recusa um `lace` que não foi instalado pelo instalador. Também apaga o `~/.config/lace/config.json` de um build anterior à 0.2.0, e tira o atalho do Studio no menu. Os projetos ficam |
 

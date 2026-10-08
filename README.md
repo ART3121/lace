@@ -95,6 +95,7 @@ Para remover o Lace com o bundle inteiro: `lace uninstall`.
 | Yosys | síntese; lê as portas para o testbench-modelo do `lace add` | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda | sim |
+| Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`lace learn`, e a vista Exercícios do Studio); precisa do Icarus | não |
 
 Para instalar um aplicativo do bundle depois, sem reinstalar o Lace:
 `lace install`, que abre a lista no terminal, ou `lace install verilator`.
@@ -168,6 +169,7 @@ as ferramentas rodam. O formato de cada um está em
 | [docs/INSTALL.md](docs/INSTALL.md) | instalar, mudar componentes, remover |
 | [studio/README.md](studio/README.md) | o Lace Studio: usar, compilar, a documentação dele (`studio/docs/`) |
 | [docs/CLI.md](docs/CLI.md) | a linha de comando `lace` |
+| [docs/LEARN.md](docs/LEARN.md) | os exercícios do `lace learn`: fazer e escrever |
 | [docs/API.md](docs/API.md) | a API do `lace-core`, para a CLI e para interfaces futuras |
 | [docs/BUNDLE.md](docs/BUNDLE.md) | o que vem no bundle, como montá-lo e o que vem do sistema |
 | [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando |

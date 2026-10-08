@@ -359,3 +359,48 @@ fn command_line_mirrors_the_cli() {
     };
     assert_eq!(request.command_line(), "lace-studio check -p soma");
 }
+
+/// O fluxo `learn`: corrige um exercício da trilha de teste do lace-learn
+/// (`crates/lace-learn/tests/fixtures`, pela preferência `learn_dir`), grava
+/// o resolvido e não grava relatório.
+#[test]
+fn learn_flow_checks_an_exercise_and_records_it() {
+    let Some(mut settings) = settings() else {
+        return;
+    };
+    if !has(&settings, "icarus") {
+        eprintln!("PULADO: o bundle não tem icarus");
+        return;
+    }
+    let fixtures =
+        Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/lace-learn/tests/fixtures");
+    settings.learn_dir = Some(fixtures.to_string());
+    let dir = tempfile::tempdir().unwrap();
+    let root = Utf8PathBuf::from_path_buf(dir.path().join("ex")).unwrap();
+    let track = lace_learn::load_track(&fixtures, "teste", None).unwrap();
+    let workspace = lace_learn::Workspace::init(&root, track).unwrap();
+    let mux2 = workspace.track().require("mux2").unwrap().clone();
+    let spf = workspace.exercise_dir(&mux2).join("mux2.spf");
+
+    let request = FlowRequest::Learn {
+        root: root.clone(),
+        exercise: "mux2".into(),
+    };
+    assert_eq!(request.command_line(), "lace-studio learn check mux2");
+    // O arquivo inicial não atribui a saída.
+    let wrong = run(request.clone(), &settings, &spf);
+    assert!(!wrong.succeeded);
+    let grade = wrong.learn.expect("a correção");
+    assert_eq!(grade.verdict, lace_learn::Verdict::Mismatch);
+    assert!(wrong.report.is_none(), "a correção não grava relatório");
+
+    std::fs::write(
+        workspace.student_file(&mux2),
+        "module mux2(input a, input b, input sel, output y);\n    assign y = sel ? b : a;\nendmodule\n",
+    )
+    .unwrap();
+    let right = run(request, &settings, &spf);
+    assert!(right.succeeded, "{:?}", right.learn);
+    let reopened = lace_learn::Workspace::open(&root, &fixtures, None).unwrap();
+    assert!(reopened.is_solved("mux2"));
+}

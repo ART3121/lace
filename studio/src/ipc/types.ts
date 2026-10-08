@@ -17,6 +17,7 @@ import type {
   CheckResult,
   Event,
   FileRole,
+  Grade,
   Language,
   Processor,
   ProjectIssue,
@@ -67,6 +68,8 @@ export interface Settings {
   theme: string;
   toolchain_dir: string | null;
   compiler_dir: string | null;
+  /** As trilhas do `lace learn` de outra pasta, como o LACE_LEARN_DIR. */
+  learn_dir: string | null;
   simulator: Simulator;
   open_wave_after_sim: boolean;
   /** Onde a onda abre: numa aba (cliente web do Surfer) ou em janela. */
@@ -256,7 +259,9 @@ export type FlowRequest =
       open_wave?: boolean;
     }
   | { flow: 'synthesize'; processor?: string | null; schematic?: boolean; module?: string | null }
-  | { flow: 'schematic'; netlist: string; module: string; bus_widths?: boolean };
+  | { flow: 'schematic'; netlist: string; module: string; bus_widths?: boolean }
+  /** `lace learn check`: corrige um exercício e grava se está resolvido. */
+  | { flow: 'learn'; root: string; exercise: string };
 
 export type FlowName = FlowRequest['flow'];
 
@@ -297,6 +302,8 @@ export interface FlowOutcome {
   schematic_error: IpcError | null;
   report: string | null;
   report_error: string | null;
+  /** A correção de um exercício (fluxo `learn`). */
+  learn: Grade | null;
 }
 
 /** As operações que rodam a CLI (`lace install`, `lace update`). */
@@ -314,7 +321,7 @@ export interface CliOutcome {
 }
 
 /** `flows.rs`: Phase. */
-export type Phase = 'build' | 'check' | 'simulate' | 'synthesize' | 'schematic' | 'wave';
+export type Phase = 'build' | 'check' | 'simulate' | 'synthesize' | 'schematic' | 'wave' | 'learn';
 
 /** `jobs.rs`: JobMessage. */
 export type JobMessage =
@@ -375,4 +382,53 @@ export type TerminalMessage = { type: 'data'; data: string } | { type: 'exit'; c
 /** `watcher.rs`: o evento `studio://fs-changed`. */
 export interface FsChanged {
   paths: string[];
+}
+
+/** `commands/learn.rs`: LearnExercise. */
+export interface LearnExercise {
+  name: string;
+  title: string;
+  /** O enunciado, em markdown. */
+  prompt: string;
+  /** As dicas, em markdown. */
+  hints: string[];
+  module: string;
+  /** O arquivo que o aluno edita. */
+  file: string;
+  /** O `.spf` do projeto do exercício. */
+  spf: string;
+  /** A onda da última correção. */
+  waveform: string;
+  solved: boolean;
+  /** A solução liberada, depois de resolvido. */
+  solution: string | null;
+}
+
+/** `commands/learn.rs`: LearnChapter. */
+export interface LearnChapter {
+  id: string;
+  title: string;
+  intro: string;
+  exercises: LearnExercise[];
+}
+
+/** `commands/learn.rs`: LearnSnapshot. */
+export interface LearnSnapshot {
+  root: string;
+  track: string;
+  title: string;
+  welcome: string;
+  farewell: string | null;
+  chapters: LearnChapter[];
+  current: string;
+  solved: number;
+  total: number;
+}
+
+/** `commands/learn.rs`: LearnTracks. */
+export interface LearnTracks {
+  /** A pasta das trilhas. */
+  dir: string;
+  /** As trilhas dela. */
+  tracks: string[];
 }

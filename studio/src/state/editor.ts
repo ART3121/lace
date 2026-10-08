@@ -34,7 +34,8 @@ export type ViewKind =
   | 'compare'
   | 'processor'
   | 'about'
-  | 'wave';
+  | 'wave'
+  | 'learn';
 
 export interface Tab {
   id: string;

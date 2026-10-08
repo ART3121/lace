@@ -5,6 +5,8 @@
 mod commands;
 mod install;
 mod installation;
+mod learn;
+mod learn_tui;
 mod output;
 mod progress;
 mod release;
@@ -41,6 +43,8 @@ Examples:
   lace sim --fast                   simulate without waveform, on Verilator
   lace proc add adder               create a SAPHO processor
   lace sim -p adder                 build it with YANC and simulate it
+  lace learn init && cd lace-learn && lace learn
+                                    learn Verilog with exercises
 
 Exit status: 0 ok, 1 failed (build error, failed simulation, timeout),
 2 could not run, 130 cancelled.";
@@ -161,6 +165,8 @@ enum Command {
     Synth(SynthArgs),
     /// Show and compare the reports of past operations
     Report(ReportArgs),
+    /// Learn Verilog with exercises checked on every save, like rustlings (no subcommand: watch mode)
+    Learn(LearnArgs),
     /// Show the bundled tools and their versions
     Tools {
         /// Verify each executable against the manifest SHA-256
@@ -235,6 +241,68 @@ enum ReportCommand {
         /// Do not ask for confirmation
         #[arg(short, long)]
         yes: bool,
+    },
+}
+
+/// `lace learn`: sem subcomando, o modo watch.
+#[derive(clap::Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct LearnArgs {
+    #[command(subcommand)]
+    command: Option<LearnCommand>,
+}
+
+#[derive(Subcommand)]
+enum LearnCommand {
+    /// Create the exercise folder, with every exercise of a track
+    Init {
+        /// Where to create it
+        #[arg(default_value = learn::DEFAULT_DIR)]
+        dir: Utf8PathBuf,
+        /// The track
+        #[arg(long, default_value = lace_learn::DEFAULT_TRACK)]
+        track: String,
+    },
+    /// Check an exercise (default: the current one) and record whether it is solved
+    Check {
+        /// Exercise name
+        #[arg(conflicts_with = "all")]
+        name: Option<String>,
+        /// Check every exercise
+        #[arg(long)]
+        all: bool,
+    },
+    /// List the exercises and which are solved
+    List,
+    /// Show the hints of an exercise (default: the current one)
+    Hint {
+        /// Exercise name
+        name: Option<String>,
+    },
+    /// Restore the file of an exercise to its starting point
+    Reset {
+        /// Exercise name
+        name: String,
+        /// Do not ask for confirmation
+        #[arg(short, long)]
+        yes: bool,
+    },
+    /// Open the waveform of the last check, with the first mismatch marked
+    Wave {
+        /// Exercise name (default: the current one)
+        name: Option<String>,
+    },
+    /// Tools for writing tracks
+    #[command(subcommand)]
+    Dev(LearnDevCommand),
+}
+
+#[derive(Subcommand)]
+enum LearnDevCommand {
+    /// Check a track: every starting file fails and every solution passes
+    Check {
+        /// The track folder (default: the installed verilog track, or the one in LACE_LEARN_DIR)
+        track: Option<Utf8PathBuf>,
     },
 }
 

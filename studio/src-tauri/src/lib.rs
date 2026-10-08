@@ -11,6 +11,7 @@
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático: operações canceláveis com saída ao vivo |
 //! | [`commands::history`] | relatórios do `.lace/reports`: listar, mostrar, comparar, apagar |
+//! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, abrir a onda |
@@ -26,6 +27,7 @@ pub mod commands {
     pub mod app;
     pub mod files;
     pub mod history;
+    pub mod learn;
     pub mod project;
     pub mod toolchain;
 }
@@ -127,6 +129,11 @@ pub fn run() {
             commands::history::history_compare,
             commands::history::history_plan_cleanup,
             commands::history::history_clean,
+            commands::learn::learn_tracks,
+            commands::learn::learn_open,
+            commands::learn::learn_init,
+            commands::learn::learn_set_current,
+            commands::learn::learn_reset,
             commands::toolchain::toolchain_info,
             commands::toolchain::toolchain_verify,
             commands::toolchain::lace_update_check,

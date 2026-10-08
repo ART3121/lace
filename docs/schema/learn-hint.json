@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LearnHintReport",
+  "description": "`lace learn hint`: as dicas de um exercício.",
+  "type": "object",
+  "properties": {
+    "exercise": {
+      "description": "O exercício.",
+      "type": "string"
+    },
+    "title": {
+      "description": "O título.",
+      "type": "string"
+    },
+    "hints": {
+      "description": "As dicas, em markdown, na ordem.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "exercise",
+    "title",
+    "hints"
+  ]
+}

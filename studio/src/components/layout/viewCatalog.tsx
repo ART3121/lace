@@ -13,6 +13,7 @@ import {
   CircleAlert,
   CircuitBoard,
   FolderTree,
+  GraduationCap,
   Hammer,
   ListChecks,
   ScrollText,
@@ -26,6 +27,7 @@ import { useLayout, type ViewId } from '../../state/layout';
 import { ConsoleView, ProblemsView, ShellView, useProblemCount } from '../panel/PanelViews';
 import { Explorer } from '../sidebar/Explorer';
 import { FlowNavigator } from '../sidebar/FlowNavigator';
+import { LearnPanel } from '../sidebar/LearnPanel';
 import { ReportsPanel } from '../sidebar/ReportsPanel';
 import { SearchPanel } from '../sidebar/SearchPanel';
 
@@ -34,6 +36,7 @@ export const VIEW_ICONS: Record<ViewId, LucideIcon> = {
   flow: Workflow,
   search: Search,
   reports: ScrollText,
+  learn: GraduationCap,
   cmm: Hammer,
   asm: Binary,
   verilog: ListChecks,
@@ -46,7 +49,7 @@ export const VIEW_ICONS: Record<ViewId, LucideIcon> = {
 export type ViewKind = 'side' | 'panel';
 
 export function viewKind(view: ViewId): ViewKind {
-  return view === 'explorer' || view === 'flow' || view === 'search' || view === 'reports' ? 'side' : 'panel';
+  return view === 'explorer' || view === 'flow' || view === 'search' || view === 'reports' || view === 'learn' ? 'side' : 'panel';
 }
 
 export function ViewContent({ view }: { view: ViewId }) {
@@ -59,6 +62,8 @@ export function ViewContent({ view }: { view: ViewId }) {
       return <SearchPanel />;
     case 'reports':
       return <ReportsPanel />;
+    case 'learn':
+      return <LearnPanel />;
     case 'problems':
       return <ProblemsView />;
     case 'terminal':

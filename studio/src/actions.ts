@@ -23,6 +23,7 @@ import {
   FileCode,
   FolderOpen,
   FolderPlus,
+  GraduationCap,
   Hammer,
   ListChecks,
   Play,
@@ -46,6 +47,7 @@ import { MAX_GROUPS, saveActive, useEditor } from './state/editor';
 import { useHierarchy } from './state/hierarchy';
 import { useJobs } from './state/jobs';
 import { isOnScreen, useLayout, type RegionId, type ViewId } from './state/layout';
+import { currentExercise, useLearn } from './state/learn';
 import { CONSOLE_CHANNELS, regionOf, VIEW_INFO } from './state/layoutModel';
 import { useProject } from './state/project';
 import { resetLayout, restoreLayout, saveLayout, saveLayoutAs } from './state/savedLayouts';
@@ -80,6 +82,7 @@ const hasProject = () => useProject.getState().snapshot !== null;
 const idle = () => useJobs.getState().running === null;
 const canRun = () => hasProject() && idle();
 const hasEditor = () => activeEditor() !== null;
+const hasLearnExercise = () => currentExercise(useLearn.getState().snapshot) !== null;
 
 /** Mostra uma vista que o usuário pediu, mesmo se estava escondida, na
  * região onde o layout a pôs. */
@@ -420,6 +423,7 @@ export const ACTIONS: Action[] = [
   { id: 'viewFlow', label: 'action.viewFlow', category: 'view', icon: Workflow, run: () => reveal('flow') },
   { id: 'viewSearch', label: 'action.viewSearch', category: 'view', run: () => reveal('search') },
   { id: 'viewReports', label: 'action.viewReports', category: 'view', run: () => reveal('reports') },
+  { id: 'viewLearn', label: 'action.viewLearn', category: 'view', icon: GraduationCap, run: () => reveal('learn') },
   {
     id: 'splitEditor',
     label: 'action.splitEditor',
@@ -658,6 +662,23 @@ export const ACTIONS: Action[] = [
     run: () => useEditor.getState().openView('compare', { id: null, against: null }),
   },
   { id: 'cleanReports', label: 'action.cleanReports', category: 'tools', enabled: canRun, run: () => openDialog({ kind: 'cleanReports' }) },
+
+  // Exercícios (lace learn)
+  { id: 'learnCheck', label: 'action.learnCheck', category: 'tools', keys: 'Ctrl+Alt+L', enabled: () => idle() && hasLearnExercise(), run: () => useLearn.getState().check() },
+  {
+    id: 'learnHint',
+    label: 'action.learnHint',
+    category: 'tools',
+    enabled: hasLearnExercise,
+    run: () => {
+      const exercise = currentExercise(useLearn.getState().snapshot);
+      if (!exercise) return;
+      useLearn.getState().showHint(exercise.name);
+      useEditor.getState().openView('learn');
+    },
+  },
+  { id: 'learnWave', label: 'action.learnWave', category: 'tools', enabled: hasLearnExercise, run: () => useLearn.getState().openWave() },
+  { id: 'learnNext', label: 'action.learnNext', category: 'tools', enabled: () => idle() && !!currentExercise(useLearn.getState().snapshot)?.solved, run: () => useLearn.getState().next() },
 
   // Ajuda
   { id: 'laceDocs', label: 'action.laceDocs', category: 'help', run: () => openUrl(LACE_CLI_DOCS).catch(showError) },

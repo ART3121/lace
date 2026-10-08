@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DevReport",
+  "description": "O resultado da conferência.",
+  "type": "object",
+  "properties": {
+    "track": {
+      "description": "A trilha.",
+      "type": "string"
+    },
+    "exercises": {
+      "description": "Cada exercício, na ordem.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DevExercise"
+      }
+    }
+  },
+  "required": [
+    "track",
+    "exercises"
+  ],
+  "$defs": {
+    "DevExercise": {
+      "description": "Um exercício conferido.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome.",
+          "type": "string"
+        },
+        "problems": {
+          "description": "O que está errado; vazio quando está tudo certo.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "start": {
+          "description": "Como o `start.v` se saiu (não pode ser `solved`).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Verdict"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "solution": {
+          "description": "Como a `solution.v` se saiu (tem que ser `solved`).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Verdict"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "problems",
+        "start",
+        "solution"
+      ]
+    },
+    "Verdict": {
+      "description": "Como terminou a correção.",
+      "oneOf": [
+        {
+          "description": "Compilou e nenhuma saída errou.",
+          "type": "string",
+          "const": "solved"
+        },
+        {
+          "description": "O Verilog não compila: os erros estão em `diagnostics`.",
+          "type": "string",
+          "const": "compile_error"
+        },
+        {
+          "description": "Simulou, e alguma saída diferiu da referência.",
+          "type": "string",
+          "const": "mismatch"
+        },
+        {
+          "description": "A simulação terminou sem o resumo do testbench, ou parou com erro.",
+          "type": "string",
+          "const": "incomplete"
+        },
+        {
+          "description": "A simulação passou do prazo: um laço sem fim, ou um laço\ncombinacional que não estabiliza.",
+          "type": "string",
+          "const": "timed_out"
+        },
+        {
+          "description": "A correção foi cancelada.",
+          "type": "string",
+          "const": "cancelled"
+        }
+      ]
+    }
+  }
+}

@@ -27,11 +27,11 @@ use lace_core::{
 };
 use serde::Serialize;
 
-const ERROR: Style = AnsiColor::Red.on_default().bold();
-const WARNING: Style = AnsiColor::Yellow.on_default().bold();
-const OK: Style = AnsiColor::Green.on_default().bold();
-const DIM: Style = Style::new().dimmed();
-const BOLD: Style = Style::new().bold();
+pub(crate) const ERROR: Style = AnsiColor::Red.on_default().bold();
+pub(crate) const WARNING: Style = AnsiColor::Yellow.on_default().bold();
+pub(crate) const OK: Style = AnsiColor::Green.on_default().bold();
+pub(crate) const DIM: Style = Style::new().dimmed();
+pub(crate) const BOLD: Style = Style::new().bold();
 
 /// Quantos valores de uma porta de saída cabem numa linha de texto; o resto
 /// fica no arquivo (e no JSON, que traz todos).
@@ -64,7 +64,7 @@ struct ResultLine<'a, T: Report> {
 }
 
 /// Um trecho de texto com estilo.
-fn paint(style: Style, text: impl std::fmt::Display) -> String {
+pub(crate) fn paint(style: Style, text: impl std::fmt::Display) -> String {
     format!("{style}{text}{style:#}")
 }
 
@@ -125,9 +125,23 @@ impl Output {
     /// quando há uma. No JSON, `code` é o de `LaceError::code()`, ou `"cli"`
     /// para erros da própria linha de comando, e `hint` só aparece com dica.
     pub fn error(&self, error: &anyhow::Error) {
-        let lace = error.chain().find_map(|e| e.downcast_ref::<LaceError>());
-        let code = lace.map_or("cli", LaceError::code);
-        let hint = lace.and_then(hint);
+        // O erro do lace-learn que embrulha um do lace-core é transparente:
+        // o do lace-core não aparece sozinho na cadeia.
+        let learn = error
+            .chain()
+            .find_map(|e| e.downcast_ref::<lace_learn::LearnError>());
+        let lace = error
+            .chain()
+            .find_map(|e| e.downcast_ref::<LaceError>())
+            .or(match learn {
+                Some(lace_learn::LearnError::Lace(e)) => Some(e),
+                _ => None,
+            });
+        let (code, hint) = match (lace, learn) {
+            (Some(lace), _) => (lace.code(), hint(lace)),
+            (None, Some(learn)) => crate::learn::error_info(learn),
+            (None, None) => ("cli", None),
+        };
         if self.json {
             let report = ErrorReport {
                 error: ErrorInfo {

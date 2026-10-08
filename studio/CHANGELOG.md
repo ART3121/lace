@@ -3,6 +3,30 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Acrescentado
+
+- A vista Exercícios, do `lace learn` (componente `lace-learn`): cria ou
+  abre a pasta de exercícios e lista os capítulos com o que já foi
+  resolvido. Escolher um exercício abre o projeto dele, o arquivo à
+  esquerda e o enunciado à direita, sem corrigir; cada gravação corrige, e
+  Ctrl+Alt+L corrige quando quiser. A aba do enunciado mostra as dicas
+  pedidas, a correção (cada saída errada, o primeiro erro, os erros de
+  compilação, que levam à linha) e os botões da onda, do esquemático, de
+  restaurar, da solução e do próximo exercício. A correção é a operação
+  `learn`: os erros vão para a aba do enunciado, para Problemas e para o
+  editor.
+- A sessão de exercícios: com um exercício aberto, trocar de aba não grava
+  sozinho e o painel de baixo fica escondido até ser chamado; nenhuma
+  operação o abre. Ao sair da sessão, o painel volta como estava.
+- A onda de um exercício abre na aba (ou na janela) com as entradas, as
+  saídas ao lado das da referência e o primeiro erro marcado.
+- Preferências > Bundle do Lace: a pasta das trilhas de exercícios, para
+  quem escreve exercícios testar uma trilha sem instalar o componente. Sem
+  o componente, a vista Exercícios oferece instalá-lo ou escolher essa
+  pasta.
+
 ## [0.4.0] - 2026-10-07
 
 ### Acrescentado

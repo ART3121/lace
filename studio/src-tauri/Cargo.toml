@@ -22,6 +22,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 # O Core do Lace, do mesmo repositório. Ver docs/DEVELOPMENT.md.
 lace-core = { path = "../../crates/lace-core" }
+# Os exercícios do `lace learn` (a vista Exercícios e o fluxo `learn`).
+lace-learn = { path = "../../crates/lace-learn" }
 
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

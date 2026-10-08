@@ -511,6 +511,48 @@ reinicia o terminal aberto com o shell novo.
   relatório apagado não volta a ser usado. Com uma operação rodando, a
   limpeza espera.
 
+## 7.1 Exercícios
+
+A vista **Exercícios** (Exibir > Exercícios, ou Ferramentas > Exercícios)
+é o `lace learn` no Studio: exercícios curtos de Verilog, corrigidos a cada
+gravação contra uma solução de referência
+([docs/LEARN.md](../../docs/LEARN.md) do Lace). Eles vêm no componente
+`lace-learn`; sem ele, a vista oferece instalá-lo.
+
+- **Criar a pasta de exercícios** escolhe onde, e cria lá a pasta
+  `lace-learn`, com um projeto por exercício. **Abrir uma pasta de
+  exercícios** abre uma que já existe. A pasta fica lembrada.
+- A lista mostra os capítulos, os exercícios resolvidos (com a marca verde)
+  e o atual. Clicar num exercício abre o projeto dele, o seu arquivo à
+  esquerda e o enunciado à direita, sem corrigir.
+- Com **Corrigir ao gravar** ligado (o padrão), cada gravação do arquivo do
+  exercício corrige, também quando o arquivo é gravado por outro editor.
+  Ctrl+Alt+L e o botão **Corrigir** corrigem quando quiser.
+- Com um exercício aberto, o Studio fica numa sessão de exercícios: trocar
+  de aba não grava sozinho (mesmo com **Salvar ao trocar de aba ou de
+  janela** ligado), e
+  o painel de baixo fica escondido até você chamá-lo (Ctrl+J). A correção
+  não abre console nenhum: o resultado aparece na aba do enunciado. Abrir
+  outro projeto ou fechar a pasta de exercícios encerra a sessão, e o painel
+  volta como estava.
+- A aba do enunciado mostra a correção: resolvido, não compila, ou em
+  quantas amostras cada saída errou e o instante do primeiro erro. Os
+  erros de compilação levam à linha e também vão para Problemas e para o
+  editor. Quando dá, a correção diz a causa: uma porta com outro nome, uma
+  saída sem atribuição, um reset que só erra quando ativo.
+- Os botões: **Dica** mostra a próxima dica; **Onda** abre a onda da última
+  correção com as entradas, cada saída sua ao lado da de referência e o
+  primeiro erro marcado; **Esquemático** sintetiza o seu circuito e o abre
+  no PRISM; **Restaurar** volta o arquivo ao começo (pergunta antes);
+  depois de resolvido, **Solução** abre a solução de referência e
+  **Próximo** vai ao próximo exercício por resolver.
+
+Sem o componente, a vista também deixa escolher a pasta das trilhas. Quem
+escreve exercícios aponta Preferências > Bundle do Lace > **Pasta das
+trilhas de exercícios** para a pasta `lace-learn` do repositório, e testa a
+trilha sem instalar o componente. No `npm run tauri dev`, sem essa
+preferência, o Studio já usa a pasta `lace-learn` do repositório.
+
 ## 8. Ferramentas do Lace
 
 A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
@@ -630,6 +672,7 @@ No macOS, Ctrl é Cmd. A lista também está em Ajuda > Atalhos de teclado.
 | Terminal, Problemas | Ctrl+`, Ctrl+Shift+M |
 | Modo zen (entrar e sair) | Ctrl+K Z; Esc Esc também sai |
 | Histórico de relatórios | Ctrl+Shift+H |
+| Corrigir o exercício (lace learn) | Ctrl+Alt+L |
 | Zoom | Ctrl+=, Ctrl+-, Ctrl+0 |
 
 Dentro do Terminal, as teclas com Ctrl sozinho (Ctrl+C, Ctrl+W, Ctrl+P) vão

@@ -1,0 +1,398 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LearnCheckReport",
+  "description": "`lace learn check`: a correção de cada exercício pedido, que também\ngrava se ele está resolvido.",
+  "type": "object",
+  "properties": {
+    "results": {
+      "description": "Uma por exercício, na ordem da trilha.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Grade"
+      }
+    },
+    "solved": {
+      "description": "Quantos exercícios da trilha estão resolvidos agora.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "total": {
+      "description": "Quantos a trilha tem.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "results",
+    "solved",
+    "total"
+  ],
+  "$defs": {
+    "Grade": {
+      "description": "O resultado da correção.",
+      "type": "object",
+      "properties": {
+        "exercise": {
+          "description": "O exercício.",
+          "type": "string"
+        },
+        "verdict": {
+          "description": "Como terminou.",
+          "$ref": "#/$defs/Verdict"
+        },
+        "samples": {
+          "description": "Quantas amostras o testbench comparou.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "mismatched": {
+          "description": "Em quantas amostras alguma saída errou.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "outputs": {
+          "description": "Cada saída, na ordem das portas.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OutputCheck"
+          }
+        },
+        "reset_mismatches": {
+          "description": "Com reset: quantas amostras erradas foram com ele ativo.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "findings": {
+          "description": "O que se percebeu sobre a causa do erro.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          }
+        },
+        "diagnostics": {
+          "description": "Os erros e avisos dos compiladores sobre o código do aluno.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "output": {
+          "description": "O que o testbench escreveu, fora o resumo (um `tb.v` escrito à mão\npode explicar o erro aqui).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "waveform": {
+          "description": "A onda da simulação.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layout": {
+          "description": "O arquivo de comandos do Surfer que mostra a onda com as entradas, as\nsaídas lado a lado com as da referência e o primeiro erro marcado.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration_ms": {
+          "description": "Quanto a correção levou, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "exercise",
+        "verdict",
+        "samples",
+        "mismatched",
+        "outputs",
+        "reset_mismatches",
+        "findings",
+        "diagnostics",
+        "output",
+        "waveform",
+        "layout",
+        "duration_ms"
+      ]
+    },
+    "Verdict": {
+      "description": "Como terminou a correção.",
+      "oneOf": [
+        {
+          "description": "Compilou e nenhuma saída errou.",
+          "type": "string",
+          "const": "solved"
+        },
+        {
+          "description": "O Verilog não compila: os erros estão em `diagnostics`.",
+          "type": "string",
+          "const": "compile_error"
+        },
+        {
+          "description": "Simulou, e alguma saída diferiu da referência.",
+          "type": "string",
+          "const": "mismatch"
+        },
+        {
+          "description": "A simulação terminou sem o resumo do testbench, ou parou com erro.",
+          "type": "string",
+          "const": "incomplete"
+        },
+        {
+          "description": "A simulação passou do prazo: um laço sem fim, ou um laço\ncombinacional que não estabiliza.",
+          "type": "string",
+          "const": "timed_out"
+        },
+        {
+          "description": "A correção foi cancelada.",
+          "type": "string",
+          "const": "cancelled"
+        }
+      ]
+    },
+    "OutputCheck": {
+      "description": "O resultado de uma saída do módulo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome da porta.",
+          "type": "string"
+        },
+        "mismatches": {
+          "description": "Em quantas amostras ela diferiu da referência.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "first_ns": {
+          "description": "O instante do primeiro erro, em ns.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "unknown": {
+          "description": "Das amostras erradas, quantas tinham bit em X ou Z.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "name",
+        "mismatches",
+        "first_ns",
+        "unknown"
+      ]
+    },
+    "Finding": {
+      "description": "O que a correção percebeu sobre a causa do erro.",
+      "oneOf": [
+        {
+          "description": "O erro de compilação é no testbench: o nome do módulo ou o de uma\nporta mudou.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "interface_changed"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Todas as amostras erradas desta saída estão em X ou Z: ela não é\natribuída, ou depende de algo que não é.",
+          "type": "object",
+          "properties": {
+            "output": {
+              "description": "A saída.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "undriven_output"
+            }
+          },
+          "required": [
+            "kind",
+            "output"
+          ]
+        },
+        {
+          "description": "Só erra com o reset ativo: o reset não faz o que o enunciado pede\n(síncrono ou assíncrono, o valor depois dele).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reset_only"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "Diagnostic": {
+      "description": "Uma mensagem de uma ferramenta, com os campos que deu para extrair.\n\n`file`, `line` e `column` são opcionais porque o `cmmcomp` não informa\narquivo nem coluna, e várias mensagens não informam nem a linha. Quando a\nferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila\num fonte só), `file` vem preenchido pelo Lace.\n\nEm JSON:\n\n```json\n{ \"tool\": \"cmmcomp\", \"severity\": \"error\",\n  \"message\": \"c'mon dude, declare the variable 'total' properly!\",\n  \"file\": \"/p/conta/Software/conta.cmm\", \"line\": 16, \"column\": null,\n  \"raw\": \"Error on line 16: c'mon dude, declare the variable 'total' properly!\" }\n```\n\nNo fluxo C, o `cppcomp` numera as linhas do arquivo pré-processado\n(`<temp>/pp.cpp`), e é esse o `file` que aparece: o `cpppp` não emite\nmarcadores `#line` que permitam voltar ao fonte original.",
+      "type": "object",
+      "properties": {
+        "tool": {
+          "description": "A ferramenta que escreveu a mensagem.",
+          "$ref": "#/$defs/Tool"
+        },
+        "severity": {
+          "description": "A gravidade.",
+          "$ref": "#/$defs/Severity"
+        },
+        "message": {
+          "description": "A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma\nda ferramenta (inglês: o Lace sempre pede `-en` ao YANC).",
+          "type": "string"
+        },
+        "file": {
+          "description": "O arquivo a que a mensagem se refere, como a ferramenta o escreveu\n(normalmente absoluto, porque o Lace passa caminhos absolutos).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "description": "Linha, a partir de 1.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "column": {
+          "description": "Coluna, a partir de 1 (Verilator e compilador C++).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "raw": {
+          "description": "O texto exatamente como a ferramenta o escreveu (várias linhas quando\na ferramenta continua a mensagem em linhas indentadas).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "severity",
+        "message",
+        "file",
+        "line",
+        "column",
+        "raw"
+      ]
+    },
+    "Tool": {
+      "description": "As ferramentas que o Lace sabe orquestrar.\n\nEm JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do\nprograma ([`Tool::binary_name`]).",
+      "oneOf": [
+        {
+          "description": "Compilador C± do YANC: `.cmm` para `.asm`.",
+          "type": "string",
+          "const": "cmmcomp"
+        },
+        {
+          "description": "Pré-assembler do YANC: conta instruções e variáveis do `.asm` e\nregistra o `#PRNAME` em `app_log.txt`.",
+          "type": "string",
+          "const": "appcomp"
+        },
+        {
+          "description": "Assembler do YANC: `.asm` para o Verilog do processador, as memórias\n`.mif` e o testbench.",
+          "type": "string",
+          "const": "asmcomp"
+        },
+        {
+          "description": "Pré-processador do fluxo C do YANC (`#include`, `#define`).",
+          "type": "string",
+          "const": "cpppp"
+        },
+        {
+          "description": "Compilador C do YANC: `.cpp` pré-processado para `.asm`.",
+          "type": "string",
+          "const": "cppcomp"
+        },
+        {
+          "description": "Compilador do Icarus Verilog.",
+          "type": "string",
+          "const": "iverilog"
+        },
+        {
+          "description": "Simulador do Icarus: executa o `.vvp` que o `iverilog` gera.",
+          "type": "string",
+          "const": "vvp"
+        },
+        {
+          "description": "Verilator: compila o Verilog para um executável C++ e o roda como\nsimulação, com o compilador de [`SystemCompiler`].",
+          "type": "string",
+          "const": "verilator"
+        },
+        {
+          "description": "Yosys: sintetiza Verilog para netlist e gera o grafo do esquemático.",
+          "type": "string",
+          "const": "yosys"
+        },
+        {
+          "description": "`dot` do Graphviz: desenha o grafo do esquemático em SVG.",
+          "type": "string",
+          "const": "dot"
+        },
+        {
+          "description": "O visualizador de ondas surfer-aurora. Aplicação gráfica: abre e fica\naberta.",
+          "type": "string",
+          "const": "surfer"
+        },
+        {
+          "description": "O Perl que executa o script `verilator`, parte do [`SystemCompiler`]:\ndo sistema no Linux e no macOS, do bundle no Windows.",
+          "type": "string",
+          "const": "perl"
+        }
+      ]
+    },
+    "Severity": {
+      "description": "Gravidade de um [`Diagnostic`]. A ordem (`Error < Warning < Info <\nUnknown`) serve para ordenar do mais grave ao menos grave.\n\nEm JSON: `\"error\"`, `\"warning\"`, `\"info\"`, `\"unknown\"`.",
+      "oneOf": [
+        {
+          "description": "A ferramenta recusou a entrada.",
+          "type": "string",
+          "const": "error"
+        },
+        {
+          "description": "A ferramenta aceitou, mas avisou (`Heads up on line`, `%Warning-`).",
+          "type": "string",
+          "const": "warning"
+        },
+        {
+          "description": "Mensagem informativa (`Info:`, `Sweet:`, resumos de contagem).",
+          "type": "string",
+          "const": "info"
+        },
+        {
+          "description": "Linha que o parser não reconheceu.",
+          "type": "string",
+          "const": "unknown"
+        }
+      ]
+    }
+  }
+}

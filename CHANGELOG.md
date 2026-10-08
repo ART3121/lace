@@ -1,5 +1,24 @@
 # Mudanças
 
+## Não publicada
+
+- `lace learn`: exercícios de Verilog no estilo do rustlings
+  ([docs/LEARN.md](docs/LEARN.md)). `lace learn init` cria a pasta de
+  exercícios, um projeto Lace por exercício, e `lace learn` entra no modo
+  watch: a cada gravação, o Lace roda o `check` e a simulação no Icarus e
+  compara cada saída do módulo do aluno com a de uma solução de referência,
+  amostra a amostra. A correção diz em quantas amostras cada saída errou, o
+  instante do primeiro erro e, quando dá, a causa (porta renomeada, saída
+  sem atribuição, reset que só erra quando ativo), e a onda abre com as
+  saídas ao lado das da referência e o primeiro erro marcado. Os
+  subcomandos `check`, `list`, `hint`, `reset`, `wave` e `dev check` têm
+  `--json`. A primeira trilha, `verilog`, tem 25 exercícios, de primeiros
+  passos a hierarquia, e vem no componente opcional `lace-learn`
+  (`lace install lace-learn`). O código é o crate novo `lace-learn`, que o
+  Studio também usa.
+- Lace Studio: a vista Exercícios, a aba do enunciado e a correção a cada
+  gravação (os detalhes estão em `studio/CHANGELOG.md`).
+
 ## 0.4.0 (2026-10-07)
 
 - Simulação rápida, o Fast Sim da AURORA: `lace sim --fast` roda sem gravar

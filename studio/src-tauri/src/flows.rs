@@ -105,6 +105,14 @@ pub enum FlowRequest {
         #[serde(default = "yes")]
         bus_widths: bool,
     },
+    /// `lace learn check NOME`: corrige um exercício da pasta de exercícios
+    /// (`lace-learn`) e grava se ele está resolvido. Não grava relatório.
+    Learn {
+        /// A pasta de exercícios (ou uma pasta dentro dela).
+        root: Utf8PathBuf,
+        /// O exercício.
+        exercise: String,
+    },
 }
 
 fn yes() -> bool {
@@ -120,6 +128,7 @@ impl FlowRequest {
             FlowRequest::Simulate { .. } => "simulate",
             FlowRequest::Synthesize { .. } => "synthesize",
             FlowRequest::Schematic { .. } => "schematic",
+            FlowRequest::Learn { .. } => "learn",
         }
     }
 
@@ -194,6 +203,9 @@ impl FlowRequest {
             FlowRequest::Schematic { module, .. } => {
                 parts.extend(["schematic".into(), module.clone()]);
             }
+            FlowRequest::Learn { exercise, .. } => {
+                parts.extend(["learn".into(), "check".into(), exercise.clone()]);
+            }
         }
         parts.join(" ")
     }
@@ -243,6 +255,8 @@ pub struct FlowOutcome {
     pub report: Option<String>,
     /// Por que o relatório não foi gravado (a operação não falha por isso).
     pub report_error: Option<String>,
+    /// A correção de um exercício (fluxo `learn`).
+    pub learn: Option<lace_learn::Grade>,
 }
 
 impl FlowOutcome {
@@ -263,6 +277,7 @@ impl FlowOutcome {
             wave_error: None,
             report: None,
             report_error: None,
+            learn: None,
         }
     }
 }
@@ -310,6 +325,8 @@ pub enum Phase {
     Schematic,
     /// Abrindo a onda.
     Wave,
+    /// Corrigindo um exercício do `lace learn`.
+    Learn,
 }
 
 /// O progresso de um fluxo.
@@ -331,6 +348,25 @@ pub fn run(
 ) -> IpcResult<FlowOutcome> {
     let started = SystemTime::now();
     let mut outcome = FlowOutcome::new(request);
+
+    // O exercício é um projeto Lace, mas a correção é a do lace-learn: não
+    // depende do projeto aberto.
+    if let FlowRequest::Learn { root, exercise } = request {
+        let toolchain = toolchain::require(settings)?;
+        progress(Progress::Phase(Phase::Learn));
+        let tracks = crate::commands::learn::tracks(settings)?;
+        let root = lace_learn::Workspace::discover(root)?;
+        let mut workspace = lace_learn::Workspace::open(&root, &tracks, None)?;
+        let exercise = workspace.track().require(exercise)?.clone();
+        // Sem a saída ao vivo: o resumo do testbench é para a correção ler.
+        let quiet = Control::new().with_cancel(control.cancel_token().clone());
+        let grade = lace_learn::grade(&toolchain, &workspace, &exercise, &quiet)?;
+        workspace.record(&grade)?;
+        outcome.succeeded = grade.solved();
+        outcome.learn = Some(grade);
+        return Ok(outcome);
+    }
+
     let mut project = Project::open(spf)?;
 
     if let FlowRequest::Schematic {
@@ -490,7 +526,9 @@ pub fn run(
                 result.succeeded() && outcome.schematic.as_ref().is_none_or(|s| s.succeeded());
             outcome.synthesis = Some(result);
         }
-        FlowRequest::Build { .. } | FlowRequest::Schematic { .. } => unreachable!(),
+        FlowRequest::Build { .. } | FlowRequest::Schematic { .. } | FlowRequest::Learn { .. } => {
+            unreachable!()
+        }
     }
 
     if let Some(check) = &outcome.check {
@@ -590,7 +628,14 @@ fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValu
 /// fechar, para o processo não ficar zumbi (`<defunct>`) até o Studio sair.
 pub fn open_wave(toolchain: &Toolchain, waveform: &Utf8Path) -> IpcResult<WaveOpened> {
     let mut outdated = Vec::new();
+    // A onda de um exercício do `lace learn` abre com o layout da correção.
+    let learn = lace_learn::layout::layout_of(waveform);
     let options = match lace_core::prepare_wave_layout(waveform) {
+        _ if learn.is_some() => {
+            let mut options = ViewerOptions::default();
+            options.layout = learn;
+            options
+        }
         Ok(Some(layout)) => {
             outdated = layout
                 .layout

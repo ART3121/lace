@@ -1,0 +1,3 @@
+# Sequencial
+
+Circuitos com clock.

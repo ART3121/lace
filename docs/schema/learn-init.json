@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LearnInitReport",
+  "description": "`lace learn init`: a pasta de exercícios criada.",
+  "type": "object",
+  "properties": {
+    "root": {
+      "description": "A pasta de exercícios.",
+      "type": "string"
+    },
+    "track": {
+      "description": "A trilha (`verilog`).",
+      "type": "string"
+    },
+    "exercises": {
+      "description": "Quantos exercícios a trilha tem.",
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "current": {
+      "description": "O exercício atual (o primeiro).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "root",
+    "track",
+    "exercises",
+    "current"
+  ]
+}
