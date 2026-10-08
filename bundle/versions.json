@@ -74,11 +74,11 @@
       }
     },
     "studio": {
-      "version": "0.4.0",
+      "version": "0.5.0",
       "path": "studio"
     },
     "lace-learn": {
-      "version": "0.4.0",
+      "version": "0.5.0",
       "path": "lace-learn"
     }
   }

@@ -1,6 +1,6 @@
 # Mudanças
 
-## Não publicada
+## 0.5.0 (2026-10-08)
 
 - `lace learn`: exercícios de Verilog no estilo do rustlings
   ([docs/LEARN.md](docs/LEARN.md)). `lace learn init` cria a pasta de
@@ -13,9 +13,10 @@
   saídas ao lado das da referência e o primeiro erro marcado. Os
   subcomandos `check`, `list`, `hint`, `reset`, `wave` e `dev check` têm
   `--json`. A primeira trilha, `verilog`, tem 25 exercícios, de primeiros
-  passos a hierarquia, e vem no componente opcional `lace-learn`
-  (`lace install lace-learn`). O código é o crate novo `lace-learn`, que o
-  Studio também usa.
+  passos a hierarquia, e vem no componente opcional `lace-learn`, que os
+  instaladores oferecem na instalação Advanced (no Windows, embaixo do
+  Icarus) e o `lace install lace-learn` acrescenta depois. O código é o
+  crate novo `lace-learn`, que o Studio também usa.
 - Lace Studio: a vista Exercícios, a aba do enunciado e a correção a cada
   gravação (os detalhes estão em `studio/CHANGELOG.md`).
 

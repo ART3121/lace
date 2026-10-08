@@ -60,7 +60,7 @@ permissão de execução) e apaga o que baixou no fim.
 
 | O quê | Linux, macOS | Windows |
 |---|---|---|
-| versão fixa | `... \| LACE_VERSION=0.4.0 sh` | `$env:LACE_VERSION = "0.4.0"` antes do `irm` |
+| versão fixa | `... \| LACE_VERSION=0.5.0 sh` | `$env:LACE_VERSION = "0.5.0"` antes do `irm` |
 | sem perguntas | `... \| sh -s -- --yes` | `$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"` antes do `irm` |
 | outras opções do instalador | `... \| sh -s -- --components yanc,icarus --prefix /opt/lace` | os parâmetros do Inno Setup em `LACE_SETUP_ARGS` |
 | para todos os usuários | `... \| sudo sh` (vai para `/opt/lace`) | o assistente pergunta |
@@ -86,14 +86,17 @@ Os dois instaladores oferecem os mesmos tipos:
 | Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim |
+| Lace Learn | os exercícios de Verilog do `lace learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | não |
 
 O Verilator fica fora da instalação Recommended porque, no Linux e no macOS, só
 funciona com o compilador do sistema instalado (ver [BUNDLE.md](BUNDLE.md),
 seção 4). No Windows ele já traz o g++, o `make` e o Perl, e fica fora da
 Recommended do mesmo jeito. O cocotb fica fora porque só serve a quem
 escreve testbench em Python e acrescenta 115 MiB no Linux (42 MiB com o
-Verilator, que traz o mesmo Python).
-Marcar o Graphviz marca o Yosys; desmarcar o Yosys desmarca o Graphviz.
+Verilator, que traz o mesmo Python). O Lace Learn fica fora porque só serve
+a quem vai fazer os exercícios.
+Marcar o Graphviz marca o Yosys; desmarcar o Yosys desmarca o Graphviz. Do
+mesmo jeito, marcar o cocotb ou o Lace Learn marca o Icarus.
 
 O Lace Studio fica no bundle, em `toolchain/studio/`, e usa o bundle em que
 está. O atalho
@@ -139,7 +142,7 @@ MSYS2 do lace-toolchain): não é preciso instalar o MSYS2.
 
 **Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, Lace Studio), com os instalados marcados e travados; marque os novos com
+surfer-aurora, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `lace install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
@@ -180,14 +183,14 @@ perguntar.
 **Sem interação** (scripts, laboratórios):
 
 ```
-lace-0.4.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path
-lace-0.4.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
+lace-0.5.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path
+lace-0.5.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
 ```
 
 Nos parâmetros do Inno Setup, os nomes são `lace`, `yanc`, `icarus`,
-`icarus\cocotb`, `verilator`, `yosys`, `yosys\graphviz`, `surfer_aurora` e
-`studio`; as tarefas, `path` e `studioicon` (o atalho do Studio na área de
-trabalho).
+`icarus\cocotb`, `icarus\lace_learn`, `verilator`, `yosys`,
+`yosys\graphviz`, `surfer_aurora` e `studio`; as tarefas, `path` e
+`studioicon` (o atalho do Studio na área de trabalho).
 
 O instalador não é assinado: o SmartScreen pode avisar "Editor
 desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
@@ -197,8 +200,8 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
 
 ```
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.4.0/lace-0.4.0-linux-x64.tar.gz
-tar xzf lace-0.4.0-linux-x64.tar.gz && ./lace-0.4.0-linux-x64/install
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.5.0/lace-0.5.0-linux-x64.tar.gz
+tar xzf lace-0.5.0-linux-x64.tar.gz && ./lace-0.5.0-linux-x64/install
 ```
 
 A instalação guiada no terminal tem estas telas:
@@ -244,7 +247,7 @@ instala também o Yosys, e avisa).
 
 **Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, Lace Studio), com os instalados marcados e travados; marque os novos com
+surfer-aurora, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `lace install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
@@ -295,7 +298,7 @@ recusa abrir o `install` ("desenvolvedor não pode ser verificado"). O
 foi baixado pelo navegador:
 
 ```
-xattr -dr com.apple.quarantine lace-0.4.0-darwin-arm64
+xattr -dr com.apple.quarantine lace-0.5.0-darwin-arm64
 ```
 
 Isto não foi verificado num Mac: é o comportamento documentado do
