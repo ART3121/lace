@@ -110,7 +110,23 @@ fn run(args: Args) -> anyhow::Result<()> {
                 }
                 selection
             }
-            None => plan::recommended(&index),
+            // Numa pasta com uma instalação, o que ela tem fica.
+            None => match install::check_prefix(&target.prefix) {
+                Ok(Some(existing)) => {
+                    let selection = plan::recommended_keeping(&index, &existing.components);
+                    let kept: Vec<&str> = existing
+                        .components
+                        .iter()
+                        .filter(|c| selection.contains(*c))
+                        .map(String::as_str)
+                        .collect();
+                    if !kept.is_empty() {
+                        println!("Keeping the apps already installed: {}", kept.join(", "));
+                    }
+                    selection
+                }
+                _ => plan::recommended(&index),
+            },
         };
         return unattended(&payload, &index, &selection, &target);
     }
@@ -192,6 +208,7 @@ fn unattended(
             index,
             count,
             components,
+            ..
         } => {
             let what = if components.is_empty() {
                 "lace".to_owned()

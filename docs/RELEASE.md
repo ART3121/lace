@@ -35,8 +35,9 @@
 5. O `release.yml` confere que a tag é a versão do `Cargo.toml` e do Studio
    e que o CHANGELOG tem a seção, e chama o `installers.yml` nas três
    plataformas: monta o bundle e o instalador, sem testes.
-6. Ele publica a release com os três instaladores, os pedaços do bundle, o
-   `SHA256SUMS` e as notas do CHANGELOG. Os instaladores publicados se
+6. Ele publica a release com os instaladores (o `.tar.gz` do Linux e o do
+   macOS, e os dois do Windows, o completo e o web), os pedaços do bundle,
+   o `SHA256SUMS` e as notas do CHANGELOG. Os instaladores publicados se
    testam à mão.
 7. A branch vai para a `main`.
 
@@ -48,14 +49,20 @@ O `install.sh` e o `install.ps1` são servidos da `main` pelo
 chega na `main`, sem release.
 
 Além dos instaladores, a release publica o bundle em pedaços, para o
-`lace install` baixar só os aplicativos que faltam: para cada plataforma, o
-índice (`lace-<versão>-<plataforma>-index.json`) e cada pedaço
-(`lace-<versão>-<plataforma>-c03.tar.zst`), que o `lace-pack tui --assets`
-grava e o `installers.yml` sobe com os instaladores.
+`lace install` baixar só os aplicativos que faltam e o `lace update` só o que
+mudou: para cada plataforma, o índice
+(`lace-<versão>-<plataforma>-index.json`), o manifesto de arquivos
+(`lace-<versão>-<plataforma>-files.json`, o SHA-256 de cada arquivo por
+pedaço) e cada pedaço (`lace-<versão>-<plataforma>-c03.tar.zst`), que o
+`lace-pack tui --assets` grava e o `installers.yml` sobe com os
+instaladores. O mesmo manifesto vai dentro do pedaço sempre instalado e no
+estágio do Inno Setup: cada instalação fica com o da versão dela, em
+`toolchain/files.json`.
 
 Uma release publicada não se apaga nem se renomeia: o `lace install` de
 cada versão baixa desses arquivos da própria versão, conferidos pelo
-`SHA256SUMS` dela, e o `lace update` baixa o instalador da versão nova pelos
+`SHA256SUMS` dela; o `lace update` baixa da versão nova o índice, o
+manifesto e os pedaços que mudaram e, como reserva, o instalador pelos
 nomes `lace-<versão>-<plataforma>.tar.gz` e
 `lace-<versão>-windows-x64-setup.exe`. Sem esses arquivos, quem tem aquela
 versão instalada não consegue mais instalar aplicativos nem atualizar.
@@ -81,9 +88,21 @@ apontar para uma release publicada do lace-toolchain, com os dois hashes
 ```
 python scripts/bundle.py --out dist/toolchain
 cargo build --release -p lace-cli -p lace-installer
-target\release\lace-pack.exe inno --toolchain dist\toolchain --lace target\release\lace.exe --out dist\inno
+target\release\lace-pack.exe tui --toolchain dist\toolchain --lace target\release\lace.exe --installer target\release\lace-installer.exe --out dist\tui --assets dist\apps
+target\release\lace-pack.exe inno --toolchain dist\toolchain --lace target\release\lace.exe --out dist\inno --web dist\tui
 & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DStage=$PWD\dist\inno /DLaceVersion=0.2.0 /DBundle=2026.09.29 /O$PWD\dist installer\windows\lace.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DWeb /DStage=$PWD\dist\inno /DLaceVersion=0.2.0 /DBundle=2026.09.29 /O$PWD\dist installer\windows\lace.iss
 ```
+
+O segundo `ISCC` (`/DWeb`) monta o assistente web,
+`lace-<versão>-windows-x64-web-setup.exe`: ele leva só o `lace.exe` e baixa
+da release os pedaços que o `lace-pack tui --assets` gravou, conferidos
+pelo SHA-256 que o `lace-pack inno --web` pôs no `web.iss`. Os pedaços
+publicados precisam ser exatamente os dessa montagem. Para testar sem
+publicar, sirva a pasta `dist\apps` como `<espelho>/v<versão>/` e rode o
+assistente com `/MIRROR=<espelho>`; com `/DAppGuid=<outro GUID>` no `ISCC`,
+a instalação de teste não mexe na entrada do Lace de verdade na lista de
+programas.
 
 O `lace-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
 (ou do Wine).

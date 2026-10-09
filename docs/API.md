@@ -1339,6 +1339,63 @@ O formato do `.surf.ron` é o do surfer-aurora do bundle (base Surfer 0.7.0):
 os identificadores dos sinais são marcadores, e o Surfer reacha cada sinal
 pelo caminho e pelo nome.
 
+Numa onda de testbench do projeto, o estado aberto é o layout salvo no
+projeto, `wave/<testbench>.surf.ron` (`PreparedLayout::saved`, 5.7.4), e
+não o da pasta temporária; os tradutores continuam nela.
+
+### 5.7.3 A escolha de sinais: `wave_signals(&Toolchain, &Project, &Control) -> Result<WaveSignals>`
+
+A Wave Configuration da AURORA (`js/wave/wave_config_manager.ts` e
+`testbench_instrumenter.ts`): por testbench, o que a simulação do projeto
+grava e o que o layout mostra. O nome do testbench é o do módulo dele
+(`wave_testbench(&projeto)`), que é também o escopo de cima da onda
+(`wave_testbench_of(&onda)`).
+
+| Função | Faz |
+|---|---|
+| `wave_signals(&toolchain, &projeto, &control)` | elabora o testbench do projeto com o Icarus (a elaboração da `hierarchy`, em `.lace/Temp/wave/signals.vvp`) e devolve a árvore: escopos (instâncias, blocos `generate` e blocos com nome, cada um com o caminho, o módulo e se é um processador SAPHO) e sinais (nome, caminho, largura, `reg`/`wire`/`integer`/`real`, a direção quando é porta), com a escolha gravada e os itens dela que a árvore não tem (`unknown`). Uma elaboração que falha vem sem árvore, com os erros em `diagnostics` |
+| `read_selection(&projeto, módulo)` | a escolha de `wave/<módulo>.json`; vazia sem o arquivo |
+| `write_selection(&projeto, módulo, &itens)` | grava a escolha, em ordem e sem o que um escopo dela já cobre; vazia, apaga o arquivo |
+| `SignalScope::contains`, `scope`, `without` | conferir um caminho na árvore, achar um escopo e tirar um item da escolha (um escopo escolhido que contém o item dá lugar ao resto dele) |
+| `selection_file`, `layout_file` | `wave/<módulo>.json` e `wave/<módulo>.surf.ron` |
+
+```json
+// wave/mux_tb.json
+{ "schema": 1, "signals": ["mux_tb.dut.u0", "mux_tb.sel"] }
+```
+
+Com escolha, `simulate_project` (5.3) elabora o testbench (para conferir os
+itens e achar os processadores SAPHO) e simula uma cópia dele: o primeiro
+`$dumpvars` vira `begin $dumpvars(0, <itens>); $dumpvars(1, <processador>); end`,
+os outros viram comentário, e sem `$dumpvars` a escolha entra depois do
+`$dumpfile`, ou no dump que o Lace injeta. As linhas do arquivo continuam as
+mesmas. Um processador que a escolha não cobre entra com o escopo dele
+(nível 1: as variáveis, o I/O, o PC e a linha), porque o layout precisa.
+Um item que o design não tem mais é um aviso no resultado, com o arquivo da
+escolha. A simulação rápida e o testbench cocotb não mudam. `wave_layout`
+(5.7.1) lê a mesma escolha e mostra só os sinais dela, um grupo por escopo
+(`WaveLayout::selection`).
+
+### 5.7.4 O layout salvo: `saved_layout(&onda, &layout) -> Result<Option<SavedLayout>>`
+
+O layout que o usuário arruma no Surfer fica no projeto,
+`wave/<testbench>.surf.ron`. `saved_layout` decide o estado que o Surfer
+recebe, para a onda de um testbench do projeto (`None` fora de projeto):
+
+- sem o arquivo, ele nasce com o layout gerado (`layout.state`);
+- com o arquivo como o Lace o gravou da última vez (o SHA-256 fica em
+  `.lace/wave/generated.json`), ele é refeito com o layout gerado agora;
+- com o arquivo mudado, porque o Surfer salvou nele (Ctrl+S), ele fica como
+  está: `SavedLayout::customized`, e `state` é o conteúdo dele.
+
+`prepare_wave_layout` abre o Surfer com `-s <arquivo>`, e o Ctrl+S salva
+nele. O Surfer carrega o estado e depois a onda passada na linha de comando,
+mantendo o layout: o caminho da onda gravado no estado não importa, e o
+layout continua valendo se o projeto mudar de pasta. A aba de onda do
+Studio faz o mesmo pelo cliente web (`state_save_url_set`).
+`reset_saved_layout(&projeto, testbench)` apaga o arquivo e o registro: a
+próxima abertura volta ao gerado.
+
 ### 5.8 Cancelamento, prazo e saída ao vivo: `Control`
 
 Toda operação que executa ferramentas (`build`, `build_processors`, `check`,

@@ -13,6 +13,7 @@ import type {
   RunComparison,
   RunRecord,
   RunSummary,
+  WaveSignals,
 } from './lace-types';
 import type {
   AppInfo,
@@ -85,6 +86,15 @@ export const api = {
   waveTab: {
     open: (path: string) => call<WaveTab>('wave_tab_open', { path }),
     close: (id: string) => call<void>('wave_tab_close', { id }),
+  },
+
+  wave: {
+    /** A árvore de sinais do testbench do projeto, com a escolha gravada. */
+    signals: () => call<WaveSignals>('wave_signals'),
+    /** Grava a escolha (vazia: todos os sinais) e devolve como ficou. */
+    setSelection: (signals: string[]) => call<string[]>('wave_selection_set', { signals }),
+    /** Apaga o layout salvo da onda; `false` se não havia. */
+    resetLayout: (waveform: string) => call<boolean>('wave_layout_reset', { waveform }),
   },
 
   project: {

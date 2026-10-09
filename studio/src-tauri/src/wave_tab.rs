@@ -8,8 +8,9 @@
 //! |---|---|
 //! | `/web/<arquivo>` | o cliente web (`index.html`, `surfer.js`, `surfer_bg.wasm`...) |
 //! | `/wave/<aba>/<nome>` | a onda da aba, o arquivo como está no disco |
-//! | `/layout/<aba>` | o `.surf.ron` do layout dos processadores |
+//! | `/layout/<aba>` | o `.surf.ron` do layout: o salvo no projeto, ou o gerado |
 //! | `/doc/<aba>/<nome>` | um tradutor do layout, ou `startup.sucl`, os comandos de partida |
+//! | `POST /save/<aba>` | o estado que o Surfer salva (Ctrl+S), gravado no layout do projeto |
 //!
 //! A página abre com `load_url=<origem>/wave/<aba>/<nome>` e, havendo
 //! layout, `startup_commands` com os comandos do fork
@@ -17,6 +18,12 @@
 //! `load_state_from_url` para o estado), que rodam depois que a onda carrega.
 //! A aba é identificada por um segredo aleatório: o servidor só entrega o
 //! que foi registrado para uma aba aberta.
+//!
+//! Numa onda de testbench do projeto, o layout é o salvo em
+//! `wave/<testbench>.surf.ron` ([`lace_core::saved_layout`]): os comandos de
+//! partida registram `state_save_url_set <origem>/save/<aba>`, e o "salvar
+//! estado" do Surfer (Ctrl+S, que fica com ele dentro da aba) manda o estado
+//! para o servidor, que o grava no arquivo.
 //!
 //! A AURORA ligava o cliente a um `surfer-aurora server`, que lê a onda e
 //! manda só os sinais pedidos. Com ele, o layout some de vez em quando: o
@@ -35,7 +42,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::{WaveLayout, WaveProcessor};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
-use tiny_http::{Header, Response, Server};
+use tiny_http::{Header, Method, Response, Server};
 
 use crate::error::{IpcError, IpcResult, codes};
 use crate::state::blocking;
@@ -69,6 +76,10 @@ struct Shared {
 struct Session {
     waveform: Utf8PathBuf,
     layout: Option<WaveLayout>,
+    /// O estado que `/layout` entrega: o salvo no projeto, ou o gerado.
+    state: Option<String>,
+    /// Onde o Surfer salva o estado (o layout do projeto).
+    save_to: Option<Utf8PathBuf>,
     startup: String,
 }
 
@@ -81,6 +92,14 @@ pub struct WaveTab {
     pub url: String,
     /// Os processadores SAPHO do layout; vazio sem layout.
     pub processors: Vec<WaveProcessor>,
+    /// O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
+    /// Ctrl+S da aba salva; `null` numa onda fora de projeto.
+    pub saved_layout: Option<Utf8PathBuf>,
+    /// O usuário salvou o layout depois que o Lace o gerou: a aba abre com
+    /// o dele.
+    pub customized: bool,
+    /// A escolha de sinais que o layout segue; vazia: todos.
+    pub selection: Vec<String>,
 }
 
 /// Prepara `path` para uma aba e devolve a página do cliente web, com o
@@ -120,6 +139,12 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
                 None
             }
         };
+        let saved = layout.as_ref().and_then(|layout| {
+            lace_core::saved_layout(&waveform, layout)
+                .inspect_err(|error| tracing::warn!("No saved layout for {waveform}: {error}"))
+                .ok()
+                .flatten()
+        });
         let tabs = app.state::<WaveTabs>();
         let origin = tabs.ensure_server(web_dir)?;
 
@@ -129,7 +154,13 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
         // correção: as saídas ao lado das da referência e o primeiro erro.
         let learn = lace_learn::layout::layout_of(&waveform)
             .and_then(|path| std::fs::read_to_string(path).ok());
-        let startup = startup_commands(&origin, &id, layout.as_ref(), learn.as_deref());
+        let startup = startup_commands(
+            &origin,
+            &id,
+            layout.as_ref(),
+            saved.is_some(),
+            learn.as_deref(),
+        );
         let mut query = format!("load_url={}", encode(&format!("{origin}/wave/{id}/{name}")));
         if !startup.is_empty() {
             let command = format!("run_command_file_from_url {origin}/doc/{id}/startup.sucl");
@@ -142,20 +173,34 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
             .as_ref()
             .map(|l| l.processors.clone())
             .unwrap_or_default();
+        let selection = layout
+            .as_ref()
+            .map(|l| l.selection.clone())
+            .unwrap_or_default();
+        let state = match &saved {
+            Some(saved) => Some(saved.state.clone()),
+            None => layout.as_ref().map(|l| l.state.clone()),
+        };
         tracing::info!(%waveform, %id, "Wave tab opened");
+        let tab = WaveTab {
+            id: id.clone(),
+            url,
+            processors,
+            saved_layout: saved.as_ref().map(|s| s.path.clone()),
+            customized: saved.as_ref().is_some_and(|s| s.customized),
+            selection,
+        };
         tabs.lock().sessions.insert(
-            id.clone(),
+            id,
             Session {
                 waveform,
                 layout,
+                state,
+                save_to: saved.map(|s| s.path),
                 startup,
             },
         );
-        Ok(WaveTab {
-            id,
-            url,
-            processors,
-        })
+        Ok(tab)
     })
     .await
 }
@@ -217,12 +262,14 @@ fn new_id() -> String {
 }
 
 /// Os comandos de partida do cliente: carregar cada tradutor e depois o
-/// estado, que os usa; numa onda de exercício do `lace learn`, os comandos
-/// da correção (`learn`). Vazio sem nenhum dos dois.
+/// estado, que os usa; com o layout salvo no projeto (`saved`), o destino do
+/// salvar; numa onda de exercício do `lace learn`, os comandos da correção
+/// (`learn`). Vazio sem nenhum deles.
 fn startup_commands(
     origin: &str,
     id: &str,
     layout: Option<&WaveLayout>,
+    saved: bool,
     learn: Option<&str>,
 ) -> String {
     let mut lines: Vec<String> = Vec::new();
@@ -234,6 +281,9 @@ fn startup_commands(
             )
         }));
         lines.push(format!("load_state_from_url {origin}/layout/{id}"));
+    }
+    if saved {
+        lines.push(format!("state_save_url_set {origin}/save/{id}"));
     }
     if let Some(learn) = learn {
         lines.extend(
@@ -251,8 +301,50 @@ fn startup_commands(
 
 type Reply = Response<Box<dyn std::io::Read + Send>>;
 
+/// O maior estado que a aba salva.
+const MAX_STATE: u64 = 64 * 1024 * 1024;
+
+/// O estado que o Surfer da aba salvou (Ctrl+S), gravado no layout do
+/// projeto da aba: num arquivo ao lado, que depois toma o lugar do layout,
+/// para um erro no meio não o deixar pela metade. `None` se a aba não tem
+/// layout do projeto.
+fn save_state(state: &Mutex<Shared>, id: &str, request: &mut tiny_http::Request) -> Option<Reply> {
+    use std::io::Read;
+    let target = state
+        .lock()
+        .expect("wave tabs lock")
+        .sessions
+        .get(id)?
+        .save_to
+        .clone()?;
+    let mut body = String::new();
+    let read = request
+        .as_reader()
+        .take(MAX_STATE + 1)
+        .read_to_string(&mut body);
+    if read.is_err() || body.len() as u64 > MAX_STATE || body.trim().is_empty() {
+        return Some(boxed(
+            Response::from_data(b"Invalid state".to_vec()).with_status_code(400),
+        ));
+    }
+    let partial = Utf8PathBuf::from(format!("{target}.part"));
+    let written = std::fs::write(&partial, &body).and_then(|()| std::fs::rename(&partial, &target));
+    if let Err(error) = written {
+        let _ = std::fs::remove_file(&partial);
+        tracing::warn!(%target, "Could not save the wave layout: {error}");
+        return Some(boxed(
+            Response::from_data(error.to_string().into_bytes()).with_status_code(500),
+        ));
+    }
+    if let Some(session) = state.lock().expect("wave tabs lock").sessions.get_mut(id) {
+        session.state = Some(body);
+    }
+    tracing::info!(%target, "Wave layout saved");
+    Some(text("saved".to_owned()))
+}
+
 /// Atende um pedido do cliente web.
-fn handle(state: &Mutex<Shared>, request: tiny_http::Request) {
+fn handle(state: &Mutex<Shared>, mut request: tiny_http::Request) {
     let url = request.url().to_owned();
     tracing::debug!(method = %request.method(), %url, "Wave request");
     let path = url.split_once('?').map_or(url.as_str(), |(p, _)| p);
@@ -267,8 +359,12 @@ fn handle(state: &Mutex<Shared>, request: tiny_http::Request) {
         ["layout", id] => shared()
             .sessions
             .get(*id)
-            .and_then(|s| s.layout.as_ref())
-            .map(|l| text(l.state.clone())),
+            .and_then(|s| s.state.clone())
+            .map(text),
+        ["save", id] if *request.method() == Method::Post => {
+            let id = (*id).to_owned();
+            save_state(state, &id, &mut request)
+        }
         ["doc", id, name] => shared().sessions.get(*id).and_then(|s| {
             if *name == "startup.sucl" {
                 return Some(text(s.startup.clone()));
@@ -344,12 +440,12 @@ fn web_file(shared: &Shared, file: &str) -> Option<Reply> {
 /// atalhos dele parariam de funcionar. As teclas de função (menos a F11, a
 /// tela cheia do Surfer) e as combinações com Ctrl, Alt ou Cmd vão para a
 /// janela do Studio por `postMessage` e não chegam ao Surfer; as de edição
-/// (copiar, colar, desfazer, buscar) e o Ctrl+K, que começa um atalho de
-/// duas teclas, ficam com o Surfer. O resto (letras, setas, espaço) é do
-/// Surfer, como antes.
+/// (copiar, colar, desfazer, buscar), o Ctrl+S, que salva o layout no
+/// projeto, e o Ctrl+K, que começa um atalho de duas teclas, ficam com o
+/// Surfer. O resto (letras, setas, espaço) é do Surfer, como antes.
 const KEY_FORWARDING: &str = r#"<script>
 (function () {
-  var own = ['c', 'v', 'x', 'a', 'z', 'y', 'f', 'g', 'h', 'k'];
+  var own = ['c', 'v', 'x', 'a', 'z', 'y', 'f', 'g', 'h', 'k', 's'];
   function forwarded(e) {
     if (/^F([1-9]|1[0-2])$/.test(e.key)) return e.key !== 'F11';
     if (!(e.ctrlKey || e.altKey || e.metaKey)) return false;

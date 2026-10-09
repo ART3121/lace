@@ -754,6 +754,17 @@ pub fn simulate_project(
     let mut missing_inputs = missing;
     missing_inputs.extend(absolute_inputs(&text).into_iter().filter(|p| !p.is_file()));
 
+    // A escolha de sinais do testbench (`wave/<testbench>.json`): a onda grava
+    // só ela, numa cópia do testbench ([`crate::wave_signals`]).
+    let choice = if options.fast {
+        None
+    } else {
+        crate::wave_signals::dump_choice(toolchain, project, &testbench, &top, control)?
+    };
+    if let Some(choice) = &choice {
+        notes.extend(choice.notes.iter().cloned());
+    }
+
     // Sem `$dumpfile`, o Lace injeta o dump numa cópia do testbench. A onda
     // injetada não é exigida: o testbench que termina no tempo 0 (antes do
     // `initial` injetado) não pediu onda e não reprova por falta dela.
@@ -775,40 +786,55 @@ pub fn simulate_project(
             Some(original.clone()),
         ));
     }
+    let instrumented_path = work.join(format!(
+        "instr_{}",
+        testbench.file_name().expect("File has a name")
+    ));
+    let write_copy = |copy: String| -> Result<(Utf8PathBuf, Option<(Utf8PathBuf, Utf8PathBuf)>)> {
+        std::fs::write(&instrumented_path, copy)
+            .map_err(LaceError::io("Writing testbench", &instrumented_path))?;
+        Ok((
+            instrumented_path.clone(),
+            Some((instrumented_path.clone(), original.clone())),
+        ))
+    };
     let (testbench, wave, wave_required, instrumented) = match dump {
         None => (testbench, None, false, None),
-        Some(Dump::Path(wave)) => match named_by_format(&text, wave, simulator) {
+        Some(Dump::Path(wave)) => {
             // A onda sai com a extensão do formato do simulador: a cópia
             // simulada leva o `$dumpfile` com ela, e o arquivo do usuário não
-            // muda.
-            (wave, Some(renamed)) => {
-                let instrumented = work.join(format!(
-                    "instr_{}",
-                    testbench.file_name().expect("File has a name")
-                ));
-                std::fs::write(&instrumented, renamed)
-                    .map_err(LaceError::io("Writing testbench", &instrumented))?;
-                let copy = instrumented.clone();
-                (
-                    instrumented,
-                    Some(wave),
-                    true,
-                    Some((copy, original.clone())),
-                )
+            // muda. Com escolha de sinais, a cópia leva também o `$dumpvars`
+            // dela.
+            let (wave, renamed) = named_by_format(&text, wave, simulator);
+            let base = renamed.as_deref().unwrap_or(&text);
+            match choice.as_ref().and_then(|c| c.apply(base)).or(renamed) {
+                Some(copy) => {
+                    let (simulated, instrumented) = write_copy(copy)?;
+                    (simulated, Some(wave), true, instrumented)
+                }
+                None => (testbench, Some(wave), true, None),
             }
-            (wave, None) => (testbench, Some(wave), true, None),
-        },
+        }
         // `$dumpfile(ONDA)` com um nome que o Lace não resolve: o testbench
         // grava onde quiser, e o Lace não injeta outro dump (o `-fst` do
-        // injetado mudaria o formato do arquivo dele).
-        Some(Dump::Unknown) => (testbench, None, false, None),
+        // injetado mudaria o formato do arquivo dele); a escolha de sinais
+        // vale do mesmo jeito.
+        Some(Dump::Unknown) => match choice.as_ref().and_then(|c| c.apply(&text)) {
+            Some(copy) => {
+                let (simulated, instrumented) = write_copy(copy)?;
+                (simulated, None, false, instrumented)
+            }
+            None => (testbench, None, false, None),
+        },
         Some(Dump::Absent) => {
-            let instrumented = work.join(format!(
-                "instr_{}",
-                testbench.file_name().expect("File has a name")
-            ));
+            let instrumented = instrumented_path.clone();
             let wave = injected_wave(&top, simulator);
-            let text = with_default_dump(&text, &top, &wave);
+            let text = with_default_dump(
+                &text,
+                &top,
+                &wave,
+                choice.as_ref().map(|c| c.calls.as_str()),
+            );
             std::fs::write(&instrumented, text)
                 .map_err(LaceError::io("Writing testbench", &instrumented))?;
             let copy = instrumented.clone();
@@ -1571,11 +1597,16 @@ fn absolute_inputs(testbench: &str) -> Vec<Utf8PathBuf> {
 
 /// O testbench com a gravação de todos os sinais (`$dumpvars(0, ...)`,
 /// inclusive os do módulo testado) em `wave`, antes do `endmodule` do módulo
-/// `top` (comentário e texto entre aspas não contam). O bloco entra sem
-/// quebrar linha, para as linhas do arquivo continuarem as mesmas.
-fn with_default_dump(testbench: &str, top: &str, wave: &str) -> String {
+/// `top` (comentário e texto entre aspas não contam); com `choice` (a escolha
+/// de sinais, [`crate::wave_signals`]), ela no lugar do `$dumpvars`. O bloco
+/// entra sem quebrar linha, para as linhas do arquivo continuarem as mesmas.
+fn with_default_dump(testbench: &str, top: &str, wave: &str, choice: Option<&str>) -> String {
+    let dumpvars = match choice {
+        Some(calls) => calls.to_owned(),
+        None => format!("$dumpvars(0, {top});"),
+    };
     let block = format!(
-        " /* Lace: dump padrão, o testbench não grava onda */ initial begin $dumpfile(\"{wave}\"); $dumpvars(0, {top}); end "
+        " /* Lace: dump padrão, o testbench não grava onda */ initial begin $dumpfile(\"{wave}\"); {dumpvars} end "
     );
     match endmodule_of(testbench, top) {
         Some(at) => format!("{}{block}{}", &testbench[..at], &testbench[at..]),
@@ -1932,7 +1963,7 @@ endmodule
     #[test]
     fn injects_dump_before_last_endmodule() {
         let tb = "module a; endmodule\nmodule top_tb;\n  initial #10 $finish;\nendmodule\n";
-        let out = with_default_dump(tb, "top_tb", "top_tb.fst");
+        let out = with_default_dump(tb, "top_tb", "top_tb.fst", None);
         assert_eq!(dump_of(tb, Utf8Path::new("/r")), Dump::Absent);
         assert_eq!(
             dump_of(&out, Utf8Path::new("/r")),
@@ -1949,7 +1980,7 @@ endmodule
     fn dump_goes_into_the_testbench_module_ignoring_comments() {
         // `endmodule` num comentário e outro módulo depois do testbench.
         let tb = "module ordem_tb;\n  gera g1();\n  initial $finish;\nendmodule // fim do endmodule\nmodule gera;\nendmodule\n";
-        let out = with_default_dump(tb, "ordem_tb", "ordem_tb.fst");
+        let out = with_default_dump(tb, "ordem_tb", "ordem_tb.fst", None);
         let dump = out.find("$dumpfile").unwrap();
         assert!(dump < out.find("module gera").unwrap(), "{out}");
         assert!(dump > out.find("initial $finish").unwrap(), "{out}");

@@ -105,8 +105,9 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 |---|---|---|
 | Abrir a onda no Surfer em janela | Feito | Onda (Ctrl+F8), com a preferência em janela |
 | Surfer embutido numa aba | Feito | o padrão; o cliente web lê o arquivo, sem `surfer server` |
-| Escolher layout `.gtkw`, `.surf.ron`, `.sucl` | Fase 2 | o Core já recebe um layout (`ViewerOptions::layout`); falta a interface |
-| Wave Configuration: escolher sinais por testbench | Depende do Lace | o Lace grava todos os sinais (`$dumpvars(0, tb)`) |
+| Salvar o layout do Surfer no projeto | Feito | `wave/<testbench>.surf.ron`: o Ctrl+S salva nele, na aba e na janela; **Voltar ao layout gerado** no alto da aba |
+| Escolher outro layout `.gtkw`, `.surf.ron`, `.sucl` | Fase 2 | o Core já recebe um layout (`ViewerOptions::layout`); falta a interface |
+| Wave Configuration: escolher sinais por testbench | Feito | Escolher os sinais da onda: a árvore elaborada pelo Icarus, filtro por nome ou regex, `wave/<testbench>.json`; a simulação grava só a escolha e o layout mostra só ela |
 | Layouts gerados (grupos do processador, tradutores ASM e C±, números complexos) | Feito | `wave_layout` do Core, na aba e na janela |
 | Esquemático: entrar no submódulo, voltar (Esc, botões laterais do mouse), trilha, zoom, arrastar, ajustar | Feito | aba PRISM; a hierarquia também numa árvore |
 | Dois cliques num símbolo abrem o fonte | Feito | na linha do atributo `src` do Yosys |

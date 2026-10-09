@@ -8,6 +8,66 @@
   download de 126 MiB passava sem nenhum sinal. Uma conexão que cai no meio
   ganha uma segunda tentativa. Como o script sai da `main`, isto vale também
   para quem instala a 0.6.0.
+- `lace update` por componentes ([docs/INSTALL.md](docs/INSTALL.md),
+  "Atualizar por componentes"): em vez de baixar o instalador inteiro (126
+  MiB no Windows) e reinstalar tudo, ele compara o manifesto de arquivos da
+  instalação com o da release nova, mostra o que muda e quanto baixar, e
+  baixa só os pedaços com arquivos que mudaram. Os arquivos trocam no lugar,
+  o próprio `lace` também (no Windows, por renomeação do executável em
+  uso), e o bundle é conferido; uma falha no meio devolve a instalação ao
+  que era. No Windows, o assistente não abre mais, o que o `lace install`
+  acrescentou fica, e a lista de programas instalados passa a mostrar a
+  versão nova. `--full` usa o instalador inteiro, como antes, e é também a
+  reserva quando a atualização por componentes não dá. `--from` atualiza a
+  partir de um instalador no disco, sem rede. Vale a partir da 0.7.0: a
+  instalação precisa do manifesto, que a 0.6.0 não grava, então a
+  atualização de 0.6 para 0.7 ainda é pelo instalador.
+- O manifesto de arquivos: a release publica
+  `lace-<versão>-<plataforma>-files.json` (o SHA-256 de cada arquivo, por
+  pedaço), e toda instalação guarda o da versão dela em
+  `toolchain/files.json`. O índice dos pedaços passa a dizer o tamanho de
+  cada um para baixar (`download`).
+- `lace install` e `lace update` mostram a barra de cada pedaço baixado,
+  com a porcentagem e os MiB. `lace install --from` aceita também uma pasta
+  com os arquivos que a release publica.
+- No Windows, o pedaço sempre instalado traz o `lace` como `bin/lace.exe`
+  (antes, `bin/lace`, que só o Linux e o macOS usavam).
+- A escolha dos sinais da onda, a Wave Configuration da AURORA
+  ([docs/CLI.md](docs/CLI.md), "Onda"): `lace wave signals` mostra a árvore
+  do testbench do projeto, elaborada pelo Icarus, e `lace wave select` e
+  `unselect` gravam a escolha em `wave/<testbench>.json`, na pasta do
+  projeto. A simulação do projeto passa a gravar só ela, numa cópia do
+  testbench (o arquivo dele não muda), com cada processador SAPHO do design
+  sempre junto; o layout mostra só os escolhidos, um grupo por escopo. Sem
+  escolha, a onda grava todos os sinais, como antes. No JSON,
+  `wave-signals` e `wave-select`.
+- O layout da onda salvo no projeto: a onda de um testbench abre com
+  `wave/<testbench>.surf.ron`, e o Ctrl+S do Surfer salva nele. O Lace o
+  refaz a cada abertura até você salvar; depois, ele fica, e
+  `lace wave --reset-layout` volta ao gerado. O `--json` do `lace wave`
+  ganha `saved_layout`.
+- O assistente web do Windows, `lace-<versão>-windows-x64-web-setup.exe`,
+  com alguns MB: ao clicar em Instalar, ele baixa da release só os
+  aplicativos marcados, com a barra de cada download, confere cada um pelo
+  SHA-256 e os extrai (o `lace setup`, que troca o `toolchain\` antes de o
+  assistente copiar qualquer arquivo). O `irm ... | iex` passa a usar o web
+  quando a release o publica; `LACE_FULL_SETUP=1` volta ao completo, que
+  continua na release para instalar sem rede. `/MIRROR=<url>` baixa de um
+  espelho do laboratório.
+- O assistente do Windows, completo ou web, numa pasta que já tem o Lace: a
+  primeira página diz de que versão para qual ele atualiza, e os aplicativos
+  que a pasta tem vêm marcados, inclusive os que o `lace install`
+  acrescentou (antes, reinstalar pela Recommended os tirava). O aviso de
+  falta do WebView2 aparece antes de instalar, e não depois.
+- O instalador de Linux e macOS, numa pasta que já tem o Lace: o tipo
+  Recommended (e o `./install --yes` sem `--components`) mantém os
+  aplicativos que a instalação tem, junto dos recomendados; antes, voltava
+  só aos recomendados e tirava o resto sem avisar. A tela de boas-vindas
+  lista os aplicativos do próprio instalador (antes, uma lista fixa que não
+  tinha o cocotb, o openFPGALoader nem o Studio).
+- `LACE_RELEASE_URL` (o espelho de releases do laboratório) pode trazer um
+  arquivo `latest` com a versão mais nova, que o `lace update` lê no lugar
+  do GitHub.
 
 ## 0.6.0 (2026-10-09)
 

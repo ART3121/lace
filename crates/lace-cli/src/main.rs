@@ -8,6 +8,7 @@ mod install;
 mod installation;
 mod learn;
 mod learn_tui;
+mod meter;
 mod output;
 mod progress;
 mod release;
@@ -15,6 +16,7 @@ mod report;
 mod settings;
 mod uninstall;
 mod update;
+mod wave_choice;
 
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -187,6 +189,25 @@ enum Command {
         /// Do not ask for confirmation
         #[arg(short, long)]
         yes: bool,
+        /// Run the whole installer of the new version, instead of downloading only the files that changed
+        #[arg(long)]
+        full: bool,
+        /// Update from a local Lace installer of the new version (folder, .tar.gz, payload/, or a folder with the release files), without network
+        #[arg(long, value_name = "PATH", conflicts_with = "full")]
+        from: Option<Utf8PathBuf>,
+    },
+    /// Install the bundle apps from the downloaded release files (run by the Windows web installer)
+    #[command(hide = true)]
+    Setup {
+        /// The folder with the downloaded release files (the index and the chunks)
+        #[arg(long, value_name = "DIR")]
+        payload: Utf8PathBuf,
+        /// The apps to install, comma-separated (none: only the bundle header)
+        #[arg(long, value_delimiter = ',')]
+        components: Vec<String>,
+        /// The installation folder; the bundle goes to <DIR>/toolchain
+        #[arg(long, value_name = "DIR")]
+        prefix: Utf8PathBuf,
     },
     /// Uninstall Lace and its bundle
     Uninstall {
@@ -401,7 +422,7 @@ struct InstallArgs {
     /// yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, lace-learn
     #[arg(value_name = "APP")]
     components: Vec<String>,
-    /// Install from a local Lace installer (folder, .tar.gz or payload/) instead of downloading
+    /// Install from a local Lace installer (folder, .tar.gz, payload/, or a folder with the release files) instead of downloading
     #[arg(long, value_name = "PATH")]
     from: Option<Utf8PathBuf>,
 }
@@ -449,16 +470,45 @@ struct SimArgs {
 }
 
 #[derive(clap::Args)]
+#[command(args_conflicts_with_subcommands = true)]
 struct WaveArgs {
+    #[command(subcommand)]
+    command: Option<WaveCommand>,
     /// VCD, FST or GHW file (default: the project simulation)
     #[arg(value_name = "WAVEFORM", conflicts_with = "processor")]
     waveform: Option<Utf8PathBuf>,
     /// Open this processor's waveform (default: the processor of the current folder)
     #[arg(short, long, value_name = "NAME")]
     processor: Option<String>,
-    /// Open without the SAPHO processor layout (variables, assembly and C± lines)
+    /// Open without the layout (the SAPHO processor groups and the saved layout)
     #[arg(long)]
     no_layout: bool,
+    /// Open with the generated layout, deleting the one saved in wave/<testbench>.surf.ron
+    #[arg(long, conflicts_with = "no_layout")]
+    reset_layout: bool,
+}
+
+/// `lace wave signals|select|unselect`: a escolha dos sinais da onda do
+/// testbench do projeto.
+#[derive(Subcommand)]
+enum WaveCommand {
+    /// The signals of the project testbench, with the ones the waveform records marked
+    Signals,
+    /// Record in the waveform only the chosen signals and scopes; these are added to the choice
+    Select {
+        /// Signals or scopes, by their path (mux_tb.dut, mux_tb.dut.sel)
+        #[arg(value_name = "PATH", required_unless_present = "all")]
+        paths: Vec<String>,
+        /// Clear the choice: the waveform records every signal again
+        #[arg(long, conflicts_with = "paths")]
+        all: bool,
+    },
+    /// Take signals or scopes out of the choice
+    Unselect {
+        /// Signals or scopes, by their path
+        #[arg(value_name = "PATH", required = true)]
+        paths: Vec<String>,
+    },
 }
 
 #[derive(clap::Args)]

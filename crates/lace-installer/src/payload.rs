@@ -69,6 +69,10 @@ pub struct Chunk {
     pub size: u64,
     /// Quantos arquivos.
     pub entries: u64,
+    /// Bytes do `.tar.zst`, o que baixar o pedaço custa. Zero num índice
+    /// anterior à 0.7.0, que não tinha o campo.
+    #[serde(default)]
+    pub download: u64,
 }
 
 impl Chunk {
@@ -84,8 +88,12 @@ impl Index {
         let path = dir.join(INDEX_FILE);
         let text = std::fs::read_to_string(&path)
             .with_context(|| format!("Installer payload not found at {}", path.display()))?;
-        let index: Index = serde_json::from_str(&text)
-            .with_context(|| format!("Invalid payload index: {}", path.display()))?;
+        Self::parse(&text).with_context(|| format!("Invalid payload index: {}", path.display()))
+    }
+
+    /// Lê um índice do texto (o `index.json`, ou o que a release publica).
+    pub fn parse(text: &str) -> anyhow::Result<Index> {
+        let index: Index = serde_json::from_str(text)?;
         if index.schema != INDEX_SCHEMA {
             bail!(
                 "Payload index has format {}; this installer reads format {INDEX_SCHEMA}",

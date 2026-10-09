@@ -127,8 +127,15 @@ números da plataforma.
 
 ## Windows
 
-1. Rode o `irm ... | iex` acima, ou baixe e rode
-   `lace-<versão>-windows-x64-setup.exe` da página da release.
+1. Rode o `irm ... | iex` acima, ou baixe e rode um dos dois assistentes da
+   página da release:
+   - `lace-<versão>-windows-x64-web-setup.exe` (desde a 0.7.0, alguns MB):
+     ao clicar em Instalar, baixa da release só os aplicativos marcados, com
+     a barra de cada download, confere cada um pelo SHA-256 e os extrai.
+     É o que o `irm ... | iex` usa;
+   - `lace-<versão>-windows-x64-setup.exe`: o bundle inteiro dentro dele,
+     para instalar sem rede (o `irm ... | iex` o usa com
+     `$env:LACE_FULL_SETUP = "1"`).
 2. Escolha instalar só para você (padrão, sem administrador, em
    `%LOCALAPPDATA%\Programs\Lace`) ou para todos os usuários (pede
    administrador, em `C:\Lace`).
@@ -140,7 +147,20 @@ números da plataforma.
 
 A pasta padrão não tem espaço no caminho de propósito: o `make` usado pelo
 Verilator não aceita espaços, e `C:\Program Files` tem um. O assistente avisa
-se a pasta escolhida tiver.
+se a pasta escolhida tiver. Com o Studio marcado e sem o WebView2 no
+computador, ele avisa antes de instalar.
+
+Numa pasta que já tem o Lace, a primeira página diz de que versão para qual
+ele atualiza, e os aplicativos que a pasta tem vêm marcados, inclusive os
+que o `lace install` acrescentou: com um a mais que a Recommended, o tipo
+passa a Advanced, com a lista. O mesmo vale numa instalação silenciosa sem
+`/COMPONENTS`.
+
+O assistente web baixa do GitHub; `/MIRROR=<url>` o faz baixar de um
+espelho do laboratório, com uma pasta `v<versão>/` por release, como o
+`LACE_RELEASE_URL`. Uma falha no download para o assistente na página de
+instalação, sem ter mudado nada; uma falha ao extrair, antes de copiar
+qualquer arquivo.
 
 O Verilator no Windows vem com o g++, o `make` e o Perl que ele usa (o bloco
 MSYS2 do lace-toolchain): não é preciso instalar o MSYS2.
@@ -157,9 +177,11 @@ Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
 o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `lace install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
-`payload/` dele); `LACE_RELEASE_URL` aponta para um espelho do laboratório,
-com uma pasta `v<versão>/` por release. O bundle de lá precisa ser o
-instalado; outro bundle é atualizar (`lace update`).
+`payload/` dele, ou uma pasta com os arquivos que a release publica);
+`LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
+`v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
+mais nova, que o `lace update` lê no lugar do GitHub. O bundle de lá
+precisa ser o instalado; outro bundle é atualizar (`lace update`).
 
 No Windows, o Studio instalado pelo `lace install studio` não ganha atalho
 no menu Iniciar (o atalho é do assistente): abra
@@ -169,13 +191,16 @@ com o Studio marcado.
 O desinstalador do Windows apaga o `toolchain/` inteiro, com o que o
 `lace install` pôs. Rodar o assistente de novo à mão também refaz o
 `toolchain/` com a seleção dele, que não conhece os aplicativos
-acrescentados depois: marque-os lá também. O `lace update` já abre o
-assistente com eles marcados.
+acrescentados depois: marque-os lá também.
 
 **Atualizar:** `lace update --check` compara as versões; `lace update`
-baixa o assistente da release nova, confere o SHA-256 e o abre. Ele lembra
-a pasta, e os componentes instalados vêm marcados: os do assistente e os que
-o `lace install` acrescentou.
+atualiza por componentes (abaixo, em [Atualizar por componentes](#atualizar-por-componentes)),
+sem abrir o assistente e sem tirar o que o `lace install` acrescentou, e a
+lista de programas do Windows passa a mostrar a versão nova. Numa
+instalação anterior à 0.7.0, ou com `lace update --full`, ele baixa o
+assistente da release nova, confere o SHA-256 e o abre: ele lembra a pasta,
+e os componentes instalados vêm marcados, os do assistente e os que o
+`lace install` acrescentou.
 
 **Mudar os componentes:** rode o instalador de novo. Ele lembra a pasta e a
 seleção anteriores; o que for desmarcado é removido.
@@ -264,20 +289,26 @@ Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
 o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `lace install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
-`payload/` dele); `LACE_RELEASE_URL` aponta para um espelho do laboratório,
-com uma pasta `v<versão>/` por release. O bundle de lá precisa ser o
-instalado; outro bundle é atualizar (`lace update`).
+`payload/` dele, ou uma pasta com os arquivos que a release publica);
+`LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
+`v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
+mais nova, que o `lace update` lê no lugar do GitHub. O bundle de lá
+precisa ser o instalado; outro bundle é atualizar (`lace update`).
 
 **Atualizar:** `lace update --check` mostra se há Lace mais novo e,
 para cada aplicativo, a versão instalada, a do bundle da última release e a
-última upstream. `lace update` reinstala pela release nova, com os mesmos
-aplicativos, a mesma pasta e o mesmo atalho. Uma ferramenta mais nova
+última upstream. `lace update` atualiza por componentes (abaixo). Numa
+instalação anterior à 0.7.0, ou com `lace update --full`, ele reinstala
+pela release nova, com os mesmos aplicativos, a mesma pasta e o mesmo
+atalho. Uma ferramenta mais nova
 upstream não é instalada sozinha: o bundle compila o YANC e o surfer-aurora e
 divide o OSS CAD Suite por ferramenta, então cada versão nova passa pelo
 `bundle.py` e pelo CI e chega numa release nova do Lace.
 
 **Mudar os componentes:** rode o instalador de novo na mesma pasta; a
-instalação é trocada pela nova seleção.
+instalação é trocada pela nova seleção. Com o tipo Recommended (e com
+`./install --yes` sem `--components`), os aplicativos que a instalação já
+tem ficam, junto dos recomendados; para tirar algum, use o Advanced.
 
 **Remover:** `lace uninstall` (pergunta antes; `--yes` não pergunta) ou
 `<pasta>/uninstall.sh`. Sai o Lace, o bundle inteiro (`toolchain/`), o
@@ -311,6 +342,47 @@ Isto não foi verificado num Mac: é o comportamento documentado do
 Gatekeeper para binários sem assinatura. Os arquivos que o instalador extrai
 não recebem a marca.
 
+## Atualizar por componentes
+
+Desde a 0.7.0, cada instalação guarda o manifesto de arquivos da versão
+dela (`toolchain/files.json`): o SHA-256 de cada arquivo que o instalador
+pôs, agrupado pelos pedaços em que a release publica o bundle. A release
+publica também o seu (`lace-<versão>-<plataforma>-files.json`). O
+`lace update` compara os dois, para os aplicativos instalados:
+
+```
+Lace 0.7.0 to 0.8.0 by components: Lace, Lace Studio, Lace Learn
+3 of 15 chunks to download (14 MiB), 412 files in, 3 out
+Update Lace 0.7.0 to 0.8.0 in /home/ana/.local/share/lace? [y/N] y
+  [1/3] Lace  [##############################] 100%  2.3/2.3 MiB
+  [2/3] Lace Studio  [#############.................]  45%  5.1/11.3 MiB
+```
+
+Só os pedaços com algum arquivo novo ou mudado são baixados, conferidos
+pelo `SHA256SUMS` da release, e dentro deles só esses arquivos são
+extraídos, numa pasta provisória (`.instalando-<pid>`), e conferidos com o
+manifesto novo. Depois os arquivos são trocados no lugar, os antigos vão
+para `.antigo-<pid>`, os que a versão nova não tem saem, e o Lace confere
+os executáveis do bundle. Uma falha em qualquer passo devolve os arquivos
+antigos, e a instalação fica como estava; aí o `lace update` passa para o
+instalador inteiro.
+
+O próprio `lace` é um dos arquivos trocados. No Windows, um executável em
+uso pode ser renomeado, mas não apagado: o `lace.exe` antigo fica na pasta
+`.antigo-<pid>` até o próximo `lace install` ou `lace update`. Se o Lace
+Studio estiver aberto durante a atualização, feche e abra de novo para usar
+a versão nova.
+
+Um aplicativo que a versão nova passa a exigir entra junto; um que ela não
+tem mais sai. Um arquivo apagado à mão da instalação volta no próximo
+`lace update`; com o instalador da mesma versão no disco,
+`lace update --from` repara a instalação sem rede.
+
+Sem o manifesto (uma instalação anterior à 0.7.0), com `--full`, ou se a
+release nova não o publica, o `lace update` usa o instalador inteiro, como
+antes. A primeira atualização de uma instalação 0.6 para a 0.7 é assim; a
+partir da 0.7, vai por componentes.
+
 ## Depois de instalar
 
 ```
@@ -332,6 +404,7 @@ Os dois fluxos, Verilog e SAPHO, completos estão em
   toolchain/            o bundle, só com os componentes escolhidos
     bundle.json
     components/<nome>.json
+    files.json          o SHA-256 de cada arquivo instalado (desde a 0.7.0)
     yanc/ oss-cad-suite/ surfer-aurora/ graphviz/ msys/ studio/
   install.json          (Linux, macOS) o que foi instalado
   uninstall.sh          (Linux, macOS)

@@ -183,6 +183,7 @@ fn extract_merge_verify(
             index: i + 1,
             count: chunks.len(),
             components: chunk.components.clone(),
+            download: chunk.download,
         });
         let path = source.fetch(chunk, &mut |bytes| on(Event::Downloading { bytes }))?;
         crate::install::extract_chunk(&path, staging, &mut |size| {

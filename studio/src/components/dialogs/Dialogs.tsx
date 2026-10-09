@@ -20,12 +20,13 @@ import { guarded } from '../../state/toasts';
 import { SYSTEM_THEME, THEMES, themeById } from '../../themes';
 import { baseName, joinPath, relativeTo } from '../../util/paths';
 import { Button, Checkbox, Field, Kbd } from '../common';
+import { WaveSignalsDialog } from './WaveSignalsDialog';
 
 function close() {
   useDialogs.getState().close();
 }
 
-function Dialog({
+export function Dialog({
   title,
   children,
   footer,
@@ -888,6 +889,8 @@ export function Dialogs() {
       return hasProject ? <ChooseTopDialog /> : null;
     case 'chooseTestbench':
       return hasProject ? <ChooseTestbenchDialog /> : null;
+    case 'waveSignals':
+      return hasProject ? <WaveSignalsDialog /> : null;
     case 'install':
       return <InstallDialog components={dialog.components} />;
     case 'palette':

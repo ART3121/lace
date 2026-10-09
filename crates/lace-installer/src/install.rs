@@ -155,6 +155,8 @@ pub enum Event {
         count: usize,
         /// Os componentes que usam o pedaço (vazio: o Lace).
         components: Vec<String>,
+        /// Bytes do `.tar.zst` (zero: desconhecido), para a barra do download.
+        download: u64,
     },
     /// `done` bytes extraídos até agora.
     Progress {
@@ -165,6 +167,12 @@ pub enum Event {
     Downloading {
         /// Bytes baixados do pedaço.
         bytes: u64,
+    },
+    /// Trocando `files` arquivos da instalação pelos da versão nova (o
+    /// `lace update` por componentes).
+    Replacing {
+        /// Quantos arquivos entram ou saem.
+        files: usize,
     },
     /// Conferindo os hashes dos executáveis.
     Verifying,
@@ -238,7 +246,8 @@ pub fn install(
     let staging = prefix.join(format!(".instalando-{pid}"));
     let _ = fs::remove_dir_all(&staging);
     fs::create_dir_all(&staging).with_context(|| format!("Creating {}", staging.display()))?;
-    let verified = match extract_and_verify(payload_dir, index, selection, &staging, &mut on) {
+    let source = crate::add::LocalPayload(payload_dir.to_owned());
+    let verified = match extract_and_verify(&source, index, selection, &staging, &mut on) {
         Ok(v) => v,
         Err(e) => {
             let _ = fs::remove_dir_all(&staging);
@@ -248,7 +257,8 @@ pub fn install(
 
     // Troca: o que existia vai para um diretório que é apagado no fim.
     let old = prefix.join(format!(".antigo-{pid}"));
-    for entry in ["toolchain", "bin/lace"] {
+    let lace_entry = crate::pack::lace_entry(&index.platform);
+    for entry in ["toolchain", lace_entry] {
         let dest = prefix.join(entry);
         if fs::symlink_metadata(&dest).is_ok() {
             let aside = old.join(entry);
@@ -262,7 +272,7 @@ pub fn install(
     let _ = fs::remove_dir_all(&old);
     let _ = fs::remove_dir_all(&staging);
 
-    let lace = prefix.join("bin/lace");
+    let lace = prefix.join(lace_entry);
     // Um atalho de uma instalação anterior, em outro lugar, sai.
     if let Some(previous) = replaced.as_ref().and_then(|r| r.link.clone())
         && Some(&previous) != target.link.as_ref()
@@ -304,7 +314,7 @@ pub fn install(
 }
 
 fn extract_and_verify(
-    payload_dir: &Path,
+    source: &dyn crate::add::ChunkSource,
     index: &Index,
     selection: &Selection,
     staging: &Path,
@@ -319,8 +329,10 @@ fn extract_and_verify(
             index: i + 1,
             count: chunks.len(),
             components: chunk.components.clone(),
+            download: chunk.download,
         });
-        extract_chunk(&payload_dir.join(&chunk.file), staging, &mut |size| {
+        let path = source.fetch(chunk, &mut |bytes| on(Event::Downloading { bytes }))?;
+        extract_chunk(&path, staging, &mut |size| {
             done += size;
             on(Event::Progress { done });
         })?;
@@ -358,6 +370,59 @@ fn extract_and_verify(
     Ok(toolchain.verified_files())
 }
 
+/// Instala só o bundle (`toolchain/`) de `selection` em `prefix`, com os
+/// pedaços de `source`: extrai numa pasta provisória, confere os executáveis
+/// e troca o `toolchain/` que houver, guardado até a troca dar certo. O
+/// `lace` e o resto da pasta ficam como estão. É o `lace setup`, que o
+/// assistente do Windows que baixa os aplicativos roda antes de copiar o
+/// `bin/lace.exe` dele. Devolve quantos executáveis tiveram o hash conferido.
+pub fn install_bundle(
+    source: &dyn crate::add::ChunkSource,
+    index: &Index,
+    selection: &Selection,
+    prefix: &Path,
+    mut on: impl FnMut(Event),
+) -> anyhow::Result<usize> {
+    let current = Platform::current().map(Platform::as_str);
+    if current != Some(index.platform.as_str()) {
+        bail!(
+            "These apps are for {}, and this machine is {}",
+            index.platform,
+            current.unwrap_or("an unsupported platform")
+        );
+    }
+    fs::create_dir_all(prefix).with_context(|| format!("Creating {}", prefix.display()))?;
+    let pid = std::process::id();
+    let staging = prefix.join(format!(".instalando-{pid}"));
+    let _ = fs::remove_dir_all(&staging);
+    fs::create_dir_all(&staging).with_context(|| format!("Creating {}", staging.display()))?;
+    let verified = match extract_and_verify(source, index, selection, &staging, &mut on) {
+        Ok(verified) => verified,
+        Err(e) => {
+            let _ = fs::remove_dir_all(&staging);
+            return Err(e);
+        }
+    };
+    let dest = prefix.join("toolchain");
+    let old = prefix.join(format!(".antigo-{pid}"));
+    let aside = old.join("toolchain");
+    if fs::symlink_metadata(&dest).is_ok() {
+        fs::create_dir_all(&old).with_context(|| format!("Creating {}", old.display()))?;
+        if let Err(e) = fs::rename(&dest, &aside) {
+            let _ = fs::remove_dir_all(&staging);
+            return Err(e).with_context(|| format!("Moving {} aside", dest.display()));
+        }
+    }
+    if let Err(e) = fs::rename(staging.join("toolchain"), &dest) {
+        let _ = fs::rename(&aside, &dest);
+        let _ = fs::remove_dir_all(&staging);
+        return Err(e).with_context(|| format!("Installing {}", dest.display()));
+    }
+    let _ = fs::remove_dir_all(&old);
+    let _ = fs::remove_dir_all(&staging);
+    Ok(verified)
+}
+
 /// Extrai um pedaço (`.tar.zst`) em `dest`, avisando o tamanho de cada
 /// arquivo extraído. Recusa um caminho que sairia de `dest`.
 pub(crate) fn extract_chunk(
@@ -384,6 +449,47 @@ pub(crate) fn extract_chunk(
             bail!("{} has a path outside the installation", path.display());
         }
         extracted(size);
+    }
+    Ok(())
+}
+
+/// Extrai de um pedaço só os arquivos de `wanted` (os nomes dentro dele,
+/// com `/`), em `dest`. Um nome de `wanted` que o pedaço não tem é erro.
+pub(crate) fn extract_entries(
+    path: &Path,
+    dest: &Path,
+    wanted: &std::collections::BTreeSet<&str>,
+) -> anyhow::Result<()> {
+    let file =
+        fs::File::open(path).with_context(|| format!("Opening the chunk {}", path.display()))?;
+    let decoder = zstd::Decoder::new(file)?;
+    let mut archive = tar::Archive::new(decoder);
+    archive.set_preserve_permissions(true);
+    archive.set_overwrite(true);
+    let mut found = 0;
+    for entry in archive
+        .entries()
+        .with_context(|| format!("Reading {}", path.display()))?
+    {
+        let mut entry = entry.with_context(|| format!("Reading {}", path.display()))?;
+        let name = entry.path()?.to_string_lossy().replace('\\', "/");
+        if !wanted.contains(name.as_str()) {
+            continue;
+        }
+        if !entry
+            .unpack_in(dest)
+            .with_context(|| format!("Extracting {name} from {}", path.display()))?
+        {
+            bail!("{} has a path outside the installation", path.display());
+        }
+        found += 1;
+    }
+    if found != wanted.len() {
+        bail!(
+            "{} lacks {} of the files the update needs",
+            path.display(),
+            wanted.len() - found
+        );
     }
     Ok(())
 }

@@ -19,10 +19,21 @@
       "type": "string"
     },
     "layout": {
-      "description": "O estado do Surfer gerado para os processadores SAPHO da onda\n(`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda\nque não é VCD nem FST.",
+      "description": "O estado do Surfer com que a onda abriu (`.surf.ron`): o layout salvo\nno projeto ou o gerado; `null` com `--no-layout`, numa onda sem sinal\npara mostrar ou que não é VCD nem FST.",
       "type": [
         "string",
         "null"
+      ]
+    },
+    "saved_layout": {
+      "description": "O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o\nSurfer salva (Ctrl+S); `null` numa onda fora de projeto.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SavedLayoutReport"
+        },
+        {
+          "type": "null"
+        }
       ]
     },
     "processors": {
@@ -38,9 +49,28 @@
     "pid",
     "log",
     "layout",
+    "saved_layout",
     "processors"
   ],
   "$defs": {
+    "SavedLayoutReport": {
+      "description": "O layout salvo no projeto para a onda aberta.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "O arquivo.",
+          "type": "string"
+        },
+        "customized": {
+          "description": "O usuário salvou depois que o Lace o gerou: o Lace não o refaz\n(`lace wave --reset-layout` volta ao gerado).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "customized"
+      ]
+    },
     "WaveProcessor": {
       "description": "Um processador SAPHO achado na onda.",
       "type": "object",

@@ -28,6 +28,19 @@ pub fn recommended(index: &Index) -> Selection {
         .collect()
 }
 
+/// O perfil recomendado numa pasta que já tem uma instalação: o recomendado
+/// mais o que ela tem (o que este índice conhece), com o que eles exigem.
+/// Reinstalar não tira um aplicativo que o usuário pôs.
+pub fn recommended_keeping(index: &Index, installed: &[String]) -> Selection {
+    let mut selection = recommended(index);
+    for name in installed {
+        if index.component(name).is_some() {
+            add_with_requirements(index, &mut selection, name);
+        }
+    }
+    selection
+}
+
 /// Marca ou desmarca `name`, mantendo as dependências: marcar um componente
 /// marca o que ele exige; desmarcar um desmarca quem o exige.
 pub fn toggle(index: &Index, selection: &mut Selection, name: &str) {
@@ -54,7 +67,7 @@ pub fn toggle(index: &Index, selection: &mut Selection, name: &str) {
     }
 }
 
-fn add_with_requirements(index: &Index, selection: &mut Selection, name: &str) {
+pub(crate) fn add_with_requirements(index: &Index, selection: &mut Selection, name: &str) {
     if !selection.insert(name.to_owned()) {
         return;
     }
@@ -139,6 +152,7 @@ pub(crate) mod tests {
             components: components.iter().map(|s| s.to_string()).collect(),
             size,
             entries: 1,
+            download: size / 2,
         };
         Index {
             schema: INDEX_SCHEMA,
@@ -181,6 +195,16 @@ pub(crate) mod tests {
         assert_eq!(index.size_of(&rec), 10 + 100 + 20 + 40 + 5 + 1);
         assert_eq!(index.size_of(&Selection::new()), 10);
         assert_eq!(index.component_size("icarus"), 120);
+    }
+
+    #[test]
+    fn recommended_keeps_what_is_installed_with_its_requirements() {
+        let index = index();
+        let installed = vec!["verilator".to_owned(), "nao_existe".to_owned()];
+        let mut expected = recommended(&index);
+        expected.insert("verilator".into());
+        assert_eq!(recommended_keeping(&index, &installed), expected);
+        assert_eq!(recommended_keeping(&index, &[]), recommended(&index));
     }
 
     #[test]

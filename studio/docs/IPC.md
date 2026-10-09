@@ -121,6 +121,7 @@ seção 5.4.1. Não compila os processadores nem grava relatório.
 | `synthesizable`, `testbenches` | `ProjectFile[]`: `role`, `path`, `top_level` |
 | `top_level`, `top_module`, `top_module_error` | o arquivo e o módulo de topo; o erro quando o módulo não dá para saber |
 | `selected_testbench`, `testbench_module` | o testbench simulado e o módulo dele |
+| `wave_selection` | a escolha de sinais da onda desse testbench (`wave/<testbench>.json`); vazia, a onda grava todos. Os botões Sinais mostram quantos itens ela tem |
 | `unregistered` | os `.v` e `.sv` da pasta fora do `.spf`, e os `.py` com `@cocotb.test` |
 | `processors` | `ProcessorStatus[]`: os campos do `Processor` do Core, mais `built`, `inputs` e `outputs` (`{ port, path }`), `missing_inputs`, `waveform` e `generated` (o que o build gerou e existe: `verilog`, `testbench`, `assembly`, `memories[]`, `intermediates[]`, os `.txt` e `.log` da pasta temporária) |
 | `waveform` | a onda da simulação do projeto, se já existe |
@@ -298,9 +299,13 @@ quando ele não rodou.
 `lace_update` passa `--yes`: quem pergunta é a interface, antes de chamar,
 com a versão instalada, a nova e a pasta (o `UpdateReport` de
 `lace_update_check`). No `result`, `action` diz o que aconteceu:
-`updated` (Linux e macOS: o instalador da release trocou o `lace` e o
-bundle), `wizard_opened` (Windows: o assistente abriu e termina depois que
-o `lace` sai) ou `up_to_date`. Ao contrário de `lace_install`, ela não pode
+`updated` (a atualização por componentes trocou os arquivos que mudaram,
+`method: "components"`, com o que mudou em `changes`; ou, no Linux e no
+macOS, o instalador da release trocou o `lace` e o bundle, `method:
+"installer"`), `wizard_opened` (Windows, quando a atualização por
+componentes não dá: o assistente abriu e termina depois que o `lace` sai)
+ou `up_to_date`. O progresso de cada pedaço chega no stderr da CLI, como
+`cli_output`. Ao contrário de `lace_install`, ela não pode
 ser cancelada: `flow_cancel` marca o pedido, mas ele não chega ao processo,
 porque matar o `lace` deixaria o instalador, filho dele, trocando o `bin/`
 e o `toolchain/` sozinho.
@@ -309,20 +314,38 @@ e o `toolchain/` sozinho.
 
 | Comando | Argumentos | Devolve |
 |---|---|---|
-| `wave_tab_open` | `path` | `WaveTab`: `id`, `url` (a página do cliente web para o iframe), `processors` (`WaveProcessor[]` do layout, com `outdated` quando o processador foi compilado de novo depois da simulação) |
+| `wave_tab_open` | `path` | `WaveTab`: `id`, `url` (a página do cliente web para o iframe), `processors` (`WaveProcessor[]` do layout, com `outdated` quando o processador foi compilado de novo depois da simulação), `saved_layout` (o `wave/<testbench>.surf.ron`, ou `null` fora de projeto), `customized` (o usuário salvou o layout) e `selection` (a escolha de sinais que o layout segue) |
 | `wave_tab_close` | `id` | |
 
 `wave_tab_open` registra a onda num servidor HTTP do Studio, só em
 `127.0.0.1`, que sobe na primeira aba e serve, numa origem: o cliente web
-(`/web/`), a onda (`/wave/<id>/<nome>`), o `.surf.ron` (`/layout/<id>`), os
-tradutores e os comandos de partida (`/doc/<id>/<nome>`). A `url` abre o
-cliente com `load_url` na onda e `startup_commands` que carregam os
-tradutores e o estado. Erros: `no_waveform`;
+(`/web/`), a onda (`/wave/<id>/<nome>`), o `.surf.ron` (`/layout/<id>`: o
+layout salvo no projeto, ou o gerado), os tradutores e os comandos de
+partida (`/doc/<id>/<nome>`). A `url` abre o cliente com `load_url` na onda
+e `startup_commands` que carregam os tradutores e o estado e, numa onda de
+testbench do projeto, registram `state_save_url_set <origem>/save/<id>`: o
+Ctrl+S da aba (que fica com o Surfer) manda o estado num `POST`, e o
+servidor o grava no `wave/<testbench>.surf.ron`, num arquivo ao lado que
+depois toma o lugar dele. Erros: `no_waveform`;
 `surfer_web_missing`, bundle sem cliente web; `wave_too_large`, onda acima
 de 256 MB. A interface oferece a janela nos dois últimos.
 
 `wave_tab_close` faz o servidor esquecer a aba. A vista chama ao fechar a
 aba ou ao recarregar.
+
+## Sinais da onda (`commands/wave.rs`)
+
+| Comando | Argumentos | Devolve | Equivale a |
+|---|---|---|---|
+| `wave_signals` | | `WaveSignals`: `testbench`, `module`, `root` (a árvore de `SignalScope`, ou `null` se a elaboração falhou), `selection`, `selection_file`, `unknown`, `status`, `steps`, `diagnostics` | `lace wave signals --json` |
+| `wave_selection_set` | `signals` | a escolha como ficou; vazia apaga o `wave/<testbench>.json` | `lace wave select`, `unselect` |
+| `wave_layout_reset` | `waveform` | `true` se havia layout salvo | `lace wave --reset-layout` |
+
+`wave_signals` elabora o testbench com o Icarus, como a hierarquia: leva
+menos de um segundo num projeto pequeno. A interface monta a escolha na
+árvore (marcar um escopo vale por tudo dentro dele) e manda a lista
+inteira a `wave_selection_set`. O retrato do projeto traz a escolha em
+`wave_selection` sem elaborar nada: é o que os botões mostram.
 
 ## Terminal (`terminal.rs`)
 

@@ -94,6 +94,63 @@ pub fn open_wizard(command: &mut std::process::Command) -> std::io::Result<()> {
     command.spawn().map(|_| ())
 }
 
+/// A chave do Lace na lista de programas instalados do Windows, que o Inno
+/// Setup cria com o `AppId` do `installer/windows/lace.iss`.
+#[cfg(windows)]
+const UNINSTALL_KEY: &str =
+    r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{E34F1510-EC32-4839-8048-14CA03F9EFBB}_is1";
+
+/// Depois de uma atualização por componentes, a versão que a lista de
+/// programas instalados do Windows mostra (o nome e a versão que o assistente
+/// gravou ao instalar). Só mexe na chave cuja pasta é `prefix`: a do usuário
+/// (`HKCU`) ou a de todos (`HKLM`, que pede administrador). `false` quando
+/// nenhuma é desta instalação; nos outros sistemas, sempre.
+#[cfg(windows)]
+pub fn register_version(prefix: &Utf8Path, version: &str) -> anyhow::Result<bool> {
+    let reg = std::env::var("SystemRoot")
+        .map(|root| format!("{root}\\System32\\reg.exe"))
+        .unwrap_or_else(|_| "reg.exe".to_owned());
+    let want = prefix.as_str().trim_end_matches('\\').to_lowercase();
+    for root in ["HKCU", "HKLM"] {
+        let key = format!("{root}\\{UNINSTALL_KEY}");
+        let output = std::process::Command::new(&reg)
+            .args(["query", &key, "/v", "InstallLocation"])
+            .output()
+            .with_context(|| format!("Running {reg}"))?;
+        if !output.status.success() {
+            continue;
+        }
+        let text = String::from_utf8_lossy(&output.stdout);
+        let location = text
+            .lines()
+            .find_map(|l| l.split_once("REG_SZ").map(|(_, v)| v.trim().to_owned()));
+        if location.is_none_or(|l| l.trim_end_matches('\\').to_lowercase() != want) {
+            continue;
+        }
+        for (name, value) in [
+            ("DisplayVersion", version.to_owned()),
+            ("DisplayName", format!("Lace {version}")),
+        ] {
+            let status = std::process::Command::new(&reg)
+                .args(["add", &key, "/v", name, "/t", "REG_SZ", "/d", &value, "/f"])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .with_context(|| format!("Running {reg}"))?;
+            if !status.success() {
+                bail!("could not write {name} in {key}");
+            }
+        }
+        return Ok(true);
+    }
+    Ok(false)
+}
+
+#[cfg(not(windows))]
+pub fn register_version(_prefix: &Utf8Path, _version: &str) -> anyhow::Result<bool> {
+    Ok(false)
+}
+
 /// O desinstalador do Inno Setup na pasta: `unins000.exe` (o número sobe se
 /// houver mais de um).
 pub fn uninstaller_exe(prefix: &Utf8Path) -> Option<Utf8PathBuf> {

@@ -43,6 +43,9 @@ pub struct ProjectSnapshot {
     pub selected_testbench: Option<Utf8PathBuf>,
     /// O módulo desse testbench.
     pub testbench_module: Option<String>,
+    /// A escolha de sinais da onda desse testbench (`wave/<testbench>.json`):
+    /// vazia, a onda grava todos os sinais.
+    pub wave_selection: Vec<String>,
     /// Os `.v` e `.sv` da pasta que não estão registrados.
     pub unregistered: Vec<Utf8PathBuf>,
     /// Os processadores SAPHO.
@@ -171,6 +174,9 @@ pub fn snapshot(project: &Project) -> ProjectSnapshot {
         top_module_error,
         selected_testbench: project.testbench(),
         testbench_module: project.testbench_module().ok().flatten(),
+        wave_selection: lace_core::wave_testbench(project)
+            .and_then(|module| lace_core::read_selection(project, &module))
+            .unwrap_or_default(),
         top_candidates: top_candidates(project, &processors),
         unregistered: project.unregistered_verilog(),
         processors,

@@ -3,7 +3,16 @@
 
 import type { ReactNode } from 'react';
 
-import { action, fastSimulator, isEnabled, openWave, runAction, runBuild, runSimulation } from '../../actions';
+import {
+  action,
+  fastSimulator,
+  isEnabled,
+  openWave,
+  runAction,
+  runBuild,
+  runSimulation,
+  signalChoice,
+} from '../../actions';
 import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
@@ -121,6 +130,11 @@ export function FlowNavigator() {
           hint={fastSimulator() === 'icarus' ? 'Icarus' : 'Verilator'}
         />
         <Item label={t('action.openWave')} keys="Ctrl+F8" onClick={() => void openWave()} />
+        <Item
+          label={t('action.waveSignals')}
+          hint={signalChoice(snapshot.wave_selection?.length ?? 0)}
+          onClick={() => runAction('waveSignals')}
+        />
         {snapshot.processors.map((p) => (
           <Item
             key={p.name}

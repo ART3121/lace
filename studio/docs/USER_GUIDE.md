@@ -386,15 +386,43 @@ aba** do Studio (o padrão) ou **em janela separada**. Na aba, o Surfer roda
 dentro do Studio, com os menus e os atalhos dele; com o foco na aba, letras,
 setas, espaço e as teclas de edição são do Surfer, e as teclas de função
 (F5 a F10) e as combinações com Ctrl, Alt ou Cmd continuam sendo do Studio
-(Ctrl+W fecha a aba, Ctrl+B esconde a barra lateral); a F11 e o Ctrl+K
-ficam com o Surfer. No alto da aba ficam o arquivo, o
-resumo de cada processador, **Ler a onda de novo** e **Abrir em janela**.
-Trocar de aba não perde nada: a aba de onda guarda o zoom, o cursor e os
-sinais acrescentados enquanto estiver aberta (cada aba de onda aberta ocupa
-memória; feche as que não usa). Simular de novo recarrega a aba aberta da
-onda. A aba precisa do cliente
-web do Surfer no bundle e de uma onda de até 256 MB; fora disso, a onda abre
-em janela.
+(Ctrl+W fecha a aba, Ctrl+B esconde a barra lateral); a F11, o Ctrl+K e o
+Ctrl+S ficam com o Surfer. No alto da aba ficam o arquivo, o resumo de cada
+processador, onde fica o layout salvo, **Voltar ao layout gerado** (quando
+você salvou um), o botão **Sinais** (na onda do projeto, com a escolha:
+"Sinais: todos" ou "Sinais: 3 marcados"), **Ler a onda de novo** e **Abrir
+em janela**. Trocar de aba não perde
+nada: a aba de onda guarda o zoom, o cursor e os sinais acrescentados
+enquanto estiver aberta (cada aba de onda aberta ocupa memória; feche as
+que não usa). Simular de novo recarrega a aba aberta da onda. A aba precisa
+do cliente web do Surfer no bundle e de uma onda de até 256 MB; fora disso,
+a onda abre em janela.
+
+**O layout salvo.** A onda de um testbench do projeto abre com o layout de
+`wave/<testbench>.surf.ron`, na pasta do projeto, e o **Ctrl+S** do Surfer
+salva nele: na aba e na janela. Enquanto você não salva, o Studio refaz o
+arquivo a cada abertura com o layout gerado (a escolha de sinais ou os
+processadores podem ter mudado); depois que você salva, a onda abre sempre
+com o seu, e **Voltar ao layout gerado**, no alto da aba, o apaga. O arquivo
+pode ir para o git com o projeto.
+
+**Escolher os sinais da onda** é a Wave Configuration da AURORA. Ela abre
+pelo botão **Sinais** da barra de ferramentas, ao lado de Onda (o número no
+botão é quantos itens a escolha tem; sem número, a onda grava todos), pelo
+botão Sinais no alto da aba de onda, pelo Navegador de fluxo (Simulação),
+pelo menu Fluxo e pelo menu de contexto do testbench simulado no Explorer.
+A janela mostra a árvore do testbench do projeto, elaborada pelo Icarus, com
+uma caixa por escopo e por sinal. Marcar um escopo vale por tudo o que há dentro dele; desmarcar um
+sinal dentro de um escopo marcado deixa os outros. O filtro procura pelo
+nome, com texto ou expressão regular; **Só o testbench** marca os sinais do
+módulo do testbench, e **Desmarcar tudo** volta a gravar todos. **Gravar a
+escolha** escreve `wave/<testbench>.json`: a próxima simulação grava só os
+marcados, e o layout mostra só eles, um grupo por escopo; **Gravar e
+simular** grava e roda a Wave (F8) do projeto, qualquer que seja o alvo, e a
+onda abre com a escolha nova. Um processador
+SAPHO entra sempre, porque as instruções e as variáveis dependem dele. Nada
+marcado é o padrão: a onda grava todos os sinais. No Verilator, que grava
+tudo de qualquer jeito, o layout mostra só os marcados.
 
 ## 5. Os botões do fluxo
 
@@ -406,6 +434,7 @@ em janela.
 | Wave | F8 | compila, simula e abre a onda | `lace sim [-p NOME] --open` |
 | Rápida | F9 | a simulação rápida, o Fast Sim da AURORA: compila e simula sem gravar onda, para ver a saída, as portas e os testes. O testbench Verilog e o de um processador rodam no Verilator, qualquer que seja o simulador escolhido; um testbench cocotb, no simulador escolhido. O navegador de fluxo mostra qual | `lace sim [-p NOME] --fast` |
 | Onda | Ctrl+F8 | abre a onda da última simulação | `lace wave [-p NOME]` |
+| Sinais | | escolhe os sinais que a onda do projeto grava e mostra (seção 4.1); o número no botão é quantos itens a escolha tem | `lace wave signals`, `lace wave select` |
 | PRISM | F10 | compila, sintetiza e abre o esquemático (seção 7) | `lace synth [-p NOME]`; o `--svg` desenha com o Graphviz |
 | (menu Fluxo) | F5 | compila os processadores, verifica e, se passar, simula | |
 | Parar | Shift+F5 | cancela a operação; a ferramenta é encerrada com tudo o que iniciou. A atualização do Lace não para no meio | Ctrl+C na CLI |
@@ -611,18 +640,22 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
   resultado aparece no alto da tela;
 - **Atualizar para X**: aparece depois da busca, quando há um Lace mais
   novo publicado. Pede confirmação e roda o `lace update` da sua
-  instalação. No Linux e no macOS, o instalador da release troca o `lace`
-  e o bundle inteiro, com os mesmos componentes, e a saída dele aparece
-  nesta tela. No Windows, abre o assistente de instalação; depois de
-  terminar nele, clique em **Atualizar** no alto da tela para reler o
+  instalação, que baixa só os pedaços do bundle com arquivos que mudaram e
+  troca esses arquivos no lugar, nos três sistemas; cada pedaço aparece
+  nesta tela enquanto baixa, e no fim o tamanho baixado e os aplicativos
+  que mudaram. Se a atualização por componentes não der certo, a
+  instalação fica como estava e vem o instalador inteiro da release: no
+  Linux e no macOS ele troca o `lace` e o bundle com os mesmos
+  componentes; no Windows, abre o assistente de instalação, e depois de
+  terminar nele clique em **Atualizar** no alto da tela para reler o
   bundle.
 
 A atualização não para no meio: o Parar some e o Shift+F5 não faz nada
-enquanto ela roda, porque parar o `lace` não pararia o instalador que ele
-abriu. Um `lace` que não veio do instalador (um build local) não se
-atualiza por aqui. O Lace Studio não é atualizado junto: se o bundle novo
-vier num formato de manifesto que esta versão do Studio não lê, a tela de
-ferramentas mostra o erro, e o Studio também precisa ser atualizado.
+enquanto ela roda, porque parar o `lace` no meio da troca deixaria a
+instalação pela metade. Um `lace` que não veio do instalador (um build
+local) não se atualiza por aqui. O Studio que está aberto continua sendo o
+antigo: quando a atualização troca o Studio, a tela avisa, e ele vale
+depois de fechar e abrir o Studio.
 
 ## 9. Preferências
 

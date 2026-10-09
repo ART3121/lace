@@ -69,6 +69,26 @@ pub struct WaveLayout {
     pub mappings: Vec<MappingTranslator>,
     /// Os processadores achados na onda, na ordem do cabeçalho.
     pub processors: Vec<WaveProcessor>,
+    /// O testbench da onda (o escopo de cima dela): o nome dos arquivos dele
+    /// em `wave/`, a escolha de sinais e o layout salvo.
+    pub testbench: Option<String>,
+    /// A escolha de sinais que o layout seguiu (`wave/<testbench>.json`);
+    /// vazia sem escolha.
+    pub selection: Vec<String>,
+}
+
+/// O layout salvo no projeto para a onda de um testbench:
+/// `wave/<testbench>.surf.ron` ([`saved_layout`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct SavedLayout {
+    /// O arquivo, onde o Surfer salva o estado (Ctrl+S).
+    pub path: Utf8PathBuf,
+    /// O estado que vai para o Surfer: o que o usuário salvou, ou o gerado.
+    pub state: String,
+    /// O usuário salvou o estado depois da última vez que o Lace o gerou: o
+    /// Lace o deixa como está.
+    pub customized: bool,
 }
 
 /// Um tradutor de valor do Surfer: um arquivo `Name = <nome>`, `Bits = <n>`
@@ -117,6 +137,9 @@ pub struct PreparedLayout {
     pub mappings: Vec<Utf8PathBuf>,
     /// O que foi gravado.
     pub layout: WaveLayout,
+    /// O layout salvo no projeto, quando a onda é de um testbench dele: é
+    /// ele o [`state`](Self::state).
+    pub saved: Option<SavedLayout>,
 }
 
 /// Monta o layout de `waveform` sem gravar nada. `Ok(None)` quando a onda
@@ -125,7 +148,9 @@ pub struct PreparedLayout {
 ///
 /// Uma onda sem processador SAPHO (projeto só de Verilog) recebe o grupo
 /// Top-level com os sinais do testbench, como a AURORA; o resto do design
-/// fica na hierarquia do Surfer.
+/// fica na hierarquia do Surfer. Com escolha de sinais no projeto
+/// (`wave/<testbench>.json`, [`write_selection`](crate::write_selection)),
+/// o layout mostra só os escolhidos, um grupo por escopo.
 ///
 /// As tabelas de cada processador vêm da pasta temporária dele no projeto
 /// que contém a onda ([`Project::discover`]); fora de projeto, da pasta da
@@ -143,13 +168,29 @@ pub fn wave_layout(waveform: &Utf8Path) -> Result<Option<WaveLayout>> {
     };
     let scopes = parse_scopes(&header);
     let processors = detect_processors(&scopes);
-    let root_signals = scopes
+    let project = Project::discover(waveform).ok();
+    let testbench = scopes
         .iter()
-        .any(|s| !s.path.contains('.') && !s.signals.is_empty());
-    if processors.is_empty() && !root_signals {
+        .find(|s| !s.path.contains('.'))
+        .map(|s| s.path.replace(ESCAPED_DOT, "."));
+    let selection = match (&project, &testbench) {
+        (Some(project), Some(testbench)) => crate::wave_signals::read_selection(project, testbench)
+            .unwrap_or_else(|error| {
+                tracing::warn!("Ignoring the signal choice: {error}");
+                Vec::new()
+            }),
+        _ => Vec::new(),
+    };
+    let shown = if selection.is_empty() {
+        scopes
+            .iter()
+            .any(|s| !s.path.contains('.') && !s.signals.is_empty())
+    } else {
+        scopes.iter().any(|s| !chosen(s, &selection).is_empty())
+    };
+    if processors.is_empty() && !shown {
         return Ok(None);
     }
-    let project = Project::discover(waveform).ok();
     let recorded = std::fs::metadata(waveform).and_then(|m| m.modified()).ok();
     let mut tables = HashMap::new();
     let mut c_processors = Vec::new();
@@ -173,20 +214,160 @@ pub fn wave_layout(waveform: &Utf8Path) -> Result<Option<WaveLayout>> {
     } else {
         complex_mapping(&wave.complex_values(&complex_ids, waveform)?)
     };
-    Ok(Some(build_layout(
+    let mut layout = build_layout(
         waveform,
         &scopes,
         &processors,
         &tables,
         &c_processors,
         complex,
-    )))
+        &selection,
+    );
+    layout.testbench = testbench;
+    layout.selection = selection;
+    Ok(Some(layout))
+}
+
+/// Os sinais de `scope` que a escolha cobre.
+fn chosen<'a>(scope: &'a Scope, selection: &[String]) -> Vec<&'a Signal> {
+    let path = scope.path.replace(ESCAPED_DOT, ".");
+    scope
+        .signals
+        .iter()
+        .filter(|signal| {
+            let full = format!("{path}.{}", signal.name);
+            selection
+                .iter()
+                .any(|item| crate::wave_signals::covers(item, &full))
+        })
+        .collect()
+}
+
+/// O registro, em `.lace/`, do SHA-256 do layout que o Lace gravou por
+/// último em `wave/` para cada testbench: o arquivo que ainda tem esse
+/// conteúdo não foi salvo pelo usuário e pode ser refeito.
+const GENERATED_RECORD: &str = "wave/generated.json";
+
+fn sha256_of(text: &str) -> String {
+    crate::toolchain::sha256(text.as_bytes()).expect("ler da memória não falha")
+}
+
+fn read_record(path: &Utf8Path) -> BTreeMap<String, String> {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+fn write_record(path: &Utf8Path, record: &BTreeMap<String, String>) -> Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(LaceError::io("Creating directory", dir))?;
+    }
+    let text = serde_json::to_string_pretty(record).expect("o registro vira JSON") + "\n";
+    std::fs::write(path, text).map_err(LaceError::io("Writing", path))
+}
+
+/// O layout salvo no projeto para a onda de `layout`
+/// (`wave/<testbench>.surf.ron`, [`layout_file`](crate::layout_file)).
+/// `None` quando a onda não é de um testbench de projeto.
+///
+/// O arquivo nasce com o layout gerado, na primeira vez que a onda abre, e
+/// é dele que o Surfer lê o estado e para ele que salva (Ctrl+S). Enquanto
+/// o usuário não salva, o Lace o refaz a cada abertura (a escolha de sinais
+/// ou os processadores podem ter mudado); depois que ele salva, o arquivo
+/// fica como está ([`SavedLayout::customized`]) até
+/// [`reset_saved_layout`].
+///
+/// # Erros
+///
+/// [`LaceError::Io`] se o arquivo não puder ser lido ou gravado.
+pub fn saved_layout(waveform: &Utf8Path, layout: &WaveLayout) -> Result<Option<SavedLayout>> {
+    let Some(testbench) = layout.testbench.as_deref() else {
+        return Ok(None);
+    };
+    let Ok(project) = Project::discover(waveform) else {
+        return Ok(None);
+    };
+    let path = crate::wave_signals::layout_file(&project, testbench);
+    let record_path = project.root().join(".lace").join(GENERATED_RECORD);
+    let mut record = read_record(&record_path);
+    let generated = sha256_of(&layout.state);
+    match std::fs::read_to_string(&path) {
+        Ok(current) => {
+            let hash = sha256_of(&current);
+            if record.get(testbench) != Some(&hash) {
+                return Ok(Some(SavedLayout {
+                    path,
+                    state: current,
+                    customized: true,
+                }));
+            }
+            if hash != generated {
+                std::fs::write(&path, &layout.state).map_err(LaceError::io("Writing", &path))?;
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            let dir = path.parent().expect("o arquivo fica em wave/");
+            std::fs::create_dir_all(dir).map_err(LaceError::io("Creating directory", dir))?;
+            std::fs::write(&path, &layout.state).map_err(LaceError::io("Writing", &path))?;
+        }
+        Err(e) => return Err(LaceError::io("Reading", &path)(e)),
+    }
+    if record.get(testbench) != Some(&generated) {
+        record.insert(testbench.to_owned(), generated);
+        write_record(&record_path, &record)?;
+    }
+    Ok(Some(SavedLayout {
+        path,
+        state: layout.state.clone(),
+        customized: false,
+    }))
+}
+
+/// Apaga o layout salvo da onda do testbench `testbench`: na próxima vez, a
+/// onda abre com o layout gerado. `false` se não havia layout salvo.
+///
+/// # Erros
+///
+/// [`LaceError::Io`] se o arquivo não puder ser apagado.
+pub fn reset_saved_layout(project: &Project, testbench: &str) -> Result<bool> {
+    let path = crate::wave_signals::layout_file(project, testbench);
+    let existed = match std::fs::remove_file(&path) {
+        Ok(()) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(LaceError::io("Removing", &path)(e)),
+    };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::remove_dir(dir);
+    }
+    let record_path = project.root().join(".lace").join(GENERATED_RECORD);
+    let mut record = read_record(&record_path);
+    if record.remove(testbench).is_some() {
+        write_record(&record_path, &record)?;
+    }
+    Ok(existed)
+}
+
+/// O testbench de uma onda: o escopo de cima dela, que dá o nome dos
+/// arquivos em `wave/`. `None` se a onda não abre ou não tem escopo.
+pub fn wave_testbench_of(waveform: &Utf8Path) -> Result<Option<String>> {
+    let mut wave = Wave::open(waveform)?;
+    let Some(header) = wave.header(waveform)? else {
+        return Ok(None);
+    };
+    Ok(parse_scopes(&header)
+        .iter()
+        .find(|s| !s.path.contains('.'))
+        .map(|s| s.path.replace(ESCAPED_DOT, ".")))
 }
 
 /// Monta o layout de `waveform` e grava em `<projeto>/.lace/Temp/surfer/<onda>-<hash>/`
 /// (fora de projeto, na pasta de cache do usuário, como o log do Surfer): o
 /// `<onda>.surf.ron` e os tradutores em `.surfer/mappings/`. Tradutores
 /// antigos dessa pasta saem antes. `Ok(None)` como em [`wave_layout`].
+///
+/// Numa onda de testbench do projeto, o estado é o layout salvo no projeto
+/// ([`saved_layout`]): o Surfer abre com ele e salva nele.
 ///
 /// # Erros
 ///
@@ -206,8 +387,15 @@ pub fn prepare_wave_layout(waveform: &Utf8Path) -> Result<Option<PreparedLayout>
     }
     std::fs::create_dir_all(&mappings_dir)
         .map_err(LaceError::io("Creating folder", &mappings_dir))?;
-    let state = dir.join(format!("{stem}.surf.ron"));
-    std::fs::write(&state, &layout.state).map_err(LaceError::io("Writing", &state))?;
+    let saved = saved_layout(waveform, &layout)?;
+    let state = match &saved {
+        Some(saved) => saved.path.clone(),
+        None => {
+            let state = dir.join(format!("{stem}.surf.ron"));
+            std::fs::write(&state, &layout.state).map_err(LaceError::io("Writing", &state))?;
+            state
+        }
+    };
     let mut mappings = Vec::new();
     for mapping in &layout.mappings {
         let path = mappings_dir.join(&mapping.name);
@@ -219,6 +407,7 @@ pub fn prepare_wave_layout(waveform: &Utf8Path) -> Result<Option<PreparedLayout>
         state,
         mappings,
         layout,
+        saved,
     }))
 }
 
@@ -888,7 +1077,9 @@ fn plain_format(signal: &Signal) -> Option<&'static str> {
 }
 
 /// Monta o layout: o grupo dos sinais de fora dos processadores e um grupo
-/// por processador (a ordem da AURORA, `buildSurferLayout`).
+/// por processador (a ordem da AURORA, `buildSurferLayout`). Com escolha de
+/// sinais (`selection`), os de fora dos processadores são só os escolhidos,
+/// um grupo por escopo.
 fn build_layout(
     waveform: &Utf8Path,
     scopes: &[Scope],
@@ -896,29 +1087,45 @@ fn build_layout(
     tables: &HashMap<String, Tables>,
     c_processors: &[String],
     complex: Option<MappingTranslator>,
+    selection: &[String],
 ) -> WaveLayout {
     let mut items = Vec::new();
     let mut mappings: BTreeMap<String, MappingTranslator> = BTreeMap::new();
 
-    // Fora dos processadores, só os sinais das raízes (o clock e o reset do
-    // testbench). O resto do projeto continua na hierarquia do Surfer.
     let inside = |path: &str| {
         processors
             .iter()
             .any(|p| path == p.instance || path.starts_with(&format!("{}.", p.instance)))
     };
-    let top: Vec<Item> = scopes
-        .iter()
-        .filter(|s| !s.path.contains('.') && !inside(&s.path))
-        .flat_map(|s| {
-            s.signals.iter().map(|sig| {
-                let mut var = Variable::new(&s.path, &sig.name);
-                var.format = plain_format(sig).map(str::to_owned);
-                Item::Variable(var)
-            })
-        })
-        .collect();
-    push_group(&mut items, "Top-level", top, true);
+    let item = |scope: &Scope, signal: &Signal| {
+        let mut var = Variable::new(&scope.path, &signal.name);
+        var.format = plain_format(signal).map(str::to_owned);
+        Item::Variable(var)
+    };
+    if selection.is_empty() {
+        // Fora dos processadores, só os sinais das raízes (o clock e o reset
+        // do testbench). O resto do projeto continua na hierarquia do Surfer.
+        let top: Vec<Item> = scopes
+            .iter()
+            .filter(|s| !s.path.contains('.') && !inside(&s.path))
+            .flat_map(|s| s.signals.iter().map(move |sig| item(s, sig)))
+            .collect();
+        push_group(&mut items, "Top-level", top, true);
+    } else {
+        // Os escolhidos, um grupo por escopo: o do testbench é o Top-level;
+        // os outros levam o caminho a partir dele (`dut.db`).
+        for scope in scopes.iter().filter(|s| !inside(&s.path)) {
+            let signals: Vec<Item> = chosen(scope, selection)
+                .into_iter()
+                .map(|sig| item(scope, sig))
+                .collect();
+            let title = match scope.path.split_once('.') {
+                None => "Top-level".to_owned(),
+                Some((_, rest)) => rest.replace(ESCAPED_DOT, "."),
+            };
+            push_group(&mut items, &title, signals, true);
+        }
+    }
 
     let many = processors.len() > 1;
     let mut summaries = Vec::new();
@@ -1037,6 +1244,8 @@ fn build_layout(
         state: state_ron(waveform, &items),
         mappings,
         processors: summaries,
+        testbench: None,
+        selection: Vec::new(),
     }
 }
 
@@ -1730,6 +1939,7 @@ $upscope $end $upscope $end $enddefinitions $end";
             &tables,
             &["pa".to_owned()],
             None,
+            &[],
         );
         let state = &layout.state;
         assert!(state.contains("\"u.pa\""), "{state}");
@@ -1825,7 +2035,10 @@ $upscope $end $upscope $end $enddefinitions $end";
         let name = layout_dir_name(&wave);
         assert!(name.starts_with("soma_tb-"), "{name}");
         assert_eq!(prepared.dir, project.temp_dir().join("surfer").join(&name));
-        assert_eq!(prepared.state, prepared.dir.join("soma_tb.surf.ron"));
+        // A onda é de um testbench do projeto: o estado é o layout salvo
+        // nele, que nasce com o gerado.
+        assert_eq!(prepared.state, project.root().join("wave/soma_tb.surf.ron"));
+        assert!(!prepared.saved.as_ref().unwrap().customized);
         assert_eq!(
             std::fs::read_to_string(&prepared.state).unwrap(),
             prepared.layout.state

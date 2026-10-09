@@ -472,12 +472,52 @@ arquivo e linha.
 | `lace wave` | abre no surfer-aurora a onda da simulação do projeto; dentro da pasta de um processador, a dele | `waveform_path`, `open_waveform` |
 | `lace wave -p NOME` | abre a onda da simulação do processador | `waveform_path`, `open_waveform` |
 | `lace wave <ONDA>` | abre um arquivo de onda (VCD, FST, GHW), relativo ao diretório atual | `open_waveform` |
-| `lace wave --no-layout` | abre a onda crua, sem o layout dos processadores | `open_waveform` |
+| `lace wave --no-layout` | abre a onda crua, sem layout | `open_waveform` |
+| `lace wave --reset-layout` | apaga o layout salvo (`wave/<testbench>.surf.ron`) e abre com o gerado | `reset_saved_layout`, `prepare_wave_layout` |
+| `lace wave signals` | a árvore de sinais do testbench do projeto, com `*` no que a onda grava por escolha | `wave_signals` |
+| `lace wave select CAMINHO...` | acrescenta sinais ou escopos à escolha (`wave/<testbench>.json`); `--all` apaga a escolha | `write_selection` |
+| `lace wave unselect CAMINHO...` | tira sinais ou escopos da escolha | `SignalScope::without`, `write_selection` |
 
 Numa onda com processador SAPHO, o Surfer abre com o layout da AURORA: as
 variáveis do programa, a instrução de assembly e a linha do C± de cada
 ciclo, em grupos por processador (`prepare_wave_layout`, API.md 5.7.1). O
 texto lista cada processador do layout. `lace sim --open` faz o mesmo.
+
+**O layout salvo.** Numa onda de testbench do projeto, o layout fica em
+`wave/<testbench>.surf.ron`, na pasta do projeto: o Surfer abre com ele e
+salva nele (Ctrl+S, ou File > Save state). Na primeira abertura o arquivo
+nasce com o layout gerado, e o Lace o refaz a cada abertura enquanto você
+não salva (a escolha de sinais ou os processadores podem ter mudado).
+Depois que você salva, ele fica como está; `lace wave --reset-layout` o
+apaga e volta ao gerado. O texto diz qual dos dois abriu.
+
+**A escolha de sinais**, a Wave Configuration da AURORA: por testbench, o
+que a simulação do projeto grava e o que o layout mostra. Fica em
+`wave/<testbench>.json`, e cada item é um sinal ou um escopo pelo caminho na
+hierarquia (`mux_tb.dut`, `mux_tb.dut.sel`); um escopo vale por tudo o que
+há dentro dele.
+
+```
+lace wave signals                          # a árvore, da elaboração do Icarus
+lace wave select mux_tb.sel mux_tb.dut.u0  # só estes
+lace wave unselect mux_tb.dut.u0.t         # tira um sinal de dentro do escopo
+lace sim                                   # grava só a escolha
+lace wave select --all                     # volta a gravar tudo
+```
+
+Sem escolha, a onda grava todos os sinais, como antes. Com escolha, a
+simulação grava só ela, numa cópia do testbench: o primeiro `$dumpvars`
+dele vira o da escolha, os outros viram comentário, e sem `$dumpvars` a
+escolha entra no dump que o Lace injeta; o arquivo do testbench não muda.
+Um processador SAPHO do design entra sempre com os sinais do escopo dele,
+que o layout das instruções e das variáveis usa. O layout mostra só os
+escolhidos, um grupo por escopo. Um item que o design não tem mais fica de
+fora da onda, com um aviso. O `select` confere os caminhos na árvore e
+sugere o certo para um nome que existe em outro lugar; o `unselect` de um
+sinal dentro de um escopo escolhido deixa os outros sinais do escopo. No
+Verilator, que ignora a lista do `$dumpvars`, a onda grava tudo e o layout
+mostra só a escolha. A escolha vale para a simulação do projeto; a de um
+processador (`lace sim -p`) grava o que o testbench gerado pelo YANC escolhe.
 
 Sem `ONDA`, o Lace abre o arquivo em que a simulação grava a onda (ver
 [Onde fica a onda](#onde-fica-a-onda)); ele não simula. O comando retorna logo, sem esperar o Surfer
@@ -593,13 +633,20 @@ A compilação e a gravação para a placa não entram no histórico
 | Comando | Faz |
 |---|---|
 | `lace tools [--verify]` | o bundle (identificador, plataforma, componentes instalados com versão e origem, e os não instalados), cada ferramenta (`OK`, `--` se o componente dela não foi instalado ou, no `quartus`, se não há Quartus, `!!` se falta o executável), o compilador do Verilator, com `(bundle)` ou `(system)`, e o Quartus Prime, se encontrado (no macOS, onde não existe, a linha some). Com `--verify`, confere o SHA-256 de cada executável e sai com 1 se algum não conferir |
-| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, lace-learn) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador). Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
-| `lace update [--check] [--yes]` | compara o Lace, o bundle e cada aplicativo instalado com a última release (o `bundle/versions.json` da tag dela) e com a última versão upstream (releases do OSS CAD Suite, do lace-toolchain e do YANC no GitHub, tags do surfer-aurora e releases do Graphviz no GitLab), e marca `(new)` o que é mais novo; `?` é uma fonte que não respondeu. Com `--check`, só mostra. Sem ele, se há Lace mais novo, pergunta (sem terminal, exige `--yes`) e baixa o instalador da release, conferido pelo `SHA256SUMS`: no Linux e no macOS reinstala com os mesmos aplicativos, a mesma pasta e o mesmo atalho; no Windows abre o assistente. Ferramenta mais nova upstream não é instalada: chega num bundle novo, numa release nova do Lace. Sem rede ou com o GitHub fora, sai com 2. Recusa atualizar um `lace` que não foi instalado pelo instalador |
+| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, lace-learn) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador, ou uma pasta com os arquivos que a release publica), com a barra de cada download. Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
+| `lace update [--check] [--yes] [--full] [--from CAMINHO]` | compara o Lace, o bundle e cada aplicativo instalado com a última release (o `bundle/versions.json` da tag dela) e com a última versão upstream (releases do OSS CAD Suite, do lace-toolchain e do YANC no GitHub, tags do surfer-aurora e releases do Graphviz no GitLab), e marca `(new)` o que é mais novo; `?` é uma fonte que não respondeu. Com `--check`, só mostra. Sem ele, se há Lace mais novo, atualiza por componentes: compara o manifesto de arquivos da instalação (`toolchain/files.json`) com o da release, mostra o que muda e quanto baixar, pergunta (sem terminal, exige `--yes`) e baixa só os pedaços com arquivos que mudaram, conferidos pelo `SHA256SUMS`. Os arquivos trocam no lugar, o próprio `lace` também, e o bundle é conferido; uma falha no meio devolve a instalação ao que era. Sem o manifesto (uma instalação anterior à 0.7.0), com `--full` ou se a atualização por componentes falha, baixa o instalador inteiro da release: no Linux e no macOS reinstala com os mesmos aplicativos, a mesma pasta e o mesmo atalho; no Windows abre o assistente. `--from` atualiza por componentes a partir de um instalador no disco (como no `lace install --from`), sem rede. Ferramenta mais nova upstream não é instalada: chega num bundle novo, numa release nova do Lace. Sem rede ou com o GitHub fora, sai com 2. Recusa atualizar um `lace` que não foi instalado pelo instalador |
 | `lace uninstall [--yes]` | remove a instalação de onde este `lace` roda, com o bundle inteiro: no Linux e no macOS roda o `uninstall.sh` da pasta (sai `toolchain/`, `bin/lace`, o atalho e a pasta), no Windows abre o desinstalador do Inno (que também tira a pasta do PATH). Pergunta antes; sem terminal, exige `--yes`. Recusa um `lace` que não foi instalado pelo instalador. Também apaga o `~/.config/lace/config.json` de um build anterior à 0.2.0, e tira o atalho do Studio no menu. Os projetos ficam |
 
 O compilador do sistema para o Verilator (Linux e macOS), quando está fora
 do local padrão, é declarado com `--compiler <DIR>` ou `LACE_COMPILER`
 ([De onde vêm as ferramentas](#de-onde-vêm-as-ferramentas)).
+
+`lace setup --payload <pasta> --prefix <pasta> [--components a,b]` instala
+o bundle desses aplicativos em `<prefix>/toolchain`, a partir dos arquivos
+da release baixados em `<payload>`: extrai os pedaços, confere os
+executáveis e troca o `toolchain/` que houver. É o que o assistente web do
+Windows roda antes de copiar o `lace.exe` ([INSTALL.md](INSTALL.md),
+"Windows"), com uma linha `[i/n] ...` por pedaço. Não aparece na ajuda.
 
 `lace completions <bash|zsh|fish|elvish|powershell>` gera o script de
 autocompletar. Ele não aparece na ajuda. Para instalar no bash:

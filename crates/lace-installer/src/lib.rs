@@ -8,7 +8,8 @@
 //!   LEIA-ME.txt
 //!   payload/
 //!     index.json               versão, componentes, pedaços
-//!     lace.tar.zst             bin/lace e o cabeçalho do bundle: sempre instalados
+//!     files.json               o SHA-256 de cada arquivo, por pedaço
+//!     lace.tar.zst             bin/lace, o cabeçalho do bundle e o files.json: sempre instalados
 //!     c01.tar.zst ...          um pedaço por conjunto de componentes que divide arquivos
 //! ```
 //!
@@ -20,9 +21,13 @@
 //!
 //! Módulos:
 //! - [`payload`]: o formato do `index.json`;
+//! - [`files`]: o manifesto de arquivos (`files.json`), que cada instalação
+//!   guarda e o `lace update` compara;
 //! - [`plan`]: perfis (recomendado, avançado) e seleção com dependências;
 //! - [`install`]: extrair, conferir, trocar a instalação antiga, atalho,
 //!   desinstalador;
+//! - [`add`]: acrescentar aplicativos a uma instalação (`lace install`);
+//! - [`update`]: atualizar trocando só os arquivos que mudaram (`lace update`);
 //! - [`desktop`]: o atalho do Lace Studio no menu de aplicativos;
 //! - [`pack`]: montar o payload e o estágio do Inno Setup a partir do bundle;
 //! - [`tui`]: a interface de terminal.
@@ -31,11 +36,13 @@
 
 pub mod add;
 pub mod desktop;
+pub mod files;
 pub mod install;
 pub mod pack;
 pub mod payload;
 pub mod plan;
 pub mod tui;
+pub mod update;
 
 /// Versão do Lace que este instalador instala (a do workspace).
 pub const LACE_VERSION: &str = env!("CARGO_PKG_VERSION");

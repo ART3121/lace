@@ -8,7 +8,8 @@
 #    pré-compilado (ou compilado, sem o pré-compilado), o Lace Studio
 #    compilado de studio/);
 # 2. monta o instalador: a TUI (install + payload/, em .tar.gz) no Linux e no
-#    macOS, o assistente do Inno Setup no Windows;
+#    macOS; no Windows, os dois assistentes do Inno Setup, o completo e o
+#    web, que baixa da release só os aplicativos escolhidos;
 # 3. publica o instalador e os pedaços do bundle como artefato do workflow.
 
 name: installers
@@ -146,24 +147,31 @@ jobs:
           & $iscc /? | Select-Object -First 1
           "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Montar o instalador (Inno Setup)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          target\release\lace-pack.exe inno --toolchain dist\toolchain --lace target\release\lace.exe --out dist\inno
-          & $env:ISCC /Q "/DStage=$PWD\dist\inno" "/DLaceVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\lace.iss
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Get-ChildItem dist\*.exe
-
-      # O `lace install` baixa os aplicativos do bundle em pedaços, também no
-      # Windows: o mesmo payload da TUI, publicado à parte.
-      - name: Aplicativos do bundle para o lace install (Windows)
+      # O `lace install`, o `lace update` e o assistente web baixam os
+      # aplicativos do bundle em pedaços, também no Windows: o mesmo payload
+      # da TUI, publicado à parte. Vem antes do Inno Setup, que grava no
+      # web.iss o SHA-256 de cada pedaço.
+      - name: Aplicativos do bundle em pedaços (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           target\release\lace-pack.exe tui --toolchain dist\toolchain --lace target\release\lace.exe --installer target\release\lace-installer.exe --out dist\tui --assets dist\apps
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem dist\apps
+
+      # Dois assistentes do mesmo script: o completo, com o bundle dentro, e o
+      # web (/DWeb), que baixa da release só os aplicativos escolhidos.
+      - name: Montar os instaladores (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          target\release\lace-pack.exe inno --toolchain dist\toolchain --lace target\release\lace.exe --out dist\inno --web dist\tui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $env:ISCC /Q "/DStage=$PWD\dist\inno" "/DLaceVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\lace.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $env:ISCC /Q /DWeb "/DStage=$PWD\dist\inno" "/DLaceVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\lace.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist\*.exe
 
       # ---------------------------------------------------------- publicar
       - uses: actions/upload-artifact@v4
@@ -172,6 +180,7 @@ jobs:
           path: |
             dist/${{ env.NAME }}.tar.gz
             dist/${{ env.NAME }}-setup.exe
+            dist/${{ env.NAME }}-web-setup.exe
             dist/apps/*
           if-no-files-found: error
           retention-days: 14

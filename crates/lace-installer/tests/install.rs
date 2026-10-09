@@ -139,11 +139,12 @@ fn installs_the_selection_and_replaces_it_later() {
     assert_eq!(
         files_under(&prefix),
         [
-            "bin/lace",
+            pack::lace_entry(platform()),
             "install.json",
             "toolchain/bundle.json",
             "toolchain/components/icarus.json",
             "toolchain/components/yosys.json",
+            "toolchain/files.json",
             "toolchain/oss/bin/iverilog",
             "toolchain/oss/bin/yosys",
             "toolchain/oss/lib/libc",

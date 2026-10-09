@@ -23,7 +23,7 @@ use lace_core::{
 use crate::output::Output;
 use crate::report::{
     AddReport, BuildReport, CheckReport, MoveReport, OrderReport, PortValues, ReportCleanReport,
-    ReportListReport, ReportShowReport, SimReport, SynthReport, WaveReport,
+    ReportListReport, ReportShowReport, SavedLayoutReport, SimReport, SynthReport, WaveReport,
 };
 use crate::settings;
 use crate::{
@@ -91,9 +91,33 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
             let from = args.from.as_deref().map(settings::absolute).transpose()?;
             crate::install::run(out, &args.components, from.as_deref())?;
         }
-        Command::Update { check, yes } => {
-            crate::update::run(out, cli.toolchain.resolve().ok().as_ref(), *check, *yes)?
+        Command::Update {
+            check,
+            yes,
+            full,
+            from,
+        } => {
+            let from = from.as_deref().map(settings::absolute).transpose()?;
+            crate::update::run(
+                out,
+                cli.toolchain.resolve().ok().as_ref(),
+                crate::update::Options {
+                    check: *check,
+                    yes: *yes,
+                    full: *full,
+                    from: from.as_deref(),
+                },
+            )?
         }
+        Command::Setup {
+            payload,
+            components,
+            prefix,
+        } => crate::install::setup(
+            &settings::absolute(payload)?,
+            components,
+            &settings::absolute(prefix)?,
+        )?,
         Command::Uninstall { yes } => crate::uninstall::run(out, *yes)?,
         Command::Completions { shell } => {
             clap_complete::generate(*shell, &mut Cli::command(), "lace", &mut std::io::stdout());
@@ -602,6 +626,9 @@ fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValu
 }
 
 fn wave(cli: &Cli, args: &WaveArgs, out: &Output) -> anyhow::Result<()> {
+    if let Some(command) = &args.command {
+        return crate::wave_choice::run(cli, command, out);
+    }
     let waveform = match &args.waveform {
         Some(path) => settings::absolute(path)?,
         None => {
@@ -625,6 +652,16 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output) -> anyhow::Result<()> {
         }
     };
     let toolchain = cli.toolchain.resolve()?;
+    // O layout salvo no projeto sai antes: a onda abre com o gerado, que
+    // passa a ser o salvo.
+    if args.reset_layout
+        && let Ok(project) = Project::discover(&waveform)
+        && let Some(testbench) = lace_core::wave_testbench_of(&waveform)?
+        && lace_core::reset_saved_layout(&project, &testbench)?
+        && out.is_text()
+    {
+        println!("The saved layout of {testbench} was deleted; opening the generated one");
+    }
     let (mut surfer, layout) = open_with_layout(&toolchain, &waveform, !args.no_layout)?;
     surfer.ensure_started(SURFER_GRACE)?;
     out.opened(&surfer, layout.as_ref());
@@ -632,6 +669,12 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output) -> anyhow::Result<()> {
         pid: surfer.id(),
         log: surfer.log_file().to_owned(),
         layout: layout.as_ref().map(|l| l.state.clone()),
+        saved_layout: layout.as_ref().and_then(|l| l.saved.as_ref()).map(|s| {
+            SavedLayoutReport {
+                path: s.path.clone(),
+                customized: s.customized,
+            }
+        }),
         processors: layout.map(|l| l.layout.processors).unwrap_or_default(),
         waveform,
     })

@@ -13,7 +13,8 @@
 //!   pedaço do payload (`lace-<versão>-<plataforma>-<arquivo>`), conferidos
 //!   pelo `SHA256SUMS` dela; ou
 //! - com `--from`, de um instalador no disco: a pasta, o `.tar.gz` da release
-//!   ou a pasta `payload/` dele.
+//!   ou a pasta `payload/` dele, ou uma pasta com os arquivos que a release
+//!   publica (`lace-<versão>-<plataforma>-index.json` e os pedaços).
 //!
 //! O bundle de lá precisa ser o instalado: outro bundle é atualizar, e isso é
 //! `lace update`.
@@ -26,11 +27,13 @@ use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::{Platform, component};
 use lace_installer::add::{self, ChunkSource, LocalPayload};
 use lace_installer::install::Event;
+use lace_installer::files::{FILES_FILE, FilesManifest};
 use lace_installer::payload::{self, Chunk, Index};
 use lace_installer::plan::{self, Selection};
 use lace_installer::tui;
 
 use crate::installation;
+use crate::meter::Meter;
 use crate::output::Output;
 use crate::release;
 use crate::report::InstallReport;
@@ -50,12 +53,16 @@ pub fn run(out: &Output, components: &[String], from: Option<&Utf8Path>) -> anyh
         bail!("With --json, name the apps to install: lace install <app>");
     }
     let prefix = installation::prefix()?;
+    lace_installer::update::clean_leftovers(prefix.as_std_path());
     let work = release::work_dir()?;
     let work_dir = Utf8Path::from_path(work.path())
         .context("Temporary folder is not UTF-8")?
         .to_owned();
-    let (index, source) = match from {
-        Some(path) => local(path, &work_dir)?,
+    let (index, source): (Index, Arc<dyn ChunkSource>) = match from {
+        Some(path) => {
+            let payload = DiskPayload::find(path, &work_dir)?;
+            (payload.index()?, Arc::new(payload))
+        }
         None => remote(&work_dir)?,
     };
     let toolchain = prefix.join("toolchain");
@@ -83,23 +90,12 @@ pub fn run(out: &Output, components: &[String], from: Option<&Utf8Path>) -> anyh
             .component(name)
             .map_or_else(|| name.to_owned(), |c| c.label.clone())
     };
+    let mut meter = Meter::new();
+    // O progresso vai para o stderr também com `--json`: o Studio mostra.
     let report = add::add(&*source, &index, prefix.as_std_path(), &new, |event| {
-        if !text {
-            return;
-        }
-        match event {
-            Event::Chunk {
-                index: i,
-                count,
-                components,
-            } => {
-                let what: Vec<String> = components.iter().map(|c| label(c)).collect();
-                println!("  [{i}/{count}] {}", what.join(", "));
-            }
-            Event::Verifying => println!("  Verifying the executables"),
-            _ => {}
-        }
+        show(&mut meter, &event, &label)
     })?;
+    meter.finish();
     if text {
         println!("{}", tui::plain(&tui::added_lines(&report, &index)));
     }
@@ -141,31 +137,184 @@ fn choose(
     Ok(())
 }
 
-/// Os pedaços de um instalador no disco: a pasta dele, a pasta `payload/`
-/// dele, ou o `.tar.gz` da release (extraído em `work`).
-fn local(path: &Utf8Path, work: &Utf8Path) -> anyhow::Result<(Index, Arc<dyn ChunkSource>)> {
-    let payload_dir = if path
-        .join(payload::PAYLOAD_DIR)
-        .join(payload::INDEX_FILE)
-        .is_file()
-    {
-        path.join(payload::PAYLOAD_DIR)
-    } else if path.join(payload::INDEX_FILE).is_file() {
-        path.to_owned()
-    } else if path.is_file() {
-        let file = std::fs::File::open(path).with_context(|| format!("Opening {path}"))?;
-        tar::Archive::new(flate2::read::GzDecoder::new(file))
-            .unpack(work)
-            .with_context(|| format!("Extracting {path}"))?;
-        find_payload(work).with_context(|| format!("{path} does not contain a Lace installer"))?
-    } else {
-        bail!("{path} is not a Lace installer (neither its folder nor the release .tar.gz)");
+/// `lace setup`, que o assistente do Windows que baixa só os aplicativos
+/// escolhidos roda antes de copiar o `lace.exe`: o bundle de `components` em
+/// `prefix/toolchain`, a partir dos arquivos da release em `payload`
+/// (`install_bundle`). Cada pedaço vira uma linha `[i/n] ...` no stderr, que
+/// o assistente mostra.
+pub fn setup(payload: &Utf8Path, components: &[String], prefix: &Utf8Path) -> anyhow::Result<()> {
+    let work = release::work_dir()?;
+    let work_dir = Utf8Path::from_path(work.path())
+        .context("Temporary folder is not UTF-8")?
+        .to_owned();
+    let disk = DiskPayload::find(payload, &work_dir)?;
+    let index = disk.index()?;
+    let (selection, _) = plan::from_names(&index, components)?;
+    let label = |name: &str| {
+        index
+            .component(name)
+            .map_or_else(|| name.to_owned(), |c| c.label.clone())
     };
-    let index = Index::load(payload_dir.as_std_path())?;
-    Ok((
-        index,
-        Arc::new(LocalPayload(payload_dir.into_std_path_buf())),
-    ))
+    let mut meter = Meter::new();
+    let verified = lace_installer::install::install_bundle(
+        &disk,
+        &index,
+        &selection,
+        prefix.as_std_path(),
+        |event| show(&mut meter, &event, &label),
+    )?;
+    meter.finish();
+    let names: Vec<String> = selection.iter().map(|c| label(c)).collect();
+    println!(
+        "Installed in {prefix}: {}; {verified} executables verified",
+        if names.is_empty() {
+            "no apps".to_owned()
+        } else {
+            names.join(", ")
+        }
+    );
+    Ok(())
+}
+
+/// Uma linha do progresso de `lace install` e do `lace update`: cada pedaço
+/// com a barra do download, e os passos depois.
+pub(crate) fn show(meter: &mut Meter, event: &Event, label: &dyn Fn(&str) -> String) {
+    match event {
+        Event::Chunk {
+            index,
+            count,
+            components,
+            download,
+        } => {
+            let what = if components.is_empty() {
+                "Lace".to_owned()
+            } else {
+                components
+                    .iter()
+                    .map(|c| label(c))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            };
+            meter.start(format!("[{index}/{count}] {what}"), *download);
+        }
+        Event::Downloading { bytes } => meter.bytes(*bytes),
+        Event::Replacing { files } => meter.note(&format!("Replacing {files} files")),
+        Event::Verifying => meter.note("Verifying the executables"),
+        Event::Start { .. } | Event::Progress { .. } => {}
+    }
+}
+
+/// O payload de um instalador no disco: a pasta e o começo dos nomes dos
+/// arquivos (vazio, ou `lace-<versão>-<plataforma>-` com os nomes que a
+/// release publica).
+pub(crate) struct DiskPayload {
+    dir: Utf8PathBuf,
+    prefix: String,
+}
+
+impl DiskPayload {
+    /// O payload em `path`: a pasta do instalador, a pasta `payload/` dele,
+    /// o `.tar.gz` da release (extraído em `work`), ou uma pasta com os
+    /// arquivos da release desta plataforma.
+    pub(crate) fn find(path: &Utf8Path, work: &Utf8Path) -> anyhow::Result<DiskPayload> {
+        let plain = |dir: Utf8PathBuf| DiskPayload {
+            dir,
+            prefix: String::new(),
+        };
+        if path
+            .join(payload::PAYLOAD_DIR)
+            .join(payload::INDEX_FILE)
+            .is_file()
+        {
+            return Ok(plain(path.join(payload::PAYLOAD_DIR)));
+        }
+        if path.join(payload::INDEX_FILE).is_file() {
+            return Ok(plain(path.to_owned()));
+        }
+        if path.is_file() {
+            let file = std::fs::File::open(path).with_context(|| format!("Opening {path}"))?;
+            tar::Archive::new(flate2::read::GzDecoder::new(file))
+                .unpack(work)
+                .with_context(|| format!("Extracting {path}"))?;
+            return find_payload(work)
+                .map(plain)
+                .with_context(|| format!("{path} does not contain a Lace installer"));
+        }
+        if path.is_dir()
+            && let Some(prefix) = release_prefix(path)?
+        {
+            return Ok(DiskPayload {
+                dir: path.to_owned(),
+                prefix,
+            });
+        }
+        bail!(
+            "{path} is not a Lace installer (its folder, its payload/ folder, the release .tar.gz, \
+             or a folder with the release files of this platform)"
+        )
+    }
+
+    /// Um arquivo do payload.
+    pub(crate) fn path(&self, file: &str) -> Utf8PathBuf {
+        self.dir.join(format!("{}{file}", self.prefix))
+    }
+
+    /// O índice.
+    pub(crate) fn index(&self) -> anyhow::Result<Index> {
+        let path = self.path(payload::INDEX_FILE);
+        let text = std::fs::read_to_string(&path).with_context(|| format!("Reading {path}"))?;
+        Index::parse(&text).with_context(|| format!("Invalid payload index: {path}"))
+    }
+
+    /// O manifesto de arquivos; `None` num payload anterior à 0.7.0.
+    pub(crate) fn files(&self) -> anyhow::Result<Option<FilesManifest>> {
+        let path = self.path(FILES_FILE);
+        if !path.is_file() {
+            return Ok(None);
+        }
+        FilesManifest::load(path.as_std_path()).map(Some)
+    }
+}
+
+impl ChunkSource for DiskPayload {
+    fn fetch(
+        &self,
+        chunk: &Chunk,
+        downloaded: &mut dyn FnMut(u64),
+    ) -> anyhow::Result<std::path::PathBuf> {
+        if self.prefix.is_empty() {
+            return LocalPayload(self.dir.clone().into_std_path_buf()).fetch(chunk, downloaded);
+        }
+        let path = self.path(&chunk.file);
+        if !path.is_file() {
+            bail!("The payload has no chunk {path}");
+        }
+        Ok(path.into_std_path_buf())
+    }
+}
+
+/// O começo dos nomes dos arquivos da release desta plataforma numa pasta
+/// (`lace-0.7.0-linux-x64-`), se ela tem o índice de uma versão só.
+fn release_prefix(dir: &Utf8Path) -> anyhow::Result<Option<String>> {
+    let platform = Platform::current()
+        .context("No bundle apps for this platform")?
+        .as_str();
+    let suffix = format!("-{platform}-{}", payload::INDEX_FILE);
+    let mut found: Vec<String> = dir
+        .read_dir_utf8()
+        .with_context(|| format!("Reading {dir}"))?
+        .filter_map(Result::ok)
+        .filter_map(|e| {
+            let name = e.file_name();
+            (name.starts_with("lace-") && name.ends_with(&suffix))
+                .then(|| name[..name.len() - payload::INDEX_FILE.len()].to_owned())
+        })
+        .collect();
+    match found.len() {
+        0 => Ok(None),
+        1 => Ok(found.pop()),
+        _ => bail!("{dir} has the release files of more than one Lace version"),
+    }
 }
 
 fn find_payload(dir: &Utf8Path) -> Option<Utf8PathBuf> {
@@ -208,11 +357,12 @@ fn remote(work: &Utf8Path) -> anyhow::Result<(Index, Arc<dyn ChunkSource>)> {
     Ok((index, Arc::new(source)))
 }
 
-/// Os pedaços publicados na release, baixados um a um quando são extraídos.
-struct ReleasePayload {
-    version: String,
-    platform: String,
-    dir: Utf8PathBuf,
+/// Os pedaços publicados na release, baixados um a um quando são extraídos,
+/// para `dir` (que guarda também o `SHA256SUMS` dela).
+pub(crate) struct ReleasePayload {
+    pub(crate) version: String,
+    pub(crate) platform: String,
+    pub(crate) dir: Utf8PathBuf,
 }
 
 impl ChunkSource for ReleasePayload {

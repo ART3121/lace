@@ -698,9 +698,22 @@ export const useJobs = create<JobsState>((set, get) => ({
     const report = outcome.result as UpdateReport;
     const version = report.lace.latest;
     if (report.action === 'updated') {
-      const text = t('console.updateDone', { version });
+      const changes = report.method === 'components' ? report.changes : null;
+      const text = changes
+        ? t('console.updateDoneParts', {
+            version,
+            size: `${(changes.download_bytes / 1048576).toFixed(1)} MiB`,
+            components: changes.components.join(', '),
+          })
+        : t('console.updateDone', { version });
       cliLine(text, 'success');
       useToasts.getState().push({ kind: 'success', title: text });
+      // O Studio que está aberto é o antigo: o novo vale ao abrir de novo.
+      if (changes?.components.includes('studio')) {
+        const restart = t('console.updateRestart');
+        cliLine(restart, 'info');
+        useToasts.getState().push({ kind: 'info', title: restart }, 10000);
+      }
     } else if (report.action === 'wizard_opened') {
       const text = t('console.updateWizard', { version });
       cliLine(text, 'info');

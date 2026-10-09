@@ -3,10 +3,13 @@
 #   irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 #
 # Baixa o assistente de instalação da release, confere o SHA-256 com o
-# SHA256SUMS da release e o abre. Variáveis opcionais:
+# SHA256SUMS da release e o abre. Desde a 0.7.0, o assistente é o web, que
+# baixa só os aplicativos escolhidos. Variáveis opcionais:
 #   $env:LACE_VERSION = "0.2.0"            versão fixa, em vez da última
 #   $env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"
 #                                          instalação sem perguntas
+#   $env:LACE_FULL_SETUP = "1"             o assistente completo, com o bundle
+#                                          inteiro dentro (para instalar sem rede depois)
 
 & {
     $ErrorActionPreference = 'Stop'
@@ -113,31 +116,42 @@
         $version = $release.tag_name.TrimStart('v')
     }
 
-    $name = "lace-$version-windows-x64-setup.exe"
     $base = "https://github.com/$repo/releases/download/v$version"
     $dir = Join-Path ([IO.Path]::GetTempPath()) "lace-$version"
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    $setup = Join-Path $dir $name
     $sums = Join-Path $dir 'SHA256SUMS'
+    Invoke-WebRequest -UseBasicParsing -Uri "$base/SHA256SUMS" -OutFile $sums
+    $listed = Get-Content $sums
+    $listedAs = { param($file) $listed | Where-Object { $_ -match ('\s\*?' + [regex]::Escape($file) + '$') } | Select-Object -First 1 }
 
-    Write-Host "Downloading Lace $version (windows-x64)"
+    # O assistente web (desde a 0.7.0) tem poucos MB e baixa da release só
+    # os aplicativos escolhidos; o completo traz o bundle inteiro, e é o que
+    # vem numa versão sem o web ou com LACE_FULL_SETUP.
+    $name = "lace-$version-windows-x64-web-setup.exe"
+    $what = 'the Lace {0} installer, which downloads only the apps you choose (windows-x64)' -f $version
+    if ($env:LACE_FULL_SETUP -or -not (& $listedAs $name)) {
+        $name = "lace-$version-windows-x64-setup.exe"
+        $what = "Lace $version (windows-x64)"
+    }
+    $setup = Join-Path $dir $name
+
+    Write-Host "Downloading $what"
     try {
         Get-WithProgress "$base/$name" $setup
     } catch {
         # Uma resposta de erro do servidor (404, 403) não muda numa segunda
         # tentativa; uma conexão que caiu, sim. Ela vai pelo caminho de
         # antes, sem progresso.
-        $web = $_.Exception
-        while ($web -and -not ($web -is [Net.WebException])) { $web = $web.InnerException }
-        if ($web -and $web.Response) { throw }
+        $failure = $_.Exception
+        while ($failure -and -not ($failure -is [Net.WebException])) { $failure = $failure.InnerException }
+        if ($failure -and $failure.Response) { throw }
         Write-Host ''
         Write-Host "The download failed ($($_.Exception.Message)); trying again without the progress line"
         Invoke-WebRequest -UseBasicParsing -Uri "$base/$name" -OutFile $setup
     }
-    Invoke-WebRequest -UseBasicParsing -Uri "$base/SHA256SUMS" -OutFile $sums
 
     Write-Host 'Checking the SHA-256'
-    $line = Get-Content $sums | Where-Object { $_ -match ('\s' + [regex]::Escape($name) + '$') } | Select-Object -First 1
+    $line = & $listedAs $name
     if (-not $line) { throw "The release SHA256SUMS does not list $name" }
     $expected = ($line -split '\s+')[0].ToLower()
     $actual = (Get-FileHash -Algorithm SHA256 -Path $setup).Hash.ToLower()

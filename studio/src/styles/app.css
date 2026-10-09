@@ -479,6 +479,21 @@ a {
   color: var(--error);
 }
 
+/* O número depois do nome de um botão da barra: os itens da escolha de
+   sinais da onda. */
+.tool-btn__badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--brand);
+  border-radius: 8px;
+  color: var(--brand-text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+}
+
 .segmented {
   display: inline-flex;
   padding: 2px;
@@ -4821,4 +4836,106 @@ body.is-dragging * {
 .board-links__actions {
   width: 1%;
   white-space: nowrap;
+}
+
+/* Sinais da onda (WaveSignalsDialog) */
+
+.wave-signals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.wave-signals p {
+  margin: 0;
+}
+
+.wave-signals__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wave-signals__warning {
+  color: var(--warn);
+}
+
+.wave-signals__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wave-signals__tools .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.wave-signals__tools .input.is-invalid {
+  border-color: var(--error);
+}
+
+.wave-signals__spacer {
+  flex: 1 0 0;
+}
+
+.wave-signals__tree {
+  max-height: min(52vh, 520px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 4px 0;
+  background: var(--bg-1);
+}
+
+.wave-signals__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  padding-right: var(--space-2);
+  white-space: nowrap;
+}
+
+.wave-signals__row:hover {
+  background: var(--hover);
+}
+
+.wave-signals__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.wave-signals__chevron:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.wave-signals__check {
+  margin: 0;
+  accent-color: var(--brand);
+}
+
+.wave-signals__dir {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+
+.wave-view__layout {
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wave-view__signals {
+  flex: none;
 }

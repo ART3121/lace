@@ -63,6 +63,10 @@ enum Command {
     Inno {
         #[command(flatten)]
         common: Common,
+        /// Also write web.iss for the installer that downloads the apps (iscc /DWeb), from the
+        /// `lace-pack tui` installer folder with the chunks the release publishes
+        #[arg(long, value_name = "DIR")]
+        web: Option<PathBuf>,
     },
 }
 
@@ -127,9 +131,15 @@ fn main() -> anyhow::Result<()> {
                 );
             }
         }
-        Command::Inno { common } => {
+        Command::Inno { common, web } => {
             let contents = contents(&common)?;
-            pack::inno(&common.toolchain, &contents, &common.lace, &common.out)?;
+            pack::inno(
+                &common.toolchain,
+                &contents,
+                &common.lace,
+                &common.out,
+                web.as_deref(),
+            )?;
             println!("Inno Setup stage in {}", common.out.display());
         }
     }

@@ -19,8 +19,16 @@
 //!   GitHub, as tags do surfer-aurora e as releases do Graphviz no GitLab.
 //!   Uma fonte que falha deixa só a coluna dela vazia.
 //!
-//! Quem atualiza é o instalador da versão nova, baixado da release e
-//! conferido pelo `SHA256SUMS` dela:
+//! A atualização vai por componentes quando dá: a instalação guarda o
+//! manifesto de arquivos da versão dela (`toolchain/files.json`, desde a
+//! 0.7.0), a release nova publica o seu, e só os pedaços com arquivos que
+//! mudaram são baixados, conferidos pelo `SHA256SUMS` dela, e trocados no
+//! lugar (`lace_installer::update`). Uma falha no meio devolve a instalação
+//! ao que era. `--from` faz o mesmo com um instalador no disco, sem rede.
+//!
+//! Sem o manifesto (uma instalação anterior à 0.7.0), com `--full` ou se a
+//! atualização por componentes falha, quem atualiza é o instalador inteiro
+//! da versão nova, baixado da release e conferido pelo `SHA256SUMS` dela:
 //!
 //! - Linux e macOS: `install --yes --components <os instalados> --prefix
 //!   <instalação>`, com o atalho do recibo. Ele troca o `bin/lace` e o
@@ -38,12 +46,17 @@ use std::process::Stdio;
 use anyhow::{Context, bail};
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::{BundleManifest, Platform, Toolchain, component};
+use lace_installer::add::ChunkSource;
+use lace_installer::files::{self, FilesManifest};
 use lace_installer::pack;
 use lace_installer::payload::{self, Index};
+use lace_installer::update::{self as by_parts, Plan};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::install::{DiskPayload, ReleasePayload};
 use crate::installation::{self, Receipt};
+use crate::meter::Meter;
 use crate::output::Output;
 use crate::release;
 
@@ -86,6 +99,46 @@ pub struct UpdateReport {
     pub prefix: Option<Utf8PathBuf>,
     /// O que o comando fez.
     pub action: UpdateAction,
+    /// Como atualizou; `null` quando não atualizou.
+    pub method: Option<UpdateMethod>,
+    /// O que a atualização por componentes trocou, ou vai trocar com
+    /// `--check --from`; `null` quando ela não rodou.
+    pub changes: Option<UpdateChanges>,
+}
+
+/// Como `lace update` atualizou.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum UpdateMethod {
+    /// Só os arquivos que mudaram, dos pedaços que a release publica.
+    Components,
+    /// O instalador inteiro da versão nova.
+    Installer,
+}
+
+/// O que a atualização por componentes trocou.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+pub struct UpdateChanges {
+    /// Os componentes com arquivos que entraram ou saíram, na ordem do
+    /// bundle; `lace` é o próprio Lace e o cabeçalho do bundle.
+    pub components: Vec<String>,
+    /// Bytes baixados.
+    pub download_bytes: u64,
+    /// Arquivos que entraram (novos ou trocados).
+    pub files: usize,
+    /// Arquivos que saíram.
+    pub removed: usize,
+}
+
+impl UpdateChanges {
+    fn of(plan: &Plan) -> UpdateChanges {
+        UpdateChanges {
+            components: plan.changed.clone(),
+            download_bytes: plan.download(),
+            files: plan.files(),
+            removed: plan.stale.len(),
+        }
+    }
 }
 
 /// As versões do Lace em `lace update`.
@@ -150,12 +203,22 @@ pub enum UpdateAction {
     WizardOpened,
 }
 
-pub fn run(
-    out: &Output,
-    toolchain: Option<&Toolchain>,
-    check: bool,
-    yes: bool,
-) -> anyhow::Result<()> {
+/// As opções de `lace update`.
+pub struct Options<'a> {
+    /// `--check`: só compara.
+    pub check: bool,
+    /// `--yes`: não pergunta.
+    pub yes: bool,
+    /// `--full`: o instalador inteiro, sem tentar por componentes.
+    pub full: bool,
+    /// `--from`: um instalador no disco, sem rede.
+    pub from: Option<&'a Utf8Path>,
+}
+
+pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> anyhow::Result<()> {
+    if let Some(path) = options.from {
+        return from_disk(out, toolchain, &options, path);
+    }
     let mut report = gather(
         &Network,
         env!("CARGO_PKG_VERSION"),
@@ -166,8 +229,8 @@ pub fn run(
     if out.is_text() {
         print_table(&report);
     }
-    if check || !report.lace.newer {
-        report.action = if check {
+    if options.check || !report.lace.newer {
+        report.action = if options.check {
             UpdateAction::Checked
         } else {
             UpdateAction::UpToDate
@@ -179,9 +242,47 @@ pub fn run(
     }
 
     let prefix = installation?;
-    if !yes {
+    by_parts::clean_leftovers(prefix.as_std_path());
+    let version = report.lace.latest.clone();
+    let mut asked = false;
+    if !options.full {
+        let prepared = remote_plan(&version, &prefix).unwrap_or_else(|error| {
+            // No stderr também com `--json`: o Studio mostra.
+            eprintln!(
+                "Could not prepare the update by components ({error:#}); \
+                 updating with the installer of Lace {version}"
+            );
+            None
+        });
+        if let Some(prepared) = prepared {
+            if out.is_text() {
+                print_plan(&prepared.plan, &prepared.index, false);
+            }
+            if !options.yes {
+                confirm_plan(&prepared.plan, &prefix)?;
+                asked = true;
+            }
+            match by_components(out, &prefix, &prepared) {
+                Ok(changes) => {
+                    report.action = UpdateAction::Updated;
+                    report.method = Some(UpdateMethod::Components);
+                    report.changes = Some(changes);
+                    return out.json(&report);
+                }
+                Err(error) => {
+                    eprintln!(
+                        "Could not update by components ({error:#}); the installation was \
+                         left as it was. Updating with the installer of Lace {version}"
+                    );
+                }
+            }
+        }
+    }
+
+    if !options.yes && !asked {
         confirm(&report.lace, &prefix)?;
     }
+    report.method = Some(UpdateMethod::Installer);
     report.action = if cfg!(windows) {
         let installed: Vec<String> = toolchain
             .map(|t| {
@@ -412,7 +513,303 @@ fn gather(
         components,
         prefix: None,
         action: UpdateAction::Checked,
+        method: None,
+        changes: None,
     })
+}
+
+/// A atualização por componentes, preparada: o índice e o manifesto da
+/// versão nova, o plano, e de onde vêm os pedaços.
+struct Prepared {
+    index: Index,
+    new: FilesManifest,
+    plan: Plan,
+    source: Box<dyn ChunkSource>,
+    /// Os pedaços vêm de um instalador no disco (`--from`), não da rede.
+    local: bool,
+    /// A pasta dos downloads, apagada no fim.
+    _work: Option<tempfile::TempDir>,
+}
+
+/// O manifesto de arquivos da instalação; `None` numa instalação anterior à
+/// 0.7.0, que não o tem.
+fn installed_manifest(prefix: &Utf8Path) -> anyhow::Result<Option<FilesManifest>> {
+    let path = prefix.join(files::INSTALLED);
+    if !path.is_file() {
+        tracing::info!("{path} does not exist: the installation is older than Lace 0.7.0");
+        return Ok(None);
+    }
+    FilesManifest::load(path.as_std_path()).map(Some)
+}
+
+/// Prepara a atualização por componentes para a release `v<version>`:
+/// baixa o índice e o manifesto de arquivos dela e compara com a
+/// instalação. `None` quando não dá (a instalação ou a release sem o
+/// manifesto): atualiza o instalador inteiro.
+fn remote_plan(version: &str, prefix: &Utf8Path) -> anyhow::Result<Option<Prepared>> {
+    let Some(installed) = installed_manifest(prefix)? else {
+        return Ok(None);
+    };
+    let platform = Platform::current()
+        .context("No Lace release for this platform")?
+        .as_str();
+    let work = release::work_dir()?;
+    let dir = Utf8Path::from_path(work.path())
+        .context("Temporary folder path is not UTF-8")?
+        .to_owned();
+    let get = |file: &str| -> anyhow::Result<String> {
+        let name = payload::release_asset(version, platform, file);
+        let path = release::download_checked_quiet(version, &name, &dir, &mut |_| {})?;
+        std::fs::read_to_string(&path).with_context(|| format!("Reading {path}"))
+    };
+    let index = Index::parse(&get(payload::INDEX_FILE)?)
+        .with_context(|| format!("Invalid index in release v{version}"))?;
+    if index.lace_version != version {
+        bail!(
+            "The index of release v{version} is for Lace {}",
+            index.lace_version
+        );
+    }
+    let new = match get(files::FILES_FILE) {
+        Ok(text) => FilesManifest::parse(&text)
+            .with_context(|| format!("Invalid file manifest in release v{version}"))?,
+        Err(error) => {
+            tracing::info!("Release v{version} has no file manifest: {error:#}");
+            return Ok(None);
+        }
+    };
+    let plan = by_parts::plan(prefix.as_std_path(), &installed, &index, &new)?;
+    Ok(Some(Prepared {
+        index,
+        new,
+        plan,
+        source: Box::new(ReleasePayload {
+            version: version.to_owned(),
+            platform: platform.to_owned(),
+            dir,
+        }),
+        local: false,
+        _work: Some(work),
+    }))
+}
+
+/// O nome de um componente para mostrar, com os rótulos do índice novo.
+fn label_of(index: &Index, name: &str) -> String {
+    if name == by_parts::LACE {
+        return "Lace".to_owned();
+    }
+    index
+        .component(name)
+        .map_or_else(|| name.to_owned(), |c| c.label.clone())
+}
+
+/// O que a atualização por componentes vai fazer, antes de perguntar.
+fn print_plan(plan: &Plan, index: &Index, local: bool) {
+    println!();
+    if plan.chunks.is_empty() && plan.stale.is_empty() {
+        println!("The installation already has every file of Lace {}", plan.to);
+        return;
+    }
+    let what: Vec<String> = plan.changed.iter().map(|n| label_of(index, n)).collect();
+    println!(
+        "Lace {} to {} by components: {}",
+        plan.from,
+        plan.to,
+        what.join(", ")
+    );
+    let mut detail = format!(
+        "{} of {} chunks {} ({}), {} files in",
+        plan.chunks.len(),
+        index.chunks.len(),
+        if local { "from the installer" } else { "to download" },
+        lace_installer::mib(plan.download()),
+        plan.files()
+    );
+    if !plan.stale.is_empty() {
+        detail.push_str(&format!(", {} out", plan.stale.len()));
+    }
+    println!("{detail}");
+    if !plan.added.is_empty() {
+        let added: Vec<String> = plan.added.iter().map(|n| label_of(index, n)).collect();
+        println!("Comes in, required by the new version: {}", added.join(", "));
+    }
+    if !plan.removed.is_empty() {
+        println!(
+            "Goes out, no longer in the bundle: {}",
+            plan.removed.join(", ")
+        );
+    }
+}
+
+/// Pergunta antes de atualizar por componentes, com o tamanho do download.
+fn confirm_plan(plan: &Plan, prefix: &Utf8Path) -> anyhow::Result<()> {
+    if !std::io::stdin().is_terminal() {
+        bail!("No terminal to confirm: use lace update --yes");
+    }
+    eprint!(
+        "Update Lace {} to {} in {prefix}? [y/N] ",
+        plan.from, plan.to
+    );
+    std::io::stderr().flush()?;
+    let mut answer = String::new();
+    std::io::stdin().lock().read_line(&mut answer)?;
+    if matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+        Ok(())
+    } else {
+        bail!("Nothing was updated")
+    }
+}
+
+/// Faz a atualização por componentes, com a barra de cada pedaço.
+fn by_components(
+    out: &Output,
+    prefix: &Utf8Path,
+    prepared: &Prepared,
+) -> anyhow::Result<UpdateChanges> {
+    let plan = &prepared.plan;
+    let text = out.is_text();
+    let mut meter = Meter::new();
+    let label = |name: &str| label_of(&prepared.index, name);
+    let applied = by_parts::apply(
+        &*prepared.source,
+        plan,
+        &prepared.new,
+        prefix.as_std_path(),
+        |event| crate::install::show(&mut meter, &event, &label),
+    )?;
+    meter.finish();
+    match installation::register_version(prefix, &plan.to) {
+        Ok(true) => {}
+        Ok(false) => {
+            tracing::info!("No entry of this installation in the list of installed apps")
+        }
+        Err(error) => {
+            tracing::info!("The list of installed apps: {error:#}");
+            if text {
+                println!(
+                    "The list of installed apps still shows the previous version ({error:#}); \
+                     Lace itself is updated"
+                );
+            }
+        }
+    }
+    if text {
+        let downloaded = if prepared.local {
+            String::new()
+        } else {
+            format!("{} downloaded, ", lace_installer::mib(plan.download()))
+        };
+        println!(
+            "Updated Lace to {} in {prefix}: {downloaded}{} files in, {} out, {} executables verified",
+            plan.to, applied.replaced, applied.removed, applied.verified
+        );
+        if cfg!(windows) && plan.changed.iter().any(|c| c == component::STUDIO) {
+            println!("If Lace Studio is open, close it and open it again to use the new version");
+        }
+    }
+    Ok(UpdateChanges::of(plan))
+}
+
+/// `lace update --from`: a versão do instalador no disco, por componentes e
+/// sem rede.
+fn from_disk(
+    out: &Output,
+    toolchain: Option<&Toolchain>,
+    options: &Options,
+    path: &Utf8Path,
+) -> anyhow::Result<()> {
+    let prefix = installation::prefix()?;
+    by_parts::clean_leftovers(prefix.as_std_path());
+    let work = release::work_dir()?;
+    let work_dir = Utf8Path::from_path(work.path())
+        .context("Temporary folder path is not UTF-8")?
+        .to_owned();
+    let disk = DiskPayload::find(path, &work_dir)?;
+    let index = disk.index()?;
+    let new = disk.files()?.with_context(|| {
+        format!(
+            "The installer in {path} has no file manifest (files.json): it is older than Lace \
+             0.7.0, and updates only with the installer itself"
+        )
+    })?;
+    let installed = installed_manifest(&prefix)?.with_context(|| {
+        format!(
+            "The installation in {prefix} has no file manifest (it is older than Lace 0.7.0): \
+             update it with the installer, or with lace update --full"
+        )
+    })?;
+    let installed_version = env!("CARGO_PKG_VERSION");
+    if is_newer(installed_version, &index.lace_version) {
+        bail!(
+            "The installer in {path} is Lace {}, older than this Lace ({installed_version})",
+            index.lace_version
+        );
+    }
+    let plan = by_parts::plan(prefix.as_std_path(), &installed, &index, &new)?;
+
+    let manifest = toolchain.map(Toolchain::manifest);
+    let mut report = UpdateReport {
+        lace: LaceVersions {
+            installed: installed_version.to_owned(),
+            latest: index.lace_version.clone(),
+            newer: is_newer(&index.lace_version, installed_version),
+        },
+        bundle: BundleVersions {
+            installed: manifest.map(|m| m.bundle.clone()),
+            latest: Some(index.bundle.clone()),
+            newer: manifest.is_some_and(|m| is_newer(&index.bundle, &m.bundle)),
+        },
+        components: manifest
+            .map_or(&[][..], |m| m.components.as_slice())
+            .iter()
+            .map(|c| {
+                let release = index.component(&c.name).map(|i| i.version.clone());
+                ComponentVersions {
+                    name: c.name.clone(),
+                    package: package_of(&c.name, &index.platform).map(str::to_owned),
+                    installed: c.version.clone(),
+                    release_newer: release.as_deref().is_some_and(|r| is_newer(r, &c.version)),
+                    release,
+                    upstream: None,
+                    upstream_newer: false,
+                }
+            })
+            .collect(),
+        prefix: Some(prefix.clone()),
+        action: UpdateAction::Checked,
+        method: None,
+        changes: Some(UpdateChanges::of(&plan)),
+    };
+    if out.is_text() {
+        print_plan(&plan, &index, true);
+    }
+    if plan.chunks.is_empty() && plan.stale.is_empty() {
+        report.action = if options.check {
+            UpdateAction::Checked
+        } else {
+            UpdateAction::UpToDate
+        };
+        report.changes = None;
+        return out.json(&report);
+    }
+    if options.check {
+        return out.json(&report);
+    }
+    if !options.yes {
+        confirm_plan(&plan, &prefix)?;
+    }
+    let prepared = Prepared {
+        index,
+        new,
+        plan,
+        source: Box::new(disk),
+        local: true,
+        _work: Some(work),
+    };
+    report.changes = Some(by_components(out, &prefix, &prepared)?);
+    report.action = UpdateAction::Updated;
+    report.method = Some(UpdateMethod::Components);
+    out.json(&report)
 }
 
 /// A chave de ordem de uma versão: os grupos de dígitos, como números, na

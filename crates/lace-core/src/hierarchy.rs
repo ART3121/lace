@@ -280,40 +280,19 @@ pub fn hierarchy(
     for target in targets {
         let image = work.join(format!("{}.vvp", target.name));
         tracker.expect(ArtifactKind::IcarusImage, &image, true);
-        // Os caminhos que podem ir para a tabela de arquivos do `.vvp` (as
-        // fontes, a biblioteca e a pasta dos `include`) vão com `/`
-        // (`process::icarus_path`), como no `synth::include_paths`.
-        let mut invocation = crate::synth::include_paths(
-            toolchain.invocation(Tool::Iverilog, project.root())?,
-            None,
-            project.root(),
-        );
-        if target.files.iter().any(|f| f.extension() == Some("sv")) {
-            invocation = invocation.arg("-g2012");
-        }
-        if let Some(library) = &library {
-            invocation = invocation.arg("-y").icarus_path_arg(library);
-        }
-        for top in &target.tops {
-            invocation = invocation.arg("-s").arg(top);
-        }
-        invocation = invocation.arg("-o").path_arg(&image);
-        for file in &target.files {
-            invocation = invocation.icarus_path_arg(file);
-        }
-
         // Um Runner por elaboração: a falha de uma não pula as outras.
-        let mut runner = Runner::new(control);
-        runner.run(PlannedStep::new(
-            Step::Elaborate,
-            Tool::Iverilog,
-            invocation,
-        ))?;
-        let roots = if runner.status == Status::Succeeded {
-            let text = std::fs::read_to_string(&image).map_err(LaceError::io("Reading", &image))?;
-            parse_vvp(&text, project.root(), library.as_deref())
-        } else {
-            Vec::new()
+        let (runner, text) = elaborate(
+            toolchain,
+            project,
+            &target.files,
+            &target.tops,
+            library.as_deref(),
+            &image,
+            control,
+        )?;
+        let roots = match &text {
+            Some(text) => parse_vvp(text, project.root(), library.as_deref()),
+            None => Vec::new(),
         };
         if runner.status != Status::Succeeded && status == Status::Succeeded {
             status = runner.status;
@@ -356,6 +335,55 @@ pub fn hierarchy(
     })
 }
 
+/// Elabora `files` com o Icarus (`-s` para cada um de `tops`; sem nenhum, ele
+/// acha as raízes) num `.vvp` em `image`, com CWD na raiz do projeto, e
+/// devolve o passo e, se deu certo, o texto do `.vvp`. É a elaboração da
+/// [`hierarchy`] e da árvore de sinais da onda
+/// ([`wave_signals`](crate::wave_signals)).
+pub(crate) fn elaborate<'c>(
+    toolchain: &Toolchain,
+    project: &Project,
+    files: &[Utf8PathBuf],
+    tops: &[String],
+    library: Option<&Utf8Path>,
+    image: &Utf8Path,
+    control: &'c Control,
+) -> Result<(Runner<'c>, Option<String>)> {
+    // Os caminhos que podem ir para a tabela de arquivos do `.vvp` (as
+    // fontes, a biblioteca e a pasta dos `include`) vão com `/`
+    // (`process::icarus_path`), como no `synth::include_paths`.
+    let mut invocation = crate::synth::include_paths(
+        toolchain.invocation(Tool::Iverilog, project.root())?,
+        None,
+        project.root(),
+    );
+    if files.iter().any(|f| f.extension() == Some("sv")) {
+        invocation = invocation.arg("-g2012");
+    }
+    if let Some(library) = library {
+        invocation = invocation.arg("-y").icarus_path_arg(library);
+    }
+    for top in tops {
+        invocation = invocation.arg("-s").arg(top);
+    }
+    invocation = invocation.arg("-o").path_arg(image);
+    for file in files {
+        invocation = invocation.icarus_path_arg(file);
+    }
+    let mut runner = Runner::new(control);
+    runner.run(PlannedStep::new(
+        Step::Elaborate,
+        Tool::Iverilog,
+        invocation,
+    ))?;
+    let text = if runner.status == Status::Succeeded {
+        Some(std::fs::read_to_string(image).map_err(LaceError::io("Reading", image))?)
+    } else {
+        None
+    };
+    Ok((runner, text))
+}
+
 /// Uma elaboração a fazer.
 struct Target {
     /// O nome do `.vvp`.
@@ -384,16 +412,17 @@ impl Target {
 // ------------------------------------------------------------------ o .vvp
 
 /// Uma linha `.scope` do `.vvp`.
-struct Scope {
-    label: String,
-    kind: String,
-    name: String,
-    module: String,
+pub(crate) struct Scope {
+    pub(crate) label: String,
+    /// `module`, `generate`, `begin`, `fork`, `function`, `task`...
+    pub(crate) kind: String,
+    pub(crate) name: String,
+    pub(crate) module: String,
     /// Numa raiz, a definição; num filho, a instância. `(arquivo, linha)`.
     declared: (usize, u32),
     /// Num filho, a definição.
     defined: Option<(usize, u32)>,
-    parent: Option<String>,
+    pub(crate) parent: Option<String>,
 }
 
 /// A árvore de módulos de um `.vvp`. Os blocos `generate`, `begin` e `fork`
@@ -503,7 +532,7 @@ fn parse_vvp(text: &str, root: &Utf8Path, library: Option<&Utf8Path>) -> Vec<Mod
 }
 
 /// `S_0x.. .scope module, "proc" "soma" 2 26, 3 1 0, S_0x..;`
-fn parse_scope(line: &str) -> Option<Scope> {
+pub(crate) fn parse_scope(line: &str) -> Option<Scope> {
     let (label, rest) = line.split_once(" .scope ")?;
     if !label.starts_with("S_") {
         return None;
@@ -534,7 +563,7 @@ fn parse_scope(line: &str) -> Option<Scope> {
 }
 
 /// Uma string entre aspas no começo de `text`, sem os escapes, e o resto.
-fn quoted(text: &str) -> Option<(String, &str)> {
+pub(crate) fn quoted(text: &str) -> Option<(String, &str)> {
     let body = text.strip_prefix('"')?;
     let mut escaped = false;
     for (i, c) in body.char_indices() {

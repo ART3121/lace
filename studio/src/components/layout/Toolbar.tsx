@@ -1,7 +1,7 @@
 // A barra de ferramentas: projeto, o alvo (projeto ou um processador), os
 // botões do fluxo com os nomes que a AURORA usava (C±, Verilog, Wave,
-// PRISM) e o botão de parar. O simulador se escolhe no menu Fluxo e nas
-// Preferências.
+// PRISM), os Sinais da onda e o botão de parar. O simulador se escolhe no
+// menu Fluxo e nas Preferências.
 //
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
 // Preferências > Layout da janela); um grupo sem nenhum botão some com o
@@ -10,7 +10,7 @@
 import { CircleStop } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { action, isEnabled, runAction } from '../../actions';
+import { action, isEnabled, runAction, signalChoice } from '../../actions';
 import { useT, t as translate } from '../../i18n';
 import { useApp } from '../../state/app';
 import { phaseKey, useJobs } from '../../state/jobs';
@@ -21,7 +21,8 @@ import type { Key } from '../../i18n';
 import { openContextMenu, Spinner } from '../common';
 import { toolbarMenu } from './layoutMenus';
 
-function ToolButton({ id, label }: { id: string; label?: Key }) {
+/** `badge` vai num círculo depois do nome; `note`, no fim da dica. */
+function ToolButton({ id, label, badge, note }: { id: string; label?: Key; badge?: number; note?: string }) {
   const t = useT();
   const a = action(id);
   const Icon = a.icon;
@@ -35,11 +36,12 @@ function ToolButton({ id, label }: { id: string; label?: Key }) {
       type="button"
       className="tool-btn"
       disabled={!isEnabled(a)}
-      title={`${t(a.label)}${a.keys ? ` (${a.keys})` : ''}`}
+      title={`${t(a.label)}${a.keys ? ` (${a.keys})` : ''}${note ? `: ${note}` : ''}`}
       onClick={() => runAction(id)}
     >
       {status === 'running' ? <Spinner size={15} /> : Icon && <Icon size={15} />}
       {label && <span>{t(label)}</span>}
+      {badge !== undefined && <span className="tool-btn__badge">{badge}</span>}
     </button>
   );
 }
@@ -52,6 +54,9 @@ export function Toolbar() {
   const snapshot = useProject((s) => s.snapshot);
   const target = useProject((s) => s.target);
   const running = useJobs((s) => s.running);
+  // O botão Sinais mostra quantos itens a escolha da onda tem; sem escolha,
+  // a onda grava todos e o botão fica sem número.
+  const chosen = useProject((s) => s.snapshot?.wave_selection?.length ?? 0);
   const hidden = useLayout((s) => s.live.hidden.toolbar);
   // Redesenha quando a informação do bundle chega.
   useApp((s) => s.toolchain);
@@ -92,9 +97,19 @@ export function Toolbar() {
   if (flow.length) {
     segments.push(
       <div key="flow" className="toolbar__group">
-        {flow.map((item) => (
-          <ToolButton key={item.id} id={item.id} label={item.label} />
-        ))}
+        {flow.map((item) =>
+          item.id === 'waveSignals' ? (
+            <ToolButton
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              badge={chosen > 0 ? chosen : undefined}
+              note={signalChoice(chosen)}
+            />
+          ) : (
+            <ToolButton key={item.id} id={item.id} label={item.label} />
+          ),
+        )}
       </div>,
     );
   }

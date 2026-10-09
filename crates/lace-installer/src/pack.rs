@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, bail};
 use serde::Deserialize;
 
+use crate::files::{self, FILES_FILE, FILES_SCHEMA, FileGroup, FilesManifest};
 use crate::payload::{Chunk, ComponentInfo, INDEX_FILE, INDEX_SCHEMA, Index, PAYLOAD_DIR};
 
 /// O índice `<bundle>.contents.json` do `bundle.py`.
@@ -140,6 +141,71 @@ pub fn groups(contents: &Contents) -> Vec<Group> {
         .collect()
 }
 
+/// O nome do pedaço de cada grupo de [`groups`], na mesma ordem: o comum é
+/// `lace.tar.zst`; os outros, `c01.tar.zst`, `c02.tar.zst`...
+fn chunk_names(groups: &[Group]) -> Vec<String> {
+    let mut numbered = 0;
+    groups
+        .iter()
+        .map(|g| {
+            if g.components.is_empty() {
+                "lace.tar.zst".to_owned()
+            } else {
+                numbered += 1;
+                format!("c{numbered:02}.tar.zst")
+            }
+        })
+        .collect()
+}
+
+/// Onde fica o `lace` na instalação, e o nome dele no pedaço sempre
+/// instalado e no manifesto de arquivos: `bin/lace.exe` no Windows,
+/// `bin/lace` nos outros.
+pub fn lace_entry(platform: &str) -> &'static str {
+    if platform == "windows-x64" {
+        "bin/lace.exe"
+    } else {
+        "bin/lace"
+    }
+}
+
+/// O manifesto de arquivos ([`crate::files`]) do bundle em `toolchain`,
+/// com o `lace` em `lace`: o SHA-256 de cada arquivo, nos grupos de
+/// [`groups`], com o pedaço de cada um.
+pub fn files_manifest(
+    toolchain: &Path,
+    contents: &Contents,
+    lace: &Path,
+) -> anyhow::Result<FilesManifest> {
+    let groups = groups(contents);
+    let names = chunk_names(&groups);
+    let mut out = Vec::new();
+    for (group, chunk) in groups.into_iter().zip(names) {
+        let mut entries = BTreeMap::new();
+        if group.components.is_empty() {
+            entries.insert(
+                lace_entry(&contents.platform).to_owned(),
+                files::digest(lace)?,
+            );
+        }
+        for f in &group.files {
+            entries.insert(format!("toolchain/{f}"), files::digest(&toolchain.join(f))?);
+        }
+        out.push(FileGroup {
+            chunk,
+            components: group.components,
+            files: entries,
+        });
+    }
+    Ok(FilesManifest {
+        schema: FILES_SCHEMA,
+        lace_version: crate::LACE_VERSION.to_owned(),
+        bundle: contents.bundle.clone(),
+        platform: contents.platform.clone(),
+        groups: out,
+    })
+}
+
 fn size(path: &Path) -> anyhow::Result<u64> {
     let meta = fs::symlink_metadata(path).with_context(|| format!("Reading {}", path.display()))?;
     Ok(if meta.file_type().is_symlink() {
@@ -208,7 +274,8 @@ To remove it, with the bundle: lace uninstall (or <installation folder>/uninstal
 ";
 
 /// Monta o instalador de Linux e macOS em `out`: o executável `install`, o
-/// `payload/` e o `LEIA-ME.txt`.
+/// `payload/` e o `LEIA-ME.txt`. O payload leva também o manifesto de
+/// arquivos (`files.json`), que vai junto no pedaço sempre instalado.
 pub fn tui(
     toolchain: &Path,
     contents: &Contents,
@@ -224,9 +291,14 @@ pub fn tui(
     fs::copy(installer, &install).with_context(|| format!("Copying {}", installer.display()))?;
     set_executable(&install)?;
 
+    let manifest = files_manifest(toolchain, contents, lace)?;
+    let manifest_path = payload.join(FILES_FILE);
+    manifest.save(&manifest_path)?;
+
+    let groups = groups(contents);
+    let names = chunk_names(&groups);
     let mut chunks = Vec::new();
-    let mut numbered = 0;
-    for group in groups(contents) {
+    for (group, file) in groups.into_iter().zip(names) {
         let mut entries: Vec<Entry> = group
             .files
             .iter()
@@ -236,30 +308,33 @@ pub fn tui(
                 executable: false,
             })
             .collect();
-        let file = if group.components.is_empty() {
+        if group.components.is_empty() {
             entries.insert(
                 0,
                 Entry {
                     src: lace.to_owned(),
-                    name: "bin/lace".to_owned(),
+                    name: lace_entry(&contents.platform).to_owned(),
                     executable: true,
                 },
             );
-            "lace.tar.zst".to_owned()
-        } else {
-            numbered += 1;
-            format!("c{numbered:02}.tar.zst")
-        };
+            entries.push(Entry {
+                src: manifest_path.clone(),
+                name: files::INSTALLED.to_owned(),
+                executable: false,
+            });
+        }
         let mut bytes = 0;
         for e in &entries {
             bytes += size(&e.src)?;
         }
-        write_chunk(&payload.join(&file), &entries, level)?;
+        let path = payload.join(&file);
+        write_chunk(&path, &entries, level)?;
         chunks.push(Chunk {
             file,
             components: group.components,
             size: bytes,
             entries: entries.len() as u64,
+            download: size(&path)?,
         });
     }
 
@@ -312,13 +387,15 @@ pub fn tar_gz(dir: &Path, out: &Path) -> anyhow::Result<()> {
 }
 
 /// Copia o payload do instalador em `installer` para `dir` com os nomes que a
-/// release publica ([`crate::payload::release_asset`]): o índice e cada
-/// pedaço. Devolve os arquivos gravados.
+/// release publica ([`crate::payload::release_asset`]): o índice, o
+/// manifesto de arquivos e cada pedaço. Devolve os arquivos gravados.
 pub fn release_assets(installer: &Path, dir: &Path) -> anyhow::Result<Vec<std::path::PathBuf>> {
     let payload = installer.join(PAYLOAD_DIR);
     let index = Index::load(&payload)?;
     fs::create_dir_all(dir).with_context(|| format!("Creating {}", dir.display()))?;
-    let files = std::iter::once(crate::payload::INDEX_FILE.to_owned())
+    let files = [crate::payload::INDEX_FILE, FILES_FILE]
+        .into_iter()
+        .map(str::to_owned)
         .chain(index.chunks.iter().map(|c| c.file.clone()));
     let mut written = Vec::new();
     for file in files {
@@ -397,8 +474,15 @@ fn inno_quote(text: &str) -> String {
 /// Monta o estágio do instalador de Windows em `out`: `bin/lace.exe`,
 /// `common/` e `chunks/NN/` com os arquivos, e `components.iss` com as
 /// seções `[Components]` e `[Files]` que o `installer/windows/lace.iss`
-/// inclui.
-pub fn inno(toolchain: &Path, contents: &Contents, lace: &Path, out: &Path) -> anyhow::Result<()> {
+/// inclui. O `common/` leva o manifesto de arquivos (`toolchain/files.json`),
+/// o mesmo que o payload de [`tui`] gera desse bundle.
+pub fn inno(
+    toolchain: &Path,
+    contents: &Contents,
+    lace: &Path,
+    out: &Path,
+    web: Option<&Path>,
+) -> anyhow::Result<()> {
     ensure_empty(out)?;
     fs::create_dir_all(out.join("bin"))?;
     fs::copy(lace, out.join("bin/lace.exe"))
@@ -439,7 +523,7 @@ pub fn inno(toolchain: &Path, contents: &Contents, lace: &Path, out: &Path) -> a
                 .filter(|k| parent.get(k.name.as_str()) == Some(&c.name.as_str())),
         );
     }
-    for c in ordered {
+    for c in &ordered {
         let mut line = format!(
             "Name: \"{}\"; Description: \"{}: {}\"",
             full(&c.name),
@@ -452,11 +536,32 @@ pub fn inno(toolchain: &Path, contents: &Contents, lace: &Path, out: &Path) -> a
         if parent.values().any(|p| *p == c.name) {
             line.push_str("; Flags: checkablealone");
         }
-        iss.push_str(&line);
-        iss.push('\n');
+        // No assistente que baixa os aplicativos (`/DWeb`), o espaço de cada
+        // um não vem do [Files]: vai declarado.
+        let mut bytes = 0;
+        for f in &c.files {
+            bytes += size(&toolchain.join(f))?;
+        }
+        iss.push_str(&format!(
+            "#ifdef Web\n{line}; ExtraDiskSpaceRequired: {bytes}\n#else\n{line}\n#endif\n"
+        ));
     }
 
+    // Os aplicativos que a pasta escolhida já tem (do assistente ou do
+    // `lace install`) ficam marcados numa reinstalação.
+    iss.push_str("\n[Code]\nprocedure SelectInstalledComponents(const Dir: String);\nbegin\n");
+    for c in &ordered {
+        iss.push_str(&format!(
+            "  if FileExists(Dir + '\\toolchain\\components\\{}.json') then\n    WizardSelectComponents('{}');\n",
+            c.name,
+            full(&c.name)
+        ));
+    }
+    iss.push_str("end;\n");
+
     iss.push_str("\n[Files]\nSource: \"{#Stage}\\bin\\lace.exe\"; DestDir: \"{app}\\bin\"; Components: lace; Flags: ignoreversion\n");
+    // No assistente que baixa os aplicativos, o bundle não vai dentro dele.
+    iss.push_str("#ifndef Web\n");
     let mut numbered = 0;
     for group in groups(contents) {
         let (dir, expr) = if group.components.is_empty() {
@@ -483,11 +588,78 @@ pub fn inno(toolchain: &Path, contents: &Contents, lace: &Path, out: &Path) -> a
             "Source: \"{{#Stage}}\\{dir}\\*\"; DestDir: \"{{app}}\"; Components: {expr}; Flags: ignoreversion recursesubdirs createallsubdirs\n"
         ));
     }
-    // O Inno Setup lê UTF-8 com BOM; as descrições têm acentos.
-    let mut bytes = b"\xef\xbb\xbf".to_vec();
-    bytes.extend(iss.replace('\n', "\r\n").into_bytes());
-    fs::write(out.join("components.iss"), bytes)?;
+    iss.push_str("#endif\n");
+    let manifest = files_manifest(toolchain, contents, lace)?;
+    let manifest_path = out.join("common").join(files::INSTALLED);
+    fs::create_dir_all(manifest_path.parent().expect("tem pai"))?;
+    manifest.save(&manifest_path)?;
+    write_iss(&out.join("components.iss"), &iss)?;
+    if let Some(installer) = web {
+        write_iss(&out.join("web.iss"), &web_script(installer, &full)?)?;
+    }
     Ok(())
+}
+
+/// Grava um script do Inno Setup, que lê UTF-8 com BOM (as descrições têm
+/// acentos) e fins de linha do Windows.
+fn write_iss(path: &Path, text: &str) -> anyhow::Result<()> {
+    let mut bytes = b"\xef\xbb\xbf".to_vec();
+    bytes.extend(text.replace('\n', "\r\n").into_bytes());
+    fs::write(path, bytes).with_context(|| format!("Writing {}", path.display()))
+}
+
+/// O `web.iss` do assistente que baixa os aplicativos (`/DWeb`), a partir do
+/// instalador de [`tui`] em `installer`, com os pedaços que a release
+/// publica: `AddDownloads` põe na página de download o índice, o pedaço
+/// sempre instalado e os pedaços dos componentes marcados, cada um com o
+/// SHA-256 dele; `SelectedApps` dá os componentes marcados, com os nomes do
+/// Lace, para o `lace setup`.
+fn web_script(installer: &Path, full: &dyn Fn(&str) -> String) -> anyhow::Result<String> {
+    let payload = installer.join(PAYLOAD_DIR);
+    let index = Index::load(&payload)?;
+    let asset = |file: &str| {
+        crate::payload::release_asset(&index.lace_version, &index.platform, file)
+    };
+    let mut iss = String::from(
+        "; Gerado por lace-pack a partir do payload da release. Não editar.\n\n[Code]\n\
+         { O índice, o pedaço sempre instalado e os dos componentes marcados. }\n\
+         procedure AddDownloads(Page: TDownloadWizardPage; const Base: String);\nbegin\n",
+    );
+    let line = |file: &str| -> anyhow::Result<String> {
+        let name = asset(file);
+        let sha = files::digest(&payload.join(file))?;
+        Ok(format!("Page.Add(Base + '{name}', '{name}', '{sha}');"))
+    };
+    iss.push_str(&format!("  {}\n", line(INDEX_FILE)?));
+    for chunk in &index.chunks {
+        if chunk.components.is_empty() {
+            iss.push_str(&format!("  {}\n", line(&chunk.file)?));
+        } else {
+            let expr = chunk
+                .components
+                .iter()
+                .map(|c| full(c))
+                .collect::<Vec<_>>()
+                .join(" or ");
+            iss.push_str(&format!(
+                "  if WizardIsComponentSelected('{expr}') then\n    {}\n",
+                line(&chunk.file)?
+            ));
+        }
+    }
+    iss.push_str(
+        "end;\n\n{ Os componentes marcados, com os nomes do Lace, separados por vírgula. }\n\
+         function SelectedApps: String;\nbegin\n  Result := '';\n",
+    );
+    for c in &index.components {
+        iss.push_str(&format!(
+            "  if WizardIsComponentSelected('{}') then\n    Result := Result + ',{}';\n",
+            full(&c.name),
+            c.name
+        ));
+    }
+    iss.push_str("  if Result <> '' then\n    Delete(Result, 1, 1);\nend;\n");
+    Ok(iss)
 }
 
 #[cfg(test)]
@@ -604,7 +776,7 @@ mod tests {
         let lace = dir.path().join("lace.exe");
         fs::write(&lace, "exe").unwrap();
         let out = dir.path().join("stage");
-        inno(&toolchain, &c, &lace, &out).unwrap();
+        inno(&toolchain, &c, &lace, &out, None).unwrap();
         let iss = fs::read_to_string(out.join("components.iss")).unwrap();
         assert!(iss.starts_with('\u{feff}'));
         let iss = iss.replace("\r\n", "\n");

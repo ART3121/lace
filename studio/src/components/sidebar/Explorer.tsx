@@ -353,6 +353,10 @@ function VerilogRow({ file, kind }: { file: ProjectFile; kind: 'module' | 'testb
           await afterProjectChange();
         },
       });
+      // A escolha de sinais é a do testbench simulado; um cocotb grava tudo.
+      if (isSim && extension(file.path) !== 'py') {
+        items.push({ label: t('action.waveSignals'), run: () => openDialog({ kind: 'waveSignals' }) });
+      }
       // Um testbench sem nome de testbench também pode virar o topo (muda de
       // lista); o nome tb_x.v ou x_tb.v, não.
       if (canBeTop(file.path)) items.push(topItem(file.path, false));

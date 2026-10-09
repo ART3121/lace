@@ -3,6 +3,33 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Acrescentado
+
+- **Escolher os sinais da onda**: a árvore do testbench do projeto, com uma
+  caixa por escopo e por sinal, filtro por nome ou expressão regular, **Só o
+  testbench** e **Desmarcar tudo**. A escolha vai para
+  `wave/<testbench>.json`; a próxima simulação grava só ela, e a onda mostra
+  só ela, um grupo por escopo. **Gravar e simular** já roda a Wave do
+  projeto com a escolha nova. Abre pelo botão **Sinais** da barra de
+  ferramentas, ao lado de Onda, que mostra quantos itens a escolha tem; pelo
+  botão Sinais no alto da aba de onda; pelo Navegador de fluxo; pelo menu
+  Fluxo; e pelo menu do testbench simulado no Explorer.
+- O layout da onda salvo no projeto, `wave/<testbench>.surf.ron`: o Ctrl+S
+  dentro da aba de onda (que agora fica com o Surfer) e o da janela salvam
+  nele, e a onda reabre com ele. O alto da aba mostra onde ele está e, depois
+  que você salva, **Voltar ao layout gerado**.
+
+### Mudado
+
+- **Atualizar para X**, na tela de ferramentas, usa a atualização por
+  componentes do `lace update`: só os pedaços com arquivos que mudaram são
+  baixados, também no Windows, onde o assistente de instalação só abre se
+  ela não der certo. A tela mostra cada pedaço enquanto baixa e, no fim, o
+  tamanho baixado e o que mudou; quando o próprio Studio muda, avisa para
+  fechar e abrir de novo.
+
 ## [0.6.0] - 2026-10-09
 
 ### Acrescentado

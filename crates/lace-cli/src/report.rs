@@ -70,6 +70,8 @@ reports! {
     "hierarchy" => HierarchyResult,
     "sim" => SimReport,
     "wave" => WaveReport,
+    "wave-signals" => lace_core::WaveSignals,
+    "wave-select" => WaveChoiceReport,
     "synth" => SynthReport,
     "report" => ReportShowReport,
     "report-list" => ReportListReport,
@@ -282,13 +284,41 @@ pub struct WaveReport {
     /// Onde vai o stdout e o stderr do surfer-aurora.
     #[schemars(with = "String")]
     pub log: Utf8PathBuf,
-    /// O estado do Surfer gerado para os processadores SAPHO da onda
-    /// (`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda
-    /// que não é VCD nem FST.
+    /// O estado do Surfer com que a onda abriu (`.surf.ron`): o layout salvo
+    /// no projeto ou o gerado; `null` com `--no-layout`, numa onda sem sinal
+    /// para mostrar ou que não é VCD nem FST.
     #[schemars(with = "Option<String>")]
     pub layout: Option<Utf8PathBuf>,
+    /// O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
+    /// Surfer salva (Ctrl+S); `null` numa onda fora de projeto.
+    pub saved_layout: Option<SavedLayoutReport>,
     /// Os processadores do layout.
     pub processors: Vec<WaveProcessor>,
+}
+
+/// O layout salvo no projeto para a onda aberta.
+#[derive(Serialize, JsonSchema)]
+pub struct SavedLayoutReport {
+    /// O arquivo.
+    #[schemars(with = "String")]
+    pub path: Utf8PathBuf,
+    /// O usuário salvou depois que o Lace o gerou: o Lace não o refaz
+    /// (`lace wave --reset-layout` volta ao gerado).
+    pub customized: bool,
+}
+
+/// `lace wave select` e `lace wave unselect`: a escolha de sinais depois da
+/// mudança.
+#[derive(Serialize, JsonSchema)]
+pub struct WaveChoiceReport {
+    /// O módulo do testbench do projeto.
+    pub testbench: String,
+    /// O arquivo da escolha (`wave/<testbench>.json`); `null` quando ela
+    /// ficou vazia e o arquivo saiu: a onda grava todos os sinais.
+    #[schemars(with = "Option<String>")]
+    pub file: Option<Utf8PathBuf>,
+    /// A escolha; vazia: todos os sinais.
+    pub selection: Vec<String>,
 }
 
 /// `lace synth`.

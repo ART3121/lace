@@ -44,6 +44,7 @@ export type DialogSpec =
   | { kind: 'chooseTop' }
   | { kind: 'chooseTestbench' }
   | { kind: 'cleanReports' }
+  | { kind: 'waveSignals' }
   | { kind: 'shortcuts' }
   | { kind: 'prompt'; options: PromptOptions; resolve: (value: string | null) => void }
   | { kind: 'confirm'; options: ConfirmOptions; resolve: (value: string | null) => void };

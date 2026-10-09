@@ -52,8 +52,21 @@ pub fn latest_github_tag(repo: &str) -> anyhow::Result<String> {
     }
 }
 
-/// A última versão do Lace publicada (a tag sem o `v`).
+/// A última versão do Lace publicada (a tag sem o `v`). Com um espelho
+/// (`LACE_RELEASE_URL`), o arquivo `latest` dele, com a versão numa linha,
+/// se houver; sem ele, a do GitHub.
 pub fn latest_lace_version() -> anyhow::Result<String> {
+    if let Ok(base) = std::env::var("LACE_RELEASE_URL")
+        && !base.is_empty()
+    {
+        let url = format!("{}/latest", base.trim_end_matches('/'));
+        match fetch_text(&url) {
+            Ok(text) if !text.trim().is_empty() => {
+                return Ok(text.trim().trim_start_matches('v').to_owned());
+            }
+            _ => tracing::info!("No {url}: the latest version comes from GitHub"),
+        }
+    }
     let tag = latest_github_tag(&repo())?;
     Ok(tag.trim_start_matches('v').to_owned())
 }

@@ -535,6 +535,34 @@ export type ToolEntry =
  * via the `definition` "UpdateAction".
  */
 export type UpdateAction = 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
+/**
+ * Como `lace update` atualizou.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "UpdateMethod".
+ */
+export type UpdateMethod = 'components' | 'installer';
+/**
+ * A direção de uma porta. Em JSON, `"input"`, `"output"` ou `"inout"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "PortDirection".
+ */
+export type PortDirection = 'input' | 'output' | 'inout';
+/**
+ * O tipo de um escopo. Em JSON, `"module"`, `"generate"` ou `"block"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ScopeKind".
+ */
+export type ScopeKind = 'module' | 'generate' | 'block';
+/**
+ * O tipo de um sinal. Em JSON, `"reg"`, `"wire"`, `"integer"` ou `"real"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SignalKind".
+ */
+export type SignalKind = 'reg' | 'wire' | 'integer' | 'real';
 
 /**
  * O que [`Project::add_verilog`] fez com um arquivo.
@@ -3025,6 +3053,114 @@ export interface ComponentVersions {
   upstream_newer: boolean;
 }
 /**
+ * O que a atualização por componentes trocou.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "UpdateChanges".
+ */
+export interface UpdateChanges {
+  /**
+   * Os componentes com arquivos que entraram ou saíram, na ordem do
+   * bundle; `lace` é o próprio Lace e o cabeçalho do bundle.
+   */
+  components: string[];
+  /**
+   * Bytes baixados.
+   */
+  download_bytes: number;
+  /**
+   * Arquivos que entraram (novos ou trocados).
+   */
+  files: number;
+  /**
+   * Arquivos que saíram.
+   */
+  removed: number;
+}
+/**
+ * Um escopo da árvore: uma instância de módulo, ou um bloco `generate` ou
+ * `begin` com nome.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SignalScope".
+ */
+export interface SignalScope {
+  /**
+   * O nome (`dut`, `g[0]`).
+   */
+  name: string;
+  /**
+   * O caminho na hierarquia (`tb.dut`), como vai na escolha.
+   */
+  path: string;
+  /**
+   * Instância de módulo, bloco `generate` ou bloco com nome.
+   */
+  kind: 'module' | 'generate' | 'block';
+  /**
+   * O módulo, numa instância.
+   */
+  module: string | null;
+  /**
+   * É um processador SAPHO (tem `valr2` e `linetabs`): os sinais dele vão
+   * para a onda com qualquer escolha.
+   */
+  processor: boolean;
+  /**
+   * Os sinais, na ordem do Icarus.
+   */
+  signals: WaveSignal[];
+  /**
+   * Os escopos de dentro.
+   */
+  scopes: SignalScope[];
+}
+/**
+ * Um sinal da árvore.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveSignal".
+ */
+export interface WaveSignal {
+  /**
+   * O nome.
+   */
+  name: string;
+  /**
+   * O caminho na hierarquia (`tb.dut.q`).
+   */
+  path: string;
+  /**
+   * Bits (64 num `real`).
+   */
+  width: number;
+  /**
+   * `reg`, `wire`, `integer` ou `real`.
+   */
+  kind: 'reg' | 'wire' | 'integer' | 'real';
+  /**
+   * A direção, quando o sinal é uma porta do módulo.
+   */
+  direction: PortDirection | null;
+}
+/**
+ * O layout salvo no projeto para a onda aberta.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SavedLayoutReport".
+ */
+export interface SavedLayoutReport {
+  /**
+   * O arquivo.
+   */
+  path: string;
+  /**
+   * O usuário salvou depois que o Lace o gerou: o Lace não o refaz
+   * (`lace wave --reset-layout` volta ao gerado).
+   */
+  customized: boolean;
+}
+/**
  * Um processador SAPHO achado na onda.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -4115,6 +4251,15 @@ export interface UpdateReport {
    * O que o comando fez.
    */
   action: 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
+  /**
+   * Como atualizou; `null` quando não atualizou.
+   */
+  method: UpdateMethod | null;
+  /**
+   * O que a atualização por componentes trocou, ou vai trocar com
+   * `--check --from`; `null` quando ela não rodou.
+   */
+  changes: UpdateChanges | null;
 }
 /**
  * O Lace: este e o da última release.
@@ -4152,6 +4297,80 @@ export interface BundleVersions1 {
   newer: boolean;
 }
 /**
+ * `lace wave select` e `lace wave unselect`: a escolha de sinais depois da
+ * mudança.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveChoiceReport".
+ */
+export interface WaveChoiceReport {
+  /**
+   * O módulo do testbench do projeto.
+   */
+  testbench: string;
+  /**
+   * O arquivo da escolha (`wave/<testbench>.json`); `null` quando ela
+   * ficou vazia e o arquivo saiu: a onda grava todos os sinais.
+   */
+  file: string | null;
+  /**
+   * A escolha; vazia: todos os sinais.
+   */
+  selection: string[];
+}
+/**
+ * A árvore de sinais do testbench do projeto, para escolher o que a onda
+ * grava ([`wave_signals`]).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveSignals".
+ */
+export interface WaveSignals {
+  /**
+   * O testbench elaborado (o da simulação do projeto).
+   */
+  testbench: string;
+  /**
+   * O módulo do testbench: a raiz da árvore e o nome dos arquivos em
+   * `wave/`.
+   */
+  module: string;
+  /**
+   * A árvore, a partir do módulo do testbench. `None` quando a elaboração
+   * falhou (os erros em `diagnostics`).
+   */
+  root: SignalScope | null;
+  /**
+   * A escolha gravada; vazia: a simulação grava todos os sinais.
+   */
+  selection: string[];
+  /**
+   * Onde a escolha fica (`wave/<módulo>.json`), exista ou não.
+   */
+  selection_file: string;
+  /**
+   * Itens da escolha que a árvore não tem (um sinal renomeado, um módulo
+   * que saiu): a simulação os deixa de fora.
+   */
+  unknown: string[];
+  /**
+   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * A elaboração (`iverilog`).
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos da elaboração.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Quanto levou, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
  * `lace wave`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -4171,11 +4390,16 @@ export interface WaveReport {
    */
   log: string;
   /**
-   * O estado do Surfer gerado para os processadores SAPHO da onda
-   * (`.surf.ron`); `null` sem processador, com `--no-layout` ou numa onda
-   * que não é VCD nem FST.
+   * O estado do Surfer com que a onda abriu (`.surf.ron`): o layout salvo
+   * no projeto ou o gerado; `null` com `--no-layout`, numa onda sem sinal
+   * para mostrar ou que não é VCD nem FST.
    */
   layout: string | null;
+  /**
+   * O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
+   * Surfer salva (Ctrl+S); `null` numa onda fora de projeto.
+   */
+  saved_layout: SavedLayoutReport | null;
   /**
    * Os processadores do layout.
    */

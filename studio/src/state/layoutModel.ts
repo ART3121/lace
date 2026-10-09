@@ -69,6 +69,7 @@ export const TOOLBAR_ITEMS: { id: string; label: Key; group: 'file' | 'target' |
   { id: 'simulate', label: 'toolbar.simulate', group: 'flow' },
   { id: 'fastSim', label: 'toolbar.fastSim', group: 'flow' },
   { id: 'openWave', label: 'toolbar.openWave', group: 'flow' },
+  { id: 'waveSignals', label: 'toolbar.waveSignals', group: 'flow' },
   { id: 'synthesize', label: 'toolbar.synthesize', group: 'flow' },
   { id: 'showBoard', label: 'toolbar.board', group: 'flow' },
   { id: 'running', label: 'layout.item.running', group: 'running' },

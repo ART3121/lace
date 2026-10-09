@@ -147,6 +147,9 @@ export interface ProjectSnapshot {
   top_module_error: IpcError | null;
   selected_testbench: string | null;
   testbench_module: string | null;
+  /** A escolha de sinais da onda do testbench (`wave/<testbench>.json`):
+   * vazia, a onda grava todos os sinais. */
+  wave_selection: string[];
   unregistered: string[];
   processors: ProcessorStatus[];
   waveform: string | null;
@@ -427,6 +430,13 @@ export interface WaveTab {
   id: string;
   url: string;
   processors: WaveProcessor[];
+  /** O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o Ctrl+S
+   * da aba salva; `null` numa onda fora de projeto. */
+  saved_layout: string | null;
+  /** O usuário salvou o layout depois que o Lace o gerou. */
+  customized: boolean;
+  /** A escolha de sinais que o layout segue; vazia: todos. */
+  selection: string[];
 }
 
 /** `terminal.rs`: TerminalMessage. */

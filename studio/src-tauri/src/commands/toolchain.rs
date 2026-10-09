@@ -89,10 +89,14 @@ pub async fn lace_install(
 }
 
 /// `lace update --yes --json`: troca a instalação pela da última release do
-/// Lace, com o bundle e os mesmos componentes. No Linux e no macOS, o
-/// instalador da release roda e termina junto; no Windows, o assistente de
-/// instalação abre e termina depois que o `lace` sai (`action` no fim:
-/// `updated`, `wizard_opened` ou `up_to_date`).
+/// Lace, com o bundle e os mesmos componentes. Desde a 0.7.0 vai por
+/// componentes: só os pedaços com arquivos que mudaram são baixados e
+/// trocados, também no Windows, e o resultado diz o que mudou (`method:
+/// "components"`, `changes`). Sem isso, no Linux e no macOS o instalador
+/// da release roda e termina junto; no Windows, o assistente de instalação
+/// abre e termina depois que o `lace` sai (`action` no fim: `updated`,
+/// `wizard_opened` ou `up_to_date`). O progresso de cada pedaço chega no
+/// stderr da CLI.
 ///
 /// O `--yes` responde a pergunta que a CLI faria no terminal: quem confirma
 /// é a interface, antes de chamar. A operação não para no meio: cancelar

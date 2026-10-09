@@ -28,6 +28,7 @@ import {
   GraduationCap,
   Hammer,
   ListChecks,
+  ListFilter,
   Play,
   Save,
   Search,
@@ -252,6 +253,13 @@ export async function openWave(processor?: string | null) {
   if (opened) {
     useToasts.getState().push({ kind: 'info', title: t('console.waveOpened', { pid: opened.pid, path: baseName(opened.waveform) }) });
   }
+}
+
+/** A escolha de sinais da onda do projeto em poucas palavras, para os botões
+ * que abrem a janela Sinais da onda: "todos", "1 marcado", "3 marcados". */
+export function signalChoice(count: number): string {
+  if (count === 0) return t('wave.choiceAll');
+  return count === 1 ? t('wave.choiceOne') : t('wave.choiceSome', { count });
 }
 
 /** Abre `path` no surfer-aurora em janela, qualquer que seja a preferência. */
@@ -601,6 +609,7 @@ export const ACTIONS: Action[] = [
     run: () => runFastSimulation(),
   },
   { id: 'openWave', label: 'action.openWave', category: 'flow', keys: 'Ctrl+F8', icon: Activity, enabled: hasWave, run: () => openWave() },
+  { id: 'waveSignals', label: 'action.waveSignals', category: 'flow', icon: ListFilter, enabled: hasProject, run: () => openDialog({ kind: 'waveSignals' }) },
   { id: 'synthesize', label: 'action.synthesize', category: 'flow', keys: 'F10', icon: CircuitBoard, enabled: canRun, run: () => runSynthesis() },
   { id: 'showSchematic', label: 'action.showSchematic', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('schematic') },
   { id: 'showStatistics', label: 'action.showStatistics', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('synthesis') },

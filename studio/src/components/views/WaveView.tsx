@@ -2,16 +2,18 @@
 // (wave_tab.rs) e ligado a um `surfer-aurora server` desta aba. Abrir a vista
 // sobe o servidor; fechar, ou trocar de onda, o encerra.
 
-import { AudioWaveform, ExternalLink, RotateCw } from 'lucide-react';
+import { AudioWaveform, ExternalLink, ListFilter, RotateCcw, RotateCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { openWaveWindow } from '../../actions';
+import { openWaveWindow, signalChoice } from '../../actions';
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
 import type { IpcError, WaveTab } from '../../ipc/types';
+import { confirm, openDialog } from '../../state/dialogs';
 import { useProject } from '../../state/project';
+import { showError } from '../../state/toasts';
 import { useWaveReloads } from '../../state/waves';
-import { relativeTo } from '../../util/paths';
+import { relativeTo, samePath } from '../../util/paths';
 import { Button, IconButton, Spinner } from '../common';
 
 type State = { status: 'loading' } | { status: 'ready'; tab: WaveTab } | { status: 'error'; error: IpcError };
@@ -33,6 +35,10 @@ function nudge(frame: HTMLIFrameElement | null) {
 export function WaveView({ path }: { path: string }) {
   const t = useT();
   const root = useProject((s) => s.snapshot?.root ?? null);
+  // A escolha de sinais vale para a onda do testbench do projeto; a de um
+  // processador grava tudo.
+  const projectWave = useProject((s) => samePath(s.snapshot?.waveform, path));
+  const chosen = useProject((s) => s.snapshot?.wave_selection?.length ?? 0);
   const reload = useWaveReloads((s) => s.tokens[path] ?? 0);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<State>({ status: 'loading' });
@@ -102,6 +108,28 @@ export function WaveView({ path }: { path: string }) {
           })
           .join(' · ')
       : '';
+  const tab = state.status === 'ready' ? state.tab : null;
+  const layoutPath = tab?.saved_layout ? (root ? relativeTo(tab.saved_layout, root) : tab.saved_layout) : null;
+
+  // Apaga o layout que o usuário salvou e abre a aba de novo, com o gerado.
+  const resetLayout = async () => {
+    if (!layoutPath) return;
+    const answer = await confirm({
+      title: t('dialog.resetLayout.title'),
+      message: t('dialog.resetLayout.message', { path: layoutPath }),
+      buttons: [
+        { label: t('dialog.resetLayout.confirm'), value: 'reset', danger: true },
+        { label: t('common.cancel'), value: 'cancel' },
+      ],
+    });
+    if (answer !== 'reset') return;
+    try {
+      await api.wave.resetLayout(path);
+      setAttempt((n) => n + 1);
+    } catch (error) {
+      showError(error);
+    }
+  };
 
   return (
     <div className="wave-view">
@@ -112,6 +140,30 @@ export function WaveView({ path }: { path: string }) {
         </span>
         {summary && <span className="muted wave-view__text">{summary}</span>}
         <span className="wave-view__spacer" />
+        {layoutPath && (
+          <span
+            className="muted wave-view__text wave-view__layout"
+            title={t(tab?.customized ? 'wave.customLayout' : 'wave.savedLayout', { path: layoutPath })}
+          >
+            {t(tab?.customized ? 'wave.customLayout' : 'wave.savedLayout', { path: layoutPath })}
+          </span>
+        )}
+        {layoutPath && tab?.customized && (
+          <IconButton label={t('wave.resetLayout')} onClick={() => void resetLayout()}>
+            <RotateCcw size={14} />
+          </IconButton>
+        )}
+        {projectWave && (
+          <Button
+            small
+            className="wave-view__signals"
+            icon={<ListFilter size={14} />}
+            title={t('action.waveSignals')}
+            onClick={() => openDialog({ kind: 'waveSignals' })}
+          >
+            {t('wave.signals', { choice: signalChoice(chosen) })}
+          </Button>
+        )}
         <IconButton label={t('wave.reload')} onClick={() => setAttempt((n) => n + 1)}>
           <RotateCw size={14} />
         </IconButton>

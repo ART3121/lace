@@ -16,7 +16,8 @@
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, abrir a onda |
-//! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio |
+//! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
+//! | [`commands::wave`] | a escolha dos sinais da onda e o layout salvo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
 //! está em `docs/IPC.md`.
@@ -32,6 +33,7 @@ pub mod commands {
     pub mod learn;
     pub mod project;
     pub mod toolchain;
+    pub mod wave;
 }
 pub mod error;
 pub mod flows;
@@ -159,6 +161,9 @@ pub fn run() {
             terminal::terminal_kill,
             wave_tab::wave_tab_open,
             wave_tab::wave_tab_close,
+            commands::wave::wave_signals,
+            commands::wave::wave_selection_set,
+            commands::wave::wave_layout_reset,
         ])
         .build(tauri::generate_context!())
         .expect("Lace Studio could not start");

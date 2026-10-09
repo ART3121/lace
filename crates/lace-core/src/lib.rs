@@ -153,6 +153,7 @@ mod toolchain;
 pub mod verilog;
 mod wave;
 mod wave_layout;
+mod wave_signals;
 
 pub use build::{BuildOptions, BuildResult, OnFailure, build, build_processors};
 pub use cocotb::{TestCase, TestReport, TestStatus};
@@ -184,5 +185,10 @@ pub use toolchain::{
 };
 pub use wave::{ViewerOptions, open_waveform};
 pub use wave_layout::{
-    MappingTranslator, PreparedLayout, WaveLayout, WaveProcessor, prepare_wave_layout, wave_layout,
+    MappingTranslator, PreparedLayout, SavedLayout, WaveLayout, WaveProcessor, prepare_wave_layout,
+    reset_saved_layout, saved_layout, wave_layout, wave_testbench_of,
+};
+pub use wave_signals::{
+    PortDirection, ScopeKind, SignalKind, SignalScope, WAVE_DIR, WaveSignal, WaveSignals,
+    layout_file, read_selection, selection_file, wave_signals, wave_testbench, write_selection,
 };

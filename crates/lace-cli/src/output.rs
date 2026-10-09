@@ -165,7 +165,7 @@ impl Output {
     }
 
     /// Um aviso que não impede o comando, no stderr.
-    fn warning(&self, text: &str) {
+    pub(crate) fn warning(&self, text: &str) {
         if !self.json {
             anstream::eprintln!("{}: {text}", paint(WARNING, "Warning"));
         }
@@ -950,6 +950,24 @@ impl Output {
             surfer.id(),
             surfer.log_file()
         );
+        if let Some(saved) = layout.and_then(|l| l.saved.as_ref()) {
+            let path = crate::commands::from_shell(&saved.path);
+            if saved.customized {
+                println!(
+                    "Layout: {path}, as you saved it (lace wave --reset-layout opens the generated one)"
+                );
+            } else {
+                println!("Layout: {path}; save it in Surfer (Ctrl+S) to keep your changes");
+            }
+        }
+        if let Some(l) = layout
+            && !l.layout.selection.is_empty()
+        {
+            println!(
+                "Only the {} chosen signals and scopes (lace wave signals)",
+                l.layout.selection.len()
+            );
+        }
         for p in layout.map_or(&[][..], |l| l.layout.processors.as_slice()) {
             let mut shown = vec![format!("{} variables", p.variables)];
             if p.assembly {

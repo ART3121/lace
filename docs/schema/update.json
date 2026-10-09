@@ -29,6 +29,28 @@
     "action": {
       "description": "O que o comando fez.",
       "$ref": "#/$defs/UpdateAction"
+    },
+    "method": {
+      "description": "Como atualizou; `null` quando não atualizou.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UpdateMethod"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "changes": {
+      "description": "O que a atualização por componentes trocou, ou vai trocar com\n`--check --from`; `null` quando ela não rodou.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UpdateChanges"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
@@ -36,7 +58,9 @@
     "bundle",
     "components",
     "prefix",
-    "action"
+    "action",
+    "method",
+    "changes"
   ],
   "$defs": {
     "LaceVersions": {
@@ -166,6 +190,58 @@
           "type": "string",
           "const": "wizard_opened"
         }
+      ]
+    },
+    "UpdateMethod": {
+      "description": "Como `lace update` atualizou.",
+      "oneOf": [
+        {
+          "description": "Só os arquivos que mudaram, dos pedaços que a release publica.",
+          "type": "string",
+          "const": "components"
+        },
+        {
+          "description": "O instalador inteiro da versão nova.",
+          "type": "string",
+          "const": "installer"
+        }
+      ]
+    },
+    "UpdateChanges": {
+      "description": "O que a atualização por componentes trocou.",
+      "type": "object",
+      "properties": {
+        "components": {
+          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `lace` é o próprio Lace e o cabeçalho do bundle.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "download_bytes": {
+          "description": "Bytes baixados.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "files": {
+          "description": "Arquivos que entraram (novos ou trocados).",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "removed": {
+          "description": "Arquivos que saíram.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "components",
+        "download_bytes",
+        "files",
+        "removed"
       ]
     }
   }

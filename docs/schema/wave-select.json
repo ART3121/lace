@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WaveChoiceReport",
+  "description": "`lace wave select` e `lace wave unselect`: a escolha de sinais depois da\nmudança.",
+  "type": "object",
+  "properties": {
+    "testbench": {
+      "description": "O módulo do testbench do projeto.",
+      "type": "string"
+    },
+    "file": {
+      "description": "O arquivo da escolha (`wave/<testbench>.json`); `null` quando ela\nficou vazia e o arquivo saiu: a onda grava todos os sinais.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "selection": {
+      "description": "A escolha; vazia: todos os sinais.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "testbench",
+    "file",
+    "selection"
+  ]
+}

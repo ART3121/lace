@@ -224,7 +224,11 @@ impl App {
                 KeyCode::Enter => {
                     if self.profile_cursor == 0 {
                         self.profile = Profile::Recommended;
-                        self.selection = plan::recommended(&self.index);
+                        // Numa instalação que já existe, o que ela tem fica.
+                        self.selection = match &self.existing {
+                            Some(r) => plan::recommended_keeping(&self.index, &r.components),
+                            None => plan::recommended(&self.index),
+                        };
                         self.screen = Screen::Destination;
                     } else {
                         self.profile = Profile::Advanced;
@@ -379,6 +383,7 @@ impl App {
                     index,
                     count,
                     components,
+                    ..
                 }) => {
                     let what = if components.is_empty() {
                         "Lace".to_owned()
@@ -402,6 +407,9 @@ impl App {
                 Msg::Progress(Event::Progress { done }) => {
                     self.progress.done = done;
                     self.progress.label = self.progress.chunk.clone();
+                }
+                Msg::Progress(Event::Replacing { files }) => {
+                    self.progress.label = format!("Replacing {files} files")
                 }
                 Msg::Progress(Event::Verifying) => {
                     self.progress.label = "Verifying the executables".into()
@@ -502,13 +510,23 @@ impl App {
     }
 
     fn draw_welcome(&self, frame: &mut Frame, area: Rect) {
+        let labels: Vec<&str> = self
+            .index
+            .components
+            .iter()
+            .map(|c| c.label.as_str())
+            .collect();
+        let tools = match labels.as_slice() {
+            [] => String::new(),
+            [one] => (*one).to_owned(),
+            [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+        };
         let mut lines = vec![
             Line::from(Span::styled("Welcome to the Lace installer", bold())),
             Line::from(""),
-            Line::from(
-                "Lace drives the SAPHO development tools: YANC, Icarus Verilog, Verilator, \
-                 Yosys, Graphviz and surfer-aurora.",
-            ),
+            Line::from(format!(
+                "Lace drives the SAPHO development tools. This installer has: {tools}."
+            )),
             Line::from(""),
             Line::from(format!(
                 "It only uses the tools of the bundle installed with it, at the exact versions \
@@ -523,10 +541,12 @@ impl App {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 format!(
-                    "There is already a Lace {} installation in {} ({}). It will be replaced.",
+                    "There is already a Lace {} installation in {} ({}). It will be replaced \
+                     by Lace {}; with the Recommended type, the apps it has stay.",
                     r.lace_version,
                     self.prefix,
-                    r.components.join(", ")
+                    r.components.join(", "),
+                    self.index.lace_version
                 ),
                 Style::default().fg(Color::Yellow),
             )));
@@ -1107,6 +1127,26 @@ mod tests {
         assert_eq!(app.screen, Screen::Summary);
         assert!(screen_text(&app).contains("Recommended"));
         assert_eq!(app.handle(key(KeyCode::Enter)), Command::Install);
+    }
+
+    #[test]
+    fn recommended_over_an_installation_keeps_its_apps() {
+        let mut app = app();
+        app.existing = Some(Receipt {
+            lace_version: "0.1.0".into(),
+            bundle: "teste".into(),
+            platform: "linux-x64".into(),
+            components: vec!["verilator".into(), "saiu".into()],
+            link: None,
+        });
+        let text = screen_text(&app);
+        assert!(text.contains("the apps it has stay"), "{text}");
+        app.handle(key(KeyCode::Enter));
+        app.handle(key(KeyCode::Enter));
+        assert_eq!(app.profile, Profile::Recommended);
+        let mut expected = crate::plan::recommended(&app.index);
+        expected.insert("verilator".into());
+        assert_eq!(app.selection, expected);
     }
 
     #[test]
