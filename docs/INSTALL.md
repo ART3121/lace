@@ -53,10 +53,13 @@ irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex       
 Os dois scripts, `install.sh` e `install.ps1` na raiz do repositório, fazem
 a mesma coisa: descobrem a última release, baixam o instalador da
 plataforma, conferem o SHA-256 com o `SHA256SUMS` da release e abrem o
-instalador. O `install.sh` roda em qualquer shell, porque é executado pelo
-`sh`; a instalação guiada lê o teclado pelo terminal mesmo com o `| sh`.
-Ele baixa para `~/.cache` (há distribuições que montam o `/tmp` sem
-permissão de execução) e apaga o que baixou no fim.
+instalador. Os dois mostram o progresso do download: o `install.sh`, a
+barra do `curl`; o `install.ps1`, uma linha com a barra, a porcentagem, os
+MiB, a velocidade e o tempo que falta, que encolhe para caber na janela. O
+`install.sh` roda em qualquer shell, porque é executado pelo `sh`; a
+instalação guiada lê o teclado pelo terminal mesmo com o `| sh`. Ele baixa
+para `~/.cache` (há distribuições que montam o `/tmp` sem permissão de
+execução) e apaga o que baixou no fim.
 
 | O quê | Linux, macOS | Windows |
 |---|---|---|

@@ -1,5 +1,14 @@
 # Mudanças
 
+## Não publicada
+
+- O `install.ps1` (o `irm ... | iex` do Windows) mostra o progresso do
+  download do instalador: a barra, a porcentagem, os MiB, a velocidade e o
+  tempo que falta, numa linha que encolhe para caber na janela. Antes, o
+  download de 126 MiB passava sem nenhum sinal. Uma conexão que cai no meio
+  ganha uma segunda tentativa. Como o script sai da `main`, isto vale também
+  para quem instala a 0.6.0.
+
 ## 0.6.0 (2026-10-09)
 
 - Placas FPGA ([docs/FPGA.md](docs/FPGA.md)): o Lace
