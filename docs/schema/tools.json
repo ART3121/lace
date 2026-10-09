@@ -48,6 +48,17 @@
         }
       ]
     },
+    "quartus": {
+      "description": "O Quartus Prime do sistema, que compila para as placas Intel, se\nencontrado.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quartus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "verify": {
       "description": "Com `--verify`, os executáveis cujo SHA-256 não confere (vazio: todos\nconferem).",
       "type": [
@@ -67,6 +78,7 @@
     "not_installed",
     "tools",
     "system_compiler",
+    "quartus",
     "verify"
   ],
   "$defs": {
@@ -211,6 +223,31 @@
         "cxx",
         "path",
         "bundled"
+      ]
+    },
+    "Quartus": {
+      "description": "Uma instalação do Quartus Prime.",
+      "type": "object",
+      "properties": {
+        "root": {
+          "description": "A pasta `quartus` da instalação (`C:\\intelFPGA_lite\\22.1std\\quartus`).",
+          "type": "string"
+        },
+        "bin": {
+          "description": "A pasta dos programas: `bin64` no Windows, `bin` no Linux.",
+          "type": "string"
+        },
+        "version": {
+          "description": "A versão, pelo nome da pasta da instalação (`22.1std`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "root",
+        "bin"
       ]
     },
     "FileMismatch": {

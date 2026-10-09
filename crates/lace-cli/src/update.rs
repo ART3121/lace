@@ -300,7 +300,8 @@ fn package_of(name: &str, platform: &str) -> Option<&'static str> {
         | component::VERILATOR
         | component::COCOTB
         | component::YOSYS
-        | component::GRAPHVIZ => Some(package::OSS_CAD_SUITE),
+        | component::GRAPHVIZ
+        | component::OPENFPGALOADER => Some(package::OSS_CAD_SUITE),
         _ => None,
     }
 }

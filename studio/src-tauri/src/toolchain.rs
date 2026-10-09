@@ -35,6 +35,7 @@
 //! motivo.
 
 use camino::{Utf8Path, Utf8PathBuf};
+use lace_core::fpga::Quartus;
 use lace_core::{BundleComponent, SystemCompiler, Tool, Toolchain, component};
 use serde::Serialize;
 
@@ -67,17 +68,60 @@ pub struct Located {
     pub origin: Origin,
     /// O compilador declarado não tem os três programas.
     pub compiler_error: Option<IpcError>,
+    /// A pasta declarada do Quartus não tem o `quartus_sh`.
+    pub quartus_error: Option<IpcError>,
 }
 
 /// Abre o bundle pela ordem descrita no módulo.
 pub fn resolve(settings: &Settings) -> IpcResult<Located> {
     let (toolchain, origin) = open_bundle(settings)?;
     let (toolchain, compiler_error) = apply_compiler(toolchain, settings);
+    let (toolchain, quartus_error) = apply_quartus(toolchain, settings);
     Ok(Located {
         toolchain,
         origin,
         compiler_error,
+        quartus_error,
     })
+}
+
+/// O Quartus Prime, com a regra da CLI: o das preferências ou do
+/// `LACE_QUARTUS` (declarado e sem o `quartus_sh` é erro, e o Studio fica sem
+/// Quartus); senão o do `QUARTUS_ROOTDIR`; senão o das pastas padrão.
+fn apply_quartus(toolchain: Toolchain, settings: &Settings) -> (Toolchain, Option<IpcError>) {
+    let declared = settings
+        .quartus_dir
+        .clone()
+        .filter(|d| !d.is_empty())
+        .or_else(|| std::env::var("LACE_QUARTUS").ok().filter(|d| !d.is_empty()));
+    if let Some(dir) = declared {
+        let dir = Utf8PathBuf::from(dir);
+        return match Quartus::in_dir(&dir) {
+            Some(quartus) => (toolchain.with_quartus(Some(quartus)), None),
+            None => (
+                toolchain.with_quartus(None),
+                Some(IpcError::new(
+                    "quartus_invalid",
+                    format!("No Quartus Prime at {dir}: quartus_sh is not there"),
+                )),
+            ),
+        };
+    }
+    if let Some(found) = std::env::var("QUARTUS_ROOTDIR")
+        .ok()
+        .filter(|d| !d.is_empty())
+        .and_then(|d| Quartus::in_dir(Utf8Path::new(&d)))
+    {
+        return (toolchain.with_quartus(Some(found)), None);
+    }
+    let home = std::env::var("HOME")
+        .ok()
+        .filter(|h| !h.is_empty())
+        .map(Utf8PathBuf::from);
+    (
+        toolchain.with_quartus(Quartus::detect(home.as_deref())),
+        None,
+    )
 }
 
 fn open_bundle(settings: &Settings) -> IpcResult<(Toolchain, Origin)> {
@@ -257,6 +301,10 @@ pub struct ToolchainInfo {
     pub system_compiler: Option<SystemCompiler>,
     /// O compilador declarado não serve.
     pub compiler_error: Option<IpcError>,
+    /// O Quartus Prime do sistema, se encontrado.
+    pub quartus: Option<Quartus>,
+    /// A pasta declarada do Quartus não serve.
+    pub quartus_error: Option<IpcError>,
     /// A CLI `lace` da instalação.
     pub lace_cli: Option<Utf8PathBuf>,
     /// O cliente web do Surfer (`surfer-aurora/web`), para a onda numa aba;
@@ -297,6 +345,8 @@ pub fn info(settings: &Settings) -> ToolchainInfo {
                 tools: Vec::new(),
                 system_compiler: None,
                 compiler_error: None,
+                quartus: None,
+                quartus_error: None,
                 lace_cli: None,
                 surfer_web: None,
             };
@@ -316,7 +366,7 @@ pub fn info(settings: &Settings) -> ToolchainInfo {
                 name: tool.binary_name().to_owned(),
                 component: tool.component().map(str::to_owned),
                 path,
-                system: tool.is_system() && !bundled,
+                system: tool.is_system() && !(tool == Tool::Perl && bundled),
                 error,
             }
         })
@@ -337,6 +387,8 @@ pub fn info(settings: &Settings) -> ToolchainInfo {
         tools,
         system_compiler: toolchain.system_compiler().cloned(),
         compiler_error: located.compiler_error.clone(),
+        quartus: toolchain.quartus().cloned(),
+        quartus_error: located.quartus_error.clone(),
         lace_cli: lace_cli(toolchain),
         surfer_web: toolchain.surfer_web_dir().ok(),
     }

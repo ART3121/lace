@@ -431,6 +431,15 @@ function VerilogRow({ file, kind }: { file: ProjectFile; kind: 'module' | 'testb
   );
 }
 
+/** Marca o testbench que o build gerou como o simulado. Ele ainda não está no
+ * `.spf`: entra como testbench, como no "Adicionar como testbench" da aba
+ * Arquivos, e só então é marcado. */
+async function markGeneratedTestbench(path: string) {
+  if ((await guarded(() => api.project.addVerilog(path, true))) === undefined) return;
+  await guarded(() => api.project.setTestbench(path));
+  await afterProjectChange();
+}
+
 /** O Verilog ou o testbench que o build de um processador gerou. Fica na
  * seção do papel dele, marcado como gerado. */
 function GeneratedRow({ processor, path, kind }: { processor: ProcessorStatus; path: string; kind: 'module' | 'testbench' }) {
@@ -441,7 +450,9 @@ function GeneratedRow({ processor, path, kind }: { processor: ProcessorStatus; p
     openContextMenu(e, [
       ...openItems(path),
       { separator: true },
-      ...(kind === 'module' ? [topItem(path, false), { separator: true }] : []),
+      ...(kind === 'module'
+        ? [topItem(path, false), { separator: true }]
+        : [{ label: t('explorer.setTestbench'), run: () => void markGeneratedTestbench(path) }, { separator: true }]),
       { label: t('toolbar.build'), keys: 'F6', run: () => void runBuild(name) },
       ...(kind === 'testbench'
         ? [

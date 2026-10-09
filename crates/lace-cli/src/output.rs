@@ -17,6 +17,7 @@ use std::time::Duration;
 use anstream::println;
 use anstyle::{AnsiColor, Style};
 use camino::{Utf8Path, Utf8PathBuf};
+use lace_core::fpga::{FpgaBuildResult, FpgaProgramResult, ResourceUsage};
 use lace_core::history::{Availability, MetricComparison, RunComparison, RunMetadata, RunSummary};
 use lace_core::{
     AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
@@ -796,6 +797,130 @@ impl Output {
         }
     }
 
+    /// A compilação para a placa: os passos do Quartus, os ajustes das
+    /// ligações, os recursos da FPGA e o tempo de cada clock.
+    pub fn fpga_build(&self, result: &FpgaBuildResult, root: &Utf8Path) {
+        if self.json {
+            return;
+        }
+        let detail = format!(
+            "Quartus {}",
+            result.quartus.version.as_deref().unwrap_or("Prime")
+        );
+        self.summary(Summary {
+            title: &format!("FPGA build of {} for {}", result.top, result.board),
+            detail: &detail,
+            status: result.status,
+            failed_step: result.failed_step,
+            steps: &result.steps,
+            planned: &[
+                (Step::Synthesize, Tool::Quartus),
+                (Step::Fit, Tool::Quartus),
+                (Step::Bitstream, Tool::Quartus),
+                (Step::Timing, Tool::Quartus),
+            ],
+            diagnostics: &result.diagnostics,
+            artifacts: &result.artifacts,
+            duration_ms: result.duration_ms,
+            root,
+            independent_steps: false,
+            limit_ms: None,
+        });
+        for note in &result.notes {
+            println!("  {} {note}", paint(WARNING, "note:"));
+        }
+        // Os detalhes (o que compõe os elementos lógicos) só com -v.
+        let shown: Vec<_> = result
+            .resources
+            .iter()
+            .filter(|r| self.verbose || !r.detail)
+            .collect();
+        if !shown.is_empty() {
+            println!("  {}", paint(BOLD, "Resources:"));
+            let name = |r: &ResourceUsage| {
+                if r.detail {
+                    format!("  {}", r.name)
+                } else {
+                    r.name.clone()
+                }
+            };
+            let width = shown.iter().map(|r| name(r).len()).max().unwrap_or(0);
+            for r in shown {
+                let amount = match r.available {
+                    Some(total) if total > 0 => {
+                        // Como o Quartus: arredondado, e "< 1" abaixo de 1%.
+                        let percent = if r.used > 0 && r.used * 100 < total {
+                            "<1".to_owned()
+                        } else {
+                            ((r.used * 100 + total / 2) / total).to_string()
+                        };
+                        format!("{} / {total} ({percent}%)", r.used)
+                    }
+                    Some(total) => format!("{} / {total}", r.used),
+                    None => r.used.to_string(),
+                };
+                println!("    {:<width$}  {amount}", name(r));
+            }
+        }
+        if let Some(timing) = &result.timing {
+            let verdict = if timing.met {
+                paint(OK, "met")
+            } else {
+                paint(
+                    WARNING,
+                    "not met: the design may fail on the board at this clock",
+                )
+            };
+            println!("  {} {verdict}", paint(BOLD, "Timing:"));
+            for clock in &timing.clocks {
+                let mut parts = Vec::new();
+                if let Some(mhz) = clock.target_mhz {
+                    parts.push(format!("needs {mhz} MHz"));
+                }
+                if let Some(fmax) = clock.fmax_mhz {
+                    parts.push(format!("reaches {fmax} MHz"));
+                }
+                if let Some(slack) = clock.setup_slack_ns {
+                    parts.push(format!("setup slack {slack} ns"));
+                }
+                if let Some(slack) = clock.hold_slack_ns {
+                    parts.push(format!("hold slack {slack} ns"));
+                }
+                println!("    {}  {}", clock.clock, parts.join(", "));
+            }
+        }
+    }
+
+    /// A gravação na placa.
+    pub fn fpga_program(&self, result: &FpgaProgramResult, root: &Utf8Path) {
+        if self.json {
+            return;
+        }
+        self.summary(Summary {
+            title: &format!("Programming of {}", result.board),
+            detail: &result.cable,
+            status: result.status,
+            failed_step: result.failed_step,
+            steps: &result.steps,
+            planned: &[(Step::Program, Tool::Quartus)],
+            diagnostics: &result.diagnostics,
+            artifacts: &[],
+            duration_ms: result.duration_ms,
+            root,
+            independent_steps: false,
+            limit_ms: None,
+        });
+        if result.succeeded() {
+            println!(
+                "  {}",
+                paint(
+                    DIM,
+                    "The FPGA keeps the design until the board is powered off"
+                )
+            );
+        }
+    }
+
     pub fn schematic(&self, result: &SchematicResult, root: &Utf8Path) {
         if self.json {
             return;
@@ -856,9 +981,9 @@ impl Output {
             .collect();
         let manifest = toolchain.manifest();
         // O Perl do Verilator vem do sistema no Linux e no macOS, e do
-        // bundle no Windows.
+        // bundle no Windows; o Quartus, sempre do sistema.
         let bundled = toolchain.system_compiler().is_some_and(|c| c.bundled);
-        let from_system = |tool: Tool| tool.is_system() && !bundled;
+        let from_system = |tool: Tool| tool.is_system() && !(tool == Tool::Perl && bundled);
         if self.json {
             let tools = tools
                 .iter()
@@ -887,6 +1012,7 @@ impl Output {
                     .collect(),
                 tools,
                 system_compiler: toolchain.system_compiler().cloned(),
+                quartus: toolchain.quartus().cloned(),
                 verify: mismatches.map(<[FileMismatch]>::to_vec),
             });
         }
@@ -915,19 +1041,26 @@ impl Output {
             let name = tool.binary_name();
             match path {
                 Ok(path) if from_system(tool) => println!(
-                    "  {} {name:<13} {path}  {}",
+                    "  {} {name:<14} {path}  {}",
                     paint(OK, "OK"),
                     paint(DIM, "(system)")
                 ),
-                Ok(path) => println!("  {} {name:<13} {path}", paint(OK, "OK")),
+                Ok(path) => println!("  {} {name:<14} {path}", paint(OK, "OK")),
                 Err(LaceError::ComponentMissing(c)) => {
                     println!(
-                        "  {} {name:<13} {}",
+                        "  {} {name:<14} {}",
                         paint(DIM, "--"),
                         paint(DIM, format!("{c} not installed"))
                     )
                 }
-                Err(error) => println!("  {} {name:<13} {error}", paint(ERROR, "!!")),
+                // Só as placas Intel precisam dele; a linha do Quartus
+                // abaixo diz como apontar um.
+                Err(LaceError::QuartusMissing) => println!(
+                    "  {} {name:<14} {}",
+                    paint(DIM, "--"),
+                    paint(DIM, "not found on the system")
+                ),
+                Err(error) => println!("  {} {name:<14} {error}", paint(ERROR, "!!")),
             }
         }
         match toolchain.system_compiler() {
@@ -955,6 +1088,25 @@ impl Output {
                 paint(
                     WARNING,
                     "not found on the system, so Verilator cannot run (set its location with --compiler <DIR> or LACE_COMPILER)"
+                )
+            ),
+        }
+        match toolchain.quartus() {
+            Some(q) => println!(
+                "{} {} {}{}",
+                paint(BOLD, "Quartus Prime"),
+                q.version.as_deref().unwrap_or("?"),
+                q.root,
+                paint(DIM, "  (system)")
+            ),
+            // O Quartus não existe para macOS.
+            None if toolchain.platform() == Platform::MacosArm64 => {}
+            None => println!(
+                "{} {}",
+                paint(BOLD, "Quartus Prime"),
+                paint(
+                    DIM,
+                    "not found; Intel FPGA boards need it (set its location with --quartus <DIR> or LACE_QUARTUS)"
                 )
             ),
         }
@@ -1201,6 +1353,11 @@ fn artifact_label(kind: ArtifactKind) -> &'static str {
         ArtifactKind::SchematicGraph => "schematic graph",
         ArtifactKind::Schematic => "schematic",
         ArtifactKind::SynthesisStatistics => "statistics",
+        ArtifactKind::BoardTop => "board top",
+        ArtifactKind::QuartusProject => "Quartus project",
+        ArtifactKind::SramObject => "bitstream (.sof)",
+        ArtifactKind::RawBinary => "bitstream (.rbf)",
+        ArtifactKind::SerialVectorFormat => "JTAG vectors (.svf)",
         _ => "file",
     }
 }
@@ -1315,6 +1472,21 @@ fn hint(error: &LaceError) -> Option<String> {
         }
         LaceError::NoReports(_) => "lace build, check, sim and synth each store a report".into(),
         LaceError::ReportNotFound(_) => "List them with: lace report list".into(),
+        LaceError::BoardNotFound { .. } => "List them with: lace fpga boards".into(),
+        LaceError::NoFpgaConfig(_) => {
+            "Write fpga.json next to the .spf with the board and the connections, e.g. {\"board\": \"de2-115\", \"connect\": {\"clk\": \"CLOCK_50\", \"rst\": \"!KEY[0]\"}}; see the signals with: lace fpga boards <board>".into()
+        }
+        LaceError::InvalidBoard { .. } => "This is a bug in Lace; please report it".into(),
+        LaceError::NoBitstream(_) => "Build for the board first with: lace fpga build".into(),
+        LaceError::StaleBitstream { .. } => {
+            "Build for the board again with: lace fpga build, then program".into()
+        }
+        LaceError::NoCable => {
+            "Connect the board through its USB-Blaster port, turn it on and set its RUN/PROG switch to RUN; on Windows the USB-Blaster driver is in the drivers folder of Quartus, and on Linux the cable needs a udev rule (see docs/FPGA.md)".into()
+        }
+        LaceError::QuartusMissing => {
+            "Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS".into()
+        }
         _ => return None,
     })
 }

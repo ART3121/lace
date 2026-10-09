@@ -1,20 +1,22 @@
 # O bundle de ferramentas
 
 O Lace só executa ferramentas de um bundle instalado junto com ele. Nunca do
-`PATH`, nunca de um caminho configurado pelo usuário. A exceção, decidida pelo
-autor, é o compilador C++ do Verilator no Linux e no macOS; no Windows ele
-vem no bundle, e o `taskkill` encerra um passo cancelado quando o sistema
-recusa o Job Object dele (seção 4).
+`PATH`, nunca de um caminho configurado pelo usuário. As exceções, decididas
+pelo autor, são o compilador C++ do Verilator no Linux e no macOS (no
+Windows ele vem no bundle) e o Quartus Prime, para as placas Intel; e o
+`taskkill` encerra um passo cancelado quando o sistema recusa o Job Object
+dele (seção 4).
 
 As duas famílias de plataforma montam o bundle de fontes diferentes:
 
 - **Linux e macOS** acompanham o OSS CAD Suite: Icarus, Verilator, cocotb,
-  Yosys e `dot` saem da mesma release datada dele, e o compilador, o `make` e o Perl
-  do Verilator vêm do sistema.
+  Yosys, `dot` e openFPGALoader saem da mesma release datada dele, e o
+  compilador, o `make` e o Perl do Verilator vêm do sistema.
 - **Windows** tira Icarus e Verilator do bloco MSYS2 UCRT64 do repositório
   [lace-toolchain](https://github.com/ART3121/lace-toolchain), que traz
   também o g++, o `make` e o Perl que o Verilator usa, e o Python com o
-  cocotb. O Yosys continua vindo do OSS CAD Suite, e o `dot` do Graphviz.
+  cocotb. O Yosys e o openFPGALoader continuam vindo do OSS CAD Suite, e o
+  `dot` do Graphviz.
 
 O motivo: no Windows o OSS CAD Suite não traz compilador, `make`, Perl nem
 cocotb, e o cocotb precisa de simulador, compilador e Python que casem.
@@ -28,7 +30,7 @@ Bundle `2026.10.07`. Os pacotes, com as versões fixadas em
 |---|---|---|---|
 | YANC | v6.0 (`6cafe47`) | `cmmcomp`, `appcomp`, `asmcomp`, `cpppp`, `cppcomp`, a biblioteca SAPHO, macros e headers | compilado do fonte pelo empacotamento |
 | surfer-aurora | v0.7.0-nips.10 (`d0af8a7`) | o fork do Surfer da AURORA e o cliente web (WASM) dele | o executável, pré-compilado do commit fixado pelo workflow `surfer-aurora.yml` numa pré-release deste repositório e conferido pelo SHA-256 fixado (`prebuilt`); sem ele, compilado do fonte pelo empacotamento; o cliente web, o zip que a CI do fork publica na mesma tag, conferido pelo SHA-256 fixado |
-| OSS CAD Suite | release 2026-09-29 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys e o `dot` do Graphviz. Windows: só o Yosys | pacote oficial, conferido pelo SHA-256 publicado |
+| OSS CAD Suite | release 2026-09-29 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys, o `dot` do Graphviz e o openFPGALoader. Windows: o Yosys e o openFPGALoader | pacote oficial, conferido pelo SHA-256 publicado |
 | msys | `ucrt64-v1` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
 | studio | a versão do Lace | o Lace Studio: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
@@ -46,6 +48,7 @@ Os componentes, que o instalador deixa escolher, estão em
 | `yosys` | OSS CAD Suite | `oss-cad-suite/` |
 | `graphviz` | OSS CAD Suite (Linux, macOS), Graphviz (Windows) | `oss-cad-suite/` ou `graphviz/` |
 | `surfer-aurora` | surfer-aurora | `surfer-aurora/` |
+| `openfpgaloader` | OSS CAD Suite | `oss-cad-suite/` |
 | `studio` | studio | `studio/` |
 | `lace-learn` | lace-learn | `lace-learn/` |
 
@@ -55,8 +58,19 @@ bundle em que está.
 Liga só às bibliotecas do sistema (`closure: false`): no Linux, ao
 webkit2gtk 4.1 e ao GTK 3; no Windows, ao WebView2.
 
+O componente `openfpgaloader` grava as placas FPGA pelo cabo USB delas
+([FPGA.md](FPGA.md)): o `openFPGALoader` com a libusb, a libftdi e o hidapi
+do pacote, nas três plataformas (13 MiB no Linux, 5 MiB no macOS; no
+Windows, a maior parte é a `libstdc++` que ele divide com o Yosys). Os
+bitstreams auxiliares de gravar flash (`share/openFPGALoader`) ficam de
+fora: nenhum serve às placas que o Lace conhece. O pacote não traz a regra
+do udev do openFPGALoader, que o Linux exige para acessar o cabo sem root.
+
 O OSS CAD Suite inteiro tem 2,5 GB no Linux: traz também nextpnr, GHDL,
-GTKWave, bases de FPGA e um Python com dezenas de pacotes. O empacotamento
+GTKWave, bases de FPGA e um Python com dezenas de pacotes. O nextpnr dele
+cobre Lattice, Gowin e GateMate; o `nextpnr-mistral`, do Cyclone V, não vem
+na release 2026-09-29 em nenhuma plataforma, embora a regra de build exista
+no repositório do OSS CAD Suite. O empacotamento
 leva de cada ferramenta só o que ela executa (os lançadores de `bin/`, os
 binários de `libexec/`), os dados dela (`share/yosys`, `lib/ivl`,
 `share/verilator`, a biblioteca padrão do Python para o `make` do Verilator,
@@ -187,6 +201,7 @@ síntese, a partir do modelo que o pacote traz (como fazem os lançadores do
 | `libc` (Linux e macOS) | o `lace` e o YANC são binários nativos ligados à `libc` do sistema; as ferramentas do OSS CAD Suite não, carregam as bibliotecas do pacote | sistema base |
 | fontes (macOS e Windows) | os pacotes dessas plataformas não trazem fontes; o `dot` usa as do sistema | as do sistema |
 | compilador C++, `make`, Perl (Linux e macOS) | exceção decidida pelo autor: o Verilator compila o modelo em C++, e o OSS CAD Suite não traz compilador. No Windows os três vêm no bundle, com o Verilator | locais fixos: `/usr/bin` (Linux); `/usr/bin` com as Command Line Tools do Xcode (macOS) |
+| Quartus Prime (Windows e Linux) | segunda exceção decidida pelo autor: o bitstream das placas Intel sai dele, que é proprietário, tem dezenas de GB e não pode ir no bundle. Só as placas FPGA o usam | `--quartus` ou `LACE_QUARTUS`; senão `QUARTUS_ROOTDIR`; senão `C:\intelFPGA_lite`, `C:\intelFPGA`, `C:\altera_lite`, `C:\altera` (Windows) e as mesmas na pasta do usuário e em `/opt` (Linux), a versão mais nova ([FPGA.md](FPGA.md)) |
 | `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho; no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
 
 Sem o compilador, tudo funciona menos a simulação com Verilator, e

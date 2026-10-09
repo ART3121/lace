@@ -302,7 +302,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
   const set = setter(useApp((s) => s.updateSettings));
   const toolchain = useApp((s) => s.toolchain);
 
-  const browse = async (key: 'toolchain_dir' | 'compiler_dir' | 'learn_dir') => {
+  const browse = async (key: 'toolchain_dir' | 'compiler_dir' | 'quartus_dir' | 'learn_dir') => {
     const chosen = await open({ directory: true, multiple: false });
     if (typeof chosen === 'string') set(key, chosen);
   };
@@ -331,6 +331,23 @@ function ToolchainPage({ settings }: { settings: Settings }) {
               <Button onClick={() => void browse('compiler_dir')}>{t('common.browse')}</Button>
             </div>
             {toolchain?.compiler_error && <p className="text-error">{toolchain.compiler_error.message}</p>}
+          </>
+        )}
+      </SettingRow>
+      <SettingRow label={t('settings.quartusDir')} hint={t('settings.quartusDirHint')} stack>
+        {(id) => (
+          <>
+            <div className="input-group">
+              <input
+                id={id}
+                className="input"
+                value={settings.quartus_dir ?? ''}
+                placeholder={toolchain?.quartus?.root ?? ''}
+                onChange={(e) => set('quartus_dir', e.target.value || null)}
+              />
+              <Button onClick={() => void browse('quartus_dir')}>{t('common.browse')}</Button>
+            </div>
+            {toolchain?.quartus_error && <p className="text-error">{toolchain.quartus_error.message}</p>}
           </>
         )}
       </SettingRow>

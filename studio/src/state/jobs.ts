@@ -117,7 +117,19 @@ const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
   synthesize: 'prism',
   graph: 'prism',
   render: 'prism',
+  // Os passos do Quartus (`lace fpga build` e `program`). O `synthesize`
+  // dele vai para o mesmo console pela ferramenta (`channelOf`).
+  fit: 'fpga',
+  bitstream: 'fpga',
+  timing: 'fpga',
+  program: 'fpga',
 };
+
+/** O console de um passo: o do Quartus vai todo para o da placa, inclusive
+ * o `synthesize`, que na síntese do Yosys é do PRISM. */
+function channelOf(step: Step, tool: string): ConsoleChannel {
+  return tool === 'quartus' ? 'fpga' : STEP_CHANNEL[step];
+}
 
 const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   build: 'cmm',
@@ -127,6 +139,8 @@ const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   schematic: 'prism',
   wave: 'wave',
   learn: 'verilog',
+  fpga: 'fpga',
+  program: 'fpga',
 };
 
 /** O console onde cada operação começa: o comando dela e os avisos (falha
@@ -138,6 +152,8 @@ const START_CHANNEL: Record<FlowName, ConsoleChannel> = {
   synthesize: 'prism',
   schematic: 'prism',
   learn: 'verilog',
+  fpga_build: 'fpga',
+  fpga_program: 'fpga',
 };
 
 /** Uma linha no registro da instalação ou da atualização. */
@@ -155,6 +171,8 @@ const FLOW_CHANNEL: Record<FlowName, ConsoleChannel> = {
   synthesize: 'prism',
   schematic: 'prism',
   learn: 'verilog',
+  fpga_build: 'fpga',
+  fpga_program: 'fpga',
 };
 
 function verbose(): boolean {
@@ -223,17 +241,17 @@ export function lastFlowKey(last: LastRun): Key {
 function handleEvent(event: Event): void {
   switch (event.event) {
     case 'step_started': {
-      const channel = STEP_CHANNEL[event.step as Step];
+      const channel = channelOf(event.step as Step, event.tool as string);
       if (verbose()) write(channel, `$ ${commandLine(event.command as Invocation)}`, 'command');
       break;
     }
     case 'output': {
-      const channel = STEP_CHANNEL[event.step as Step];
+      const channel = channelOf(event.step as Step, event.tool as string);
       write(channel, event.line, styleForToolLine(event.line, event.diagnostic, event.stream === 'stderr'));
       break;
     }
     case 'step_finished': {
-      const channel = STEP_CHANNEL[event.step as Step];
+      const channel = channelOf(event.step as Step, event.tool as string);
       const termination = event.termination as { kind: string; value?: number };
       const ok = termination.kind === 'exited' && termination.value === 0;
       // Cancelar não é falha da ferramenta: rótulo e cor próprios.
@@ -295,6 +313,8 @@ function collectDiagnostics(outcome: FlowOutcome): Diagnostic[] {
     ...(outcome.synthesis?.diagnostics ?? []),
     ...(outcome.schematic?.diagnostics ?? []),
     ...(outcome.learn?.diagnostics ?? []),
+    ...(outcome.fpga?.diagnostics ?? []),
+    ...(outcome.fpga_program?.diagnostics ?? []),
   ];
 }
 
@@ -303,9 +323,12 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
   let channel = FLOW_CHANNEL[outcome.flow];
   const failedBuild = outcome.builds.find((b) => b.status !== 'succeeded');
   if (failedBuild && outcome.flow !== 'build') {
-    const phase = { check: 'flowName.check', simulate: 'flowName.simulate', synthesize: 'flowName.synthesize' }[
-      outcome.flow as 'check' | 'simulate' | 'synthesize'
-    ];
+    const phase = {
+      check: 'flowName.check',
+      simulate: 'flowName.simulate',
+      synthesize: 'flowName.synthesize',
+      fpga_build: 'flowName.fpga_build',
+    }[outcome.flow as 'check' | 'simulate' | 'synthesize' | 'fpga_build'];
     channel = failedBuild.failed_step ? STEP_CHANNEL[failedBuild.failed_step as Step] : 'cmm';
     if (phase) write(channel, t('console.notRun', { phase: t(phase as Key), name: failedBuild.processor }), 'warning');
   }
@@ -380,6 +403,29 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
       statusStyle(s.status),
     );
   }
+  if (outcome.fpga) {
+    const f = outcome.fpga;
+    write(
+      channel,
+      t('console.fpgaTitle', { top: f.top, board: f.board, status: statusText(f.status), time: formatDuration(f.duration_ms) }),
+      statusStyle(f.status),
+    );
+    for (const note of f.notes) write(channel, `  ${t('console.note', { note })}`, 'warning');
+    // Os erros e avisos do Quartus já passaram ao vivo; o tempo não
+    // atendido não reprova a compilação, mas precisa ser visto.
+    if (f.timing && !f.timing.met) write(channel, t('console.fpgaTimingNotMet'), 'warning');
+    if (f.bitstream) write(channel, t('console.fpgaBitstream', { path: rel(f.bitstream) }), 'dim');
+  }
+  if (outcome.fpga_program) {
+    const p = outcome.fpga_program;
+    write(
+      channel,
+      t('console.programTitle', { board: p.board, cable: p.cable, status: statusText(p.status), time: formatDuration(p.duration_ms) }),
+      statusStyle(p.status),
+    );
+    // O aviso de .sof velho não vem das linhas ao vivo do Quartus.
+    writeDiagnostics(channel, p.diagnostics.filter((d) => !d.raw));
+  }
   if (outcome.wave) {
     write(channel, t('console.waveOpened', { pid: outcome.wave.pid, path: rel(outcome.wave.waveform) }), 'info');
     for (const processor of outcome.wave.outdated) {
@@ -420,7 +466,9 @@ function outcomeStatus(outcome: FlowOutcome): Status {
   const failedBuild = outcome.builds.find((b) => b.status !== 'succeeded');
   if (failedBuild) return failedBuild.status as Status;
   if (outcome.learn) return outcome.learn.verdict === 'cancelled' ? 'cancelled' : outcome.succeeded ? 'succeeded' : 'failed';
-  return (outcome.schematic?.status ??
+  return (outcome.fpga_program?.status ??
+    outcome.fpga?.status ??
+    outcome.schematic?.status ??
     outcome.synthesis?.status ??
     outcome.simulation?.status ??
     outcome.check?.status ??
@@ -551,6 +599,11 @@ export const useJobs = create<JobsState>((set, get) => ({
           // desenha o netlist que ela gravou.
           if (outcome.flow === 'synthesize' && outcome.synthesis?.netlist) {
             useEditor.getState().openView('schematic');
+          }
+          // A compilação para a placa mostra os recursos e o tempo na tela
+          // da placa.
+          if (outcome.flow === 'fpga_build' && outcome.fpga) {
+            useEditor.getState().openView('board');
           }
           void useProject.getState().refresh();
           useProject.getState().bumpTree();

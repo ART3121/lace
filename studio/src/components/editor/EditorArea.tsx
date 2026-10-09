@@ -29,6 +29,7 @@ import { ProcessorView } from '../views/ProcessorView';
 import { ReportView } from '../views/ReportView';
 import { SchematicView } from '../views/SchematicView';
 import { SettingsView } from '../views/SettingsView';
+import { BoardView } from '../views/BoardView';
 import { SynthesisView } from '../views/SynthesisView';
 import { ToolchainView } from '../views/ToolchainView';
 import { LearnView } from '../views/LearnView';
@@ -52,6 +53,8 @@ export function tabTitle(tab: Tab): string {
       return t('schematic.title');
     case 'synthesis':
       return t('synthesis.title');
+    case 'board':
+      return t('board.title');
     case 'report':
       return tab.data?.id ?? t('reports.title');
     case 'compare':
@@ -291,6 +294,8 @@ function ViewContent({ tab }: { tab: Tab }) {
       return <SchematicView />;
     case 'synthesis':
       return <SynthesisView />;
+    case 'board':
+      return <BoardView />;
     case 'report':
       return <ReportView id={tab.data?.id ?? ''} />;
     case 'compare':

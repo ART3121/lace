@@ -17,10 +17,15 @@ import type {
   CheckResult,
   Event,
   FileRole,
+  Connection,
+  FpgaBuildResult,
+  FpgaProgramResult,
+  Resolved,
   Grade,
   Language,
   Processor,
   ProjectIssue,
+  Quartus,
   SchematicResult,
   SimulationResult,
   Simulator,
@@ -68,6 +73,8 @@ export interface Settings {
   theme: string;
   toolchain_dir: string | null;
   compiler_dir: string | null;
+  /** O Quartus Prime, como o `--quartus` da CLI; null: os locais padrão. */
+  quartus_dir: string | null;
   /** As trilhas do `lace learn` de outra pasta, como o LACE_LEARN_DIR. */
   learn_dir: string | null;
   simulator: Simulator;
@@ -261,7 +268,11 @@ export type FlowRequest =
   | { flow: 'synthesize'; processor?: string | null; schematic?: boolean; module?: string | null }
   | { flow: 'schematic'; netlist: string; module: string; bus_widths?: boolean }
   /** `lace learn check`: corrige um exercício e grava se está resolvido. */
-  | { flow: 'learn'; root: string; exercise: string };
+  | { flow: 'learn'; root: string; exercise: string }
+  /** `lace fpga build`: os processadores e depois o projeto para a placa, pelo Quartus. */
+  | { flow: 'fpga_build' }
+  /** `lace fpga program`: grava o `.sof` da última compilação para a placa. */
+  | { flow: 'fpga_program'; cable?: string | null };
 
 export type FlowName = FlowRequest['flow'];
 
@@ -304,6 +315,10 @@ export interface FlowOutcome {
   report_error: string | null;
   /** A correção de um exercício (fluxo `learn`). */
   learn: Grade | null;
+  /** A compilação para a placa (fluxo `fpga_build`). */
+  fpga: FpgaBuildResult | null;
+  /** A gravação na placa (fluxo `fpga_program`). */
+  fpga_program: FpgaProgramResult | null;
 }
 
 /** As operações que rodam a CLI (`lace install`, `lace update`). */
@@ -321,7 +336,42 @@ export interface CliOutcome {
 }
 
 /** `flows.rs`: Phase. */
-export type Phase = 'build' | 'check' | 'simulate' | 'synthesize' | 'schematic' | 'wave' | 'learn';
+export type Phase = 'build' | 'check' | 'simulate' | 'synthesize' | 'schematic' | 'wave' | 'learn' | 'fpga' | 'program';
+
+/** O `fpga.json` (`lace_core::fpga::FpgaConfig`): a placa, o topo e as
+ * ligações, porta (com faixa) para sinal da placa (`[!]SINAL[faixa]`, `0`,
+ * `1`), na ordem do arquivo. */
+export interface FpgaConfig {
+  board: string;
+  top?: string | null;
+  connect: Record<string, string>;
+}
+
+/** `fpga::Prepared`: o `fpga.json` conferido (`lace fpga check`). */
+export interface FpgaPrepared {
+  config: string;
+  resolved: Resolved;
+  board_top: string;
+  /** Cada ligação como texto: o que vai em cada entrada do topo e em cada
+   * sinal de saída da placa. */
+  connections: Connection[];
+}
+
+/** `fpga::BitstreamState`: o arquivo de gravação da placa e por que ele não
+ * serve para gravar (vazio com `bitstream`: pronto). */
+export interface BitstreamState {
+  board: string;
+  bitstream: string | null;
+  built_at_ms: number | null;
+  reasons: string[];
+}
+
+/** `verilog::ModuleInterface`: o topo que vai para a placa e as portas dele. */
+export interface ModuleInterface {
+  name: string;
+  file: string;
+  ports: { name: string; direction: 'input' | 'output' | 'inout'; width: number; signed: boolean }[];
+}
 
 /** `jobs.rs`: JobMessage. */
 export type JobMessage =
@@ -356,6 +406,9 @@ export interface ToolchainInfo {
   tools: ToolStatus[];
   system_compiler: SystemCompiler | null;
   compiler_error: IpcError | null;
+  /** O Quartus Prime do sistema, que compila para as placas Intel. */
+  quartus: Quartus | null;
+  quartus_error: IpcError | null;
   lace_cli: string | null;
   /** O cliente web do Surfer do bundle (`surfer-aurora/web`), para a onda
    * numa aba; `null` num bundle que não o traz. */

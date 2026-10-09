@@ -313,6 +313,21 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
       )}
       {info.compiler_error && <p className="text-error">{info.compiler_error.message}</p>}
 
+      <h2>{t('toolchain.quartus')}</h2>
+      {info.quartus ? (
+        <dl className="kv">
+          <dt>{t('toolchain.quartusVersion')}</dt>
+          <dd>
+            {info.quartus.version ?? '?'} <Badge>{t('toolchain.system')}</Badge>
+          </dd>
+          <dt>{t('toolchain.quartusRoot')}</dt>
+          <dd className="mono">{info.quartus.root}</dd>
+        </dl>
+      ) : (
+        <p className="muted">{t('toolchain.quartusNone')}</p>
+      )}
+      {info.quartus_error && <p className="text-error">{info.quartus_error.message}</p>}
+
     </div>
   );
 }

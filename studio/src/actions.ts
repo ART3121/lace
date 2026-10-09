@@ -16,6 +16,8 @@ import {
   Activity,
   Boxes,
   CircuitBoard,
+  Microchip,
+  Upload,
   CircleStop,
   Columns2,
   Cpu,
@@ -211,6 +213,22 @@ export function runSynthesis(processor?: string | null) {
     { flow: 'synthesize', processor: name, schematic: false },
     name ? `synthesize:${name}` : 'synthesize',
   );
+}
+
+/** A compilação para a placa do `fpga.json`, pelo Quartus (`lace fpga build`). */
+export function runFpgaBuild() {
+  return useJobs.getState().run({ flow: 'fpga_build' }, 'fpgaBuild');
+}
+
+/** A gravação na placa do `.sof` da última compilação (`lace fpga program`). */
+export function runFpgaProgram() {
+  return useJobs.getState().run({ flow: 'fpga_program' }, 'fpgaProgram');
+}
+
+/** Compila para a placa e, se deu certo, grava: o caminho de sempre. */
+export async function runFpgaBuildAndProgram() {
+  const built = await runFpgaBuild();
+  if (built?.succeeded) await runFpgaProgram();
 }
 
 /** A onda do processador (ou do projeto, sem processador), se já existe. */
@@ -586,6 +604,10 @@ export const ACTIONS: Action[] = [
   { id: 'synthesize', label: 'action.synthesize', category: 'flow', keys: 'F10', icon: CircuitBoard, enabled: canRun, run: () => runSynthesis() },
   { id: 'showSchematic', label: 'action.showSchematic', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('schematic') },
   { id: 'showStatistics', label: 'action.showStatistics', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('synthesis') },
+  { id: 'fpgaBuildProgram', label: 'action.fpgaBuildProgram', category: 'flow', icon: Upload, enabled: canRun, run: () => runFpgaBuildAndProgram() },
+  { id: 'fpgaBuild', label: 'action.fpgaBuild', category: 'flow', icon: Hammer, enabled: canRun, run: () => runFpgaBuild() },
+  { id: 'fpgaProgram', label: 'action.fpgaProgram', category: 'flow', icon: Upload, enabled: canRun, run: () => runFpgaProgram() },
+  { id: 'showBoard', label: 'action.showBoard', category: 'flow', icon: Microchip, enabled: hasProject, run: () => useEditor.getState().openView('board') },
   { id: 'fullFlow', label: 'action.fullFlow', category: 'flow', keys: 'F5', enabled: canRun, run: fullFlow },
   {
     id: 'cancel',

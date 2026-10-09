@@ -1,0 +1,85 @@
+{
+  "id": "de10-nano",
+  "name": "Terasic DE10-Nano",
+  "source": "Terasic DE10-Nano User Manual V1.8 (2018, revisions A/B and B2/C) and V2.6 (revision E), tables 3-5 to 3-8, the same in the three revisions. The manual lists only LED[0] to LED[5]; LED[6] (PIN_Y16) and LED[7] (PIN_AA23) come from the Terasic golden top of the DE10-Nano System CD (DE10_Nano_golden_top.qsf), which agrees with the manual on the other 15 pins.",
+  "device": {
+    "family": "Cyclone V",
+    "part": "5CSEBA6U23I7"
+  },
+  "jtag": {
+    "cable": "usb-blasterII",
+    "position": 2,
+    "openfpgaloader": "de10nano"
+  },
+  "signals": [
+    {
+      "name": "FPGA_CLK1_50",
+      "direction": "input",
+      "pins": [
+        "PIN_V11"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input"
+    },
+    {
+      "name": "FPGA_CLK2_50",
+      "direction": "input",
+      "pins": [
+        "PIN_Y13"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input"
+    },
+    {
+      "name": "FPGA_CLK3_50",
+      "direction": "input",
+      "pins": [
+        "PIN_E11"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input (shared with FPGA_CLK1_50)"
+    },
+    {
+      "name": "KEY",
+      "direction": "input",
+      "pins": [
+        "PIN_AH17",
+        "PIN_AH16"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Push-buttons, debounced: pressed reads 0"
+    },
+    {
+      "name": "SW",
+      "direction": "input",
+      "pins": [
+        "PIN_Y24",
+        "PIN_W24",
+        "PIN_W21",
+        "PIN_W20"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "Slide switches, not debounced: up reads 1"
+    },
+    {
+      "name": "LED",
+      "direction": "output",
+      "pins": [
+        "PIN_W15",
+        "PIN_AA24",
+        "PIN_V16",
+        "PIN_V15",
+        "PIN_AF26",
+        "PIN_AE26",
+        "PIN_Y16",
+        "PIN_AA23"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "Green LEDs: 1 turns one on"
+    }
+  ]
+}

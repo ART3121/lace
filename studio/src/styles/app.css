@@ -738,15 +738,10 @@ a {
   font-weight: 500;
 }
 
+/* Os botões do cabeçalho (o "+" de Módulos, Testbenches e Processadores)
+   ficam sempre à vista, e não só com o mouse em cima. */
 .section__actions {
   display: flex;
-  opacity: 0;
-  transition: opacity var(--transition);
-}
-
-.section__header:hover .section__actions,
-.section__actions:focus-within {
-  opacity: 1;
 }
 
 .section__body {
@@ -4493,4 +4488,337 @@ body.is-dragging * {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   white-space: pre-wrap;
+}
+
+/* Placa FPGA (views/BoardView.tsx): o cabeçalho com a placa e o topo, as
+   três etapas (ligações, compilação, gravação), a tabela de ligações e o
+   resultado da compilação. */
+
+.board-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.board-head__field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.board-status {
+  width: 100%;
+  margin: var(--space-3) 0 var(--space-4);
+  border-collapse: collapse;
+  border-top: 1px solid var(--border);
+}
+
+.board-status th,
+.board-status td {
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  text-align: left;
+}
+
+.board-status th {
+  width: 9em;
+  color: var(--text-2);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.board-status__icon {
+  width: 18px;
+  padding-right: 0 !important;
+  color: var(--text-3);
+}
+
+.board-status__icon svg {
+  display: block;
+  margin-top: 2px;
+}
+
+.board-status__row--ok .board-status__icon {
+  color: var(--ok);
+}
+
+.board-status__row--warn .board-status__icon {
+  color: var(--warn);
+}
+
+.board-status__row--error .board-status__icon {
+  color: var(--error);
+}
+
+.board-status__row--running .board-status__icon {
+  color: var(--brand);
+}
+
+.board-status__text {
+  color: var(--text-1);
+}
+
+.board-status__text p {
+  margin: 0;
+}
+
+.board-status__actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right !important;
+}
+
+.board-status__actions > * + * {
+  margin-left: var(--space-2);
+}
+
+.board-reasons,
+.board-problems {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+  color: var(--text-2);
+  font-size: var(--text-xs);
+}
+
+.board-problems {
+  color: var(--error);
+}
+
+.board-section {
+  margin-top: var(--space-4);
+}
+
+.board-section > summary {
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.board-section__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.board-section__title h2 {
+  margin: var(--space-2) 0;
+}
+
+.board-section__title .button-row {
+  margin-left: auto;
+}
+
+.board-save {
+  color: var(--text-3);
+  font-size: var(--text-xs);
+}
+
+.board-save--saved {
+  color: var(--ok);
+}
+
+.board-save--error {
+  color: var(--error);
+}
+
+.board-links td {
+  vertical-align: top;
+}
+
+.board-links__meta {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--text-xs);
+}
+
+.board-links__problem {
+  display: block;
+  margin-top: 2px;
+  color: var(--error);
+  font-size: var(--text-xs);
+}
+
+.board-links__row--error td:first-child {
+  box-shadow: inset 3px 0 0 var(--error);
+}
+
+.board-check {
+  margin-top: var(--space-3);
+}
+
+.board-check h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-1);
+  font-size: var(--text-sm);
+}
+
+.board-check__table {
+  width: auto;
+}
+
+.board-links__add {
+  opacity: 0;
+}
+
+.board-links tr:hover .board-links__add,
+.board-links__add:focus-visible {
+  opacity: 1;
+}
+
+.board-check__table td {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.board-code {
+  max-height: 360px;
+  overflow: auto;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  font-size: var(--text-xs);
+}
+
+.board-meter {
+  display: block;
+  height: 4px;
+  margin-top: var(--space-1);
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.board-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+
+.board-pins {
+  font-size: var(--text-xs);
+  word-break: break-word;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+.board-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 12em;
+  padding: 3px var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  color: var(--text-0);
+  text-align: left;
+  cursor: pointer;
+}
+
+.board-pick:hover:not(:disabled) {
+  border-color: var(--brand);
+}
+
+.board-pick--empty {
+  color: var(--text-3);
+  border-style: dashed;
+}
+
+.board-pick__tag {
+  color: var(--text-2);
+  font-size: var(--text-xs);
+}
+
+.board-panel {
+  width: 420px;
+  max-width: calc(100vw - 16px);
+  padding: var(--space-3);
+}
+
+.board-panel__fixed,
+.board-panel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.board-panel__group {
+  margin-top: var(--space-3);
+}
+
+.board-panel__label {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--text-2);
+  font-size: var(--text-xs);
+}
+
+.board-chip {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-1);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.board-chip:hover {
+  background: var(--hover);
+}
+
+.board-chip.is-on {
+  border-color: var(--brand);
+  color: var(--text-0);
+  background: var(--brand-soft);
+}
+
+.board-panel__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.board-panel__bits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.board-panel__bits label,
+.board-panel__invert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-1);
+  font-size: var(--text-sm);
+}
+
+.board-panel__invert .muted {
+  font-size: var(--text-xs);
+}
+
+.board-panel__num {
+  width: 4.5em;
+}
+
+.board-panel__foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+}
+
+.board-links__actions {
+  width: 1%;
+  white-space: nowrap;
 }

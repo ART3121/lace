@@ -1,5 +1,50 @@
 # Mudanças
 
+## Não publicada
+
+- Placas FPGA, a primeira parte ([docs/FPGA.md](docs/FPGA.md)): o Lace
+  conhece a Terasic DE2-115 (Cyclone IV E EP4CE115F29C7) e a DE10-Nano
+  (Cyclone V 5CSEBA6U23I7), com os pinos tirados dos manuais da Terasic. O
+  `fpga.json`, ao lado do `.spf`, diz a placa e liga as portas do topo aos
+  sinais dela (`"rst": "!KEY[0]"`, `"out[7:0]": "LEDR[7:0]"`), e o Lace gera
+  o topo da placa, que inverte, corta e completa larguras. `lace fpga
+  boards` mostra as placas e os pinos; `lace fpga check` confere o
+  `fpga.json` contra a placa e as portas do topo, com todos os problemas de
+  uma vez. Gravar na placa vem depois.
+- O Quartus Prime, que compila para as placas Intel, é a segunda exceção à
+  regra do bundle: `--quartus <DIR>` (ou `LACE_QUARTUS`), senão
+  `QUARTUS_ROOTDIR`, senão as pastas padrão do instalador. `lace tools`
+  mostra o que achou; no JSON, `quartus`, e a ferramenta `quartus`.
+- `lace fpga build` compila os processadores e depois o projeto para a
+  placa pelo Quartus, sem abrir a interface: grava o projeto do Quartus em
+  `.lace/fpga/<placa>/` e roda `quartus_map`, `quartus_fit`, `quartus_asm` e
+  `quartus_sta`, os passos `synthesize`, `fit`, `bitstream` e `timing`. O
+  resultado traz os erros e avisos do Quartus com arquivo, linha e número da
+  mensagem, o `.sof` (mais o `.rbf` e o `.svf` sem compressão, para o
+  openFPGALoader), os recursos da FPGA e a Fmax e as folgas de cada clock.
+  No JSON, `fpga-build`.
+- `lace fpga program` grava na placa o `.sof` da última compilação pelo
+  Quartus Programmer (`quartus_pgm`), pelo primeiro cabo ligado ou pelo de
+  `--cable`; `--list` mostra os cabos. No JSON, `fpga-program` e
+  `fpga-cables`. Os dois comandos foram conferidos com o Quartus Prime 25.1
+  Lite e uma DE2-115.
+- A segurança da placa ([docs/FPGA.md](docs/FPGA.md), "Segurança da placa"):
+  depois do Fitter, o Lace confere no `.pin` cada pino, direção e padrão de
+  I/O contra a placa e reprova a compilação antes do `.sof` se algum ficou
+  fora do lugar; os pinos sem uso ficam escritos no `.qsf` como entrada em
+  alta impedância; e a gravação recusa (`stale_bitstream`) um `.sof` que
+  não descreve o projeto de agora, comparando pelo conteúdo os fontes, as
+  memórias dos processadores, o `fpga.json` e a definição da placa
+  (`lace-build.json`). Os pinos das duas placas foram conferidos também com
+  o `.qsf` da Terasic, um a um, e a DE10-Nano ganhou os LEDs 6 e 7, que vêm
+  dele.
+- O componente opcional `openfpgaloader`, com o openFPGALoader do OSS CAD
+  Suite nas três plataformas, para gravar as placas pelo cabo USB. No JSON,
+  a ferramenta se chama `openfpgaloader`.
+- O OSS CAD Suite 2026-09-29 não traz o `nextpnr-mistral` (Cyclone V) em
+  nenhuma plataforma, e o fluxo aberto para a DE10-Nano ficou para depois
+  do Quartus.
+
 ## 0.5.0 (2026-10-08)
 
 - `lace learn`: exercícios de Verilog no estilo do rustlings

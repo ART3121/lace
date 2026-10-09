@@ -3,6 +3,7 @@
 //! negócio mora aqui.
 
 mod commands;
+mod fpga;
 mod install;
 mod installation;
 mod learn;
@@ -167,6 +168,9 @@ enum Command {
     Report(ReportArgs),
     /// Learn Verilog with exercises checked on every save, like rustlings (no subcommand: watch mode)
     Learn(LearnArgs),
+    /// Put the design on an FPGA board: the boards, the fpga.json connections, the Quartus build and programming
+    #[command(subcommand)]
+    Fpga(FpgaCommand),
     /// Show the bundled tools and their versions
     Tools {
         /// Verify each executable against the manifest SHA-256
@@ -307,6 +311,32 @@ enum LearnDevCommand {
 }
 
 #[derive(Subcommand)]
+enum FpgaCommand {
+    /// List the known boards, or show the signals and pins of one
+    Boards {
+        /// Board id (e.g. de2-115)
+        board: Option<String>,
+    },
+    /// Check fpga.json against the board and the top module, and show the connections
+    Check {
+        /// Also print the generated board top (Verilog)
+        #[arg(long)]
+        show_top: bool,
+    },
+    /// Build the processors, then compile the project for the board with Quartus Prime
+    Build,
+    /// Program the board with the last build (Quartus Programmer, over JTAG)
+    Program {
+        /// Cable, as `--list` shows it (default: the first one)
+        #[arg(long, value_name = "NAME")]
+        cable: Option<String>,
+        /// Only list the programming cables connected
+        #[arg(long, conflicts_with = "cable")]
+        list: bool,
+    },
+}
+
+#[derive(Subcommand)]
 enum ProcCommand {
     /// Create a processor
     Add(ProcAddArgs),
@@ -368,7 +398,7 @@ struct BuildArgs {
 
 #[derive(clap::Args)]
 struct InstallArgs {
-    /// yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, studio
+    /// yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, lace-learn
     #[arg(value_name = "APP")]
     components: Vec<String>,
     /// Install from a local Lace installer (folder, .tar.gz or payload/) instead of downloading

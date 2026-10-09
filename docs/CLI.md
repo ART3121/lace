@@ -113,12 +113,13 @@ Valem em qualquer comando, antes ou depois dele.
 | `--events` | não | um objeto JSON por linha no stdout: os eventos das ferramentas enquanto rodam e, na última linha, o resultado ([Eventos](#eventos)). Com `--json` junto, vale o `--events` |
 | `-v`, `-vv` | não | `-v`: o comando e toda a saída de cada passo enquanto roda, mensagens `info`, artefatos intermediários, módulos da síntese e log `info` no stderr; `-vv`: log de depuração |
 
-Bundle (o `--compiler` fica entre as opções globais do `--help`; o `--toolchain`, de desenvolvimento, não aparece na ajuda):
+Bundle (o `--compiler` e o `--quartus` ficam entre as opções globais do `--help`; o `--toolchain`, de desenvolvimento, não aparece na ajuda):
 
 | Opção | Variável | Efeito |
 |---|---|---|
 | `--toolchain <DIR>` | `LACE_TOOLCHAIN` | outro bundle no lugar do instalado (desenvolvimento) |
 | `--compiler <DIR>` | `LACE_COMPILER` | onde está o compilador para o Verilator, quando não está no local padrão; no Windows, troca o do bundle (veja abaixo) |
+| `--quartus <DIR>` | `LACE_QUARTUS` | onde está o Quartus Prime, para as placas Intel, quando não está nas pastas padrão do instalador (veja abaixo) |
 
 ## De onde vêm as ferramentas
 
@@ -147,6 +148,12 @@ set -Ux LACE_COMPILER /opt/gcc/bin                   # fish: vale para as próxi
 
 `lace tools` mostra qual compilador foi encontrado e se ele é do bundle ou
 do sistema. Não há arquivo de configuração.
+
+A segunda exceção é o Quartus Prime, que compila para as placas Intel e não
+pode ir no bundle. O Lace usa o de `--quartus <DIR>` (ou `LACE_QUARTUS`),
+que é erro se não tiver o `quartus_sh`; senão o de `QUARTUS_ROOTDIR`, que o
+instalador da Intel cria; senão o das pastas padrão do instalador, a versão
+mais nova ([FPGA.md](FPGA.md)). `lace tools` mostra o que achou.
 
 ## Comandos
 
@@ -566,12 +573,27 @@ grava relatório.
 teclas do modo watch, a pasta de exercícios e o formato das trilhas estão em
 [LEARN.md](LEARN.md).
 
+### Placas FPGA: `lace fpga`
+
+A placa e a ligação das portas do topo aos sinais dela ficam no
+`fpga.json`, ao lado do `.spf` ([FPGA.md](FPGA.md)).
+
+| Comando | Faz | Função |
+|---|---|---|
+| `lace fpga boards [PLACA]` | as placas conhecidas; com uma, os sinais, os pinos, o padrão de I/O e quais são ativos em nível baixo | `fpga::boards`, `fpga::board` |
+| `lace fpga check [--show-top]` | confere o `fpga.json` contra a placa e as portas do topo e mostra o que vai em cada porta e em cada sinal da placa, com os ajustes de largura; com `--show-top`, o Verilog do topo da placa | `fpga::prepare` |
+| `lace fpga build` | confere o `fpga.json`, a placa e o Quartus, compila os processadores, grava o projeto do Quartus em `.lace/fpga/<placa>/` e roda `quartus_map`, `quartus_fit`, `quartus_asm` e `quartus_sta` (passos `synthesize`, `fit`, `bitstream` e `timing`). Depois do Fitter confere cada pino no `.pin` contra a placa, e reprova antes do `.sof` se algum ficou fora do lugar. Mostra os erros e avisos do Quartus com o número da mensagem, os recursos da FPGA e a Fmax e as folgas de cada clock. Folga negativa é aviso, não falha | `fpga::build` |
+| `lace fpga program [--cable NOME] [--list]` | grava na placa o `.sof` da última `lace fpga build` pelo Quartus Programmer (`quartus_pgm -c <cabo> -m jtag -o "p;output_files/lace_board_top.sof@<posição>"`), pelo primeiro cabo ligado ou pelo de `--cable`. Recusa, antes de procurar o cabo, um `.sof` que não descreve o projeto de agora (`stale_bitstream`: um fonte, uma memória, o `fpga.json` ou a placa mudou, ou o `.sof` foi trocado). A gravação vai para a SRAM da FPGA e some ao desligar a placa. Com `--list`, só os cabos (`quartus_pgm -l`) | `fpga::program`, `fpga::cables` |
+
+A compilação e a gravação para a placa não entram no histórico
+(`lace report`).
+
 ### Bundle
 
 | Comando | Faz |
 |---|---|
-| `lace tools [--verify]` | o bundle (identificador, plataforma, componentes instalados com versão e origem, e os não instalados), cada ferramenta (`OK`, `--` se o componente dela não foi instalado, `!!` se falta o executável), o compilador do Verilator, com `(bundle)` ou `(system)`. Com `--verify`, confere o SHA-256 de cada executável e sai com 1 se algum não conferir |
-| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, studio, lace-learn) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador). Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
+| `lace tools [--verify]` | o bundle (identificador, plataforma, componentes instalados com versão e origem, e os não instalados), cada ferramenta (`OK`, `--` se o componente dela não foi instalado ou, no `quartus`, se não há Quartus, `!!` se falta o executável), o compilador do Verilator, com `(bundle)` ou `(system)`, e o Quartus Prime, se encontrado (no macOS, onde não existe, a linha some). Com `--verify`, confere o SHA-256 de cada executável e sai com 1 se algum não conferir |
+| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, lace-learn) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador). Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
 | `lace update [--check] [--yes]` | compara o Lace, o bundle e cada aplicativo instalado com a última release (o `bundle/versions.json` da tag dela) e com a última versão upstream (releases do OSS CAD Suite, do lace-toolchain e do YANC no GitHub, tags do surfer-aurora e releases do Graphviz no GitLab), e marca `(new)` o que é mais novo; `?` é uma fonte que não respondeu. Com `--check`, só mostra. Sem ele, se há Lace mais novo, pergunta (sem terminal, exige `--yes`) e baixa o instalador da release, conferido pelo `SHA256SUMS`: no Linux e no macOS reinstala com os mesmos aplicativos, a mesma pasta e o mesmo atalho; no Windows abre o assistente. Ferramenta mais nova upstream não é instalada: chega num bundle novo, numa release nova do Lace. Sem rede ou com o GitHub fora, sai com 2. Recusa atualizar um `lace` que não foi instalado pelo instalador |
 | `lace uninstall [--yes]` | remove a instalação de onde este `lace` roda, com o bundle inteiro: no Linux e no macOS roda o `uninstall.sh` da pasta (sai `toolchain/`, `bin/lace`, o atalho e a pasta), no Windows abre o desinstalador do Inno (que também tira a pasta do PATH). Pergunta antes; sem terminal, exige `--yes`. Recusa um `lace` que não foi instalado pelo instalador. Também apaga o `~/.config/lace/config.json` de um build anterior à 0.2.0, e tira o atalho do Studio no menu. Os projetos ficam |
 
@@ -662,6 +684,14 @@ CLI acrescenta o comando que resolve:
 | `project_not_found` | `Create one with: lace new <name>, or point to it with -C <folder>` |
 | `no_reports` | `lace build, check, sim and synth each store a report` |
 | `report_not_found` | `List them with: lace report list` |
+| `board_not_found` | `List them with: lace fpga boards` |
+| `no_fpga_config` | um exemplo de `fpga.json` e `see the signals with: lace fpga boards <board>` |
+| `invalid_fpga_config` | nenhuma: a mensagem traz um problema por linha |
+| `invalid_board` | `This is a bug in Lace; please report it` |
+| `no_bitstream` | `Build for the board first with: lace fpga build` |
+| `stale_bitstream` | `Build for the board again with: lace fpga build, then program` |
+| `no_cable` | ligar a placa pela porta do USB-Blaster, com a chave RUN/PROG em RUN, e o driver do USB-Blaster (na pasta `drivers` do Quartus, no Windows) |
+| `quartus_missing` | `Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS` |
 
 ### JSON
 
@@ -691,7 +721,12 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `report list` | `report-list.json` | um resumo por relatório, do mais novo para o mais antigo |
 | `report compare` | `report-compare.json` | os dois relatórios, a síntese e a simulação comparadas (`null` quando não se comparam) e os avisos de contexto |
 | `report clean` | `report-clean.json` | os relatórios apagados, do mais antigo para o mais novo, e quantos ficaram |
-| `tools` | `tools.json` | o bundle, os componentes instalados e os que faltam, cada ferramenta (o caminho ou o erro), o compilador do Verilator (`system_compiler`, com `bundled` verdadeiro no Windows) e, com `--verify`, os executáveis que não conferem |
+| `tools` | `tools.json` | o bundle, os componentes instalados e os que faltam, cada ferramenta (o caminho ou o erro), o compilador do Verilator (`system_compiler`, com `bundled` verdadeiro no Windows), o Quartus Prime (`quartus`, `null` se não encontrado) e, com `--verify`, os executáveis que não conferem |
+| `fpga boards` | `fpga-boards.json` | as placas, cada uma com o FPGA, o cabo e os sinais com os pinos |
+| `fpga check` | `fpga-check.json` | o `fpga.json`, as ligações bit a bit (`resolved`, com as notas de ajuste) e o Verilog do topo da placa (`board_top`) |
+| `fpga build` | `fpga-build.json` | os processadores compilados antes (`builds`) e a compilação para a placa (`fpga`, `null` se um processador falhou): os passos do Quartus, os diagnósticos, os artefatos (o `.sof`, o `.rbf`, o `.svf`), os recursos (`resources`) e o tempo de cada clock (`timing`) |
+| `fpga program` | `fpga-program.json` | a gravação: a placa, o `.sof`, o cabo, a posição JTAG, o passo `program` e os diagnósticos |
+| `fpga program --list` | `fpga-cables.json` | os cabos ligados (`cables`), como o `quartus_pgm -l` os escreve |
 | `install` | `install.json` | a pasta, os aplicativos instalados depois e os que entraram. Exige nomes: com `--json` não há lista |
 | `update` | `update.json` | o Lace (instalado, último publicado, se é mais novo), o bundle (instalado e o da última release), cada aplicativo com a versão instalada, a da release e a upstream (`null` quando a consulta falhou), e o que o comando fez (`checked`, `up_to_date`, `updated`, `wizard_opened`). O que o instalador escreve vai para o stderr |
 | `uninstall` | `uninstall.json` | a pasta da instalação e se ela já saiu (`false` no Windows, onde o desinstalador termina depois que o `lace` sai). O que o `uninstall.sh` escreve vai para o stderr |

@@ -161,7 +161,7 @@
           "const": "simulate"
         },
         {
-          "description": "`yosys`: Verilog para netlist JSON.",
+          "description": "`yosys`: Verilog para netlist JSON. Numa placa, o `quartus_map`\n(Analysis & Synthesis do Quartus).",
           "type": "string",
           "const": "synthesize"
         },
@@ -174,6 +174,26 @@
           "description": "`dot`: grafo do esquemático para SVG.",
           "type": "string",
           "const": "render"
+        },
+        {
+          "description": "`quartus_fit`: posiciona e roteia o design na FPGA da placa (Fitter).",
+          "type": "string",
+          "const": "fit"
+        },
+        {
+          "description": "`quartus_asm`: os arquivos de gravação (`.sof`, `.rbf`, `.svf`), no\nAssembler do Quartus.",
+          "type": "string",
+          "const": "bitstream"
+        },
+        {
+          "description": "`quartus_sta`: a análise de tempo (Timing Analyzer), com a folga e a\nFmax de cada clock.",
+          "type": "string",
+          "const": "timing"
+        },
+        {
+          "description": "`quartus_pgm`: grava o `.sof` na FPGA da placa pelo cabo JTAG.",
+          "type": "string",
+          "const": "program"
         }
       ]
     },
@@ -279,6 +299,16 @@
           "description": "O visualizador de ondas surfer-aurora. Aplicação gráfica: abre e fica\naberta.",
           "type": "string",
           "const": "surfer"
+        },
+        {
+          "description": "O openFPGALoader: grava um bitstream (`.rbf`, `.svf`) na placa pelo\ncabo USB dela.",
+          "type": "string",
+          "const": "openfpgaloader"
+        },
+        {
+          "description": "O Quartus Prime do sistema, que compila para as placas Intel\n([`crate::fpga`]). Cada passo roda um programa de linha de comando\ndele (`quartus_map`, `quartus_fit`, `quartus_asm`, `quartus_sta`);\nnão vem no bundle ([`crate::fpga::Quartus`]).",
+          "type": "string",
+          "const": "quartus"
         },
         {
           "description": "O Perl que executa o script `verilator`, parte do [`SystemCompiler`]:\ndo sistema no Linux e no macOS, do bundle no Windows.",

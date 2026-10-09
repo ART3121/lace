@@ -147,6 +147,10 @@ fn describe(step: Step, tool: Tool) -> String {
         Step::Synthesize => "Synthesizing",
         Step::Graph => "Drawing the graph",
         Step::Render => "Rendering the schematic",
+        Step::Fit => "Placing and routing",
+        Step::Bitstream => "Writing the bitstream",
+        Step::Timing => "Analyzing timing",
+        Step::Program => "Programming the board",
         _ => "Running",
     };
     format!("{what} ({tool})")

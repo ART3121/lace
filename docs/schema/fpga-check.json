@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FpgaCheckReport",
+  "description": "`lace fpga check`: o `fpga.json` conferido.",
+  "type": "object",
+  "properties": {
+    "config": {
+      "description": "O `fpga.json`.",
+      "type": "string"
+    },
+    "resolved": {
+      "description": "As ligações, bit a bit.",
+      "$ref": "#/$defs/Resolved"
+    },
+    "board_top": {
+      "description": "O Verilog do topo da placa que o Lace gera.",
+      "type": "string"
+    },
+    "connections": {
+      "description": "Cada ligação como texto: o que vai em cada entrada do topo e em cada\nsinal de saída da placa.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Connection"
+      }
+    }
+  },
+  "required": [
+    "config",
+    "resolved",
+    "board_top",
+    "connections"
+  ],
+  "$defs": {
+    "Resolved": {
+      "description": "As ligações conferidas, bit a bit: o que o topo da placa precisa para ser\ngerado.",
+      "type": "object",
+      "properties": {
+        "board": {
+          "description": "A placa.",
+          "$ref": "#/$defs/Board"
+        },
+        "top": {
+          "description": "O módulo do topo.",
+          "type": "string"
+        },
+        "ports": {
+          "description": "As portas do topo, na ordem da declaração.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TopPort"
+          }
+        },
+        "inputs": {
+          "description": "As entradas do topo, com a origem de cada bit, do bit 0 em diante.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PortDrive"
+          }
+        },
+        "board_outputs": {
+          "description": "Os sinais de saída da placa usados, com a porta que dirige cada bit.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SignalDrive"
+          }
+        },
+        "board_inputs": {
+          "description": "Os sinais de entrada da placa usados, na ordem em que aparecem.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "clocks": {
+          "description": "As portas ligadas a um clock da placa.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Clock"
+          }
+        },
+        "notes": {
+          "description": "Os ajustes feitos: larguras completadas ou cortadas, entradas soltas.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "board",
+        "top",
+        "ports",
+        "inputs",
+        "board_outputs",
+        "board_inputs",
+        "clocks",
+        "notes"
+      ]
+    },
+    "Board": {
+      "description": "Uma placa.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "O identificador, usado no `fpga.json` e na CLI (`de2-115`).",
+          "type": "string"
+        },
+        "name": {
+          "description": "O nome para mostrar (`Terasic DE2-115`).",
+          "type": "string"
+        },
+        "source": {
+          "description": "De onde vieram os pinos: o manual, a versão e as tabelas.",
+          "type": "string"
+        },
+        "device": {
+          "description": "O FPGA.",
+          "$ref": "#/$defs/Device"
+        },
+        "jtag": {
+          "description": "A gravação pela USB da placa.",
+          "$ref": "#/$defs/Jtag"
+        },
+        "signals": {
+          "description": "Os sinais da placa ligados ao FPGA.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BoardSignal"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "source",
+        "device",
+        "jtag",
+        "signals"
+      ]
+    },
+    "Device": {
+      "description": "O FPGA de uma placa.",
+      "type": "object",
+      "properties": {
+        "family": {
+          "description": "A família, como o Quartus a escreve no `.qsf` (`Cyclone IV E`).",
+          "type": "string"
+        },
+        "part": {
+          "description": "O modelo, como no `.qsf` (`EP4CE115F29C7`).",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "part"
+      ]
+    },
+    "Jtag": {
+      "description": "Como gravar a placa pela USB dela.",
+      "type": "object",
+      "properties": {
+        "cable": {
+          "description": "O cabo.",
+          "$ref": "#/$defs/Cable"
+        },
+        "position": {
+          "description": "A posição do FPGA na cadeia JTAG, a partir de 1. Na DE10-Nano o FPGA\nvem depois do processador ARM (HPS).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "openfpgaloader": {
+          "description": "O nome da placa no openFPGALoader (`-b`), se ele a conhece.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "cable",
+        "position"
+      ]
+    },
+    "Cable": {
+      "description": "O cabo de gravação embutido na placa.",
+      "oneOf": [
+        {
+          "description": "USB-Blaster (FT245 e um CPLD).",
+          "type": "string",
+          "const": "usb-blaster"
+        },
+        {
+          "description": "USB-Blaster II (EZ-USB FX2). O openFPGALoader só o usa com o firmware\n`blaster_6810.hex`, que vem com o Quartus.",
+          "type": "string",
+          "const": "usb-blasterII"
+        }
+      ]
+    },
+    "BoardSignal": {
+      "description": "Um sinal da placa: um fio (`CLOCK_50`) ou um barramento (`SW`), com um\npino por bit.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome, como no manual (`KEY`, `LEDR`).",
+          "type": "string"
+        },
+        "direction": {
+          "description": "A direção.",
+          "$ref": "#/$defs/SignalDirection"
+        },
+        "pins": {
+          "description": "Os pinos, do bit 0 em diante (`PIN_Y2`).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "io_standard": {
+          "description": "O padrão de I/O, como no `.qsf` (`3.3-V LVTTL`): um para o sinal\ninteiro ou um por bit, quando os bits ficam em bancos de tensões\ndiferentes.",
+          "$ref": "#/$defs/IoStandard"
+        },
+        "active_low": {
+          "description": "Ativo em nível baixo: o botão apertado lê 0, o segmento acende em 0.\nNum sinal de saída, os bits que nada liga ficam no nível inativo.",
+          "type": "boolean",
+          "default": false
+        },
+        "clock_mhz": {
+          "description": "A frequência, se for um clock.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "description": {
+          "description": "O que é, como no manual.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "direction",
+        "pins",
+        "io_standard",
+        "active_low",
+        "description"
+      ]
+    },
+    "SignalDirection": {
+      "description": "A direção de um sinal da placa, do ponto de vista do FPGA.",
+      "oneOf": [
+        {
+          "description": "Entra no FPGA: clock, botão, chave.",
+          "type": "string",
+          "const": "input"
+        },
+        {
+          "description": "Sai do FPGA: LED, display.",
+          "type": "string",
+          "const": "output"
+        }
+      ]
+    },
+    "IoStandard": {
+      "description": "O padrão de I/O de um sinal.",
+      "anyOf": [
+        {
+          "description": "O mesmo para todos os bits.",
+          "type": "string"
+        },
+        {
+          "description": "Um por bit, do bit 0 em diante.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "TopPort": {
+      "description": "Uma porta do topo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome.",
+          "type": "string"
+        },
+        "input": {
+          "description": "`true` para entrada, `false` para saída.",
+          "type": "boolean"
+        },
+        "width": {
+          "description": "A largura.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "name",
+        "input",
+        "width"
+      ]
+    },
+    "PortDrive": {
+      "description": "A origem de cada bit de uma entrada do topo.",
+      "type": "object",
+      "properties": {
+        "port": {
+          "description": "A porta.",
+          "type": "string"
+        },
+        "bits": {
+          "description": "Um item por bit, do bit 0 em diante.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BitSource"
+          }
+        }
+      },
+      "required": [
+        "port",
+        "bits"
+      ]
+    },
+    "BitSource": {
+      "description": "De onde vem um bit de entrada.",
+      "oneOf": [
+        {
+          "description": "Um bit de um sinal da placa, invertido ou não.",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal.",
+              "type": "string"
+            },
+            "bit": {
+              "description": "O bit.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "invert": {
+              "description": "Invertido (`!`).",
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "pin"
+            }
+          },
+          "required": [
+            "kind",
+            "signal",
+            "bit",
+            "invert"
+          ]
+        },
+        {
+          "description": "Um valor fixo.",
+          "type": "object",
+          "properties": {
+            "value": {
+              "description": "O valor.",
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "constant"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        }
+      ]
+    },
+    "SignalDrive": {
+      "description": "O que dirige cada bit de um sinal de saída da placa.",
+      "type": "object",
+      "properties": {
+        "signal": {
+          "description": "O sinal.",
+          "type": "string"
+        },
+        "active_low": {
+          "description": "Ativo em nível baixo: os bits sem ligação ficam em 1.",
+          "type": "boolean"
+        },
+        "bits": {
+          "description": "Um item por bit, do bit 0 em diante; `None` fica no nível inativo.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PortBit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "signal",
+        "active_low",
+        "bits"
+      ]
+    },
+    "PortBit": {
+      "description": "Um bit de uma saída do topo.",
+      "type": "object",
+      "properties": {
+        "port": {
+          "description": "A porta.",
+          "type": "string"
+        },
+        "bit": {
+          "description": "O bit.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "invert": {
+          "description": "Invertido (`!`).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "port",
+        "bit",
+        "invert"
+      ]
+    },
+    "Clock": {
+      "description": "Uma porta ligada a um clock da placa: vai para o `.sdc`.",
+      "type": "object",
+      "properties": {
+        "signal": {
+          "description": "O sinal da placa.",
+          "type": "string"
+        },
+        "port": {
+          "description": "A porta do topo.",
+          "type": "string"
+        },
+        "mhz": {
+          "description": "A frequência.",
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "signal",
+        "port",
+        "mhz"
+      ]
+    },
+    "Connection": {
+      "description": "Uma ligação como texto, para mostrar.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "description": "A entrada do topo (`in[15:0]`) ou o sinal de saída da placa\n(`LEDR[17:0]`).",
+          "type": "string"
+        },
+        "source": {
+          "description": "O que a dirige (`~KEY[0]`, `{10'b0, out[7:0]}`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "source"
+      ]
+    }
+  }
+}

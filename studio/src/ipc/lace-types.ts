@@ -36,7 +36,11 @@ export type Step =
   | 'simulate'
   | 'synthesize'
   | 'graph'
-  | 'render';
+  | 'render'
+  | 'fit'
+  | 'bitstream'
+  | 'timing'
+  | 'program';
 /**
  * Linguagem do programa de um processador. Em JSON: `"cmm"` ou `"cpp"`.
  *
@@ -72,6 +76,8 @@ export type Tool =
   | 'yosys'
   | 'dot'
   | 'surfer'
+  | 'openfpgaloader'
+  | 'quartus'
   | 'perl';
 /**
  * Como um processo terminou.
@@ -145,7 +151,12 @@ export type ArtifactKind =
   | 'netlist'
   | 'schematic_graph'
   | 'schematic'
-  | 'synthesis_statistics';
+  | 'synthesis_statistics'
+  | 'board_top'
+  | 'quartus_project'
+  | 'sram_object'
+  | 'raw_binary'
+  | 'serial_vector_format';
 /**
  * O que aconteceu durante uma operação, avisado na hora em que acontece.
  *
@@ -182,7 +193,11 @@ export type Event =
         | 'simulate'
         | 'synthesize'
         | 'graph'
-        | 'render';
+        | 'render'
+        | 'fit'
+        | 'bitstream'
+        | 'timing'
+        | 'program';
       /**
        * A ferramenta.
        */
@@ -198,6 +213,8 @@ export type Event =
         | 'yosys'
         | 'dot'
         | 'surfer'
+        | 'openfpgaloader'
+        | 'quartus'
         | 'perl';
       command: Invocation2;
       event: 'step_started';
@@ -218,7 +235,11 @@ export type Event =
         | 'simulate'
         | 'synthesize'
         | 'graph'
-        | 'render';
+        | 'render'
+        | 'fit'
+        | 'bitstream'
+        | 'timing'
+        | 'program';
       /**
        * A ferramenta que escreveu.
        */
@@ -234,6 +255,8 @@ export type Event =
         | 'yosys'
         | 'dot'
         | 'surfer'
+        | 'openfpgaloader'
+        | 'quartus'
         | 'perl';
       /**
        * stdout ou stderr.
@@ -271,7 +294,11 @@ export type Event =
         | 'simulate'
         | 'synthesize'
         | 'graph'
-        | 'render';
+        | 'render'
+        | 'fit'
+        | 'bitstream'
+        | 'timing'
+        | 'program';
       /**
        * A ferramenta.
        */
@@ -287,6 +314,8 @@ export type Event =
         | 'yosys'
         | 'dot'
         | 'surfer'
+        | 'openfpgaloader'
+        | 'quartus'
         | 'perl';
       /**
        * Como terminou.
@@ -332,6 +361,56 @@ export type Stream = 'stdout' | 'stderr';
  * via the `definition` "ResultTag".
  */
 export type ResultTag = 'result';
+/**
+ * O cabo de gravação embutido na placa.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Cable".
+ */
+export type Cable = 'usb-blaster' | 'usb-blasterII';
+/**
+ * A direção de um sinal da placa, do ponto de vista do FPGA.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SignalDirection".
+ */
+export type SignalDirection = 'input' | 'output';
+/**
+ * O padrão de I/O de um sinal.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "IoStandard".
+ */
+export type IoStandard = string | string[];
+/**
+ * De onde vem um bit de entrada.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "BitSource".
+ */
+export type BitSource =
+  | {
+      /**
+       * O sinal.
+       */
+      signal: string;
+      /**
+       * O bit.
+       */
+      bit: number;
+      /**
+       * Invertido (`!`).
+       */
+      invert: boolean;
+      kind: 'pin';
+    }
+  | {
+      /**
+       * O valor.
+       */
+      value: boolean;
+      kind: 'constant';
+    };
 /**
  * O que a correção percebeu sobre a causa do erro.
  *
@@ -572,7 +651,11 @@ export interface StepReport {
     | 'simulate'
     | 'synthesize'
     | 'graph'
-    | 'render';
+    | 'render'
+    | 'fit'
+    | 'bitstream'
+    | 'timing'
+    | 'program';
   /**
    * A ferramenta executada. Para o executável que o Verilator gera, é
    * [`Tool::Verilator`].
@@ -589,6 +672,8 @@ export interface StepReport {
     | 'yosys'
     | 'dot'
     | 'surfer'
+    | 'openfpgaloader'
+    | 'quartus'
     | 'perl';
   command: Invocation;
   /**
@@ -701,6 +786,8 @@ export interface Diagnostic {
     | 'yosys'
     | 'dot'
     | 'surfer'
+    | 'openfpgaloader'
+    | 'quartus'
     | 'perl';
   /**
    * A gravidade.
@@ -764,7 +851,12 @@ export interface Artifact {
     | 'netlist'
     | 'schematic_graph'
     | 'schematic'
-    | 'synthesis_statistics';
+    | 'synthesis_statistics'
+    | 'board_top'
+    | 'quartus_project'
+    | 'sram_object'
+    | 'raw_binary'
+    | 'serial_vector_format';
   /**
    * Caminho absoluto.
    */
@@ -933,6 +1025,494 @@ export interface ResultLine {
   result: {
     [k: string]: unknown | undefined;
   };
+}
+/**
+ * Uma placa.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Board".
+ */
+export interface Board {
+  /**
+   * O identificador, usado no `fpga.json` e na CLI (`de2-115`).
+   */
+  id: string;
+  /**
+   * O nome para mostrar (`Terasic DE2-115`).
+   */
+  name: string;
+  /**
+   * De onde vieram os pinos: o manual, a versão e as tabelas.
+   */
+  source: string;
+  device: Device;
+  jtag: Jtag;
+  /**
+   * Os sinais da placa ligados ao FPGA.
+   */
+  signals: BoardSignal[];
+}
+/**
+ * O FPGA.
+ */
+export interface Device {
+  /**
+   * A família, como o Quartus a escreve no `.qsf` (`Cyclone IV E`).
+   */
+  family: string;
+  /**
+   * O modelo, como no `.qsf` (`EP4CE115F29C7`).
+   */
+  part: string;
+}
+/**
+ * A gravação pela USB da placa.
+ */
+export interface Jtag {
+  /**
+   * O cabo.
+   */
+  cable: 'usb-blaster' | 'usb-blasterII';
+  /**
+   * A posição do FPGA na cadeia JTAG, a partir de 1. Na DE10-Nano o FPGA
+   * vem depois do processador ARM (HPS).
+   */
+  position: number;
+  /**
+   * O nome da placa no openFPGALoader (`-b`), se ele a conhece.
+   */
+  openfpgaloader?: string | null;
+}
+/**
+ * Um sinal da placa: um fio (`CLOCK_50`) ou um barramento (`SW`), com um
+ * pino por bit.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "BoardSignal".
+ */
+export interface BoardSignal {
+  /**
+   * O nome, como no manual (`KEY`, `LEDR`).
+   */
+  name: string;
+  /**
+   * A direção.
+   */
+  direction: 'input' | 'output';
+  /**
+   * Os pinos, do bit 0 em diante (`PIN_Y2`).
+   */
+  pins: string[];
+  /**
+   * O padrão de I/O, como no `.qsf` (`3.3-V LVTTL`): um para o sinal
+   * inteiro ou um por bit, quando os bits ficam em bancos de tensões
+   * diferentes.
+   */
+  io_standard: string | string[];
+  /**
+   * Ativo em nível baixo: o botão apertado lê 0, o segmento acende em 0.
+   * Num sinal de saída, os bits que nada liga ficam no nível inativo.
+   */
+  active_low: boolean;
+  /**
+   * A frequência, se for um clock.
+   */
+  clock_mhz?: number | null;
+  /**
+   * O que é, como no manual.
+   */
+  description: string;
+}
+/**
+ * O FPGA de uma placa.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Device".
+ */
+export interface Device1 {
+  /**
+   * A família, como o Quartus a escreve no `.qsf` (`Cyclone IV E`).
+   */
+  family: string;
+  /**
+   * O modelo, como no `.qsf` (`EP4CE115F29C7`).
+   */
+  part: string;
+}
+/**
+ * Como gravar a placa pela USB dela.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Jtag".
+ */
+export interface Jtag1 {
+  /**
+   * O cabo.
+   */
+  cable: 'usb-blaster' | 'usb-blasterII';
+  /**
+   * A posição do FPGA na cadeia JTAG, a partir de 1. Na DE10-Nano o FPGA
+   * vem depois do processador ARM (HPS).
+   */
+  position: number;
+  /**
+   * O nome da placa no openFPGALoader (`-b`), se ele a conhece.
+   */
+  openfpgaloader?: string | null;
+}
+/**
+ * O resultado de [`build`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaBuildResult".
+ */
+export interface FpgaBuildResult {
+  /**
+   * A placa (o `id`: `de2-115`).
+   */
+  board: string;
+  /**
+   * O topo do projeto, que o topo da placa instancia.
+   */
+  top: string;
+  /**
+   * A pasta do projeto do Quartus ([`build_dir`]).
+   */
+  dir: string;
+  quartus: Quartus;
+  /**
+   * Como a compilação terminou. Um design que não alcança o clock
+   * compila do mesmo jeito: quem diz é [`FpgaBuildResult::timing`].
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * O passo que falhou.
+   */
+  failed_step: Step | null;
+  /**
+   * Até quatro passos, todos do Quartus: `synthesize` (`quartus_map`),
+   * `fit`, `bitstream` (`quartus_asm`) e `timing` (`quartus_sta`).
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos do Quartus, sem os `Info` e sem repetição (o aviso
+   * de tempo vem uma vez por canto analisado).
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * O topo da placa, o `.qsf` e os arquivos de gravação: o `.sof`,
+   * obrigatório, e o `.rbf` e o `.svf`, para o openFPGALoader.
+   */
+  artifacts: Artifact[];
+  /**
+   * O `.sof`, quando a compilação terminou.
+   */
+  bitstream: string | null;
+  /**
+   * O que o design usa da FPGA, do resumo do Fitter, quando ele
+   * terminou.
+   */
+  resources: ResourceUsage[];
+  /**
+   * A Fmax e as folgas de cada clock, quando a análise de tempo
+   * terminou.
+   */
+  timing: TimingSummary | null;
+  /**
+   * Os ajustes das ligações do `fpga.json` (larguras completadas,
+   * entradas soltas), como em `lace fpga check`.
+   */
+  notes: string[];
+  /**
+   * Quanto a compilação levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * O Quartus que compilou.
+ */
+export interface Quartus {
+  /**
+   * A pasta `quartus` da instalação (`C:\intelFPGA_lite\22.1std\quartus`).
+   */
+  root: string;
+  /**
+   * A pasta dos programas: `bin64` no Windows, `bin` no Linux.
+   */
+  bin: string;
+  /**
+   * A versão, pelo nome da pasta da instalação (`22.1std`).
+   */
+  version?: string | null;
+}
+/**
+ * Um recurso da FPGA no resumo do Fitter.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ResourceUsage".
+ */
+export interface ResourceUsage {
+  /**
+   * O nome, como o Quartus escreve (`Total logic elements`, `Total pins`,
+   * `Logic utilization (in ALMs)`).
+   */
+  name: string;
+  /**
+   * Quanto o design usa.
+   */
+  used: number;
+  /**
+   * Quanto a FPGA tem, quando o Quartus diz.
+   */
+  available: number | null;
+  /**
+   * Detalhe do recurso de cima (`Dedicated logic registers`, dentro de
+   * `Total logic elements`).
+   */
+  detail: boolean;
+}
+/**
+ * O tempo do design.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TimingSummary".
+ */
+export interface TimingSummary {
+  /**
+   * Um por clock, na ordem em que o relatório os cita.
+   */
+  clocks: ClockTiming[];
+  /**
+   * Nenhuma folga de setup ou de hold é negativa.
+   */
+  met: boolean;
+}
+/**
+ * O tempo de um clock, no pior dos cantos de operação (tensão e
+ * temperatura) que o Timing Analyzer analisa.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ClockTiming".
+ */
+export interface ClockTiming {
+  /**
+   * O clock: o sinal da placa, pelo nome do `create_clock`, ou o que o
+   * Quartus achou que é clock (um registrador que dirige um `always`).
+   */
+  clock: string;
+  /**
+   * A frequência do oscilador da placa, em MHz: a que o `.sdc` pede.
+   * `None` num clock que não é da placa.
+   */
+  target_mhz: number | null;
+  /**
+   * A maior frequência em que o design funciona com esse clock (a
+   * `Restricted Fmax`), em MHz.
+   */
+  fmax_mhz: number | null;
+  /**
+   * A folga de setup, em ns. Negativa: o design não alcança a frequência
+   * do clock.
+   */
+  setup_slack_ns: number | null;
+  /**
+   * A folga de hold, em ns.
+   */
+  hold_slack_ns: number | null;
+}
+/**
+ * Uma instalação do Quartus Prime.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Quartus".
+ */
+export interface Quartus1 {
+  /**
+   * A pasta `quartus` da instalação (`C:\intelFPGA_lite\22.1std\quartus`).
+   */
+  root: string;
+  /**
+   * A pasta dos programas: `bin64` no Windows, `bin` no Linux.
+   */
+  bin: string;
+  /**
+   * A versão, pelo nome da pasta da instalação (`22.1std`).
+   */
+  version?: string | null;
+}
+/**
+ * As ligações conferidas, bit a bit: o que o topo da placa precisa para ser
+ * gerado.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Resolved".
+ */
+export interface Resolved {
+  board: Board1;
+  /**
+   * O módulo do topo.
+   */
+  top: string;
+  /**
+   * As portas do topo, na ordem da declaração.
+   */
+  ports: TopPort[];
+  /**
+   * As entradas do topo, com a origem de cada bit, do bit 0 em diante.
+   */
+  inputs: PortDrive[];
+  /**
+   * Os sinais de saída da placa usados, com a porta que dirige cada bit.
+   */
+  board_outputs: SignalDrive[];
+  /**
+   * Os sinais de entrada da placa usados, na ordem em que aparecem.
+   */
+  board_inputs: string[];
+  /**
+   * As portas ligadas a um clock da placa.
+   */
+  clocks: Clock[];
+  /**
+   * Os ajustes feitos: larguras completadas ou cortadas, entradas soltas.
+   */
+  notes: string[];
+}
+/**
+ * A placa.
+ */
+export interface Board1 {
+  /**
+   * O identificador, usado no `fpga.json` e na CLI (`de2-115`).
+   */
+  id: string;
+  /**
+   * O nome para mostrar (`Terasic DE2-115`).
+   */
+  name: string;
+  /**
+   * De onde vieram os pinos: o manual, a versão e as tabelas.
+   */
+  source: string;
+  device: Device;
+  jtag: Jtag;
+  /**
+   * Os sinais da placa ligados ao FPGA.
+   */
+  signals: BoardSignal[];
+}
+/**
+ * Uma porta do topo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TopPort".
+ */
+export interface TopPort {
+  /**
+   * O nome.
+   */
+  name: string;
+  /**
+   * `true` para entrada, `false` para saída.
+   */
+  input: boolean;
+  /**
+   * A largura.
+   */
+  width: number;
+}
+/**
+ * A origem de cada bit de uma entrada do topo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "PortDrive".
+ */
+export interface PortDrive {
+  /**
+   * A porta.
+   */
+  port: string;
+  /**
+   * Um item por bit, do bit 0 em diante.
+   */
+  bits: BitSource[];
+}
+/**
+ * O que dirige cada bit de um sinal de saída da placa.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SignalDrive".
+ */
+export interface SignalDrive {
+  /**
+   * O sinal.
+   */
+  signal: string;
+  /**
+   * Ativo em nível baixo: os bits sem ligação ficam em 1.
+   */
+  active_low: boolean;
+  /**
+   * Um item por bit, do bit 0 em diante; `None` fica no nível inativo.
+   */
+  bits: (PortBit | null)[];
+}
+/**
+ * Um bit de uma saída do topo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "PortBit".
+ */
+export interface PortBit {
+  /**
+   * A porta.
+   */
+  port: string;
+  /**
+   * O bit.
+   */
+  bit: number;
+  /**
+   * Invertido (`!`).
+   */
+  invert: boolean;
+}
+/**
+ * Uma porta ligada a um clock da placa: vai para o `.sdc`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Clock".
+ */
+export interface Clock {
+  /**
+   * O sinal da placa.
+   */
+  signal: string;
+  /**
+   * A porta do topo.
+   */
+  port: string;
+  /**
+   * A frequência.
+   */
+  mhz: number;
+}
+/**
+ * Uma ligação como texto, para mostrar.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Connection".
+ */
+export interface Connection {
+  /**
+   * A entrada do topo (`in[15:0]`) ou o sinal de saída da placa
+   * (`LEDR[17:0]`).
+   */
+  target: string;
+  /**
+   * O que a dirige (`~KEY[0]`, `{10'b0, out[7:0]}`).
+   */
+  source: string;
 }
 /**
  * Uma chamada do `iverilog` e a árvore que saiu dela.
@@ -2591,6 +3171,167 @@ export interface ErrorInfo2 {
   hint?: string | null;
 }
 /**
+ * `lace fpga boards`: as placas conhecidas, ou a pedida.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaBoardsReport".
+ */
+export interface FpgaBoardsReport {
+  /**
+   * As placas, com o FPGA, o cabo e os sinais com os pinos.
+   */
+  boards: Board[];
+}
+/**
+ * `lace fpga build`: os processadores, compilados antes, e a compilação
+ * para a placa pelo Quartus.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaBuildReport".
+ */
+export interface FpgaBuildReport {
+  /**
+   * Os processadores. Se um falha, `fpga` é `null`.
+   */
+  builds: BuildResult[];
+  /**
+   * A compilação para a placa.
+   */
+  fpga: FpgaBuildResult | null;
+}
+/**
+ * `lace fpga program --list`: os cabos de gravação ligados.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaCablesReport".
+ */
+export interface FpgaCablesReport {
+  /**
+   * Como o `quartus_pgm -l` os escreve (`USB-Blaster [USB-0]`); vazio,
+   * nenhum.
+   */
+  cables: string[];
+}
+/**
+ * `lace fpga check`: o `fpga.json` conferido.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaCheckReport".
+ */
+export interface FpgaCheckReport {
+  /**
+   * O `fpga.json`.
+   */
+  config: string;
+  resolved: Resolved1;
+  /**
+   * O Verilog do topo da placa que o Lace gera.
+   */
+  board_top: string;
+  /**
+   * Cada ligação como texto: o que vai em cada entrada do topo e em cada
+   * sinal de saída da placa.
+   */
+  connections: Connection[];
+}
+/**
+ * As ligações, bit a bit.
+ */
+export interface Resolved1 {
+  board: Board1;
+  /**
+   * O módulo do topo.
+   */
+  top: string;
+  /**
+   * As portas do topo, na ordem da declaração.
+   */
+  ports: TopPort[];
+  /**
+   * As entradas do topo, com a origem de cada bit, do bit 0 em diante.
+   */
+  inputs: PortDrive[];
+  /**
+   * Os sinais de saída da placa usados, com a porta que dirige cada bit.
+   */
+  board_outputs: SignalDrive[];
+  /**
+   * Os sinais de entrada da placa usados, na ordem em que aparecem.
+   */
+  board_inputs: string[];
+  /**
+   * As portas ligadas a um clock da placa.
+   */
+  clocks: Clock[];
+  /**
+   * Os ajustes feitos: larguras completadas ou cortadas, entradas soltas.
+   */
+  notes: string[];
+}
+/**
+ * O resultado de [`program`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaProgramResult".
+ */
+export interface FpgaProgramResult {
+  /**
+   * A placa (o `id`).
+   */
+  board: string;
+  /**
+   * O `.sof` gravado.
+   */
+  bitstream: string;
+  /**
+   * O cabo usado, como o `quartus_pgm -l` o escreve
+   * (`USB-Blaster [USB-0]`).
+   */
+  cable: string;
+  /**
+   * A posição da FPGA na cadeia JTAG (o `@n`).
+   */
+  position: number;
+  quartus: Quartus2;
+  /**
+   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * `program` quando falhou.
+   */
+  failed_step: Step | null;
+  /**
+   * Um passo: `program` (`quartus_pgm`).
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos do Programmer.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Quanto a gravação levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * O Quartus que gravou.
+ */
+export interface Quartus2 {
+  /**
+   * A pasta `quartus` da instalação (`C:\intelFPGA_lite\22.1std\quartus`).
+   */
+  root: string;
+  /**
+   * A pasta dos programas: `bin64` no Windows, `bin` no Linux.
+   */
+  bin: string;
+  /**
+   * A versão, pelo nome da pasta da instalação (`22.1std`).
+   */
+  version?: string | null;
+}
+/**
  * O resultado de [`hierarchy`].
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -3302,6 +4043,11 @@ export interface ToolsReport {
    * macOS, do bundle no Windows (`bundled`).
    */
   system_compiler: SystemCompiler | null;
+  /**
+   * O Quartus Prime do sistema, que compila para as placas Intel, se
+   * encontrado.
+   */
+  quartus: Quartus1 | null;
   /**
    * Com `--verify`, os executáveis cujo SHA-256 não confere (vazio: todos
    * conferem).

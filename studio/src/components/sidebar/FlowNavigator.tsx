@@ -138,6 +138,13 @@ export function FlowNavigator() {
         <Item label={t('action.showStatistics')} onClick={() => useEditor.getState().openView('synthesis')} />
       </Section>
 
+      <Section title={t('flow.fpga')}>
+        <Item label={t('action.showBoard')} onClick={() => useEditor.getState().openView('board')} />
+        <ActionItem id="fpgaBuildProgram" statusKey="fpgaProgram" />
+        <ActionItem id="fpgaBuild" />
+        <ActionItem id="fpgaProgram" />
+      </Section>
+
       <Section title={t('flow.reports')}>
         {(['lastReport', 'compareReports'] as const).map((id) => (
           <Item key={id} label={t(action(id).label as Key)} onClick={() => runAction(id)} />

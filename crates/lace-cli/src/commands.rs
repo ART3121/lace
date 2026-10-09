@@ -85,6 +85,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Synth(args) => return synth(cli, args, out, control),
         Command::Report(args) => report(cli, args, out)?,
         Command::Learn(args) => return crate::learn::run(cli, args, out, control),
+        Command::Fpga(command) => return crate::fpga::run(cli, command, out, control),
         Command::Tools { verify } => return tools(cli, *verify, out),
         Command::Install(args) => {
             let from = args.from.as_deref().map(settings::absolute).transpose()?;
@@ -121,7 +122,7 @@ fn processor_here<'a>(cli: &Cli, project: &'a Project) -> anyhow::Result<Option<
 
 /// `path` como se digitaria a partir do diretório atual: relativo quando
 /// está dentro dele.
-fn from_shell(path: &Utf8Path) -> Utf8PathBuf {
+pub(crate) fn from_shell(path: &Utf8Path) -> Utf8PathBuf {
     let cwd = std::env::current_dir()
         .ok()
         .and_then(|dir| Utf8PathBuf::from_path_buf(dir).ok());
@@ -382,7 +383,7 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
 /// Compila os processadores antes de verificar, simular ou sintetizar, e
 /// para no primeiro que falhar: com um processador quebrado, o resto não
 /// serve. Sem processadores, não faz nada.
-fn build_first<'a>(
+pub(crate) fn build_first<'a>(
     toolchain: &Toolchain,
     project: &Project,
     processors: impl IntoIterator<Item = &'a Processor>,

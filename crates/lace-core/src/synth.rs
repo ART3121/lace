@@ -550,7 +550,7 @@ pub fn synthesize(
     control: &Control,
 ) -> Result<SynthesisResult> {
     let started = Instant::now();
-    let (top, mut files) = match target {
+    let (top, files) = match target {
         DesignTarget::TopLevel => {
             let top = project
                 .top_module()?
@@ -562,17 +562,7 @@ pub fn synthesize(
     // O design do usuário, sem a biblioteca, para explicar uma queda do Yosys.
     let design = files.clone();
     let _span = tracing::info_span!("synthesize", %top).entered();
-
-    // A biblioteca SAPHO primeiro, como a AURORA: todo `.v` de SAPHO/ que não
-    // é testbench. Sem o YANC instalado, um projeto só de Verilog sintetiza
-    // sem ela.
-    let mut library = match toolchain.sapho_library(!project.processors().is_empty())? {
-        Some(hdl) => verilog_in(&hdl)?,
-        None => Vec::new(),
-    };
-    library.retain(|f| !is_test_file(f));
-    library.append(&mut files);
-    let files = dedup(library);
+    let files = with_library(toolchain, project, files)?;
 
     let work = project.temp_dir().join("synth").join(&top);
     std::fs::create_dir_all(&work).map_err(LaceError::io("Creating directory", &work))?;
@@ -817,6 +807,24 @@ pub(crate) fn project_sources(project: &Project) -> Result<Vec<Utf8PathBuf>> {
         }
     }
     Ok(dedup(files))
+}
+
+/// `files` depois da biblioteca SAPHO, como a AURORA sintetiza: todo `.v` de
+/// `SAPHO/` que não é testbench, sem repetir. Sem processadores no projeto,
+/// só `files`; sem o YANC instalado, um projeto só de Verilog sintetiza sem
+/// a biblioteca. É o que a síntese lê e o que vai para o Quartus.
+pub(crate) fn with_library(
+    toolchain: &Toolchain,
+    project: &Project,
+    files: Vec<Utf8PathBuf>,
+) -> Result<Vec<Utf8PathBuf>> {
+    let mut library = match toolchain.sapho_library(!project.processors().is_empty())? {
+        Some(hdl) => verilog_in(&hdl)?,
+        None => Vec::new(),
+    };
+    library.retain(|f| !is_test_file(f));
+    library.extend(files);
+    Ok(dedup(library))
 }
 
 fn verilog_in(dir: &Utf8Path) -> Result<Vec<Utf8PathBuf>> {

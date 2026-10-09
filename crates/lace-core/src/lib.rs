@@ -16,11 +16,14 @@
 //! | Yosys | [`synthesize`] | [`SynthesisResult`] (netlist JSON) |
 //! | Yosys + Graphviz | [`render_schematic`] | [`SchematicResult`] (SVG) |
 //! | surfer-aurora | [`open_waveform`] | [`RunningProcess`] |
+//! | placas FPGA | [`fpga::boards`], [`fpga::prepare`] | as placas, o `fpga.json` conferido e o topo da placa |
+//! | Quartus Prime (do sistema) | [`fpga::build()`] | [`fpga::FpgaBuildResult`]: o `.sof`, o `.rbf` e o `.svf`, os recursos e o tempo |
 //!
 //! Todas as ferramentas saem do bundle versionado instalado com o Lace
-//! ([`Toolchain`]); nenhuma do `PATH`. A exceção é o compilador C++ do
-//! Verilator no Linux e no macOS, que vem do sistema ([`SystemCompiler`]); no
-//! Windows ele também vem no bundle.
+//! ([`Toolchain`]); nenhuma do `PATH`. As exceções são o compilador C++ do
+//! Verilator no Linux e no macOS, que vem do sistema ([`SystemCompiler`]; no
+//! Windows ele também vem no bundle), e o Quartus Prime, para as placas
+//! Intel ([`fpga::Quartus`]).
 //!
 //! # Fluxo típico
 //!
@@ -88,6 +91,7 @@
 //!   <processador>/Simulation/ input_<n>.txt (usuário), output_<n>.txt (simulação)
 //!   .lace/Temp/<processador>/ intermediários do YANC, testbench, onda, .vvp
 //!   .lace/Temp/               simulação do projeto, síntese (synth/<topo>/), hierarquia (hierarchy/)
+//!   .lace/fpga/<placa>/       o projeto do Quartus e os arquivos de gravação (fpga::build)
 //! ```
 //!
 //! # Garantias
@@ -97,9 +101,10 @@
 //!   sai por [`tracing`](https://docs.rs/tracing); quem configura o
 //!   subscriber é o cliente.
 //! - **Só o bundle.** Todo programa sai do bundle, num caminho fixo por
-//!   plataforma; nada do `PATH`, nada configurável. O processo filho recebe um
-//!   ambiente vazio, mais o mínimo que cada ferramenta exige (ver
-//!   `docs/BUNDLE.md`).
+//!   plataforma; nada do `PATH`, nada configurável. As exceções, o
+//!   compilador do Verilator e o Quartus, vêm de pastas fixas ou declaradas,
+//!   nunca do `PATH`. O processo filho recebe um ambiente vazio, mais o
+//!   mínimo que cada ferramenta exige (ver `docs/BUNDLE.md`).
 //! - **Nunca sobrescreve código.** Criar processador ou arquivo com conteúdo
 //!   recusa se o arquivo já existir. Artefatos gerados (`Hardware/`, `.asm`,
 //!   `Temp/`) são reescritos a cada operação.
@@ -132,6 +137,7 @@ mod control;
 mod diagnostics;
 mod error;
 mod files;
+pub mod fpga;
 mod hierarchy;
 pub mod history;
 mod paths;

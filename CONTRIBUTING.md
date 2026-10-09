@@ -154,6 +154,7 @@ Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 | `stats.rs` | `SynthesisStatistics`: lê o `stat -json` do Yosys que a síntese grava (`SynthesisMetric`, `CellUsage`) |
 | `history.rs` | módulo público `lace_core::history`: o relatório de cada operação e o histórico em `.lace/reports/` (`record`, `list`, `load`, `latest`, `report_text`), a comparação (`compare`, `compare_reports`, `previous_comparable`) e o texto do `report.txt` (`render`) |
 | `wave.rs` | `open_waveform` (surfer-aurora) e `ViewerOptions` |
+| `fpga/` | módulo público `lace_core::fpga` ([docs/FPGA.md](docs/FPGA.md)): as placas (`board.rs`, com os JSONs de `crates/lace-core/boards/` embutidos), o `fpga.json` e a resolução das ligações bit a bit (`config.rs`), o topo da placa gerado (`wrapper.rs`), o Quartus do sistema e a invocação dos programas dele (`quartus.rs`), o `.qsf` e o `.sdc` (`qsf.rs`), a leitura dos resumos de recursos e de tempo (`summary.rs`), a compilação para a placa (`build.rs`) e `prepare`, que junta tudo para um projeto |
 | `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho do VCD e das tabelas do YANC |
 | `paths.rs` | `YANC_PATH_LIMIT`, `canonicalize` sem o prefixo `\\?\` do Windows, normalização de caminhos |
 
@@ -170,7 +171,8 @@ Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 | `update.rs` | `lace update`: as versões instaladas, as da última release e as upstream (atrás do trait `Sources`, para testar sem rede), e a reinstalação pela release nova |
 | `release.rs` | as releases no GitHub: a última versão, baixar um arquivo conferindo o `SHA256SUMS`, `LACE_REPO` e `LACE_RELEASE_URL` |
 | `uninstall.rs` | `lace uninstall`: acha a instalação ao redor do executável e roda o desinstalador que o instalador deixou (`uninstall.sh`, ou o do Inno no Windows) |
-| `settings.rs` | de onde vem o bundle (`ToolchainArgs::resolve`: `--toolchain`, `LACE_TOOLCHAIN` ou ao lado do executável), o compilador declarado (`--compiler`, `LACE_COMPILER`, `compiler_in`) e `absolute` |
+| `settings.rs` | de onde vem o bundle (`ToolchainArgs::resolve`: `--toolchain`, `LACE_TOOLCHAIN` ou ao lado do executável), o compilador declarado (`--compiler`, `LACE_COMPILER`, `compiler_in`), o Quartus (`ToolchainArgs::quartus`: `--quartus`, `LACE_QUARTUS`, `QUARTUS_ROOTDIR`, pastas padrão) e `absolute` |
+| `fpga.rs` | `lace fpga boards`, `lace fpga check` e `lace fpga build` |
 
 ### `crates/lace-learn/src/`
 

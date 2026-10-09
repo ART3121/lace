@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FpgaCablesReport",
+  "description": "`lace fpga program --list`: os cabos de gravação ligados.",
+  "type": "object",
+  "properties": {
+    "cables": {
+      "description": "Como o `quartus_pgm -l` os escreve (`USB-Blaster [USB-0]`); vazio,\nnenhum.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "cables"
+  ]
+}

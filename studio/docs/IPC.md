@@ -178,11 +178,13 @@ Com o tipo no campo `flow`:
 | `synthesize` | `processor?`, `schematic?`, `module?` | `lace synth [-p NOME] [--svg] [--module M]` |
 | `schematic` | `netlist`, `module`, `bus_widths?` (padrão `true`) | desenha outro módulo de um netlist que já existe; sem relatório |
 | `learn` | `root` (a pasta de exercícios, ou uma pasta dentro dela), `exercise` | `lace learn check NOME`: corrige o exercício e grava se está resolvido; sem relatório |
+| `fpga_build` | nenhum | `lace fpga build`: confere o `fpga.json`, a placa e o Quartus (`no_fpga_config`, `board_not_found`, `quartus_missing` antes de compilar), compila os processadores e depois o projeto para a placa; sem relatório, como na CLI |
+| `fpga_program` | `cable?` | `lace fpga program [--cable NOME]`: grava o `.sof` da última compilação (`no_bitstream`, `no_cable` antes de gravar); sem relatório |
 
 A composição é a da CLI (`flows.rs`): `check`, `simulate` e `synthesize`
 compilam antes os processadores que têm fonte e param no primeiro build que
 falhar; `build` compila todos mesmo que um falhe; cada fluxo, menos
-`schematic`, grava um relatório no histórico.
+`schematic`, `learn` e `fpga_build`, grava um relatório no histórico.
 
 ### `JobMessage`
 
@@ -191,7 +193,7 @@ As mensagens chegam pelo `channel`, nesta ordem, com o tipo no campo `type`:
 | `type` | Campos | Quando |
 |---|---|---|
 | `started` | `job`, `command` | logo depois de `flow_start` |
-| `phase` | `phase`: `build`, `check`, `simulate`, `synthesize`, `schematic`, `wave`, `learn` | uma fase começou |
+| `phase` | `phase`: `build`, `check`, `simulate`, `synthesize`, `schematic`, `wave`, `learn`, `fpga`, `program` | uma fase começou |
 | `events` | `events: Event[]` | lotes de eventos do Core (`step_started`, `output`, `step_finished`; API.md do Lace, 5.8), no máximo a cada 30 ms ou 500 eventos |
 | `build` | `result: BuildResult` | um processador terminou de compilar |
 | `cli_output` | `stream`, `line` | uma linha da CLI (só em `lace_install` e `lace_update`) |
@@ -214,9 +216,27 @@ Toda operação termina com exatamente um `finished` ou um `failed`.
 | `schematic_error` | por que o esquemático não saiu depois da síntese (`module_not_found`: o módulo pedido não está no netlist); a síntese vale |
 | `report`, `report_error` | o relatório gravado (`run-000042`), ou por que não foi |
 | `learn` | a correção de um exercício (fluxo `learn`): o `Grade` do lace-learn |
+| `fpga` | a compilação para a placa (fluxo `fpga_build`): o `FpgaBuildResult` do Core, com os passos do Quartus, os recursos e o tempo |
+| `fpga_program` | a gravação na placa (fluxo `fpga_program`): o `FpgaProgramResult` do Core |
 
 O `stdout` e o `stderr` de cada passo vêm cortados em 256 KiB, guardando o
 fim; o que foi cortado já chegou linha a linha pelos eventos.
+
+## Placa FPGA (`commands/fpga.rs`)
+
+| Comando | Argumentos | Devolve | Equivale a |
+|---|---|---|---|
+| `fpga_boards` | | `Board[]`: as placas, com os sinais e os pinos | `lace fpga boards --json` |
+| `fpga_config` | | o `fpga.json` (`{ board, top?, connect }`, com as ligações na ordem do arquivo), ou `null` se não existe | ler o `fpga.json` |
+| `fpga_config_set` | `config` | | gravar o `fpga.json` |
+| `fpga_top` | `top?` | `ModuleInterface`: o módulo que vai para a placa e as portas dele | `fpga::top_interface` |
+| `fpga_check` | | `Prepared`: `config`, `resolved` (as ligações bit a bit e as notas), `board_top` e `connections` (cada ligação como texto) | `lace fpga check --json` |
+| `fpga_modules` | | os módulos do projeto que podem ir para a placa | `fpga::modules` |
+| `fpga_status` | | `BitstreamState`: `bitstream` (o `.sof`, ou `null`), `built_at_ms` e `reasons` (por que não serve para gravar; vazio: pronto) | a conferência do `lace fpga program`, sem gravar |
+| `fpga_cables` | | os cabos ligados (cerca de 1 s) | `lace fpga program --list` |
+
+A compilação é o fluxo `fpga_build` de `flow_start`; o resultado vem em
+`FlowOutcome.fpga`.
 
 ## Exercícios (`commands/learn.rs`)
 

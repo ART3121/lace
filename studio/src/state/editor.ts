@@ -30,6 +30,7 @@ export type ViewKind =
   | 'toolchain'
   | 'schematic'
   | 'synthesis'
+  | 'board'
   | 'report'
   | 'compare'
   | 'processor'

@@ -12,6 +12,7 @@ import {
   GraduationCap,
   House,
   Info,
+  Microchip,
   ScrollText,
   Settings,
   Wrench,
@@ -60,6 +61,8 @@ export function tabIcon(tab: Tab): LucideIcon {
       return CircuitBoard;
     case 'synthesis':
       return ChartColumn;
+    case 'board':
+      return Microchip;
     case 'report':
       return ScrollText;
     case 'compare':

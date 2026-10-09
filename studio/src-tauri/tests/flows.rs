@@ -404,3 +404,39 @@ fn learn_flow_checks_an_exercise_and_records_it() {
     let reopened = lace_learn::Workspace::open(&root, &fixtures, None).unwrap();
     assert!(reopened.is_solved("mux2"));
 }
+
+/// O fluxo `fpga_build` (`lace fpga build`): o pedido que a interface manda
+/// e as recusas antes de compilar qualquer processador, como na CLI. Sem
+/// Quartus na máquina de teste, a compilação em si não roda aqui.
+#[test]
+fn fpga_build_refuses_before_building() {
+    let request: FlowRequest = serde_json::from_str(r#"{"flow":"fpga_build"}"#).unwrap();
+    assert_eq!(request.command_line(), "lace-studio fpga build");
+    let program: FlowRequest =
+        serde_json::from_str(r#"{"flow":"fpga_program","cable":"USB-Blaster [USB-0]"}"#).unwrap();
+    assert_eq!(
+        program.command_line(),
+        "lace-studio fpga program --cable \"USB-Blaster [USB-0]\""
+    );
+    let Some(mut settings) = settings() else {
+        return;
+    };
+    // Uma pasta do Quartus sem o Quartus: nenhum é usado, nem o da máquina.
+    let empty = tempfile::tempdir().unwrap();
+    settings.quartus_dir = Some(empty.path().to_string_lossy().into_owned());
+    let (_dir, spf) = example("soma");
+    let progress = |_: Progress| {};
+    let error = flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
+    assert_eq!(error.code, "no_fpga_config");
+
+    let root = spf.parent().unwrap();
+    std::fs::write(
+        root.join("fpga.json"),
+        r#"{"board": "de2-115", "connect": {"clk": "CLOCK_50", "rst": "!KEY[0]"}}"#,
+    )
+    .unwrap();
+    let error = flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
+    assert_eq!(error.code, "quartus_missing");
+    // Nenhum processador foi compilado.
+    assert!(!root.join("soma/Hardware/soma.v").exists());
+}

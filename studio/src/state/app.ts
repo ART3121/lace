@@ -71,7 +71,9 @@ export const useApp = create<AppState>((set, get) => ({
       const saved = await api.app.saveSettings(next);
       set({ settings: saved });
       const toolchainChanged =
-        current.toolchain_dir !== next.toolchain_dir || current.compiler_dir !== next.compiler_dir;
+        current.toolchain_dir !== next.toolchain_dir ||
+        current.compiler_dir !== next.compiler_dir ||
+        current.quartus_dir !== next.quartus_dir;
       if (toolchainChanged) void get().refreshToolchain();
     } catch (error) {
       const theme = themeFor(current.theme);

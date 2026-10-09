@@ -125,6 +125,8 @@ procurar, para o atalho `~/.local/bin/lace` do instalador funcionar.
 | `Yosys` | `yosys` | `oss-cad-suite/` |
 | `Dot` | `graphviz` | `oss-cad-suite/` (Linux, macOS) ou `graphviz/` (Windows) |
 | `Surfer` | `surfer-aurora` (o nome do programa é `surfer-aurora`) | `surfer-aurora/` |
+| `OpenFpgaLoader` | `openfpgaloader` (o programa é `openFPGALoader`; no JSON, `openfpgaloader`) | `oss-cad-suite/` |
+| `Quartus` | nenhum: o Quartus Prime do sistema (2.5). Cada passo roda um programa dele (`quartus_map`, `quartus_fit`, ...); `tool(Quartus)` dá o `quartus_sh` | a pasta dos programas do Quartus |
 | `Perl` | nenhum: o do `SystemCompiler` (sistema no Linux e no macOS, bundle no Windows) | |
 
 Icarus, Verilator, cocotb, Yosys e o `dot` do Linux e do macOS dividem o
@@ -155,6 +157,28 @@ Sem ele, só o que roda o Verilator falha: a simulação com Verilator e o
 `check` com `lint`. No Linux e no macOS, com `SystemCompilerMissing`; no
 Windows, com o erro do componente verilator (`ComponentMissing` ou
 `ToolchainIncomplete`).
+
+### 2.5 O Quartus Prime
+
+O Quartus Prime compila para as placas Intel ([FPGA.md](FPGA.md)) e é a
+segunda exceção à regra do bundle. O `open` não o procura: o Core não lê
+variáveis de ambiente, e quem abre o bundle passa o que achou.
+
+| Função | Faz |
+|---|---|
+| `fpga::Quartus::detect(home)` | procura nas pastas padrão do instalador da Intel (no Linux, também dentro de `home`) e fica com a versão mais nova; `None` no macOS |
+| `fpga::Quartus::in_dir(dir)` | a instalação numa pasta declarada: a da versão, a `quartus` dentro dela ou a dos programas |
+| `toolchain.with_quartus(Some(q))` / `toolchain.quartus()` | prende ao `Toolchain` e consulta |
+
+A CLI e o Studio usam a pasta declarada (`--quartus`, `LACE_QUARTUS`, a
+preferência do Studio), senão `QUARTUS_ROOTDIR`, senão `detect`. Sem
+Quartus, `tool(Tool::Quartus)` e `fpga::build` (5.10) dão
+`QuartusMissing`.
+
+Os programas do Quartus rodam com `QUARTUS_ROOTDIR` na instalação achada,
+o `PATH` na pasta dos programas e no sistema base, e, do ambiente do Lace,
+a pasta e o nome do usuário (no Linux, também `LANG` e `TMPDIR`). A lista
+é dedução, não conferida com o Quartus rodando.
 
 ## 3. Projeto
 
@@ -1515,6 +1539,70 @@ no Linux e no macOS, `/etc/os-release`, `/proc/cpuinfo` e `/proc/meminfo` no
 Linux. O que não dá para saber assim (o modelo do processador e a memória
 fora do Linux) fica `None`.
 
+### 5.10 Placas FPGA: `fpga::prepare`, `fpga::build` e `fpga::program`
+
+As placas, o `fpga.json` e as regras das ligações estão em
+[FPGA.md](FPGA.md).
+
+`fpga::prepare(Option<&Toolchain>, &Project) -> Result<Prepared>` lê o
+`fpga.json` e a placa, acha o topo (o do `fpga.json`; senão o do projeto;
+senão o processador, se for um só), lê as portas dele do Verilog e confere
+as ligações. Devolve as ligações bit a bit (`resolved`, com as notas de
+ajuste) e o Verilog do topo da placa (`board_top`).
+
+`fpga::build` compila o projeto para a placa pelo Quartus:
+
+1. `prepare`; os processadores precisam estar compilados (o Verilog deles
+   aponta para as memórias pelo caminho absoluto: a CLI compila antes);
+2. grava em `fpga::build_dir(projeto, placa)`, `<raiz>/.lace/fpga/<placa>/`,
+   o topo da placa (`lace_board_top.v`), o `.qsf` (a FPGA, os fontes da
+   síntese mais o topo da placa, um pino por bit com o padrão de I/O, o
+   `.rbf` e o `.svf` sem compressão) e o `.sdc` (um `create_clock` por
+   clock da placa ligado ao topo);
+3. roda, na pasta da placa, os passos `synthesize` (`quartus_map`), `fit`,
+   `bitstream` (`quartus_asm`) e `timing` (`quartus_sta`), todos com
+   `Tool::Quartus`, os mesmos comandos que a interface do Quartus roda;
+4. depois do `fit`, confere o `.pin` contra a placa: cada bit no pino, na
+   direção e no padrão de I/O dela, posto pela atribuição e não pelo
+   Fitter. Uma diferença reprova o `fit` (um diagnóstico por bit) antes do
+   `.sof`;
+5. terminada, grava o `lace-build.json`: o SHA-256 do `.sof` e de cada
+   entrada (fontes, memórias `.mif`, `fpga.json`, definição da placa).
+
+`FpgaBuildResult`, além dos campos comuns (6.1): `board`, `top`, `dir`,
+`quartus` (a instalação usada), `bitstream` (o `.sof`, quando terminou),
+`resources` (as linhas do resumo do Fitter: nome, usado, disponível e se é
+detalhe da linha de cima), `timing` (por clock, a frequência pedida, a Fmax
+e as folgas de setup e de hold no pior canto, e `met`, sem folga negativa) e
+`notes` (os ajustes das ligações). Folga negativa não muda o `status`. Um
+diagnóstico repetido igual (o aviso de tempo vem uma vez por canto) aparece
+uma vez.
+
+`fpga::program(&Toolchain, &Project, cable: Option<&str>, &Control) ->
+Result<FpgaProgramResult>` grava o `.sof` da última `build` pelo Quartus
+Programmer: um passo `program`/`quartus`, `quartus_pgm -c <cabo> -m jtag -o
+"p;output_files/lace_board_top.sof@<posição>"` na pasta da placa, com a
+posição da FPGA na cadeia JTAG da placa. Sem `cable`, o primeiro de
+`fpga::cables(&Toolchain)` (o `quartus_pgm -l`). Antes, confere o
+`lace-build.json` contra o projeto de agora, pelo conteúdo, e recusa com
+`StaleBitstream` (cada diferença) um `.sof` velho, trocado ou de outra
+placa. `fpga::bitstream_state(&Toolchain, &Project) -> Result<BitstreamState>`
+faz a mesma conferência sem gravar: `bitstream`, `built_at_ms` e `reasons`
+(vazio: pronto).
+
+`fpga::modules` lista os módulos que podem ir para a placa e
+`fpga::top_interface` dá as portas de um (ou do topo do projeto), para
+montar as ligações antes de estarem certas. `Prepared::connections` traz
+cada ligação como texto (`target`, `source`), como o `lace fpga check`
+mostra.
+`FpgaProgramResult` traz `board`, `bitstream`, `cable`, `position`,
+`quartus` e os campos comuns.
+
+Conferido em 2026-10-09 com o Quartus Prime 25.1 Lite no Windows e uma
+DE2-115 (compilar e gravar). As mensagens e os relatórios também foram
+conferidos em relatórios publicados do Quartus II 13.1 e 14.0 e do Quartus
+Prime 17.1, 18.0 e 18.1.
+
 ---
 
 ## 6. Resultados
@@ -1570,6 +1658,8 @@ tenha falhado (5.4.1).
 | `hierarchy` | `elaborate`/`iverilog` (um para o design, um por testbench) |
 | `synthesize` | `synthesize`/`yosys` |
 | `render_schematic` | `graph`/`yosys`, `render`/`dot` |
+| `fpga::build` | `synthesize`/`quartus` (`quartus_map`), `fit`/`quartus` (`quartus_fit`), `bitstream`/`quartus` (`quartus_asm`), `timing`/`quartus` (`quartus_sta`) |
+| `fpga::program` | `program`/`quartus` (`quartus_pgm`) |
 
 `StepReport` guarda `command` (programa, argumentos, CWD, ambiente),
 `termination`, `stdout`, `stderr` e `duration_ms`. Com ele dá para reproduzir
@@ -1608,6 +1698,11 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 | `synthesis_statistics` | `synth/<topo>/stat.json` (não obrigatório) | `synthesize` |
 | `schematic_graph` | `synth/<topo>/<módulo>.dot` | `render_schematic` |
 | `schematic` | `synth/<topo>/<módulo>.svg` | `render_schematic` |
+| `board_top` | `.lace/fpga/<placa>/lace_board_top.v` (não obrigatório) | `fpga::build` |
+| `quartus_project` | `.lace/fpga/<placa>/lace_board_top.qsf` (não obrigatório) | `fpga::build` |
+| `sram_object` | `.lace/fpga/<placa>/output_files/lace_board_top.sof` | `fpga::build` |
+| `raw_binary` | `output_files/lace_board_top.rbf` (não obrigatório) | `fpga::build` |
+| `serial_vector_format` | `output_files/lace_board_top.svf` (não obrigatório) | `fpga::build` |
 
 ### 6.4 Exemplo: build com erro
 
@@ -1744,6 +1839,7 @@ campos de localização são opcionais.
 | `verilator` | `%Error: <arquivo>:<linha>:<coluna>: ...`, `%Warning-<CÓDIGO>: ...` (o código vai para o fim da mensagem entre colchetes); erros do `g++` no formato C | o que a ferramenta cita |
 | `yosys` | `<arquivo>:<linha>: ERROR: ...`, `ERROR: ...`, `Warning: ...`, com ou sem espaço depois dos dois-pontos; a gravidade no começo da linha vem antes do local (o aviso de latch traz um `proc_dlatch.cc:542:` do Yosys no meio da mensagem) | o que a ferramenta cita |
 | `dot` | `Error: <arquivo>: syntax error in line N ...`, `Warning: ...` | o `.dot` citado |
+| `quartus` | `Error (N): ... File: <arquivo> Line: <linha>`, `Critical Warning (N): ...`, `Warning (N): ...`; o número vai para o fim da mensagem entre colchetes (`[10161]`, `[critical 332148]`), sem o parágrafo da base de conhecimento da Intel; sem `File:`, o `at x.v(12)` do texto | o que a ferramenta cita; no `at`, só o nome do arquivo |
 
 Regras:
 
@@ -1768,6 +1864,10 @@ Regras:
 - No `iverilog`, a macro indefinida é erro (5.4), e um erro faz o passo
   falhar mesmo com código 0.
 - As mensagens do YANC vêm em inglês, porque o Lace pede `-en`.
+- No Quartus, os `Info` (centenas) ficam de fora, as linhas indentadas
+  entram no `raw` da mensagem de cima, e o resumo de uma ferramenta que
+  falhou (`Error: Quartus Prime Fitter was unsuccessful. ...`, com os
+  `Error:` indentados de memória e tempo) é `info`.
 
 ---
 
@@ -1817,6 +1917,14 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `ReportNotFound` | `report_not_found` | `load`, `report_text` com um identificador que não existe | ver `list` |
 | `InvalidReport` | `invalid_report` | `record.json` ilegível, que não é JSON, ou de outro formato | ver `path` e `reason` |
 | `NotComparable` | `not_comparable` | `compare` de projetos diferentes; `compare_reports` sem estatísticas nem tempos, sem anterior compatível, ou entre dois sem parte em comum | escolher outro relatório |
+| `BoardNotFound` | `board_not_found` | `fpga::board` com um identificador que não existe | ver `available` |
+| `InvalidBoard` | `invalid_board` | o JSON embutido de uma placa é inválido (os testes impedem) | é bug |
+| `NoFpgaConfig` | `no_fpga_config` | `fpga::prepare` num projeto sem `fpga.json` | escrever o `fpga.json` |
+| `InvalidFpgaConfig` | `invalid_fpga_config` | `fpga.json` que não é JSON válido, ou ligações que não batem com a placa e o topo (um problema por linha em `reason`) | corrigir as ligações |
+| `NoBitstream` | `no_bitstream` | `fpga::program` sem o `.sof` da compilação para a placa | `fpga::build` antes |
+| `NoCable` | `no_cable` | `fpga::program` sem `cable` e sem cabo de gravação ligado | ligar a placa pela porta do USB-Blaster, e o driver dele |
+| `StaleBitstream` | `stale_bitstream` | `fpga::program` com um `.sof` que não descreve o projeto de agora: um fonte, uma memória, o `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi trocado, ou a compilação não terminou | `fpga::build` de novo |
+| `QuartusMissing` | `quartus_missing` | `fpga::build`, `fpga::program` ou `tool(Tool::Quartus)` sem Quartus (2.5) | instalar o Quartus Prime Lite com o suporte à família da placa, ou declarar a pasta dele |
 
 O enum é `#[non_exhaustive]`: todo `match` precisa de `_`.
 

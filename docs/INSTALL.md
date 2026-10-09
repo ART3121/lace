@@ -86,6 +86,7 @@ Os dois instaladores oferecem os mesmos tipos:
 | Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim |
+| openFPGALoader | grava as placas FPGA pelo cabo USB delas ([FPGA.md](FPGA.md)); no Linux, o acesso ao cabo pede uma regra do udev | não |
 | Lace Learn | os exercícios de Verilog do `lace learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | não |
 
 O Verilator fica fora da instalação Recommended porque, no Linux e no macOS, só
@@ -94,7 +95,8 @@ seção 4). No Windows ele já traz o g++, o `make` e o Perl, e fica fora da
 Recommended do mesmo jeito. O cocotb fica fora porque só serve a quem
 escreve testbench em Python e acrescenta 115 MiB no Linux (42 MiB com o
 Verilator, que traz o mesmo Python). O Lace Learn fica fora porque só serve
-a quem vai fazer os exercícios.
+a quem vai fazer os exercícios, e o openFPGALoader, porque só serve a quem
+grava placa.
 Marcar o Graphviz marca o Yosys; desmarcar o Yosys desmarca o Graphviz. Do
 mesmo jeito, marcar o cocotb ou o Lace Learn marca o Icarus.
 
@@ -142,7 +144,7 @@ MSYS2 do lace-toolchain): não é preciso instalar o MSYS2.
 
 **Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
+surfer-aurora, openFPGALoader, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `lace install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
@@ -189,7 +191,8 @@ lace-0.5.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYP
 
 Nos parâmetros do Inno Setup, os nomes são `lace`, `yanc`, `icarus`,
 `icarus\cocotb`, `icarus\lace_learn`, `verilator`, `yosys`,
-`yosys\graphviz`, `surfer_aurora` e `studio`; as tarefas, `path` e
+`yosys\graphviz`, `surfer_aurora`, `openfpgaloader` e `studio`; as
+tarefas, `path` e
 `studioicon` (o atalho do Studio na área de trabalho).
 
 O instalador não é assinado: o SmartScreen pode avisar "Editor
@@ -247,7 +250,7 @@ instala também o Yosys, e avisa).
 
 **Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
+surfer-aurora, openFPGALoader, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `lace install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em

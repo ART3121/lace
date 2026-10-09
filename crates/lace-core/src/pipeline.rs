@@ -1,6 +1,6 @@
 //! Peças comuns a toda operação que encadeia ferramentas (build, simulação,
-//! síntese, esquemático): o relatório de cada passo, o status final e o
-//! rastreio de artefatos.
+//! síntese, esquemático, compilação para a placa): o relatório de cada
+//! passo, o status final e o rastreio de artefatos.
 //!
 //! Todo resultado de operação ([`BuildResult`](crate::BuildResult),
 //! [`SimulationResult`](crate::SimulationResult), ...) tem a mesma espinha:
@@ -53,12 +53,23 @@ pub enum Step {
     Verilate,
     /// `vvp` ou o executável do Verilator rodando o testbench.
     Simulate,
-    /// `yosys`: Verilog para netlist JSON.
+    /// `yosys`: Verilog para netlist JSON. Numa placa, o `quartus_map`
+    /// (Analysis & Synthesis do Quartus).
     Synthesize,
     /// `yosys show`: netlist para o grafo do esquemático (`.dot`).
     Graph,
     /// `dot`: grafo do esquemático para SVG.
     Render,
+    /// `quartus_fit`: posiciona e roteia o design na FPGA da placa (Fitter).
+    Fit,
+    /// `quartus_asm`: os arquivos de gravação (`.sof`, `.rbf`, `.svf`), no
+    /// Assembler do Quartus.
+    Bitstream,
+    /// `quartus_sta`: a análise de tempo (Timing Analyzer), com a folga e a
+    /// Fmax de cada clock.
+    Timing,
+    /// `quartus_pgm`: grava o `.sof` na FPGA da placa pelo cabo JTAG.
+    Program,
 }
 
 /// O que aconteceu num passo: o comando exato, como terminou e tudo o que
@@ -152,6 +163,20 @@ pub enum ArtifactKind {
     Schematic,
     /// As estatísticas do `stat -json` do Yosys (`stat.json`).
     SynthesisStatistics,
+    /// O topo da placa que o Lace gera (`lace_board_top.v`).
+    BoardTop,
+    /// As configurações do projeto do Quartus (`.qsf`): a FPGA, os fontes e
+    /// os pinos.
+    QuartusProject,
+    /// O arquivo de gravação do Quartus (`.sof`, SRAM Object File), que o
+    /// `quartus_pgm` grava.
+    SramObject,
+    /// O bitstream cru, sem compressão (`.rbf`, Raw Binary File), que o
+    /// openFPGALoader grava.
+    RawBinary,
+    /// A gravação como vetores JTAG (`.svf`, Serial Vector Format), que o
+    /// openFPGALoader também grava.
+    SerialVectorFormat,
 }
 
 /// Milissegundos desde `started`, para o `duration_ms` dos resultados.

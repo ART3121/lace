@@ -176,6 +176,21 @@
       }
     },
     {
+      "name": "openfpgaloader",
+      "label": "openFPGALoader",
+      "description": "Programs FPGA boards through their USB cable, such as the USB-Blaster of the DE2-115 and the DE10-Nano",
+      "recommended": false,
+      "package": "oss-cad-suite",
+      "select": {
+        "unix": ["bin/openFPGALoader", "libexec/openFPGALoader"],
+        "windows-x64": ["bin/openFPGALoader.exe"]
+      },
+      "run": {
+        "unix": ["bin/openFPGALoader", "libexec/openFPGALoader"],
+        "windows-x64": ["bin/openFPGALoader.exe"]
+      }
+    },
+    {
       "name": "studio",
       "label": "Lace Studio",
       "description": {

@@ -93,6 +93,9 @@ pub mod component {
     pub const GRAPHVIZ: &str = "graphviz";
     /// O fork do Surfer da AURORA.
     pub const SURFER_AURORA: &str = "surfer-aurora";
+    /// O openFPGALoader, que grava as placas FPGA pelo cabo USB delas
+    /// ([`crate::fpga`]), do OSS CAD Suite nas três plataformas.
+    pub const OPENFPGALOADER: &str = "openfpgaloader";
     /// O Lace Studio, o ambiente gráfico (`studio/` no repositório). Não é
     /// ferramenta que o Lace roda: vai no bundle para o instalador e o
     /// `lace install` o oferecerem como os outros componentes, e o Studio
@@ -112,6 +115,7 @@ pub mod component {
         YOSYS,
         GRAPHVIZ,
         SURFER_AURORA,
+        OPENFPGALOADER,
         STUDIO,
         LACE_LEARN,
     ];
@@ -164,7 +168,7 @@ impl Platform {
         .find(|p| p.as_str() == name)
     }
 
-    fn exe(self) -> &'static str {
+    pub(crate) fn exe(self) -> &'static str {
         if self == Platform::WindowsX64 {
             ".exe"
         } else {
@@ -215,13 +219,23 @@ pub enum Tool {
     /// O visualizador de ondas surfer-aurora. Aplicação gráfica: abre e fica
     /// aberta.
     Surfer,
+    /// O openFPGALoader: grava um bitstream (`.rbf`, `.svf`) na placa pelo
+    /// cabo USB dela.
+    #[serde(rename = "openfpgaloader")]
+    OpenFpgaLoader,
+    /// O Quartus Prime do sistema, que compila para as placas Intel
+    /// ([`crate::fpga`]). Cada passo roda um programa de linha de comando
+    /// dele (`quartus_map`, `quartus_fit`, `quartus_asm`, `quartus_sta`);
+    /// não vem no bundle ([`crate::fpga::Quartus`]).
+    Quartus,
     /// O Perl que executa o script `verilator`, parte do [`SystemCompiler`]:
     /// do sistema no Linux e no macOS, do bundle no Windows.
     Perl,
 }
 
 impl Tool {
-    /// Nome do programa, sem extensão.
+    /// Nome do programa, sem extensão. O do Quartus é `quartus`: cada passo
+    /// roda um programa dele, e o [`Toolchain::tool`] dá o `quartus_sh`.
     pub fn binary_name(self) -> &'static str {
         match self {
             Tool::Cmmcomp => "cmmcomp",
@@ -235,6 +249,8 @@ impl Tool {
             Tool::Yosys => "yosys",
             Tool::Dot => "dot",
             Tool::Surfer => "surfer-aurora",
+            Tool::OpenFpgaLoader => "openFPGALoader",
+            Tool::Quartus => "quartus",
             Tool::Perl => "perl",
         }
     }
@@ -247,10 +263,11 @@ impl Tool {
         )
     }
 
-    /// Vem do [`SystemCompiler`], e não de um componente? Se o compilador é do
-    /// sistema ou do bundle, diz [`SystemCompiler::bundled`].
+    /// Vem do sistema, e não de um componente do bundle? O Perl, parte do
+    /// [`SystemCompiler`] (que no Windows vem do bundle: ver
+    /// [`SystemCompiler::bundled`]), e o Quartus.
     pub fn is_system(self) -> bool {
-        self == Tool::Perl
+        matches!(self, Tool::Perl | Tool::Quartus)
     }
 
     /// Todas as ferramentas, na ordem da declaração.
@@ -267,6 +284,8 @@ impl Tool {
             Tool::Yosys,
             Tool::Dot,
             Tool::Surfer,
+            Tool::OpenFpgaLoader,
+            Tool::Quartus,
             Tool::Perl,
         ]
     }
@@ -280,7 +299,7 @@ impl Tool {
     }
 
     /// O componente do bundle de que a ferramenta faz parte (nomes em
-    /// [`component`]). `None` para as do [`SystemCompiler`].
+    /// [`component`]). `None` para as do sistema ([`Tool::is_system`]).
     pub fn component(self) -> Option<&'static str> {
         Some(match self {
             Tool::Cmmcomp | Tool::Appcomp | Tool::Asmcomp | Tool::Cpppp | Tool::Cppcomp => {
@@ -291,12 +310,13 @@ impl Tool {
             Tool::Yosys => component::YOSYS,
             Tool::Dot => component::GRAPHVIZ,
             Tool::Surfer => component::SURFER_AURORA,
-            Tool::Perl => return None,
+            Tool::OpenFpgaLoader => component::OPENFPGALOADER,
+            Tool::Quartus | Tool::Perl => return None,
         })
     }
 
     /// Componente do bundle e caminho do executável dentro do diretório dele.
-    /// `None` para as do [`SystemCompiler`].
+    /// `None` para as do sistema.
     fn location(self, platform: Platform) -> Option<(&'static str, String)> {
         let exe = platform.exe();
         let windows = platform == Platform::WindowsX64;
@@ -514,6 +534,7 @@ pub struct Toolchain {
     platform: Platform,
     manifest: BundleManifest,
     system: Option<SystemCompiler>,
+    quartus: Option<crate::fpga::Quartus>,
 }
 
 impl Toolchain {
@@ -601,6 +622,7 @@ impl Toolchain {
             platform,
             manifest,
             system,
+            quartus: None,
         };
         tracing::debug!(root = %toolchain.root, bundle = %toolchain.manifest.bundle, "Bundle opened");
         Ok(toolchain)
@@ -663,6 +685,20 @@ impl Toolchain {
     /// O compilador do Verilator, se foi encontrado.
     pub fn system_compiler(&self) -> Option<&SystemCompiler> {
         self.system.as_ref()
+    }
+
+    /// Troca o Quartus Prime do sistema, que compila para as placas Intel
+    /// ([`crate::fpga`]). O [`Toolchain::open`] não o procura: quem abre o
+    /// bundle passa o de [`crate::fpga::Quartus::detect`] ou o de uma pasta
+    /// declarada.
+    pub fn with_quartus(mut self, quartus: Option<crate::fpga::Quartus>) -> Self {
+        self.quartus = quartus;
+        self
+    }
+
+    /// O Quartus Prime, se foi encontrado.
+    pub fn quartus(&self) -> Option<&crate::fpga::Quartus> {
+        self.quartus.as_ref()
     }
 
     /// O compilador do Verilator, ou o erro que diz por que falta: no Linux e
@@ -765,8 +801,17 @@ impl Toolchain {
     /// - [`LaceError::InvalidBundle`] se o executável é um symlink que sai
     ///   do bundle;
     /// - para o [`Tool::Perl`] sem compilador, [`LaceError::SystemCompilerMissing`]
-    ///   no Linux e no macOS, e no Windows o erro do componente verilator.
+    ///   no Linux e no macOS, e no Windows o erro do componente verilator;
+    /// - para o [`Tool::Quartus`] (o `quartus_sh`), [`LaceError::QuartusMissing`]
+    ///   sem Quartus ([`Toolchain::with_quartus`]).
     pub fn tool(&self, tool: Tool) -> Result<Utf8PathBuf> {
+        if tool == Tool::Quartus {
+            return self
+                .quartus
+                .as_ref()
+                .map(|q| q.program("quartus_sh"))
+                .ok_or(LaceError::QuartusMissing);
+        }
         let Some((component, rel)) = tool.location(self.platform) else {
             return self.compiler().map(|c| c.perl.clone());
         };
@@ -900,18 +945,25 @@ impl Toolchain {
                 };
                 invocation.env("LC_ALL", "C").search_path(&path)
             }
-            Tool::Iverilog | Tool::Vvp | Tool::Yosys | Tool::Dot if windows => {
+            Tool::Iverilog | Tool::Vvp | Tool::Yosys | Tool::Dot | Tool::OpenFpgaLoader
+                if windows =>
+            {
                 let dir = self.component_dir(tool.component().expect("Tool from the bundle"))?;
                 let mut path = program_dirs(&dir, tool, self.platform);
                 path.extend(base_path(self.platform));
                 Invocation::new(program, cwd).search_path(&path)
             }
-            Tool::Iverilog | Tool::Vvp | Tool::Yosys | Tool::Dot => {
+            Tool::Iverilog | Tool::Vvp | Tool::Yosys | Tool::Dot | Tool::OpenFpgaLoader => {
                 Invocation::new(UNIX_SHELL, cwd)
                     .path_arg(&program)
                     .search_path(&unix_base_path())
             }
             Tool::Surfer => Invocation::new(program, cwd).inherit(GUI_ENV),
+            Tool::Quartus => self
+                .quartus
+                .as_ref()
+                .ok_or(LaceError::QuartusMissing)?
+                .invocation("quartus_sh", cwd)?,
             _ => Invocation::new(program, cwd),
         };
         Ok(invocation)
@@ -1079,7 +1131,7 @@ fn unix_base_path() -> Vec<Utf8PathBuf> {
 /// Linux e no macOS, `/usr/bin:/bin` (o `dirname` e o `readlink` dos
 /// lançadores); no Windows, `%SystemRoot%\System32` (o `cmd.exe` que o
 /// `system()` da biblioteca C usa).
-fn base_path(platform: Platform) -> Vec<Utf8PathBuf> {
+pub(crate) fn base_path(platform: Platform) -> Vec<Utf8PathBuf> {
     match platform {
         Platform::WindowsX64 => {
             let root = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
@@ -1103,7 +1155,7 @@ fn program_dirs(dir: &Utf8Path, tool: Tool, platform: Platform) -> Vec<Utf8PathB
     }
 }
 
-fn sha256(mut reader: impl Read) -> std::io::Result<String> {
+pub(crate) fn sha256(mut reader: impl Read) -> std::io::Result<String> {
     let mut hasher = Sha256::new();
     let mut buf = vec![0u8; 1 << 16];
     loop {
@@ -1299,6 +1351,10 @@ mod tests {
         );
         assert_eq!(at(Tool::Yosys, windows), ("yosys", "bin/yosys.exe".into()));
         assert_eq!(at(Tool::Dot, windows), ("graphviz", "bin/dot.exe".into()));
+        assert_eq!(
+            at(Tool::OpenFpgaLoader, windows),
+            ("openfpgaloader", "bin/openFPGALoader.exe".into())
+        );
         for unix in [Platform::LinuxX64, Platform::MacosArm64] {
             assert_eq!(at(Tool::Iverilog, unix), ("icarus", "bin/iverilog".into()));
             assert_eq!(
@@ -1306,8 +1362,14 @@ mod tests {
                 ("verilator", "bin/verilator".into())
             );
             assert_eq!(at(Tool::Yosys, unix), ("yosys", "bin/yosys".into()));
+            assert_eq!(
+                at(Tool::OpenFpgaLoader, unix),
+                ("openfpgaloader", "bin/openFPGALoader".into())
+            );
         }
         assert_eq!(Tool::Perl.location(windows), None);
+        assert_eq!(Tool::Quartus.location(windows), None);
+        assert!(Tool::Quartus.is_system() && Tool::Quartus.component().is_none());
 
         let dir = Utf8Path::new("/b/msys");
         assert_eq!(

@@ -1,0 +1,281 @@
+{
+  "id": "de2-115",
+  "name": "Terasic DE2-115",
+  "source": "Terasic DE2-115 User Manual V2.3 (2017), tables 4-1 to 4-5. Pins the manual marks \"Depending on JP6/JP7\" use the factory jumpers: JP7 at 2.5 V (banks 5 and 6) and JP6 at 3.3 V (bank 4).",
+  "device": {
+    "family": "Cyclone IV E",
+    "part": "EP4CE115F29C7"
+  },
+  "jtag": {
+    "cable": "usb-blaster",
+    "position": 1
+  },
+  "signals": [
+    {
+      "name": "CLOCK_50",
+      "direction": "input",
+      "pins": [
+        "PIN_Y2"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input"
+    },
+    {
+      "name": "CLOCK2_50",
+      "direction": "input",
+      "pins": [
+        "PIN_AG14"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input"
+    },
+    {
+      "name": "CLOCK3_50",
+      "direction": "input",
+      "pins": [
+        "PIN_AG15"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input (I/O voltage set by JP6)"
+    },
+    {
+      "name": "SMA_CLKIN",
+      "direction": "input",
+      "pins": [
+        "PIN_AH14"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "External (SMA) clock input"
+    },
+    {
+      "name": "SMA_CLKOUT",
+      "direction": "output",
+      "pins": [
+        "PIN_AE23"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "External (SMA) clock output (I/O voltage set by JP6)"
+    },
+    {
+      "name": "KEY",
+      "direction": "input",
+      "pins": [
+        "PIN_M23",
+        "PIN_M21",
+        "PIN_N21",
+        "PIN_R24"
+      ],
+      "io_standard": "2.5 V",
+      "active_low": true,
+      "description": "Push-buttons, debounced: pressed reads 0 (I/O voltage set by JP7)"
+    },
+    {
+      "name": "SW",
+      "direction": "input",
+      "pins": [
+        "PIN_AB28",
+        "PIN_AC28",
+        "PIN_AC27",
+        "PIN_AD27",
+        "PIN_AB27",
+        "PIN_AC26",
+        "PIN_AD26",
+        "PIN_AB26",
+        "PIN_AC25",
+        "PIN_AB25",
+        "PIN_AC24",
+        "PIN_AB24",
+        "PIN_AB23",
+        "PIN_AA24",
+        "PIN_AA23",
+        "PIN_AA22",
+        "PIN_Y24",
+        "PIN_Y23"
+      ],
+      "io_standard": "2.5 V",
+      "description": "Slide switches, not debounced: up reads 1 (I/O voltage set by JP7)"
+    },
+    {
+      "name": "LEDR",
+      "direction": "output",
+      "pins": [
+        "PIN_G19",
+        "PIN_F19",
+        "PIN_E19",
+        "PIN_F21",
+        "PIN_F18",
+        "PIN_E18",
+        "PIN_J19",
+        "PIN_H19",
+        "PIN_J17",
+        "PIN_G17",
+        "PIN_J15",
+        "PIN_H16",
+        "PIN_J16",
+        "PIN_H17",
+        "PIN_F15",
+        "PIN_G15",
+        "PIN_G16",
+        "PIN_H15"
+      ],
+      "io_standard": "2.5 V",
+      "description": "Red LEDs: 1 turns one on"
+    },
+    {
+      "name": "LEDG",
+      "direction": "output",
+      "pins": [
+        "PIN_E21",
+        "PIN_E22",
+        "PIN_E25",
+        "PIN_E24",
+        "PIN_H21",
+        "PIN_G20",
+        "PIN_G22",
+        "PIN_G21",
+        "PIN_F17"
+      ],
+      "io_standard": "2.5 V",
+      "description": "Green LEDs: 1 turns one on"
+    },
+    {
+      "name": "HEX0",
+      "direction": "output",
+      "pins": [
+        "PIN_G18",
+        "PIN_F22",
+        "PIN_E17",
+        "PIN_L26",
+        "PIN_L25",
+        "PIN_J22",
+        "PIN_H22"
+      ],
+      "io_standard": "2.5 V",
+      "active_low": true,
+      "description": "Seven-segment digit 0, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX1",
+      "direction": "output",
+      "pins": [
+        "PIN_M24",
+        "PIN_Y22",
+        "PIN_W21",
+        "PIN_W22",
+        "PIN_W25",
+        "PIN_U23",
+        "PIN_U24"
+      ],
+      "io_standard": "2.5 V",
+      "active_low": true,
+      "description": "Seven-segment digit 1, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX2",
+      "direction": "output",
+      "pins": [
+        "PIN_AA25",
+        "PIN_AA26",
+        "PIN_Y25",
+        "PIN_W26",
+        "PIN_Y26",
+        "PIN_W27",
+        "PIN_W28"
+      ],
+      "io_standard": "2.5 V",
+      "active_low": true,
+      "description": "Seven-segment digit 2, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX3",
+      "direction": "output",
+      "pins": [
+        "PIN_V21",
+        "PIN_U21",
+        "PIN_AB20",
+        "PIN_AA21",
+        "PIN_AD24",
+        "PIN_AF23",
+        "PIN_Y19"
+      ],
+      "io_standard": [
+        "2.5 V",
+        "2.5 V",
+        "3.3-V LVTTL",
+        "3.3-V LVTTL",
+        "3.3-V LVTTL",
+        "3.3-V LVTTL",
+        "3.3-V LVTTL"
+      ],
+      "active_low": true,
+      "description": "Seven-segment digit 3, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX4",
+      "direction": "output",
+      "pins": [
+        "PIN_AB19",
+        "PIN_AA19",
+        "PIN_AG21",
+        "PIN_AH21",
+        "PIN_AE19",
+        "PIN_AF19",
+        "PIN_AE18"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Seven-segment digit 4, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX5",
+      "direction": "output",
+      "pins": [
+        "PIN_AD18",
+        "PIN_AC18",
+        "PIN_AB18",
+        "PIN_AH19",
+        "PIN_AG19",
+        "PIN_AF18",
+        "PIN_AH18"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Seven-segment digit 5, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX6",
+      "direction": "output",
+      "pins": [
+        "PIN_AA17",
+        "PIN_AB16",
+        "PIN_AA16",
+        "PIN_AB17",
+        "PIN_AB15",
+        "PIN_AA15",
+        "PIN_AC17"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Seven-segment digit 6, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX7",
+      "direction": "output",
+      "pins": [
+        "PIN_AD17",
+        "PIN_AE17",
+        "PIN_AG17",
+        "PIN_AH17",
+        "PIN_AF17",
+        "PIN_AG18",
+        "PIN_AA14"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Seven-segment digit 7, common anode: 0 lights a segment"
+    }
+  ]
+}

@@ -34,7 +34,7 @@ AppVersion={#LaceVersion}
 AppVerName=Lace {#LaceVersion}
 AppPublisher=NIPS-CERN, Faculdade de Engenharia da UFJF
 AppPublisherURL=https://nipscern.com
-AppComments=SAPHO tools: Lace Studio, YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz and surfer-aurora (bundle {#Bundle})
+AppComments=SAPHO tools: Lace Studio, YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora and openFPGALoader (bundle {#Bundle})
 VersionInfoVersion={#LaceVersion}
 DefaultDirName={code:DefaultDir}
 DisableProgramGroupPage=yes
@@ -57,7 +57,7 @@ OutputBaseFilename=lace-{#LaceVersion}-windows-x64-setup
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
-WelcomeLabel2=This wizard installs Lace {#LaceVersion}, which orchestrates the SAPHO development tools, and Lace Studio, its graphical environment.%n%nLace only uses the tools of the bundle installed with it, at the exact versions of bundle {#Bundle}: YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz and surfer-aurora. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nWhen choosing components, the Recommended installation is the default; Advanced lets you choose exactly what to install.
+WelcomeLabel2=This wizard installs Lace {#LaceVersion}, which orchestrates the SAPHO development tools, and Lace Studio, its graphical environment.%n%nLace only uses the tools of the bundle installed with it, at the exact versions of bundle {#Bundle}: YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora and openFPGALoader. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nWhen choosing components, the Recommended installation is the default; Advanced lets you choose exactly what to install.
 SelectComponentsLabel2=The Recommended installation installs Lace with {#Recommended}.%n%nTo choose the components yourself, switch to Advanced.
 FinishedLabel=Lace has been installed. Open Lace Studio from the Start menu, or open a new terminal and run: lace tools --verify
 

@@ -7,6 +7,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type {
   AddedFile,
+  Board,
   FileMismatch,
   ProjectFile,
   RunComparison,
@@ -20,6 +21,9 @@ import type {
   DirEntry,
   FileStat,
   FlowRequest,
+  BitstreamState,
+  FpgaConfig,
+  FpgaPrepared,
   FsChanged,
   HierarchyResult,
   IpcError,
@@ -27,6 +31,7 @@ import type {
   LearnSnapshot,
   LearnTracks,
   ListPosition,
+  ModuleInterface,
   MovedPath,
   NewProcessorDefaults,
   NewProcessorRequest,
@@ -169,6 +174,23 @@ export const api = {
     setCurrent: (root: string, name: string, lang?: string | null) =>
       call<LearnSnapshot>('learn_set_current', { root, name, lang: lang ?? null }),
     reset: (root: string, name: string) => call<void>('learn_reset', { root, name }),
+  },
+
+  /** A placa FPGA (commands/fpga.rs); a compilação é o fluxo `fpga_build`. */
+  fpga: {
+    boards: () => call<Board[]>('fpga_boards'),
+    /** O `fpga.json`; `null` se ainda não existe. */
+    config: () => call<FpgaConfig | null>('fpga_config'),
+    setConfig: (config: FpgaConfig) => call<void>('fpga_config_set', { config }),
+    /** O topo que vai para a placa e as portas dele. */
+    top: (top?: string | null) => call<ModuleInterface>('fpga_top', { top: top ?? null }),
+    check: () => call<FpgaPrepared>('fpga_check'),
+    /** Os módulos do projeto que podem ir para a placa. */
+    modules: () => call<string[]>('fpga_modules'),
+    /** O arquivo de gravação: pronto, desatualizado (e por quê) ou ausente. */
+    status: () => call<BitstreamState>('fpga_status'),
+    /** Os cabos de gravação ligados (`quartus_pgm -l`, cerca de 1 s). */
+    cables: () => call<string[]>('fpga_cables'),
   },
 
   toolchain: {

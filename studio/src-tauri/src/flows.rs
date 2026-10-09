@@ -1,4 +1,5 @@
-//! Os fluxos: compilar, verificar, simular, sintetizar e desenhar.
+//! Os fluxos: compilar, verificar, simular, sintetizar, desenhar e compilar
+//! para a placa FPGA.
 //!
 //! Cada fluxo é a mesma composição de funções do Core que o comando da CLI
 //! faz (`crates/lace-cli/src/commands.rs`): antes da simulação e da
@@ -17,6 +18,7 @@
 use std::time::{Duration, SystemTime};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use lace_core::fpga::{self, FpgaBuildResult, FpgaConfig, FpgaProgramResult};
 use lace_core::history::{self, Operation};
 use lace_core::{
     BuildOptions, BuildResult, CheckOptions, CheckResult, Control, DesignTarget, OnFailure,
@@ -105,6 +107,16 @@ pub enum FlowRequest {
         #[serde(default = "yes")]
         bus_widths: bool,
     },
+    /// `lace fpga build`: compila os processadores e depois o projeto para a
+    /// placa do `fpga.json` pelo Quartus. Como na CLI, não grava relatório.
+    FpgaBuild,
+    /// `lace fpga program [--cable NOME]`: grava o `.sof` da última
+    /// compilação para a placa. Não compila nem grava relatório.
+    FpgaProgram {
+        /// O cabo; `None`, o primeiro que o Quartus lista.
+        #[serde(default)]
+        cable: Option<String>,
+    },
     /// `lace learn check NOME`: corrige um exercício da pasta de exercícios
     /// (`lace-learn`) e grava se ele está resolvido. Não grava relatório.
     Learn {
@@ -129,6 +141,8 @@ impl FlowRequest {
             FlowRequest::Synthesize { .. } => "synthesize",
             FlowRequest::Schematic { .. } => "schematic",
             FlowRequest::Learn { .. } => "learn",
+            FlowRequest::FpgaBuild => "fpga_build",
+            FlowRequest::FpgaProgram { .. } => "fpga_program",
         }
     }
 
@@ -206,6 +220,13 @@ impl FlowRequest {
             FlowRequest::Learn { exercise, .. } => {
                 parts.extend(["learn".into(), "check".into(), exercise.clone()]);
             }
+            FlowRequest::FpgaBuild => parts.extend(["fpga".into(), "build".into()]),
+            FlowRequest::FpgaProgram { cable } => {
+                parts.extend(["fpga".into(), "program".into()]);
+                if let Some(cable) = cable {
+                    parts.extend(["--cable".into(), quoted(cable)]);
+                }
+            }
         }
         parts.join(" ")
     }
@@ -257,6 +278,10 @@ pub struct FlowOutcome {
     pub report_error: Option<String>,
     /// A correção de um exercício (fluxo `learn`).
     pub learn: Option<lace_learn::Grade>,
+    /// A compilação para a placa (fluxo `fpga_build`).
+    pub fpga: Option<FpgaBuildResult>,
+    /// A gravação na placa (fluxo `fpga_program`).
+    pub fpga_program: Option<FpgaProgramResult>,
 }
 
 impl FlowOutcome {
@@ -278,6 +303,8 @@ impl FlowOutcome {
             report: None,
             report_error: None,
             learn: None,
+            fpga: None,
+            fpga_program: None,
         }
     }
 }
@@ -327,6 +354,10 @@ pub enum Phase {
     Wave,
     /// Corrigindo um exercício do `lace learn`.
     Learn,
+    /// Compilando para a placa (Quartus).
+    Fpga,
+    /// Gravando na placa (Quartus Programmer).
+    Program,
 }
 
 /// O progresso de um fluxo.
@@ -369,6 +400,15 @@ pub fn run(
 
     let mut project = Project::open(spf)?;
 
+    if let FlowRequest::FpgaProgram { cable } = request {
+        let toolchain = toolchain::require(settings)?;
+        progress(Progress::Phase(Phase::Program));
+        let result = fpga::program(&toolchain, &project, cable.as_deref(), control)?;
+        outcome.succeeded = result.succeeded();
+        outcome.fpga_program = Some(result);
+        return Ok(outcome);
+    }
+
     if let FlowRequest::Schematic {
         netlist,
         module,
@@ -396,6 +436,15 @@ pub fn run(
     }
 
     let toolchain = toolchain::require(settings)?;
+    // O `fpga.json`, a placa e o Quartus antes de compilar qualquer coisa,
+    // como a CLI: faltar um deles não deve custar o build dos processadores.
+    if let FlowRequest::FpgaBuild = request {
+        let config = FpgaConfig::read(project.root())?;
+        fpga::board(&config.board)?;
+        if toolchain.quartus().is_none() {
+            return Err(lace_core::LaceError::QuartusMissing.into());
+        }
+    }
     if let FlowRequest::Simulate {
         testbench: Some(testbench),
         ..
@@ -444,6 +493,15 @@ pub fn run(
     let built = outcome.builds.iter().all(BuildResult::succeeded);
     let mut operation = Operation::new(&outcome.command, started).with_builds(&outcome.builds);
 
+    if let FlowRequest::FpgaBuild = request {
+        if built {
+            progress(Progress::Phase(Phase::Fpga));
+            let result = fpga::build(&toolchain, &project, control)?;
+            outcome.succeeded = result.succeeded();
+            outcome.fpga = Some(result);
+        }
+        return Ok(outcome);
+    }
     if !built || matches!(request, FlowRequest::Build { .. }) {
         outcome.succeeded = built;
         (outcome.report, outcome.report_error) = record(&project, &toolchain, &operation);
@@ -526,7 +584,11 @@ pub fn run(
                 result.succeeded() && outcome.schematic.as_ref().is_none_or(|s| s.succeeded());
             outcome.synthesis = Some(result);
         }
-        FlowRequest::Build { .. } | FlowRequest::Schematic { .. } | FlowRequest::Learn { .. } => {
+        FlowRequest::Build { .. }
+        | FlowRequest::Schematic { .. }
+        | FlowRequest::Learn { .. }
+        | FlowRequest::FpgaBuild
+        | FlowRequest::FpgaProgram { .. } => {
             unreachable!()
         }
     }

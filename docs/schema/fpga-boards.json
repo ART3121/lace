@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FpgaBoardsReport",
+  "description": "`lace fpga boards`: as placas conhecidas, ou a pedida.",
+  "type": "object",
+  "properties": {
+    "boards": {
+      "description": "As placas, com o FPGA, o cabo e os sinais com os pinos.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Board"
+      }
+    }
+  },
+  "required": [
+    "boards"
+  ],
+  "$defs": {
+    "Board": {
+      "description": "Uma placa.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "O identificador, usado no `fpga.json` e na CLI (`de2-115`).",
+          "type": "string"
+        },
+        "name": {
+          "description": "O nome para mostrar (`Terasic DE2-115`).",
+          "type": "string"
+        },
+        "source": {
+          "description": "De onde vieram os pinos: o manual, a versão e as tabelas.",
+          "type": "string"
+        },
+        "device": {
+          "description": "O FPGA.",
+          "$ref": "#/$defs/Device"
+        },
+        "jtag": {
+          "description": "A gravação pela USB da placa.",
+          "$ref": "#/$defs/Jtag"
+        },
+        "signals": {
+          "description": "Os sinais da placa ligados ao FPGA.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BoardSignal"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "source",
+        "device",
+        "jtag",
+        "signals"
+      ]
+    },
+    "Device": {
+      "description": "O FPGA de uma placa.",
+      "type": "object",
+      "properties": {
+        "family": {
+          "description": "A família, como o Quartus a escreve no `.qsf` (`Cyclone IV E`).",
+          "type": "string"
+        },
+        "part": {
+          "description": "O modelo, como no `.qsf` (`EP4CE115F29C7`).",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "part"
+      ]
+    },
+    "Jtag": {
+      "description": "Como gravar a placa pela USB dela.",
+      "type": "object",
+      "properties": {
+        "cable": {
+          "description": "O cabo.",
+          "$ref": "#/$defs/Cable"
+        },
+        "position": {
+          "description": "A posição do FPGA na cadeia JTAG, a partir de 1. Na DE10-Nano o FPGA\nvem depois do processador ARM (HPS).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "openfpgaloader": {
+          "description": "O nome da placa no openFPGALoader (`-b`), se ele a conhece.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "cable",
+        "position"
+      ]
+    },
+    "Cable": {
+      "description": "O cabo de gravação embutido na placa.",
+      "oneOf": [
+        {
+          "description": "USB-Blaster (FT245 e um CPLD).",
+          "type": "string",
+          "const": "usb-blaster"
+        },
+        {
+          "description": "USB-Blaster II (EZ-USB FX2). O openFPGALoader só o usa com o firmware\n`blaster_6810.hex`, que vem com o Quartus.",
+          "type": "string",
+          "const": "usb-blasterII"
+        }
+      ]
+    },
+    "BoardSignal": {
+      "description": "Um sinal da placa: um fio (`CLOCK_50`) ou um barramento (`SW`), com um\npino por bit.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome, como no manual (`KEY`, `LEDR`).",
+          "type": "string"
+        },
+        "direction": {
+          "description": "A direção.",
+          "$ref": "#/$defs/SignalDirection"
+        },
+        "pins": {
+          "description": "Os pinos, do bit 0 em diante (`PIN_Y2`).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "io_standard": {
+          "description": "O padrão de I/O, como no `.qsf` (`3.3-V LVTTL`): um para o sinal\ninteiro ou um por bit, quando os bits ficam em bancos de tensões\ndiferentes.",
+          "$ref": "#/$defs/IoStandard"
+        },
+        "active_low": {
+          "description": "Ativo em nível baixo: o botão apertado lê 0, o segmento acende em 0.\nNum sinal de saída, os bits que nada liga ficam no nível inativo.",
+          "type": "boolean",
+          "default": false
+        },
+        "clock_mhz": {
+          "description": "A frequência, se for um clock.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "description": {
+          "description": "O que é, como no manual.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "direction",
+        "pins",
+        "io_standard",
+        "active_low",
+        "description"
+      ]
+    },
+    "SignalDirection": {
+      "description": "A direção de um sinal da placa, do ponto de vista do FPGA.",
+      "oneOf": [
+        {
+          "description": "Entra no FPGA: clock, botão, chave.",
+          "type": "string",
+          "const": "input"
+        },
+        {
+          "description": "Sai do FPGA: LED, display.",
+          "type": "string",
+          "const": "output"
+        }
+      ]
+    },
+    "IoStandard": {
+      "description": "O padrão de I/O de um sinal.",
+      "anyOf": [
+        {
+          "description": "O mesmo para todos os bits.",
+          "type": "string"
+        },
+        {
+          "description": "Um por bit, do bit 0 em diante.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    }
+  }
+}

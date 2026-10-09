@@ -17,6 +17,11 @@
 //!   fonte, que são anexadas ao diagnóstico anterior.
 //! - Yosys: `<arquivo>:<linha>: ERROR: ...`, `Warning: ...`.
 //! - Graphviz (`dot`): `Error: <arquivo>: syntax error in line <n> ...`.
+//! - Quartus (conferido em relatórios do 13.1, do 17.1 Lite e do 18.0
+//!   Lite, não executado): `Error (10161): <mensagem> File: <arquivo> Line:
+//!   <n>`, `Critical Warning (332148): ...`, `Warning (18236): ...`. As
+//!   submensagens vêm indentadas em 4 espaços e são anexadas à anterior; as
+//!   centenas de `Info (...)` ficam de fora.
 //!
 //! O parser é tolerante: linha não reconhecida vira um diagnóstico com
 //! `severity = Unknown`, e todo diagnóstico guarda o texto original em `raw`.
@@ -118,6 +123,7 @@ pub(crate) fn parse(
 /// do Verilator conta como saída comum.
 pub(crate) fn is_message(tool: Tool, stream: Stream, line: &str) -> bool {
     !line.trim().is_empty()
+        && !is_quartus_noise(tool, line)
         && (stream == Stream::Stderr
             || stdout_is_messages(tool)
             || parse_line(tool, line, None).is_some()
@@ -130,6 +136,13 @@ fn is_vvp_continuation(line: &str) -> bool {
     line.starts_with(char::is_whitespace)
         && line.trim_start().starts_with("Time:")
         && line.contains("Scope:")
+}
+
+/// `TBBmalloc: skip allocation functions replacement in ucrtbase.dll: ...`:
+/// a biblioteca de memória do Quartus escreve isto no stderr de todo
+/// programa dele no Windows (visto no 25.1 Lite). Não é do design.
+fn is_quartus_noise(tool: Tool, line: &str) -> bool {
+    tool == Tool::Quartus && line.starts_with("TBBmalloc:")
 }
 
 /// O stdout desta ferramenta é feito de mensagens (e não de saída do programa)?
@@ -149,7 +162,7 @@ fn parse_stream(
     // `***` que fecha a lista.
     let mut missing: Option<usize> = None;
     for line in text.lines() {
-        if line.trim().is_empty() {
+        if line.trim().is_empty() || is_quartus_noise(tool, line) {
             continue;
         }
         if tool == Tool::Iverilog {
@@ -230,7 +243,8 @@ fn parse_stream(
             }
             continue;
         }
-        // Continuação indentada do Verilator (trecho do fonte, `^~~`, "... See").
+        // Continuação indentada do Verilator (trecho do fonte, `^~~`, "... See")
+        // e as submensagens do Quartus.
         if continuable
             && line.starts_with(' ')
             && let Some(last) = out.last_mut()
@@ -240,7 +254,7 @@ fn parse_stream(
             continue;
         }
         let parsed = parse_line(tool, line, source);
-        continuable = tool == Tool::Verilator && parsed.is_some();
+        continuable = matches!(tool, Tool::Verilator | Tool::Quartus) && parsed.is_some();
         let parsed = match parsed {
             Some(parsed) => parsed,
             None if keep_unknown => Parsed::new(Severity::Unknown, line.trim()),
@@ -270,6 +284,7 @@ fn parse_line(tool: Tool, raw: &str, source: Option<&Utf8Path>) -> Option<Parsed
         Tool::Verilator => parse_verilator(raw).or_else(|| parse_c_style(raw)),
         Tool::Yosys => parse_yosys(raw),
         Tool::Dot => parse_graphviz(raw),
+        Tool::Quartus => parse_quartus(raw),
         _ => None,
     }
 }
@@ -585,6 +600,92 @@ fn parse_graphviz(raw: &str) -> Option<Parsed> {
     Some(parsed)
 }
 
+/// Quartus: `Error (10161): <mensagem> File: <arquivo> Line: <n>`,
+/// `Critical Warning (332148): <mensagem>`, `Warning (18236): <mensagem>`.
+/// O número da mensagem vai no fim, entre colchetes, como o código do
+/// Verilator: é por ele que se procura na base de conhecimento da Intel.
+///
+/// Os `Info` ficam de fora: o Quartus escreve centenas deles. O resumo de
+/// uma ferramenta que falhou (`Error: Quartus Prime Analysis & Synthesis was
+/// unsuccessful. 2 errors, 1 warning`, seguido de `Error:` indentados com
+/// memória e tempo) vira informação: os erros já vieram um a um.
+fn parse_quartus(raw: &str) -> Option<Parsed> {
+    let text = raw.trim();
+    let (severity, critical, rest) = [
+        ("Critical Warning", Severity::Warning, true),
+        ("Error", Severity::Error, false),
+        ("Warning", Severity::Warning, false),
+    ]
+    .into_iter()
+    .find_map(|(tag, severity, critical)| {
+        text.strip_prefix(tag)
+            .map(|rest| (severity, critical, rest))
+    })?;
+    let (id, message) = match rest.strip_prefix(" (") {
+        Some(rest) => {
+            let (id, message) = rest.split_once("): ")?;
+            if id.is_empty() || !id.bytes().all(|b| b.is_ascii_digit()) {
+                return None;
+            }
+            (Some(id), message)
+        }
+        None => (None, rest.strip_prefix(": ")?),
+    };
+    if id.is_none() && message.contains(" was unsuccessful. ") {
+        return Some(Parsed::new(Severity::Info, message));
+    }
+    let (message, location) = quartus_location(message);
+    let tag = match (critical, id) {
+        (true, Some(id)) => format!(" [critical {id}]"),
+        (true, None) => " [critical]".to_owned(),
+        (false, Some(id)) => format!(" [{id}]"),
+        (false, None) => String::new(),
+    };
+    let message = without_knowledge_base(message);
+    let mut parsed = Parsed::new(severity, &format!("{}{tag}", message.trim()));
+    if let Some((file, line)) = location {
+        parsed.file = Some(crate::paths::native_separators(file));
+        parsed.line = Some(line);
+    }
+    Some(parsed)
+}
+
+/// O `File: C:/p/contador.v Line: 27` do fim da mensagem (do Quartus II 13.1 em
+/// diante), separado do texto. Sem ele, o `at contador.v(27)` do meio do texto,
+/// que só traz o nome do arquivo.
+fn quartus_location(message: &str) -> (&str, Option<(&str, u32)>) {
+    if let Some((before, line)) = message.rsplit_once(" Line: ")
+        && let Ok(line) = line.trim().parse()
+        && let Some((text, file)) = before.rsplit_once(" File: ")
+    {
+        return (text, Some((file.trim(), line)));
+    }
+    let at = message.match_indices(" at ").find_map(|(i, _)| {
+        let rest = &message[i + " at ".len()..];
+        let (file, after) = rest.split_once('(')?;
+        let (line, after) = split_number(after)?;
+        (!file.is_empty() && !file.contains(char::is_whitespace) && after.starts_with(')'))
+            .then_some((file, line))
+    });
+    (message, at)
+}
+
+/// A mensagem sem o parágrafo da base de conhecimento que o Quartus põe em
+/// alguns erros ("The Intel FPGA Knowledge Database contains many articles
+/// ... search for this specific error message number."): o número da
+/// mensagem, no fim, já diz o que procurar.
+fn without_knowledge_base(message: &str) -> String {
+    const END: &str = "error message number.";
+    let Some(kb) = message.find(" Knowledge Database contains") else {
+        return message.to_owned();
+    };
+    let Some(end) = message[kb..].find(END).map(|e| kb + e + END.len()) else {
+        return message.to_owned();
+    };
+    let start = message[..kb].rfind(" The ").unwrap_or(kb);
+    format!("{}{}", &message[..start], &message[end..])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -867,5 +968,111 @@ mod tests {
             Stream::Stdout,
             "       Time: 1000  Scope: tb"
         ));
+    }
+
+    /// Linhas de relatórios reais do Quartus: o 17.1 Lite (o erro com
+    /// `File:` e `Line:`, o resumo da falha), o 18.0 Lite (o parágrafo da
+    /// base de conhecimento), o 13.1 (o aviso crítico sem `File:`) e o 14.0
+    /// (o tempo não atendido). Os caminhos foram trocados.
+    #[test]
+    fn quartus_messages() {
+        let stdout = "Info: *******************************************************************\n\
+             Info: Running Quartus Prime Analysis & Synthesis\n\
+             \x20   Info: Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition\n\
+             Info: Command: quartus_map --read_settings_files=on --write_settings_files=off contador -c contador\n\
+             Warning (18236): Number of processors has not been specified which may cause overloading on shared machines.  Set the global assignment NUM_PARALLEL_PROCESSORS in your QSF to an appropriate value for best performance.\n\
+             Info (20030): Parallel compilation is enabled and will use 6 of the 6 processors detected\n\
+             Warning (12125): Using design file contador.v, which is not specified as a design file for the current project, but contains definitions for 1 design units and 1 entities in project\n\
+             \x20   Info (12023): Found entity 1: t1 File: C:/p/contador.v Line: 3\n\
+             Error (10161): Verilog HDL error at contador.v(27): object \"conta\" is not declared. Verify the object name is correct. If the name is correct, declare the object. File: C:/p/contador.v Line: 27\n\
+             Error (10170): Verilog HDL syntax error at filtro_fir.sv(118) near text: \"always_comb\";  expecting \"end\". Check for and fix any syntax errors that appear immediately before or at the specified keyword. The Intel FPGA Knowledge Database contains many articles with specific details on how to resolve this error. Visit the Knowledge Database at https://www.altera.com/support/support-resources/knowledge-base/search.html and search for this specific error message number. File: C:/p/My Files/filtro_fir.sv Line: 118\n\
+             Critical Warning (10191): Verilog HDL Compiler Directive warning at ula.v(41): text macro \"LARGURA\" is undefined\n\
+             Critical Warning (332148): Timing requirements not met\n\
+             \x20   Info (11105): For recommendations on closing timing, run Report Timing Closure Recommendations in the TimeQuest Timing Analyzer.\n\
+             Info (332146): Worst-case setup slack is -2.318\n\
+             \x20   Info (332119):     Slack       End Point TNS Clock \n\
+             Error: Quartus Prime Analysis & Synthesis was unsuccessful. 2 errors, 3 warnings\n\
+             \x20   Error: Peak virtual memory: 4812 megabytes\n\
+             \x20   Error: Processing ended: Thu Oct 08 10:12:30 2026\n";
+        let found = parse(Tool::Quartus, stdout, "", None);
+        let summary: Vec<_> = found
+            .iter()
+            .map(|d| (d.severity, d.message.as_str(), d.line))
+            .collect();
+        assert_eq!(found.len(), 7, "{summary:#?}");
+
+        assert_eq!(found[0].severity, Severity::Warning);
+        assert!(found[0].message.ends_with("best performance. [18236]"));
+        // A submensagem fica no texto original, e o local dela não é o do
+        // aviso.
+        assert!(
+            found[1].raw.contains("Found entity 1"),
+            "{:?}",
+            found[1].raw
+        );
+        assert_eq!(found[1].file, None);
+
+        let error = &found[2];
+        assert_eq!(error.severity, Severity::Error);
+        assert_eq!(
+            error.message,
+            "Verilog HDL error at contador.v(27): object \"conta\" is not declared. Verify the object name is correct. If the name is correct, declare the object. [10161]"
+        );
+        assert_eq!(
+            error.file,
+            Some(crate::paths::native_separators("C:/p/contador.v"))
+        );
+        assert_eq!(error.line, Some(27));
+
+        let syntax = &found[3];
+        assert!(
+            syntax
+                .message
+                .ends_with("before or at the specified keyword. [10170]"),
+            "{}",
+            syntax.message
+        );
+        assert_eq!(
+            syntax.file,
+            Some(crate::paths::native_separators(
+                "C:/p/My Files/filtro_fir.sv"
+            ))
+        );
+        assert_eq!(syntax.line, Some(118));
+
+        let macro_warning = &found[4];
+        assert_eq!(macro_warning.severity, Severity::Warning);
+        assert!(macro_warning.message.ends_with("[critical 10191]"));
+        assert_eq!(
+            macro_warning.file,
+            Some(crate::paths::native_separators("ula.v"))
+        );
+        assert_eq!(macro_warning.line, Some(41));
+
+        assert_eq!(
+            found[5].message,
+            "Timing requirements not met [critical 332148]"
+        );
+        assert!(found[5].raw.contains("Timing Closure Recommendations"));
+
+        let end = &found[6];
+        assert_eq!(end.severity, Severity::Info);
+        assert!(end.message.ends_with("2 errors, 3 warnings"));
+        assert!(end.raw.contains("Peak virtual memory"));
+
+        assert!(is_message(
+            Tool::Quartus,
+            Stream::Stdout,
+            "Error (10161): x File: C:/p/contador.v Line: 27"
+        ));
+        assert!(!is_message(
+            Tool::Quartus,
+            Stream::Stdout,
+            "Info (12021): Found 1 design units, including 1 entities, in source file contador.v"
+        ));
+        // O aviso da biblioteca de memória do Quartus 25.1 no stderr.
+        let noise = "TBBmalloc: skip allocation functions replacement in ucrtbase.dll: unknown prologue for function _msize\r\n";
+        assert!(parse(Tool::Quartus, "", noise, None).is_empty());
+        assert!(!is_message(Tool::Quartus, Stream::Stderr, noise.trim_end()));
     }
 }

@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Hammer,
   ListChecks,
+  Microchip,
   ScrollText,
   Search,
   SquareTerminal,
@@ -42,6 +43,7 @@ export const VIEW_ICONS: Record<ViewId, LucideIcon> = {
   verilog: ListChecks,
   wave: Activity,
   prism: CircuitBoard,
+  fpga: Microchip,
   problems: CircleAlert,
   terminal: SquareTerminal,
 };

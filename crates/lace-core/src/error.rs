@@ -118,6 +118,34 @@ pub enum LaceError {
     )]
     SystemCompilerMissing,
 
+    /// A compilação para uma placa Intel precisa do Quartus Prime, que não
+    /// vem no bundle e não foi achado ([`crate::fpga::Quartus`]). Ele roda
+    /// no Windows e no Linux.
+    #[error(
+        "Intel FPGA boards need Quartus Prime, which does not come in the bundle, and it was not found"
+    )]
+    QuartusMissing,
+
+    /// Gravar na placa sem a compilação para ela: falta o `.sof`
+    /// ([`crate::fpga::program()`]).
+    #[error("No bitstream for the board: {0} does not exist")]
+    NoBitstream(Utf8PathBuf),
+
+    /// Nenhum cabo de gravação respondeu ao `quartus_pgm -l`: a placa
+    /// desligada ou desconectada, a porta USB errada ou o driver do
+    /// USB-Blaster ausente.
+    #[error("No programming cable found: the Quartus Programmer sees no USB-Blaster")]
+    NoCable,
+
+    /// O `.sof` não descreve o projeto de agora: um fonte, uma memória, o
+    /// `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi
+    /// trocado, ou a compilação não terminou. A placa receberia outro design.
+    #[error("The bitstream does not match the project: {}", reasons.join("; "))]
+    StaleBitstream {
+        /// Cada diferença, em texto.
+        reasons: Vec<String>,
+    },
+
     /// O projeto no disco não está como deveria: diretório ausente, arquivo
     /// onde deveria haver diretório, arquivo registrado que sumiu, arquivo que
     /// o Lace se recusa a sobrescrever.
@@ -368,6 +396,40 @@ pub enum LaceError {
     #[error("{0}")]
     NotComparable(String),
 
+    /// Nenhuma placa com esse identificador ([`crate::fpga::board()`]).
+    #[error("No board {name} (known boards: {})", available.join(", "))]
+    BoardNotFound {
+        /// O que foi pedido.
+        name: String,
+        /// As placas conhecidas.
+        available: Vec<String>,
+    },
+
+    /// O JSON embutido de uma placa é inválido. Os testes impedem isso; se
+    /// acontecer, é bug.
+    #[error("Invalid board {id}: {reason}")]
+    InvalidBoard {
+        /// A placa.
+        id: String,
+        /// O que está errado.
+        reason: String,
+    },
+
+    /// O projeto não tem `fpga.json` ([`crate::fpga::config`]): falta dizer a
+    /// placa e as ligações.
+    #[error("The project has no fpga.json ({0})")]
+    NoFpgaConfig(Utf8PathBuf),
+
+    /// O `fpga.json` não é válido: JSON malformado, ou ligações que não
+    /// batem com a placa e o topo (uma por linha).
+    #[error("Invalid {path}: {reason}")]
+    InvalidFpgaConfig {
+        /// O arquivo.
+        path: Utf8PathBuf,
+        /// O que está errado.
+        reason: String,
+    },
+
     /// Um caminho não é UTF-8. A API serializa caminhos para JSON e usa
     /// [`camino`](https://docs.rs/camino) em toda a superfície, então recusa
     /// esses caminhos na entrada. O texto é a representação com perdas.
@@ -458,6 +520,10 @@ impl LaceError {
             LaceError::ComponentMissing(_) => "component_missing",
             LaceError::ToolchainIncomplete { .. } => "toolchain_incomplete",
             LaceError::SystemCompilerMissing => "system_compiler_missing",
+            LaceError::QuartusMissing => "quartus_missing",
+            LaceError::NoBitstream(_) => "no_bitstream",
+            LaceError::NoCable => "no_cable",
+            LaceError::StaleBitstream { .. } => "stale_bitstream",
             LaceError::InvalidProject { .. } => "invalid_project",
             LaceError::ProjectExists(_) => "project_exists",
             LaceError::OutsideProject(_) => "outside_project",
@@ -491,6 +557,10 @@ impl LaceError {
             LaceError::ReportNotFound(_) => "report_not_found",
             LaceError::InvalidReport { .. } => "invalid_report",
             LaceError::NotComparable(_) => "not_comparable",
+            LaceError::BoardNotFound { .. } => "board_not_found",
+            LaceError::InvalidBoard { .. } => "invalid_board",
+            LaceError::NoFpgaConfig(_) => "no_fpga_config",
+            LaceError::InvalidFpgaConfig { .. } => "invalid_fpga_config",
         }
     }
 

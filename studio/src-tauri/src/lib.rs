@@ -9,7 +9,8 @@
 //! |---|---|
 //! | [`commands::project`] | abrir, criar, retrato do projeto, arquivos Verilog, topo, testbench, processadores, mover arquivos, hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
-//! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático: operações canceláveis com saída ao vivo |
+//! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, compilação para a placa: operações canceláveis com saída ao vivo |
+//! | [`commands::fpga`] | as placas, o `fpga.json` e a conferência das ligações |
 //! | [`commands::history`] | relatórios do `.lace/reports`: listar, mostrar, comparar, apagar |
 //! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
@@ -26,6 +27,7 @@ pub mod commands {
     //! Os comandos que a interface chama com `invoke`.
     pub mod app;
     pub mod files;
+    pub mod fpga;
     pub mod history;
     pub mod learn;
     pub mod project;
@@ -134,6 +136,14 @@ pub fn run() {
             commands::learn::learn_init,
             commands::learn::learn_set_current,
             commands::learn::learn_reset,
+            commands::fpga::fpga_boards,
+            commands::fpga::fpga_config,
+            commands::fpga::fpga_config_set,
+            commands::fpga::fpga_top,
+            commands::fpga::fpga_check,
+            commands::fpga::fpga_modules,
+            commands::fpga::fpga_status,
+            commands::fpga::fpga_cables,
             commands::toolchain::toolchain_info,
             commands::toolchain::toolchain_verify,
             commands::toolchain::lace_update_check,

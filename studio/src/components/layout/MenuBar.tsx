@@ -19,7 +19,7 @@ import { actionItem, APPEARANCE_ENTRIES, chromeMenu, LAYOUT_ENTRIES } from './la
 /** Uma ação, um separador ou um submenu (um nível só). */
 type Entry = string | { submenu: Key; entries: readonly string[] };
 
-const CONSOLE_ENTRIES = ['viewConsoleCmm', 'viewConsoleAsm', 'viewConsoleVerilog', 'viewConsoleWave', 'viewConsolePrism'];
+const CONSOLE_ENTRIES = ['viewConsoleCmm', 'viewConsoleAsm', 'viewConsoleVerilog', 'viewConsoleWave', 'viewConsolePrism', 'viewConsoleFpga'];
 
 const MENUS: { label: Key; entries: Entry[] }[] = [
   {
@@ -63,7 +63,7 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
   },
   {
     label: 'menu.flow',
-    entries: ['build', 'check', 'lint', '-', 'simulate', 'fastSim', 'openWave', '-', 'synthesize', 'showSchematic', 'showStatistics', 'viewHierarchy', '-', 'fullFlow', 'cancel', '-', 'useIcarus', 'useVerilator'],
+    entries: ['build', 'check', 'lint', '-', 'simulate', 'fastSim', 'openWave', '-', 'synthesize', 'showSchematic', 'showStatistics', 'viewHierarchy', '-', 'showBoard', 'fpgaBuildProgram', 'fpgaBuild', 'fpgaProgram', '-', 'fullFlow', 'cancel', '-', 'useIcarus', 'useVerilator'],
   },
   {
     label: 'menu.tools',

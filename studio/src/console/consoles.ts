@@ -8,6 +8,7 @@
 // | verilog  | TVERI     | iverilog -tnull e verilator --lint-only (check_syntax, lint) |
 // | wave     | TWAVE     | iverilog/vvp ou verilator (elaborate, verilate, simulate) |
 // | prism    | TPRISM    | yosys e dot (synthesize, graph, render) |
+// | fpga     | (nenhum)  | o Quartus da placa (synthesize, fit, bitstream, timing, program) |
 //
 // O comando de cada operação e os avisos dela (falha ao iniciar, pedido de
 // cancelamento) vão para o console da operação. A saída do `lace install` e

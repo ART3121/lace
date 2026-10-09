@@ -363,6 +363,16 @@
           "const": "surfer"
         },
         {
+          "description": "O openFPGALoader: grava um bitstream (`.rbf`, `.svf`) na placa pelo\ncabo USB dela.",
+          "type": "string",
+          "const": "openfpgaloader"
+        },
+        {
+          "description": "O Quartus Prime do sistema, que compila para as placas Intel\n([`crate::fpga`]). Cada passo roda um programa de linha de comando\ndele (`quartus_map`, `quartus_fit`, `quartus_asm`, `quartus_sta`);\nnão vem no bundle ([`crate::fpga::Quartus`]).",
+          "type": "string",
+          "const": "quartus"
+        },
+        {
           "description": "O Perl que executa o script `verilator`, parte do [`SystemCompiler`]:\ndo sistema no Linux e no macOS, do bundle no Windows.",
           "type": "string",
           "const": "perl"

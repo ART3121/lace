@@ -16,6 +16,7 @@
 use std::collections::BTreeMap;
 
 use camino::Utf8PathBuf;
+use lace_core::fpga::{Board, Connection, FpgaBuildResult, FpgaProgramResult, Quartus, Resolved};
 use lace_core::history::{RunComparison, RunRecord, RunSummary};
 use lace_core::{
     AddedFile, BuildResult, BundleComponent, CheckResult, Event, FileMismatch, HierarchyResult,
@@ -85,6 +86,11 @@ reports! {
     "learn-reset" => LearnResetReport,
     "learn-wave" => LearnWaveReport,
     "learn-dev-check" => DevReport,
+    "fpga-boards" => FpgaBoardsReport,
+    "fpga-check" => FpgaCheckReport,
+    "fpga-build" => FpgaBuildReport,
+    "fpga-program" => FpgaProgramResult,
+    "fpga-cables" => FpgaCablesReport,
     "error" => ErrorReport,
 }
 
@@ -349,6 +355,9 @@ pub struct ToolsReport {
     /// O compilador do Verilator, se encontrado: do sistema no Linux e no
     /// macOS, do bundle no Windows (`bundled`).
     pub system_compiler: Option<SystemCompiler>,
+    /// O Quartus Prime do sistema, que compila para as placas Intel, se
+    /// encontrado.
+    pub quartus: Option<Quartus>,
     /// Com `--verify`, os executáveis cujo SHA-256 não confere (vazio: todos
     /// conferem).
     pub verify: Option<Vec<FileMismatch>>,
@@ -568,4 +577,44 @@ mod tests {
              e confira o diff, que é a mudança que os clientes do --json vão ver"
         );
     }
+}
+
+/// `lace fpga boards`: as placas conhecidas, ou a pedida.
+#[derive(Serialize, JsonSchema)]
+pub struct FpgaBoardsReport {
+    /// As placas, com o FPGA, o cabo e os sinais com os pinos.
+    pub boards: Vec<Board>,
+}
+
+/// `lace fpga check`: o `fpga.json` conferido.
+#[derive(Serialize, JsonSchema)]
+pub struct FpgaCheckReport {
+    /// O `fpga.json`.
+    #[schemars(with = "String")]
+    pub config: Utf8PathBuf,
+    /// As ligações, bit a bit.
+    pub resolved: Resolved,
+    /// O Verilog do topo da placa que o Lace gera.
+    pub board_top: String,
+    /// Cada ligação como texto: o que vai em cada entrada do topo e em cada
+    /// sinal de saída da placa.
+    pub connections: Vec<Connection>,
+}
+
+/// `lace fpga build`: os processadores, compilados antes, e a compilação
+/// para a placa pelo Quartus.
+#[derive(Serialize, JsonSchema)]
+pub struct FpgaBuildReport {
+    /// Os processadores. Se um falha, `fpga` é `null`.
+    pub builds: Vec<BuildResult>,
+    /// A compilação para a placa.
+    pub fpga: Option<FpgaBuildResult>,
+}
+
+/// `lace fpga program --list`: os cabos de gravação ligados.
+#[derive(Serialize, JsonSchema)]
+pub struct FpgaCablesReport {
+    /// Como o `quartus_pgm -l` os escreve (`USB-Blaster [USB-0]`); vazio,
+    /// nenhum.
+    pub cables: Vec<String>,
 }

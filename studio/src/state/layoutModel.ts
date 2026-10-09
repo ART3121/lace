@@ -4,7 +4,7 @@
 // mesmas funções.
 //
 // Três regiões fixas, como no VS Code: a barra lateral esquerda, a direita e
-// o painel (embaixo ou à direita do editor). Cada uma das doze vistas fica em
+// o painel (embaixo ou à direita do editor). Cada uma das treze vistas fica em
 // exatamente uma delas e pode ir para qualquer outra. O editor e as abas de
 // vista (Preferências, Wave, Esquemático) ficam no centro, fora disso.
 //
@@ -14,7 +14,7 @@
 
 import type { Key } from '../i18n';
 
-export const CONSOLE_CHANNELS = ['cmm', 'asm', 'verilog', 'wave', 'prism'] as const;
+export const CONSOLE_CHANNELS = ['cmm', 'asm', 'verilog', 'wave', 'prism', 'fpga'] as const;
 export type ConsoleChannel = (typeof CONSOLE_CHANNELS)[number];
 
 export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', 'learn', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
@@ -45,6 +45,7 @@ export const VIEW_INFO: Record<ViewId, ViewInfo> = {
   verilog: { label: 'panel.verilog', region: 'panel', action: 'viewConsoleVerilog' },
   wave: { label: 'panel.wave', region: 'panel', action: 'viewConsoleWave' },
   prism: { label: 'panel.prism', region: 'panel', action: 'viewConsolePrism' },
+  fpga: { label: 'panel.fpga', region: 'panel', action: 'viewConsoleFpga' },
   problems: { label: 'panel.problems', region: 'panel', action: 'showProblems' },
   terminal: { label: 'panel.terminal', region: 'panel', action: 'toggleTerminal' },
 };
@@ -69,6 +70,7 @@ export const TOOLBAR_ITEMS: { id: string; label: Key; group: 'file' | 'target' |
   { id: 'fastSim', label: 'toolbar.fastSim', group: 'flow' },
   { id: 'openWave', label: 'toolbar.openWave', group: 'flow' },
   { id: 'synthesize', label: 'toolbar.synthesize', group: 'flow' },
+  { id: 'showBoard', label: 'toolbar.board', group: 'flow' },
   { id: 'running', label: 'layout.item.running', group: 'running' },
 ];
 

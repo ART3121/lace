@@ -3,6 +3,43 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Acrescentado
+
+- Preferências > Bundle do Lace > **Quartus Prime**: a pasta do Quartus,
+  que compila para as placas Intel (o `--quartus` da CLI). Vazia, o Studio
+  usa o `LACE_QUARTUS`, o `QUARTUS_ROOTDIR` e as pastas padrão do
+  instalador. A tela de ferramentas mostra o Quartus encontrado e a versão.
+- A aba **Placa FPGA** (o botão **Placa** na barra de ferramentas, o menu
+  Fluxo ou a paleta de comandos) leva o projeto para a placa em três etapas,
+  cada uma com o estado: **Ligações**, **Compilação** e **Gravação**. As
+  ligações vêm das portas do topo, uma linha por porta, com a lista dos
+  sinais da placa que cabem nela, os bits e a caixa **Inverter**; o
+  `fpga.json` é gravado e conferido a cada mudança, e cada problema aparece
+  na linha da porta. **Ligar automaticamente** liga as portas pelos nomes
+  iguais aos da placa e, num processador SAPHO, o `clk` no oscilador, o
+  `rst` no primeiro botão (invertido), a entrada nas chaves e as saídas nos
+  LEDs. **Compilar e gravar na placa** roda o `lace fpga build` e, se der
+  certo, o `lace fpga program`; a etapa de compilação diz quando o arquivo
+  de gravação ficou desatualizado e por quê, e a de gravação diz se o cabo
+  da placa está ligado. No fim aparecem os recursos da FPGA e a Fmax e as
+  folgas de cada clock. A saída do Quartus vai para o console novo **Placa**,
+  e os erros, para Problemas.
+
+### Corrigido
+
+- O testbench que o build de um processador gera não tinha, no menu da aba
+  Fontes, **Marcar como o testbench simulado**; só dava para marcá-lo
+  depois de adicioná-lo pela aba Arquivos. Agora o item aparece nele e faz
+  os dois passos: registra no `.spf` como testbench e marca como o
+  simulado.
+
+### Mudado
+
+- O **+** de Módulos, Testbenches e Processadores SAPHO, na aba Fontes,
+  fica sempre à vista, e não só com o mouse sobre o cabeçalho da seção.
+
 ## [0.5.0] - 2026-10-08
 
 ### Acrescentado

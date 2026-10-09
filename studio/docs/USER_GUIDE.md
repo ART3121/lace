@@ -91,7 +91,11 @@ Duplo clique num divisor volta ao tamanho do layout em uso.
 - *Testbenches*: os registrados, com o simulado marcado, e o testbench que o
   YANC gerou para cada processador (`<proc>/Simulation/<proc>_tb.v`). O
   menu de um testbench tem **Marcar como o testbench simulado**, que só
-  marca: quem simula é a Wave (F8) ou a Rápida (F9).
+  marca: quem simula é a Wave (F8) ou a Rápida (F9). No gerado, que ainda
+  não está no `.spf`, o mesmo item antes o registra como testbench.
+
+O **+** no cabeçalho de *Módulos*, *Testbenches* e *Processadores SAPHO*
+cria um módulo, um testbench ou um processador.
 - *Processadores SAPHO*: cada um com o **Programa** (o fonte e o assembly
   gerado), as **Memórias** (`.mif`), a **Simulação** (entradas, saídas e a
   onda) e, recolhidos, os **Intermediários do YANC** (logs e traduções da
@@ -553,6 +557,41 @@ trilhas de exercícios** para a pasta `lace-learn` do repositório, e testa a
 trilha sem instalar o componente. No `npm run tauri dev`, sem essa
 preferência, o Studio já usa a pasta `lace-learn` do repositório.
 
+## 7.2 Placa FPGA
+
+A aba **Placa FPGA** (o botão **Placa** na barra de ferramentas, ou Fluxo >
+Mostrar a placa FPGA) leva o projeto para a placa. No alto ficam a placa (a
+DE2-115 ou a DE10-Nano) e o topo que vai para ela; vazio, o topo do
+projeto, ou o processador, se houver um só. Embaixo, três etapas, cada uma
+com o estado:
+
+1. **Ligações**: uma linha por porta do topo, com o sinal da placa, os bits
+   dele (vazio: os de baixo) e **Inverter**. Os botões das placas são
+   ativos em nível baixo: apertado lê 0, e a lista avisa ("ativo em 0").
+   Marque **Inverter** quando a porta espera 1 com o botão apertado, como o
+   `rst` do SAPHO. Uma entrada pode ficar fixa em 0 ou 1. Cada mudança é
+   gravada no `fpga.json` e conferida na hora; um problema aparece na linha
+   da porta. **Ligar automaticamente** liga as portas soltas: pelos nomes
+   iguais aos da placa (um topo escrito para ela, com `CLOCK_50`, `KEY`,
+   `SW`) e, num processador SAPHO, o `clk` no oscilador, o `rst` no
+   primeiro botão, invertido, a entrada nas chaves e as saídas nos LEDs.
+   Confira o que ele escolheu. **Como fica** mostra o resultado de cada
+   ligação, e o Verilog do topo da placa gerado.
+2. **Compilação**: o Quartus gera o arquivo de gravação. A etapa diz se ele
+   está em dia com o projeto ou, se algo mudou depois, o quê.
+3. **Gravação**: o arquivo vai para a placa pelo cabo dela. A etapa diz se
+   o cabo está ligado; sem ele, ligue a placa pela porta USB BLASTER, com a
+   chave RUN/PROG em RUN, e procure de novo. A placa roda o projeto até ser
+   desligada; ao ligar de novo, ela carrega o que está na memória de
+   configuração dela (na DE2-115, o projeto de fábrica).
+
+**Compilar e gravar na placa** faz as duas últimas de uma vez. A saída do
+Quartus vai para o console **Placa**, e os erros, para Problemas. No fim
+aparecem os recursos da FPGA e, por clock, a frequência pedida, a Fmax e as
+folgas. Sem o Quartus, os botões ficam desligados (Preferências > Bundle do
+Lace > Quartus Prime). Se o topo é um processador ainda não compilado, as
+portas aparecem depois de **Compilar os processadores**.
+
 ## 8. Ferramentas do Lace
 
 A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
@@ -565,6 +604,7 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
 - cada executável e onde está;
 - o compilador do Verilator (do sistema no Linux e no macOS, do bundle no
   Windows);
+- o Quartus Prime, quando encontrado, com a versão e a pasta;
 - **Conferir os hashes**: o `lace tools --verify`;
 - **Procurar atualizações**: o `lace update --check`, com a versão
   instalada, a da última release e a upstream de cada componente. O
@@ -597,7 +637,7 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem) e os itens das barras de ferramentas e de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
-| Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI) e a do compilador do Verilator (o `--compiler`) |
+| Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`) e a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
 
 As preferências ficam em `settings.json`, na pasta de configuração do
 aplicativo: `~/.config/com.nipscern.lace-studio/` no Linux,
