@@ -4,6 +4,7 @@ description = "Exercícios de Verilog no estilo rustlings, corrigidos pelo lace-
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
 
 [dependencies]
 lace-core.workspace = true

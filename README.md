@@ -190,5 +190,13 @@ O Studio sozinho, para desenvolver: `cd studio && npm install && npm run tauri d
 
 O que montar o bundle exige está em [docs/BUNDLE.md](docs/BUNDLE.md).
 
+## Licença
+
+O Lace e o Lace Studio estão sob a licença MIT ([LICENSE](LICENSE)).
+As ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys,
+Graphviz, surfer-aurora, openFPGALoader) seguem as licenças delas. O
+Quartus Prime não vem com o Lace: cada um instala o seu, sob a licença da
+Intel.
+
 NIPS-CERN, Núcleo de Instrumentação e Processamento de Sinais, Faculdade de
 Engenharia da UFJF. <https://nipscern.com>

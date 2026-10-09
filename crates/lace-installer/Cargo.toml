@@ -4,6 +4,7 @@ description = "Instalador do Lace para Linux e macOS, e o empacotador dos instal
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
 
 [lib]
 path = "src/lib.rs"

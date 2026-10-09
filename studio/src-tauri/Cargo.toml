@@ -5,6 +5,7 @@ version = "0.5.0"
 edition = "2024"
 rust-version = "1.90"
 authors = ["NIPS-CERN <https://nipscern.com>"]
+license = "MIT"
 publish = false
 
 [lib]

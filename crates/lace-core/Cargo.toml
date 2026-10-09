@@ -4,6 +4,7 @@ description = "Desenvolvimento em Verilog e de processadores SAPHO: a API que a 
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
 
 [dependencies]
 camino.workspace = true
