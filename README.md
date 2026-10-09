@@ -73,8 +73,8 @@ irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 Sem o script, direto da [página da release](https://github.com/ART3121/lace/releases/latest):
 
 ```sh
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.5.0/lace-0.5.0-linux-x64.tar.gz
-tar xzf lace-0.5.0-linux-x64.tar.gz && ./lace-0.5.0-linux-x64/install
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.6.0/lace-0.6.0-linux-x64.tar.gz
+tar xzf lace-0.6.0-linux-x64.tar.gz && ./lace-0.6.0-linux-x64/install
 ```
 
 No macOS, troque `linux-x64` por `darwin-arm64`. Baixe pelo `curl`, não

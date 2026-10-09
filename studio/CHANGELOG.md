@@ -3,7 +3,7 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [0.6.0] - 2026-10-09
 
 ### Acrescentado
 
@@ -14,8 +14,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - A aba **Placa FPGA** (o botão **Placa** na barra de ferramentas, o menu
   Fluxo ou a paleta de comandos) leva o projeto para a placa em três etapas,
   cada uma com o estado: **Ligações**, **Compilação** e **Gravação**. As
-  ligações vêm das portas do topo, uma linha por porta, com a lista dos
-  sinais da placa que cabem nela, os bits e a caixa **Inverter**; o
+  ligações vêm das portas do topo, uma linha por porta, com um painel dos
+  sinais da placa que cabem nela, agrupados em clocks, botões, chaves, LEDs
+  e displays, os bits e a caixa **Inverter**; o
   `fpga.json` é gravado e conferido a cada mudança, e cada problema aparece
   na linha da porta. **Ligar automaticamente** liga as portas pelos nomes
   iguais aos da placa e, num processador SAPHO, o `clk` no oscilador, o

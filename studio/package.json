@@ -1,7 +1,7 @@
 {
   "name": "lace-studio",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "MIT",
   "type": "module",
   "description": "Lace Studio: o ambiente gráfico do Lace para Verilog e processadores SAPHO",

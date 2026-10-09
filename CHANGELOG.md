@@ -1,8 +1,8 @@
 # Mudanças
 
-## Não publicada
+## 0.6.0 (2026-10-09)
 
-- Placas FPGA, a primeira parte ([docs/FPGA.md](docs/FPGA.md)): o Lace
+- Placas FPGA ([docs/FPGA.md](docs/FPGA.md)): o Lace
   conhece a Terasic DE2-115 (Cyclone IV E EP4CE115F29C7) e a DE10-Nano
   (Cyclone V 5CSEBA6U23I7), com os pinos tirados dos manuais da Terasic. O
   `fpga.json`, ao lado do `.spf`, diz a placa e liga as portas do topo aos
@@ -10,7 +10,7 @@
   o topo da placa, que inverte, corta e completa larguras. `lace fpga
   boards` mostra as placas e os pinos; `lace fpga check` confere o
   `fpga.json` contra a placa e as portas do topo, com todos os problemas de
-  uma vez. Gravar na placa vem depois.
+  uma vez.
 - O Quartus Prime, que compila para as placas Intel, é a segunda exceção à
   regra do bundle: `--quartus <DIR>` (ou `LACE_QUARTUS`), senão
   `QUARTUS_ROOTDIR`, senão as pastas padrão do instalador. `lace tools`
@@ -41,6 +41,9 @@
 - O componente opcional `openfpgaloader`, com o openFPGALoader do OSS CAD
   Suite nas três plataformas, para gravar as placas pelo cabo USB. No JSON,
   a ferramenta se chama `openfpgaloader`.
+- Lace Studio: a aba Placa FPGA, com as ligações, a compilação e a
+  gravação, e o console Placa (os detalhes estão em `studio/CHANGELOG.md`).
+- O Lace passa a ter licença: MIT ([LICENSE](LICENSE)).
 - O OSS CAD Suite 2026-09-29 não traz o `nextpnr-mistral` (Cyclone V) em
   nenhuma plataforma, e o fluxo aberto para a DE10-Nano ficou para depois
   do Quartus.
