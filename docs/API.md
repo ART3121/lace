@@ -1129,7 +1129,7 @@ num projeto com processadores.
 
 ### 5.5 `synthesize(&Toolchain, &Project, &DesignTarget, &Control) -> Result<SynthesisResult>`
 
-Síntese de visualização (a do PRISM da AURORA), sem mapear para FPGA.
+Síntese de visualização (a do RTLViewer da AURORA), sem mapear para FPGA.
 
 | Alvo | Topo | Arquivos |
 |---|---|---|

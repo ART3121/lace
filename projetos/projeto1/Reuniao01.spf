@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "projectName": "Reuniao01",
+    "createdAt": "2026-10-10T20:44:30.112Z",
+    "lastModified": "2026-10-10T22:19:14.982Z",
+    "computerName": "fedora",
+    "appVersion": "lace 0.6.0",
+    "projectPath": "/home/arthuraraujo/Projetos/IEEE/Reuniao01"
+  },
+  "structure": {
+    "basePath": "/home/arthuraraujo/Projetos/IEEE/Reuniao01",
+    "processors": [],
+    "folders": [],
+    "topLevelFile": "rtl/somador42.v",
+    "testbenchFile": "tb/somador4_tb.v",
+    "synthesizableFiles": [
+      {
+        "name": "somador4.v",
+        "path": "rtl/somador4.v",
+        "isTopLevel": false
+      },
+      {
+        "name": "half_adder.v",
+        "path": "rtl/half_adder.v",
+        "isTopLevel": false
+      },
+      {
+        "name": "full_adder.v",
+        "path": "rtl/full_adder.v",
+        "isTopLevel": false
+      },
+      {
+        "name": "somador42.v",
+        "path": "rtl/somador42.v",
+        "isTopLevel": true
+      }
+    ],
+    "testbenchFiles": [
+      {
+        "name": "somador4_tb.v",
+        "path": "tb/somador4_tb.v",
+        "isTopLevel": true
+      },
+      {
+        "name": "half_adder_tb.v",
+        "path": "tb/half_adder_tb.v",
+        "isTopLevel": false
+      },
+      {
+        "name": "full_adder_tb.v",
+        "path": "tb/full_adder_tb.v",
+        "isTopLevel": false
+      }
+    ]
+  }
+}

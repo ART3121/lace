@@ -188,6 +188,18 @@ target/release/lace tools --toolchain dist/toolchain --verify
 O Studio sozinho, para desenvolver: `cd studio && npm install && npm run tauri dev`
 ([studio/docs/DEVELOPMENT.md](studio/docs/DEVELOPMENT.md)).
 
+No Linux, antes de rodar o Studio do código-fonte, instale as dependências do Tauri:
+
+```sh
+# Ubuntu / Debian
+sudo apt update
+sudo apt install build-essential curl wget file libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+# Fedora
+sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel
+sudo dnf group install c-development
+```
+
 O que montar o bundle exige está em [docs/BUNDLE.md](docs/BUNDLE.md).
 
 ## Licença

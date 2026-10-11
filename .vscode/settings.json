@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /home/ana/Downloads/lace-clean && python - <<'PY'\nfrom pathlib import Path\ntext_exts = \\{'\\.ts', '\\.tsx', '\\.js', '\\.jsx', '\\.rs', '\\.md', '\\.json', '\\.toml', '\\.html'\\}\nfor path in Path\\('\\.'\\)\\.rglob\\('\\*'\\):\n    if path\\.is_file\\(\\) and path\\.suffix\\.lower\\(\\) in text_exts:\n        try:\n            text = path\\.read_text\\(encoding='utf-8'\\)\n        except Exception:\n            continue\n        orig = text\n        text = text\\.replace\\('RTLViewer', 'RTL Viewer'\\)\n        text = text\\.replace\\('RTLViewer', 'RTL Viewer'\\)\n        text = text\\.replace\\('rtlViewer', 'rtlViewer'\\)\n        if text != orig:\n            path\\.write_text\\(text, encoding='utf-8'\\)\nPY\n\ngrep -RInE 'rtlViewer\\|RTLViewer\\|RTLViewer' \\. --exclude-dir=\\.git --exclude-dir=node_modules --exclude-dir=target \\|\\| true$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

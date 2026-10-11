@@ -18,9 +18,21 @@ O `SHA256SUMS` da release tem o hash de cada arquivo.
 
 | Sistema | Mínimo | O Lace Studio pede ainda |
 |---|---|---|
-| Linux x64 | glibc 2.35: Ubuntu 22.04, Debian 12, Fedora 36 ou mais novos | o webkit2gtk 4.1 (`sudo apt install libwebkit2gtk-4.1-0`, `sudo dnf install webkit2gtk4.1`) |
+| Linux x64 | glibc 2.35: Ubuntu 22.04, Debian 12, Fedora 36 ou mais novos | o webkit2gtk 4.1 e o GTK do sistema |
 | macOS, Apple Silicon | macOS 13 | nada |
 | Windows x64 | Windows 10 ou 11 | o WebView2, que vem com o Windows 11 e com o Windows 10 atualizado |
+
+Para compilar o Studio do código-fonte no Linux, instale as dependências do Tauri:
+
+```sh
+# Ubuntu / Debian
+sudo apt update
+sudo apt install build-essential curl wget file libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+# Fedora
+sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel
+sudo dnf group install c-development
+```
 
 O mínimo de Linux é o da distribuição em que o CI compila (`ubuntu-22.04`);
 o de macOS, o dos binários do OSS CAD Suite. O instalador avisa quando o

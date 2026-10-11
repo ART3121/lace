@@ -1,6 +1,6 @@
 //! Checagem de sintaxe (Icarus), síntese (Yosys) e esquemático (o `show` do
 //! Yosys com o `dot` do Graphviz). A checagem e a síntese espelham a AURORA
-//! (`main/ipc/prism.ts`, `main/ipc/prism_yosys_script.js`,
+//! (`main/ipc/rtlViewer.ts`, `main/ipc/rtlViewer_yosys_script.js`,
 //! `js/compilation/checagem_de_sintaxe.ts`).
 //!
 //! ```text
@@ -509,7 +509,7 @@ pub(crate) fn design_roots(
 /// Sintetiza com o Yosys até um netlist JSON (`hierarchy.json`), que
 /// [`render_schematic`] transforma em SVG.
 ///
-/// A síntese é a do PRISM da AURORA: elabora a hierarquia, converte processos
+/// A síntese é a do RTLViewer da AURORA: elabora a hierarquia, converte processos
 /// em lógica e limpa, sem mapear para uma FPGA. Serve para visualizar, não
 /// para estimar área. Os arquivos ficam em
 /// `<projeto>/.lace/Temp/synth/<topo>/`: o script (`yosys_script.ys`), o log

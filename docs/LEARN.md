@@ -94,7 +94,7 @@ exercícios, encerra a sessão, e o painel volta como estava.
 Na aba do enunciado ficam a correção (o veredito, uma linha por saída que
 errou, os erros de compilação, que levam à linha) e os botões: a próxima
 dica, a onda (na aba, já com as saídas lado a lado e o primeiro erro
-marcado), o esquemático do seu circuito no PRISM, restaurar o arquivo e,
+marcado), o esquemático do seu circuito no RTLViewer, restaurar o arquivo e,
 depois de resolvido, a solução de referência e o próximo exercício. Os
 erros também vão para Problemas e para o editor, como os de qualquer
 verificação.

@@ -169,7 +169,7 @@
   chamada, e os avisos do g++ sobre a biblioteca do próprio Verilator viram
   informação.
 - Lace Studio (os detalhes estão em `studio/CHANGELOG.md`):
-  - o PRISM (F10) desenha o esquemático no próprio Studio, a partir do
+  - o RTLViewer (F10) desenha o esquemático no próprio Studio, a partir do
     netlist da síntese, com as cores do tema, a hierarquia, a busca e o
     destaque das redes; a CLI continua com o Graphviz (`lace synth --svg`);
   - a Rápida (F9) é a simulação rápida, e o item do Explorador que marca o
