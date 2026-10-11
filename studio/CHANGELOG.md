@@ -127,11 +127,11 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Mudado
 
-- O PRISM (F10) tem esquemático próprio: o Studio desenha o netlist da
+- O RTLViewer (F10) tem esquemático próprio: o Studio desenha o netlist da
   síntese em vez de mostrar a imagem do Graphviz. As cores seguem o tema,
   com um tom por família de célula (aritmética, lógica, comparação,
   multiplexador, registrador, memória, submódulo) e a legenda no rodapé.
-  No uso é o PRISM da AURORA: entrar no submódulo (dois cliques ou o ícone
+  No uso é o RTLViewer da AURORA: entrar no submódulo (dois cliques ou o ícone
   da caixa), voltar com Esc, Alt+← ou o botão lateral do mouse, ir ao
   código com dois cliques num símbolo, destacar as ligações, exportar o
   SVG. A mais: árvore de hierarquia, trilha do caminho, busca (Ctrl+F),
@@ -229,7 +229,7 @@ A primeira versão com o Studio, junto com a 0.2.0 do Lace.
 ### Acrescentado
 
 - Janela de IDE: menus, barra de ferramentas com os botões da AURORA (C±,
-  Verilog, Wave, Rápida, PRISM, Parar), barra de atividades, barra lateral,
+  Verilog, Wave, Rápida, RTLViewer, Parar), barra de atividades, barra lateral,
   abas, painel inferior e barra de status, com divisões redimensionáveis.
 - Projeto: criar, abrir (inclusive arrastando o `.spf`), fechar, recentes,
   reabrir o último projeto com as abas de cada um.
@@ -241,7 +241,7 @@ A primeira versão com o Studio, junto com a 0.2.0 do Lace.
 - Fluxos do Lace com saída ao vivo e cancelamento: build, check (e lint),
   simulação do projeto ou de um processador (Icarus ou Verilator, com prazo),
   síntese, esquemático, abrir a onda no surfer-aurora, fluxo completo (F5).
-- Consoles por etapa (C±, ASM, Verilog, Wave, PRISM, Lace) com links
+- Consoles por etapa (C±, ASM, Verilog, Wave, RTLViewer, Lace) com links
   `arquivo:linha`, painel Problemas e marcadores no editor.
 - Terminal de shell com o `lace` no `PATH`.
 - Editor Monaco com C± e assembly do SAPHO (gramáticas portadas da AURORA e
@@ -414,7 +414,7 @@ As pendências do teste de fogo de 2026-10-04 estão em `docs/PENDENCIAS.md`
 - Em janela estreita, as abas do painel inferior passavam por baixo dos
   ícones e a barra lateral ocupava quase metade da largura (teto agora de
   40%).
-- O PRISM de um módulo grande demais para o esquemático perdia também a
+- O RTLViewer de um módulo grande demais para o esquemático perdia também a
   síntese: agora a síntese e as estatísticas ficam, e o esquemático recusado
   vira aviso (`schematic_error`).
 

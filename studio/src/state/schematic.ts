@@ -1,4 +1,4 @@
-// O PRISM: o netlist que a vista desenha, onde ela está na hierarquia e as
+// O RTLViewer: o netlist que a vista desenha, onde ela está na hierarquia e as
 // preferências dela. Fica fora do componente porque a vista desmonta quando
 // outra aba vem para a frente, e voltar a ela deve voltar ao mesmo lugar.
 //
@@ -48,7 +48,7 @@ interface SchematicState extends Persisted {
   clear: () => void;
 }
 
-const STORAGE_KEY = 'lace-studio:prism';
+const STORAGE_KEY = 'lace-studio:rtlViewer';
 
 function persisted(): Persisted {
   const defaults: Persisted = { netNames: true, flags: true, busWidths: true, showTree: true, showInspector: true };

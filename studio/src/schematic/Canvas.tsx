@@ -290,7 +290,7 @@ export const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(props, ref
   return (
     <div
       ref={element}
-      className={`prism-canvas${panning ? ' is-panning' : ''}`}
+      className={`rtlViewer-canvas${panning ? ' is-panning' : ''}`}
       tabIndex={0}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -306,7 +306,7 @@ export const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(props, ref
         handlers.current.onMenu(event, targetOf(event.target));
       }}
     >
-      <svg className="prism-canvas__svg">
+      <svg className="rtlViewer-canvas__svg">
         {grid && (
           <defs>
             <pattern
@@ -317,7 +317,7 @@ export const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(props, ref
               y={((view.y % step) + step) % step}
               patternUnits="userSpaceOnUse"
             >
-              <circle className="prism-canvas__dot" cx={step / 2} cy={step / 2} r={view.scale >= 1 ? 1.1 : 0.9} />
+              <circle className="rtlViewer-canvas__dot" cx={step / 2} cy={step / 2} r={view.scale >= 1 ? 1.1 : 0.9} />
             </pattern>
           </defs>
         )}
@@ -335,7 +335,7 @@ export const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(props, ref
       </svg>
       {hover && !panning && <Tooltip graph={graph} target={hover} />}
       <Minimap drawing={drawing} view={view} size={size} onMove={(x, y) => setView((v) => ({ ...v, x, y }))} />
-      <div className="prism-canvas__zoom" title={t('schematic.actualSize')}>
+      <div className="rtlViewer-canvas__zoom" title={t('schematic.actualSize')}>
         {Math.round(view.scale * 100)}%
       </div>
     </div>
@@ -349,9 +349,9 @@ function Tooltip({ graph, target }: { graph: SchematicGraph; target: Selection &
     const net = graph.nets.find((n) => n.id === target.id);
     if (!net) return null;
     return (
-      <div className="prism-tip" style={style}>
-        <div className="prism-tip__title">{netName(net)}</div>
-        <div className="prism-tip__line">
+      <div className="rtlViewer-tip" style={style}>
+        <div className="rtlViewer-tip__title">{netName(net)}</div>
+        <div className="rtlViewer-tip__line">
           {bitsText(net.bits)} · {t('schematic.loadsCount', { count: net.loads.length })}
         </div>
       </div>
@@ -362,17 +362,17 @@ function Tooltip({ graph, target }: { graph: SchematicGraph; target: Selection &
   const width = node.ports.find((port) => port.output)?.bits ?? node.ports[0]?.bits;
   const hint = node.module ? t('schematic.hint.enter') : node.src.length ? t('schematic.hint.source') : null;
   return (
-    <div className="prism-tip" style={style}>
-      <div className="prism-tip__title">
-        <span className="prism-swatch" data-cat={node.category} />
+    <div className="rtlViewer-tip" style={style}>
+      <div className="rtlViewer-tip__title">
+        <span className="rtlViewer-swatch" data-cat={node.category} />
         {node.name ?? node.title}
       </div>
-      <div className="prism-tip__line">
+      <div className="rtlViewer-tip__line">
         {nodeKind(node)}
         {width ? ` · ${bitsText(width)}` : ''}
       </div>
-      {node.src[0] && <div className="prism-tip__line prism-tip__muted">{sourceText(node.src[0])}</div>}
-      {hint && <div className="prism-tip__line prism-tip__muted">{hint}</div>}
+      {node.src[0] && <div className="rtlViewer-tip__line rtlViewer-tip__muted">{sourceText(node.src[0])}</div>}
+      {hint && <div className="rtlViewer-tip__line rtlViewer-tip__muted">{hint}</div>}
     </div>
   );
 }
@@ -417,7 +417,7 @@ function Minimap({
 
   return (
     <svg
-      className="prism-minimap"
+      className="rtlViewer-minimap"
       width={width}
       height={height}
       onPointerDown={(event) => {
@@ -441,7 +441,7 @@ function Minimap({
         return (
           <rect
             key={node.id}
-            className="prism-minimap__node"
+            className="rtlViewer-minimap__node"
             data-cat={node.category}
             x={at.x * scale}
             y={at.y * scale}
@@ -451,7 +451,7 @@ function Minimap({
         );
       })}
       <rect
-        className="prism-minimap__view"
+        className="rtlViewer-minimap__view"
         x={visible.x * scale}
         y={visible.y * scale}
         width={visible.width * scale}

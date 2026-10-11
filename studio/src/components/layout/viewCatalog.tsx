@@ -42,7 +42,7 @@ export const VIEW_ICONS: Record<ViewId, LucideIcon> = {
   asm: Binary,
   verilog: ListChecks,
   wave: Activity,
-  prism: CircuitBoard,
+  rtlViewer: CircuitBoard,
   fpga: Microchip,
   problems: CircleAlert,
   terminal: SquareTerminal,

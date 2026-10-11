@@ -14,7 +14,7 @@
 
 import type { Key } from '../i18n';
 
-export const CONSOLE_CHANNELS = ['cmm', 'asm', 'verilog', 'wave', 'prism', 'fpga'] as const;
+export const CONSOLE_CHANNELS = ['cmm', 'asm', 'verilog', 'wave', 'rtlViewer', 'fpga'] as const;
 export type ConsoleChannel = (typeof CONSOLE_CHANNELS)[number];
 
 export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', 'learn', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
@@ -44,7 +44,7 @@ export const VIEW_INFO: Record<ViewId, ViewInfo> = {
   asm: { label: 'panel.asm', region: 'panel', action: 'viewConsoleAsm' },
   verilog: { label: 'panel.verilog', region: 'panel', action: 'viewConsoleVerilog' },
   wave: { label: 'panel.wave', region: 'panel', action: 'viewConsoleWave' },
-  prism: { label: 'panel.prism', region: 'panel', action: 'viewConsolePrism' },
+  rtlViewer: { label: 'panel.rtlViewer', region: 'panel', action: 'viewConsoleRTLViewer' },
   fpga: { label: 'panel.fpga', region: 'panel', action: 'viewConsoleFpga' },
   problems: { label: 'panel.problems', region: 'panel', action: 'showProblems' },
   terminal: { label: 'panel.terminal', region: 'panel', action: 'toggleTerminal' },

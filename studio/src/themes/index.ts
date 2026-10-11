@@ -78,7 +78,7 @@ export function uiTokens(theme: Theme): Record<string, string> {
   return tokens;
 }
 
-/** As famílias de célula do PRISM e o tom de cada uma no tema. */
+/** As famílias de célula do RTLViewer e o tom de cada uma no tema. */
 function families(theme: Theme): Record<string, string> {
   const { ui, terminal, syntax } = theme;
   return {
@@ -96,7 +96,7 @@ function families(theme: Theme): Record<string, string> {
 }
 
 /**
- * As cores do PRISM (`--sch-*`). Cada família de célula pega um tom da
+ * As cores do RTLViewer (`--sch-*`). Cada família de célula pega um tom da
  * paleta dos terminais, que todo tema define com seis matizes distintos, e
  * o preenchimento é a mistura dele com o fundo do editor: opaco, para os
  * fios que entram no símbolo ficarem por baixo. Um tom fraco demais sobre o

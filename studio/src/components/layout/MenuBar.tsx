@@ -19,7 +19,7 @@ import { actionItem, APPEARANCE_ENTRIES, chromeMenu, LAYOUT_ENTRIES } from './la
 /** Uma ação, um separador ou um submenu (um nível só). */
 type Entry = string | { submenu: Key; entries: readonly string[] };
 
-const CONSOLE_ENTRIES = ['viewConsoleCmm', 'viewConsoleAsm', 'viewConsoleVerilog', 'viewConsoleWave', 'viewConsolePrism', 'viewConsoleFpga'];
+const CONSOLE_ENTRIES = ['viewConsoleCmm', 'viewConsoleAsm', 'viewConsoleVerilog', 'viewConsoleWave', 'viewConsoleRTLViewer', 'viewConsoleFpga'];
 
 const MENUS: { label: Key; entries: Entry[] }[] = [
   {

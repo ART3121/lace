@@ -12,7 +12,7 @@ use lace_core::{
     ProjectIssue,
 };
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::error::{IpcError, IpcResult, codes};
 use crate::state::{AppState, blocking};
@@ -250,6 +250,22 @@ fn activate(app: &AppHandle, state: &AppState, project: &Project) -> IpcResult<P
     }
     watcher::watch(app, state, project.root());
     Ok(snapshot(project))
+}
+
+/// A pasta padrão para criar e abrir projetos.
+#[tauri::command]
+pub fn project_default_parent(app: AppHandle) -> String {
+    if let Some(root) = Utf8Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2) {
+        let projects_dir = root.join("projetos");
+        if projects_dir.exists() {
+            return projects_dir.to_string();
+        }
+    }
+
+    app.path()
+        .home_dir()
+        .map(|home| home.join("projetos").to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "projetos".to_owned())
 }
 
 /// Abre um projeto: o `.spf` ou a pasta dele.

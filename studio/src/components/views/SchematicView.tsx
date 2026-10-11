@@ -1,5 +1,5 @@
-// O PRISM: o esquemático do netlist da última síntese, desenhado pelo
-// próprio Studio (src/schematic). O uso segue o PRISM da AURORA: entrar num
+// O RTLViewer: o esquemático do netlist da última síntese, desenhado pelo
+// próprio Studio (src/schematic). O uso segue o RTLViewer da AURORA: entrar num
 // submódulo, voltar com Esc ou com o botão lateral do mouse, ir ao código
 // com dois cliques, destacar uma ligação, exportar o SVG. O desenho é outro:
 // as cores saem do tema, a hierarquia fica numa árvore ao lado, e o destaque
@@ -276,7 +276,7 @@ export function SchematicView() {
 
   const navigate = useCallback((direction: 'back' | 'forward') => (direction === 'back' ? goBack() : goForward()), [goBack, goForward]);
 
-  // Ctrl+F na vista vai para a busca do PRISM, não para a do editor.
+  // Ctrl+F na vista vai para a busca do RTLViewer, não para a do editor.
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
       event.preventDefault();
@@ -297,7 +297,7 @@ export function SchematicView() {
           ) : (
             <>
               <p>{loadError ? t('schematic.loadFailed', { message: loadError }) : t('schematic.empty')}</p>
-              <div className="prism-empty__actions">
+              <div className="rtlViewer-empty__actions">
                 <Button variant="primary" disabled={!!running} onClick={() => void runSynthesis()}>
                   {t('action.synthesize')}
                 </Button>
@@ -321,32 +321,32 @@ export function SchematicView() {
   }
 
   return (
-    <div className="prism" onKeyDown={onKeyDown}>
-      <div className="view-toolbar prism__toolbar">
+    <div className="rtlViewer" onKeyDown={onKeyDown}>
+      <div className="view-toolbar rtlViewer__toolbar">
         <IconButton label={t('schematic.back')} disabled={!back.length && !path.length} onClick={goBack}>
           <ArrowLeft size={15} />
         </IconButton>
         <IconButton label={t('schematic.forward')} disabled={!forward.length} onClick={goForward}>
           <ArrowRight size={15} />
         </IconButton>
-        <nav className="prism-crumbs" aria-label={t('schematic.tree')}>
+        <nav className="rtlViewer-crumbs" aria-label={t('schematic.tree')}>
           {crumbs.map((crumb, i) => (
-            <span key={crumb.key.join('\u0000') || '/'} className="prism-crumbs__item">
-              {i > 0 && <ChevronRight size={12} className="prism-crumbs__sep" />}
+            <span key={crumb.key.join('\u0000') || '/'} className="rtlViewer-crumbs__item">
+              {i > 0 && <ChevronRight size={12} className="rtlViewer-crumbs__sep" />}
               <button
                 type="button"
-                className={`prism-crumbs__button${i === crumbs.length - 1 ? ' is-current' : ''}`}
+                className={`rtlViewer-crumbs__button${i === crumbs.length - 1 ? ' is-current' : ''}`}
                 onClick={() => go(crumb.key)}
                 title={crumb.detail ? `${crumb.name} (${crumb.detail})` : crumb.name}
               >
                 {crumb.name}
-                {crumb.detail && <span className="prism-crumbs__detail">{crumb.detail}</span>}
+                {crumb.detail && <span className="rtlViewer-crumbs__detail">{crumb.detail}</span>}
               </button>
             </span>
           ))}
         </nav>
         <div className="view-toolbar__spacer" />
-        <label className="prism-search">
+        <label className="rtlViewer-search">
           <Search size={13} />
           <input
             ref={searchInput}
@@ -368,7 +368,7 @@ export function SchematicView() {
             }}
           />
           {query && (
-            <span className="prism-search__count">
+            <span className="rtlViewer-search__count">
               {!results.length
                 ? t('schematic.noMatch')
                 : matchIndex >= 0
@@ -377,7 +377,7 @@ export function SchematicView() {
             </span>
           )}
         </label>
-        <div className="prism__group">
+        <div className="rtlViewer__group">
           <IconButton label={t('schematic.netNames')} active={netNames} onClick={() => setOption('netNames', !netNames)}>
             <Tags size={15} />
           </IconButton>
@@ -388,7 +388,7 @@ export function SchematicView() {
             <Hash size={15} />
           </IconButton>
         </div>
-        <div className="prism__group">
+        <div className="rtlViewer__group">
           <IconButton label={t('action.zoomOut')} disabled={!drawing} onClick={() => canvas.current?.zoom(0.8)}>
             <ZoomOut size={15} />
           </IconButton>
@@ -399,7 +399,7 @@ export function SchematicView() {
             <Maximize size={15} />
           </IconButton>
         </div>
-        <div className="prism__group">
+        <div className="rtlViewer__group">
           <IconButton label={t('schematic.tree')} active={showTree} onClick={() => setOption('showTree', !showTree)}>
             <ListTree size={15} />
           </IconButton>
@@ -415,9 +415,9 @@ export function SchematicView() {
         </div>
       </div>
 
-      <div className="prism__body">
+      <div className="rtlViewer__body">
         {showTree && <HierarchyTree source={source} path={path} onGo={go} />}
-        <div className="prism__stage">
+        <div className="rtlViewer__stage">
           {status.state === 'ready' && (
             <Canvas
               ref={canvas}
@@ -435,7 +435,7 @@ export function SchematicView() {
             />
           )}
           {status.state !== 'ready' && (
-            <div className="prism__placeholder">
+            <div className="rtlViewer__placeholder">
               {status.state === 'drawing' && (
                 <>
                   <Spinner /> {t('schematic.rendering', { module: module ? moduleLabel(source.netlist, module) : '' })}
@@ -480,23 +480,23 @@ export function SchematicView() {
         )}
       </div>
 
-      <div className="prism__footer">
-        <div className="prism-legend">
+      <div className="rtlViewer__footer">
+        <div className="rtlViewer-legend">
           {LEGEND.map((category) => (
             <span
               key={category}
-              className={`prism-legend__item${legend === category ? ' is-active' : ''}`}
+              className={`rtlViewer-legend__item${legend === category ? ' is-active' : ''}`}
               onMouseEnter={() => setLegend(category)}
               onMouseLeave={() => setLegend(null)}
             >
-              <span className="prism-swatch" data-cat={category} />
+              <span className="rtlViewer-swatch" data-cat={category} />
               {t(`schematic.family.${category}`)}
             </span>
           ))}
         </div>
         <div className="view-toolbar__spacer" />
         {drawing && (
-          <span className="prism__stats">
+          <span className="rtlViewer__stats">
             {t('schematic.stats', {
               cells: drawing.graph.nodes.filter((n) => n.kind === 'cell').length,
               nets: drawing.graph.nets.length,

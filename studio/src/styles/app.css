@@ -2357,20 +2357,20 @@ body.is-dragging * {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
-/* PRISM: a vista. O desenho em si está logo abaixo, em "PRISM: o desenho". */
+/* RTLViewer: a vista. O desenho em si está logo abaixo, em "RTLViewer: o desenho". */
 
-.prism {
+.rtlViewer {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.prism__toolbar {
+.rtlViewer__toolbar {
   gap: var(--space-2);
   overflow: hidden;
 }
 
-.prism__group {
+.rtlViewer__group {
   display: flex;
   flex: none;
   align-items: center;
@@ -2379,7 +2379,7 @@ body.is-dragging * {
   border-left: 1px solid var(--border);
 }
 
-.prism-crumbs {
+.rtlViewer-crumbs {
   display: flex;
   flex: 0 1 auto;
   align-items: center;
@@ -2388,18 +2388,18 @@ body.is-dragging * {
   white-space: nowrap;
 }
 
-.prism-crumbs__item {
+.rtlViewer-crumbs__item {
   display: flex;
   align-items: center;
   min-width: 0;
 }
 
-.prism-crumbs__sep {
+.rtlViewer-crumbs__sep {
   flex: none;
   color: var(--text-3);
 }
 
-.prism-crumbs__button {
+.rtlViewer-crumbs__button {
   display: flex;
   align-items: baseline;
   gap: 5px;
@@ -2416,23 +2416,23 @@ body.is-dragging * {
   cursor: pointer;
 }
 
-.prism-crumbs__button:hover {
+.rtlViewer-crumbs__button:hover {
   background: var(--hover);
   color: var(--text-0);
 }
 
-.prism-crumbs__button.is-current {
+.rtlViewer-crumbs__button.is-current {
   color: var(--text-0);
   font-weight: 600;
 }
 
-.prism-crumbs__detail {
+.rtlViewer-crumbs__detail {
   color: var(--text-3);
   font-size: var(--text-xs);
   font-weight: 400;
 }
 
-.prism-search {
+.rtlViewer-search {
   display: flex;
   flex: 0 1 240px;
   align-items: center;
@@ -2446,11 +2446,11 @@ body.is-dragging * {
   color: var(--text-3);
 }
 
-.prism-search:focus-within {
+.rtlViewer-search:focus-within {
   border-color: var(--brand);
 }
 
-.prism-search input {
+.rtlViewer-search input {
   flex: 1;
   min-width: 0;
   border: 0;
@@ -2461,26 +2461,26 @@ body.is-dragging * {
   font-size: var(--text-sm);
 }
 
-.prism-search__count {
+.rtlViewer-search__count {
   color: var(--text-3);
   font-size: var(--text-xs);
   white-space: nowrap;
 }
 
-.prism__body {
+.rtlViewer__body {
   display: flex;
   flex: 1;
   min-height: 0;
 }
 
-.prism__stage {
+.rtlViewer__stage {
   position: relative;
   flex: 1;
   min-width: 0;
   background: var(--sch-canvas);
 }
 
-.prism__placeholder {
+.rtlViewer__placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2491,13 +2491,13 @@ body.is-dragging * {
   text-align: center;
 }
 
-.prism-empty__actions {
+.rtlViewer-empty__actions {
   display: flex;
   justify-content: center;
   gap: var(--space-2);
 }
 
-.prism-canvas {
+.rtlViewer-canvas {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -2506,26 +2506,26 @@ body.is-dragging * {
   touch-action: none;
 }
 
-.prism-canvas.is-panning {
+.rtlViewer-canvas.is-panning {
   cursor: grabbing;
 }
 
-.prism-canvas:focus-visible {
+.rtlViewer-canvas:focus-visible {
   box-shadow: inset 0 0 0 1px var(--brand);
 }
 
-.prism-canvas__svg {
+.rtlViewer-canvas__svg {
   display: block;
   width: 100%;
   height: 100%;
   user-select: none;
 }
 
-.prism-canvas__dot {
+.rtlViewer-canvas__dot {
   fill: var(--sch-grid);
 }
 
-.prism-canvas__zoom {
+.rtlViewer-canvas__zoom {
   position: absolute;
   left: var(--space-3);
   bottom: var(--space-2);
@@ -2535,7 +2535,7 @@ body.is-dragging * {
   pointer-events: none;
 }
 
-.prism-tip {
+.rtlViewer-tip {
   position: absolute;
   z-index: 2;
   max-width: 320px;
@@ -2549,7 +2549,7 @@ body.is-dragging * {
   pointer-events: none;
 }
 
-.prism-tip__title {
+.rtlViewer-tip__title {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2559,15 +2559,15 @@ body.is-dragging * {
   font-weight: 600;
 }
 
-.prism-tip__line {
+.rtlViewer-tip__line {
   margin-top: 2px;
 }
 
-.prism-tip__muted {
+.rtlViewer-tip__muted {
   color: var(--text-3);
 }
 
-.prism-minimap {
+.rtlViewer-minimap {
   position: absolute;
   right: var(--space-3);
   bottom: var(--space-3);
@@ -2578,18 +2578,18 @@ body.is-dragging * {
   cursor: pointer;
 }
 
-.prism-minimap__node {
+.rtlViewer-minimap__node {
   fill: var(--c);
   opacity: 0.75;
 }
 
-.prism-minimap__view {
+.rtlViewer-minimap__view {
   fill: var(--brand-soft);
   stroke: var(--brand);
   stroke-width: 1;
 }
 
-.prism-swatch {
+.rtlViewer-swatch {
   display: inline-block;
   flex: none;
   width: 9px;
@@ -2599,13 +2599,13 @@ body.is-dragging * {
   background: var(--c-fill);
 }
 
-.prism-swatch--wire {
+.rtlViewer-swatch--wire {
   height: 3px;
   border-color: var(--sch-wire);
   background: var(--sch-wire);
 }
 
-.prism-side {
+.rtlViewer-side {
   display: flex;
   flex: none;
   flex-direction: column;
@@ -2613,17 +2613,17 @@ body.is-dragging * {
   background: var(--bg-1);
 }
 
-.prism-side--tree {
+.rtlViewer-side--tree {
   width: 220px;
   border-right: 1px solid var(--border);
 }
 
-.prism-side--inspector {
+.rtlViewer-side--inspector {
   width: 264px;
   border-left: 1px solid var(--border);
 }
 
-.prism-side__title {
+.rtlViewer-side__title {
   padding: 9px 12px 6px;
   color: var(--text-2);
   font-size: var(--text-xs);
@@ -2632,58 +2632,58 @@ body.is-dragging * {
   text-transform: uppercase;
 }
 
-.prism-side__body {
+.rtlViewer-side__body {
   flex: 1;
   overflow: auto;
   padding-bottom: var(--space-3);
 }
 
-.prism-tree__row {
+.rtlViewer-tree__row {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
 
-.prism-tree__toggle {
+.rtlViewer-tree__toggle {
   display: flex;
   flex: none;
   width: 14px;
   color: var(--text-3);
 }
 
-.prism-tree__name {
+.rtlViewer-tree__name {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.prism-props {
+.rtlViewer-props {
   padding: 0 12px 12px;
   font-size: var(--text-sm);
 }
 
-.prism-props__head {
+.rtlViewer-props__head {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.prism-props__name {
+.rtlViewer-props__name {
   color: var(--text-0);
   font-family: var(--font-mono);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
-.prism-props__kind {
+.rtlViewer-props__kind {
   margin: 2px 0 8px 17px;
   color: var(--text-2);
   font-size: var(--text-xs);
 }
 
-.prism-props__action {
+.rtlViewer-props__action {
   margin-bottom: var(--space-2);
 }
 
-.prism-props__section {
+.rtlViewer-props__section {
   margin: 14px 0 4px;
   color: var(--text-3);
   font-size: var(--text-xs);
@@ -2692,14 +2692,14 @@ body.is-dragging * {
   text-transform: uppercase;
 }
 
-.prism-props__row {
+.rtlViewer-props__row {
   display: flex;
   align-items: baseline;
   gap: 8px;
   min-height: 22px;
 }
 
-.prism-props__label {
+.rtlViewer-props__label {
   display: flex;
   flex: none;
   align-items: center;
@@ -2713,7 +2713,7 @@ body.is-dragging * {
   white-space: nowrap;
 }
 
-.prism-props__value {
+.rtlViewer-props__value {
   display: flex;
   flex: 1;
   align-items: baseline;
@@ -2725,32 +2725,32 @@ body.is-dragging * {
   overflow-wrap: anywhere;
 }
 
-.prism-props__bits {
+.rtlViewer-props__bits {
   color: var(--text-3);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 
-.prism-props__empty {
+.rtlViewer-props__empty {
   font-size: var(--text-xs);
 }
 
-.prism-props__more {
+.rtlViewer-props__more {
   margin-top: 4px;
 }
 
-.prism-family {
+.rtlViewer-family {
   margin: 0 -4px;
   padding: 0 4px;
   border-radius: var(--radius-sm);
 }
 
-.prism-family:hover,
-.prism-family.is-active {
+.rtlViewer-family:hover,
+.rtlViewer-family.is-active {
   background: var(--hover);
 }
 
-.prism-link {
+.rtlViewer-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2765,17 +2765,17 @@ body.is-dragging * {
   cursor: pointer;
 }
 
-.prism-link:hover {
+.rtlViewer-link:hover {
   text-decoration: underline;
 }
 
-.prism-link:disabled {
+.rtlViewer-link:disabled {
   color: var(--text-3);
   text-decoration: none;
   cursor: default;
 }
 
-.prism-link--row {
+.rtlViewer-link--row {
   display: flex;
   width: calc(100% + 8px);
   margin: 0 -4px;
@@ -2784,13 +2784,13 @@ body.is-dragging * {
   color: var(--text-1);
 }
 
-.prism-link--row:hover {
+.rtlViewer-link--row:hover {
   background: var(--hover);
   color: var(--text-0);
   text-decoration: none;
 }
 
-.prism__footer {
+.rtlViewer__footer {
   display: flex;
   flex: none;
   align-items: center;
@@ -2802,7 +2802,7 @@ body.is-dragging * {
   font-size: var(--text-xs);
 }
 
-.prism-legend {
+.rtlViewer-legend {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -2810,7 +2810,7 @@ body.is-dragging * {
   overflow: hidden;
 }
 
-.prism-legend__item {
+.rtlViewer-legend__item {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -2819,19 +2819,19 @@ body.is-dragging * {
   white-space: nowrap;
 }
 
-.prism-legend__item:hover,
-.prism-legend__item.is-active {
+.rtlViewer-legend__item:hover,
+.rtlViewer-legend__item.is-active {
   background: var(--hover);
   color: var(--text-0);
 }
 
-.prism__stats {
+.rtlViewer__stats {
   color: var(--text-3);
   font-family: var(--font-mono);
   white-space: nowrap;
 }
 
-/* PRISM: o desenho. As cores são as --sch-* do tema (schematicColors, em
+/* RTLViewer: o desenho. As cores são as --sch-* do tema (schematicColors, em
    themes/index.ts); cada elemento com data-cat pega a da família dele em --c
    (traço) e --c-fill (preenchimento). */
 

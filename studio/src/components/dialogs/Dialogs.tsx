@@ -1,6 +1,6 @@
 // Os diálogos modais. O que está aberto vem de state/dialogs.ts; um por vez.
 
-import { homeDir } from '@tauri-apps/api/path';
+import { isTauri } from '@tauri-apps/api/core';
 import { open as openNative } from '@tauri-apps/plugin-dialog';
 import { Check } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -73,22 +73,49 @@ function Footer({ submit, disabled }: { submit: string; disabled?: boolean }) {
 
 const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+function rememberProjectsDir(parent: string) {
+  try {
+    localStorage.setItem('lace-studio:projectsParent', parent);
+  } catch {
+    // Só não lembra a pasta.
+  }
+}
+
+async function ensureProjectsDir(selectedParent?: string) {
+  const saved = localStorage.getItem('lace-studio:projectsParent') ?? '';
+  const parent = selectedParent || saved || (isTauri() ? await api.project.defaultParent() : 'projetos');
+  if (isTauri()) {
+    try {
+      await api.fs.createDir(parent);
+    } catch {
+      // A pasta já existe ou não pode ser criada; a seleção continua no caminho.
+    }
+  }
+  rememberProjectsDir(parent);
+  return parent;
+}
+
 // Projeto ---------------------------------------------------------------------
 
 function NewProjectDialog() {
   const t = useT();
   const [name, setName] = useState('');
-  const [parent, setParent] = useState(() => localStorage.getItem('lace-studio:newProjectParent') ?? '');
+  const [parent, setParent] = useState('');
+  const desktop = isTauri();
 
   useEffect(() => {
-    if (!parent) void homeDir().then(setParent).catch(() => undefined);
-  }, [parent]);
+    void ensureProjectsDir().then(setParent).catch(() => undefined);
+  }, []);
 
   // A regra de nome é do Core (`validate_project_name`): o diálogo pergunta
   // a ele enquanto o usuário digita, e mostra o motivo ao passar o mouse.
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
     if (!name) {
+      setProblem(null);
+      return;
+    }
+    if (!isTauri()) {
       setProblem(null);
       return;
     }
@@ -103,19 +130,20 @@ function NewProjectDialog() {
   }, [name]);
   const invalid = !name || problem !== null;
   const submit = async () => {
-    if (invalid || !parent) return;
-    try {
-      localStorage.setItem('lace-studio:newProjectParent', parent);
-    } catch {
-      // Só não lembra a pasta.
-    }
+    if (!desktop || invalid || !parent) return;
+    const projectParent = await ensureProjectsDir(parent);
+    setParent(projectParent);
     close();
-    await useProject.getState().create(parent, name);
+    await useProject.getState().create(projectParent, name);
   };
 
   return (
-    <Dialog title={t('dialog.newProject.title')} onSubmit={() => void submit()} footer={<Footer submit={t('common.create')} disabled={invalid} />}>
-      <Field label={t('dialog.newProject.name')} error={problem ? t('dialog.newProject.invalid') : null} hint={t('dialog.newProject.rule')}>
+    <Dialog title={t('dialog.newProject.title')} onSubmit={() => void submit()} footer={<Footer submit={t('common.create')} disabled={!desktop || invalid || !parent} />}>
+      <Field
+        label={t('dialog.newProject.name')}
+        error={problem ? t('dialog.newProject.invalid') : null}
+        hint={desktop ? t('dialog.newProject.rule') : t('dialog.newProject.desktopRequired')}
+      >
         <input
           className="input"
           autoFocus
@@ -129,11 +157,22 @@ function NewProjectDialog() {
       </Field>
       <Field label={t('dialog.newProject.location')} hint={name && !problem ? t('dialog.newProject.hint', { path: joinPath(parent, name, `${name}.spf`) }) : undefined}>
         <div className="input-group">
-          <input className="input" value={parent} onChange={(e) => setParent(e.target.value)} />
+          <input
+            className="input"
+            value={parent}
+            onChange={(e) => {
+              setParent(e.target.value);
+              rememberProjectsDir(e.target.value);
+            }}
+          />
           <Button
+            disabled={!desktop}
             onClick={async () => {
               const chosen = await openNative({ directory: true, multiple: false, defaultPath: parent || undefined });
-              if (typeof chosen === 'string') setParent(chosen);
+              if (typeof chosen === 'string') {
+                setParent(chosen);
+                rememberProjectsDir(chosen);
+              }
             }}
           >
             {t('common.browse')}

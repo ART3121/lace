@@ -1,4 +1,4 @@
-// Os painéis do PRISM: a árvore de instâncias à esquerda e os detalhes do
+// Os painéis do RTLViewer: a árvore de instâncias à esquerda e os detalhes do
 // que está selecionado à direita.
 
 import { ChevronDown, ChevronRight, CornerDownRight, FileCode2 } from 'lucide-react';
@@ -44,13 +44,13 @@ export function HierarchyTree({
     rows.push(
       <div
         key={key || '/'}
-        className={`tree__row prism-tree__row${key === current ? ' is-selected' : ''}`}
+        className={`tree__row rtlViewer-tree__row${key === current ? ' is-selected' : ''}`}
         style={{ paddingLeft: 6 + depth * 12 }}
         title={detail ? `${label} (${detail})` : label}
         onClick={() => onGo(at)}
       >
         <span
-          className="prism-tree__toggle"
+          className="rtlViewer-tree__toggle"
           onClick={(event) => {
             event.stopPropagation();
             setOpen((s) => {
@@ -63,7 +63,7 @@ export function HierarchyTree({
         >
           {children.length > 0 && (expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />)}
         </span>
-        <span className="prism-tree__name">{label}</span>
+        <span className="rtlViewer-tree__name">{label}</span>
         {detail && <span className="tree__detail">{detail}</span>}
       </div>,
     );
@@ -75,9 +75,9 @@ export function HierarchyTree({
   visit(source.top, [], moduleLabel(source.netlist, source.top), t('schematic.topTag'), 0);
 
   return (
-    <div className="prism-side prism-side--tree">
-      <div className="prism-side__title">{t('schematic.tree')}</div>
-      <div className="prism-side__body">{rows}</div>
+    <div className="rtlViewer-side rtlViewer-side--tree">
+      <div className="rtlViewer-side__title">{t('schematic.tree')}</div>
+      <div className="rtlViewer-side__body">{rows}</div>
     </div>
   );
 }
@@ -86,9 +86,9 @@ export function HierarchyTree({
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="prism-props__row">
-      <span className="prism-props__label">{label}</span>
-      <span className="prism-props__value">{children}</span>
+    <div className="rtlViewer-props__row">
+      <span className="rtlViewer-props__label">{label}</span>
+      <span className="rtlViewer-props__value">{children}</span>
     </div>
   );
 }
@@ -103,14 +103,14 @@ function Parameters({ list }: { list: [string, string][] }) {
   const shown = all ? list : list.slice(0, PARAMETERS);
   return (
     <>
-      <div className="prism-props__section">{t('schematic.parameters')}</div>
+      <div className="rtlViewer-props__section">{t('schematic.parameters')}</div>
       {shown.map(([key, value]) => (
         <Row key={key} label={key}>
           <span className="mono">{value}</span>
         </Row>
       ))}
       {list.length > PARAMETERS && (
-        <button type="button" className="prism-link prism-props__more" onClick={() => setAll(!all)}>
+        <button type="button" className="rtlViewer-link rtlViewer-props__more" onClick={() => setAll(!all)}>
           {all ? t('schematic.fewer') : t('schematic.allParameters', { count: list.length })}
         </button>
       )}
@@ -120,7 +120,7 @@ function Parameters({ list }: { list: [string, string][] }) {
 
 function SourceLink({ src, onOpen }: { src: SourceRef; onOpen: (src: SourceRef) => void }) {
   return (
-    <button type="button" className="prism-link" title={`${src.file}:${src.line}`} onClick={() => onOpen(src)}>
+    <button type="button" className="rtlViewer-link" title={`${src.file}:${src.line}`} onClick={() => onOpen(src)}>
       <FileCode2 size={12} />
       {sourceText(src)}
     </button>
@@ -176,13 +176,13 @@ export function Inspector({
       node.category === 'module' && node.type ? moduleParameters(node.type, source.netlist.modules[node.type]) : cellParameters(node);
     content = (
       <>
-        <div className="prism-props__head">
-          <span className="prism-swatch" data-cat={node.category} />
-          <span className="prism-props__name">{nodeName(node)}</span>
+        <div className="rtlViewer-props__head">
+          <span className="rtlViewer-swatch" data-cat={node.category} />
+          <span className="rtlViewer-props__name">{nodeName(node)}</span>
         </div>
-        <div className="prism-props__kind">{nodeKind(node)}</div>
+        <div className="rtlViewer-props__kind">{nodeKind(node)}</div>
         {node.module && (
-          <button type="button" className="btn btn--default btn--sm prism-props__action" onClick={() => onEnter(node.id)}>
+          <button type="button" className="btn btn--default btn--sm rtlViewer-props__action" onClick={() => onEnter(node.id)}>
             <CornerDownRight size={13} />
             <span>{t('schematic.openModule')}</span>
           </button>
@@ -195,7 +195,7 @@ export function Inspector({
         <Parameters list={parameters} />
         {node.ports.length > 0 && (
           <>
-            <div className="prism-props__section">{t('schematic.ports')}</div>
+            <div className="rtlViewer-props__section">{t('schematic.ports')}</div>
             {node.ports.map((port) => {
               const portNet = port.output
                 ? graph.nets.find((n) => n.driver.port === port.id)
@@ -207,14 +207,14 @@ export function Inspector({
                       {port.tag.undriven ? t('schematic.kind.undriven') : `= ${port.tag.text}`}
                     </span>
                   ) : portNet ? (
-                    <button type="button" className="prism-link" onClick={() => pick({ kind: 'net', id: portNet.id })}>
+                    <button type="button" className="rtlViewer-link" onClick={() => pick({ kind: 'net', id: portNet.id })}>
                       {port.output ? '→ ' : '← '}
                       {netName(portNet)}
                     </button>
                   ) : (
                     <span className="muted">{t('schematic.unconnected')}</span>
                   )}
-                  <span className="prism-props__bits">{port.bits}</span>
+                  <span className="rtlViewer-props__bits">{port.bits}</span>
                 </Row>
               );
             })}
@@ -226,11 +226,11 @@ export function Inspector({
     const driver = graph.nodes.find((n) => n.id === net.driver.node);
     content = (
       <>
-        <div className="prism-props__head">
-          <span className="prism-swatch prism-swatch--wire" />
-          <span className="prism-props__name">{netName(net)}</span>
+        <div className="rtlViewer-props__head">
+          <span className="rtlViewer-swatch rtlViewer-swatch--wire" />
+          <span className="rtlViewer-props__name">{netName(net)}</span>
         </div>
-        <div className="prism-props__kind">
+        <div className="rtlViewer-props__kind">
           {t('schematic.net')} · {bitsText(net.bits)}
         </div>
         {net.src[0] && (
@@ -238,15 +238,15 @@ export function Inspector({
             <SourceLink src={net.src[0]} onOpen={onOpenSource} />
           </Row>
         )}
-        <div className="prism-props__section">{t('schematic.driver')}</div>
+        <div className="rtlViewer-props__section">{t('schematic.driver')}</div>
         {driver && (
-          <button type="button" className="prism-link prism-link--row" onClick={() => pick({ kind: 'node', id: driver.id })}>
+          <button type="button" className="rtlViewer-link rtlViewer-link--row" onClick={() => pick({ kind: 'node', id: driver.id })}>
             {endpointText(graph, net.driver)}
           </button>
         )}
-        <div className="prism-props__section">{t('schematic.loads', { count: net.loads.length })}</div>
+        <div className="rtlViewer-props__section">{t('schematic.loads', { count: net.loads.length })}</div>
         {net.loads.map((load, i) => (
-          <button key={i} type="button" className="prism-link prism-link--row" onClick={() => pick({ kind: 'node', id: load.node })}>
+          <button key={i} type="button" className="rtlViewer-link rtlViewer-link--row" onClick={() => pick({ kind: 'node', id: load.node })}>
             {endpointText(graph, load)}
           </button>
         ))}
@@ -259,44 +259,44 @@ export function Inspector({
     const instances = instancesOf(source.netlist, module);
     content = (
       <>
-        <div className="prism-props__head">
-          <span className="prism-swatch" data-cat="module" />
-          <span className="prism-props__name">{moduleLabel(source.netlist, module)}</span>
+        <div className="rtlViewer-props__head">
+          <span className="rtlViewer-swatch" data-cat="module" />
+          <span className="rtlViewer-props__name">{moduleLabel(source.netlist, module)}</span>
         </div>
-        <div className="prism-props__kind">{t('schematic.moduleSummary')}</div>
-        <div className="prism-props__section">{t('schematic.cells')}</div>
+        <div className="rtlViewer-props__kind">{t('schematic.moduleSummary')}</div>
+        <div className="rtlViewer-props__section">{t('schematic.cells')}</div>
         {LEGEND.filter((category) => counts.get(category)).map((category) => (
           <div
             key={category}
-            className={`prism-props__row prism-family${legend === category ? ' is-active' : ''}`}
+            className={`rtlViewer-props__row rtlViewer-family${legend === category ? ' is-active' : ''}`}
             onMouseEnter={() => onLegend(category)}
             onMouseLeave={() => onLegend(null)}
           >
-            <span className="prism-props__label">
-              <span className="prism-swatch" data-cat={category} />
+            <span className="rtlViewer-props__label">
+              <span className="rtlViewer-swatch" data-cat={category} />
               {t(`schematic.family.${category}`)}
             </span>
-            <span className="prism-props__value">{counts.get(category)}</span>
+            <span className="rtlViewer-props__value">{counts.get(category)}</span>
           </div>
         ))}
-        {!counts.size && <div className="muted prism-props__empty">{drawing ? t('schematic.noCells') : '…'}</div>}
-        <div className="prism-props__section">{t('schematic.ports')}</div>
+        {!counts.size && <div className="muted rtlViewer-props__empty">{drawing ? t('schematic.noCells') : '…'}</div>}
+        <div className="rtlViewer-props__section">{t('schematic.ports')}</div>
         {ports.map(([name, port]) => (
           <Row key={name} label={name}>
             <span className="muted">{t(`schematic.kind.${port.direction === 'input' ? 'in' : port.direction === 'output' ? 'out' : 'inout'}`)}</span>
-            <span className="prism-props__bits">{port.bits.length}</span>
+            <span className="rtlViewer-props__bits">{port.bits.length}</span>
           </Row>
         ))}
         {instances.length > 0 && (
           <>
-            <div className="prism-props__section">{t('schematic.instances')}</div>
+            <div className="rtlViewer-props__section">{t('schematic.instances')}</div>
             {instances.map((instance) => {
               const nodeId = graph?.nodes.find((n) => n.key === instance.key)?.id;
               return (
                 <button
                   key={instance.key}
                   type="button"
-                  className="prism-link prism-link--row"
+                  className="rtlViewer-link rtlViewer-link--row"
                   disabled={!nodeId}
                   onClick={() => nodeId && pick({ kind: 'node', id: nodeId })}
                   onDoubleClick={() => nodeId && onEnter(nodeId)}
@@ -314,9 +314,9 @@ export function Inspector({
   }
 
   return (
-    <div className="prism-side prism-side--inspector">
-      <div className="prism-side__title">{t('schematic.inspector')}</div>
-      <div className="prism-side__body prism-props">{content}</div>
+    <div className="rtlViewer-side rtlViewer-side--inspector">
+      <div className="rtlViewer-side__title">{t('schematic.inspector')}</div>
+      <div className="rtlViewer-side__body rtlViewer-props">{content}</div>
     </div>
   );
 }

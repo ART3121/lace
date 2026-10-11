@@ -1,7 +1,7 @@
 // O desenho de um módulo: os símbolos, os fios, as junções e os rótulos, em
 // SVG no próprio DOM. As cores são as variáveis `--sch-*` do tema
 // (schematicColors, themes/index.ts) e as classes estão em app.css, seção
-// PRISM: trocar de tema repinta sem refazer o layout.
+// RTLViewer: trocar de tema repinta sem refazer o layout.
 //
 // Nada aqui trata evento. Cada nó leva `data-node`, cada fio `data-net` e
 // cada rótulo de rede global `data-flag`, e o Canvas escuta no elemento de

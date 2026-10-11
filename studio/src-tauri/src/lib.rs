@@ -99,6 +99,7 @@ pub fn run() {
             commands::app::wave_open,
             commands::app::log_frontend,
             commands::app::dev_smoke_script,
+            commands::project::project_default_parent,
             commands::project::project_open,
             commands::project::project_create,
             commands::project::project_close,

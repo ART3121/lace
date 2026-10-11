@@ -1,4 +1,4 @@
-// A árvore de instâncias do netlist, a partir do topo. O PRISM navega por
+// A árvore de instâncias do netlist, a partir do topo. O RTLViewer navega por
 // caminhos de instância (`['canal_i', 'tap[3].celula']`): o módulo desenhado
 // é o da última instância, e o caminho dá a trilha no alto da vista.
 

@@ -7,6 +7,7 @@
 // resto (Ctrl+P, Ctrl+B, Ctrl+J, Ctrl+`, Ctrl+,). A tabela completa está em
 // docs/USER_GUIDE.md.
 
+import { isTauri } from '@tauri-apps/api/core';
 import { open as openDialogNative } from '@tauri-apps/plugin-dialog';
 import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
@@ -205,7 +206,7 @@ export function runFastSimulation(processor?: string | null) {
   );
 }
 
-/** A síntese (PRISM, F10). O esquemático é o Studio que desenha, a partir
+/** A síntese (RTLViewer, F10). O esquemático é o Studio que desenha, a partir
  * do netlist (src/schematic); o do Graphviz (`schematic: true`) fica para a
  * CLI. */
 export function runSynthesis(processor?: string | null) {
@@ -286,17 +287,40 @@ async function fullFlow() {
 
 // Arquivos e projeto --------------------------------------------------
 
+async function projectsFolder() {
+  const saved = localStorage.getItem('lace-studio:projectsParent');
+  if (saved) return saved;
+  if (!isTauri()) return 'projetos';
+
+  const parent = await api.project.defaultParent();
+  try {
+    await api.fs.createDir(parent);
+  } catch {
+    // A pasta já existe ou não pode ser criada.
+  }
+  try {
+    localStorage.setItem('lace-studio:projectsParent', parent);
+  } catch {
+    // Só não lembra a pasta.
+  }
+  return parent;
+}
+
 export async function openProjectDialog() {
+  if (!isTauri()) return;
+  const defaultPath = await projectsFolder();
   const chosen = await openDialogNative({
     multiple: false,
     directory: false,
+    defaultPath,
     filters: [{ name: 'Lace (.spf)', extensions: ['spf'] }],
   });
   if (typeof chosen === 'string') await useProject.getState().open(chosen);
 }
 
 async function openAnyFile() {
-  const chosen = await openDialogNative({ multiple: false, directory: false });
+  if (!isTauri()) return;
+  const chosen = await openDialogNative({ multiple: false, directory: false, defaultPath: await projectsFolder() });
   if (typeof chosen === 'string') await useEditor.getState().openFile(chosen);
 }
 
@@ -326,13 +350,13 @@ export async function newFolderIn(dir?: string) {
  * registra (`lace add`). */
 export async function addVerilogFiles(paths?: string[]) {
   const snapshot = useProject.getState().snapshot;
-  if (!snapshot) return;
+  if (!snapshot || (!paths && !isTauri())) return;
   let files = paths;
   if (!files) {
     const chosen = await openDialogNative({
       multiple: true,
       directory: false,
-      defaultPath: snapshot.root,
+      defaultPath: await projectsFolder(),
       filters: [
         { name: 'Verilog, cocotb', extensions: ['v', 'sv', 'vh', 'svh', 'py'] },
         { name: 'Verilog', extensions: ['v', 'sv', 'vh', 'svh'] },
@@ -858,8 +882,8 @@ export function handleShortcut(event: KeyboardEvent): void {
   const a = BY_KEYS.get(combo);
   if (!a) return;
   if (inEditor && (EDITOR_KEYS.has(combo) || (VIM_KEYS.has(combo) && vimActive()))) return;
-  // No PRISM, o Ctrl+F é a busca dele (SchematicView).
-  if (combo === 'Ctrl+F' && target?.closest('.prism')) return;
+  // No RTLViewer, o Ctrl+F é a busca dele (SchematicView).
+  if (combo === 'Ctrl+F' && target?.closest('.rtlViewer')) return;
   if (inShell && !/^(Shift\+)?F\d+$/.test(combo) && !combo.startsWith('Ctrl+Shift+') && combo !== 'Ctrl+`') return;
   if (inDialog && a.id !== 'commandPalette' && a.id !== 'quickOpen') return;
   event.preventDefault();

@@ -1,4 +1,4 @@
-// As células do Yosys no PRISM: a família de cada tipo (que dá a cor), o
+// As células do Yosys no RTLViewer: a família de cada tipo (que dá a cor), o
 // símbolo (que dá o desenho) e a geometria, com as portas em posição fixa
 // para o ELK ligar os fios no ponto certo de cada desenho.
 //
@@ -50,7 +50,7 @@ export interface Geometry {
 
 // Medidas ---------------------------------------------------------------------
 
-/** O texto do PRISM é monoespaçado: a largura sai da conta, sem medir. A
+/** O texto do RTLViewer é monoespaçado: a largura sai da conta, sem medir. A
  * JetBrains Mono avança 0,6 em por caractere. */
 export const FONT = { label: 10, title: 11, glyph: 14 } as const;
 export const textWidth = (text: string, size: number = FONT.label) => Math.ceil(text.length * size * 0.6);
@@ -153,7 +153,7 @@ export function typeLabel(type: string): string {
   return type.replace(/^\$_?/, '').replace(/_v2$/, '').replace(/_$/, '');
 }
 
-/** Os nomes que o PRISM dá às células de memória e às sem desenho próprio. */
+/** Os nomes que o RTLViewer dá às células de memória e às sem desenho próprio. */
 const BOX_TITLES: Record<string, string> = {
   $memrd: 'mem read',
   $memwr: 'mem write',

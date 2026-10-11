@@ -98,6 +98,7 @@ export const api = {
   },
 
   project: {
+    defaultParent: () => call<string>('project_default_parent'),
     open: (path: string) => call<ProjectSnapshot>('project_open', { path }),
     create: (parent: string, name: string) =>
       call<ProjectSnapshot>('project_create', { parent, name }),

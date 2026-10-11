@@ -1,5 +1,5 @@
 // Os consoles do painel inferior: um terminal xterm.js somente leitura por
-// canal, como os terminais da AURORA (TCMM, TASM, TVERI, TWAVE, TPRISM).
+// canal, como os terminais da AURORA (TCMM, TASM, TVERI, TWAVE, TRTLViewer).
 //
 // | Canal    | Na AURORA | O que recebe |
 // |----------|-----------|--------------|
@@ -7,7 +7,7 @@
 // | asm      | TASM      | appcomp e asmcomp (pre_assemble e assemble) |
 // | verilog  | TVERI     | iverilog -tnull e verilator --lint-only (check_syntax, lint) |
 // | wave     | TWAVE     | iverilog/vvp ou verilator (elaborate, verilate, simulate) |
-// | prism    | TPRISM    | yosys e dot (synthesize, graph, render) |
+// | rtlViewer    | TRTLViewer    | yosys e dot (synthesize, graph, render) |
 // | fpga     | (nenhum)  | o Quartus da placa (synthesize, fit, bitstream, timing, program) |
 //
 // O comando de cada operação e os avisos dela (falha ao iniciar, pedido de

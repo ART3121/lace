@@ -70,7 +70,7 @@ lace-studio/
       lace-types.ts          os tipos do Core, GERADOS dos JSON Schemas do Lace
     state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic;
                              layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela)
-    schematic/               o PRISM: netlist do Yosys, grafo, layout (ELK num worker), desenho, painéis, exportação
+    schematic/               o RTLViewer: netlist do Yosys, grafo, layout (ELK num worker), desenho, painéis, exportação
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
     console/                 os consoles xterm.js e o terminal de shell
     components/              layout/, sidebar/, editor/, panel/, views/, dialogs/
@@ -358,7 +358,7 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useProject` | `state/project.ts` | o retrato do projeto, o alvo (projeto ou processador), a versão da árvore |
 | `useEditor` | `state/editor.ts` | as abas, os grupos do editor dividido e as abas de cada um, os documentos abertos, a aba e o grupo ativos, o cursor, a sessão |
 | `useJobs` | `state/jobs.ts` | a operação rodando, o último resultado de cada fluxo, problemas, última síntese |
-| `useSchematic` | `state/schematic.ts` | o PRISM: o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista (no `localStorage`) |
+| `useSchematic` | `state/schematic.ts` | o RTLViewer: o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista (no `localStorage`) |
 | `useLayout` | `state/layout.ts` | a janela agora (`live`: regiões, vistas, barras, tamanhos), a maximização do painel, as marcas de não lido, o modo do explorador, o zoom e o zen; guardado no `localStorage` por conveniência (o zen não) |
 | (sem store) | `state/savedLayouts.ts` | os layouts com nome: os prontos e os gravados no `settings.json`; aplicar, salvar, restaurar, renomear, excluir; `useLayoutStatus` (o em uso e se a janela está diferente dele) |
 | `useSettingsPage` | `state/settingsPage.ts` | a página aberta das Preferências (no `localStorage`); "Personalizar layout..." a troca para a do layout antes de abrir a aba |
@@ -455,7 +455,7 @@ Um xterm.js somente leitura por canal, como os terminais da AURORA:
 | ASM | TASM | `pre_assemble`, `assemble` |
 | Verilog | TVERI | `check_syntax`, `lint` |
 | Wave | TWAVE | `elaborate`, `verilate`, `simulate` |
-| PRISM | TPRISM | `synthesize` (`graph` e `render` só no fluxo `schematic`, que o Studio não usa mais) |
+| RTLViewer | TRTLViewer | `synthesize` (`graph` e `render` só no fluxo `schematic`, que o Studio não usa mais) |
 
 Cada linha vai para o console do passo que a escreveu (`STEP_CHANNEL` em
 `state/jobs.ts`); o comando de cada operação e os avisos dela vão para o
@@ -486,7 +486,7 @@ Branco). `App.tsx` repassa a troca aos consoles e ao shell; o `MonacoHost`,
 ao Monaco. As medidas (fontes, espaços, raios, alturas) ficam em
 `styles/tokens.css`.
 
-### 4.7 PRISM
+### 4.7 RTLViewer
 
 O esquemático sai do netlist da síntese (`hierarchy.json`, o `write_json`
 do Yosys), sem Graphviz. A síntese do Studio pede `schematic: false`; o
@@ -537,7 +537,7 @@ Exemplo: F8 (Wave) com o alvo no projeto.
 7. No fim, a mensagem `finished` traz o `FlowOutcome` (com a saída de cada
    passo cortada em 256 KiB, guardando o fim: as linhas já chegaram pelos
    eventos). A interface escreve o resumo, preenche Problemas e os
-   marcadores, relê o retrato do projeto e, numa síntese, abre o PRISM
+   marcadores, relê o retrato do projeto e, numa síntese, abre o RTLViewer
    (seção 4.7).
 
 Parar (Shift+F5) chama `flow_cancel`, que marca o `CancelToken`. O Core

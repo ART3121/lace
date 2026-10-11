@@ -114,9 +114,9 @@ const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
   elaborate: 'wave',
   verilate: 'wave',
   simulate: 'wave',
-  synthesize: 'prism',
-  graph: 'prism',
-  render: 'prism',
+  synthesize: 'rtlViewer',
+  graph: 'rtlViewer',
+  render: 'rtlViewer',
   // Os passos do Quartus (`lace fpga build` e `program`). O `synthesize`
   // dele vai para o mesmo console pela ferramenta (`channelOf`).
   fit: 'fpga',
@@ -126,7 +126,7 @@ const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
 };
 
 /** O console de um passo: o do Quartus vai todo para o da placa, inclusive
- * o `synthesize`, que na síntese do Yosys é do PRISM. */
+ * o `synthesize`, que na síntese do Yosys é do RTLViewer. */
 function channelOf(step: Step, tool: string): ConsoleChannel {
   return tool === 'quartus' ? 'fpga' : STEP_CHANNEL[step];
 }
@@ -135,8 +135,8 @@ const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   build: 'cmm',
   check: 'verilog',
   simulate: 'wave',
-  synthesize: 'prism',
-  schematic: 'prism',
+  synthesize: 'rtlViewer',
+  schematic: 'rtlViewer',
   wave: 'wave',
   learn: 'verilog',
   fpga: 'fpga',
@@ -149,8 +149,8 @@ const START_CHANNEL: Record<FlowName, ConsoleChannel> = {
   build: 'cmm',
   check: 'verilog',
   simulate: 'wave',
-  synthesize: 'prism',
-  schematic: 'prism',
+  synthesize: 'rtlViewer',
+  schematic: 'rtlViewer',
   learn: 'verilog',
   fpga_build: 'fpga',
   fpga_program: 'fpga',
@@ -168,8 +168,8 @@ const FLOW_CHANNEL: Record<FlowName, ConsoleChannel> = {
   build: 'asm',
   check: 'verilog',
   simulate: 'wave',
-  synthesize: 'prism',
-  schematic: 'prism',
+  synthesize: 'rtlViewer',
+  schematic: 'rtlViewer',
   learn: 'verilog',
   fpga_build: 'fpga',
   fpga_program: 'fpga',
@@ -589,13 +589,13 @@ export const useJobs = create<JobsState>((set, get) => ({
           if (!outcome.succeeded) show(channel);
           if (outcome.wave_error) showError(outcome.wave_error);
           if (outcome.schematic_error) {
-            write('prism', outcome.schematic_error.message, 'warning');
+            write('rtlViewer', outcome.schematic_error.message, 'warning');
             showError(outcome.schematic_error);
           }
           // A onda numa aba: abre, ou recarrega a que já está aberta, porque
           // a simulação acabou de regravar o arquivo.
           if (outcome.wave_tab) openWaveTab(outcome.wave_tab, true);
-          // Depois da síntese o PRISM abre sozinho, como na AURORA, e
+          // Depois da síntese o RTLViewer abre sozinho, como na AURORA, e
           // desenha o netlist que ela gravou.
           if (outcome.flow === 'synthesize' && outcome.synthesis?.netlist) {
             useEditor.getState().openView('schematic');

@@ -1,6 +1,6 @@
 // O netlist que a síntese grava (`write_json` do Yosys, em
 // `.lace/Temp/synth/<topo>/hierarchy.json`) e os nomes legíveis que saem
-// dele. Nada aqui depende do DOM: o PRISM e os testes usam o mesmo código.
+// dele. Nada aqui depende do DOM: o RTLViewer e os testes usam o mesmo código.
 //
 // Os bits de um sinal vêm do LSB para o MSB. Um bit é o número de um fio do
 // módulo ou uma constante ('0', '1', 'x', 'z').

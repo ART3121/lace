@@ -63,7 +63,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Verilog (F7) | Feito | Verilog (F7): `check`, que roda só o Icarus e não compila os processadores (a AURORA compila); Shift+F7 acrescenta o lint do Verilator |
 | Wave (F8) | Feito | Wave (F8): simula e abre a onda no surfer-aurora |
 | Fast Sim (F9) | Feito | Rápida (F9): `lace sim --fast`, sem gravar onda; o testbench Verilog no Verilator, como na AURORA, mas sem exigir o Verilator escolhido; o cocotb no simulador escolhido |
-| PRISM (F10) | Feito | síntese do Yosys, e o esquemático desenhado pelo próprio Studio a partir do netlist, com o layout do ELK (o motor do netlistsvg) e as cores do tema; não o netlistsvg (API.md seção 10) |
+| RTLViewer (F10) | Feito | síntese do Yosys, e o esquemático desenhado pelo próprio Studio a partir do netlist, com o layout do ELK (o motor do netlistsvg) e as cores do tema; não o netlistsvg (API.md seção 10) |
 | Full Build (F5) | Feito | F5: verifica e, se passou, simula |
 | Cancelar (Shift+F5) | Feito | Parar (Shift+F5); o Core encerra a ferramenta com tudo o que ela iniciou |
 | Icarus ou Verilator | Feito | menu Fluxo e preferência |
@@ -82,7 +82,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | TASM | Feito | console ASM |
 | TVERI | Feito | console Verilog |
 | TWAVE | Feito | console Wave; mostra também as saídas de cada porta do processador |
-| TPRISM | Feito | console PRISM |
+| TRTLViewer | Feito | console RTLViewer |
 | TCMD (shell real) | Feito | aba Terminal: o shell do usuário (PowerShell no Windows), com o `lace` no `PATH` |
 | THTEST (teste de hardware) | Depende do Lace | não implementado no Lace (API.md, seção 10) |
 | Links `arquivo:linha` clicáveis | Feito | |
@@ -109,7 +109,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Escolher outro layout `.gtkw`, `.surf.ron`, `.sucl` | Fase 2 | o Core já recebe um layout (`ViewerOptions::layout`); falta a interface |
 | Wave Configuration: escolher sinais por testbench | Feito | Escolher os sinais da onda: a árvore elaborada pelo Icarus, filtro por nome ou regex, `wave/<testbench>.json`; a simulação grava só a escolha e o layout mostra só ela |
 | Layouts gerados (grupos do processador, tradutores ASM e C±, números complexos) | Feito | `wave_layout` do Core, na aba e na janela |
-| Esquemático: entrar no submódulo, voltar (Esc, botões laterais do mouse), trilha, zoom, arrastar, ajustar | Feito | aba PRISM; a hierarquia também numa árvore |
+| Esquemático: entrar no submódulo, voltar (Esc, botões laterais do mouse), trilha, zoom, arrastar, ajustar | Feito | aba RTLViewer; a hierarquia também numa árvore |
 | Dois cliques num símbolo abrem o fonte | Feito | na linha do atributo `src` do Yosys |
 | Destacar as ligações (clique no fio, Shift+clique no módulo) | Feito | pelo netlist, não pela geometria dos fios: a rede inteira, com as fatias, e o que liga a uma célula |
 | Exportar SVG | Feito | com as cores do tema escritas no arquivo, sem destaque |
@@ -175,7 +175,7 @@ Recursos que esta comparação não cobre, porque não estão no manual da AUROR
 ## Fases
 
 **Fase 1 (0.1, esta).** A IDE inteira em volta do Lace: projeto, explorador,
-editor com C±, asm e Verilog, os fluxos (C±, Verilog, Wave, Rápida, PRISM)
+editor com C±, asm e Verilog, os fluxos (C±, Verilog, Wave, Rápida, RTLViewer)
 com saída ao vivo e cancelamento, consoles por etapa, Problemas, terminal de
 shell, esquemático, estatísticas, relatórios (comparar e limpar), hierarquia
 elaborada pelo Icarus, ferramentas do bundle, preferências, português e

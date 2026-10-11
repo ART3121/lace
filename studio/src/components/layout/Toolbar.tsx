@@ -1,6 +1,6 @@
 // A barra de ferramentas: projeto, o alvo (projeto ou um processador), os
 // botões do fluxo com os nomes que a AURORA usava (C±, Verilog, Wave,
-// PRISM), os Sinais da onda e o botão de parar. O simulador se escolhe no
+// RTLViewer), os Sinais da onda e o botão de parar. O simulador se escolhe no
 // menu Fluxo e nas Preferências.
 //
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou

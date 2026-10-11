@@ -3,7 +3,7 @@
 Como usar o Lace Studio: a janela, os dois fluxos de trabalho (Verilog e
 processador SAPHO), o que aparece em cada console, os atalhos e as
 preferências. Quem vem da AURORA encontra os mesmos botões com os mesmos
-nomes e teclas (C± F6, Verilog F7, Wave F8, PRISM F10).
+nomes e teclas (C± F6, Verilog F7, Wave F8, RTLViewer F10).
 
 Sumário:
 
@@ -37,14 +37,14 @@ o que o Studio grava continua legível pela AURORA. Os temporários ficam em
 
 ```
  título       Arquivo Editar Exibir Projeto Fluxo Ferramentas Ajuda   projeto - Lace Studio   _ □ X
- ferramentas  Novo Abrir Salvar | Alvo [Projeto] | C± Verilog Wave Rápida Onda PRISM | Parar
+ ferramentas  Novo Abrir Salvar | Alvo [Projeto] | C± Verilog Wave Rápida Onda RTLViewer | Parar
  ┌──┬────────────────┬──────────────────────────────────┬──────────────┐
  │  │ barra lateral  │ abas: arquivos e vistas          │ barra lateral│
  │at│ esquerda       │                                  │ direita      │
  │iv│ (explorador,   │                                  │ (vazia no    │
  │id│  fluxo, busca, ├──────────────────────────────────┤  Padrão)     │
  │ad│  relatórios)   │ painel: C±, ASM, Verilog, Wave,  │              │
- │es│                │ PRISM, Problemas, Terminal       │              │
+ │es│                │ RTLViewer, Problemas, Terminal       │              │
  └──┴────────────────┴──────────────────────────────────┴──────────────┘
  status       projeto, topo, testbench | operação ou último resultado | problemas, cursor, simulador, bundle, layout
 ```
@@ -211,7 +211,7 @@ centralizar o editor, mostrar as abas, esconder os números de linha.
 
 Há três regiões: a barra lateral esquerda, a direita e o painel, que fica
 embaixo ou à direita do editor. As onze vistas (Explorador, Fluxo, Busca,
-Relatórios, os consoles C±, ASM, Verilog, Wave e PRISM, Problemas e
+Relatórios, os consoles C±, ASM, Verilog, Wave e RTLViewer, Problemas e
 Terminal) vão para qualquer uma delas. O editor fica sempre no meio.
 
 | Para | Faça |
@@ -280,7 +280,7 @@ a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
 6. **Wave** (F8): simula e abre a onda no surfer-aurora, numa aba (seção
    4.1). O que o testbench escreve (`$display`) aparece no console Wave
    enquanto roda.
-7. **PRISM** (F10): sintetiza o topo com o Yosys e abre o esquemático
+7. **RTLViewer** (F10): sintetiza o topo com o Yosys e abre o esquemático
    (seção 7).
 
 Arquivos que já existem entram por **Projeto > Adicionar arquivos Verilog
@@ -435,7 +435,7 @@ tudo de qualquer jeito, o layout mostra só os marcados.
 | Rápida | F9 | a simulação rápida, o Fast Sim da AURORA: compila e simula sem gravar onda, para ver a saída, as portas e os testes. O testbench Verilog e o de um processador rodam no Verilator, qualquer que seja o simulador escolhido; um testbench cocotb, no simulador escolhido. O navegador de fluxo mostra qual | `lace sim [-p NOME] --fast` |
 | Onda | Ctrl+F8 | abre a onda da última simulação | `lace wave [-p NOME]` |
 | Sinais | | escolhe os sinais que a onda do projeto grava e mostra (seção 4.1); o número no botão é quantos itens a escolha tem | `lace wave signals`, `lace wave select` |
-| PRISM | F10 | compila, sintetiza e abre o esquemático (seção 7) | `lace synth [-p NOME]`; o `--svg` desenha com o Graphviz |
+| RTLViewer | F10 | compila, sintetiza e abre o esquemático (seção 7) | `lace synth [-p NOME]`; o `--svg` desenha com o Graphviz |
 | (menu Fluxo) | F5 | compila os processadores, verifica e, se passar, simula | |
 | Parar | Shift+F5 | cancela a operação; a ferramenta é encerrada com tudo o que iniciou. A atualização do Lace não para no meio | Ctrl+C na CLI |
 
@@ -464,11 +464,11 @@ Cada etapa escreve no seu console, com os nomes da AURORA:
 | ASM | TASM | o pré-montador e o montador (appcomp, asmcomp) e o resumo do build |
 | Verilog | TVERI | a verificação do Icarus e o lint do Verilator |
 | Wave | TWAVE | a elaboração e a simulação: o que o testbench escreve, as saídas do processador, onde ficou a onda |
-| PRISM | TPRISM | a síntese do Yosys |
+| RTLViewer | TRTLViewer | a síntese do Yosys |
 
 O comando que o Studio rodou (`> lace ...`) aparece no console onde a
 operação começa: o C± no build, o Verilog na verificação, o Wave na
-simulação, o PRISM na síntese.
+simulação, o RTLViewer na síntese.
 
 O painel troca sozinho para o console da etapa que está rodando (a não ser
 que você esteja no Terminal). Uma aba com saída nova ganha um ponto. Um
@@ -497,12 +497,12 @@ reinicia o terminal aberto com o shell novo.
 
 ## 7. Esquemático, síntese e relatórios
 
-- **PRISM** (o esquemático): o Studio desenha o netlist da síntese
+- **RTLViewer** (o esquemático): o Studio desenha o netlist da síntese
   (`hierarchy.json`) com as cores do tema, sem Graphviz. Cada família de
   célula tem um tom da paleta do tema (aritmética, lógica, comparação,
   multiplexador, registrador, memória, submódulo), listado no rodapé;
   passar o mouse numa família da legenda acende as células dela. O uso
-  segue o PRISM da AURORA:
+  segue o RTLViewer da AURORA:
 
   | Gesto | O que faz |
   |---|---|
@@ -576,7 +576,7 @@ gravação contra uma solução de referência
 - Os botões: **Dica** mostra a próxima dica; **Onda** abre a onda da última
   correção com as entradas, cada saída sua ao lado da de referência e o
   primeiro erro marcado; **Esquemático** sintetiza o seu circuito e o abre
-  no PRISM; **Restaurar** volta o arquivo ao começo (pergunta antes);
+  no RTLViewer; **Restaurar** volta o arquivo ao começo (pergunta antes);
   depois de resolvido, **Solução** abre a solução de referência e
   **Próximo** vai ao próximo exercício por resolver.
 
@@ -734,7 +734,7 @@ No macOS, Ctrl é Cmd. A lista também está em Ajuda > Atalhos de teclado.
 | Preferências | Ctrl+, |
 | C±, Verilog, lint | F6, F7, Shift+F7 |
 | Wave, Rápida, abrir a onda | F8, F9, Ctrl+F8 |
-| PRISM | F10 |
+| RTLViewer | F10 |
 | Fluxo completo, Parar | F5, Shift+F5 |
 | Localizar, substituir, ir para a linha | Ctrl+F, Ctrl+H, Ctrl+G |
 | Localizar nos arquivos | Ctrl+Shift+F |
