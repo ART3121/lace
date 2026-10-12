@@ -29,6 +29,10 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   ela não der certo. A tela mostra cada pedaço enquanto baixa e, no fim, o
   tamanho baixado e o que mudou; quando o próprio Studio muda, avisa para
   fechar e abrir de novo.
+- Novo projeto e Abrir projeto começam na última pasta usada ou, na
+  primeira vez, em `Projetos` na pasta do usuário (`~/Projetos` no Linux e
+  no macOS, `C:\Users\<nome>\Projetos` no Windows), que o Studio cria se
+  falta. Antes o Novo projeto começava na pasta do usuário.
 
 ## [0.6.0] - 2026-10-09
 

@@ -252,20 +252,20 @@ fn activate(app: &AppHandle, state: &AppState, project: &Project) -> IpcResult<P
     Ok(snapshot(project))
 }
 
-/// A pasta padrão para criar e abrir projetos.
+/// A pasta padrão para criar e abrir projetos: `Projetos` na pasta do
+/// usuário (`~/Projetos` no Linux e no macOS, `C:\Users\<nome>\Projetos` no
+/// Windows). É criada aqui, porque o `Project::create` pede a pasta de cima
+/// existente e o `fs_create_dir` só cria dentro do projeto aberto.
 #[tauri::command]
 pub fn project_default_parent(app: AppHandle) -> String {
-    if let Some(root) = Utf8Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2) {
-        let projects_dir = root.join("projetos");
-        if projects_dir.exists() {
-            return projects_dir.to_string();
-        }
+    let Ok(home) = app.path().home_dir() else {
+        return "Projetos".to_owned();
+    };
+    let dir = home.join("Projetos");
+    if let Err(error) = std::fs::create_dir_all(&dir) {
+        tracing::warn!("Could not create {}: {error}", dir.display());
     }
-
-    app.path()
-        .home_dir()
-        .map(|home| home.join("projetos").to_string_lossy().into_owned())
-        .unwrap_or_else(|_| "projetos".to_owned())
+    dir.to_string_lossy().into_owned()
 }
 
 /// Abre um projeto: o `.spf` ou a pasta dele.

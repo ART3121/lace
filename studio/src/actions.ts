@@ -287,23 +287,13 @@ async function fullFlow() {
 
 // Arquivos e projeto --------------------------------------------------
 
-async function projectsFolder() {
+/** A pasta de projetos: a última escolhida no "Novo projeto", ou a padrão
+ * (`Projetos` na pasta do usuário, que o backend cria). A padrão não fica
+ * guardada, para que mudá-la valha também para quem já usou o Studio. */
+export async function projectsFolder() {
   const saved = localStorage.getItem('lace-studio:projectsParent');
   if (saved) return saved;
-  if (!isTauri()) return 'projetos';
-
-  const parent = await api.project.defaultParent();
-  try {
-    await api.fs.createDir(parent);
-  } catch {
-    // A pasta já existe ou não pode ser criada.
-  }
-  try {
-    localStorage.setItem('lace-studio:projectsParent', parent);
-  } catch {
-    // Só não lembra a pasta.
-  }
-  return parent;
+  return isTauri() ? api.project.defaultParent() : 'Projetos';
 }
 
 export async function openProjectDialog() {

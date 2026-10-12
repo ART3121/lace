@@ -5,7 +5,7 @@ import { open as openNative } from '@tauri-apps/plugin-dialog';
 import { Check } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-import { ACTIONS, isEnabled, runAction } from '../../actions';
+import { ACTIONS, isEnabled, projectsFolder, runAction } from '../../actions';
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
 import type { Language, NewProcessorDefaults } from '../../ipc/types';
@@ -81,20 +81,6 @@ function rememberProjectsDir(parent: string) {
   }
 }
 
-async function ensureProjectsDir(selectedParent?: string) {
-  const saved = localStorage.getItem('lace-studio:projectsParent') ?? '';
-  const parent = selectedParent || saved || (isTauri() ? await api.project.defaultParent() : 'projetos');
-  if (isTauri()) {
-    try {
-      await api.fs.createDir(parent);
-    } catch {
-      // A pasta já existe ou não pode ser criada; a seleção continua no caminho.
-    }
-  }
-  rememberProjectsDir(parent);
-  return parent;
-}
-
 // Projeto ---------------------------------------------------------------------
 
 function NewProjectDialog() {
@@ -104,7 +90,7 @@ function NewProjectDialog() {
   const desktop = isTauri();
 
   useEffect(() => {
-    void ensureProjectsDir().then(setParent).catch(() => undefined);
+    void projectsFolder().then(setParent).catch(() => undefined);
   }, []);
 
   // A regra de nome é do Core (`validate_project_name`): o diálogo pergunta
@@ -131,10 +117,9 @@ function NewProjectDialog() {
   const invalid = !name || problem !== null;
   const submit = async () => {
     if (!desktop || invalid || !parent) return;
-    const projectParent = await ensureProjectsDir(parent);
-    setParent(projectParent);
+    rememberProjectsDir(parent);
     close();
-    await useProject.getState().create(projectParent, name);
+    await useProject.getState().create(parent, name);
   };
 
   return (

@@ -263,10 +263,13 @@ a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
 ## 3. Projeto Verilog
 
 1. **Arquivo > Novo projeto** (Ctrl+Alt+N): nome e pasta. O Studio cria
-   `<pasta>/<nome>/<nome>.spf` e abre o projeto. O nome usa só letras sem
-   acento, números, `_` e `-`, começando por letra: ele vira pasta, `.spf`
-   e parte do caminho que as ferramentas recebem. A regra é a do Lace
-   (`lace new` recusa igual), e o diálogo avisa enquanto você digita.
+   `<pasta>/<nome>/<nome>.spf` e abre o projeto. A pasta começa na última
+   que você usou ou, na primeira vez, em `Projetos` dentro da sua pasta de
+   usuário (`~/Projetos` no Linux e no macOS, `C:\Users\<nome>\Projetos` no
+   Windows), criada se falta; Abrir projeto começa nela também. O nome usa
+   só letras sem acento, números, `_` e `-`, começando por letra: ele vira
+   pasta, `.spf` e parte do caminho que as ferramentas recebem. A regra é a
+   do Lace (`lace new` recusa igual), e o diálogo avisa enquanto você digita.
 2. **Projeto > Novo módulo Verilog**: dê o nome do arquivo (`contador.v`).
    O Lace cria o módulo a partir do modelo; o primeiro módulo vira o topo.
 3. Escreva o módulo e salve (Ctrl+S).
