@@ -68,6 +68,19 @@
 - `LACE_RELEASE_URL` (o espelho de releases do laboratório) pode trazer um
   arquivo `latest` com a versão mais nova, que o `lace update` lê no lugar
   do GitHub.
+- `lace synth --open` mostra o netlist da síntese no RTL viewer, o
+  esquemático interativo do Studio, no navegador: o Lace grava
+  `rtl-viewer.html` ao lado do netlist (`.lace/Temp/synth/<alvo>/`), um
+  arquivo só que abre sem servidor e sem rede, e o abre pelo abridor do
+  sistema ([docs/CLI.md](docs/CLI.md), "Compilar, verificar, simular,
+  sintetizar"). O `--json` ganha `rtl_viewer`. Com `LACE_OPENER` definida, só
+  grava o arquivo (a extensão do VS Code a define no terminal integrado e
+  abre o netlist numa aba). `LACE_RTL_VIEWER` aponta outro modelo.
+- O componente `rtl-viewer` no bundle, na instalação Recommended: o modelo
+  do HTML do `lace synth --open`, que exige o Yosys. O RTL viewer saiu do
+  Studio para um pacote do Lace, `packages/rtl-viewer/`, que o Studio, a
+  extensão do VS Code e o `lace synth --open` usam; no Studio, nada muda no
+  uso.
 
 ## 0.6.0 (2026-10-09)
 

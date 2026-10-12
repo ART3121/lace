@@ -330,6 +330,10 @@ pub struct SynthReport {
     pub synthesis: Option<SynthesisResult>,
     /// Com `--svg`, o esquemático.
     pub schematic: Option<SchematicResult>,
+    /// Com `--open`, o HTML do RTL viewer, gravado ao lado do netlist; `null`
+    /// sem `--open` ou numa síntese que não terminou.
+    #[schemars(with = "Option<String>")]
+    pub rtl_viewer: Option<Utf8PathBuf>,
     /// O relatório gravado no histórico do projeto (`run-000042`), para
     /// `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
     pub report: Option<String>,

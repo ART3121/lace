@@ -728,6 +728,7 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
             builds,
             synthesis: None,
             schematic: None,
+            rtl_viewer: None,
             report,
         })?;
         return Ok(false);
@@ -768,14 +769,40 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
     if let Some(error) = refused {
         return Err(error.into());
     }
+    // O RTL viewer: o HTML do netlist, aberto no navegador. Um erro aqui vem
+    // depois do relatório gravado, como o do Surfer no `sim --open`.
+    let mut rtl_viewer = None;
+    if args.open
+        && result.succeeded()
+        && let Some(netlist) = &result.netlist
+    {
+        let template = lace_core::rtl_viewer::template(&toolchain)?;
+        let html = lace_core::rtl_viewer::write(
+            &template,
+            netlist,
+            &format!("{} (RTL viewer)", result.top),
+        )?;
+        let opener = std::env::var(OPENER_ENV).ok().filter(|v| !v.is_empty());
+        if opener.is_none() {
+            lace_core::open_with_system(&html)?;
+        }
+        out.rtl_viewer(&html, opener.as_deref());
+        rtl_viewer = Some(html);
+    }
     out.json(&SynthReport {
         builds,
         synthesis: Some(result),
         schematic,
+        rtl_viewer,
         report,
     })?;
     Ok(ok)
 }
+
+/// Quem abre o RTL viewer no lugar do navegador. A extensão do VS Code a
+/// define (`vscode`) no terminal integrado: lá, o `lace synth --open` só
+/// grava o HTML, e ela abre o netlist numa aba.
+const OPENER_ENV: &str = "LACE_OPENER";
 
 /// Grava a operação no histórico do projeto, para `lace report`. Uma falha
 /// ao gravar não muda o resultado do comando: vira um aviso.

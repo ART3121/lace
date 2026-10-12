@@ -522,6 +522,9 @@ struct SynthArgs {
     /// Module to draw (default: top; -v lists them)
     #[arg(long, requires = "svg")]
     module: Option<String>,
+    /// Open the interactive schematic of the netlist (RTL viewer) in the browser
+    #[arg(long)]
+    open: bool,
     /// Aceito e ignorado: o esquemático não tem mais teto de ligações. Fica
     /// para não quebrar quem já o passa.
     #[arg(long, hide = true)]

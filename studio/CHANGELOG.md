@@ -23,6 +23,10 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Mudado
 
+- O RTLViewer vem do pacote `@lace/rtl-viewer` (`packages/rtl-viewer/` do
+  repositório do Lace), o mesmo que a extensão do VS Code e o
+  `lace synth --open` mostram. Nada muda no uso: a aba, os atalhos, as
+  cores e as preferências guardadas são os de antes.
 - **Atualizar para X**, na tela de ferramentas, usa a atualização por
   componentes do `lace update`: só os pedaços com arquivos que mudaram são
   baixados, também no Windows, onde o assistente de instalação só abre se

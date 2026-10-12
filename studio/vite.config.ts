@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-import { defineConfig } from 'vite';
+import { defineConfig, searchForWorkspaceRoot } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // O Tauri abre a interface em http://localhost:1420 no desenvolvimento
@@ -8,11 +8,22 @@ import react from '@vitejs/plugin-react';
 // o Vite falha em vez de escolher outra que o Tauri não conhece.
 const host = process.env.TAURI_DEV_HOST;
 
+// O RTL viewer é um pacote do Lace fora do Studio (packages/rtl-viewer), que
+// a extensão do VS Code e o `lace synth --open` também usam. O Studio
+// compila o fonte dele direto.
+const rtlViewer = fileURLToPath(new URL('../packages/rtl-viewer/src', import.meta.url));
+
 export default defineConfig({
   plugins: [react()],
   clearScreen: false,
   resolve: {
+    // O pacote pode ter o próprio node_modules (para o build dele): as
+    // bibliotecas que ele divide com o Studio vêm sempre do Studio, senão
+    // haveria dois React na mesma página.
+    dedupe: ['react', 'react-dom', 'zustand', 'lucide-react', 'elkjs'],
     alias: [
+      { find: /^@lace\/rtl-viewer$/, replacement: `${rtlViewer}/index.ts` },
+      { find: /^@lace\/rtl-viewer\/(.*)$/, replacement: `${rtlViewer}/$1` },
       // O monaco-vim declara primeiro, para navegador, um UMD que chama
       // `require('monaco-editor/...')`, e o Vite escolhe esse; no navegador
       // não há `require` e a interface não abre. A versão ESM serve.
@@ -32,6 +43,7 @@ export default defineConfig({
     host: host || false,
     hmr: host ? { protocol: 'ws', host, port: 1421 } : undefined,
     watch: { ignored: ['**/src-tauri/**'] },
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), rtlViewer] },
   },
   envPrefix: ['VITE_', 'TAURI_ENV_'],
   build: {

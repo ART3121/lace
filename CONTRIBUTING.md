@@ -137,7 +137,8 @@ Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 |---|---|
 | `lib.rs` | a lista de módulos, os `pub use` que formam a API pública, a documentação do crate (fluxo típico, garantias) e os atributos que valem para o crate todo |
 | `toolchain.rs` | o bundle: `Toolchain` (`open`, `locate`, `tool`, `verify`, `sapho_library`), `Tool` e o caminho fixo de cada executável (`Tool::location`), `Platform`, o manifesto (`BundleManifest`, `BundleComponent`), `SystemCompiler` e o ambiente de cada ferramenta (`Toolchain::invocation`) |
-| `process.rs` | o único módulo que cria processos: `Invocation`, `run` (lê a saída linha a linha, confere cancelamento e prazo, encerra o grupo de processos no Unix e o Job Object no Windows), `Watch`, `spawn`, `RunningProcess`, `Termination`; o ambiente vazio (`INHERITED_ENV`, `GUI_ENV`); `ProcessJob` e `hide_console`, que o Studio também usa |
+| `process.rs` | o único módulo que cria processos: `Invocation`, `run` (lê a saída linha a linha, confere cancelamento e prazo, encerra o grupo de processos no Unix e o Job Object no Windows), `Watch`, `spawn`, `RunningProcess`, `Termination`; o ambiente vazio (`INHERITED_ENV`, `GUI_ENV`); `ProcessJob` e `hide_console`, que o Studio também usa; `open_with_system`, o abridor do sistema para o HTML do RTL viewer |
+| `rtl_viewer.rs` | módulo público `lace_core::rtl_viewer`: o modelo do HTML do RTL viewer (`template`, o componente `rtl-viewer` ou `LACE_RTL_VIEWER`) e o HTML preenchido com o netlist (`write`), que o `lace synth --open` abre |
 | `control.rs` | `Control`, `CancelToken`, `Event` e `Stream`: o que a interface passa a cada operação para cancelá-la e acompanhar a saída ([Cancelamento e saída ao vivo](#cancelamento-e-saída-ao-vivo)) |
 | `pipeline.rs` | o que todo resultado tem: `Step`, `Status`, `StepReport`, `Artifact`, `ArtifactKind`; por dentro, `PlannedStep`, `Runner` (roda os passos em sequência, emite os eventos do `Control` e para no primeiro que falha ou no cancelamento) e `ArtifactTracker` (o `fresh` dos artefatos) |
 | `diagnostics.rs` | `Diagnostic` e `Severity`; `parse` traduz a saída de cada ferramenta em diagnósticos; `is_message` diz, linha a linha, se uma linha é mensagem da ferramenta (o campo `diagnostic` do `Event::Output`) |
@@ -203,6 +204,7 @@ pública do Core: o crate não roda ferramenta por conta própria, só chama o
 | `crates/lace-learn/tests/` | `grading.rs` (a pasta de exercícios e a correção, com a trilha de `fixtures/teste`), `track.rs` (as trilhas de `lace-learn/` passam no `dev check`) |
 | `lace-learn/` | as trilhas de exercícios, que viram o componente `lace-learn` ([docs/LEARN.md](docs/LEARN.md)) |
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
+| `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `lace synth --open`, que vira o componente `rtl-viewer` |
 | `crates/lace-installer/` | o instalador em terminal e o `lace-pack`; `tests/install.rs` empacota um bundle pequeno e instala de verdade |
 | `examples/` | os projetos `soma`, `com_erro` e `contador`, usados pelos testes |
 | `bundle/versions.json` | a versão e o hash de cada pacote do bundle |
@@ -439,7 +441,9 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
 - **Só ferramentas do bundle.** Programa externo roda por
   `Toolchain::invocation` e `process::run`. Nada de
   `std::process::Command` fora de `process.rs`, nada do `PATH`, nenhuma
-  variável herdada sem estar declarada.
+  variável herdada sem estar declarada. A única exceção é
+  `process::open_with_system`, que abre o HTML do RTL viewer no navegador
+  pelo abridor do sistema: o navegador do usuário não vem no bundle.
 - **Regra de negócio no Core.** A CLI abre, chama e mostra. As mensagens do
   Core não citam comandos; os comandos aparecem só em `hint`, na CLI.
 - **O Core nunca sobrescreve código do usuário.** Criar processador ou

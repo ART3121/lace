@@ -4136,6 +4136,11 @@ export interface SynthReport {
    */
   schematic: SchematicResult | null;
   /**
+   * Com `--open`, o HTML do RTL viewer, gravado ao lado do netlist; `null`
+   * sem `--open` ou numa síntese que não terminou.
+   */
+  rtl_viewer: string | null;
+  /**
    * O relatório gravado no histórico do projeto (`run-000042`), para
    * `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
    */

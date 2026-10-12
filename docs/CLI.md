@@ -238,8 +238,8 @@ no `lace status`.
 | `lace check -p NOME [--lint]` | verifica só o Verilog do processador e o testbench gerado pelo YANC, sem recompilá-lo | `check` (`CheckOptions::processor`) |
 | `lace sim [TESTBENCH] [--verilator] [--fast] [--timeout S] [--open]` | compila os processadores que têm fonte e simula o testbench do projeto. Com `TESTBENCH`, ele passa a ser o testbench simulado (e é registrado, se não estava). Dentro da pasta de um processador, sem `TESTBENCH`, é o mesmo que `-p` com ele | `set_testbench`, `buildable_processors`, `build_processors` (`Stop`), `simulate_project` |
 | `lace sim -p NOME [--verilator] [--fast] [--timeout S] [--open]` | compila o processador e o simula com o testbench gerado pelo YANC | `build_processors` (`Stop`), `simulate` |
-| `lace synth [--svg] [--module M]` | compila os processadores e sintetiza o módulo de topo do projeto; com `--svg`, desenha o esquemático (Yosys `show` + `dot`). Dentro da pasta de um processador, é o mesmo que `-p` com ele | `build_processors` (`Stop`), `synthesize`, `render_schematic` |
-| `lace synth -p NOME [--svg] [--module M]` | compila o processador e o sintetiza sozinho | `build_processors` (`Stop`), `synthesize`, `render_schematic` |
+| `lace synth [--svg] [--module M] [--open]` | compila os processadores e sintetiza o módulo de topo do projeto; com `--svg`, desenha o esquemático (Yosys `show` + `dot`); com `--open`, abre o RTL viewer no navegador (veja abaixo). Dentro da pasta de um processador, é o mesmo que `-p` com ele | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
+| `lace synth -p NOME [--svg] [--module M] [--open]` | compila o processador e o sintetiza sozinho | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
 
 `TESTBENCH` e `-p` não andam juntos, nem `ARQUIVO` e `-p` no `check`. `--verilator` simula com o Verilator no
 lugar do Icarus; ele usa o compilador do sistema no Linux e no macOS e o
@@ -276,6 +276,20 @@ Fast simulation of contador_tb (Verilator): finished in 383 ms
     done      verilate      verilator    346 ms
     done      simulate      verilator     34 ms
 ```
+
+`--open` mostra o netlist da síntese no RTL viewer, o esquemático
+interativo que o Studio tem numa aba: entrar nos submódulos, buscar, destacar
+uma rede, exportar o SVG. O Lace grava `rtl-viewer.html` ao lado do netlist
+(`.lace/Temp/synth/<alvo>/`), um arquivo só, com o viewer e o netlist dentro,
+que abre em qualquer navegador sem servidor e sem rede, e o abre no navegador
+padrão pelo abridor do sistema (`xdg-open`, `open`, o Explorer). Fora do
+Studio e do VS Code, clicar numa célula mostra o arquivo e a linha, mas não
+abre o editor. Precisa do componente `rtl-viewer` (`lace install
+rtl-viewer`); `LACE_RTL_VIEWER` aponta outro modelo no lugar do do bundle (o
+`packages/rtl-viewer/dist/rtl-viewer.html` de uma build de desenvolvimento).
+Com `LACE_OPENER` definida, o `--open` só grava o HTML e diz onde: a extensão
+do VS Code a define (`vscode`) no terminal integrado e abre o netlist numa
+aba dela. Uma síntese que falha não abre nada.
 
 O esquemático desenha qualquer módulo, sem teto de ligações; num módulo
 grande o Graphviz pode levar minutos, e o passo do `dot` tem prazo de 60 s.
@@ -633,7 +647,7 @@ A compilação e a gravação para a placa não entram no histórico
 | Comando | Faz |
 |---|---|
 | `lace tools [--verify]` | o bundle (identificador, plataforma, componentes instalados com versão e origem, e os não instalados), cada ferramenta (`OK`, `--` se o componente dela não foi instalado ou, no `quartus`, se não há Quartus, `!!` se falta o executável), o compilador do Verilator, com `(bundle)` ou `(system)`, e o Quartus Prime, se encontrado (no macOS, onde não existe, a linha some). Com `--verify`, confere o SHA-256 de cada executável e sai com 1 se algum não conferir |
-| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, lace-learn) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador, ou uma pasta com os arquivos que a release publica), com a barra de cada download. Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
+| `lace install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, lace-learn, rtl-viewer) na instalação de onde este `lace` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `LACE_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador, ou uma pasta com os arquivos que a release publica), com a barra de cada download. Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `lace` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
 | `lace update [--check] [--yes] [--full] [--from CAMINHO]` | compara o Lace, o bundle e cada aplicativo instalado com a última release (o `bundle/versions.json` da tag dela) e com a última versão upstream (releases do OSS CAD Suite, do lace-toolchain e do YANC no GitHub, tags do surfer-aurora e releases do Graphviz no GitLab), e marca `(new)` o que é mais novo; `?` é uma fonte que não respondeu. Com `--check`, só mostra. Sem ele, se há Lace mais novo, atualiza por componentes: compara o manifesto de arquivos da instalação (`toolchain/files.json`) com o da release, mostra o que muda e quanto baixar, pergunta (sem terminal, exige `--yes`) e baixa só os pedaços com arquivos que mudaram, conferidos pelo `SHA256SUMS`. Os arquivos trocam no lugar, o próprio `lace` também, e o bundle é conferido; uma falha no meio devolve a instalação ao que era. Sem o manifesto (uma instalação anterior à 0.7.0), com `--full` ou se a atualização por componentes falha, baixa o instalador inteiro da release: no Linux e no macOS reinstala com os mesmos aplicativos, a mesma pasta e o mesmo atalho; no Windows abre o assistente. `--from` atualiza por componentes a partir de um instalador no disco (como no `lace install --from`), sem rede. Ferramenta mais nova upstream não é instalada: chega num bundle novo, numa release nova do Lace. Sem rede ou com o GitHub fora, sai com 2. Recusa atualizar um `lace` que não foi instalado pelo instalador |
 | `lace uninstall [--yes]` | remove a instalação de onde este `lace` roda, com o bundle inteiro: no Linux e no macOS roda o `uninstall.sh` da pasta (sai `toolchain/`, `bin/lace`, o atalho e a pasta), no Windows abre o desinstalador do Inno (que também tira a pasta do PATH). Pergunta antes; sem terminal, exige `--yes`. Recusa um `lace` que não foi instalado pelo instalador. Também apaga o `~/.config/lace/config.json` de um build anterior à 0.2.0, e tira o atalho do Studio no menu. Os projetos ficam |
 
@@ -763,7 +777,7 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `hierarchy` | `hierarchy.json` | o `HierarchyResult`: o design e cada testbench, com a árvore de instâncias e o status de cada elaboração |
 | `sim` | `sim.json` | os builds feitos antes, o `SimulationResult`, os valores das portas de saída (com `-p`, depois de uma simulação que deu certo; uma porta que não pôde ser lida, como o `x` de uma divisão por zero, vem com `values` vazio e o motivo em `error`) e o PID do surfer-aurora (com `--open`) |
 | `wave` | `wave.json` | a onda aberta, o PID do surfer-aurora e o log dele; o `.surf.ron` gerado (`layout`, `null` sem processador ou com `--no-layout`) e os processadores dele (`processors`) |
-| `synth` | `synth.json` | os builds feitos antes, o `SynthesisResult` (com as estatísticas do Yosys em `statistics`) e, com `--svg`, o `SchematicResult` |
+| `synth` | `synth.json` | os builds feitos antes, o `SynthesisResult` (com as estatísticas do Yosys em `statistics`), com `--svg`, o `SchematicResult` e, com `--open`, o HTML do RTL viewer (`rtl_viewer`) |
 | `report`, `report show` | `report.json` | o identificador, o caminho do `report.txt`, o que a comparação usa (`record`: contexto, estatísticas e tempos) e o texto |
 | `report list` | `report-list.json` | um resumo por relatório, do mais novo para o mais antigo |
 | `report compare` | `report-compare.json` | os dois relatórios, a síntese e a simulação comparadas (`null` quando não se comparam) e os avisos de contexto |

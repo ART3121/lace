@@ -4,12 +4,13 @@
 import { ChevronDown, ChevronRight, CornerDownRight, FileCode2 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { useT } from '../i18n';
-import type { LoadedNetlist } from '../state/schematic';
+import { useT } from './i18n';
+import type { LoadedNetlist } from './store';
 import type { Selection } from './Canvas';
 import { LEGEND, type Category } from './cells';
 import { bitsText, cellParameters, endpointText, netName, nodeKind, nodeName, sourceText } from './describe';
 import type { Drawing } from './engine';
+import type { RtlViewerUi } from './ui';
 import { instancesOf, moduleLabel } from './hierarchy';
 import { moduleParameters, type SourceRef } from './yosys';
 
@@ -118,7 +119,16 @@ function Parameters({ list }: { list: [string, string][] }) {
   );
 }
 
-function SourceLink({ src, onOpen }: { src: SourceRef; onOpen: (src: SourceRef) => void }) {
+function SourceLink({ src, onOpen }: { src: SourceRef; onOpen?: (src: SourceRef) => void }) {
+  // Sem quem abra o arquivo (o HTML do `lace synth --open`), só o nome e a linha.
+  if (!onOpen) {
+    return (
+      <span className="rtlViewer-link" title={`${src.file}:${src.line}`}>
+        <FileCode2 size={12} />
+        {sourceText(src)}
+      </span>
+    );
+  }
   return (
     <button type="button" className="rtlViewer-link" title={`${src.file}:${src.line}`} onClick={() => onOpen(src)}>
       <FileCode2 size={12} />
@@ -137,6 +147,7 @@ export function Inspector({
   onCenter,
   onEnter,
   onOpenSource,
+  Button,
   onLegend,
 }: {
   source: LoadedNetlist;
@@ -147,7 +158,8 @@ export function Inspector({
   onSelect: (selection: Selection) => void;
   onCenter: (nodeId: string) => void;
   onEnter: (nodeId: string) => void;
-  onOpenSource: (src: SourceRef) => void;
+  onOpenSource?: (src: SourceRef) => void;
+  Button: RtlViewerUi['Button'];
   onLegend: (category: Category | null) => void;
 }) {
   const t = useT();
@@ -182,10 +194,10 @@ export function Inspector({
         </div>
         <div className="rtlViewer-props__kind">{nodeKind(node)}</div>
         {node.module && (
-          <button type="button" className="btn btn--default btn--sm rtlViewer-props__action" onClick={() => onEnter(node.id)}>
+          <Button small className="rtlViewer-props__action" onClick={() => onEnter(node.id)}>
             <CornerDownRight size={13} />
             <span>{t('schematic.openModule')}</span>
-          </button>
+          </Button>
         )}
         {node.src.map((src, i) => (
           <Row key={i} label={i === 0 ? t('schematic.source') : ''}>

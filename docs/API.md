@@ -1221,6 +1221,20 @@ bits ligadas ao mesmo `clk` e à mesma entrada, 160 ligações, levaram mais de
 Nomes de módulo com caracteres fora de `[A-Za-z0-9_.-]` (por exemplo
 `$paramod\processor\NUBITS=23`) viram `_` no nome dos arquivos.
 
+### 5.6.1 O RTL viewer: o módulo `rtl_viewer`
+
+O esquemático interativo do netlist, o mesmo que o Studio mostra numa aba e
+a extensão do VS Code num webview, num HTML autocontido que abre em qualquer
+navegador. O viewer é o pacote `packages/rtl-viewer/` do repositório; o build
+dele gera o modelo `rtl-viewer.html`, com o código, o CSS e o worker do layout
+embutidos, que o componente `rtl-viewer` do bundle traz. Não roda ferramenta.
+
+| Função | O que faz |
+|---|---|
+| `rtl_viewer::template(&Toolchain) -> Result<Utf8PathBuf>` | o modelo: o de `LACE_RTL_VIEWER` (`TEMPLATE_ENV`), se definida, ou o do componente. `ComponentMissing("rtl-viewer")` sem o componente; `ToolchainIncomplete` sem o arquivo |
+| `rtl_viewer::write(&modelo, &netlist, título) -> Result<Utf8PathBuf>` | preenche o modelo com o netlist (`SynthesisResult::netlist`) e grava `rtl-viewer.html` na pasta dele, sobrescrevendo o de antes. Os `<` do JSON viram `<`, para um `</script>` dentro de uma string do netlist não fechar o elemento. `ToolchainIncomplete` se o modelo não tem os lugares do netlist e da configuração |
+| `open_with_system(&caminho) -> Result<()>` | abre um arquivo com o programa padrão do sistema (`xdg-open`, `open`, o Explorer), sem esperar por ele. É a única exceção à regra de só rodar ferramentas do bundle: o navegador do usuário não vem nele. `Spawn` se o abridor não pôde rodar |
+
 ### 5.7 `open_waveform(&Toolchain, &onda, &ViewerOptions) -> Result<RunningProcess>`
 
 `surfer-aurora <onda> [-c <arquivo.sucl> | -s <arquivo.surf.ron>]`, destacado,

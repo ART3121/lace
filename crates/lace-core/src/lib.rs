@@ -144,6 +144,7 @@ mod paths;
 mod pipeline;
 mod process;
 mod project;
+pub mod rtl_viewer;
 mod simulate;
 mod source;
 mod spf;
@@ -164,7 +165,9 @@ pub use files::{AddedFile, FileRole, ListPosition, MovedPath, ProjectFile, read_
 pub use hierarchy::{Elaboration, HierarchyOptions, HierarchyResult, ModuleInstance, hierarchy};
 pub use paths::YANC_PATH_LIMIT;
 pub use pipeline::{Artifact, ArtifactKind, Status, Step, StepReport};
-pub use process::{Invocation, ProcessJob, RunningProcess, Termination, hide_console};
+pub use process::{
+    Invocation, ProcessJob, RunningProcess, Termination, hide_console, open_with_system,
+};
 pub use project::{
     DEFAULT_CLOCKS, DEFAULT_FREQUENCY_MHZ, IssueKind, Language, MAX_CLOCKS, MAX_FREQUENCY_MHZ,
     MAX_PORTS, MAX_PROCESSOR_NAME, MAX_PROJECT_NAME, NewProcessor, Processor, ProcessorConfig,

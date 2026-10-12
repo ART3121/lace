@@ -1,15 +1,17 @@
-// O layout no Studio: o ELK roda num Web Worker (o `elk-worker.min.js` do
-// pacote, servido como arquivo), e a interface continua respondendo enquanto
-// ele trabalha. O maior módulo dos exemplos (o ula_fdiv do proc_fft, 192
-// nós) leva 1,4 s.
+// O layout: o ELK roda num Web Worker (o `elk-worker.min.js` do elkjs), e a
+// interface continua respondendo enquanto ele trabalha. O maior módulo dos
+// exemplos (o ula_fdiv do proc_fft, 192 nós) leva 1,4 s.
+//
+// Quem cria o worker é quem abriga o viewer (setLayoutWorker): o Studio o
+// serve como arquivo, pelo Vite; o VS Code e o HTML do `lace synth --open`,
+// do código embutido (workerFromSource), porque lá não há servidor.
 //
 // Cada desenho fica guardado pelo netlist (caminho e data) e pelo módulo:
 // voltar a um módulo já visto não refaz o layout.
 
 import ElkConstructor, { type ELK, type ElkNode } from 'elkjs/lib/elk-api.js';
-import workerUrl from 'elkjs/lib/elk-worker.min.js?url';
 
-import type { LoadedNetlist } from '../state/schematic';
+import type { LoadedNetlist } from './store';
 import { buildGraph, type GraphOptions, type SchematicGraph } from './graph';
 import { layoutGraph, type SchematicLayout } from './layout';
 
@@ -21,10 +23,26 @@ export interface Drawing {
 }
 
 let elk: ELK | null = null;
+let workerFactory: (() => Worker) | null = null;
 const pending = new Set<(error: Error) => void>();
 
+/** Como criar o worker do ELK. Precisa vir antes do primeiro desenho. */
+export function setLayoutWorker(factory: () => Worker): void {
+  workerFactory = factory;
+}
+
+/** Um worker a partir do código do `elk-worker.min.js`, sem arquivo servido. */
+export function workerFromSource(code: string): () => Worker {
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+  return () => new Worker(url);
+}
+
 function run(graph: ElkNode): Promise<ElkNode> {
-  elk ??= new ElkConstructor({ workerFactory: () => new Worker(workerUrl) });
+  if (!workerFactory) {
+    return Promise.reject(new Error('The layout worker was not configured (setLayoutWorker)'));
+  }
+  const factory = workerFactory;
+  elk ??= new ElkConstructor({ workerFactory: () => factory() });
   const engine = elk;
   return new Promise((resolve, reject) => {
     pending.add(reject);

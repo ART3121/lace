@@ -33,6 +33,13 @@
         }
       ]
     },
+    "rtl_viewer": {
+      "description": "Com `--open`, o HTML do RTL viewer, gravado ao lado do netlist; `null`\nsem `--open` ou numa síntese que não terminou.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "report": {
       "description": "O relatório gravado no histórico do projeto (`run-000042`), para\n`lace report show`; `null` se nada rodou ou se não pôde ser gravado.",
       "type": [
@@ -45,6 +52,7 @@
     "builds",
     "synthesis",
     "schematic",
+    "rtl_viewer",
     "report"
   ],
   "$defs": {

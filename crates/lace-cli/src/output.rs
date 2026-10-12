@@ -941,6 +941,19 @@ impl Output {
         });
     }
 
+    /// O HTML do RTL viewer: aberto no navegador ou, com `opener`
+    /// (LACE_OPENER), só gravado para quem a definiu.
+    pub fn rtl_viewer(&self, html: &Utf8Path, opener: Option<&str>) {
+        if self.json {
+            return;
+        }
+        let path = crate::commands::from_shell(html);
+        match opener {
+            None => println!("RTL viewer opened in the browser: {path}"),
+            Some(by) => println!("RTL viewer written for {by}: {path}"),
+        }
+    }
+
     pub fn opened(&self, surfer: &RunningProcess, layout: Option<&PreparedLayout>) {
         if self.json {
             return;

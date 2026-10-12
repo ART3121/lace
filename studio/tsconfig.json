@@ -13,7 +13,18 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@lace/rtl-viewer": ["../packages/rtl-viewer/src/index.ts"],
+      "@lace/rtl-viewer/*": ["../packages/rtl-viewer/src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"],
+      "lucide-react": ["./node_modules/lucide-react"],
+      "zustand": ["./node_modules/zustand"],
+      "elkjs/*": ["./node_modules/elkjs/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../packages/rtl-viewer/src"]
 }

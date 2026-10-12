@@ -1,7 +1,7 @@
 // O que a dica e o painel de detalhes dizem de um nó ou de uma rede.
 
-import { t } from '../i18n';
-import { baseName } from '../util/paths';
+import { t } from './i18n';
+import { baseName } from './paths';
 import { typeLabel } from './cells';
 import type { PortRef, SchematicGraph, SchematicNet, SchematicNode } from './graph';
 import { parameterValue, type SourceRef } from './yosys';

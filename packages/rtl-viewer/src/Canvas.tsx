@@ -5,7 +5,7 @@
 
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { useT } from '../i18n';
+import { useT } from './i18n';
 import type { Category } from './cells';
 import { bitsText, netName, nodeKind, sourceText } from './describe';
 import type { Drawing } from './engine';
