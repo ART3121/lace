@@ -1,0 +1,425 @@
+{
+  "#PRNAME": {
+    "prefix": [
+      "#PRNAME",
+      "PRNAME"
+    ],
+    "body": "#PRNAME ${1:nome}",
+    "description": "Nome do processador."
+  },
+  "#NUBITS": {
+    "prefix": [
+      "#NUBITS",
+      "NUBITS"
+    ],
+    "body": "#NUBITS ${1:32}",
+    "description": "Largura da palavra da ULA, em bits."
+  },
+  "#NBMANT": {
+    "prefix": [
+      "#NBMANT",
+      "NBMANT"
+    ],
+    "body": "#NBMANT ${1:23}",
+    "description": "Bits de mantissa do float (padrão 23)."
+  },
+  "#NBEXPO": {
+    "prefix": [
+      "#NBEXPO",
+      "NBEXPO"
+    ],
+    "body": "#NBEXPO ${1:8}",
+    "description": "Bits de expoente do float (padrão 8)."
+  },
+  "#NDSTAC": {
+    "prefix": [
+      "#NDSTAC",
+      "NDSTAC"
+    ],
+    "body": "#NDSTAC ${1:8}",
+    "description": "Profundidade da pilha de dados."
+  },
+  "#SDEPTH": {
+    "prefix": [
+      "#SDEPTH",
+      "SDEPTH"
+    ],
+    "body": "#SDEPTH ${1:8}",
+    "description": "Profundidade da pilha de sub-rotinas."
+  },
+  "#NUIOIN": {
+    "prefix": [
+      "#NUIOIN",
+      "NUIOIN"
+    ],
+    "body": "#NUIOIN ${1:1}",
+    "description": "Número de portas de entrada (padrão 1)."
+  },
+  "#NUIOOU": {
+    "prefix": [
+      "#NUIOOU",
+      "NUIOOU"
+    ],
+    "body": "#NUIOOU ${1:1}",
+    "description": "Número de portas de saída (padrão 1)."
+  },
+  "#NUGAIN": {
+    "prefix": [
+      "#NUGAIN",
+      "NUGAIN"
+    ],
+    "body": "#NUGAIN ${1:128}",
+    "description": "Divisor de norm(); tem de ser potência de dois."
+  },
+  "#FFTSIZ": {
+    "prefix": [
+      "#FFTSIZ",
+      "FFTSIZ"
+    ],
+    "body": "#FFTSIZ ${1:3}",
+    "description": "Tamanho da FFT: 2^n pontos."
+  },
+  "#FROUND": {
+    "prefix": [
+      "#FROUND",
+      "FROUND"
+    ],
+    "body": "#FROUND ${1|0,1,2|}",
+    "description": "Arredondamento do float: 0 legado, 1 truncamento exato com saturação, 2 par mais próximo (padrão 0)."
+  },
+  "#PRACA": {
+    "prefix": [
+      "#PRACA",
+      "PRACA"
+    ],
+    "body": "#PRACA",
+    "description": "Ponto de entrada da interrupção. Vai dentro de uma função."
+  },
+  "#TOAQUI": {
+    "prefix": [
+      "#TOAQUI",
+      "TOAQUI"
+    ],
+    "body": "#TOAQUI",
+    "description": "Marcador de PC: aciona o pino cheguei. Um por programa."
+  },
+  "#define": {
+    "prefix": [
+      "#define",
+      "define"
+    ],
+    "body": "#define ${1:NOME} ${2:valor}",
+    "description": "Macro de objeto: cada uso de NOME vira o corpo. Sem parâmetros, #ifdef ou #include."
+  },
+  "in()": {
+    "prefix": "in",
+    "body": "in(${1:porta})",
+    "description": "Lê um int da porta de entrada. A porta é constante inteira."
+  },
+  "fin()": {
+    "prefix": "fin",
+    "body": "fin(${1:porta})",
+    "description": "Lê da porta de entrada como float. A porta é constante inteira."
+  },
+  "out()": {
+    "prefix": "out",
+    "body": "out(${1:porta}, ${2:x})",
+    "description": "Escreve x na porta de saída. Comando; aceita também out(p, c|v⟩)."
+  },
+  "fout()": {
+    "prefix": "fout",
+    "body": "fout(${1:porta}, ${2:x})",
+    "description": "Escreve x na porta de saída convertendo para float. Comando."
+  },
+  "norm()": {
+    "prefix": "norm",
+    "body": "norm(${1:x})",
+    "description": "x dividido por #NUGAIN."
+  },
+  "pset()": {
+    "prefix": "pset",
+    "body": "pset(${1:x})",
+    "description": "Zera x se for negativo."
+  },
+  "abs()": {
+    "prefix": "abs",
+    "body": "abs(${1:x})",
+    "description": "Valor absoluto."
+  },
+  "sign()": {
+    "prefix": "sign",
+    "body": "sign(${1:x}, ${2:y})",
+    "description": "y com o sinal de x."
+  },
+  "copy()": {
+    "prefix": "copy",
+    "body": "copy(${1:x}, ${2:y})",
+    "description": "Copia x em y sem conferir tipo. Comando; y é variável."
+  },
+  "sqrt()": {
+    "prefix": "sqrt",
+    "body": "sqrt(${1:x})",
+    "description": "Raiz quadrada."
+  },
+  "atan()": {
+    "prefix": "atan",
+    "body": "atan(${1:x})",
+    "description": "Arco tangente."
+  },
+  "sin()": {
+    "prefix": "sin",
+    "body": "sin(${1:x})",
+    "description": "Seno."
+  },
+  "cos()": {
+    "prefix": "cos",
+    "body": "cos(${1:x})",
+    "description": "Cosseno."
+  },
+  "tan()": {
+    "prefix": "tan",
+    "body": "tan(${1:x})",
+    "description": "Tangente."
+  },
+  "cosh()": {
+    "prefix": "cosh",
+    "body": "cosh(${1:x})",
+    "description": "Cosseno hiperbólico."
+  },
+  "sinh()": {
+    "prefix": "sinh",
+    "body": "sinh(${1:x})",
+    "description": "Seno hiperbólico."
+  },
+  "tanh()": {
+    "prefix": "tanh",
+    "body": "tanh(${1:x})",
+    "description": "Tangente hiperbólica."
+  },
+  "exp()": {
+    "prefix": "exp",
+    "body": "exp(${1:x})",
+    "description": "Exponencial."
+  },
+  "log()": {
+    "prefix": "log",
+    "body": "log(${1:x})",
+    "description": "Logaritmo natural."
+  },
+  "pow()": {
+    "prefix": "pow",
+    "body": "pow(${1:x}, ${2:y})",
+    "description": "x elevado a y."
+  },
+  "floor()": {
+    "prefix": "floor",
+    "body": "floor(${1:x})",
+    "description": "Arredonda para baixo."
+  },
+  "ceil()": {
+    "prefix": "ceil",
+    "body": "ceil(${1:x})",
+    "description": "Arredonda para cima."
+  },
+  "round()": {
+    "prefix": "round",
+    "body": "round(${1:x})",
+    "description": "Arredonda para o inteiro mais próximo."
+  },
+  "real()": {
+    "prefix": "real",
+    "body": "real(${1:z})",
+    "description": "Parte real de um comp."
+  },
+  "imag()": {
+    "prefix": "imag",
+    "body": "imag(${1:z})",
+    "description": "Parte imaginária de um comp."
+  },
+  "conj()": {
+    "prefix": "conj",
+    "body": "conj(${1:z})",
+    "description": "Conjugado de um comp."
+  },
+  "fase()": {
+    "prefix": "fase",
+    "body": "fase(${1:z})",
+    "description": "Fase de um comp, em radianos."
+  },
+  "complex()": {
+    "prefix": "complex",
+    "body": "complex(${1:x}, ${2:y})",
+    "description": "Monta o comp x + yi."
+  },
+  "mod2()": {
+    "prefix": "mod2",
+    "body": "mod2(${1:z})",
+    "description": "Módulo ao quadrado de um comp."
+  },
+  "Dirac: ket": {
+    "prefix": [
+      "ket",
+      "vetor",
+      "dirac"
+    ],
+    "body": "|${1:v}⟩",
+    "description": "|v⟩  vetor coluna. Vetor coluna. O símbolo de fechamento é ⟩ (U+27E9), que não existe no teclado."
+  },
+  "Dirac: bra": {
+    "prefix": [
+      "bra",
+      "transposto",
+      "dirac"
+    ],
+    "body": "⟨${1:v}|",
+    "description": "⟨v|  vetor linha (transposto). Vetor linha, o transposto do ket. O símbolo de abertura é ⟨ (U+27E8)."
+  },
+  "Dirac: braket": {
+    "prefix": [
+      "braket",
+      "produto",
+      "interno",
+      "inner",
+      "dirac"
+    ],
+    "body": "⟨${1:a}|${2:b}⟩",
+    "description": "⟨a|b⟩  produto interno. Produto interno de dois vetores. Devolve um escalar."
+  },
+  "Dirac: dirac-matriz-vetor": {
+    "prefix": [
+      "dirac-matriz-vetor",
+      "mv",
+      "matriz",
+      "matvec",
+      "dirac"
+    ],
+    "body": "${1:a} # |${2:M}|${3:b}⟩;",
+    "description": "a # |M|b⟩;  matriz por vetor. a recebe M vezes b. O compilador gera os laços."
+  },
+  "Dirac: dirac-escalar-vetor": {
+    "prefix": [
+      "dirac-escalar-vetor",
+      "cv",
+      "escalar",
+      "dirac"
+    ],
+    "body": "${1:a} # ${2:c}|${3:b}⟩;",
+    "description": "a # c|b⟩;  escalar por vetor. a recebe c vezes b, elemento a elemento."
+  },
+  "Dirac: dirac-produto-externo": {
+    "prefix": [
+      "dirac-produto-externo",
+      "vvt",
+      "externo",
+      "outer",
+      "dirac"
+    ],
+    "body": "${1:A} # |${2:a}⟩⟨${3:b}|;",
+    "description": "A # |a⟩⟨b|;  produto externo. A recebe a vezes b transposto, uma matriz."
+  },
+  "Dirac: dirac-identidade": {
+    "prefix": [
+      "dirac-identidade",
+      "identidade",
+      "eye",
+      "dirac"
+    ],
+    "body": "${1:A} # ${2:1.0}|I|;",
+    "description": "A # 1.0|I|;  matriz identidade. Preenche A como identidade vezes o escalar."
+  },
+  "Dirac: dirac-zera": {
+    "prefix": [
+      "dirac-zera",
+      "zero",
+      "zera",
+      "vzero",
+      "dirac"
+    ],
+    "body": "${1:a} # |0⟩;",
+    "description": "a # |0⟩;  zera o vetor. Zera todos os elementos do vetor. Sem isto a memória começa com lixo."
+  },
+  "Dirac: dirac-entrada": {
+    "prefix": [
+      "dirac-entrada",
+      "cvin",
+      "entrada",
+      "dirac"
+    ],
+    "body": "${1:a} # ${2:0.001}|in(${3:0})⟩;",
+    "description": "a # c|in(p)⟩;  lê da porta de entrada. Preenche o vetor a partir da porta de entrada p, escalado por c."
+  },
+  "Dirac: ⟩": {
+    "prefix": [
+      "⟩",
+      ">>",
+      "ket",
+      "fecha",
+      "dirac"
+    ],
+    "body": "⟩",
+    "description": "U+27E9, fecha o ket. O caractere sozinho. Não é o sinal de maior do teclado: o compilador só aceita este."
+  },
+  "Dirac: ⟨": {
+    "prefix": [
+      "⟨",
+      "<<",
+      "bra",
+      "abre",
+      "dirac"
+    ],
+    "body": "⟨",
+    "description": "U+27E8, abre o bra. O caractere sozinho. Não é o sinal de menor do teclado: o compilador só aceita este."
+  },
+  "Dirac: dirac-soma-ponderada": {
+    "prefix": [
+      "dirac-soma-ponderada",
+      "apcb",
+      "soma",
+      "dirac"
+    ],
+    "body": "${1:a} # |${2:b}⟩ + ${3:c}|${4:d}⟩;",
+    "description": "a # |b⟩ + c|d⟩;  soma ponderada. a recebe b mais c vezes d, elemento a elemento."
+  },
+  "Dirac: dirac-matriz-menos-externo": {
+    "prefix": [
+      "dirac-matriz-menos-externo",
+      "mmvvt",
+      "externo",
+      "rls",
+      "dirac"
+    ],
+    "body": "${1:A} # |${2:B}| - |${3:a}⟩⟨${4:b}|;",
+    "description": "A # |B| - |a⟩⟨b|;  matriz menos produto externo. A recebe B menos a vezes b transposto."
+  },
+  "Dirac: dirac-escalar-matriz": {
+    "prefix": [
+      "dirac-escalar-matriz",
+      "cm",
+      "escalar",
+      "matriz",
+      "dirac"
+    ],
+    "body": "${1:A} # ${2:c}|${3:B}|;",
+    "description": "A # c|B|;  escalar por matriz. A recebe c vezes B, elemento a elemento."
+  },
+  "Dirac: dirac-desloca": {
+    "prefix": [
+      "dirac-desloca",
+      "shift",
+      "desloca",
+      "dirac"
+    ],
+    "body": "${1:a} # ${2:c} -> |${1:a}⟩;",
+    "description": "a # c -> |a⟩;  registrador de deslocamento. Desloca o vetor a e insere c. Os dois nomes têm de ser o mesmo vetor; não vale para comp."
+  },
+  "Dirac: dirac-saida": {
+    "prefix": [
+      "dirac-saida",
+      "vout",
+      "saida",
+      "dirac"
+    ],
+    "body": "out(${1:0}, ${2:1.0}|${3:a}⟩);",
+    "description": "out(p, c|a⟩);  vetor na porta de saída. Escreve o vetor a na porta de saída p, escalado por c."
+  }
+}

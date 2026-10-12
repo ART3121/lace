@@ -1,0 +1,8 @@
+{
+  "project": "${ROOT}/demo.spf",
+  "removed": [
+    "${ROOT}/rtl/somador.v",
+    "${ROOT}/rtl/mux.sv"
+  ],
+  "not_registered": []
+}

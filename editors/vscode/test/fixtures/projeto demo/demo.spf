@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "projectName": "demo",
+    "createdAt": "2026-10-12T00:00:00.000Z",
+    "lastModified": "2026-10-12T00:00:00.000Z",
+    "computerName": "",
+    "appVersion": "lace 0.6.0",
+    "projectPath": ""
+  },
+  "structure": {
+    "basePath": "",
+    "processors": [
+      {
+        "name": "soma"
+      },
+      {
+        "name": "filtro"
+      }
+    ],
+    "folders": [],
+    "topLevelFile": "rtl/contador.v",
+    "testbenchFile": "tb/contador_tb.v",
+    "synthesizableFiles": [
+      {
+        "name": "contador.v",
+        "path": "rtl/contador.v",
+        "isTopLevel": true
+      },
+      {
+        "name": "somador.v",
+        "path": "rtl/somador.v",
+        "isTopLevel": false
+      },
+      {
+        "name": "mux.sv",
+        "path": "rtl/mux.sv",
+        "isTopLevel": false
+      }
+    ],
+    "testbenchFiles": [
+      {
+        "name": "contador_tb.v",
+        "path": "tb/contador_tb.v",
+        "isTopLevel": true
+      },
+      {
+        "name": "somador_tb.v",
+        "path": "tb/somador_tb.v",
+        "isTopLevel": false
+      }
+    ]
+  }
+}

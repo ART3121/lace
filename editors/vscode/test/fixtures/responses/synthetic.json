@@ -1,0 +1,25 @@
+{
+  "note": "Escritas à mão, não gravadas: o que o lace não faz de propósito. O teste de contrato não as valida.",
+  "cases": [
+    {
+      "args": ["--json", "panico"],
+      "exit": 101,
+      "stderrText": "thread 'main' panicked at crates/lace-cli/src/main.rs:1:1:\nexplicit panic\n"
+    },
+    {
+      "args": ["--json", "texto"],
+      "exit": 0,
+      "stdoutText": "isto não é JSON\n"
+    },
+    {
+      "args": ["--events", "texto"],
+      "exit": 0,
+      "stdoutText": "{\"event\":\"result\",\"result\":{}}\nisto não é JSON\n"
+    },
+    {
+      "args": ["--json", "mudo"],
+      "exit": 0,
+      "stdoutText": ""
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "project": "${ROOT}/demo.spf",
+  "files": [
+    {
+      "path": "${ROOT}/rtl/sobra.v",
+      "role": "synthesizable",
+      "created": false,
+      "selected": false
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+# A extensão do VS Code (editors/vscode/) e o RTL viewer que ela mostra
+# (packages/rtl-viewer/): tipos e lint, os testes unitários e de contrato nas
+# três plataformas e o teste de integração no Linux, num VS Code de verdade
+# sob xvfb. Roda quando muda a extensão, o viewer ou docs/schema/, que é o
+# contrato dela com o Lace.
+
+name: vscode
+
+on:
+  push:
+    paths:
+      - "editors/vscode/**"
+      - "packages/rtl-viewer/**"
+      - "docs/schema/**"
+      - ".github/workflows/vscode.yml"
+  pull_request:
+    paths:
+      - "editors/vscode/**"
+      - "packages/rtl-viewer/**"
+      - "docs/schema/**"
+      - ".github/workflows/vscode.yml"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: editors/vscode
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            editors/vscode/package-lock.json
+            packages/rtl-viewer/package-lock.json
+      - name: RTL viewer
+        working-directory: packages/rtl-viewer
+        run: |
+          npm ci
+          npm run typecheck
+      - run: npm ci
+      - name: Tipos e lint
+        if: runner.os == 'Linux'
+        run: |
+          npm run typecheck
+          npm run lint
+      - name: Unitários e contrato
+        run: npm run test:unit
+      # O lace falso roda pelo shebang, e no Windows um .mjs não executa sem
+      # shell (a extensão nunca usa shell): a integração fica no Linux.
+      - name: Integração
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration

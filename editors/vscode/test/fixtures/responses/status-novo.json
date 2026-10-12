@@ -1,0 +1,15 @@
+{
+  "name": "novo",
+  "spf": "${ROOT}/novo.spf",
+  "root": "${ROOT}",
+  "synthesizable": [],
+  "testbench": [],
+  "top_level": null,
+  "top_module": null,
+  "selected_testbench": null,
+  "testbench_module": null,
+  "unregistered": [],
+  "here": null,
+  "processors": [],
+  "issues": []
+}

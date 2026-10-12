@@ -97,6 +97,23 @@
   os registrados que estavam na origem passam ao destino, com o topo e o
   testbench simulado, e o disco não é tocado. No Core,
   `Project::record_move`.
+- A extensão do VS Code, em `editors/vscode/` (versão própria, 0.1.0, ainda
+  não publicada; [README](editors/vscode/README.md)), pela CLI com `--json`
+  e `--events`: a vista Fontes do projeto (`lace status`), com o topo, o
+  testbench simulado e os processadores em destaque; os botões Build,
+  Check, Sim, Wave e Synth na barra de status (`lace build`, `check`, `sim`,
+  `wave` e `synth`), com a saída ao vivo, o cancelamento e os erros do check
+  e do YANC no painel Problemas; o RTL viewer numa aba depois de cada
+  síntese; Definir como topo (`lace top`); Novo projeto (`lace new`), num
+  botão da vista quando a pasta não tem `.spf`; criar e configurar
+  processadores (`lace proc add` e `set`); realce e snippets de C± e do
+  assembly do SAPHO; e os arquivos do projeto: pôr (`lace add`, inclusive um
+  arquivo novo do modelo, o aviso de `.v` novo fora do projeto e arrastar do
+  explorador), tirar (`lace remove`), a ordem de compilação (`lace order`,
+  pelo menu ou arrastando) e renomear (`lace move`); o que o explorador
+  renomeia ou apaga acompanha no `.spf` (`lace move --after`, `lace
+  remove`). Precisa do Lace 0.2.0 ou mais novo (check, sim e synth, da
+  0.3.0).
 
 ## 0.6.0 (2026-10-09)
 

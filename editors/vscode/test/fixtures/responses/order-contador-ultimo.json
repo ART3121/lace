@@ -1,0 +1,25 @@
+{
+  "project": "${ROOT}/demo.spf",
+  "files": [
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/rtl/somador.v",
+      "top_level": false
+    },
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/rtl/mux.sv",
+      "top_level": false
+    },
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/soma/Hardware/soma.v",
+      "top_level": false
+    },
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/rtl/contador.v",
+      "top_level": true
+    }
+  ]
+}

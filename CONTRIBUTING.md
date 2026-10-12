@@ -205,6 +205,7 @@ pública do Core: o crate não roda ferramenta por conta própria, só chama o
 | `lace-learn/` | as trilhas de exercícios, que viram o componente `lace-learn` ([docs/LEARN.md](docs/LEARN.md)) |
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
 | `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `lace synth --open`, que vira o componente `rtl-viewer` |
+| `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
 | `crates/lace-installer/` | o instalador em terminal e o `lace-pack`; `tests/install.rs` empacota um bundle pequeno e instala de verdade |
 | `examples/` | os projetos `soma`, `com_erro` e `contador`, usados pelos testes |
 | `bundle/versions.json` | a versão e o hash de cada pacote do bundle |
@@ -212,7 +213,7 @@ pública do Core: o crate não roda ferramenta por conta própria, só chama o
 | `scripts/bundle.py`, `scripts/binaries.py` | a montagem do bundle e a leitura de dependências de binários |
 | `installer/windows/lace.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
-| `.github/workflows/` | `release.yml` (publica a release numa tag) e o `installers.yml` que ele chama (bundle e instaladores, sem testes); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); não há CI a cada push |
+| `.github/workflows/` | `release.yml` (publica a release numa tag) e o `installers.yml` que ele chama (bundle e instaladores, sem testes); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); `vscode.yml` (a extensão do VS Code e o RTL viewer, a cada push que muda `editors/vscode/`, `packages/rtl-viewer/` ou `docs/schema/`); fora esse, não há CI a cada push |
 | `docs/` | API, CLI, bundle, instalação e release |
 
 ### Como uma operação anda

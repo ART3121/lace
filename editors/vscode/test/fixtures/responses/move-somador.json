@@ -1,0 +1,16 @@
+{
+  "project": "${ROOT}/demo.spf",
+  "moved": [
+    {
+      "from": "${ROOT}/rtl/somador.v",
+      "to": "${ROOT}/rtl/adder.v",
+      "files": [
+        {
+          "role": "synthesizable",
+          "path": "${ROOT}/rtl/adder.v",
+          "top_level": false
+        }
+      ]
+    }
+  ]
+}

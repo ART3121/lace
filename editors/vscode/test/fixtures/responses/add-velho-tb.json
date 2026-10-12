@@ -1,0 +1,11 @@
+{
+  "project": "${ROOT}/demo.spf",
+  "files": [
+    {
+      "path": "${ROOT}/rtl/velho_tb.v",
+      "role": "testbench",
+      "created": false,
+      "selected": false
+    }
+  ]
+}

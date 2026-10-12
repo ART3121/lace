@@ -1,0 +1,20 @@
+{
+  "waveform": "${ROOT}/.lace/Temp/soma/soma_tb.fst",
+  "pid": 1227134,
+  "log": "${ROOT}/.lace/Temp/surfer/soma_tb.fst.log",
+  "layout": "${ROOT}/wave/soma_tb.surf.ron",
+  "saved_layout": {
+    "path": "${ROOT}/wave/soma_tb.surf.ron",
+    "customized": false
+  },
+  "processors": [
+    {
+      "instance": "soma_tb.proc",
+      "processor": "soma",
+      "variables": 0,
+      "assembly": false,
+      "source": false,
+      "outdated": true
+    }
+  ]
+}

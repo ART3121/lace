@@ -1,0 +1,5 @@
+{
+  "top_level": "${ROOT}/rtl/contador.v",
+  "module": "contador",
+  "module_error": null
+}
