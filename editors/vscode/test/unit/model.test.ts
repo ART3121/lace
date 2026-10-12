@@ -54,12 +54,12 @@ describe('vista de fontes', () => {
       'contador.v': { description: 'TOPO · rtl', contextValue: 'lace.design.top.first.verilog' },
       'somador.v': { description: 'rtl', contextValue: 'lace.design.settop.verilog' },
       'mux.sv': { description: 'rtl', contextValue: 'lace.design.settop.verilog' },
-      'soma.v': { description: 'soma/Hardware', contextValue: 'lace.design.settop.last.verilog' },
+      'soma.v': { description: join('soma', 'Hardware'), contextValue: 'lace.design.settop.last.verilog' },
     });
     assert.deepEqual(byLabel(testbenches.entries), {
       'contador_tb.v': { description: 'SIMULADO · tb', contextValue: 'lace.testbench.selected.first.verilog' },
       'somador_tb.v': { description: 'tb', contextValue: 'lace.testbench.verilog' },
-      'soma_tb.v': { description: 'soma/Simulation', contextValue: 'lace.testbench.last.verilog' },
+      'soma_tb.v': { description: join('soma', 'Simulation'), contextValue: 'lace.testbench.last.verilog' },
     });
     assert.deepEqual(byLabel(processors.entries), {
       soma: { description: 'COMPILADO', contextValue: 'lace.processor.built' },
