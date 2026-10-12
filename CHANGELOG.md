@@ -1,6 +1,6 @@
 # Mudanças
 
-## Não publicada
+## 0.7.0 (2026-10-12)
 
 - A simulação rápida (`lace sim --fast`, o Fast Sim do Studio) compila o
   modelo do Verilator sem `--autoflush`, como a AURORA: o `$display` chega
@@ -107,8 +107,10 @@
   os registrados que estavam na origem passam ao destino, com o topo e o
   testbench simulado, e o disco não é tocado. No Core,
   `Project::record_move`.
-- A extensão do VS Code, em `editors/vscode/` (versão própria, 0.1.0, ainda
-  não publicada; [README](editors/vscode/README.md)), pela CLI com `--json`
+- A extensão do VS Code, em `editors/vscode/` (versão própria, 0.1.0;
+  [README](editors/vscode/README.md)), fora do Marketplace por enquanto: o
+  `lace-vscode-0.1.0.vsix` vai anexado a esta release e se instala no VS Code
+  em Extensões > `...` > Install from VSIX. Fala com o Lace pela CLI com `--json`
   e `--events`: a vista Fontes do projeto (`lace status`), com o topo, o
   testbench simulado e os processadores em destaque; os botões Build,
   Check, Sim, Wave e Synth na barra de status (`lace build`, `check`, `sim`,
