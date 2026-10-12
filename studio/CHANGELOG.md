@@ -23,6 +23,10 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Mudado
 
+- O **Fast Sim** ficou mais rápido num testbench que imprime muito: o
+  modelo do Verilator não força mais o flush de cada `$display`, como na
+  AURORA, e a saída chega ao console em blocos. Cancelado, ele perde as
+  últimas linhas que ainda estavam no buffer.
 - Depois de compilar um processador (o build sozinho, ou o que a Wave, o
   Synth e a compilação para a placa fazem antes), o `Hardware/<nome>.v` e o
   `Simulation/<nome>_tb.v` que ele gerou entram no projeto, em Módulos e em

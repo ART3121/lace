@@ -790,10 +790,11 @@ no macOS). As três mudanças:
 - `PYTHON3=`: o `make` gerado chama `python3` pelo nome, e sem isso usaria o
   do sistema;
 - `--autoflush`: o modelo escreve o `$display` na hora, e não em blocos no
-  fim, o que permite mostrar a saída enquanto roda (5.8). Entra sempre, com
-  ou sem receptor de eventos.
+  fim, o que permite mostrar a saída enquanto roda (5.8). Entra com ou sem
+  receptor de eventos, menos na simulação rápida.
 
-Na simulação rápida saem `--trace` e `--no-trace-top` (abaixo).
+Na simulação rápida saem `--trace`, `--no-trace-top` e `--autoflush`
+(abaixo).
 
 O script `verilator` roda pelo Perl do `SystemCompiler`, com `PATH` = o
 diretório do script (`bin/` do OSS CAD Suite, `ucrt64/bin` do `msys/`),
@@ -835,7 +836,7 @@ caminho e o formato.
 portas do processador e os testes cocotb na velocidade do simulador. O
 testbench Verilog, de `simulate` ou de `simulate_project`, roda no
 Verilator, qualquer que seja o `simulator`: o passo `verilate` não leva
-`--trace` nem `--no-trace-top`, o `-Mdir` é `obj_dir_fast_<topo>`, ao lado
+`--trace`, `--no-trace-top` nem `--autoflush`, o `-Mdir` é `obj_dir_fast_<topo>`, ao lado
 do `obj_dir_<topo>` da simulação com onda (alternar entre as duas não
 recompila tudo a cada vez), e o modelo ignora os `$dumpfile` e `$dumpvars`
 do testbench (escreve na saída `$dumpvar ignored, as Verilated without
@@ -845,7 +846,13 @@ gera lê os sinais de simulação do processador para achar o fim do programa.
 Um testbench cocotb roda os testes no `simulator` (5.3.2). O resultado vem
 com `fast: true`, o simulador que rodou em `simulator` e `waveform: null`.
 A AURORA comenta os `$dumpfile` e `$dumpvars` numa cópia do testbench; o
-Lace não precisa: o Verilator 5 do bundle os ignora sozinho.
+Lace não precisa: o Verilator 5 do bundle os ignora sozinho. Sem
+`--autoflush`, como na AURORA, o `$display` chega em blocos, e não linha a
+linha: num testbench que imprime a cada ciclo, o flush de cada linha chegava
+a dobrar o tempo da simulação (medido no Linux em 2026-10-12: 1 milhão de
+linhas em 1,6 s sem a flag e 3,3 a 3,9 s com ela). O preço é que uma
+simulação rápida cancelada, ou que passou do prazo, perde o que ainda
+estava no buffer do modelo.
 
 O `vvp` sai com código 0 depois de um `$error`. Por isso as linhas `ERROR:`
 e `FATAL:` que ele escreve (as de `$error` e `$fatal`) viram diagnóstico de
@@ -1548,8 +1555,17 @@ um testbench sem `$finish`. Sem prazo por padrão.
 o `$display` só sai quando o buffer enche ou no fim, e se perde se o
 processo for morto. Com um receptor de eventos, o Lace roda o `vvp` com `-i`, que
 tira o buffer, ao custo de uma escrita por linha. Sem receptor, fica o
-buffer, que é mais rápido. O Verilator compila sempre com `--autoflush` (5.2):
-trocar a flag conforme o receptor recompilaria o modelo.
+buffer, que é mais rápido. O Verilator compila com `--autoflush` (5.2), com
+ou sem receptor, porque trocar a flag conforme o receptor recompilaria o
+modelo; a simulação rápida, que tem modelo próprio, compila sem.
+
+O Lace lê o pipe em blocos de até 64 KiB e passa adiante, de uma vez, as
+linhas inteiras de cada bloco, e não uma linha por vez: num testbench que
+imprime sem parar, o caminho de cada linha até o receptor custava mais que
+a simulação escrevê-la (medido em 2026-10-12, 2 milhões de linhas: 1,28 s
+de sobrecarga lendo linha a linha, 0,25 s em blocos). Quem escreve devagar
+continua chegando linha a linha. Se o receptor atrasa, a ferramenta espera,
+em vez de a fila crescer na memória.
 
 ### 5.9 Relatório e histórico: o módulo `history`
 

@@ -2,6 +2,16 @@
 
 ## Não publicada
 
+- A simulação rápida (`lace sim --fast`, o Fast Sim do Studio) compila o
+  modelo do Verilator sem `--autoflush`, como a AURORA: o `$display` chega
+  em blocos, e não linha a linha. Num testbench que imprime a cada ciclo, o
+  flush de cada linha chegava a dobrar o tempo da simulação. Uma simulação
+  rápida cancelada perde o que ainda estava no buffer. A primeira depois da
+  atualização recompila o modelo.
+- O Lace lê a saída das ferramentas em blocos e passa as linhas de cada
+  bloco de uma vez, e não uma linha por vez: o custo de cada linha até o
+  terminal, o Studio ou o `--events` caiu para cerca de um quinto, o que
+  pesa num testbench que imprime sem parar.
 - O `install.ps1` (o `irm ... | iex` do Windows) mostra o progresso do
   download do instalador: a barra, a porcentagem, os MiB, a velocidade e o
   tempo que falta, numa linha que encolhe para caber na janela. Antes, o

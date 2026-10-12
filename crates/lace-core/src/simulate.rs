@@ -1144,13 +1144,18 @@ fn execute(
                 .arg("--timing")
                 .arg("--x-assign")
                 .arg("fast")
-                // O `$display` sai na hora, e não em blocos no fim: é o que
-                // mostra a saída ao vivo. Sem isso o modelo guarda o stdout
-                // em buffer, como o vvp sem `-i`.
-                .arg("--autoflush")
                 // Também na simulação rápida: o testbench que o YANC gera lê
                 // os sinais de simulação do processador (o fim do programa).
                 .arg("+define+YANC_TRACE");
+            if !plan.fast {
+                // O `$display` sai na hora, e não em blocos no fim: é o que
+                // mostra a saída ao vivo. Sem isso o modelo guarda o stdout
+                // em buffer, como o vvp sem `-i`. Fica fora da simulação
+                // rápida, como na AURORA: lá a saída chega em blocos, e o
+                // flush de cada linha chegava a dobrar o tempo de um
+                // testbench que imprime a cada ciclo.
+                verilate = verilate.arg("--autoflush");
+            }
             for &flag in verilator_cflags() {
                 verilate = verilate.arg("-CFLAGS").arg(flag);
             }

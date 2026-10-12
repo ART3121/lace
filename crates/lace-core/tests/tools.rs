@@ -332,6 +332,13 @@ fn project_simulation_with_verilator() {
         .find(|s| s.step == Step::Simulate)
         .unwrap();
     assert!(run.stdout.contains("q = 10"), "{}", run.stdout);
+    // Fora da simulação rápida, o `$display` sai na hora (a saída ao vivo).
+    let verilate = result
+        .steps
+        .iter()
+        .find(|s| s.step == Step::Verilate)
+        .unwrap();
+    assert!(verilate.command.args.iter().any(|a| a == "--autoflush"));
     // O Verilator grava VCD: o dump injetado leva a extensão `.vcd`.
     let wave = result.waveform.unwrap();
     assert_eq!(wave.path, root.join("contador_tb.vcd"));
@@ -376,6 +383,9 @@ fn fast_project_simulation_writes_no_waveform() {
         .unwrap();
     let args = &verilate.command.args;
     assert!(!args.iter().any(|a| a == "--trace"), "{args:?}");
+    // A saída em blocos, como na AURORA: o flush de cada `$display` custava
+    // mais que a simulação num testbench que imprime a cada ciclo.
+    assert!(!args.iter().any(|a| a == "--autoflush"), "{args:?}");
     assert!(
         args.iter()
             .any(|a| a.ends_with("contador_tb.v") && !a.contains("instr_")),

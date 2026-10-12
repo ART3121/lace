@@ -281,8 +281,10 @@ na velocidade do simulador. O testbench Verilog, do projeto ou de um
 processador (`-p`), roda no Verilator, com ou sem `--verilator`, compilado
 sem `--trace` num `obj_dir_fast_<topo>` à parte do da simulação com onda;
 os `$dumpfile` e `$dumpvars` dele não gravam nada (o Verilator avisa, na
-saída, que os ignora), e o Lace não injeta o dump padrão. Um testbench
-cocotb roda os testes sem o módulo que grava a onda: no Icarus, com `vvp
+saída, que os ignora), e o Lace não injeta o dump padrão. Como na AURORA, o
+`$display` do testbench chega em blocos, e não linha a linha: o flush de
+cada linha chegava a dobrar o tempo de um testbench que imprime a cada
+ciclo. Um testbench cocotb roda os testes sem o módulo que grava a onda: no Icarus, com `vvp
 -none`, ou no Verilator, com `--verilator`. O título diz `Fast
 simulation`, o JSON traz `simulation.fast: true` e `waveform: null`, e
 `--open` não anda junto. A primeira simulação rápida compila o modelo (de

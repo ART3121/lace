@@ -19,7 +19,7 @@
 //! Nenhuma ferramenta abre janela de console ([`hide_console`]): a saída vai
 //! pelos pipes, para o terminal ou para os consoles do Studio.
 
-use std::io::{BufRead, BufReader, Read};
+use std::io::Read;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -40,8 +40,11 @@ const KILL_GRACE: Duration = Duration::from_secs(1);
 /// passa disso se um processo que ele iniciou continua vivo segurando o
 /// pipe; aí o Lace para de ler.
 const DRAIN_LIMIT: Duration = Duration::from_secs(2);
-/// Quantas linhas lidas podem esperar por quem as recebe.
-const LINE_QUEUE: usize = 1024;
+/// Quantos lotes lidos podem esperar por quem os recebe. Um lote é o que uma
+/// leitura do pipe trouxe, em linhas inteiras (até [`READ_CHUNK`] bytes).
+const BATCH_QUEUE: usize = 16;
+/// Até quanto uma leitura do pipe traz de uma vez.
+const READ_CHUNK: usize = 64 * 1024;
 /// Quanto do começo e quanto do fim da saída de cada pipe o Lace guarda. Um
 /// testbench que imprime sem parar (`always #1 $display`) escrevia 33 MB em
 /// 5 s, e tudo ficava na memória até o fim; agora o meio sai, e o resultado
@@ -351,10 +354,10 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
     job.adopt(&child);
 
     // Uma thread por pipe: ler um depois do outro trava quando o pipe do
-    // segundo enche. As linhas chegam aqui por um canal só, com limite: se
-    // quem recebe as linhas atrasa, a ferramenta espera, em vez de a fila
-    // crescer na memória.
-    let (lines, received) = mpsc::sync_channel(LINE_QUEUE);
+    // segundo enche. As linhas chegam aqui em lotes, por um canal só, com
+    // limite: se quem recebe as linhas atrasa, a ferramenta espera, em vez de
+    // a fila crescer na memória.
+    let (lines, received) = mpsc::sync_channel(BATCH_QUEUE);
     let pipes = (child.stdout.take(), child.stderr.take());
     let (Some(stdout), Some(stderr)) = pipes else {
         unreachable!("stdout and stderr are pipes");
@@ -376,13 +379,15 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
     loop {
         if reading {
             match received.recv_timeout(POLL) {
-                Ok((stream, bytes)) => {
+                Ok((stream, batch)) => {
                     if let Some(on_line) = watch.on_line {
-                        on_line(stream, trim_line_end(&String::from_utf8_lossy(&bytes)));
+                        for line in batch.split_inclusive(|&b| b == b'\n') {
+                            on_line(stream, trim_line_end(&String::from_utf8_lossy(line)));
+                        }
                     }
                     match stream {
-                        Stream::Stdout => out.push(&bytes),
-                        Stream::Stderr => err.push(&bytes),
+                        Stream::Stdout => out.push(&batch),
+                        Stream::Stderr => err.push(&batch),
                     }
                     // Um testbench preso num laço que imprime sem parar
                     // nunca deixa o canal vazio: cancelamento e prazo são
@@ -519,25 +524,41 @@ impl Capture {
     }
 }
 
-/// Lê `pipe` linha a linha numa thread e manda cada linha, com o fim de
-/// linha, para `lines`. Termina quando o pipe fecha.
+/// Lê `pipe` numa thread e manda para `lines` o que cada leitura trouxe, em
+/// linhas inteiras e com o fim de linha. Um lote por leitura, e não uma
+/// mensagem por linha: num testbench que imprime sem parar, passar cada
+/// linha pelo canal custava mais que o simulador escrevê-la. Quem escreve
+/// devagar continua chegando linha a linha, porque a leitura volta com o que
+/// já está no pipe. Uma linha pela metade espera a próxima leitura; a última,
+/// sem fim de linha, vai quando o pipe fecha.
 fn read_lines(
-    pipe: impl Read + Send + 'static,
+    mut pipe: impl Read + Send + 'static,
     stream: Stream,
     lines: mpsc::SyncSender<(Stream, Vec<u8>)>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
-        let mut reader = BufReader::new(pipe);
+        let mut chunk = vec![0; READ_CHUNK];
+        let mut pending = Vec::new();
         loop {
-            let mut line = Vec::new();
-            match reader.read_until(b'\n', &mut line) {
-                Ok(0) | Err(_) => break,
-                Ok(_) => {
-                    if lines.send((stream, line)).is_err() {
-                        break;
-                    }
-                }
+            let read = match pipe.read(&mut chunk) {
+                Ok(0) => break,
+                Ok(n) => &chunk[..n],
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(_) => break,
+            };
+            let Some(end) = read.iter().rposition(|&b| b == b'\n') else {
+                pending.extend_from_slice(read);
+                continue;
+            };
+            let mut batch = std::mem::take(&mut pending);
+            batch.extend_from_slice(&read[..=end]);
+            pending.extend_from_slice(&read[end + 1..]);
+            if lines.send((stream, batch)).is_err() {
+                return;
             }
+        }
+        if !pending.is_empty() {
+            let _ = lines.send((stream, pending));
         }
     })
 }
@@ -1152,6 +1173,32 @@ mod tests {
         assert_eq!(out.termination, Termination::TimedOut);
         assert!(started.elapsed() < Duration::from_secs(5));
         assert_eq!(out.stdout.trim(), "antes");
+    }
+
+    #[test]
+    fn lines_come_whole_from_batched_reads() {
+        let seen = std::sync::Mutex::new(Vec::new());
+        let on_line = |_: Stream, line: &str| seen.lock().unwrap().push(line.to_owned());
+        let watch = Watch {
+            on_line: Some(&on_line),
+            ..Watch::default()
+        };
+        // Uma linha de 200 000 bytes (mais de três leituras), 50 000 curtas,
+        // que chegam em poucos lotes, e a última sem fim de linha.
+        let out = super::run(
+            &sh("head -c 200000 /dev/zero | tr '\\0' a; echo; seq 50000; printf fim"),
+            &watch,
+        )
+        .unwrap();
+        assert!(out.termination.success());
+        let seen = seen.into_inner().unwrap();
+        assert_eq!(seen.len(), 1 + 50_000 + 1);
+        assert_eq!(seen[0].len(), 200_000);
+        assert!(seen[0].bytes().all(|b| b == b'a'));
+        assert_eq!(seen[1], "1");
+        assert_eq!(seen[50_000], "50000");
+        assert_eq!(seen[50_001], "fim");
+        assert!(out.stdout.ends_with("50000\nfim"));
     }
 
     #[test]
