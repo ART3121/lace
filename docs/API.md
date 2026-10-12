@@ -385,6 +385,8 @@ na AURORA (4.4).
 | `set_top_level(caminho)` | arquivo de topo: `topLevelFile` + `isTopLevel` exclusivo; registra se não estava; recusa nome de testbench (3.4) |
 | `resolve_path(texto)` | converte um caminho como está no `.spf` para absoluto |
 | `move_path(de, para) -> Result<MovedPath>` | move ou renomeia um arquivo ou pasta do projeto; os arquivos registrados continuam registrados no lugar novo |
+| `record_move(de, para) -> Result<MovedPath>` | registra no `.spf` um movimento que já aconteceu fora do Lace, sem tocar no disco |
+| `register_generated(builds) -> Result<Vec<AddedFile>>` | registra o `Hardware/<nome>.v` e o `Simulation/<nome>_tb.v` que cada build bem-sucedido gerou e o projeto ainda não tem (5.1.1) |
 
 `add_verilog(toolchain, caminho, testbench)`:
 
@@ -470,6 +472,14 @@ criadas. Os dois são absolutos ou relativos à raiz.
 - O movimento é um `rename`; entre discos diferentes, copiar e apagar. Se o
   `.spf` não puder ser gravado depois, o movimento é desfeito antes do erro.
 - `de` igual a `para` não faz nada.
+
+`record_move(de, para)` é o `move_path` para o que já foi movido fora do
+Lace (no explorador de um editor, com o `mv`), como o `hg mv --after`: só o
+`.spf` muda, do mesmo jeito. As regras do que fica no lugar são as mesmas;
+o disco tem que bater com o movimento: `de` que ainda existe é
+`CannotMove`, e `para` que não existe é `InvalidProject`. Só a caixa
+mudar (`a.v` para `A.v`) vale também aqui. Se o `.spf` não puder ser
+gravado, ele fica como estava.
 
 `MovedPath`:
 
@@ -683,11 +693,26 @@ O fluxo do botão Wave da AURORA é:
 let control = Control::default();
 let builds = build_processors(&tc, project.buildable_processors(), &BuildOptions::default(),
                               OnFailure::Stop, &control, |r| mostrar(r))?;
+project.register_generated(&builds)?;
 if builds.iter().all(BuildResult::succeeded) {
     let options = SimulationOptions::new(Simulator::Icarus);
     let sim = simulate_project(&tc, &project, &options, &control)?;
 }
 ```
+
+Depois do build, `project.register_generated(&builds)` põe no `.spf` o que
+cada processador gerou e o projeto ainda não tem: o `Hardware/<nome>.v`
+entre os sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches,
+no fim de cada lista. É o que a AURORA faz ao atualizar a árvore de
+arquivos, e a CLI e o Studio chamam depois de todo build. Só os builds que
+terminaram bem entram. Num projeto sem sintetizáveis, o `.v` do primeiro
+processador vira o topo; num sem testbench, o testbench dele vira o
+escolhido. O que já está registrado, em qualquer lista, fica como está; o
+que foi tirado com `remove_file` volta no build seguinte. Devolve um
+`AddedFile` por arquivo registrado (`created` é sempre `false`). As
+operações já usavam o `Hardware/<nome>.v` sem ele no `.spf` e tiram o
+repetido quando está; o testbench registrado passa a ser elaborado pelo
+`check` e mostrado pela `hierarchy`, uma vez só.
 
 ### 5.2 `simulate(&Toolchain, &Processor, &SimulationOptions, &Control) -> Result<SimulationResult>`
 
@@ -1083,7 +1108,7 @@ elaboração e um `icarus_image` em `artifacts` para cada uma) e:
 | Campo | Conteúdo |
 |---|---|
 | `design` | `Elaboration` do design, ou `null` sem Verilog de design |
-| `testbenches` | uma `Elaboration` por testbench: os registrados, na ordem do `.spf`, e depois o de cada processador compilado |
+| `testbenches` | uma `Elaboration` por testbench: os registrados, na ordem do `.spf`, e depois o de cada processador compilado que não esteja entre eles |
 
 `Elaboration`:
 
@@ -1220,6 +1245,20 @@ bits ligadas ao mesmo `clk` e à mesma entrada, 160 ligações, levaram mais de
 
 Nomes de módulo com caracteres fora de `[A-Za-z0-9_.-]` (por exemplo
 `$paramod\processor\NUBITS=23`) viram `_` no nome dos arquivos.
+
+### 5.6.1 O RTL viewer: o módulo `rtl_viewer`
+
+O esquemático interativo do netlist, o mesmo que o Studio mostra numa aba e
+a extensão do VS Code num webview, num HTML autocontido que abre em qualquer
+navegador. O viewer é o pacote `packages/rtl-viewer/` do repositório; o build
+dele gera o modelo `rtl-viewer.html`, com o código, o CSS e o worker do layout
+embutidos, que o componente `rtl-viewer` do bundle traz. Não roda ferramenta.
+
+| Função | O que faz |
+|---|---|
+| `rtl_viewer::template(&Toolchain) -> Result<Utf8PathBuf>` | o modelo: o de `LACE_RTL_VIEWER` (`TEMPLATE_ENV`), se definida, ou o do componente. `ComponentMissing("rtl-viewer")` sem o componente; `ToolchainIncomplete` sem o arquivo |
+| `rtl_viewer::write(&modelo, &netlist, título) -> Result<Utf8PathBuf>` | preenche o modelo com o netlist (`SynthesisResult::netlist`) e grava `rtl-viewer.html` na pasta dele, sobrescrevendo o de antes. Os `<` do JSON viram `<`, para um `</script>` dentro de uma string do netlist não fechar o elemento. `ToolchainIncomplete` se o modelo não tem os lugares do netlist e da configuração |
+| `open_with_system(&caminho) -> Result<()>` | abre um arquivo com o programa padrão do sistema (`xdg-open`, `open`, o Explorer), sem esperar por ele. É a única exceção à regra de só rodar ferramentas do bundle: o navegador do usuário não vem nele. `Spawn` se o abridor não pôde rodar |
 
 ### 5.7 `open_waveform(&Toolchain, &onda, &ViewerOptions) -> Result<RunningProcess>`
 
@@ -1944,7 +1983,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `InvalidProject` | `invalid_project` | diretório ou arquivo do projeto ausente ou em conflito | ver `path` e `reason` |
 | `ProjectExists` | `project_exists` | `create` sobre um `.spf` existente | abrir em vez de criar |
 | `OutsideProject` | `outside_project` | `move_path` com um caminho fora da pasta do projeto | usar um caminho do projeto |
-| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.lace`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.lace`; de uma pasta para dentro dela mesma | ver `reason` |
+| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.lace`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.lace`; de uma pasta para dentro dela mesma; `record_move` de uma origem que ainda existe | ver `reason` |
 | `PathExists` | `path_exists` | o destino de `move_path` já existe | outro destino, ou tirar o que está lá |
 | `ProcessorExists` | `processor_exists` | `add_processor` com nome repetido | outro nome |
 | `ProcessorNotFound` | `processor_not_found` | nome inexistente | ver `available` |

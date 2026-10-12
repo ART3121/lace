@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "projectName": "novo",
+    "createdAt": "2026-10-12T18:06:19.194Z",
+    "lastModified": "2026-10-12T18:06:19.194Z",
+    "computerName": "fedora",
+    "appVersion": "lace 0.6.0",
+    "projectPath": "${ROOT}/novo"
+  },
+  "structure": {
+    "basePath": "${ROOT}/novo",
+    "processors": [],
+    "folders": [],
+    "topLevelFile": "",
+    "testbenchFile": "",
+    "synthesizableFiles": [],
+    "testbenchFiles": []
+  }
+}

@@ -1,0 +1,804 @@
+{
+  "note": "Gravado por scripts/record-fixtures.mjs; não edite à mão.",
+  "recordedWith": "lace 0.6.0",
+  "cases": [
+    {
+      "args": [
+        "--version"
+      ],
+      "stdout": "version.txt",
+      "exit": 0
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "initial",
+      "stdout": "status.json"
+    },
+    {
+      "args": [
+        "--events",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "status.json",
+      "state": "initial",
+      "stdout": "status.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "check"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "check.json",
+      "stdout": "check.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "check",
+        "${ROOT}/rtl/somador.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "check.json",
+      "stdout": "check-arquivo.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "check",
+        "--lint"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "check.json",
+      "stdout": "check-lint.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "check",
+        "-p",
+        "soma"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "check.json",
+      "stdout": "check-soma.events.jsonl"
+    },
+    {
+      "args": [
+        "--json",
+        "top",
+        "${ROOT}/tb/contador_tb.v"
+      ],
+      "project": "projeto demo",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": "top-testbench.json"
+    },
+    {
+      "args": [
+        "--json",
+        "top",
+        "${ROOT}/rtl/somador.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "top.json",
+      "next": "top-somador",
+      "stdout": "top-somador.json"
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "top-somador",
+      "stdout": "status-top-somador.json"
+    },
+    {
+      "args": [
+        "--json",
+        "top",
+        "${ROOT}/rtl/contador.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "top.json",
+      "state": "top-somador",
+      "next": "initial",
+      "stdout": "top-contador.json"
+    },
+    {
+      "args": [
+        "--json",
+        "top",
+        "--nao-existe"
+      ],
+      "project": "projeto demo",
+      "exit": 2,
+      "stderr": "top-args.stderr.txt"
+    },
+    {
+      "args": [
+        "--events",
+        "sim"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "sim.json",
+      "stdout": "sim.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "sim",
+        "--fast"
+      ],
+      "project": "projeto demo",
+      "exit": 1,
+      "schema": "events.json",
+      "resultSchema": "sim.json",
+      "stdout": "sim-rapida.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "sim",
+        "-p",
+        "soma"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "sim.json",
+      "stdout": "sim-soma.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "sim",
+        "${ROOT}/tb/somador_tb.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "sim.json",
+      "state": "initial",
+      "next": "sim-somador",
+      "stdout": "sim-somador.events.jsonl"
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "sim-somador",
+      "stdout": "status-sim-somador.json"
+    },
+    {
+      "args": [
+        "--events",
+        "sim",
+        "${ROOT}/tb/contador_tb.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "sim.json",
+      "state": "sim-somador",
+      "next": "initial",
+      "stdout": "sim-contador.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "synth"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "synth.json",
+      "stdout": "synth-sem-svg.events.jsonl",
+      "creates": [
+        {
+          "path": "${ROOT}/.lace/Temp/synth/contador/hierarchy.json",
+          "from": "synth-sem-svg.created.json"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--events",
+        "synth",
+        "--svg"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "synth.json",
+      "stdout": "synth.events.jsonl",
+      "creates": [
+        {
+          "path": "${ROOT}/.lace/Temp/synth/contador/hierarchy.json",
+          "from": "synth.created.json"
+        },
+        {
+          "path": "${ROOT}/.lace/Temp/synth/contador/contador.svg",
+          "from": "synth.created.svg"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--events",
+        "synth",
+        "-p",
+        "soma"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "synth.json",
+      "stdout": "synth-soma.events.jsonl",
+      "creates": [
+        {
+          "path": "${ROOT}/.lace/Temp/synth/soma/hierarchy.json",
+          "from": "synth-soma.created.json"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--json",
+        "wave"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "wave.json",
+      "stdout": "wave.json"
+    },
+    {
+      "args": [
+        "--json",
+        "wave",
+        "-p",
+        "soma"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "wave.json",
+      "stdout": "wave-soma.json"
+    },
+    {
+      "args": [
+        "--json",
+        "wave",
+        "${ROOT}/contador_tb.fst"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "wave.json",
+      "stdout": "wave-arquivo.json"
+    },
+    {
+      "args": [
+        "--json",
+        "add",
+        "${ROOT}/rtl/sobra.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "add.json",
+      "state": "initial",
+      "next": "added",
+      "stdout": "add-sobra.json"
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "added",
+      "stdout": "status-added.json"
+    },
+    {
+      "args": [
+        "--json",
+        "add",
+        "${ROOT}/rtl/velho_tb.v",
+        "--tb"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "add.json",
+      "stdout": "add-velho-tb.json"
+    },
+    {
+      "args": [
+        "--json",
+        "add",
+        "${ROOT}/rtl/novo.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "add.json",
+      "stdout": "add-novo.json",
+      "creates": [
+        {
+          "path": "${ROOT}/rtl/novo.v",
+          "from": "add-novo.created.v"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--json",
+        "new",
+        "novo",
+        "--dir",
+        "${ROOT}"
+      ],
+      "project": "pasta nova",
+      "exit": 0,
+      "stdout": "new-novo.json",
+      "schema": "new.json",
+      "creates": [
+        {
+          "path": "${ROOT}/novo/novo.spf",
+          "from": "new-novo.created.spf"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "novo",
+      "exit": 0,
+      "schema": "status.json",
+      "stdout": "status-novo.json"
+    },
+    {
+      "args": [
+        "--json",
+        "new",
+        "9x",
+        "--dir",
+        "${ROOT}"
+      ],
+      "project": "pasta nova",
+      "exit": 2,
+      "stdout": "new-invalido.json",
+      "schema": "error.json"
+    },
+    {
+      "args": [
+        "--events",
+        "build",
+        "-p",
+        "soma"
+      ],
+      "project": "projeto demo",
+      "exit": 1,
+      "schema": "events.json",
+      "resultSchema": "build.json",
+      "state": "soma-quebrado",
+      "stdout": "build-soma-erro.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "build",
+        "-p",
+        "soma"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "build.json",
+      "stdout": "build-soma.events.jsonl"
+    },
+    {
+      "args": [
+        "--events",
+        "build"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "events.json",
+      "resultSchema": "build.json",
+      "next": "built",
+      "stdout": "build.events.jsonl"
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "built",
+      "stdout": "status-built.json"
+    },
+    {
+      "args": [
+        "--json",
+        "proc",
+        "set",
+        "soma",
+        "--freq",
+        "50"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "proc.json",
+      "stdout": "proc-set-freq.json"
+    },
+    {
+      "args": [
+        "--json",
+        "proc",
+        "set",
+        "soma",
+        "--clocks",
+        "5000"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "proc.json",
+      "stdout": "proc-set-clocks.json"
+    },
+    {
+      "args": [
+        "--json",
+        "proc",
+        "set",
+        "soma",
+        "--arrays",
+        "true"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "proc.json",
+      "stdout": "proc-set-arrays.json"
+    },
+    {
+      "args": [
+        "--json",
+        "proc",
+        "add",
+        "soma",
+        "--lang",
+        "cmm"
+      ],
+      "project": "projeto demo",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": "proc-add-existe.json"
+    },
+    {
+      "args": [
+        "--json",
+        "proc",
+        "add",
+        "novo",
+        "--lang",
+        "cmm"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "proc.json",
+      "state": "initial",
+      "next": "proc-novo",
+      "stdout": "proc-add-novo.json",
+      "creates": [
+        {
+          "path": "${ROOT}/novo/Software/novo.cmm",
+          "from": "proc-add-novo.created.cmm"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "proc-novo",
+      "stdout": "status-proc-novo.json"
+    },
+    {
+      "args": [
+        "--json",
+        "order",
+        "${ROOT}/rtl/somador.v",
+        "--before",
+        "${ROOT}/rtl/contador.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "order.json",
+      "state": "initial",
+      "next": "order-somador",
+      "stdout": "order-somador-subir.json"
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "order-somador",
+      "stdout": "status-order-somador.json"
+    },
+    {
+      "args": [
+        "--json",
+        "order",
+        "${ROOT}/rtl/somador.v",
+        "--after",
+        "${ROOT}/rtl/mux.sv"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "order.json",
+      "state": "initial",
+      "stdout": "order-somador-descer.json"
+    },
+    {
+      "args": [
+        "--json",
+        "order",
+        "${ROOT}/rtl/mux.sv",
+        "--first"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "order.json",
+      "state": "initial",
+      "stdout": "order-mux-primeiro.json"
+    },
+    {
+      "args": [
+        "--json",
+        "order",
+        "${ROOT}/rtl/contador.v",
+        "--last"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "order.json",
+      "state": "initial",
+      "stdout": "order-contador-ultimo.json"
+    },
+    {
+      "args": [
+        "--json",
+        "order",
+        "${ROOT}/rtl/mux.sv",
+        "--before",
+        "${ROOT}/rtl/contador.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "order.json",
+      "state": "initial",
+      "stdout": "order-mux-antes.json"
+    },
+    {
+      "args": [
+        "--json",
+        "remove",
+        "${ROOT}/rtl/somador.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "remove.json",
+      "state": "initial",
+      "next": "removed",
+      "stdout": "remove-somador.json"
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "removed",
+      "stdout": "status-removed.json"
+    },
+    {
+      "args": [
+        "--json",
+        "remove",
+        "${ROOT}/rtl/somador.v",
+        "${ROOT}/rtl/mux.sv"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "remove.json",
+      "stdout": "remove-dois.json"
+    },
+    {
+      "args": [
+        "--json",
+        "remove",
+        "${ROOT}/rtl/sobra.v"
+      ],
+      "project": "projeto demo",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": "remove-sobra.json"
+    },
+    {
+      "args": [
+        "--json",
+        "move",
+        "${ROOT}/rtl/somador.v",
+        "${ROOT}/rtl/adder.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "move.json",
+      "state": "initial",
+      "next": "moved",
+      "stdout": "move-somador.json",
+      "moves": [
+        {
+          "from": "${ROOT}/rtl/somador.v",
+          "to": "${ROOT}/rtl/adder.v"
+        }
+      ]
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "status.json",
+      "state": "moved",
+      "stdout": "status-moved.json"
+    },
+    {
+      "args": [
+        "--json",
+        "move",
+        "--after",
+        "${ROOT}/rtl/somador.v",
+        "${ROOT}/rtl/adder.v"
+      ],
+      "project": "projeto demo",
+      "exit": 0,
+      "schema": "move.json",
+      "state": "initial",
+      "next": "moved",
+      "stdout": "move-after-somador.json"
+    },
+    {
+      "args": [
+        "--json",
+        "move",
+        "--after",
+        "${ROOT}/rtl/mux.sv",
+        "${ROOT}/rtl/adder.v"
+      ],
+      "project": "projeto demo",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": "move-after-nao-movido.json"
+    },
+    {
+      "args": [
+        "--json",
+        "status"
+      ],
+      "project": "sem projeto",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": "sem-projeto.json"
+    },
+    {
+      "args": [
+        "--json",
+        "check"
+      ],
+      "project": "erro",
+      "exit": 1,
+      "schema": "check.json",
+      "stdout": "erro-check.json"
+    },
+    {
+      "args": [
+        "--events",
+        "check"
+      ],
+      "project": "erro",
+      "exit": 1,
+      "schema": "events.json",
+      "resultSchema": "check.json",
+      "stdout": "erro-check.events.jsonl"
+    },
+    {
+      "args": [
+        "--json",
+        "wave"
+      ],
+      "project": "erro",
+      "exit": 2,
+      "schema": "error.json",
+      "stdout": "erro-wave.json"
+    },
+    {
+      "args": [
+        "--events",
+        "sim"
+      ],
+      "project": "infinito",
+      "stdout": "infinito-sim.events.jsonl",
+      "exit": 130,
+      "cancelAt": 4,
+      "schema": "events.json",
+      "resultSchema": "sim.json"
+    },
+    {
+      "args": [
+        "--json",
+        "sim"
+      ],
+      "project": "infinito",
+      "stdout": "infinito-sim.json",
+      "exit": 130,
+      "cancelAt": 0,
+      "schema": "sim.json"
+    },
+    {
+      "args": [
+        "--events",
+        "sim",
+        "--timeout",
+        "1"
+      ],
+      "project": "infinito",
+      "exit": 1,
+      "schema": "events.json",
+      "resultSchema": "sim.json",
+      "stdout": "infinito-timeout.events.jsonl"
+    }
+  ]
+}

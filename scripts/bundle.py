@@ -34,6 +34,9 @@ Os pacotes, com as versões exatas, estão em bundle/versions.json:
   studio/package.json e a do tauri.conf.json;
 - lace-learn: as trilhas de exercícios do `lace learn`, copiadas de
   lace-learn/ deste repositório. Só dados: quem as corrige é o Lace.
+- rtl-viewer: o modelo do HTML do RTL viewer (`lace synth --open`),
+  gerado de packages/rtl-viewer/ deste repositório (npm ci e npm run
+  build). Só dados: quem o preenche com o netlist é o Lace.
 
 Os componentes que o instalador oferece estão em bundle/components.json. O
 OSS CAD Suite vira quatro (icarus, verilator, yosys, graphviz): cada um leva
@@ -306,6 +309,27 @@ def pkg_lace_learn(spec, plat, work, cache):
     return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
 
 
+def pkg_rtl_viewer(spec, plat, work, cache):
+    """O modelo do HTML do RTL viewer, do build de packages/rtl-viewer/
+    deste repositório: um arquivo só, igual nas três plataformas, com o
+    viewer e o worker do layout embutidos."""
+    src = ROOT / spec["path"]
+    npm = shutil.which("npm")
+    if not npm:
+        sys.exit("rtl-viewer: o build do RTL viewer precisa do Node.js (npm)")
+    if not (src / "node_modules").is_dir():
+        run([npm, "ci", "--no-audit", "--no-fund"], cwd=src)
+    run([npm, "run", "build"], cwd=src)
+    template = src / "dist" / "rtl-viewer.html"
+    if not template.is_file():
+        sys.exit(f"rtl-viewer: o build não gerou {template}")
+    stage = work / "rtl-viewer"
+    shutil.rmtree(stage, ignore_errors=True)
+    stage.mkdir(parents=True)
+    shutil.copy2(template, stage / "rtl-viewer.html")
+    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+
+
 def pkg_graphviz(spec, plat, work, cache):
     asset = spec["assets"][plat]
     archive = download(asset["url"], asset["sha256"], cache)
@@ -380,6 +404,7 @@ PACKAGES = {
     "graphviz": pkg_graphviz,
     "studio": pkg_studio,
     "lace-learn": pkg_lace_learn,
+    "rtl-viewer": pkg_rtl_viewer,
 }
 
 

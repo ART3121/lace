@@ -1,0 +1,64 @@
+{
+  "check": {
+    "targets": [
+      "quebrado"
+    ],
+    "status": "failed",
+    "failed_step": "check_syntax",
+    "steps": [
+      {
+        "step": "check_syntax",
+        "tool": "iverilog",
+        "command": {
+          "program": "/bin/bash",
+          "args": [
+            "${HOME}/.local/share/lace/toolchain/oss-cad-suite/bin/iverilog",
+            "-tnull",
+            "-Wall",
+            "-grelative-include",
+            "-I",
+            "${ROOT}",
+            "${ROOT}/quebrado.v"
+          ],
+          "cwd": "${ROOT}",
+          "env": [
+            [
+              "PATH",
+              "/usr/bin:/bin"
+            ]
+          ],
+          "inherit": []
+        },
+        "termination": {
+          "kind": "exited",
+          "value": 2
+        },
+        "stdout": "",
+        "stderr": "${ROOT}/quebrado.v:5: syntax error\nI give up.\n",
+        "duration_ms": 20
+      }
+    ],
+    "diagnostics": [
+      {
+        "tool": "iverilog",
+        "severity": "error",
+        "message": "syntax error",
+        "file": "${ROOT}/quebrado.v",
+        "line": 5,
+        "column": null,
+        "raw": "${ROOT}/quebrado.v:5: syntax error"
+      },
+      {
+        "tool": "iverilog",
+        "severity": "unknown",
+        "message": "I give up.",
+        "file": null,
+        "line": null,
+        "column": null,
+        "raw": "I give up."
+      }
+    ],
+    "duration_ms": 20
+  },
+  "report": "run-000001"
+}

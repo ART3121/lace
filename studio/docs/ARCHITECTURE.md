@@ -70,7 +70,6 @@ lace-studio/
       lace-types.ts          os tipos do Core, GERADOS dos JSON Schemas do Lace
     state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic;
                              layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela)
-    schematic/               o RTLViewer: netlist do Yosys, grafo, layout (ELK num worker), desenho, painéis, exportação
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
     console/                 os consoles xterm.js e o terminal de shell
     components/              layout/, sidebar/, editor/, panel/, views/, dialogs/
@@ -358,7 +357,7 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useProject` | `state/project.ts` | o retrato do projeto, o alvo (projeto ou processador), a versão da árvore |
 | `useEditor` | `state/editor.ts` | as abas, os grupos do editor dividido e as abas de cada um, os documentos abertos, a aba e o grupo ativos, o cursor, a sessão |
 | `useJobs` | `state/jobs.ts` | a operação rodando, o último resultado de cada fluxo, problemas, última síntese |
-| `useSchematic` | `state/schematic.ts` | o RTLViewer: o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista (no `localStorage`) |
+| `useSchematic` | `state/schematic.ts` | o RTLViewer: o estado do pacote `@lace/rtl-viewer` (o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista, no `localStorage`) |
 | `useLayout` | `state/layout.ts` | a janela agora (`live`: regiões, vistas, barras, tamanhos), a maximização do painel, as marcas de não lido, o modo do explorador, o zoom e o zen; guardado no `localStorage` por conveniência (o zen não) |
 | (sem store) | `state/savedLayouts.ts` | os layouts com nome: os prontos e os gravados no `settings.json`; aplicar, salvar, restaurar, renomear, excluir; `useLayoutStatus` (o em uso e se a janela está diferente dele) |
 | `useSettingsPage` | `state/settingsPage.ts` | a página aberta das Preferências (no `localStorage`); "Personalizar layout..." a troca para a do layout antes de abrir a aba |
@@ -492,15 +491,26 @@ O esquemático sai do netlist da síntese (`hierarchy.json`, o `write_json`
 do Yosys), sem Graphviz. A síntese do Studio pede `schematic: false`; o
 `show` + `dot` do Core fica para a CLI (`lace synth --svg`).
 
-| Etapa | Arquivo | O que faz |
+O viewer em si é o pacote `@lace/rtl-viewer`, em `packages/rtl-viewer/` do
+repositório, que a extensão do VS Code e o `lace synth --open` também usam.
+O Studio compila o fonte dele direto (o alias e o `dedupe` em
+`vite.config.ts`, o `paths` em `tsconfig.json`), e o CSS dele vem em
+`main.tsx`. Do lado do Studio ficam o estado (`state/schematic.ts`, o do
+pacote com o leitor do netlist pelo backend) e a aba
+(`components/views/SchematicView.tsx`): o netlist da síntese ou o que ficou
+no disco, o "Ir ao código" pelo editor, a exportação pelo diálogo de salvar,
+"Sintetizar de novo" e os botões e o menu do Studio, que a vista do pacote
+recebe.
+
+| Etapa | Arquivo, em `packages/rtl-viewer/src/` | O que faz |
 |---|---|---|
-| Netlist | `schematic/yosys.ts` | tipos do JSON, nomes legíveis (`$paramod...` → `fir_tap`), parâmetros, constantes, o `src` |
-| Grafo | `schematic/graph.ts` | nós, redes e arestas de um módulo: liga os bits em barramentos, com split e join onde o barramento se parte ou se junta; constantes e redes globais (entrada com 8 destinos ou mais) viram etiqueta na porta, sem nó |
-| Símbolos | `schematic/cells.ts` | a família de cada célula (a cor), o símbolo e a geometria, com as portas em posição fixa |
-| Layout | `schematic/layout.ts`, `engine.ts` | o ELK (layered, ortogonal, `BRANDES_KOEPF`) num Web Worker, com cache por netlist e módulo |
-| Desenho | `schematic/Scene.tsx` | SVG no DOM; as cores são as `--sch-*` do tema (`schematicColors`, em `themes/index.ts`) |
-| Vista | `components/views/SchematicView.tsx`, `schematic/Canvas.tsx`, `panels.tsx` | barra, trilha, busca, zoom e arraste, destaque, árvore e detalhes |
-| Exportar | `schematic/export.ts` | o desenho sem destaque, com as cores calculadas escritas em cada elemento |
+| Netlist | `yosys.ts` | tipos do JSON, nomes legíveis (`$paramod...` → `fir_tap`), parâmetros, constantes, o `src` |
+| Grafo | `graph.ts` | nós, redes e arestas de um módulo: liga os bits em barramentos, com split e join onde o barramento se parte ou se junta; constantes e redes globais (entrada com 8 destinos ou mais) viram etiqueta na porta, sem nó |
+| Símbolos | `cells.ts` | a família de cada célula (a cor), o símbolo e a geometria, com as portas em posição fixa |
+| Layout | `layout.ts`, `engine.ts` | o ELK (layered, ortogonal, `BRANDES_KOEPF`) num Web Worker, com cache por netlist e módulo; quem abriga cria o worker (`setLayoutWorker`) |
+| Desenho | `Scene.tsx` | SVG no DOM; as cores são as `--sch-*` do tema (`schematicColors`, em `themes/index.ts` do Studio) |
+| Vista | `RtlViewer.tsx`, `Canvas.tsx`, `panels.tsx` | barra, trilha, busca, zoom e arraste, destaque, árvore e detalhes |
+| Exportar | `export.ts` | o desenho sem destaque, com as cores calculadas escritas em cada elemento |
 
 As cores das famílias vêm da paleta dos terminais do tema (amarelo,
 azul, magenta, ciano, verde), que todo tema define com matizes distintos;

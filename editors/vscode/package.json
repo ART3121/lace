@@ -1,0 +1,845 @@
+{
+  "name": "lace",
+  "displayName": "Lace",
+  "description": "Projetos do Lace no VS Code: as fontes do projeto e o topo do design, pela CLI lace",
+  "version": "0.1.0",
+  "publisher": "nipscernlab",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ART3121/lace.git",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "verilog",
+    "sapho",
+    "icarus",
+    "fpga",
+    "lace"
+  ],
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.spf"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "A extensão roda o lace sobre os arquivos do projeto."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "configuration": {
+      "title": "Lace",
+      "properties": {
+        "lace.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "O executável `lace`. Vazio: o primeiro `lace` do `PATH`."
+        },
+        "lace.check.lint": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Toda verificação roda também o `verilator --lint-only` (`lace check --lint`), que acha larguras que não batem e sinais sem uso."
+        },
+        "lace.check.onSave": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Verifica o projeto ao gravar um `.v` ou `.sv` dele. O resultado vai para o painel Problemas e para a barra de status, sem notificação."
+        },
+        "lace.add.askForNewFiles": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Pergunta se põe no projeto um `.v` ou `.sv` novo que aparece na pasta dele, fora do `.spf`."
+        },
+        "lace.files.followExplorer": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Um arquivo do projeto renomeado ou movido no explorador continua no projeto, no lugar novo (`lace move --after`), e um apagado sai do projeto (`lace remove`)."
+        },
+        "lace.sim.verilator": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Simula no Verilator, com onda (`lace sim --verilator`), em vez do Icarus."
+        },
+        "lace.sim.timeout": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Encerra a simulação que passar deste tempo, em segundos (`lace sim --timeout`). `0`: sem limite; o botão Sim, girando, cancela."
+        },
+        "lace.synth.schematic": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Também desenha o esquemático do Graphviz em SVG (`lace synth --svg`) e o abre. O RTL viewer já mostra o netlist; num design grande o Graphviz pode levar até 60 s."
+        },
+        "lace.synth.openViewer": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Abre o RTL viewer, o esquemático interativo do Lace, depois de cada síntese."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "cmm",
+        "aliases": [
+          "C±",
+          "C mais-menos",
+          "cmm"
+        ],
+        "extensions": [
+          ".cmm"
+        ],
+        "configuration": "./languages/cmm.language-configuration.json"
+      },
+      {
+        "id": "sapho-asm",
+        "aliases": [
+          "Assembly do SAPHO",
+          "sapho-asm"
+        ],
+        "filenamePatterns": [
+          "**/Software/*.asm"
+        ],
+        "configuration": "./languages/sapho-asm.language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cmm",
+        "scopeName": "source.cmm",
+        "path": "./syntaxes/cmm.tmLanguage.json"
+      },
+      {
+        "language": "sapho-asm",
+        "scopeName": "source.sapho-asm",
+        "path": "./syntaxes/sapho-asm.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "cmm",
+        "path": "./snippets/cmm.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lace.setTop",
+        "title": "Definir como topo",
+        "category": "Lace",
+        "icon": "$(target)"
+      },
+      {
+        "command": "lace.build",
+        "title": "Compilar os processadores",
+        "category": "Lace",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "lace.buildProcessor",
+        "title": "Compilar o processador",
+        "category": "Lace",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "lace.newProcessor",
+        "title": "Novo processador SAPHO...",
+        "category": "Lace",
+        "icon": "$(add)"
+      },
+      {
+        "command": "lace.configureProcessor",
+        "title": "Configurar o processador...",
+        "category": "Lace",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "lace.check",
+        "title": "Verificar o projeto",
+        "category": "Lace",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "lace.checkLint",
+        "title": "Verificar o projeto com lint (Verilator)",
+        "category": "Lace"
+      },
+      {
+        "command": "lace.checkFile",
+        "title": "Verificar este arquivo",
+        "category": "Lace",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "lace.checkProcessor",
+        "title": "Verificar o processador",
+        "category": "Lace",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "lace.sim",
+        "title": "Simular o projeto",
+        "category": "Lace",
+        "icon": "$(play)"
+      },
+      {
+        "command": "lace.simFast",
+        "title": "Simular o projeto rápido (Verilator, sem onda)",
+        "category": "Lace"
+      },
+      {
+        "command": "lace.simTestbench",
+        "title": "Simular este testbench",
+        "category": "Lace",
+        "icon": "$(play)"
+      },
+      {
+        "command": "lace.simProcessor",
+        "title": "Simular o processador",
+        "category": "Lace",
+        "icon": "$(play)"
+      },
+      {
+        "command": "lace.synth",
+        "title": "Sintetizar o projeto",
+        "category": "Lace",
+        "icon": "$(circuit-board)"
+      },
+      {
+        "command": "lace.synthProcessor",
+        "title": "Sintetizar o processador",
+        "category": "Lace",
+        "icon": "$(circuit-board)"
+      },
+      {
+        "command": "lace.rtlViewer",
+        "title": "Abrir o RTL viewer",
+        "category": "Lace",
+        "icon": "$(circuit-board)"
+      },
+      {
+        "command": "lace.wave",
+        "title": "Abrir a onda",
+        "category": "Lace",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "lace.waveProcessor",
+        "title": "Abrir a onda do processador",
+        "category": "Lace",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "lace.waveFile",
+        "title": "Abrir no surfer-aurora",
+        "category": "Lace",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "lace.cancel",
+        "title": "Cancelar o que está rodando",
+        "category": "Lace",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "lace.cancelRun",
+        "title": "Cancelar",
+        "category": "Lace"
+      },
+      {
+        "command": "lace.add",
+        "title": "Adicionar ao projeto",
+        "category": "Lace",
+        "icon": "$(add)"
+      },
+      {
+        "command": "lace.addTestbench",
+        "title": "Adicionar ao projeto como testbench",
+        "category": "Lace"
+      },
+      {
+        "command": "lace.newFile",
+        "title": "Novo arquivo Verilog...",
+        "category": "Lace",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "lace.remove",
+        "title": "Tirar do projeto",
+        "category": "Lace",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "lace.rename",
+        "title": "Renomear ou mover...",
+        "category": "Lace",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "lace.moveUp",
+        "title": "Subir na ordem de compilação",
+        "category": "Lace",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "lace.moveDown",
+        "title": "Descer na ordem de compilação",
+        "category": "Lace",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "lace.moveFirst",
+        "title": "Primeiro na ordem de compilação",
+        "category": "Lace"
+      },
+      {
+        "command": "lace.moveLast",
+        "title": "Último na ordem de compilação",
+        "category": "Lace"
+      },
+      {
+        "command": "lace.newProject",
+        "title": "Novo projeto",
+        "category": "Lace",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "lace.refresh",
+        "title": "Atualizar",
+        "category": "Lace",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "lace.selectProject",
+        "title": "Escolher o projeto ativo",
+        "category": "Lace"
+      },
+      {
+        "command": "lace.showTools",
+        "title": "Mostrar a saída das ferramentas",
+        "category": "Lace",
+        "icon": "$(output)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "lace",
+          "title": "Lace",
+          "icon": "media/lace.svg"
+        }
+      ]
+    },
+    "views": {
+      "lace": [
+        {
+          "id": "lace.sources",
+          "name": "Fontes"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "lace.sources",
+        "contents": "Procurando o lace...",
+        "when": "lace.state == checking"
+      },
+      {
+        "view": "lace.sources",
+        "contents": "O executável lace não foi encontrado.\n[Configurar lace.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Instalar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
+        "when": "lace.state == missing"
+      },
+      {
+        "view": "lace.sources",
+        "contents": "Esta versão do lace não serve para a extensão. Os detalhes estão na saída Lace.\n[Configurar lace.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Atualizar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
+        "when": "lace.state == unsupported"
+      },
+      {
+        "view": "lace.sources",
+        "contents": "Esta pasta não tem um projeto do Lace (.spf).\n[Novo projeto](command:lace.newProject)",
+        "when": "lace.state == noProject && workspaceFolderCount > 0"
+      },
+      {
+        "view": "lace.sources",
+        "contents": "Nenhuma pasta aberta.\n[Novo projeto](command:lace.newProject)\n[Abrir pasta](command:vscode.openFolder)",
+        "when": "lace.state == noProject && workspaceFolderCount == 0"
+      },
+      {
+        "view": "lace.sources",
+        "contents": "Este workspace tem mais de um projeto do Lace.\n[Escolher o projeto ativo](command:lace.selectProject)",
+        "when": "lace.state == chooseProject"
+      },
+      {
+        "view": "lace.sources",
+        "contents": "O projeto não tem fontes.\n[Novo arquivo Verilog](command:lace.newFile)",
+        "when": "lace.state == ready"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "lace.setTop",
+          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles"
+        },
+        {
+          "command": "lace.build",
+          "when": "lace.feature.processors && lace.projectActive"
+        },
+        {
+          "command": "lace.buildProcessor",
+          "when": "false"
+        },
+        {
+          "command": "lace.newProcessor",
+          "when": "lace.feature.processors && lace.projectActive"
+        },
+        {
+          "command": "lace.configureProcessor",
+          "when": "lace.feature.processors && lace.projectActive"
+        },
+        {
+          "command": "lace.check",
+          "when": "lace.feature.check && lace.projectActive"
+        },
+        {
+          "command": "lace.checkLint",
+          "when": "lace.feature.check && lace.projectActive"
+        },
+        {
+          "command": "lace.checkFile",
+          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/"
+        },
+        {
+          "command": "lace.checkProcessor",
+          "when": "false"
+        },
+        {
+          "command": "lace.sim",
+          "when": "lace.feature.sim && lace.projectActive"
+        },
+        {
+          "command": "lace.simFast",
+          "when": "lace.feature.simFast && lace.projectActive"
+        },
+        {
+          "command": "lace.simTestbench",
+          "when": "lace.feature.sim && lace.projectActive && resourceScheme == file && resourcePath in lace.testbenchFiles"
+        },
+        {
+          "command": "lace.simProcessor",
+          "when": "false"
+        },
+        {
+          "command": "lace.synth",
+          "when": "lace.feature.synth && lace.projectActive"
+        },
+        {
+          "command": "lace.synthProcessor",
+          "when": "false"
+        },
+        {
+          "command": "lace.rtlViewer",
+          "when": "lace.feature.synth && lace.projectActive"
+        },
+        {
+          "command": "lace.wave",
+          "when": "lace.feature.wave && lace.projectActive"
+        },
+        {
+          "command": "lace.waveProcessor",
+          "when": "false"
+        },
+        {
+          "command": "lace.waveFile",
+          "when": "lace.feature.wave && resourceScheme == file && resourceExtname =~ /^\\.(vcd|fst|ghw)$/i"
+        },
+        {
+          "command": "lace.add",
+          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles"
+        },
+        {
+          "command": "lace.addTestbench",
+          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles"
+        },
+        {
+          "command": "lace.newFile",
+          "when": "lace.feature.add && lace.projectActive"
+        },
+        {
+          "command": "lace.remove",
+          "when": "lace.feature.files && lace.projectActive && resourceScheme == file && resourcePath in lace.registeredFiles"
+        },
+        {
+          "command": "lace.rename",
+          "when": "false"
+        },
+        {
+          "command": "lace.moveUp",
+          "when": "false"
+        },
+        {
+          "command": "lace.moveDown",
+          "when": "false"
+        },
+        {
+          "command": "lace.moveFirst",
+          "when": "false"
+        },
+        {
+          "command": "lace.moveLast",
+          "when": "false"
+        },
+        {
+          "command": "lace.newProject",
+          "when": "lace.feature.newProject"
+        },
+        {
+          "command": "lace.refresh",
+          "when": "lace.state == ready"
+        },
+        {
+          "command": "lace.cancel",
+          "when": "lace.running"
+        },
+        {
+          "command": "lace.cancelRun",
+          "when": "false"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "lace.setTop",
+          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles",
+          "group": "lace@1"
+        },
+        {
+          "command": "lace.checkFile",
+          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.simTestbench",
+          "when": "lace.feature.sim && lace.projectActive && resourceScheme == file && resourcePath in lace.testbenchFiles",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.add",
+          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.addTestbench",
+          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
+          "group": "lace@4"
+        },
+        {
+          "command": "lace.waveFile",
+          "when": "lace.feature.wave && resourceScheme == file && resourceExtname =~ /^\\.(vcd|fst|ghw)$/i",
+          "group": "lace@5"
+        },
+        {
+          "command": "lace.newFile",
+          "when": "lace.feature.add && lace.projectActive && explorerResourceIsFolder",
+          "group": "lace@6"
+        },
+        {
+          "command": "lace.remove",
+          "when": "lace.feature.files && lace.projectActive && resourceScheme == file && resourcePath in lace.registeredFiles",
+          "group": "lace@7"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "lace.setTop",
+          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles",
+          "group": "lace@1"
+        },
+        {
+          "command": "lace.checkFile",
+          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.simTestbench",
+          "when": "lace.feature.sim && lace.projectActive && resourceScheme == file && resourcePath in lace.testbenchFiles",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.add",
+          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.addTestbench",
+          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
+          "group": "lace@4"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "lace.setTop",
+          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles",
+          "group": "lace@1"
+        },
+        {
+          "command": "lace.checkFile",
+          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.add",
+          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.remove",
+          "when": "lace.feature.files && lace.projectActive && resourceScheme == file && resourcePath in lace.registeredFiles",
+          "group": "lace@4"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "lace.newFile",
+          "when": "view == lace.sources && lace.feature.add && lace.state == ready",
+          "group": "navigation@3"
+        },
+        {
+          "command": "lace.refresh",
+          "when": "view == lace.sources && lace.state == ready",
+          "group": "navigation@4"
+        },
+        {
+          "command": "lace.showTools",
+          "when": "view == lace.sources",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.selectProject",
+          "when": "view == lace.sources",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.newProject",
+          "when": "view == lace.sources && lace.feature.newProject",
+          "group": "lace@4"
+        },
+        {
+          "command": "lace.newProcessor",
+          "when": "view == lace.sources && lace.feature.processors && lace.state == ready",
+          "group": "lace@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "lace.setTop",
+          "when": "view == lace.sources && lace.feature.setTop && viewItem =~ /\\.settop(\\.|$)/",
+          "group": "inline"
+        },
+        {
+          "command": "lace.setTop",
+          "when": "view == lace.sources && lace.feature.setTop && viewItem =~ /\\.settop(\\.|$)/",
+          "group": "lace@1"
+        },
+        {
+          "command": "lace.add",
+          "when": "view == lace.sources && lace.feature.add && viewItem =~ /^lace\\.unregistered/",
+          "group": "inline"
+        },
+        {
+          "command": "lace.add",
+          "when": "view == lace.sources && lace.feature.add && viewItem == lace.group.unregistered",
+          "group": "inline"
+        },
+        {
+          "command": "lace.add",
+          "when": "view == lace.sources && lace.feature.add && viewItem =~ /^lace\\.unregistered/",
+          "group": "lace@1"
+        },
+        {
+          "command": "lace.addTestbench",
+          "when": "view == lace.sources && lace.feature.add && viewItem =~ /^lace\\.unregistered/",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.wave",
+          "when": "view == lace.sources && lace.feature.wave && viewItem =~ /^lace\\.testbench\\.selected/",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.waveProcessor",
+          "when": "view == lace.sources && lace.feature.wave && viewItem =~ /^lace\\.processor/",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.checkFile",
+          "when": "view == lace.sources && lace.feature.check && viewItem =~ /^lace\\.(design|testbench)(\\.[a-z]+)*\\.verilog$/",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.checkProcessor",
+          "when": "view == lace.sources && lace.feature.check && viewItem =~ /^lace\\.processor/",
+          "group": "lace@2"
+        },
+        {
+          "command": "lace.simTestbench",
+          "when": "view == lace.sources && lace.feature.sim && viewItem =~ /^lace\\.testbench/",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.simProcessor",
+          "when": "view == lace.sources && lace.feature.sim && viewItem =~ /^lace\\.processor/",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.synthProcessor",
+          "when": "view == lace.sources && lace.feature.synth && viewItem =~ /^lace\\.processor/",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.rtlViewer",
+          "when": "view == lace.sources && lace.feature.synth && viewItem =~ /^lace\\.processor/",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.newProcessor",
+          "when": "view == lace.sources && lace.feature.processors && viewItem == lace.group.processor",
+          "group": "inline"
+        },
+        {
+          "command": "lace.buildProcessor",
+          "when": "view == lace.sources && lace.feature.processors && viewItem =~ /^lace\\.processor/",
+          "group": "lace@3"
+        },
+        {
+          "command": "lace.configureProcessor",
+          "when": "view == lace.sources && lace.feature.processors && viewItem =~ /^lace\\.processor/",
+          "group": "lace@4"
+        },
+        {
+          "command": "lace.moveUp",
+          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.first(\\.|$))/",
+          "group": "order@1"
+        },
+        {
+          "command": "lace.moveDown",
+          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.last(\\.|$))/",
+          "group": "order@2"
+        },
+        {
+          "command": "lace.moveFirst",
+          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.first(\\.|$))/",
+          "group": "order@3"
+        },
+        {
+          "command": "lace.moveLast",
+          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.last(\\.|$))/",
+          "group": "order@4"
+        },
+        {
+          "command": "lace.rename",
+          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench|unregistered)(\\.|$)/",
+          "group": "files@1"
+        },
+        {
+          "command": "lace.remove",
+          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(\\.|$)/",
+          "group": "files@2"
+        }
+      ]
+    },
+    "colors": [
+      {
+        "id": "lace.topForeground",
+        "description": "O arquivo de topo na vista Fontes do Lace.",
+        "defaults": {
+          "dark": "charts.yellow",
+          "light": "charts.yellow",
+          "highContrast": "charts.yellow"
+        }
+      },
+      {
+        "id": "lace.simulatedForeground",
+        "description": "O testbench simulado na vista Fontes do Lace.",
+        "defaults": {
+          "dark": "charts.blue",
+          "light": "charts.blue",
+          "highContrast": "charts.blue"
+        }
+      },
+      {
+        "id": "lace.builtForeground",
+        "description": "Um processador compilado na vista Fontes do Lace.",
+        "defaults": {
+          "dark": "charts.green",
+          "light": "charts.green",
+          "highContrast": "charts.green"
+        }
+      },
+      {
+        "id": "lace.notBuiltForeground",
+        "description": "Um processador não compilado na vista Fontes do Lace.",
+        "defaults": {
+          "dark": "charts.orange",
+          "light": "charts.orange",
+          "highContrast": "charts.orange"
+        }
+      },
+      {
+        "id": "lace.unregisteredForeground",
+        "description": "Um arquivo fora do projeto na vista Fontes do Lace.",
+        "defaults": {
+          "dark": "gitDecoration.untrackedResourceForeground",
+          "light": "gitDecoration.untrackedResourceForeground",
+          "highContrast": "gitDecoration.untrackedResourceForeground"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "npm --prefix ../../packages/rtl-viewer run build && node esbuild.mjs",
+    "watch": "npm --prefix ../../packages/rtl-viewer run build && node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "compile-tests": "tsc --outDir out",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run compile-tests && mocha --timeout 20000 \"out/test/unit/**/*.test.js\"",
+    "test:integration": "npm run compile-tests && npm run build && node out/test/integration/runTest.js",
+    "gen:types": "node scripts/gen-lace-types.mjs",
+    "record:fixtures": "node scripts/record-fixtures.mjs",
+    "package": "node scripts/package.mjs",
+    "vscode:prepublish": "npm --prefix ../../packages/rtl-viewer run build && node esbuild.mjs --production"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.20.5",
+    "@types/vscode": "~1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "ajv": "^8.20.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.12.0",
+    "globals": "^17.0.0",
+    "json-schema-to-typescript": "^16.0.0",
+    "mocha": "^11.8.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.0.5"
+  }
+}

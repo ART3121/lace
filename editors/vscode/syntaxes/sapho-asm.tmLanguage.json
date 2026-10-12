@@ -1,0 +1,59 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Assembly do SAPHO",
+  "scopeName": "source.sapho-asm",
+  "comment": "O assembly que o YANC gera (Software/<processador>.asm), portado de studio/src/editor/languages/asm.ts, conferido contra o ASMComp.l e a isa.tsv do YANC. Os mnemônicos diferenciam maiúsculas.",
+  "patterns": [
+    {
+      "match": "//.*$",
+      "name": "comment.line.double-slash.sapho-asm"
+    },
+    {
+      "comment": "arrays antes de array: o flex fica com o casamento mais longo.",
+      "match": "#(?:PRNAME|NUBITS|NBMANT|NBEXPO|NDSTAC|SDEPTH|NUIOIN|NUIOOU|NUGAIN|FFTSIZ|FROUND|arrays|array|ITRAD|TOAQUI|SHARE)\\b",
+      "name": "keyword.control.directive.sapho-asm"
+    },
+    {
+      "match": "@[A-Za-z_]\\w*",
+      "name": "entity.name.label.sapho-asm"
+    },
+    {
+      "match": "\\b(JMP|JIZ|CAL)([ \\t]+)([A-Za-z_]\\w*)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.flow.sapho-asm"
+        },
+        "3": {
+          "name": "entity.name.label.sapho-asm"
+        }
+      }
+    },
+    {
+      "match": "\\b(?:JMP|JIZ|CAL|RET)\\b",
+      "name": "keyword.control.flow.sapho-asm"
+    },
+    {
+      "match": "\\b(?:NOP|LOD|P_LOD|LDI|ILI|SET|SET_P|STI|ISI|PSH|POP|INN|F_INN|P_INN|PF_INN|OUT|ADD|S_ADD|MLT|S_MLT|DIV|S_DIV|QUO|MOD|S_MOD|REM|SGN|S_SGN|F_ADD|SF_ADD|F_SU1|F_SU2|SF_SU1|SF_SU2|F_MLT|SF_MLT|F_DIV|SF_DIV|F_QUO|F_SGN|SF_SGN|F_SCL|SF_SCL|NEG|NEG_M|P_NEG_M|ABS|ABS_M|P_ABS_M|PST|PST_M|P_PST_M|NRM|NRM_M|P_NRM_M|INV|INV_M|P_INV_M|LIN|LIN_M|P_LIN_M|F_NEG|F_NEG_M|PF_NEG_M|F_ABS|F_ABS_M|PF_ABS_M|F_PST|F_PST_M|PF_PST_M|F_ROT|XPO|XPO_M|I2F|I2F_M|P_I2F_M|F2I|F2I_M|P_F2I_M|AND|S_AND|ORR|S_ORR|XOR|S_XOR|LAN|S_LAN|LOR|S_LOR|LES|S_LES|GRE|S_GRE|EQU|S_EQU|F_LES|SF_LES|F_GRE|SF_GRE|SHL|S_SHL|SHR|S_SHR|SRS|S_SRS|LEA|LOD_V|P_LOD_V|SET_V|ADD_V|F_ADD_V|MLT_V|F_MLT_V)\\b",
+      "name": "keyword.other.opcode.sapho-asm"
+    },
+    {
+      "match": "[-+]?\\b\\d+(?:\\.\\d*(?:[eE][-+]?\\d+)?|[eE][-+]?\\d+)",
+      "name": "constant.numeric.float.sapho-asm"
+    },
+    {
+      "match": "[-+]?\\b\\d+\\b",
+      "name": "constant.numeric.integer.sapho-asm"
+    },
+    {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.sapho-asm",
+      "patterns": [
+        {
+          "match": "\\\\.",
+          "name": "constant.character.escape.sapho-asm"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+/*
+ * GERADO por scripts/gen-theme.mjs a partir de studio/src/themes (atlas-light e
+ * atlas) e studio/src/styles/tokens.css. Não edite à mão: rode
+ * `npm run gen:theme`.
+ *
+ * O tema do viewer fora do Studio e do VS Code (o HTML do `lace synth
+ * --open`): o claro ou o escuro, como o sistema.
+ */
+
+:root {
+  color-scheme: light dark;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --active: #00000012;
+  --bg-1: #F4F4F4;
+  --bg-2: #FAFAFA;
+  --bg-editor: #FFFFFF;
+  --border: #DEDEDE;
+  --border-strong: #C8C8C8;
+  --brand: #0033A0;
+  --brand-contrast: #FFFFFF;
+  --brand-fill: #0033A0;
+  --brand-fill-hover: #385CB4;
+  --brand-soft: #0033A01A;
+  --brand-text: #0033A0;
+  --hover: #0000000A;
+  --sch-arith: #946414;
+  --sch-arith-fill: #F5F1EA;
+  --sch-canvas: #FFFFFF;
+  --sch-compare: #5E5670;
+  --sch-compare-fill: #F1F0F2;
+  --sch-const: #85601E;
+  --sch-const-fill: #F4F1EB;
+  --sch-grid: #E2E2E2;
+  --sch-hot: #0033A0;
+  --sch-logic: #3E5A80;
+  --sch-logic-fill: #EEF0F4;
+  --sch-mem: #A94F2E;
+  --sch-mem-fill: #F7EFEC;
+  --sch-module: #0033A0;
+  --sch-module-fill: #E8EDF6;
+  --sch-muted: #6B6B6B;
+  --sch-mux: #4B6386;
+  --sch-mux-fill: #EFF1F4;
+  --sch-other: #6B6B6B;
+  --sch-other-fill: #F2F2F2;
+  --sch-port: #3E3E3E;
+  --sch-port-fill: #EEEEEE;
+  --sch-reg: #3F7D3F;
+  --sch-reg-fill: #EEF3EE;
+  --sch-select: #0033A0;
+  --sch-text: #1C1C1C;
+  --sch-wire: #818181;
+  --shadow-pop: 0 8px 24px #0000001F;
+  --text-0: #1C1C1C;
+  --text-1: #3E3E3E;
+  --text-2: #6B6B6B;
+  --text-3: #9E9E9E;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --active: #FFFFFF12;
+    --bg-1: #171D24;
+    --bg-2: #1C232B;
+    --bg-editor: #0F1419;
+    --border: #252E38;
+    --border-strong: #36424F;
+    --brand: #0B80C3;
+    --brand-contrast: #FFFFFF;
+    --brand-fill: #0B7CBD;
+    --brand-fill-hover: #0A71AC;
+    --brand-soft: #0B7CBD47;
+    --brand-text: #54A6D5;
+    --hover: #FFFFFF0A;
+    --sch-arith: #E6C26E;
+    --sch-arith-fill: #313027;
+    --sch-canvas: #0F1419;
+    --sch-compare: #C49AF0;
+    --sch-compare-fill: #2C293B;
+    --sch-const: #F29E5C;
+    --sch-const-fill: #332A24;
+    --sch-grid: #2D353D;
+    --sch-hot: #54A6D5;
+    --sch-logic: #54A6D5;
+    --sch-logic-fill: #1A2B37;
+    --sch-mem: #EC8566;
+    --sch-mem-fill: #322625;
+    --sch-module: #0B80C3;
+    --sch-module-fill: #0E2534;
+    --sch-muted: #8693A0;
+    --sch-mux: #45C3D1;
+    --sch-mux-fill: #183036;
+    --sch-other: #8693A0;
+    --sch-other-fill: #22282F;
+    --sch-port: #B6C2CD;
+    --sch-port-fill: #2A3036;
+    --sch-reg: #4FBF7F;
+    --sch-reg-fill: #192F29;
+    --sch-select: #0B80C3;
+    --sch-text: #E6EDF3;
+    --sch-wire: #808D99;
+    --shadow-pop: 0 8px 24px #00000073;
+    --text-0: #E6EDF3;
+    --text-1: #B6C2CD;
+    --text-2: #8693A0;
+    --text-3: #5A6673;
+  }
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--sch-canvas);
+  color: var(--text-0);
+  font-family: var(--font-ui, system-ui, sans-serif);
+  font-size: var(--text-md, 13px);
+}

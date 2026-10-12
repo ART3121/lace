@@ -1,0 +1,78 @@
+{
+  "name": "demo",
+  "spf": "${ROOT}/demo.spf",
+  "root": "${ROOT}",
+  "synthesizable": [
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/rtl/contador.v",
+      "top_level": true
+    },
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/rtl/adder.v",
+      "top_level": false
+    },
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/rtl/mux.sv",
+      "top_level": false
+    },
+    {
+      "role": "synthesizable",
+      "path": "${ROOT}/soma/Hardware/soma.v",
+      "top_level": false
+    }
+  ],
+  "testbench": [
+    {
+      "role": "testbench",
+      "path": "${ROOT}/tb/contador_tb.v",
+      "top_level": true
+    },
+    {
+      "role": "testbench",
+      "path": "${ROOT}/tb/somador_tb.v",
+      "top_level": false
+    },
+    {
+      "role": "testbench",
+      "path": "${ROOT}/soma/Simulation/soma_tb.v",
+      "top_level": false
+    }
+  ],
+  "top_level": "${ROOT}/rtl/contador.v",
+  "top_module": "contador",
+  "selected_testbench": "${ROOT}/tb/contador_tb.v",
+  "testbench_module": "contador_tb",
+  "unregistered": [
+    "${ROOT}/rtl/sobra.v",
+    "${ROOT}/rtl/velho_tb.v"
+  ],
+  "here": null,
+  "processors": [
+    {
+      "name": "soma",
+      "language": "cmm",
+      "dir": "${ROOT}/soma",
+      "source": "${ROOT}/soma/Software/soma.cmm",
+      "temp_dir": "${ROOT}/.lace/Temp/soma",
+      "frequency_mhz": 100,
+      "clocks": 2000,
+      "show_arrays": false,
+      "built": true
+    },
+    {
+      "name": "filtro",
+      "language": "cmm",
+      "dir": "${ROOT}/filtro",
+      "source": "${ROOT}/filtro/Software/filtro.cmm",
+      "temp_dir": "${ROOT}/.lace/Temp/filtro",
+      "frequency_mhz": 100,
+      "clocks": 2000,
+      "show_arrays": false,
+      "built": false
+    }
+  ],
+  "issues": []
+}

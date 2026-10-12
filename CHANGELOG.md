@@ -68,6 +68,52 @@
 - `LACE_RELEASE_URL` (o espelho de releases do laboratório) pode trazer um
   arquivo `latest` com a versão mais nova, que o `lace update` lê no lugar
   do GitHub.
+- `lace synth --open` mostra o netlist da síntese no RTL viewer, o
+  esquemático interativo do Studio, no navegador: o Lace grava
+  `rtl-viewer.html` ao lado do netlist (`.lace/Temp/synth/<alvo>/`), um
+  arquivo só que abre sem servidor e sem rede, e o abre pelo abridor do
+  sistema ([docs/CLI.md](docs/CLI.md), "Compilar, verificar, simular,
+  sintetizar"). O `--json` ganha `rtl_viewer`. Com `LACE_OPENER` definida, só
+  grava o arquivo (a extensão do VS Code a define no terminal integrado e
+  abre o netlist numa aba). `LACE_RTL_VIEWER` aponta outro modelo.
+- O componente `rtl-viewer` no bundle, na instalação Recommended: o modelo
+  do HTML do `lace synth --open`, que exige o Yosys. O RTL viewer saiu do
+  Studio para um pacote do Lace, `packages/rtl-viewer/`, que o Studio, a
+  extensão do VS Code e o `lace synth --open` usam; no Studio, nada muda no
+  uso.
+- O build põe no `.spf` o que cada processador gerou, como a AURORA faz:
+  depois de `lace build`, `sim`, `synth` e `fpga build` (e dos fluxos do
+  Studio), o `Hardware/<nome>.v` entra como módulo e o
+  `Simulation/<nome>_tb.v` como testbench, se ainda não estavam. Num projeto
+  sem módulos, o do primeiro processador vira o topo; sem testbench, o dele
+  vira o simulado. Um arquivo tirado com `lace remove` volta no build
+  seguinte. O `--json` desses comandos ganha `registered`; no Core,
+  `Project::register_generated`. Antes, o Lace usava o `.v` gerado sem
+  registrá-lo, e um projeto aberto depois na AURORA, que só compila o que
+  está no `.spf`, dependia de ela o descobrir. O `lace hierarchy` não mostra
+  mais duas vezes o testbench de um processador registrado.
+- `lace move --after` registra no `.spf` um movimento que já aconteceu fora
+  do Lace (no explorador de um editor, com o `mv`), como o `hg mv --after`:
+  os registrados que estavam na origem passam ao destino, com o topo e o
+  testbench simulado, e o disco não é tocado. No Core,
+  `Project::record_move`.
+- A extensão do VS Code, em `editors/vscode/` (versão própria, 0.1.0, ainda
+  não publicada; [README](editors/vscode/README.md)), pela CLI com `--json`
+  e `--events`: a vista Fontes do projeto (`lace status`), com o topo, o
+  testbench simulado e os processadores em destaque; os botões Build,
+  Check, Sim, Wave e Synth na barra de status (`lace build`, `check`, `sim`,
+  `wave` e `synth`), com a saída ao vivo, o cancelamento e os erros do check
+  e do YANC no painel Problemas; o RTL viewer numa aba depois de cada
+  síntese; Definir como topo (`lace top`); Novo projeto (`lace new`), num
+  botão da vista quando a pasta não tem `.spf`; criar e configurar
+  processadores (`lace proc add` e `set`); realce e snippets de C± e do
+  assembly do SAPHO; e os arquivos do projeto: pôr (`lace add`, inclusive um
+  arquivo novo do modelo, o aviso de `.v` novo fora do projeto e arrastar do
+  explorador), tirar (`lace remove`), a ordem de compilação (`lace order`,
+  pelo menu ou arrastando) e renomear (`lace move`); o que o explorador
+  renomeia ou apaga acompanha no `.spf` (`lace move --after`, `lace
+  remove`). Precisa do Lace 0.2.0 ou mais novo (check, sim e synth, da
+  0.3.0).
 
 ## 0.6.0 (2026-10-09)
 

@@ -332,6 +332,57 @@ fn build_without_processors_exits_0() {
 }
 
 #[test]
+fn build_adds_the_generated_files_to_the_project() {
+    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+        return;
+    };
+    if !bundle_has(&tc, "yanc") {
+        return;
+    }
+    let (_guard, root) = new_project("p");
+    lace_in(&root)
+        .args(["proc", "add", "soma"])
+        .assert()
+        .success();
+    let soma_v = Utf8Path::new("soma").join("Hardware").join("soma.v");
+    let soma_tb = Utf8Path::new("soma").join("Simulation").join("soma_tb.v");
+    lace_in(&root)
+        .env("LACE_TOOLCHAIN", &tc)
+        .arg("build")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("Module added: {soma_v} (top)")))
+        .stdout(predicate::str::contains(format!(
+            "Testbench added: {soma_tb} (selected testbench)"
+        )));
+    let structure = &spf(&root)["structure"];
+    assert_eq!(structure["topLevelFile"], "soma/Hardware/soma.v");
+    assert_eq!(structure["testbenchFile"], "soma/Simulation/soma_tb.v");
+
+    // Já registrados: o build seguinte não repete. Tirado, volta.
+    let report = json(
+        lace_in(&root)
+            .env("LACE_TOOLCHAIN", &tc)
+            .args(["--json", "build"]),
+        0,
+    );
+    assert_eq!(report["registered"], serde_json::json!([]));
+    lace_in(&root)
+        .args(["remove", soma_v.as_str()])
+        .assert()
+        .success();
+    let report = json(
+        lace_in(&root)
+            .env("LACE_TOOLCHAIN", &tc)
+            .args(["--json", "build"]),
+        0,
+    );
+    assert_eq!(report["registered"][0]["role"], "synthesizable");
+    let files = spf(&root)["structure"]["synthesizableFiles"].clone();
+    assert_eq!(files[0]["path"], "soma/Hardware/soma.v", "{files:#}");
+}
+
+#[test]
 fn unknown_processor_lists_available_ones() {
     let (_guard, root) = example("soma");
     lace()
@@ -743,6 +794,53 @@ fn move_keeps_files_in_the_project() {
         .success();
     assert!(root.join("hdl/a.v").is_file());
     assert_eq!(spf(&root)["structure"]["topLevelFile"], "hdl/a.v");
+}
+
+#[test]
+fn move_after_records_what_an_editor_moved() {
+    let (_guard, root) = new_project("p");
+    lace_in(&root)
+        .args(["add", "a.v", "a_tb.v"])
+        .assert()
+        .success();
+
+    // A pasta renomeada: `hdl` é a própria `rtl`, não a pasta de destino.
+    std::fs::create_dir(root.join("rtl")).unwrap();
+    lace_in(&root)
+        .args(["move", "a.v", "rtl/"])
+        .assert()
+        .success();
+    std::fs::rename(root.join("rtl"), root.join("hdl")).unwrap();
+    let hdl_a = Utf8Path::new("hdl").join("a.v");
+    lace_in(&root)
+        .args(["move", "--after", "rtl", "hdl"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Recorded move: rtl -> hdl"))
+        .stdout(predicate::str::contains(format!(
+            "{hdl_a} (still in the project, top)"
+        )));
+    assert_eq!(spf(&root)["structure"]["topLevelFile"], "hdl/a.v");
+
+    // Arrastado para dentro de uma pasta que já existia.
+    std::fs::rename(root.join("a_tb.v"), root.join("hdl/a_tb.v")).unwrap();
+    let moved = json(
+        lace_in(&root).args(["--json", "move", "--after", "a_tb.v", "hdl"]),
+        0,
+    );
+    assert_eq!(
+        Utf8Path::new(moved["moved"][0]["to"].as_str().unwrap()),
+        root.join("hdl/a_tb.v")
+    );
+    assert_eq!(spf(&root)["structure"]["testbenchFile"], "hdl/a_tb.v");
+
+    // O que não foi movido é recusado, e nada muda.
+    let refused = json(
+        lace_in(&root).args(["--json", "move", "--after", "hdl/a.v", "b.v"]),
+        2,
+    );
+    assert_eq!(refused["error"]["code"], "invalid_project", "{refused:#}");
+    assert!(root.join("hdl/a.v").is_file());
 }
 
 #[test]

@@ -21,9 +21,9 @@ use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::fpga::{self, FpgaBuildResult, FpgaConfig, FpgaProgramResult};
 use lace_core::history::{self, Operation};
 use lace_core::{
-    BuildOptions, BuildResult, CheckOptions, CheckResult, Control, DesignTarget, OnFailure,
-    Processor, Project, SchematicOptions, SchematicResult, SimulationOptions, SimulationResult,
-    Simulator, SynthesisResult, Toolchain, ViewerOptions,
+    AddedFile, BuildOptions, BuildResult, CheckOptions, CheckResult, Control, DesignTarget,
+    OnFailure, Processor, Project, SchematicOptions, SchematicResult, SimulationOptions,
+    SimulationResult, Simulator, SynthesisResult, Toolchain, ViewerOptions,
 };
 use serde::{Deserialize, Serialize};
 
@@ -252,6 +252,9 @@ pub struct FlowOutcome {
     pub succeeded: bool,
     /// Os builds feitos antes (ou o próprio build).
     pub builds: Vec<BuildResult>,
+    /// O que esses builds geraram e entrou no `.spf` agora
+    /// (`Project::register_generated`).
+    pub registered: Vec<AddedFile>,
     /// O resultado da verificação.
     pub check: Option<CheckResult>,
     /// O resultado da simulação.
@@ -291,6 +294,7 @@ impl FlowOutcome {
             command: request.command_line(),
             succeeded: false,
             builds: Vec::new(),
+            registered: Vec::new(),
             check: None,
             simulation: None,
             outputs: Vec::new(),
@@ -452,7 +456,6 @@ pub fn run(
     {
         project.set_testbench(testbench)?;
     }
-    let project = project;
 
     // Os processadores a compilar antes, e se a falha de um para o resto.
     let (targets, on_failure): (Vec<&Processor>, OnFailure) = match request {
@@ -490,6 +493,14 @@ pub fn run(
         control,
         |result| progress(Progress::Built(result.clone())),
     )?;
+    // O `.v` e o testbench que cada processador gerou entram no `.spf`, como
+    // na CLI. Uma falha ao gravar não desfaz o build.
+    match project.register_generated(&outcome.builds) {
+        Ok(files) => outcome.registered = files,
+        Err(error) => {
+            tracing::warn!("The generated files could not be added to the project: {error}")
+        }
+    }
     let built = outcome.builds.iter().all(BuildResult::succeeded);
     let mut operation = Operation::new(&outcome.command, started).with_builds(&outcome.builds);
 

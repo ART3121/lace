@@ -85,7 +85,7 @@ execução) e apaga o que baixou no fim.
 Os dois instaladores oferecem os mesmos tipos:
 
 - **Recommended** (o padrão): o Lace Studio, YANC, Icarus Verilog, Yosys,
-  Graphviz e surfer-aurora. É o que a AURORA usa no dia a dia, com o
+  Graphviz, o RTL viewer e surfer-aurora. É o que a AURORA usa no dia a dia, com o
   ambiente gráfico.
 - **Advanced**: a lista de componentes, para marcar exatamente o que
   instalar.
@@ -100,6 +100,7 @@ Os dois instaladores oferecem os mesmos tipos:
 | cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) | não |
 | Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
+| RTL viewer | o esquemático interativo do netlist da síntese no navegador (`lace synth --open`); precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim |
 | openFPGALoader | grava as placas FPGA pelo cabo USB delas ([FPGA.md](FPGA.md)); no Linux, o acesso ao cabo pede uma regra do udev | não |
 | Lace Learn | os exercícios de Verilog do `lace learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | não |
@@ -112,8 +113,8 @@ escreve testbench em Python e acrescenta 115 MiB no Linux (42 MiB com o
 Verilator, que traz o mesmo Python). O Lace Learn fica fora porque só serve
 a quem vai fazer os exercícios, e o openFPGALoader, porque só serve a quem
 grava placa.
-Marcar o Graphviz marca o Yosys; desmarcar o Yosys desmarca o Graphviz. Do
-mesmo jeito, marcar o cocotb ou o Lace Learn marca o Icarus.
+Marcar o Graphviz ou o RTL viewer marca o Yosys; desmarcar o Yosys desmarca
+os dois. Do mesmo jeito, marcar o cocotb ou o Lace Learn marca o Icarus.
 
 O Lace Studio fica no bundle, em `toolchain/studio/`, e usa o bundle em que
 está. O atalho

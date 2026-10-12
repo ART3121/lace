@@ -35,6 +35,7 @@ Bundle `2026.10.07`. Os pacotes, com as versões fixadas em
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
 | studio | a versão do Lace | o Lace Studio: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
 | lace-learn | a versão do Lace | as trilhas de exercícios do `lace learn` ([LEARN.md](LEARN.md)): textos, `.v` e `.json` | copiadas de `lace-learn/` deste repositório |
+| rtl-viewer | a versão do Lace | o modelo do HTML do RTL viewer (`rtl-viewer.html`), que o `lace synth --open` preenche com o netlist: o viewer, o React e o worker do layout num arquivo só | gerado de `packages/rtl-viewer/` deste repositório pelo empacotamento (`npm ci`, `npm run build`) |
 
 Os componentes, que o instalador deixa escolher, estão em
 `bundle/components.json`:
@@ -51,6 +52,7 @@ Os componentes, que o instalador deixa escolher, estão em
 | `openfpgaloader` | OSS CAD Suite | `oss-cad-suite/` |
 | `studio` | studio | `studio/` |
 | `lace-learn` | lace-learn | `lace-learn/` |
+| `rtl-viewer` | rtl-viewer | `rtl-viewer/` |
 
 O Lace não roda o Studio: ele está no bundle para o instalador e o
 `lace install` o oferecerem como os outros, e o Studio instalado usa o

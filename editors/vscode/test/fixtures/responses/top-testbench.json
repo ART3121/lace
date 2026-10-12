@@ -1,0 +1,1 @@
+{"error":{"code":"invalid_name","message":"Invalid name 'contador_tb.v': A testbench (tb_<name>.v, <name>_tb.v) cannot be the top level"}}

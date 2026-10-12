@@ -1208,6 +1208,83 @@ fn move_path_refuses_what_stays_in_place() {
     assert!(same.files.is_empty());
 }
 
+#[test]
+fn record_move_follows_what_was_moved_outside() {
+    let (_guard, mut project) = project();
+    let root = project.root().to_owned();
+    let gate = write(root.join("and_gate.v"), AND_GATE);
+    let mux = write(root.join("rtl/mux2.v"), MUX2);
+    let bench = write(root.join("rtl/bancada.v"), BANCADA);
+    project
+        .add_file(FileRole::Synthesizable, &gate, None)
+        .unwrap();
+    project
+        .add_file(FileRole::Synthesizable, &mux, None)
+        .unwrap();
+    project.add_file(FileRole::Testbench, &bench, None).unwrap();
+    project.set_top("mux2").unwrap();
+    project.set_testbench(&bench).unwrap();
+
+    // Uma pasta renomeada no explorador: o topo e o testbench estavam nela.
+    std::fs::rename(root.join("rtl"), root.join("hdl")).unwrap();
+    let moved = project.record_move("rtl", "hdl").unwrap();
+    assert_eq!(moved.files.len(), 2, "{moved:#?}");
+    let reopened = Project::open(project.spf_path()).unwrap();
+    assert_eq!(reopened.top_level(), Some(root.join("hdl/mux2.v")));
+    assert_eq!(reopened.testbench(), Some(root.join("hdl/bancada.v")));
+    let order: Vec<_> = reopened
+        .files(FileRole::Synthesizable)
+        .into_iter()
+        .map(|f| f.path)
+        .collect();
+    assert_eq!(
+        order,
+        [gate.clone(), root.join("hdl/mux2.v")],
+        "a ordem fica"
+    );
+
+    // Um arquivo renomeado.
+    std::fs::rename(&gate, root.join("porta.v")).unwrap();
+    let moved = project.record_move(&gate, root.join("porta.v")).unwrap();
+    assert_eq!(moved.files[0].path, root.join("porta.v"));
+    let spf: serde_json::Value = serde_json::from_str(&read(project.spf_path())).unwrap();
+    assert_eq!(spf["structure"]["synthesizableFiles"][0]["path"], "porta.v");
+    assert_eq!(spf["structure"]["synthesizableFiles"][0]["name"], "porta.v");
+}
+
+#[test]
+fn record_move_refuses_when_the_disk_does_not_match() {
+    let (_guard, mut project) = project();
+    let root = project.root().to_owned();
+    project
+        .add_processor(&NewProcessor::new("soma", Language::Cmm))
+        .unwrap();
+    let a = write(root.join("a.v"), AND_GATE);
+    project.add_file(FileRole::Synthesizable, &a, None).unwrap();
+    write(root.join("b.v"), AND_GATE);
+    let spf_before = read(project.spf_path());
+
+    // Nada foi movido: a.v ainda existe.
+    let err = project.record_move("a.v", "b.v").unwrap_err();
+    assert!(matches!(err, LaceError::CannotMove { .. }), "{err}");
+    // O destino não existe.
+    std::fs::rename(&a, root.join("c.v")).unwrap();
+    let err = project.record_move("a.v", "d.v").unwrap_err();
+    assert!(matches!(err, LaceError::InvalidProject { .. }), "{err}");
+    // A pasta de um processador não sai do lugar, nem depois de movida.
+    std::fs::rename(root.join("soma"), root.join("outro")).unwrap();
+    let err = project.record_move("soma", "outro").unwrap_err();
+    assert!(matches!(err, LaceError::CannotMove { .. }), "{err}");
+    std::fs::rename(root.join("outro"), root.join("soma")).unwrap();
+    let (_outside_guard, outside) = common::tempdir();
+    let err = project.record_move("c.v", outside.join("c.v")).unwrap_err();
+    assert!(matches!(err, LaceError::OutsideProject(_)), "{err}");
+    assert_eq!(read(project.spf_path()), spf_before, "nada mudou no .spf");
+
+    // O mesmo lugar não faz nada.
+    assert!(project.record_move("b.v", "b.v").unwrap().files.is_empty());
+}
+
 // ------------------------------------------------------------ com ferramentas
 
 #[test]

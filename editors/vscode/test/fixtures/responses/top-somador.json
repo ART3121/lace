@@ -1,0 +1,5 @@
+{
+  "top_level": "${ROOT}/rtl/somador.v",
+  "module": "somador",
+  "module_error": null
+}

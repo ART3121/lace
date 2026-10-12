@@ -218,6 +218,17 @@
       "closure": false,
       "select": { "*": ["**"] },
       "run": {}
+    },
+    {
+      "name": "rtl-viewer",
+      "label": "RTL viewer",
+      "description": "The interactive schematic of the synthesis netlist, in the browser: lace synth --open",
+      "recommended": true,
+      "requires": ["yosys"],
+      "package": "rtl-viewer",
+      "closure": false,
+      "select": { "*": ["**"] },
+      "run": {}
     }
   ]
 }

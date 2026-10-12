@@ -1,0 +1,39 @@
+{
+  "creator": "Yosys 0.69+156 (git sha1 9d0c91b23-dirty, Release, Clang /usr/bin/clang++ 21.1.8)",
+  "modules": {
+    "contador": {
+      "attributes": {
+        "top": "00000000000000000000000000000001",
+        "src": "00000000000000000000000000000001"
+      },
+      "ports": {
+        "a": {
+          "direction": "input",
+          "bits": [ 2, 3, 4, 5, 6, 7, 8, 9 ]
+        },
+        "y": {
+          "direction": "output",
+          "bits": [ 2, 3, 4, 5, 6, 7, 8, 9 ]
+        }
+      },
+      "cells": {
+      },
+      "netnames": {
+        "a": {
+          "hide_name": 0,
+          "bits": [ 2, 3, 4, 5, 6, 7, 8, 9 ],
+          "attributes": {
+            "src": "${ROOT}/rtl/contador.v:4.23-4.24"
+          }
+        },
+        "y": {
+          "hide_name": 0,
+          "bits": [ 2, 3, 4, 5, 6, 7, 8, 9 ],
+          "attributes": {
+            "src": "${ROOT}/rtl/contador.v:5.23-5.24"
+          }
+        }
+      }
+    }
+  }
+}

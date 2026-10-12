@@ -1,0 +1,11 @@
+{
+  "project": "${ROOT}/demo.spf",
+  "files": [
+    {
+      "path": "${ROOT}/rtl/novo.v",
+      "role": "synthesizable",
+      "created": true,
+      "selected": false
+    }
+  ]
+}

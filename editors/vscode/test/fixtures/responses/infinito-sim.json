@@ -1,0 +1,108 @@
+{
+  "builds": [],
+  "registered": [],
+  "simulation": {
+    "top": "infinito_tb",
+    "simulator": "icarus",
+    "fast": false,
+    "status": "cancelled",
+    "failed_step": "simulate",
+    "steps": [
+      {
+        "step": "elaborate",
+        "tool": "iverilog",
+        "command": {
+          "program": "/bin/bash",
+          "args": [
+            "${HOME}/.local/share/lace/toolchain/oss-cad-suite/bin/iverilog",
+            "-grelative-include",
+            "-I",
+            "${ROOT}",
+            "-I",
+            "${ROOT}",
+            "-s",
+            "infinito_tb",
+            "-o",
+            "${ROOT}/.lace/Temp/infinito_tb.vvp",
+            "${ROOT}/.lace/Temp/instr_infinito_tb.v"
+          ],
+          "cwd": "${ROOT}",
+          "env": [
+            [
+              "PATH",
+              "/usr/bin:/bin"
+            ]
+          ],
+          "inherit": []
+        },
+        "termination": {
+          "kind": "exited",
+          "value": 0
+        },
+        "stdout": "",
+        "stderr": "",
+        "duration_ms": 23
+      },
+      {
+        "step": "simulate",
+        "tool": "vvp",
+        "command": {
+          "program": "/bin/bash",
+          "args": [
+            "${HOME}/.local/share/lace/toolchain/oss-cad-suite/bin/vvp",
+            "-n",
+            "${ROOT}/.lace/Temp/infinito_tb.vvp",
+            "-fst"
+          ],
+          "cwd": "${ROOT}",
+          "env": [
+            [
+              "PATH",
+              "/usr/bin:/bin"
+            ]
+          ],
+          "inherit": []
+        },
+        "termination": {
+          "kind": "cancelled"
+        },
+        "stdout": "comecou\nFST info: dumpfile infinito_tb.fst opened for output.\n",
+        "stderr": "",
+        "duration_ms": 3093
+      }
+    ],
+    "diagnostics": [
+      {
+        "tool": "vvp",
+        "severity": "info",
+        "message": "FST info: dumpfile infinito_tb.fst opened for output.",
+        "file": null,
+        "line": null,
+        "column": null,
+        "raw": "FST info: dumpfile infinito_tb.fst opened for output."
+      }
+    ],
+    "artifacts": [
+      {
+        "kind": "icarus_image",
+        "path": "${ROOT}/.lace/Temp/infinito_tb.vvp",
+        "required": true,
+        "fresh": true
+      },
+      {
+        "kind": "waveform",
+        "path": "${ROOT}/infinito_tb.fst",
+        "required": false,
+        "fresh": true
+      }
+    ],
+    "waveform": null,
+    "outputs": [],
+    "missing_inputs": [],
+    "tests": null,
+    "duration_ms": 3117
+  },
+  "outputs": [],
+  "surfer_pid": null,
+  "report": "run-000002"
+}

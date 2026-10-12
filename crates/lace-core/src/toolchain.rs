@@ -105,6 +105,10 @@ pub mod component {
     /// repositório). Só dados: o código que as corrige está no Lace e no
     /// Studio, no crate `lace-learn`.
     pub const LACE_LEARN: &str = "lace-learn";
+    /// O RTL viewer fora do Studio (`packages/rtl-viewer/` no repositório):
+    /// o modelo do HTML autocontido que o `lace synth --open` preenche com
+    /// o netlist ([`crate::rtl_viewer`]). Só dados.
+    pub const RTL_VIEWER: &str = "rtl-viewer";
 
     /// Todos, na ordem em que o Lace os lista.
     pub const ALL: &[&str] = &[
@@ -118,6 +122,7 @@ pub mod component {
         OPENFPGALOADER,
         STUDIO,
         LACE_LEARN,
+        RTL_VIEWER,
     ];
 }
 

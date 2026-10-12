@@ -1,0 +1,11 @@
+{
+  "waveform": "${ROOT}/contador_tb.fst",
+  "pid": 1227096,
+  "log": "${ROOT}/.lace/Temp/surfer/contador_tb.fst.log",
+  "layout": "${ROOT}/wave/contador_tb.surf.ron",
+  "saved_layout": {
+    "path": "${ROOT}/wave/contador_tb.surf.ron",
+    "customized": false
+  },
+  "processors": []
+}

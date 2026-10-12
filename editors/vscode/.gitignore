@@ -1,0 +1,9 @@
+node_modules/
+dist/
+# copiado de packages/rtl-viewer/dist pelo esbuild.mjs
+media/rtl-viewer/
+out/
+.vscode-test/
+*.vsix
+# copiado da raiz do repositório pelo npm run package
+/LICENSE

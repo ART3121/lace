@@ -125,6 +125,9 @@ enum Command {
     },
     /// Move or rename files and folders; the project file follows
     Move {
+        /// Only update the project file: the sources were already moved (by an editor, or with mv)
+        #[arg(long)]
+        after: bool,
         /// Files or folders to move
         #[arg(required = true, value_name = "SOURCE")]
         sources: Vec<Utf8PathBuf>,
@@ -522,6 +525,9 @@ struct SynthArgs {
     /// Module to draw (default: top; -v lists them)
     #[arg(long, requires = "svg")]
     module: Option<String>,
+    /// Open the interactive schematic of the netlist (RTL viewer) in the browser
+    #[arg(long)]
+    open: bool,
     /// Aceito e ignorado: o esquemático não tem mais teto de ligações. Fica
     /// para não quebrar quem já o passa.
     #[arg(long, hide = true)]

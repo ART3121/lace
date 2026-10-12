@@ -1,0 +1,79 @@
+/*
+ * O tema do viewer num webview do VS Code: as variáveis do viewer ligadas
+ * às do tema do editor (--vscode-*, que o VS Code põe no webview e troca
+ * quando o tema muda). Como no Studio, cada família de célula pega um tom da
+ * paleta do terminal, e o preenchimento é ele misturado ao fundo do editor.
+ */
+
+:root {
+  --font-ui: var(--vscode-font-family);
+  --font-mono: var(--vscode-editor-font-family);
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+
+  --bg-editor: var(--vscode-editor-background);
+  --bg-1: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  --bg-2: var(--vscode-editorWidget-background);
+  --text-0: var(--vscode-editor-foreground);
+  --text-1: var(--vscode-foreground);
+  --text-2: var(--vscode-descriptionForeground);
+  --text-3: var(--vscode-disabledForeground);
+  --border: var(--vscode-panel-border, var(--vscode-widget-border));
+  --border-strong: var(--vscode-widget-border, var(--vscode-contrastBorder, var(--vscode-panel-border)));
+  --hover: var(--vscode-list-hoverBackground);
+  --active: var(--vscode-list-inactiveSelectionBackground);
+  --brand: var(--vscode-focusBorder);
+  --brand-text: var(--vscode-textLink-foreground);
+  --brand-soft: color-mix(in srgb, var(--vscode-focusBorder) 12%, transparent);
+  --brand-fill: var(--vscode-button-background);
+  --brand-fill-hover: var(--vscode-button-hoverBackground);
+  --brand-contrast: var(--vscode-button-foreground);
+  --shadow-pop: 0 4px 16px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+
+  --sch-canvas: var(--vscode-editor-background);
+  --sch-grid: color-mix(in srgb, var(--vscode-editor-background) 65%, var(--vscode-disabledForeground));
+  --sch-wire: color-mix(in srgb, var(--vscode-descriptionForeground) 90%, var(--vscode-editor-background));
+  --sch-text: var(--vscode-editor-foreground);
+  --sch-muted: var(--vscode-descriptionForeground);
+  --sch-hot: var(--vscode-textLink-activeForeground);
+  --sch-select: var(--vscode-focusBorder);
+
+  --sch-arith: var(--vscode-terminal-ansiYellow);
+  --sch-logic: var(--vscode-terminal-ansiBlue);
+  --sch-compare: var(--vscode-terminal-ansiMagenta);
+  --sch-mux: var(--vscode-terminal-ansiCyan);
+  --sch-reg: var(--vscode-terminal-ansiGreen);
+  --sch-mem: color-mix(in srgb, var(--vscode-terminal-ansiRed) 65%, var(--vscode-terminal-ansiYellow));
+  --sch-module: var(--vscode-focusBorder);
+  --sch-other: var(--vscode-descriptionForeground);
+  --sch-port: var(--vscode-foreground);
+  --sch-const: var(--vscode-debugTokenExpression-number, var(--vscode-terminal-ansiBrightYellow));
+
+  --sch-arith-fill: color-mix(in srgb, var(--sch-arith) 14%, var(--sch-canvas));
+  --sch-logic-fill: color-mix(in srgb, var(--sch-logic) 14%, var(--sch-canvas));
+  --sch-compare-fill: color-mix(in srgb, var(--sch-compare) 14%, var(--sch-canvas));
+  --sch-mux-fill: color-mix(in srgb, var(--sch-mux) 14%, var(--sch-canvas));
+  --sch-reg-fill: color-mix(in srgb, var(--sch-reg) 14%, var(--sch-canvas));
+  --sch-mem-fill: color-mix(in srgb, var(--sch-mem) 14%, var(--sch-canvas));
+  --sch-module-fill: color-mix(in srgb, var(--sch-module) 14%, var(--sch-canvas));
+  --sch-other-fill: color-mix(in srgb, var(--sch-other) 14%, var(--sch-canvas));
+  --sch-port-fill: color-mix(in srgb, var(--sch-port) 14%, var(--sch-canvas));
+  --sch-const-fill: color-mix(in srgb, var(--sch-const) 14%, var(--sch-canvas));
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--sch-canvas);
+  color: var(--text-0);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+}

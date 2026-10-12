@@ -593,6 +593,43 @@ fn has_console() -> bool {
         .is_ok()
 }
 
+/// Abre um arquivo com o programa que o sistema associa a ele: o HTML do RTL
+/// viewer ([`crate::rtl_viewer`]) no navegador padrão. Usa o abridor do
+/// sistema (`xdg-open` no Linux, `open` no macOS, o Explorer no Windows), a
+/// única exceção à regra de só rodar ferramentas do bundle: o navegador do
+/// usuário não vem no bundle, e é o sistema que sabe qual é. Não espera o
+/// programa aberto, que continua depois que o Lace sai.
+///
+/// # Erros
+///
+/// [`LaceError::Spawn`] se o abridor não pôde ser executado.
+pub fn open_with_system(path: &Utf8Path) -> Result<()> {
+    let opener = if cfg!(windows) {
+        "explorer.exe"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let mut command = Command::new(opener);
+    command
+        .arg(path.as_std_path())
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    hide_console(&mut command);
+    let mut child = command.spawn().map_err(|source| LaceError::Spawn {
+        program: opener.into(),
+        source,
+    })?;
+    // O abridor sai logo; esperá-lo numa thread não deixa um zumbi num
+    // programa que continua rodando (o Studio).
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
+}
+
 /// Um processo filho e tudo o que ele iniciar, presos juntos.
 ///
 /// No Windows é um Job Object com `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`:

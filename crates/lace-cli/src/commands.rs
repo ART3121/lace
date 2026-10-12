@@ -14,10 +14,10 @@ use camino::{Utf8Path, Utf8PathBuf};
 use clap::CommandFactory;
 use lace_core::history::{self, Cleanup, Operation};
 use lace_core::{
-    BuildOptions, BuildResult, CheckOptions, Control, DesignTarget, HierarchyOptions, LaceError,
-    Language, ListPosition, NewProcessor, OnFailure, PreparedLayout, Processor, ProcessorConfig,
-    Project, RunningProcess, SchematicOptions, SimulationOptions, SimulationResult, Simulator,
-    Tool, Toolchain, ViewerOptions,
+    AddedFile, BuildOptions, BuildResult, CheckOptions, Control, DesignTarget, HierarchyOptions,
+    LaceError, Language, ListPosition, NewProcessor, OnFailure, PreparedLayout, Processor,
+    ProcessorConfig, Project, RunningProcess, SchematicOptions, SimulationOptions,
+    SimulationResult, Simulator, Tool, Toolchain, ViewerOptions,
 };
 
 use crate::output::Output;
@@ -46,7 +46,11 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Add { files, tb } => add(cli, files, *tb, out)?,
         Command::Remove { files } => remove(cli, files, out)?,
         Command::Top { target } => top(cli, target.as_deref(), out)?,
-        Command::Move { sources, dest } => move_paths(cli, sources, dest, out)?,
+        Command::Move {
+            after,
+            sources,
+            dest,
+        } => move_paths(cli, sources, dest, *after, out)?,
         Command::Order {
             file,
             first,
@@ -234,16 +238,32 @@ fn top(cli: &Cli, target: Option<&str>, out: &Output) -> anyhow::Result<()> {
 /// destino terminado em `/`, criado se faltar), cada origem vai para dentro
 /// dela; senão, a única origem passa a ter o caminho do destino. O resto (o
 /// que fica no lugar, o `.spf`) é do Core.
+///
+/// Com `--after` o movimento já aconteceu, e uma pasta no destino pode ser a
+/// própria origem renomeada (`old` para `new`): ela só conta como pasta de
+/// destino se terminar em `/`, se houver mais de uma origem ou se a origem
+/// já estiver dentro dela.
 fn move_paths(
     cli: &Cli,
     sources: &[Utf8PathBuf],
     dest: &Utf8Path,
+    after: bool,
     out: &Output,
 ) -> anyhow::Result<()> {
     let mut project = open(cli)?;
     let folder = dest.as_str().ends_with(['/', '\\']);
     let dest = settings::absolute(dest)?;
-    let into = folder || dest.is_dir();
+    let into = folder
+        || if after {
+            dest.is_dir()
+                && (sources.len() > 1
+                    || sources
+                        .iter()
+                        .filter_map(|s| s.file_name())
+                        .all(|name| dest.join(name).exists()))
+        } else {
+            dest.is_dir()
+        };
     if !into && sources.len() > 1 {
         bail!(
             "{} is not a folder: with more than one source, the destination must be an existing folder",
@@ -257,8 +277,12 @@ fn move_paths(
             Some(name) if into => dest.join(name),
             _ => dest.clone(),
         };
-        let result = project.move_path(&from, &to)?;
-        out.moved(&result, project.root());
+        let result = if after {
+            project.record_move(&from, &to)?
+        } else {
+            project.move_path(&from, &to)?
+        };
+        out.moved(&result, project.root(), after);
         moved.push(result);
     }
     out.json(&MoveReport {
@@ -361,13 +385,14 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
 
 fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Um projeto só de Verilog não tem o que compilar, e isso não é erro.
     if args.processors.is_empty() && project.processors().is_empty() {
         out.no_processors();
         out.json(&BuildReport {
             project: project.spf_path().to_owned(),
             results: Vec::new(),
+            registered: Vec::new(),
             report: None,
         })?;
         return Ok(true);
@@ -393,15 +418,41 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
         control,
         |r| out.build(r, project.root()),
     )?;
+    let registered = register_generated(&mut project, &results, out);
     let ok = results.iter().all(BuildResult::succeeded);
     let operation = Operation::new(command_line(), started).with_builds(&results);
     let report = record(&project, &toolchain, &operation, out);
     out.json(&BuildReport {
         project: project.spf_path().to_owned(),
         results,
+        registered,
         report,
     })?;
     Ok(ok)
+}
+
+/// Depois de compilar: o `.v` e o testbench que cada processador gerou
+/// entram no `.spf`, se ainda não estão (`Project::register_generated`). Uma
+/// falha ao gravar vira aviso: o build valeu do mesmo jeito.
+pub(crate) fn register_generated(
+    project: &mut Project,
+    builds: &[BuildResult],
+    out: &Output,
+) -> Vec<AddedFile> {
+    match project.register_generated(builds) {
+        Ok(files) => {
+            for file in &files {
+                out.added(file, project.root());
+            }
+            files
+        }
+        Err(error) => {
+            out.warning(&format!(
+                "The generated files could not be added to the project: {error}"
+            ));
+            Vec::new()
+        }
+    }
 }
 
 /// Compila os processadores antes de verificar, simular ou sintetizar, e
@@ -502,17 +553,23 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
     }
 
     // Sem `-p` nem testbench, dentro da pasta de um processador simula
-    // ele; no resto do projeto, a simulação do projeto.
-    let processor = match (&args.processor, &args.testbench) {
-        (Some(name), _) => Some(project.require_processor(name)?),
-        (None, None) => processor_here(cli, &project)?,
+    // ele; no resto do projeto, a simulação do projeto. Pelo nome: o build
+    // grava no `.spf` o que gerou, e o processador é procurado de novo.
+    let processor_name = match (&args.processor, &args.testbench) {
+        (Some(name), _) => Some(project.require_processor(name)?.name.clone()),
+        (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    let targets = match processor {
-        Some(processor) => vec![processor],
+    let targets = match &processor_name {
+        Some(name) => vec![project.require_processor(name)?],
         None => project.buildable_processors(),
     };
     let builds = build_first(&toolchain, &project, targets, out, control)?;
+    let registered = register_generated(&mut project, &builds, out);
+    let processor = processor_name
+        .as_deref()
+        .map(|name| project.require_processor(name))
+        .transpose()?;
     if !builds.iter().all(BuildResult::succeeded) {
         out.not_run(
             if args.fast {
@@ -526,6 +583,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
         let report = record(&project, &toolchain, &operation, out);
         out.json(&SimReport {
             builds,
+            registered,
             simulation: None,
             outputs: Vec::new(),
             surfer_pid: None,
@@ -578,6 +636,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
     let ok = result.succeeded();
     out.json(&SimReport {
         builds,
+        registered,
         simulation: Some(result),
         outputs,
         surfer_pid,
@@ -704,7 +763,7 @@ fn open_with_layout(
 
 fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let toolchain = cli.toolchain.resolve()?;
     // O topo do projeto sintetiza com o Verilog de todos os processadores;
     // com -p, ou dentro da pasta de um processador, só o daquele.
@@ -720,14 +779,17 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
         None => (DesignTarget::TopLevel, project.buildable_processors()),
     };
     let builds = build_first(&toolchain, &project, processors, out, control)?;
+    let registered = register_generated(&mut project, &builds, out);
     if !builds.iter().all(BuildResult::succeeded) {
         out.not_run("Synthesis", &builds);
         let operation = Operation::new(command_line(), started).with_builds(&builds);
         let report = record(&project, &toolchain, &operation, out);
         out.json(&SynthReport {
             builds,
+            registered,
             synthesis: None,
             schematic: None,
+            rtl_viewer: None,
             report,
         })?;
         return Ok(false);
@@ -768,14 +830,41 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
     if let Some(error) = refused {
         return Err(error.into());
     }
+    // O RTL viewer: o HTML do netlist, aberto no navegador. Um erro aqui vem
+    // depois do relatório gravado, como o do Surfer no `sim --open`.
+    let mut rtl_viewer = None;
+    if args.open
+        && result.succeeded()
+        && let Some(netlist) = &result.netlist
+    {
+        let template = lace_core::rtl_viewer::template(&toolchain)?;
+        let html = lace_core::rtl_viewer::write(
+            &template,
+            netlist,
+            &format!("{} (RTL viewer)", result.top),
+        )?;
+        let opener = std::env::var(OPENER_ENV).ok().filter(|v| !v.is_empty());
+        if opener.is_none() {
+            lace_core::open_with_system(&html)?;
+        }
+        out.rtl_viewer(&html, opener.as_deref());
+        rtl_viewer = Some(html);
+    }
     out.json(&SynthReport {
         builds,
+        registered,
         synthesis: Some(result),
         schematic,
+        rtl_viewer,
         report,
     })?;
     Ok(ok)
 }
+
+/// Quem abre o RTL viewer no lugar do navegador. A extensão do VS Code a
+/// define (`vscode`) no terminal integrado: lá, o `lace synth --open` só
+/// grava o HTML, e ela abre o netlist numa aba.
+const OPENER_ENV: &str = "LACE_OPENER";
 
 /// Grava a operação no histórico do projeto, para `lace report`. Uma falha
 /// ao gravar não muda o resultado do comando: vira um aviso.

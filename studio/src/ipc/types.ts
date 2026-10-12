@@ -303,6 +303,8 @@ export interface FlowOutcome {
   command: string;
   succeeded: boolean;
   builds: BuildResult[];
+  /** O `.v` e o testbench que os builds geraram e entraram no `.spf` agora. */
+  registered: AddedFile[];
   check: CheckResult | null;
   simulation: SimulationResult | null;
   outputs: PortValues[];

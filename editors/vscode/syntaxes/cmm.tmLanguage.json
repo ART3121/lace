@@ -1,0 +1,235 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "C±",
+  "scopeName": "source.cmm",
+  "comment": "O C± do SAPHO, portado de studio/src/editor/languages/cmm.ts, que foi conferido contra o lexer do YANC (CMMComp.l e CMMComp.y). test/unit/grammar.test.ts confere que as listas batem com as de lá.",
+  "patterns": [
+    {
+      "include": "#directives"
+    },
+    {
+      "include": "#dirac-assignment"
+    },
+    {
+      "include": "#dirac-forms"
+    },
+    {
+      "include": "#common"
+    }
+  ],
+  "repository": {
+    "directives": {
+      "patterns": [
+        {
+          "match": "#(?:PRNAME|NUBITS|NBMANT|NBEXPO|NDSTAC|SDEPTH|NUIOIN|NUIOOU|NUGAIN|FFTSIZ|FROUND|PRACA|TOAQUI)\\b",
+          "name": "keyword.control.directive.cmm"
+        },
+        {
+          "match": "(#define)\\s+([A-Za-z_]\\w*)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.directive.define.cmm"
+            },
+            "2": {
+              "name": "entity.name.constant.define.cmm"
+            }
+          }
+        },
+        {
+          "match": "#define\\b",
+          "name": "keyword.control.directive.define.cmm"
+        }
+      ]
+    },
+    "dirac-assignment": {
+      "comment": "Atribuição de Dirac (a # ...;): dentro dela toda barra é Dirac; fora, | é também o OU bit a bit.",
+      "begin": "#",
+      "beginCaptures": {
+        "0": {
+          "name": "keyword.operator.dirac.assignment.cmm"
+        }
+      },
+      "end": ";",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.terminator.statement.cmm"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#dirac-forms"
+        },
+        {
+          "match": "\\|",
+          "name": "keyword.operator.dirac.bar.cmm"
+        },
+        {
+          "include": "#common"
+        }
+      ]
+    },
+    "dirac-forms": {
+      "patterns": [
+        {
+          "match": "(\\|)(I)(\\|)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.dirac.bar.cmm"
+            },
+            "2": {
+              "name": "constant.language.identity.cmm"
+            },
+            "3": {
+              "name": "keyword.operator.dirac.bar.cmm"
+            }
+          }
+        },
+        {
+          "match": "(\\|)(0)(⟩)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.dirac.bar.cmm"
+            },
+            "2": {
+              "name": "constant.language.zero-vector.cmm"
+            },
+            "3": {
+              "name": "keyword.operator.dirac.bracket.cmm"
+            }
+          }
+        },
+        {
+          "match": "(\\|)\\s*([A-Za-z_]\\w*)\\s*(⟩)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.dirac.bar.cmm"
+            },
+            "2": {
+              "name": "variable.other.vector.cmm"
+            },
+            "3": {
+              "name": "keyword.operator.dirac.bracket.cmm"
+            }
+          }
+        },
+        {
+          "match": "(⟨)\\s*([A-Za-z_]\\w*)\\s*(\\|)",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.dirac.bracket.cmm"
+            },
+            "2": {
+              "name": "variable.other.vector.cmm"
+            },
+            "3": {
+              "name": "keyword.operator.dirac.bar.cmm"
+            }
+          }
+        },
+        {
+          "match": "[⟨⟩]",
+          "name": "keyword.operator.dirac.bracket.cmm"
+        }
+      ]
+    },
+    "common": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "comment": "Literal complexo (CONUM): parte real, sinal, parte imaginária e i. A classe [+|-] do flex aceita |.",
+          "match": "(\\d+\\.?\\d*)[ \\t]*([-+|])[ \\t]*(\\d+\\.?\\d*)[ \\t]*(i)(?![A-Za-z0-9_])",
+          "captures": {
+            "1": {
+              "name": "constant.numeric.cmm"
+            },
+            "2": {
+              "name": "keyword.operator.arithmetic.cmm"
+            },
+            "3": {
+              "name": "constant.numeric.cmm"
+            },
+            "4": {
+              "name": "constant.numeric.imaginary.cmm"
+            }
+          }
+        },
+        {
+          "comment": "O YANC só tem inteiro e float com ponto: sem hexadecimal, sem expoente, sem .5.",
+          "match": "\\b\\d+\\.\\d*",
+          "name": "constant.numeric.float.cmm"
+        },
+        {
+          "match": "\\b\\d+\\b",
+          "name": "constant.numeric.integer.cmm"
+        },
+        {
+          "comment": "Índice invertido (bit-reverso, FFT): v[k)",
+          "match": "(\\[)\\s*(\\d+|[A-Za-z_]\\w*)\\s*(\\))",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.inverted-index.cmm"
+            },
+            "2": {
+              "name": "variable.other.index.cmm"
+            },
+            "3": {
+              "name": "keyword.operator.inverted-index.cmm"
+            }
+          }
+        },
+        {
+          "match": "\\b(?:comp|float|int|void)\\b",
+          "name": "storage.type.cmm"
+        },
+        {
+          "match": "\\b(?:break|case|continue|default|do|else|for|if|return|switch|while)\\b",
+          "name": "keyword.control.cmm"
+        },
+        {
+          "comment": "As funções da biblioteca são palavras reservadas no lexer do YANC.",
+          "match": "\\b(?:in|fin|out|fout|norm|pset|abs|sign|copy|sqrt|atan|sin|cos|tan|cosh|sinh|tanh|exp|log|pow|floor|ceil|round|real|imag|conj|fase|complex|mod2)\\b",
+          "name": "support.function.builtin.cmm"
+        },
+        {
+          "begin": "\"",
+          "end": "\"",
+          "name": "string.quoted.double.cmm",
+          "patterns": [
+            {
+              "match": "\\\\.",
+              "name": "constant.character.escape.cmm"
+            }
+          ]
+        },
+        {
+          "match": ">>>",
+          "name": "keyword.operator.shift.arithmetic.cmm"
+        },
+        {
+          "match": "<<|>>|>=|<=|==|!=|&&|\\|\\||\\+\\+|[-+*/%&|^~!<>=:]",
+          "name": "keyword.operator.cmm"
+        },
+        {
+          "match": "[;,]",
+          "name": "punctuation.separator.cmm"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "begin": "/\\*",
+          "end": "\\*/",
+          "name": "comment.block.cmm",
+          "comment": "Não aninha (BLOCO no CMMComp.l)."
+        },
+        {
+          "match": "//.*$",
+          "name": "comment.line.double-slash.cmm"
+        }
+      ]
+    }
+  }
+}
