@@ -2,13 +2,14 @@
 
 import * as assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 
 import type { CheckReport, Diagnostic } from '../../src/lace/lace-types';
 import { countProblems, describeCount, groupProblems } from '../../src/problems';
 import { RESPONSES } from '../support/fixtures';
 
-const ROOT = join('/', 'projetos', 'projeto demo');
+// Absoluto também no Windows (com a unidade), como a raiz que o lace status dá.
+const ROOT = resolve('/', 'projetos', 'projeto demo');
 const HOME = join('/', 'home', 'usuario');
 const inRoot = (file: string) => file.startsWith(ROOT + sep) || file.startsWith(`${ROOT}/`);
 

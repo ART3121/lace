@@ -293,7 +293,8 @@ describe('CliLaceClient', () => {
       assert.equal(run.status, 'failed');
       const [soma] = (run as { result: BuildReport }).result.results;
       assert.equal(soma.failed_step, 'compile');
-      assert.equal(soma.diagnostics[0].file, join(demo, 'soma', 'Software', 'soma.cmm').replaceAll('\\', '/'));
+      // O lace falso troca só o ${ROOT}; o resto do caminho é o gravado.
+      assert.equal(soma.diagnostics[0].file, `${demo}/soma/Software/soma.cmm`);
       assert.equal(soma.diagnostics[0].line, 15);
     });
 
@@ -349,7 +350,7 @@ describe('CliLaceClient', () => {
         ['-C', spf, '--json', 'move', '--after', rtl('somador.v'), rtl('adder.v')],
         ['-C', spf, '--json', 'move', '--after', rtl('mux.sv'), rtl('adder.v')],
       ]);
-      assert.equal((moved as { result: MoveReport }).result.moved[0].files[0].path, rtl('adder.v').replaceAll('\\', '/'));
+      assert.equal((moved as { result: MoveReport }).result.moved[0].files[0].path, `${demo}/rtl/adder.v`);
       assert.equal(refused.status, 'error');
     });
   });
