@@ -81,6 +81,11 @@
   Studio para um pacote do Lace, `packages/rtl-viewer/`, que o Studio, a
   extensão do VS Code e o `lace synth --open` usam; no Studio, nada muda no
   uso.
+- `lace move --after` registra no `.spf` um movimento que já aconteceu fora
+  do Lace (no explorador de um editor, com o `mv`), como o `hg mv --after`:
+  os registrados que estavam na origem passam ao destino, com o topo e o
+  testbench simulado, e o disco não é tocado. No Core,
+  `Project::record_move`.
 
 ## 0.6.0 (2026-10-09)
 

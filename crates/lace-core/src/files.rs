@@ -1098,6 +1098,112 @@ impl Project {
         Ok(MovedPath { from, to, files })
     }
 
+    /// Registra no `.spf` um movimento que já aconteceu fora do Lace: o
+    /// arquivo ou a pasta foi renomeado no explorador de uma IDE, ou com o
+    /// `mv`, e os registrados que estavam em `from` passam a estar em `to`.
+    /// É o [`move_path`](Self::move_path) sem mexer no disco, como o
+    /// `hg mv --after`.
+    ///
+    /// Valem as mesmas regras do `move_path` (dentro do projeto, nada do que
+    /// fica no lugar, nada para dentro de `.lace`), e o disco tem que bater
+    /// com o movimento: `from` não existe mais e `to` existe. Se o `.spf`
+    /// não puder ser gravado, ele fica como estava.
+    ///
+    /// ```
+    /// use lace_core::{FileRole, Project};
+    /// # let tmp = tempfile::tempdir()?;
+    /// # let dir = camino::Utf8Path::from_path(tmp.path()).unwrap();
+    ///
+    /// let mut project = Project::create(dir, "p")?;
+    /// project.add_file(FileRole::Synthesizable, "top.v", Some("module top; endmodule\n"))?;
+    /// let root = project.root().to_owned();
+    /// std::fs::rename(root.join("top.v"), root.join("cpu.v"))?;
+    ///
+    /// let moved = project.record_move("top.v", "cpu.v")?;
+    /// assert_eq!(moved.files[0].path, root.join("cpu.v"));
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Erros
+    ///
+    /// - [`LaceError::OutsideProject`] se `from` ou `to` estiver fora da
+    ///   pasta do projeto;
+    /// - [`LaceError::CannotMove`] para o que fica no lugar, para uma pasta
+    ///   que teria ido para dentro dela mesma, para um destino dentro de
+    ///   `.lace` e quando `from` ainda existe (o movimento não aconteceu);
+    /// - [`LaceError::InvalidProject`] se `to` não existe;
+    /// - [`LaceError::Io`] se o `.spf` não puder ser gravado.
+    ///
+    /// Em todos, o `.spf` não mudou.
+    pub fn record_move(
+        &mut self,
+        from: impl AsRef<Utf8Path>,
+        to: impl AsRef<Utf8Path>,
+    ) -> Result<MovedPath> {
+        self.begin_write()?;
+        // Os dois com o nome que foi pedido: `a.v` para `A.v`, num sistema
+        // que ignora a caixa, resolveria os dois para o mesmo arquivo.
+        let from = self.absolute_parent(from.as_ref());
+        let to = self.absolute_parent(to.as_ref());
+        for path in [&from, &to] {
+            if path.strip_prefix(&self.root).is_err() {
+                return Err(LaceError::OutsideProject(path.clone()));
+            }
+        }
+        let refuse = |reason: &str| LaceError::CannotMove {
+            path: from.clone(),
+            reason: reason.into(),
+        };
+        if from == self.root {
+            return Err(refuse("It is the project folder"));
+        }
+        if let Some(reason) = self.fixed_place(&from) {
+            return Err(refuse(reason));
+        }
+        if to == from {
+            return Ok(MovedPath {
+                from,
+                to,
+                files: Vec::new(),
+            });
+        }
+        if to.starts_with(&from) {
+            return Err(refuse("A folder cannot go inside itself"));
+        }
+        if to.starts_with(self.root.join(".lace")) {
+            return Err(refuse("Nothing goes into the .lace folder"));
+        }
+        if std::fs::symlink_metadata(&to).is_err() {
+            return Err(LaceError::InvalidProject {
+                path: to,
+                reason: "Does not exist".into(),
+            });
+        }
+        // A exceção é a mesma do `move_path`: só a caixa mudou, e `from` ainda
+        // "existe" porque o sistema não distingue maiúsculas.
+        let case_only = from.as_str().eq_ignore_ascii_case(to.as_str())
+            && crate::paths::canonicalize(&from).is_ok_and(|real| real == to);
+        if std::fs::symlink_metadata(&from).is_ok() && !case_only {
+            return Err(refuse(
+                "It is still there: move it first, or move it with Lace",
+            ));
+        }
+
+        if self.rewrite_moved(&from, &to)
+            && let Err(error) = self.save()
+        {
+            self.rewrite_moved(&to, &from);
+            return Err(error);
+        }
+        let files = [FileRole::Synthesizable, FileRole::Testbench]
+            .into_iter()
+            .flat_map(|role| self.files(role))
+            .filter(|f| f.path.starts_with(&to))
+            .collect();
+        tracing::info!(%from, %to, "Recorded move");
+        Ok(MovedPath { from, to, files })
+    }
+
     /// Por que `path` não sai do lugar, ou `None` se pode sair.
     fn fixed_place(&self, path: &Utf8Path) -> Option<&'static str> {
         if path == self.spf_path() {

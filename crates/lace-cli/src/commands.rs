@@ -46,7 +46,11 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Add { files, tb } => add(cli, files, *tb, out)?,
         Command::Remove { files } => remove(cli, files, out)?,
         Command::Top { target } => top(cli, target.as_deref(), out)?,
-        Command::Move { sources, dest } => move_paths(cli, sources, dest, out)?,
+        Command::Move {
+            after,
+            sources,
+            dest,
+        } => move_paths(cli, sources, dest, *after, out)?,
         Command::Order {
             file,
             first,
@@ -234,16 +238,32 @@ fn top(cli: &Cli, target: Option<&str>, out: &Output) -> anyhow::Result<()> {
 /// destino terminado em `/`, criado se faltar), cada origem vai para dentro
 /// dela; senão, a única origem passa a ter o caminho do destino. O resto (o
 /// que fica no lugar, o `.spf`) é do Core.
+///
+/// Com `--after` o movimento já aconteceu, e uma pasta no destino pode ser a
+/// própria origem renomeada (`old` para `new`): ela só conta como pasta de
+/// destino se terminar em `/`, se houver mais de uma origem ou se a origem
+/// já estiver dentro dela.
 fn move_paths(
     cli: &Cli,
     sources: &[Utf8PathBuf],
     dest: &Utf8Path,
+    after: bool,
     out: &Output,
 ) -> anyhow::Result<()> {
     let mut project = open(cli)?;
     let folder = dest.as_str().ends_with(['/', '\\']);
     let dest = settings::absolute(dest)?;
-    let into = folder || dest.is_dir();
+    let into = folder
+        || if after {
+            dest.is_dir()
+                && (sources.len() > 1
+                    || sources
+                        .iter()
+                        .filter_map(|s| s.file_name())
+                        .all(|name| dest.join(name).exists()))
+        } else {
+            dest.is_dir()
+        };
     if !into && sources.len() > 1 {
         bail!(
             "{} is not a folder: with more than one source, the destination must be an existing folder",
@@ -257,8 +277,12 @@ fn move_paths(
             Some(name) if into => dest.join(name),
             _ => dest.clone(),
         };
-        let result = project.move_path(&from, &to)?;
-        out.moved(&result, project.root());
+        let result = if after {
+            project.record_move(&from, &to)?
+        } else {
+            project.move_path(&from, &to)?
+        };
+        out.moved(&result, project.root(), after);
         moved.push(result);
     }
     out.json(&MoveReport {

@@ -385,6 +385,7 @@ na AURORA (4.4).
 | `set_top_level(caminho)` | arquivo de topo: `topLevelFile` + `isTopLevel` exclusivo; registra se não estava; recusa nome de testbench (3.4) |
 | `resolve_path(texto)` | converte um caminho como está no `.spf` para absoluto |
 | `move_path(de, para) -> Result<MovedPath>` | move ou renomeia um arquivo ou pasta do projeto; os arquivos registrados continuam registrados no lugar novo |
+| `record_move(de, para) -> Result<MovedPath>` | registra no `.spf` um movimento que já aconteceu fora do Lace, sem tocar no disco |
 
 `add_verilog(toolchain, caminho, testbench)`:
 
@@ -470,6 +471,14 @@ criadas. Os dois são absolutos ou relativos à raiz.
 - O movimento é um `rename`; entre discos diferentes, copiar e apagar. Se o
   `.spf` não puder ser gravado depois, o movimento é desfeito antes do erro.
 - `de` igual a `para` não faz nada.
+
+`record_move(de, para)` é o `move_path` para o que já foi movido fora do
+Lace (no explorador de um editor, com o `mv`), como o `hg mv --after`: só o
+`.spf` muda, do mesmo jeito. As regras do que fica no lugar são as mesmas;
+o disco tem que bater com o movimento: `de` que ainda existe é
+`CannotMove`, e `para` que não existe é `InvalidProject`. Só a caixa
+mudar (`a.v` para `A.v`) vale também aqui. Se o `.spf` não puder ser
+gravado, ele fica como estava.
 
 `MovedPath`:
 
@@ -1958,7 +1967,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `InvalidProject` | `invalid_project` | diretório ou arquivo do projeto ausente ou em conflito | ver `path` e `reason` |
 | `ProjectExists` | `project_exists` | `create` sobre um `.spf` existente | abrir em vez de criar |
 | `OutsideProject` | `outside_project` | `move_path` com um caminho fora da pasta do projeto | usar um caminho do projeto |
-| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.lace`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.lace`; de uma pasta para dentro dela mesma | ver `reason` |
+| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.lace`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.lace`; de uma pasta para dentro dela mesma; `record_move` de uma origem que ainda existe | ver `reason` |
 | `PathExists` | `path_exists` | o destino de `move_path` já existe | outro destino, ou tirar o que está lá |
 | `ProcessorExists` | `processor_exists` | `add_processor` com nome repetido | outro nome |
 | `ProcessorNotFound` | `processor_not_found` | nome inexistente | ver `available` |

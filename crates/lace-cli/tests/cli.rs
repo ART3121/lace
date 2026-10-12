@@ -746,6 +746,53 @@ fn move_keeps_files_in_the_project() {
 }
 
 #[test]
+fn move_after_records_what_an_editor_moved() {
+    let (_guard, root) = new_project("p");
+    lace_in(&root)
+        .args(["add", "a.v", "a_tb.v"])
+        .assert()
+        .success();
+
+    // A pasta renomeada: `hdl` é a própria `rtl`, não a pasta de destino.
+    std::fs::create_dir(root.join("rtl")).unwrap();
+    lace_in(&root)
+        .args(["move", "a.v", "rtl/"])
+        .assert()
+        .success();
+    std::fs::rename(root.join("rtl"), root.join("hdl")).unwrap();
+    let hdl_a = Utf8Path::new("hdl").join("a.v");
+    lace_in(&root)
+        .args(["move", "--after", "rtl", "hdl"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Recorded move: rtl -> hdl"))
+        .stdout(predicate::str::contains(format!(
+            "{hdl_a} (still in the project, top)"
+        )));
+    assert_eq!(spf(&root)["structure"]["topLevelFile"], "hdl/a.v");
+
+    // Arrastado para dentro de uma pasta que já existia.
+    std::fs::rename(root.join("a_tb.v"), root.join("hdl/a_tb.v")).unwrap();
+    let moved = json(
+        lace_in(&root).args(["--json", "move", "--after", "a_tb.v", "hdl"]),
+        0,
+    );
+    assert_eq!(
+        Utf8Path::new(moved["moved"][0]["to"].as_str().unwrap()),
+        root.join("hdl/a_tb.v")
+    );
+    assert_eq!(spf(&root)["structure"]["testbenchFile"], "hdl/a_tb.v");
+
+    // O que não foi movido é recusado, e nada muda.
+    let refused = json(
+        lace_in(&root).args(["--json", "move", "--after", "hdl/a.v", "b.v"]),
+        2,
+    );
+    assert_eq!(refused["error"]["code"], "invalid_project", "{refused:#}");
+    assert!(root.join("hdl/a.v").is_file());
+}
+
+#[test]
 fn hierarchy_shows_design_and_testbench() {
     let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
         return;

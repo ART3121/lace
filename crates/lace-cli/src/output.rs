@@ -267,13 +267,15 @@ impl Output {
         Ok(())
     }
 
-    /// Um caminho de `lace move` e os arquivos do projeto que foram com ele.
-    pub fn moved(&self, moved: &MovedPath, root: &Utf8Path) {
+    /// Um caminho de `lace move` e os arquivos do projeto que foram com ele;
+    /// `after` quando só o `.spf` mudou (`--after`).
+    pub fn moved(&self, moved: &MovedPath, root: &Utf8Path, after: bool) {
         if self.json {
             return;
         }
         println!(
-            "Moved: {} -> {}",
+            "{}: {} -> {}",
+            if after { "Recorded move" } else { "Moved" },
             relative(&moved.from, root),
             relative(&moved.to, root)
         );

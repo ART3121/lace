@@ -181,7 +181,7 @@ testbench, que é ignorado; um processador com nome que não compila.
 | `lace remove <ARQUIVO>...` | tira do projeto, e do topo ou do testbench simulado se era um deles; não apaga do disco | `Project::remove_verilog` |
 | `lace top` | mostra o arquivo de topo e o módulo de topo, ou diz que não há topo e como escolher | `Project::top_level`, `Project::top_module` |
 | `lace top <ARQUIVO\|MÓDULO>` | escolhe o topo: se o argumento é um arquivo, ele (qualquer `.v` ou `.sv`, inclusive o `Hardware/<proc>.v` gerado; registrado se não estava); senão, o arquivo registrado que declara esse módulo. Recusa nome de testbench (`tb_<nome>.v`, `<nome>_tb.v`, `tb.v`), arquivo que não é Verilog (`invalid_name`) e módulo declarado em mais de um arquivo (`ambiguous_module`, com os arquivos); nada é gravado | `Project::set_top` |
-| `lace move <ORIGEM>... <DESTINO>` | move ou renomeia arquivos e pastas do projeto; os registrados continuam no projeto, com o topo e o testbench simulado acompanhando | `Project::move_path` |
+| `lace move [--after] <ORIGEM>... <DESTINO>` | move ou renomeia arquivos e pastas do projeto; os registrados continuam no projeto, com o topo e o testbench simulado acompanhando. Com `--after`, só registra no `.spf` o que já foi movido | `Project::move_path`, `Project::record_move` |
 | `lace order <ARQUIVO> (--first \| --last \| --before <OUTRO> \| --after <OUTRO>)` | muda a posição do arquivo na lista dele e mostra a lista numerada; os compiladores leem nessa ordem, e um `` `define `` só vale para os de baixo | `Project::reorder_file` |
 
 Para cada arquivo, `add` diz se o criou ou só o registrou, se ele ficou como
@@ -205,6 +205,15 @@ Ficam no lugar o `.spf`, a pasta `.lace` e, de cada processador, a pasta,
 `Software/`, `Hardware/`, `Simulation/` e o fonte (`cannot_move`); o destino
 que existe não é sobrescrito (`path_exists`). As origens anteriores à que
 falhou já foram movidas.
+
+`move --after` é para o que já foi movido fora do Lace, no explorador de um
+editor ou com o `mv`: o disco fica como está e só o `.spf` acompanha, como
+o `hg mv --after`. A origem não pode mais existir (`cannot_move`) e o
+destino tem que existir (`invalid_project`). Como uma pasta no destino pode
+ser a própria origem renomeada (`lace move --after rtl hdl`), ela só é a
+pasta de destino se terminar com `/`, se houver várias origens ou se a
+origem já estiver dentro dela. É o que a extensão do VS Code chama quando
+um arquivo do projeto é renomeado no explorador.
 
 O módulo de topo é o único módulo do arquivo de topo; num arquivo com vários
 módulos, o que tem o nome do arquivo. Sem nenhum dos dois, é erro
