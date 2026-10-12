@@ -62,7 +62,7 @@ fn program(
 /// pelo Quartus. O `fpga.json`, a placa e o Quartus são conferidos antes:
 /// faltar um deles não deve custar o build dos processadores.
 fn build(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
-    let project = lace_core::Project::discover(&cli.project)?;
+    let mut project = lace_core::Project::discover(&cli.project)?;
     let toolchain = cli.toolchain.resolve()?;
     let config = FpgaConfig::read(project.root())?;
     let board = fpga::board(&config.board)?;
@@ -76,9 +76,14 @@ fn build(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         out,
         control,
     )?;
+    let registered = crate::commands::register_generated(&mut project, &builds, out);
     if !builds.iter().all(BuildResult::succeeded) {
         out.not_run("FPGA build", &builds);
-        out.json(&FpgaBuildReport { builds, fpga: None })?;
+        out.json(&FpgaBuildReport {
+            builds,
+            registered,
+            fpga: None,
+        })?;
         return Ok(false);
     }
     let result = fpga::build(&toolchain, &project, control)?;
@@ -92,6 +97,7 @@ fn build(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let ok = result.succeeded();
     out.json(&FpgaBuildReport {
         builds,
+        registered,
         fpga: Some(result),
     })?;
     Ok(ok)

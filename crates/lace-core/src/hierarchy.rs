@@ -226,12 +226,19 @@ pub fn hierarchy(
                     processor: None,
                 });
             }
+            // O testbench de um processador registrado no projeto (o build
+            // registra) já apareceu acima, elaborado com o design.
+            let registered: Vec<_> = project
+                .files(FileRole::Testbench)
+                .into_iter()
+                .map(|f| f.path)
+                .collect();
             for processor in project.processors() {
                 let testbench = processor.simulated_testbench();
                 let Ok(verilog) = processor_verilog(project, &processor.name) else {
                     continue;
                 };
-                if testbench.is_file() {
+                if testbench.is_file() && !registered.contains(&testbench) {
                     targets.push(Target::processor(&processor.name, &verilog, testbench)?);
                 }
             }

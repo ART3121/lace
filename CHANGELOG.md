@@ -81,6 +81,17 @@
   Studio para um pacote do Lace, `packages/rtl-viewer/`, que o Studio, a
   extensão do VS Code e o `lace synth --open` usam; no Studio, nada muda no
   uso.
+- O build põe no `.spf` o que cada processador gerou, como a AURORA faz:
+  depois de `lace build`, `sim`, `synth` e `fpga build` (e dos fluxos do
+  Studio), o `Hardware/<nome>.v` entra como módulo e o
+  `Simulation/<nome>_tb.v` como testbench, se ainda não estavam. Num projeto
+  sem módulos, o do primeiro processador vira o topo; sem testbench, o dele
+  vira o simulado. Um arquivo tirado com `lace remove` volta no build
+  seguinte. O `--json` desses comandos ganha `registered`; no Core,
+  `Project::register_generated`. Antes, o Lace usava o `.v` gerado sem
+  registrá-lo, e um projeto aberto depois na AURORA, que só compila o que
+  está no `.spf`, dependia de ela o descobrir. O `lace hierarchy` não mostra
+  mais duas vezes o testbench de um processador registrado.
 - `lace move --after` registra no `.spf` um movimento que já aconteceu fora
   do Lace (no explorador de um editor, com o `mv`), como o `hg mv --after`:
   os registrados que estavam na origem passam ao destino, com o topo e o

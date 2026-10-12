@@ -224,6 +224,11 @@ pub struct BuildReport {
     pub project: Utf8PathBuf,
     /// Um por processador compilado. Vazio num projeto sem processadores.
     pub results: Vec<BuildResult>,
+    /// Os arquivos que o build gerou e que entraram no `.spf` agora
+    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// Vazio se já estavam no projeto.
+    pub registered: Vec<AddedFile>,
     /// O relatório gravado no histórico do projeto (`run-000042`), para
     /// `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
     pub report: Option<String>,
@@ -246,6 +251,11 @@ pub struct SimReport {
     /// Os processadores, compilados antes. Se um falha, `simulation` é
     /// `null`.
     pub builds: Vec<BuildResult>,
+    /// Os arquivos que o build gerou e que entraram no `.spf` agora
+    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// Vazio se já estavam no projeto.
+    pub registered: Vec<AddedFile>,
     /// A simulação.
     pub simulation: Option<SimulationResult>,
     /// Com `-p`, o que a simulação escreveu em cada porta de saída.
@@ -326,6 +336,11 @@ pub struct WaveChoiceReport {
 pub struct SynthReport {
     /// Os processadores, compilados antes. Se um falha, o resto é `null`.
     pub builds: Vec<BuildResult>,
+    /// Os arquivos que o build gerou e que entraram no `.spf` agora
+    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// Vazio se já estavam no projeto.
+    pub registered: Vec<AddedFile>,
     /// A síntese.
     pub synthesis: Option<SynthesisResult>,
     /// Com `--svg`, o esquemático.
@@ -641,6 +656,11 @@ pub struct FpgaCheckReport {
 pub struct FpgaBuildReport {
     /// Os processadores. Se um falha, `fpga` é `null`.
     pub builds: Vec<BuildResult>,
+    /// Os arquivos que o build gerou e que entraram no `.spf` agora
+    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// Vazio se já estavam no projeto.
+    pub registered: Vec<AddedFile>,
     /// A compilação para a placa.
     pub fpga: Option<FpgaBuildResult>,
 }

@@ -4,8 +4,8 @@ mod common;
 
 use camino::Utf8Path;
 use lace_core::{
-    ArtifactKind, BuildOptions, BuildResult, Control, LaceError, Language, Project, Severity,
-    Status, Step, Toolchain, build,
+    ArtifactKind, BuildOptions, BuildResult, Control, FileRole, LaceError, Language, Project,
+    Severity, Status, Step, Toolchain, build,
 };
 
 /// O resultado em JSON, com os caminhos da máquina trocados por marcadores
@@ -317,4 +317,131 @@ fn new_processors_build_as_created() {
             result.diagnostics
         );
     }
+}
+
+#[test]
+fn register_generated_adds_the_verilog_and_the_testbench() {
+    let Some(toolchain) = common::toolchain() else {
+        return;
+    };
+    let (_guard, dir) = common::tempdir();
+    let mut project = Project::create(&dir, "gerados").unwrap();
+    for name in ["soma", "filtro"] {
+        project
+            .add_processor(&lace_core::NewProcessor::new(name, Language::Cmm))
+            .unwrap();
+    }
+    let builds = lace_core::build_processors(
+        &toolchain,
+        project.buildable_processors(),
+        &BuildOptions::default(),
+        lace_core::OnFailure::Continue,
+        &Control::default(),
+        |_| {},
+    )
+    .unwrap();
+    let root = project.root().to_owned();
+    let soma_v = root.join("soma/Hardware/soma.v");
+    let soma_tb = root.join("soma/Simulation/soma_tb.v");
+    let filtro_v = root.join("filtro/Hardware/filtro.v");
+
+    // Sem RTL e sem testbench: o primeiro processador vira o topo e o
+    // testbench escolhido; o segundo só entra nas listas.
+    let added = project.register_generated(&builds).unwrap();
+    let summary: Vec<_> = added
+        .iter()
+        .map(|f| {
+            (
+                f.path.strip_prefix(&root).unwrap().to_string(),
+                f.role,
+                f.selected,
+            )
+        })
+        .collect();
+    assert_eq!(
+        summary,
+        [
+            ("soma/Hardware/soma.v".into(), FileRole::Synthesizable, true),
+            (
+                "soma/Simulation/soma_tb.v".into(),
+                FileRole::Testbench,
+                true
+            ),
+            (
+                "filtro/Hardware/filtro.v".into(),
+                FileRole::Synthesizable,
+                false
+            ),
+            (
+                "filtro/Simulation/filtro_tb.v".into(),
+                FileRole::Testbench,
+                false
+            ),
+        ]
+    );
+    let reopened = Project::open(project.spf_path()).unwrap();
+    assert_eq!(reopened.top_level(), Some(soma_v.clone()));
+    assert_eq!(reopened.testbench(), Some(soma_tb.clone()));
+
+    // O build seguinte não repete; o que foi tirado volta, sem virar topo.
+    assert!(project.register_generated(&builds).unwrap().is_empty());
+    project
+        .remove_file(FileRole::Synthesizable, &filtro_v)
+        .unwrap();
+    let again = project.register_generated(&builds).unwrap();
+    assert_eq!(again.len(), 1);
+    assert_eq!(again[0].path, filtro_v);
+    assert!(!again[0].selected);
+    assert_eq!(project.top_level(), Some(soma_v));
+}
+
+#[test]
+fn register_generated_keeps_the_top_and_skips_failed_builds() {
+    let Some(toolchain) = common::toolchain() else {
+        return;
+    };
+    let (_guard, dir) = common::tempdir();
+    let mut project = Project::create(&dir, "com_rtl").unwrap();
+    let root = project.root().to_owned();
+    // Um RTL do usuário já é o topo.
+    std::fs::write(
+        root.join("cpu.v"),
+        "module cpu(input a, output y);\n  assign y = a;\nendmodule\n",
+    )
+    .unwrap();
+    project
+        .add_verilog(None, root.join("cpu.v"), false)
+        .unwrap();
+    for name in ["soma", "ruim"] {
+        project
+            .add_processor(&lace_core::NewProcessor::new(name, Language::Cmm))
+            .unwrap();
+    }
+    let ruim = project.require_processor("ruim").unwrap().source.clone();
+    let source = std::fs::read_to_string(&ruim).unwrap();
+    std::fs::write(&ruim, source.replace("void main()", "void main(")).unwrap();
+    let builds = lace_core::build_processors(
+        &toolchain,
+        project.buildable_processors(),
+        &BuildOptions::default(),
+        lace_core::OnFailure::Continue,
+        &Control::default(),
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(builds[1].status, Status::Failed, "ruim não compila");
+
+    let added = project.register_generated(&builds).unwrap();
+    let paths: Vec<_> = added.iter().map(|f| f.path.file_name().unwrap()).collect();
+    assert_eq!(
+        paths,
+        ["soma.v", "soma_tb.v"],
+        "só o build que terminou bem"
+    );
+    assert!(!added[0].selected, "o topo do usuário fica");
+    assert_eq!(project.top_level(), Some(root.join("cpu.v")));
+    assert!(
+        added[1].selected,
+        "sem testbench, o do processador é o escolhido"
+    );
 }

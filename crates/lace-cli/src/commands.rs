@@ -14,10 +14,10 @@ use camino::{Utf8Path, Utf8PathBuf};
 use clap::CommandFactory;
 use lace_core::history::{self, Cleanup, Operation};
 use lace_core::{
-    BuildOptions, BuildResult, CheckOptions, Control, DesignTarget, HierarchyOptions, LaceError,
-    Language, ListPosition, NewProcessor, OnFailure, PreparedLayout, Processor, ProcessorConfig,
-    Project, RunningProcess, SchematicOptions, SimulationOptions, SimulationResult, Simulator,
-    Tool, Toolchain, ViewerOptions,
+    AddedFile, BuildOptions, BuildResult, CheckOptions, Control, DesignTarget, HierarchyOptions,
+    LaceError, Language, ListPosition, NewProcessor, OnFailure, PreparedLayout, Processor,
+    ProcessorConfig, Project, RunningProcess, SchematicOptions, SimulationOptions,
+    SimulationResult, Simulator, Tool, Toolchain, ViewerOptions,
 };
 
 use crate::output::Output;
@@ -385,13 +385,14 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
 
 fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Um projeto só de Verilog não tem o que compilar, e isso não é erro.
     if args.processors.is_empty() && project.processors().is_empty() {
         out.no_processors();
         out.json(&BuildReport {
             project: project.spf_path().to_owned(),
             results: Vec::new(),
+            registered: Vec::new(),
             report: None,
         })?;
         return Ok(true);
@@ -417,15 +418,41 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
         control,
         |r| out.build(r, project.root()),
     )?;
+    let registered = register_generated(&mut project, &results, out);
     let ok = results.iter().all(BuildResult::succeeded);
     let operation = Operation::new(command_line(), started).with_builds(&results);
     let report = record(&project, &toolchain, &operation, out);
     out.json(&BuildReport {
         project: project.spf_path().to_owned(),
         results,
+        registered,
         report,
     })?;
     Ok(ok)
+}
+
+/// Depois de compilar: o `.v` e o testbench que cada processador gerou
+/// entram no `.spf`, se ainda não estão (`Project::register_generated`). Uma
+/// falha ao gravar vira aviso: o build valeu do mesmo jeito.
+pub(crate) fn register_generated(
+    project: &mut Project,
+    builds: &[BuildResult],
+    out: &Output,
+) -> Vec<AddedFile> {
+    match project.register_generated(builds) {
+        Ok(files) => {
+            for file in &files {
+                out.added(file, project.root());
+            }
+            files
+        }
+        Err(error) => {
+            out.warning(&format!(
+                "The generated files could not be added to the project: {error}"
+            ));
+            Vec::new()
+        }
+    }
 }
 
 /// Compila os processadores antes de verificar, simular ou sintetizar, e
@@ -526,17 +553,23 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
     }
 
     // Sem `-p` nem testbench, dentro da pasta de um processador simula
-    // ele; no resto do projeto, a simulação do projeto.
-    let processor = match (&args.processor, &args.testbench) {
-        (Some(name), _) => Some(project.require_processor(name)?),
-        (None, None) => processor_here(cli, &project)?,
+    // ele; no resto do projeto, a simulação do projeto. Pelo nome: o build
+    // grava no `.spf` o que gerou, e o processador é procurado de novo.
+    let processor_name = match (&args.processor, &args.testbench) {
+        (Some(name), _) => Some(project.require_processor(name)?.name.clone()),
+        (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    let targets = match processor {
-        Some(processor) => vec![processor],
+    let targets = match &processor_name {
+        Some(name) => vec![project.require_processor(name)?],
         None => project.buildable_processors(),
     };
     let builds = build_first(&toolchain, &project, targets, out, control)?;
+    let registered = register_generated(&mut project, &builds, out);
+    let processor = processor_name
+        .as_deref()
+        .map(|name| project.require_processor(name))
+        .transpose()?;
     if !builds.iter().all(BuildResult::succeeded) {
         out.not_run(
             if args.fast {
@@ -550,6 +583,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
         let report = record(&project, &toolchain, &operation, out);
         out.json(&SimReport {
             builds,
+            registered,
             simulation: None,
             outputs: Vec::new(),
             surfer_pid: None,
@@ -602,6 +636,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
     let ok = result.succeeded();
     out.json(&SimReport {
         builds,
+        registered,
         simulation: Some(result),
         outputs,
         surfer_pid,
@@ -728,7 +763,7 @@ fn open_with_layout(
 
 fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let toolchain = cli.toolchain.resolve()?;
     // O topo do projeto sintetiza com o Verilog de todos os processadores;
     // com -p, ou dentro da pasta de um processador, só o daquele.
@@ -744,12 +779,14 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
         None => (DesignTarget::TopLevel, project.buildable_processors()),
     };
     let builds = build_first(&toolchain, &project, processors, out, control)?;
+    let registered = register_generated(&mut project, &builds, out);
     if !builds.iter().all(BuildResult::succeeded) {
         out.not_run("Synthesis", &builds);
         let operation = Operation::new(command_line(), started).with_builds(&builds);
         let report = record(&project, &toolchain, &operation, out);
         out.json(&SynthReport {
             builds,
+            registered,
             synthesis: None,
             schematic: None,
             rtl_viewer: None,
@@ -815,6 +852,7 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
     }
     out.json(&SynthReport {
         builds,
+        registered,
         synthesis: Some(result),
         schematic,
         rtl_viewer,

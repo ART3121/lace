@@ -386,6 +386,7 @@ na AURORA (4.4).
 | `resolve_path(texto)` | converte um caminho como está no `.spf` para absoluto |
 | `move_path(de, para) -> Result<MovedPath>` | move ou renomeia um arquivo ou pasta do projeto; os arquivos registrados continuam registrados no lugar novo |
 | `record_move(de, para) -> Result<MovedPath>` | registra no `.spf` um movimento que já aconteceu fora do Lace, sem tocar no disco |
+| `register_generated(builds) -> Result<Vec<AddedFile>>` | registra o `Hardware/<nome>.v` e o `Simulation/<nome>_tb.v` que cada build bem-sucedido gerou e o projeto ainda não tem (5.1.1) |
 
 `add_verilog(toolchain, caminho, testbench)`:
 
@@ -692,11 +693,26 @@ O fluxo do botão Wave da AURORA é:
 let control = Control::default();
 let builds = build_processors(&tc, project.buildable_processors(), &BuildOptions::default(),
                               OnFailure::Stop, &control, |r| mostrar(r))?;
+project.register_generated(&builds)?;
 if builds.iter().all(BuildResult::succeeded) {
     let options = SimulationOptions::new(Simulator::Icarus);
     let sim = simulate_project(&tc, &project, &options, &control)?;
 }
 ```
+
+Depois do build, `project.register_generated(&builds)` põe no `.spf` o que
+cada processador gerou e o projeto ainda não tem: o `Hardware/<nome>.v`
+entre os sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches,
+no fim de cada lista. É o que a AURORA faz ao atualizar a árvore de
+arquivos, e a CLI e o Studio chamam depois de todo build. Só os builds que
+terminaram bem entram. Num projeto sem sintetizáveis, o `.v` do primeiro
+processador vira o topo; num sem testbench, o testbench dele vira o
+escolhido. O que já está registrado, em qualquer lista, fica como está; o
+que foi tirado com `remove_file` volta no build seguinte. Devolve um
+`AddedFile` por arquivo registrado (`created` é sempre `false`). As
+operações já usavam o `Hardware/<nome>.v` sem ele no `.spf` e tiram o
+repetido quando está; o testbench registrado passa a ser elaborado pelo
+`check` e mostrado pela `hierarchy`, uma vez só.
 
 ### 5.2 `simulate(&Toolchain, &Processor, &SimulationOptions, &Control) -> Result<SimulationResult>`
 
@@ -1092,7 +1108,7 @@ elaboração e um `icarus_image` em `artifacts` para cada uma) e:
 | Campo | Conteúdo |
 |---|---|
 | `design` | `Elaboration` do design, ou `null` sem Verilog de design |
-| `testbenches` | uma `Elaboration` por testbench: os registrados, na ordem do `.spf`, e depois o de cada processador compilado |
+| `testbenches` | uma `Elaboration` por testbench: os registrados, na ordem do `.spf`, e depois o de cada processador compilado que não esteja entre eles |
 
 `Elaboration`:
 

@@ -23,6 +23,12 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Mudado
 
+- Depois de compilar um processador (o build sozinho, ou o que a Wave, o
+  Synth e a compilação para a placa fazem antes), o `Hardware/<nome>.v` e o
+  `Simulation/<nome>_tb.v` que ele gerou entram no projeto, em Módulos e em
+  Testbenches, como na AURORA, em vez de só aparecerem como gerados. Num
+  projeto sem módulos, o do processador vira o topo; sem testbench, o dele
+  vira o simulado. Quem faz é o Core (`Project::register_generated`).
 - O RTLViewer vem do pacote `@lace/rtl-viewer` (`packages/rtl-viewer/` do
   repositório do Lace), o mesmo que a extensão do VS Code e o
   `lace synth --open` mostram. Nada muda no uso: a aba, os atalhos, as

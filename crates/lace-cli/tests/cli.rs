@@ -332,6 +332,57 @@ fn build_without_processors_exits_0() {
 }
 
 #[test]
+fn build_adds_the_generated_files_to_the_project() {
+    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+        return;
+    };
+    if !bundle_has(&tc, "yanc") {
+        return;
+    }
+    let (_guard, root) = new_project("p");
+    lace_in(&root)
+        .args(["proc", "add", "soma"])
+        .assert()
+        .success();
+    let soma_v = Utf8Path::new("soma").join("Hardware").join("soma.v");
+    let soma_tb = Utf8Path::new("soma").join("Simulation").join("soma_tb.v");
+    lace_in(&root)
+        .env("LACE_TOOLCHAIN", &tc)
+        .arg("build")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!("Module added: {soma_v} (top)")))
+        .stdout(predicate::str::contains(format!(
+            "Testbench added: {soma_tb} (selected testbench)"
+        )));
+    let structure = &spf(&root)["structure"];
+    assert_eq!(structure["topLevelFile"], "soma/Hardware/soma.v");
+    assert_eq!(structure["testbenchFile"], "soma/Simulation/soma_tb.v");
+
+    // Já registrados: o build seguinte não repete. Tirado, volta.
+    let report = json(
+        lace_in(&root)
+            .env("LACE_TOOLCHAIN", &tc)
+            .args(["--json", "build"]),
+        0,
+    );
+    assert_eq!(report["registered"], serde_json::json!([]));
+    lace_in(&root)
+        .args(["remove", soma_v.as_str()])
+        .assert()
+        .success();
+    let report = json(
+        lace_in(&root)
+            .env("LACE_TOOLCHAIN", &tc)
+            .args(["--json", "build"]),
+        0,
+    );
+    assert_eq!(report["registered"][0]["role"], "synthesizable");
+    let files = spf(&root)["structure"]["synthesizableFiles"].clone();
+    assert_eq!(files[0]["path"], "soma/Hardware/soma.v", "{files:#}");
+}
+
+#[test]
 fn unknown_processor_lists_available_ones() {
     let (_guard, root) = example("soma");
     lace()

@@ -239,6 +239,93 @@ impl Project {
         })
     }
 
+    /// Registra no `.spf` o que o build de cada processador gerou e o projeto
+    /// ainda não tem: o `Hardware/<nome>.v` entre os sintetizáveis e o
+    /// `Simulation/<nome>_tb.v` entre os testbenches, no fim de cada lista.
+    /// É o que a AURORA faz ao atualizar a árvore de arquivos, e o que
+    /// `lace build`, `sim`, `synth` e `fpga build` chamam depois de compilar.
+    ///
+    /// - Só os builds que terminaram bem, e só os arquivos que existem.
+    /// - Num projeto sem sintetizáveis, o `.v` do primeiro processador vira o
+    ///   topo; num sem testbench, o testbench dele vira o escolhido.
+    /// - O que já está registrado, em qualquer das listas, fica como está.
+    ///   Um arquivo tirado com [`remove_file`](Self::remove_file) volta no
+    ///   build seguinte.
+    ///
+    /// As operações já usavam o `Hardware/<nome>.v` sem ele estar no `.spf`
+    /// (e tiram o repetido quando está); registrado, ele aparece na lista de
+    /// arquivos de quem lê o `.spf`, e a AURORA, que só compila o que está
+    /// nele, o encontra.
+    ///
+    /// ```no_run
+    /// use lace_core::{BuildOptions, Control, OnFailure, Project, Toolchain, build_processors};
+    /// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+    /// let mut project = Project::open("/p/demo")?;
+    /// let builds = build_processors(
+    ///     &toolchain,
+    ///     project.buildable_processors(),
+    ///     &BuildOptions::default(),
+    ///     OnFailure::Continue,
+    ///     &Control::default(),
+    ///     |_| {},
+    /// )?;
+    /// for file in project.register_generated(&builds)? {
+    ///     println!("{} entrou no projeto ({:?})", file.path, file.role);
+    /// }
+    /// # Ok::<(), lace_core::LaceError>(())
+    /// ```
+    ///
+    /// # Erros
+    ///
+    /// [`LaceError::Io`] se o `.spf` não puder ser gravado. Os registrados
+    /// antes do erro ficam.
+    pub fn register_generated(&mut self, builds: &[crate::BuildResult]) -> Result<Vec<AddedFile>> {
+        use crate::ArtifactKind;
+        let mut added = Vec::new();
+        for build in builds.iter().filter(|b| b.succeeded()) {
+            for (kind, role) in [
+                (ArtifactKind::Verilog, FileRole::Synthesizable),
+                (ArtifactKind::Testbench, FileRole::Testbench),
+            ] {
+                let Some(artifact) = build
+                    .artifacts
+                    .iter()
+                    .find(|a| a.kind == kind && a.path.is_file())
+                else {
+                    continue;
+                };
+                let path = self.absolute(&artifact.path);
+                let registered = [FileRole::Synthesizable, FileRole::Testbench]
+                    .into_iter()
+                    .any(|r| self.files(r).iter().any(|f| f.path == path));
+                if registered {
+                    continue;
+                }
+                let first = self.files(role).is_empty();
+                self.add_file(role, &path, None)?;
+                let selected = match role {
+                    FileRole::Synthesizable if first && self.top_level().is_none() => {
+                        self.set_top_level(&path)?;
+                        true
+                    }
+                    FileRole::Testbench if self.selected(FileRole::Testbench).is_none() => {
+                        self.set_testbench(&path)?;
+                        true
+                    }
+                    _ => false,
+                };
+                tracing::info!(%path, ?role, selected, "Generated file registered");
+                added.push(AddedFile {
+                    path,
+                    role,
+                    created: false,
+                    selected,
+                });
+            }
+        }
+        Ok(added)
+    }
+
     /// Confere, sem mudar nada, se [`Project::add_verilog`] aceitaria `path`:
     /// termina em `.v`, `.sv` ou `.py` e, se ainda não existe, o nome do
     /// arquivo serve de nome de módulo (do Verilog, ou do Python num `.py`).

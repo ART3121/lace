@@ -3228,6 +3228,13 @@ export interface BuildReport {
    */
   results: BuildResult[];
   /**
+   * Os arquivos que o build gerou e que entraram no `.spf` agora
+   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * Vazio se já estavam no projeto.
+   */
+  registered: AddedFile[];
+  /**
    * O relatório gravado no histórico do projeto (`run-000042`), para
    * `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
    */
@@ -3330,6 +3337,13 @@ export interface FpgaBuildReport {
    * Os processadores. Se um falha, `fpga` é `null`.
    */
   builds: BuildResult[];
+  /**
+   * Os arquivos que o build gerou e que entraram no `.spf` agora
+   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * Vazio se já estavam no projeto.
+   */
+  registered: AddedFile[];
   /**
    * A compilação para a placa.
    */
@@ -4034,6 +4048,13 @@ export interface SimReport {
    */
   builds: BuildResult[];
   /**
+   * Os arquivos que o build gerou e que entraram no `.spf` agora
+   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * Vazio se já estavam no projeto.
+   */
+  registered: AddedFile[];
+  /**
    * A simulação.
    */
   simulation: SimulationResult | null;
@@ -4127,6 +4148,13 @@ export interface SynthReport {
    * Os processadores, compilados antes. Se um falha, o resto é `null`.
    */
   builds: BuildResult[];
+  /**
+   * Os arquivos que o build gerou e que entraram no `.spf` agora
+   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
+   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * Vazio se já estavam no projeto.
+   */
+  registered: AddedFile[];
   /**
    * A síntese.
    */

@@ -250,6 +250,16 @@ no `lace status`.
 | `lace synth [--svg] [--module M] [--open]` | compila os processadores e sintetiza o módulo de topo do projeto; com `--svg`, desenha o esquemático (Yosys `show` + `dot`); com `--open`, abre o RTL viewer no navegador (veja abaixo). Dentro da pasta de um processador, é o mesmo que `-p` com ele | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
 | `lace synth -p NOME [--svg] [--module M] [--open]` | compila o processador e o sintetiza sozinho | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
 
+Depois de compilar, `build`, `sim`, `synth` e `fpga build` põem no `.spf`
+o que cada processador gerou e o projeto ainda não tem, como a AURORA: o
+`Hardware/<nome>.v` como módulo e o `Simulation/<nome>_tb.v` como
+testbench, no fim de cada lista (`Module added: soma/Hardware/soma.v`).
+Num projeto sem módulos, o do primeiro processador vira o topo; sem
+testbench, o testbench dele vira o simulado. O que já está registrado fica
+como está, e o que foi tirado com `lace remove` volta no build seguinte.
+No `--json`, o campo `registered` lista o que entrou. Uma falha ao gravar
+o `.spf` vira aviso, e o build vale do mesmo jeito.
+
 `TESTBENCH` e `-p` não andam juntos, nem `ARQUIVO` e `-p` no `check`. `--verilator` simula com o Verilator no
 lugar do Icarus; ele usa o compilador do sistema no Linux e no macOS e o
 do bundle no Windows (ver [BUNDLE.md](BUNDLE.md)) e grava a onda sempre em
@@ -472,7 +482,7 @@ cocotb da máquina leva alguns segundos a mais: o Python compila o cocotb, e os
 
 | Comando | Faz | Função do Core |
 |---|---|---|
-| `lace hierarchy` | a árvore de instâncias do design e de cada testbench (os registrados e o de cada processador compilado), como o Icarus as elabora. Dentro da pasta de um processador, é o mesmo que `-p` com ele | `hierarchy` |
+| `lace hierarchy` | a árvore de instâncias do design e de cada testbench (os registrados e o de cada processador compilado que não esteja entre eles), como o Icarus as elabora. Dentro da pasta de um processador, é o mesmo que `-p` com ele | `hierarchy` |
 | `lace hierarchy -p NOME` | a do processador e do testbench gerado pelo YANC | `hierarchy` (`HierarchyOptions::processor`) |
 
 Cada linha é `instância: módulo`, ou só o nome quando os dois são iguais,
