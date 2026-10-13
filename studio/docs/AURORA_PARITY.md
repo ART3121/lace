@@ -76,19 +76,24 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 
 ## Consoles e terminal
 
+O Studio junta a saída de todas as etapas no **INFO**, uma rodada por
+operação. Os terminais de cada etapa, que correspondem aos da AURORA,
+continuam, fechados até o usuário abrir um pelo seletor de terminal; o aberto fica aberto nas
+próximas sessões.
+
 | Terminal da AURORA | Estado | No Studio |
 |---|---|---|
-| TCMM | Feito | console C± |
-| TASM | Feito | console ASM |
-| TVERI | Feito | console Verilog |
-| TWAVE | Feito | console Wave; mostra também as saídas de cada porta do processador |
-| TRTLViewer | Feito | console RTLViewer |
+| TCMM | Feito | terminal de etapa C± |
+| TASM | Feito | terminal de etapa ASM |
+| TVERI | Feito | terminal de etapa Verilog |
+| TWAVE | Feito | terminal de etapa Wave; mostra também as saídas de cada porta do processador |
+| TRTLViewer | Feito | terminal de etapa RTLViewer |
 | TCMD (shell real) | Feito | aba Terminal: o shell do usuário (PowerShell no Windows), com o `lace` no `PATH` |
 | THTEST (teste de hardware) | Depende do Lace | não implementado no Lace (API.md, seção 10) |
 | Links `arquivo:linha` clicáveis | Feito | |
 | Modo verboso | Feito | preferência: mostra o comando de cada passo e as mensagens `info` |
 | Painel de problemas | Feito | aba Problemas, com filtro; diagnósticos também viram marcadores no editor |
-| Filtros por tipo de linha com contagem, nos consoles | Parcial | no painel Problemas; nos consoles, Fase 2 |
+| Filtros por tipo de linha com contagem, nos consoles | Parcial | no painel Problemas; o INFO mostra a contagem de erros e avisos no fim de cada rodada, e os terminais de etapa separam a saída por etapa |
 | Exportar log | Fase 2 | |
 
 ## Histórico

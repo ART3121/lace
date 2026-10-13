@@ -95,7 +95,7 @@ Os passos são ids de ação de `actions.ts` (`build`, `check`, `lint`,
 | `add:<caminho>` | registra um Verilog como Projeto > Adicionar arquivos Verilog, sem o diálogo (caminho absoluto, ou relativo à pasta do projeto) |
 | `target:<processador>` | escolhe o alvo (vazio: o projeto) |
 | `view:<tipo>[:<nome>]` | abre uma vista |
-| `panel:<vista>`, `sidebar:<vista>` | mostra a vista (`cmm`, `terminal`, `explorer`...) na região onde o layout a pôs; os dois são o mesmo |
+| `panel:<vista>`, `sidebar:<vista>` | mostra a vista (`info`, `cmm`, `terminal`, `explorer`...) na região onde o layout a pôs; os dois são o mesmo |
 | `explorer:<modo>` | mostra o explorador num modo (`sources`, `hierarchy`, `files`) |
 | `move:<vista>:<região>` | leva a vista para `left`, `right` ou `panel` |
 | `region:<região>:<on\|off>` | mostra ou esconde uma região |

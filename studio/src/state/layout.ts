@@ -12,6 +12,7 @@ import { create } from 'zustand';
 import {
   clampSize,
   DEFAULT_BODY,
+  isConsoleChannel,
   isViewId,
   moveView as moveViewIn,
   normalizeBody,
@@ -29,7 +30,7 @@ import {
   type ViewId,
 } from './layoutModel';
 
-export type { ConsoleChannel, RegionId, ViewId } from './layoutModel';
+export type { ConsoleChannel, ConsoleId, RegionId, ViewId } from './layoutModel';
 export type ExplorerMode = 'sources' | 'hierarchy' | 'files';
 
 /** O que o zen esconde e devolve ao sair. */
@@ -115,8 +116,9 @@ function migrate(old: Record<string, unknown>): LayoutBody {
   let body = DEFAULT_BODY;
   if (isViewId(old.sidebarView)) body = withRegion(body, 'left', { active: old.sidebarView });
   if (typeof old.sidebarVisible === 'boolean') body = withRegion(body, 'left', { visible: old.sidebarVisible });
-  // O console "Lace" saiu do painel; quem o deixou aberto volta ao C±.
-  const tab = old.panelTab === 'lace' ? 'cmm' : old.panelTab;
+  // O console "Lace" saiu do painel, e os de etapa ficam fechados: quem
+  // deixou um deles na frente passa ao INFO, que mostra tudo.
+  const tab = old.panelTab === 'lace' || isConsoleChannel(old.panelTab) ? 'info' : old.panelTab;
   if (isViewId(tab)) body = withRegion(body, 'panel', { active: tab });
   if (typeof old.panelVisible === 'boolean') body = withRegion(body, 'panel', { visible: old.panelVisible });
   return normalizeBody(body);

@@ -4,13 +4,15 @@
 //
 // As mensagens de uma operação (jobs.rs) chegam em ordem: started, phase,
 // events (em lotes), build (um por processador), e por fim finished ou
-// failed. Cada linha de ferramenta vai para o console do passo que a
-// escreveu (console/consoles.ts); o resultado final vira o resumo no
-// console, os problemas e os marcadores no editor.
+// failed. Cada operação é uma rodada no INFO (console/consoles.ts), com
+// cabeçalho e fim; cada linha leva a etapa que a escreveu, e o terminal
+// dessa etapa, se estiver aberto, também a mostra. O resultado final vira o
+// resumo da rodada, os problemas e os marcadores no editor.
 
 import { create } from 'zustand';
 
-import { writeLine, styleForToolLine, type LineStyle } from '../console/consoles';
+import { beginRun, endRun, revealRunError, writeLine, type LineStyle } from '../console/consoles';
+import * as fmt from '../console/format';
 import { setDiagnostics } from '../editor/monaco';
 import { formatDuration, t, type Key } from '../i18n';
 import { api } from '../ipc/api';
@@ -38,9 +40,9 @@ import { relativeTo } from '../util/paths';
 import { useApp } from './app';
 import { useEditor } from './editor';
 import { useHierarchy } from './hierarchy';
-import { isOnScreen, useLayout, type ConsoleChannel } from './layout';
+import { useLayout, type ConsoleChannel, type ViewId } from './layout';
 import { learnSession } from './learnSession';
-import { regionOf } from './layoutModel';
+import { isConsoleChannel, regionOf } from './layoutModel';
 import { useProject } from './project';
 import { useSchematic } from './schematic';
 import { showError, useToasts } from './toasts';
@@ -103,7 +105,7 @@ interface JobsState {
   update: () => Promise<UpdateReport | null>;
 }
 
-/** O console de cada passo. */
+/** A etapa de cada passo: além do INFO, o terminal dela mostra a linha. */
 const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
   preprocess: 'cmm',
   compile: 'cmm',
@@ -125,12 +127,13 @@ const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
   program: 'fpga',
 };
 
-/** O console de um passo: o do Quartus vai todo para o da placa, inclusive
- * o `synthesize`, que na síntese do Yosys é do RTLViewer. */
+/** A etapa de um passo: o do Quartus vai todo para a da placa, inclusive o
+ * `synthesize`, que na síntese do Yosys é do RTLViewer. */
 function channelOf(step: Step, tool: string): ConsoleChannel {
   return tool === 'quartus' ? 'fpga' : STEP_CHANNEL[step];
 }
 
+/** A etapa do título de cada fase. */
 const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   build: 'cmm',
   check: 'verilog',
@@ -143,8 +146,8 @@ const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   program: 'fpga',
 };
 
-/** O console onde cada operação começa: o comando dela e os avisos (falha
- * ao iniciar, pedido de cancelamento) vão para lá. */
+/** A etapa onde cada operação começa: o comando dela e os avisos (falha ao
+ * iniciar, pedido de cancelamento) também vão para o terminal dela. */
 const START_CHANNEL: Record<FlowName, ConsoleChannel> = {
   build: 'cmm',
   check: 'verilog',
@@ -164,6 +167,7 @@ function cliLine(text: string, style: LineStyle = 'plain'): void {
   useJobs.setState({ cliLog: { ...log, lines: lines.slice(-CLI_LOG_LINES) } });
 }
 
+/** A etapa do resumo de cada fluxo. */
 const FLOW_CHANNEL: Record<FlowName, ConsoleChannel> = {
   build: 'asm',
   check: 'verilog',
@@ -187,27 +191,48 @@ function rel(path: string): string {
   return relativeTo(path, root());
 }
 
-/** Traz o console da etapa para a frente da região dele. Quem está no
- * terminal de shell, na mesma região, não é tirado de lá; e um console que o
- * layout escondeu não reaparece sozinho. Nos dois casos, a aba ganha o ponto
- * de saída nova. */
-function show(channel: ConsoleChannel): void {
+/** Traz o INFO para a frente da região dele, uma vez por rodada (no começo
+ * e numa falha), sem trocar de aba no meio. Fica onde está quem escolheu o
+ * shell ou um terminal de etapa nessa região, e um INFO que o usuário fechou
+ * não reabre sozinho: nos dois casos, a aba ganha o ponto de saída nova. */
+function showInfo(): void {
   const layout = useLayout.getState();
   // Numa sessão de exercícios o painel só aparece quando o aluno o chama.
   if (learnSession.active()) {
-    layout.markUnread(channel);
+    layout.markUnread('info');
     return;
   }
-  if (isOnScreen(layout, 'terminal') && regionOf(layout.live, 'terminal') === regionOf(layout.live, channel)) {
-    layout.markUnread(channel);
+  const region = layout.live.regions[regionOf(layout.live, 'info')];
+  if (region.visible && (region.active === 'terminal' || isConsoleChannel(region.active))) {
+    layout.markUnread('info');
     return;
   }
-  if (!layout.revealView(channel)) layout.markUnread(channel);
+  if (!layout.revealView('info')) layout.markUnread('info');
 }
 
-function write(channel: ConsoleChannel, text: string, style: LineStyle = 'plain'): void {
-  writeLine(channel, text, style);
-  useLayout.getState().markUnread(channel);
+/** O ponto de saída nova numa aba de console que está aberta. */
+function markUnread(view: ViewId): void {
+  const layout = useLayout.getState();
+  if (!layout.live.hidden.views.includes(view)) layout.markUnread(view);
+}
+
+/** Uma linha já formatada (console/format.ts) no INFO e no terminal da
+ * etapa. `error` marca onde o INFO para se a rodada falhar. */
+function write(stage: ConsoleChannel | null, text: string, error = false): void {
+  writeLine(stage, text, error);
+  markUnread('info');
+  if (stage) markUnread(stage);
+}
+
+/** Quem escreveu as últimas linhas da rodada: uma linha de outro autor
+ * (outra ferramenta, o testbench) vem depois do nome dele. */
+let lastBlock: string | null = null;
+
+/** O nome do autor das próximas linhas, se ele mudou. */
+function writeBlock(stage: ConsoleChannel, key: string, title: string): void {
+  if (lastBlock === key) return;
+  lastBlock = key;
+  write(stage, fmt.block(title));
 }
 
 function commandLine(command: Invocation): string {
@@ -215,14 +240,25 @@ function commandLine(command: Invocation): string {
   return [command.program, ...command.args].map(quote).join(' ');
 }
 
-function statusStyle(status: Status): LineStyle {
-  if (status === 'succeeded') return 'success';
-  if (status === 'cancelled' || status === 'timed_out') return 'warning';
-  return 'error';
-}
-
 function statusText(status: Status): string {
   return t(`console.status.${status}` as Key);
+}
+
+/** O resultado de uma etapa: o marcador, e o erro marcado para o INFO. */
+function writeResult(stage: ConsoleChannel, status: Status, text: string): void {
+  const outcome = fmt.outcomeOf(status);
+  write(stage, fmt.result(outcome, text), outcome === 'error');
+}
+
+/** "Simulação rápida · 14:02:31": o cabeçalho da rodada. */
+function runTitle(request: FlowRequest): string {
+  const name = t(request.flow === 'simulate' && request.fast ? 'flowName.fastSimulate' : (`flowName.${request.flow}` as Key));
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return t('console.runStart', { flow: capitalized(name), time });
+}
+
+function capitalized(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
 }
 
 /** O rótulo de uma fase. A simulação rápida (a chave `fastSim`) tem o
@@ -237,37 +273,48 @@ export function lastFlowKey(last: LastRun): Key {
   return last.fast ? 'flowName.fastSimulate' : (`flowName.${last.flow}` as Key);
 }
 
-/** Uma mensagem de evento do Core no console do passo. */
+/** Uma mensagem de evento do Core: a linha vai recuada embaixo do nome de
+ * quem a escreveu, a ferramenta ou, na simulação, o testbench. */
 function handleEvent(event: Event): void {
   switch (event.event) {
     case 'step_started': {
-      const channel = channelOf(event.step as Step, event.tool as string);
-      if (verbose()) write(channel, `$ ${commandLine(event.command as Invocation)}`, 'command');
+      // Com o modo detalhado, o comando exato abre o bloco da ferramenta.
+      if (verbose()) {
+        const stage = channelOf(event.step as Step, event.tool as string);
+        lastBlock = `${event.step}:${event.tool}`;
+        write(stage, fmt.block(`$ ${commandLine(event.command as Invocation)}`));
+      }
       break;
     }
     case 'output': {
-      const channel = channelOf(event.step as Step, event.tool as string);
-      write(channel, event.line, styleForToolLine(event.line, event.diagnostic, event.stream === 'stderr'));
+      const stage = channelOf(event.step as Step, event.tool as string);
+      // Na simulação, o que não é mensagem da ferramenta é o testbench: o
+      // $display, o log do cocotb.
+      const program = event.step === 'simulate' && !event.diagnostic;
+      if (program) writeBlock(stage, 'program', t('console.programOutput'));
+      else writeBlock(stage, `${event.step}:${event.tool}`, event.tool as string);
+      if (event.diagnostic) write(stage, fmt.toolMessage(event.line), fmt.isErrorMessage(event.line));
+      else write(stage, fmt.output(event.line));
       break;
     }
     case 'step_finished': {
-      const channel = channelOf(event.step as Step, event.tool as string);
+      const stage = channelOf(event.step as Step, event.tool as string);
       const termination = event.termination as { kind: string; value?: number };
       const ok = termination.kind === 'exited' && termination.value === 0;
-      // Cancelar não é falha da ferramenta: rótulo e cor próprios.
-      const cancelled = termination.kind === 'cancelled';
-      if (verbose() || !ok) {
-        const how =
-          termination.kind === 'exited'
-            ? t('console.termination.code', { code: termination.value ?? '?' })
-            : t(`console.termination.${termination.kind}` as Key);
-        const label = ok ? t('console.step.done') : cancelled ? t('console.step.cancelled') : t('console.step.failed');
-        write(
-          channel,
-          `  ${label}  ${event.step}  ${event.tool}  ${formatDuration(event.duration_ms)}${ok ? '' : `  (${how})`}`,
-          ok ? 'dim' : cancelled ? 'warning' : 'error',
-        );
+      const time = formatDuration(event.duration_ms);
+      if (ok) {
+        if (verbose()) write(stage, fmt.block(`${event.tool} ${t('console.step.done')} · ${time}`));
+        break;
       }
+      // Cancelar não é falha da ferramenta: marcador e rótulo próprios.
+      const cancelled = termination.kind === 'cancelled';
+      const how =
+        termination.kind === 'exited'
+          ? t('console.termination.code', { code: termination.value ?? '?' })
+          : t(`console.termination.${termination.kind}` as Key);
+      const label = cancelled ? t('console.step.cancelled') : t('console.step.failed');
+      write(stage, fmt.attention(cancelled ? 'warning' : 'error', `${event.tool} ${label}: ${how} · ${time}`), !cancelled);
+      lastBlock = null;
       break;
     }
   }
@@ -279,9 +326,11 @@ function handleEvent(event: Event): void {
  * ferramenta já escreveu o arquivo e a linha ao vivo, e o resumo não repete. */
 function writeBuild(result: BuildResult): void {
   const failedStep = result.failed_step as Step | null;
-  const channel = failedStep ? STEP_CHANNEL[failedStep] : 'asm';
-  write(
-    channel,
+  const stage = failedStep ? STEP_CHANNEL[failedStep] : 'asm';
+  lastBlock = null;
+  writeResult(
+    stage,
+    result.status,
     t('console.buildTitle', {
       name: result.processor,
       lang: result.language === 'cpp' ? 'C' : 'C±',
@@ -290,17 +339,16 @@ function writeBuild(result: BuildResult): void {
       status: statusText(result.status),
       time: formatDuration(result.duration_ms),
     }),
-    statusStyle(result.status),
   );
-  writeDiagnostics(channel, result.diagnostics);
+  writeDiagnostics(stage, result.diagnostics);
 }
 
-function writeDiagnostics(channel: ConsoleChannel, diagnostics: Diagnostic[]): void {
+function writeDiagnostics(stage: ConsoleChannel, diagnostics: Diagnostic[]): void {
   for (const d of diagnostics) {
     if (d.severity === 'info' && !verbose()) continue;
     const where = d.file ? `${rel(d.file)}${d.line ? `:${d.line}` : ''}${d.column ? `:${d.column}` : ''}: ` : '';
-    const style: LineStyle = d.severity === 'error' ? 'error' : d.severity === 'warning' ? 'warning' : 'dim';
-    write(channel, `  ${where}${d.severity}: ${d.message}`, style);
+    const label = t(`panel.severity.${d.severity}` as Key);
+    write(stage, fmt.diagnostic(where, d.severity, label, d.message), d.severity === 'error');
   }
 }
 
@@ -318,9 +366,11 @@ function collectDiagnostics(outcome: FlowOutcome): Diagnostic[] {
   ];
 }
 
-/** O resumo final de um fluxo, no console dele. */
-function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
-  let channel = FLOW_CHANNEL[outcome.flow];
+/** O resumo final de um fluxo: o resultado de cada etapa com o marcador, e
+ * embaixo dele o que ela produziu. */
+function writeOutcome(outcome: FlowOutcome): void {
+  let stage = FLOW_CHANNEL[outcome.flow];
+  lastBlock = null;
   const failedBuild = outcome.builds.find((b) => b.status !== 'succeeded');
   if (failedBuild && outcome.flow !== 'build') {
     const phase = {
@@ -329,136 +379,127 @@ function writeOutcome(outcome: FlowOutcome): ConsoleChannel {
       synthesize: 'flowName.synthesize',
       fpga_build: 'flowName.fpga_build',
     }[outcome.flow as 'check' | 'simulate' | 'synthesize' | 'fpga_build'];
-    channel = failedBuild.failed_step ? STEP_CHANNEL[failedBuild.failed_step as Step] : 'cmm';
-    if (phase) write(channel, t('console.notRun', { phase: t(phase as Key), name: failedBuild.processor }), 'warning');
+    stage = failedBuild.failed_step ? STEP_CHANNEL[failedBuild.failed_step as Step] : 'cmm';
+    if (phase) write(stage, fmt.attention('warning', t('console.notRun', { phase: t(phase as Key), name: failedBuild.processor })));
   }
   if (outcome.check) {
     const c = outcome.check;
-    write(
-      channel,
+    writeResult(
+      stage,
+      c.status,
       t('console.checkTitle', {
         targets: c.targets.join(', ') || '-',
         status: statusText(c.status),
         time: formatDuration(c.duration_ms),
       }),
-      statusStyle(c.status),
     );
   }
   if (outcome.simulation) {
     const s = outcome.simulation;
-    write(
-      channel,
+    writeResult(
+      stage,
+      s.status,
       t(s.fast ? 'console.fastSimTitle' : 'console.simTitle', {
         top: s.top,
         simulator: s.simulator === 'icarus' ? 'Icarus' : 'Verilator',
         status: statusText(s.status),
         time: formatDuration(s.duration_ms),
       }),
-      statusStyle(s.status),
     );
     for (const port of outcome.outputs) {
-      write(
-        channel,
-        t('console.output', { port: port.port, values: port.error ? port.error.message : port.values.join(' ') }),
-        port.error ? 'error' : 'success',
-      );
+      const text = t('console.output', { port: port.port, values: port.error ? port.error.message : port.values.join(' ') });
+      write(stage, port.error ? fmt.item('error', text) : fmt.detail(text), !!port.error);
     }
     // cocotb: um teste por linha e quantos passaram; a falha vem com a linha
     // do .py, que também está nos problemas.
     if (s.tests) {
       for (const c of s.tests.cases) {
         const where = c.status === 'failed' && c.file ? ` (${rel(c.file)}${c.line ? `:${c.line}` : ''})` : '';
-        const [key, style]: [Key, LineStyle] =
+        const [key, mark]: [Key, fmt.Outcome] =
           c.status === 'passed'
-            ? ['console.testPassed', 'success']
+            ? ['console.testPassed', 'ok']
             : c.status === 'failed'
               ? ['console.testFailed', 'error']
-              : ['console.testSkipped', 'dim'];
-        write(channel, `  ${t(key, { name: c.name })}${where}`, style);
+              : ['console.testSkipped', 'skipped'];
+        write(stage, fmt.item(mark, `${t(key, { name: c.name })}${where}`), mark === 'error');
       }
       const total = s.tests.passed + s.tests.failed + s.tests.skipped;
-      write(
-        channel,
-        t('console.testsSummary', { passed: s.tests.passed, total }),
-        s.tests.failed > 0 || total === 0 ? 'error' : 'success',
-      );
+      write(stage, fmt.detail(t('console.testsSummary', { passed: s.tests.passed, total })));
     }
-    for (const missing of s.missing_inputs) write(channel, t('console.missingInput', { path: rel(missing) }), 'warning');
-    if (s.status === 'timed_out') write(channel, t('console.timedOutHint'), 'warning');
-    if (s.waveform) write(channel, t('console.waveformAt', { path: rel(s.waveform.path) }), 'dim');
+    for (const missing of s.missing_inputs) write(stage, fmt.attention('warning', t('console.missingInput', { path: rel(missing) })));
+    if (s.status === 'timed_out') write(stage, fmt.attention('warning', t('console.timedOutHint')));
+    if (s.waveform) write(stage, fmt.note(t('console.waveformAt', { path: rel(s.waveform.path) })));
   }
   if (outcome.synthesis) {
     const s = outcome.synthesis;
-    write(
-      channel,
-      t('console.synthTitle', { top: s.top, status: statusText(s.status), time: formatDuration(s.duration_ms) }),
-      statusStyle(s.status),
-    );
+    writeResult(stage, s.status, t('console.synthTitle', { top: s.top, status: statusText(s.status), time: formatDuration(s.duration_ms) }));
   }
   if (outcome.schematic) {
     const s = outcome.schematic;
-    write(
-      channel,
+    writeResult(
+      stage,
+      s.status,
       t('console.schematicTitle', { module: s.module, status: statusText(s.status), time: formatDuration(s.duration_ms) }),
-      statusStyle(s.status),
     );
   }
   if (outcome.fpga) {
     const f = outcome.fpga;
-    write(
-      channel,
+    writeResult(
+      stage,
+      f.status,
       t('console.fpgaTitle', { top: f.top, board: f.board, status: statusText(f.status), time: formatDuration(f.duration_ms) }),
-      statusStyle(f.status),
     );
-    for (const note of f.notes) write(channel, `  ${t('console.note', { note })}`, 'warning');
+    for (const note of f.notes) write(stage, fmt.attention('warning', t('console.note', { note })));
     // Os erros e avisos do Quartus já passaram ao vivo; o tempo não
     // atendido não reprova a compilação, mas precisa ser visto.
-    if (f.timing && !f.timing.met) write(channel, t('console.fpgaTimingNotMet'), 'warning');
-    if (f.bitstream) write(channel, t('console.fpgaBitstream', { path: rel(f.bitstream) }), 'dim');
+    if (f.timing && !f.timing.met) write(stage, fmt.attention('warning', t('console.fpgaTimingNotMet')));
+    if (f.bitstream) write(stage, fmt.note(t('console.fpgaBitstream', { path: rel(f.bitstream) })));
   }
   if (outcome.fpga_program) {
     const p = outcome.fpga_program;
-    write(
-      channel,
+    writeResult(
+      stage,
+      p.status,
       t('console.programTitle', { board: p.board, cable: p.cable, status: statusText(p.status), time: formatDuration(p.duration_ms) }),
-      statusStyle(p.status),
     );
     // O aviso de .sof velho não vem das linhas ao vivo do Quartus.
-    writeDiagnostics(channel, p.diagnostics.filter((d) => !d.raw));
+    writeDiagnostics(stage, p.diagnostics.filter((d) => !d.raw));
   }
   if (outcome.wave) {
-    write(channel, t('console.waveOpened', { pid: outcome.wave.pid, path: rel(outcome.wave.waveform) }), 'info');
+    write(stage, fmt.note(t('console.waveOpened', { pid: outcome.wave.pid, path: rel(outcome.wave.waveform) })));
     for (const processor of outcome.wave.outdated) {
-      write(channel, `${processor}: ${t('wave.outdated')}`, 'warning');
+      write(stage, fmt.attention('warning', `${processor}: ${t('wave.outdated')}`));
     }
   }
   if (outcome.wave_tab) {
-    write(channel, t('console.waveTab', { path: rel(outcome.wave_tab) }), 'info');
+    write(stage, fmt.note(t('console.waveTab', { path: rel(outcome.wave_tab) })));
   }
   if (outcome.wave_error) {
-    write(channel, t('console.waveError', { error: outcome.wave_error.message }), 'error');
+    write(stage, fmt.attention('error', t('console.waveError', { error: outcome.wave_error.message })), true);
   }
   if (outcome.flow === 'build' && outcome.builds.length === 0) {
-    write('cmm', t('console.noProcessors'), 'info');
-    channel = 'cmm';
-    show('cmm');
+    stage = 'cmm';
+    write(stage, fmt.detail(t('console.noProcessors')));
   }
   if (outcome.learn) {
     const g = outcome.learn;
-    const style: LineStyle = g.verdict === 'solved' ? 'success' : g.verdict === 'cancelled' ? 'warning' : 'error';
+    const verdict: fmt.Outcome = g.verdict === 'solved' ? 'ok' : g.verdict === 'cancelled' ? 'warning' : 'error';
     write(
-      channel,
-      t('console.learnTitle', { exercise: g.exercise, verdict: t(`learn.short.${g.verdict}` as Key), time: formatDuration(g.duration_ms) }),
-      style,
+      stage,
+      fmt.result(
+        verdict,
+        t('console.learnTitle', { exercise: g.exercise, verdict: t(`learn.short.${g.verdict}` as Key), time: formatDuration(g.duration_ms) }),
+      ),
+      verdict === 'error',
     );
     for (const o of g.outputs.filter((o) => o.mismatches > 0)) {
-      write(channel, t('console.learnOutput', { output: o.name, wrong: o.mismatches, samples: g.samples, first: o.first_ns ?? '-' }), 'error');
+      const text = t('console.learnOutput', { output: o.name, wrong: o.mismatches, samples: g.samples, first: o.first_ns ?? '-' });
+      write(stage, fmt.item('error', text.trim()), true);
     }
-    writeDiagnostics(channel, g.diagnostics);
+    writeDiagnostics(stage, g.diagnostics);
   }
-  if (outcome.report) write(channel, t('console.report', { id: outcome.report }), 'dim');
-  if (outcome.report_error) write(channel, t('console.reportError', { error: outcome.report_error }), 'warning');
-  return channel;
+  if (outcome.report) write(stage, fmt.note(t('console.report', { id: outcome.report })));
+  if (outcome.report_error) write(stage, fmt.attention('warning', t('console.reportError', { error: outcome.report_error })));
 }
 
 /** O status que resume um fluxo, para a barra de status. */
@@ -563,6 +604,11 @@ export const useJobs = create<JobsState>((set, get) => ({
       running: { id: null, flow: request.flow, phase: null, startedAt, command: '', statusKey: key },
       statusByKey: { ...get().statusByKey, [key]: 'running' },
     });
+    // Uma rodada nova no INFO, que vem para a frente agora e não troca de
+    // aba até o fim.
+    beginRun(runTitle(request));
+    lastBlock = null;
+    showInfo();
 
     return new Promise<FlowOutcome | null>((resolve) => {
       const finish = (outcome: FlowOutcome | null, error?: IpcError) => {
@@ -585,13 +631,25 @@ export const useJobs = create<JobsState>((set, get) => ({
               finishedAt: Date.now(),
             },
           });
-          const channel = writeOutcome(outcome);
-          if (!outcome.succeeded) show(channel);
-          if (outcome.wave_error) showError(outcome.wave_error);
+          writeOutcome(outcome);
           if (outcome.schematic_error) {
-            write('rtlViewer', outcome.schematic_error.message, 'warning');
-            showError(outcome.schematic_error);
+            write('rtlViewer', fmt.attention('warning', outcome.schematic_error.message));
           }
+          const status = outcomeStatus(outcome);
+          const errors = diagnostics.filter((d) => d.severity === 'error').length;
+          const warnings = diagnostics.filter((d) => d.severity === 'warning').length;
+          endRun(
+            fmt.footer(
+              fmt.outcomeOf(status),
+              `${capitalized(t('console.runEnd', { status: statusText(status), time: formatDuration(durationMs) }))} · ${t('console.runProblems', { errors, warnings })}`,
+            ),
+          );
+          if (!outcome.succeeded) {
+            showInfo();
+            revealRunError();
+          }
+          if (outcome.wave_error) showError(outcome.wave_error);
+          if (outcome.schematic_error) showError(outcome.schematic_error);
           // A onda numa aba: abre, ou recarrega a que já está aberta, porque
           // a simulação acabou de regravar o arquivo.
           if (outcome.wave_tab) openWaveTab(outcome.wave_tab, true);
@@ -625,9 +683,16 @@ export const useJobs = create<JobsState>((set, get) => ({
             },
           });
           if (error) {
-            write(START_CHANNEL[request.flow], t('console.failedToRun', { message: error.message }), 'error');
-            showError(error);
+            write(START_CHANNEL[request.flow], fmt.result('error', t('console.failedToRun', { message: error.message })), true);
           }
+          endRun(
+            fmt.footer(
+              'error',
+              capitalized(t('console.runEnd', { status: statusText('failed'), time: formatDuration(durationMs) })),
+            ),
+          );
+          showInfo();
+          if (error) showError(error);
         }
         resolve(outcome);
       };
@@ -636,13 +701,12 @@ export const useJobs = create<JobsState>((set, get) => ({
         switch (message.type) {
           case 'started':
             set({ running: { ...get().running!, id: message.job, command: message.command } });
-            write(START_CHANNEL[request.flow], `> ${message.command}`, 'command');
+            write(START_CHANNEL[request.flow], fmt.command(message.command));
             break;
           case 'phase': {
             set({ running: { ...get().running!, phase: message.phase } });
-            const channel = PHASE_CHANNEL[message.phase];
-            write(channel, `${t(phaseKey(message.phase, key))}...`, 'title');
-            show(channel);
+            lastBlock = null;
+            write(PHASE_CHANNEL[message.phase], fmt.phase(t(phaseKey(message.phase, key))));
             break;
           }
           case 'events':
@@ -658,7 +722,7 @@ export const useJobs = create<JobsState>((set, get) => ({
             finish(null, message.error);
             break;
           case 'cli_output':
-            write(START_CHANNEL[request.flow], message.line, message.stream === 'stderr' ? 'dim' : 'plain');
+            write(START_CHANNEL[request.flow], fmt.output(message.line));
             break;
         }
       };
@@ -671,7 +735,7 @@ export const useJobs = create<JobsState>((set, get) => ({
     const running = get().running;
     if (!running || running.flow === 'update') return;
     if (running.flow === 'install') cliLine(t('console.cancelRequested'), 'warning');
-    else write(START_CHANNEL[running.flow], t('console.cancelRequested'), 'warning');
+    else write(START_CHANNEL[running.flow], fmt.attention('warning', t('console.cancelRequested')));
     try {
       await api.flow.cancel(running.id);
     } catch (error) {

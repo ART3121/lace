@@ -579,7 +579,9 @@ export const ACTIONS: Action[] = [
   },
   { id: 'toggleZen', label: 'action.toggleZen', category: 'view', keys: 'Ctrl+K Z', run: () => useLayout.getState().toggleZen() },
   { id: 'showProblems', label: 'action.showProblems', category: 'view', keys: 'Ctrl+Shift+M', run: () => reveal('problems') },
-  // Os consoles, um por um: o caminho de volta para um console escondido.
+  // O INFO e os terminais de etapa: abrem um terminal fechado, ou trazem
+  // para a frente um aberto.
+  { id: 'viewConsoleInfo', label: 'action.viewConsoleInfo', category: 'view', keys: 'Ctrl+Shift+U', run: () => reveal('info') },
   ...CONSOLE_CHANNELS.map((channel) => ({
     id: VIEW_INFO[channel].action,
     label: `action.${VIEW_INFO[channel].action}` as Key,

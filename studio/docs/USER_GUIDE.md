@@ -1,7 +1,7 @@
 # Guia do usuário
 
 Como usar o Lace Studio: a janela, os dois fluxos de trabalho (Verilog e
-processador SAPHO), o que aparece em cada console, os atalhos e as
+processador SAPHO), o que aparece no INFO e nos terminais, os atalhos e as
 preferências. Quem vem da AURORA encontra os mesmos botões com os mesmos
 nomes e teclas (C± F6, Verilog F7, Wave F8, RTLViewer F10).
 
@@ -12,7 +12,7 @@ Sumário:
 3. [Projeto Verilog](#3-projeto-verilog)
 4. [Processador SAPHO](#4-processador-sapho)
 5. [Os botões do fluxo](#5-os-botões-do-fluxo)
-6. [Consoles, problemas e terminal](#6-consoles-problemas-e-terminal)
+6. [INFO, terminais, problemas e shell](#6-info-terminais-problemas-e-shell)
 7. [Esquemático, síntese e relatórios](#7-esquemático-síntese-e-relatórios)
 8. [Ferramentas do Lace](#8-ferramentas-do-lace)
 9. [Preferências](#9-preferências)
@@ -68,8 +68,8 @@ e item pode ser escondido (seção 2.4).
   (título em itálico), que a próxima abertura troca; editar ou dar duplo
   clique a fixa. Vistas como o esquemático e as preferências também abrem
   em abas. O editor se divide em até três grupos lado a lado (seção 2.2).
-- **Painel**: os consoles de cada etapa, Problemas e o terminal, embaixo do
-  editor ou à direita dele. Ctrl+J esconde e mostra; o botão de maximizar dá
+- **Painel**: o INFO, com o que as operações escrevem, o Terminal e
+  Problemas, embaixo do editor ou à direita dele. Ctrl+J esconde e mostra; o botão de maximizar dá
   ao painel o lugar do editor.
 - **Barra lateral direita**: vazia no Padrão; recebe as vistas que você
   mover para ela. Ctrl+Alt+B esconde e mostra.
@@ -210,14 +210,15 @@ centralizar o editor, mostrar as abas, esconder os números de linha.
 ### 2.4 Layout da janela
 
 Há três regiões: a barra lateral esquerda, a direita e o painel, que fica
-embaixo ou à direita do editor. As onze vistas (Explorador, Fluxo, Busca,
-Relatórios, os consoles C±, ASM, Verilog, Wave e RTLViewer, Problemas e
-Terminal) vão para qualquer uma delas. O editor fica sempre no meio.
+embaixo ou à direita do editor. As catorze vistas (Explorador, Fluxo, Busca,
+Relatórios, Exercícios, o INFO, os terminais de etapa C±, ASM, Verilog,
+Wave, RTLViewer e Placa, Problemas e Terminal) vão para qualquer uma delas.
+O editor fica sempre no meio.
 
 | Para | Faça |
 |---|---|
 | mover uma vista | botão direito na aba ou no ícone dela > Mover para |
-| esconder uma vista | botão direito > Esconder; ela volta pelo menu Exibir (Exibir > Consoles, para um console), pela paleta ou por Preferências > Layout da janela |
+| esconder uma vista | botão direito > Esconder; ela volta pelo menu Exibir (Exibir > Consoles, para um terminal, ou pelo seletor de terminal da seção 6), pela paleta ou por Preferências > Layout da janela |
 | esconder uma barra ou uma região | Exibir > Aparência, ou o botão direito em qualquer barra |
 | esconder um botão da barra de ferramentas ou um item da barra de status | botão direito na barra: a lista marca o que aparece |
 | pôr o painel à direita do editor | Exibir > Aparência > Painel à direita |
@@ -278,11 +279,10 @@ a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
    as portas, com clock e reset se ele tiver `clk` e `rst`, gravando a onda
    e terminando com `$finish`.
 5. **Verilog** (F7): verifica o design e cada testbench com o Icarus. Os
-   erros aparecem no console Verilog, no painel Problemas e sublinhados no
-   editor.
+   erros aparecem no INFO, no painel Problemas e sublinhados no editor.
 6. **Wave** (F8): simula e abre a onda no surfer-aurora, numa aba (seção
-   4.1). O que o testbench escreve (`$display`) aparece no console Wave
-   enquanto roda.
+   4.1). O que o testbench escreve (`$display`) aparece no INFO enquanto
+   roda, embaixo de "saída do testbench".
 7. **RTLViewer** (F10): sintetiza o topo com o Yosys e abre o esquemático
    (seção 7).
 
@@ -307,7 +307,7 @@ existe entra como os outros arquivos, sempre em Testbenches; o explorador
 lista na seção dos não registrados os `.py` da pasta que têm
 `@cocotb.test`. Com o `.py` como testbench simulado, **Wave** (F8) e
 **Rápida** (F9) rodam os testes no simulador das preferências, o Icarus ou o
-Verilator: o log do cocotb sai no console Wave, cada teste aparece lá com o
+Verilator: o log do cocotb sai no INFO, cada teste aparece lá com o
 resultado, e o que falhou vai também para o painel Problemas, na linha do
 `.py`. Com a Wave, a onda abre mesmo com teste falhando, porque é nela que
 se vê a falha (`.fst` no Icarus, `.vcd` no Verilator); a Rápida roda os
@@ -353,7 +353,7 @@ simulado, clique com o botão direito no arquivo, no explorador.
    apontam a linha do fonte.
 7. **Wave** (F8) ou **Rápida** (F9): simula o processador com o testbench
    que o YANC gerou; a Rápida, no Verilator e sem gravar onda. No fim, o
-   console Wave mostra os valores de cada porta de saída (`Saída 0: 55`), e
+   INFO mostra os valores de cada porta de saída (`Saída 0: 55`), e
    a aba do processador também.
 
 A **aba do processador** (duplo clique nele no explorador) tem a frequência,
@@ -455,29 +455,68 @@ Um testbench sem `$finish` não termina sozinho: use Parar, ou defina um
 prazo em Preferências > Simulação.
 
 Cada operação grava um relatório no histórico do projeto (`.lace/reports/`),
-como a CLI. O número aparece no fim do console.
+como a CLI. O número aparece no fim da rodada, no INFO.
 
-## 6. Consoles, problemas e terminal
+## 6. INFO, terminais, problemas e shell
 
-Cada etapa escreve no seu console, com os nomes da AURORA:
+O painel abre com dois terminais lado a lado: o **INFO**, com o que as
+operações escrevem, e o **Terminal**, o shell. Depois deles vem
+**Problemas**.
 
-| Console | Na AURORA | O que aparece |
+**INFO.** Cada operação é uma rodada, do mesmo jeito em todos os fluxos:
+
+```
+── Simulação · 14:02:31 ───────────────────────
+$ lace-studio sim -p soma
+▸ Compilando processadores (YANC)
+  cmmcomp
+    (o que o cmmcomp escreveu)
+✓ Build de soma (C±, 100 MHz, 2000 clocks): terminou em 155 ms
+▸ Simulando
+  saída do testbench
+    (o $display do testbench)
+✓ Simulação de soma_tb (Icarus): terminou em 524 ms
+    Saída 0: 55
+    Relatório run-000042 gravado no histórico
+── ✓ Terminou em 0,7 s · erros: 0, avisos: 0 ──
+```
+
+- A rodada começa com a operação e a hora, e termina com o status, o tempo
+  e quantos erros e avisos ficaram em Problemas.
+- Cada fase começa com ▸, em negrito. Embaixo vem o nome de cada
+  ferramenta que escreveu algo, em cinza, e, recuado, o que ela escreveu,
+  sem mudança. Na simulação, o que o testbench escreve fica embaixo de
+  "saída do testbench".
+- A cor só mostra como algo terminou: ✓ verde, ✗ vermelho, ! amarelo, e a
+  palavra de gravidade nas mensagens das ferramentas (`error`, `warning`).
+  Em cinza fica o secundário: o comando, o nome da ferramenta, onde ficou a
+  onda, o relatório.
+- O INFO vem para a frente quando a operação começa e não troca de aba
+  no meio dela. Quem está no Terminal ou num terminal de etapa fica onde
+  está, e a aba do INFO ganha um ponto. Numa falha, ele rola até o primeiro
+  erro da rodada.
+- Um `arquivo:linha` é um link: clique para abrir o arquivo na linha. Com a
+  preferência "Mostrar o comando de cada passo", aparece também a linha de
+  comando exata de cada ferramenta, para repetir à mão.
+
+**Terminais de etapa.** O botão de escolher o terminal (as setas para cima
+e para baixo, no cabeçalho de qualquer terminal) lista o INFO, o Terminal e
+um terminal por etapa, que correspondem aos terminais da AURORA:
+
+| Terminal | Na AURORA | O que mostra |
 |---|---|---|
 | C± | TCMM | o compilador de C± ou de C (cmmcomp, cpppp, cppcomp) |
 | ASM | TASM | o pré-montador e o montador (appcomp, asmcomp) e o resumo do build |
 | Verilog | TVERI | a verificação do Icarus e o lint do Verilator |
 | Wave | TWAVE | a elaboração e a simulação: o que o testbench escreve, as saídas do processador, onde ficou a onda |
 | RTLViewer | TRTLViewer | a síntese do Yosys |
+| Placa | | a compilação e a gravação pelo Quartus |
 
-O comando que o Studio rodou (`> lace ...`) aparece no console onde a
-operação começa: o C± no build, o Verilog na verificação, o Wave na
-simulação, o RTLViewer na síntese.
-
-O painel troca sozinho para o console da etapa que está rodando (a não ser
-que você esteja no Terminal). Uma aba com saída nova ganha um ponto. Um
-`arquivo:linha` no console é um link: clique para abrir o arquivo na linha.
-Com a preferência "Mostrar o comando de cada passo", aparece também a linha
-de comando exata de cada ferramenta, para repetir à mão.
+Os abertos têm a marca. Escolher um fechado abre ele com o que a etapa já
+escreveu, separado por rodada, e daí em diante ele recebe as linhas novas
+da etapa, que continuam indo também para o INFO. O terminal fica aberto,
+inclusive nas próximas vezes que você abrir o Studio, até ser fechado pelo X
+do cabeçalho; Exibir > Consoles também abre qualquer um.
 
 **Problemas** lista os erros e avisos da última operação, com filtro;
 clicar abre o arquivo na linha. As mensagens `info` aparecem marcando a
@@ -568,7 +607,7 @@ gravação contra uma solução de referência
   de aba não grava sozinho (mesmo com **Salvar ao trocar de aba ou de
   janela** ligado), e
   o painel de baixo fica escondido até você chamá-lo (Ctrl+J). A correção
-  não abre console nenhum: o resultado aparece na aba do enunciado. Abrir
+  não traz o INFO para a frente: o resultado aparece na aba do enunciado. Abrir
   outro projeto ou fechar a pasta de exercícios encerra a sessão, e o painel
   volta como estava.
 - A aba do enunciado mostra a correção: resolvido, não compila, ou em
@@ -618,7 +657,8 @@ com o estado:
    configuração dela (na DE2-115, o projeto de fábrica).
 
 **Compilar e gravar na placa** faz as duas últimas de uma vez. A saída do
-Quartus vai para o console **Placa**, e os erros, para Problemas. No fim
+Quartus vai para o INFO (e para o terminal **Placa**, se ele estiver
+aberto), e os erros, para Problemas. No fim
 aparecem os recursos da FPGA e, por clock, a frequência pedida, a Fmax e as
 folgas. Sem o Quartus, os botões ficam desligados (Preferências > Bundle do
 Lace > Quartus Prime). Se o topo é um processador ainda não compilado, as

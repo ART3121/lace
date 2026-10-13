@@ -1,9 +1,13 @@
-// As vistas que nasceram no painel: os consoles de cada etapa, os problemas
-// da última operação e o terminal de shell. Elas ficam em qualquer região
-// (Region.tsx); os consoles e o terminal são elementos que vivem fora do
-// React (console/), e a vista só os põe dentro dela enquanto está montada.
+// As vistas que nasceram no painel: o INFO, os terminais de etapa, os
+// problemas da última operação e o terminal de shell. Elas ficam em qualquer
+// região (Region.tsx); os consoles e o terminal são elementos que vivem fora
+// do React (console/), e a vista só os põe dentro dela enquanto está montada.
+//
+// Todo terminal tem o seletor, que abre qualquer outro, e o botão de fechar.
+// Qual está aberto e qual está na frente fica no layout da janela: vale nas
+// próximas sessões até o usuário fechar o terminal.
 
-import { Eraser, Plus } from 'lucide-react';
+import { ChevronsUpDown, Eraser, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { attachConsole, clearConsole, detachConsole, fitConsole } from '../../console/consoles';
@@ -12,10 +16,11 @@ import { useT, type Key } from '../../i18n';
 import type { Diagnostic, ProjectIssue } from '../../ipc/lace-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
-import { useLayout, type ConsoleChannel } from '../../state/layout';
+import { useLayout, type ConsoleId, type ViewId } from '../../state/layout';
+import { CONSOLE_CHANNELS, VIEW_INFO } from '../../state/layoutModel';
 import { useProject } from '../../state/project';
 import { relativeUp } from '../../util/paths';
-import { Empty, IconButton } from '../common';
+import { Empty, IconButton, openContextMenu, type MenuItem } from '../common';
 import { ViewActions } from '../layout/ViewActions';
 
 /** Chama `fit` quando o elemento muda de tamanho. */
@@ -28,7 +33,49 @@ function useResize(ref: React.RefObject<HTMLElement | null>, fit: () => void) {
   }, [ref, fit]);
 }
 
-export function ConsoleView({ channel }: { channel: ConsoleChannel }) {
+/** Os terminais na ordem do seletor: os dois de sempre e os de etapa. */
+const TERMINALS: ViewId[] = ['info', 'terminal', ...CONSOLE_CHANNELS];
+
+/** Escolhe o terminal que aparece: os abertos têm a marca, e escolher um
+ * fechado abre ele no lugar onde estava. */
+function TerminalPicker() {
+  const t = useT();
+  const pick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const { hidden } = useLayout.getState().live;
+    const item = (view: ViewId): MenuItem => ({
+      label: t(VIEW_INFO[view].label),
+      checked: !hidden.views.includes(view),
+      run: () => useLayout.getState().revealView(view, { explicit: true }),
+    });
+    const [info, shell, ...stages] = TERMINALS.map(item);
+    // O menu abre embaixo do botão, também quando ele é acionado pelo teclado.
+    const rect = e.currentTarget.getBoundingClientRect();
+    openContextMenu({ clientX: rect.left, clientY: rect.bottom + 2, preventDefault: () => e.preventDefault() }, [
+      info,
+      shell,
+      { separator: true },
+      ...stages,
+    ]);
+  };
+  return (
+    <IconButton label={t('panel.pickTerminal')} onClick={pick}>
+      <ChevronsUpDown size={14} />
+    </IconButton>
+  );
+}
+
+/** Fecha o terminal: ele some das abas até ser aberto de novo pelo seletor
+ * ou pelo menu Exibir. */
+function CloseTerminal({ view }: { view: ViewId }) {
+  const t = useT();
+  return (
+    <IconButton label={t('panel.closeTerminal')} onClick={() => useLayout.getState().setViewHidden(view, true)}>
+      <X size={14} />
+    </IconButton>
+  );
+}
+
+export function ConsoleView({ channel }: { channel: ConsoleId }) {
   const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const fit = useMemo(() => () => fitConsole(channel), [channel]);
@@ -42,9 +89,11 @@ export function ConsoleView({ channel }: { channel: ConsoleChannel }) {
   return (
     <>
       <ViewActions>
+        <TerminalPicker />
         <IconButton label={t('panel.clear')} onClick={() => clearConsole(channel)}>
           <Eraser size={14} />
         </IconButton>
+        <CloseTerminal view={channel} />
       </ViewActions>
       <div ref={ref} className="console" />
     </>
@@ -66,9 +115,11 @@ export function ShellView() {
   return (
     <>
       <ViewActions>
+        <TerminalPicker />
         <IconButton label={t('panel.newTerminal')} onClick={() => void restartShell()}>
           <Plus size={15} />
         </IconButton>
+        <CloseTerminal view="terminal" />
       </ViewActions>
       <div ref={ref} className="console" />
     </>

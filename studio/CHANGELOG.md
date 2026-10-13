@@ -3,6 +3,35 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Acrescentado
+
+- O **INFO**, no painel ao lado do Terminal: a saída de todas as operações
+  num lugar só, uma rodada por operação. A rodada começa com a operação e a
+  hora e termina com o status, o tempo e quantos erros e avisos ficaram em
+  Problemas. A saída de cada ferramenta vem recuada embaixo do nome dela, e
+  a do testbench embaixo de "saída do testbench". Ctrl+Shift+U traz o INFO
+  para a frente.
+- O botão de escolher o terminal, no cabeçalho de qualquer terminal, abre o
+  INFO, o Terminal ou um terminal de etapa. Um terminal aberto fica aberto
+  nas próximas sessões até ser fechado pelo X do cabeçalho.
+
+### Mudado
+
+- Os seis consoles de etapa (C±, ASM, Verilog, Wave, RTLViewer e Placa, que
+  correspondem aos terminais da AURORA) começam fechados. Aberto pelo seletor
+  ou por Exibir > Consoles, um deles mostra o que a etapa já tinha escrito e
+  passa a receber as linhas novas dela, que também vão para o INFO. Um
+  layout salvo antes disso ganha o INFO no lugar do primeiro console, com o
+  Terminal ao lado.
+- A cor dos consoles só mostra como algo terminou (✓ verde, ✗ vermelho, !
+  amarelo) e a palavra de gravidade nas mensagens das ferramentas. Antes, uma
+  linha inteira mudava de cor por palavra-chave, e o stderr saía amarelo
+  mesmo sem aviso nenhum.
+- O painel não troca mais de aba no meio de uma operação: o INFO vem para a
+  frente no começo e, numa falha, rola até o primeiro erro.
+
 ## [0.7.0] - 2026-10-12
 
 ### Acrescentado

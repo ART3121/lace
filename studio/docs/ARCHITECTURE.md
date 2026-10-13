@@ -268,8 +268,9 @@ frame at ... ms`).
 **Layout** (`state/layoutModel.ts`, `state/layout.ts`,
 `state/savedLayouts.ts`). Três regiões fixas, como no VS Code: a barra
 lateral esquerda, a direita e o painel (embaixo ou à direita do editor). As
-onze vistas (as quatro da barra lateral, os cinco consoles, Problemas e
-Terminal) ficam cada uma em uma região e podem ir para qualquer outra. O
+catorze vistas (as cinco da barra lateral, o INFO, os seis terminais de
+etapa, Problemas e Terminal) ficam cada uma em uma região e podem ir para
+qualquer outra. O
 arranjo é um `LayoutBody`: as vistas de cada região, a ativa e se ela
 aparece; a posição do painel; os tamanhos em pixels CSS; as barras; e o que
 está escondido (vistas e itens das barras de ferramentas e de status). O
@@ -316,7 +317,7 @@ região: a vista os declara com `ViewActions`, e um portal os leva para lá
 Aparência, e a barra de abas do editor, que nunca some, tem o mesmo menu:
 de qualquer parte à vista se volta às escondidas.
 
-**Os terminais mudam de lugar.** Os consoles e o shell (`console/`) têm uma
+**Os terminais mudam de lugar.** O INFO, os terminais de etapa e o shell (`console/`) têm uma
 pilha de donos: o último contêiner a montar fica com o elemento do xterm, e
 ao sair o devolve ao anterior que ainda está na página. Um console que muda
 de região, ou o shell disputado pela aba Terminal e pela gaveta do zen,
@@ -446,19 +447,34 @@ mesmo Monaco.
 
 ### 4.5 Consoles
 
-Um xterm.js somente leitura por canal, como os terminais da AURORA:
+Um xterm.js somente leitura para o INFO, que recebe tudo o que as operações
+escrevem, e um por etapa, que correspondem aos terminais da AURORA. Os de etapa
+começam fechados (`DEFAULT_BODY.hidden`) e abrem pelo seletor de terminal:
 
-| Canal | Na AURORA | Passos do Lace |
+| Etapa | Na AURORA | Passos do Lace |
 |---|---|---|
 | C± | TCMM | `preprocess`, `compile` |
 | ASM | TASM | `pre_assemble`, `assemble` |
 | Verilog | TVERI | `check_syntax`, `lint` |
 | Wave | TWAVE | `elaborate`, `verilate`, `simulate` |
 | RTLViewer | TRTLViewer | `synthesize` (`graph` e `render` só no fluxo `schematic`, que o Studio não usa mais) |
+| Placa | | os passos do Quartus (`lace fpga build` e `program`) |
 
-Cada linha vai para o console do passo que a escreveu (`STEP_CHANNEL` em
-`state/jobs.ts`); o comando de cada operação e os avisos dela vão para o
-console onde ela começa (`START_CHANNEL`). A saída do `lace install` e do
+Cada operação é uma rodada no INFO (`beginRun` e `endRun` em
+`console/consoles.ts`): cabeçalho com a operação e a hora, as fases, e o fim
+com o status, o tempo e a contagem de problemas. O formato de cada linha está
+em `console/format.ts`: a cor só marca como algo terminou (os marcadores e a
+palavra de gravidade das mensagens das ferramentas), o negrito marca rodada e
+fase, e a saída das ferramentas sai recuada embaixo do nome de quem a
+escreveu. Cada linha leva a etapa do passo que a escreveu (`STEP_CHANNEL` em
+`state/jobs.ts`); o comando de cada operação e os avisos dela levam a etapa
+onde ela começa (`START_CHANNEL`). O terminal da etapa, se aberto, recebe a
+linha junto com o INFO; um aberto depois recebe as que a etapa já escreveu,
+guardadas em `consoles.ts` (as últimas 20.000), com o cabeçalho de cada
+rodada em que ela escreveu. O que está aberto e na frente fica no layout da
+janela, e um layout gravado antes do INFO o ganha no lugar do primeiro
+console, com os de etapa fechados (`withInfoConsole` em
+`state/layoutModel.ts`). A saída do `lace install` e do
 `lace update` fica na tela do bundle (`cliLog`, em `views/ToolchainView.tsx`). Links `arquivo:linha[:coluna]` abrem o arquivo no editor.
 O terminal de shell (o TCMD) é outro xterm.js, ligado a um pseudoterminal
 do backend: no Windows, o PowerShell ou o `cmd.exe`, pela preferência
@@ -542,8 +558,9 @@ Exemplo: F8 (Wave) com o alvo no projeto.
    junta os eventos em lotes de até 500 ou 30 ms e os manda para a interface.
    Fases (`phase`) e resultados de build (`build`) vão na ordem, entre os
    lotes.
-6. A interface escreve cada linha no console do passo e troca o painel para
-   o console da fase.
+6. A interface escreve cada linha no INFO, embaixo do nome da ferramenta, e
+   no terminal da etapa, se ele estiver aberto. O INFO vem para a frente uma
+   vez, no começo da rodada, e não troca de aba no meio dela.
 7. No fim, a mensagem `finished` traz o `FlowOutcome` (com a saída de cada
    passo cortada em 256 KiB, guardando o fim: as linhas já chegaram pelos
    eventos). A interface escreve o resumo, preenche Problemas e os

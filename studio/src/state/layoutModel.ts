@@ -4,8 +4,8 @@
 // mesmas funções.
 //
 // Três regiões fixas, como no VS Code: a barra lateral esquerda, a direita e
-// o painel (embaixo ou à direita do editor). Cada uma das treze vistas fica em
-// exatamente uma delas e pode ir para qualquer outra. O editor e as abas de
+// o painel (embaixo ou à direita do editor). Cada uma das catorze vistas fica
+// em exatamente uma delas e pode ir para qualquer outra. O editor e as abas de
 // vista (Preferências, Wave, Esquemático) ficam no centro, fora disso.
 //
 // O layout guarda o que está escondido, não o que aparece: uma vista ou um
@@ -14,10 +14,20 @@
 
 import type { Key } from '../i18n';
 
+/** Os terminais de etapa, com os nomes da AURORA (console/consoles.ts).
+ * Ficam fechados até o usuário abrir um; o INFO recebe tudo o que eles
+ * recebem. */
 export const CONSOLE_CHANNELS = ['cmm', 'asm', 'verilog', 'wave', 'rtlViewer', 'fpga'] as const;
 export type ConsoleChannel = (typeof CONSOLE_CHANNELS)[number];
 
-export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', 'learn', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
+/** Um console: o INFO, com a saída de todas as etapas, ou o de uma etapa. */
+export type ConsoleId = 'info' | ConsoleChannel;
+
+export function isConsoleChannel(value: unknown): value is ConsoleChannel {
+  return typeof value === 'string' && (CONSOLE_CHANNELS as readonly string[]).includes(value);
+}
+
+export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', 'learn', 'info', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
 export type ViewId = (typeof VIEW_IDS)[number];
 
 export const REGION_IDS = ['left', 'right', 'panel'] as const;
@@ -40,6 +50,7 @@ export const VIEW_INFO: Record<ViewId, ViewInfo> = {
   search: { label: 'sidebar.search', region: 'left', action: 'findInFiles' },
   reports: { label: 'sidebar.reports', region: 'left', action: 'viewReports' },
   learn: { label: 'sidebar.learn', region: 'left', action: 'viewLearn' },
+  info: { label: 'panel.info', region: 'panel', action: 'viewConsoleInfo' },
   cmm: { label: 'panel.cmm', region: 'panel', action: 'viewConsoleCmm' },
   asm: { label: 'panel.asm', region: 'panel', action: 'viewConsoleAsm' },
   verilog: { label: 'panel.verilog', region: 'panel', action: 'viewConsoleVerilog' },
@@ -139,17 +150,18 @@ export const DEFAULT_SIZES: LayoutSizes = { left: 290, right: 290, panelBottom: 
 const SIZE_MIN = 60;
 const SIZE_MAX = 4000;
 
-/** O Padrão: exatamente a janela de antes dos layouts. */
+/** O Padrão: no painel, o INFO e o shell lado a lado, depois Problemas. Os
+ * terminais de etapa ficam entre o shell e Problemas, fechados. */
 export const DEFAULT_BODY: LayoutBody = {
   regions: {
     left: { views: ['explorer', 'flow', 'search', 'reports'], active: 'explorer', visible: true },
     right: { views: [], active: null, visible: false },
-    panel: { views: [...CONSOLE_CHANNELS, 'problems', 'terminal'], active: 'cmm', visible: true },
+    panel: { views: ['info', 'terminal', ...CONSOLE_CHANNELS, 'problems'], active: 'info', visible: true },
   },
   panelPosition: 'bottom',
   sizes: DEFAULT_SIZES,
   bars: { menubar: true, toolbar: true, statusbar: true, activitybar: 'left' },
-  hidden: { views: [], toolbar: [], statusbar: [] },
+  hidden: { views: [...CONSOLE_CHANNELS], toolbar: [], statusbar: [] },
 };
 
 export interface Preset {
@@ -238,6 +250,8 @@ export function normalizeBody(raw: unknown, fallback: LayoutBody = DEFAULT_BODY)
       visible: region && typeof region.visible === 'boolean' ? region.visible : fallback.regions[id].visible,
     };
   }
+  // Um layout gravado antes do INFO não o tem em região nenhuma.
+  const beforeInfo = regionsRaw !== null && !seen.has('info');
   for (const view of VIEW_IDS) {
     if (!seen.has(view)) regions[VIEW_INFO[view].region].views.push(view);
   }
@@ -247,7 +261,7 @@ export function normalizeBody(raw: unknown, fallback: LayoutBody = DEFAULT_BODY)
   const barsRaw = isObject(source.bars) ? source.bars : {};
   const bool = (value: unknown, otherwise: boolean) => (typeof value === 'boolean' ? value : otherwise);
 
-  return settleActive({
+  const body: LayoutBody = {
     regions,
     panelPosition: source.panelPosition === 'bottom' || source.panelPosition === 'right' ? source.panelPosition : fallback.panelPosition,
     sizes: {
@@ -266,11 +280,48 @@ export function normalizeBody(raw: unknown, fallback: LayoutBody = DEFAULT_BODY)
           : fallback.bars.activitybar,
     },
     hidden: {
-      views: uniqueStrings(hiddenRaw.views).filter(isViewId),
+      // Sem regiões nem o que esconder, vale o arranjo inteiro de `fallback`.
+      views: (isObject(source.hidden) || regionsRaw ? uniqueStrings(hiddenRaw.views) : fallback.hidden.views).filter(isViewId),
       toolbar: uniqueStrings(hiddenRaw.toolbar),
       statusbar: uniqueStrings(hiddenRaw.statusbar),
     },
-  });
+  };
+  return settleActive(beforeInfo ? withInfoConsole(body) : body);
+}
+
+/**
+ * Um layout de antes do INFO tinha um console aberto por etapa. O INFO entra
+ * no lugar do primeiro deles, de preferência no painel, e o shell, se está na
+ * mesma região, vem logo depois dele. Os de etapa fecham: a saída deles está
+ * no INFO, e cada um volta pelo seletor de terminal ao lugar onde estava.
+ * Uma região que mostrava um console de etapa passa a mostrar o INFO.
+ */
+function withInfoConsole(body: LayoutBody): LayoutBody {
+  const regions = { ...body.regions };
+  const places = REGION_IDS.map((region) => ({ region, index: regions[region].views.findIndex(isConsoleChannel) })).filter(
+    (place) => place.index >= 0,
+  );
+  const target = places.find((place) => place.region === 'panel') ?? places[0];
+  if (target) {
+    // O INFO acabou de entrar no fim da região padrão dele: tirá-lo de lá não
+    // muda a posição do console que ele vai ocupar.
+    for (const region of REGION_IDS) {
+      regions[region] = { ...regions[region], views: regions[region].views.filter((view) => view !== 'info') };
+    }
+    let views = [...regions[target.region].views];
+    views.splice(target.index, 0, 'info');
+    if (views.includes('terminal')) {
+      views = views.filter((view) => view !== 'terminal');
+      views.splice(views.indexOf('info') + 1, 0, 'terminal');
+    }
+    regions[target.region] = { ...regions[target.region], views };
+  }
+  for (const region of REGION_IDS) {
+    if (!isConsoleChannel(regions[region].active)) continue;
+    regions[region] = { ...regions[region], active: regions[region].views.includes('info') ? 'info' : null };
+  }
+  const hidden = [...new Set<ViewId>([...body.hidden.views, ...CONSOLE_CHANNELS])];
+  return { ...body, regions, hidden: { ...body.hidden, views: hidden } };
 }
 
 /** Um layout salvo, validado; `null` sem id ou sem nome. `newer`: gravado
