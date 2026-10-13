@@ -13,19 +13,37 @@ detecção do Quartus e o componente `openfpgaloader`.
 |---|---|---|---|
 | Terasic DE2-115 | `de2-115` | Cyclone IV E EP4CE115F29C7 | USB-Blaster |
 | Terasic DE10-Nano | `de10-nano` | Cyclone V SE 5CSEBA6U23I7 | USB-Blaster II |
+| Terasic Cyclone V GX Starter Kit | `c5g` | Cyclone V GX 5CGXFC5C6F27C7 | USB-Blaster |
 
 Os pinos vêm dos manuais da Terasic; cada placa cita o manual, a versão e as
 tabelas no campo `source`. Em 2026-10-09 os pinos e os padrões de I/O das
 duas placas foram comparados, um a um, com o `.qsf` que a própria Terasic
 distribui ("golden top", gerado pelo System Builder): 110 de 110 na DE2-115
 e 17 de 17 na DE10-Nano, sem diferença. Os LEDs 6 e 7 da DE10-Nano, que a
-tabela do manual não lista, vêm desse arquivo. `lace fpga boards` lista as
+tabela do manual não lista, vêm desse arquivo. Em 2026-10-13 os 65 pinos
+da C5G foram comparados do mesmo jeito com dois arquivos do CD dela
+(v1.3.0), o golden top e o da demonstração de fábrica: 65 de 65 nos dois. `lace fpga boards` lista as
 placas, e `lace fpga boards <placa>` mostra os sinais com os pinos, o padrão
 de I/O e quais são ativos em nível baixo. Com `--json`, os dados completos.
 
 Os dados de cada placa ficam em `crates/lace-core/boards/<placa>.json`,
 embutidos no Lace. Uma placa nova é um arquivo novo nessa pasta e uma linha
 em `board.rs`; os testes conferem nomes, pinos repetidos e clocks.
+
+**Na C5G** (Cyclone V GX Starter Kit), as chaves SW, os botões KEY e os
+displays HEX0 e HEX1 são de 1,2 V, e os LEDs, de 2,5 V. HEX2 e HEX3 são de
+3,3 V e dividem os pinos com o conector GPIO de 40 pinos (GPIO22 a
+GPIO35): só acendem com as chaves DIP S1 e S2, no verso da placa, em ON.
+Com HEX2 ou HEX3 no `fpga.json`, a FPGA dirige esses pinos do GPIO, então
+nada ligado neles pode dirigi-los também; sem eles, os pinos ficam como
+entrada com pull-up fraco, como todo pino sem uso. O `CPU_RESET_n` (KEY4)
+é um botão à parte, de 3,3 V, que o manual não põe no circuito de
+debounce. Os clocks diferenciais (o de 125 MHz e os de referência dos
+transceptores) ficam fora do perfil. Para gravar, a chave RUN/PROG (SW11)
+fica em RUN, e o jumper JP2 fechado nos pinos 1 e 2 deixa a FPGA sozinha
+na cadeia JTAG. O manual chama o cabo da placa de USB-Blaster, e duas
+demonstrações do CD falam em USB-Blaster II; a gravação pelo Quartus usa
+o primeiro cabo que o `quartus_pgm -l` lista, de qualquer tipo.
 
 ## O `fpga.json`
 
@@ -120,7 +138,7 @@ procura nesta ordem:
 
 A instalação precisa do Quartus Prime Lite e do suporte à família da placa,
 que a Intel distribui à parte: Cyclone IV para a DE2-115 e Cyclone V para a
-DE10-Nano. O Questa (simulador) e as outras famílias não são usados.
+DE10-Nano e a C5G. O Questa (simulador) e as outras famílias não são usados.
 
 ## Compilar: `lace fpga build`
 
@@ -235,8 +253,8 @@ pasta da placa:
 quartus_pgm -c "USB-Blaster [USB-0]" -m jtag -o "p;output_files/lace_board_top.sof@1"
 ```
 
-O `@1` é a posição da FPGA na cadeia JTAG da placa: 1 na DE2-115, 2 na
-DE10-Nano, em que o HPS vem antes. A gravação vai para a SRAM da FPGA e
+O `@1` é a posição da FPGA na cadeia JTAG da placa: 1 na DE2-115 e na C5G
+(com o JP2 fechado), 2 na DE10-Nano, em que o HPS vem antes. A gravação vai para a SRAM da FPGA e
 some quando a placa é desligada.
 
 Antes de procurar o cabo, a gravação confere o `lace-build.json` contra o
@@ -308,6 +326,10 @@ OSS CAD Suite, nas três plataformas, no componente opcional
 
 - Compilar e gravar a DE10-Nano com o Quartus de verdade (a DE2-115 foi
   conferida).
+- Gravar uma C5G de verdade. O perfil compila no Quartus 25.1 (os 65 pinos
+  no 5CGXFC5C6F27C7, com o timing atendido nos quatro clocks), mas nenhuma
+  C5G foi gravada, e o tipo do cabo (USB-Blaster ou USB-Blaster II) falta
+  conferir com a placa ligada.
 - Gravar pelo openFPGALoader, sem o Quartus.
 - Guardar a compilação para a placa no histórico (`lace report`).
 - O fluxo aberto para o Cyclone V (Yosys e `nextpnr-mistral`), adiado: o

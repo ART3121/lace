@@ -1,5 +1,18 @@
 # Mudanças
 
+## Não publicada
+
+- A placa Terasic Cyclone V GX Starter Kit (C5G, Cyclone V GX
+  5CGXFC5C6F27C7), com `"board": "c5g"` no `fpga.json`: os quatro clocks de
+  50 MHz, KEY, o CPU_RESET_n, SW, LEDR, LEDG e os quatro displays. Os 65
+  pinos vêm do manual da Terasic e foram conferidos com o golden top e com
+  a demonstração de fábrica do CD da placa, 65 de 65, e o perfil compila
+  no Quartus 25.1. HEX2 e HEX3 dividem os pinos com o GPIO e pedem as
+  chaves DIP S1 e S2 em ON ([docs/FPGA.md](docs/FPGA.md)). Ainda não foi
+  gravado numa placa.
+- `lace fpga boards` alinha as colunas pelo maior id e pelo maior nome;
+  antes, um nome com mais de 20 letras desalinhava a tabela.
+
 ## 0.7.0 (2026-10-12)
 
 - A simulação rápida (`lace sim --fast`, o Fast Sim do Studio) compila o

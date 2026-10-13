@@ -7,6 +7,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Acrescentado
 
+- A aba Placa FPGA conhece a Terasic Cyclone V GX Starter Kit (C5G). HEX2
+  e HEX3 dividem os pinos com o conector GPIO e só acendem com as chaves
+  DIP S1 e S2, no verso da placa, em ON.
 - O **INFO**, no painel ao lado do Terminal: a saída de todas as operações
   num lugar só, uma rodada por operação. A rodada começa com a operação e a
   hora e termina com o status, o tempo e quantos erros e avisos ficaram em

@@ -8,8 +8,8 @@
 //!
 //! Os dois rodam na pasta da placa ([`super::build_dir`]). O `@n` é a
 //! posição da FPGA na cadeia JTAG da placa ([`super::Jtag`]): 1 na
-//! DE2-115; 2 na DE10-Nano, em que o HPS vem antes. A gravação vai para a
-//! SRAM da FPGA e some quando a placa é desligada.
+//! DE2-115 e na C5G; 2 na DE10-Nano, em que o HPS vem antes. A gravação
+//! vai para a SRAM da FPGA e some quando a placa é desligada.
 //!
 //! Conferido com o Quartus Prime 25.1 Lite no Windows e uma DE2-115: o
 //! `quartus_pgm -l` lista os cabos (`1) USB-Blaster [USB-0]`), ou escreve

@@ -15,6 +15,7 @@ use crate::error::{LaceError, Result};
 const BOARDS: &[(&str, &str)] = &[
     ("de2-115", include_str!("../../boards/de2-115.json")),
     ("de10-nano", include_str!("../../boards/de10-nano.json")),
+    ("c5g", include_str!("../../boards/c5g.json")),
 ];
 
 /// Uma placa.

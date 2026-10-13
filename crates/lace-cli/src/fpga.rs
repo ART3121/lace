@@ -155,10 +155,20 @@ fn boards(id: Option<&str>, out: &Output) -> anyhow::Result<bool> {
             }
             _ => {
                 let device = |b: &fpga::Board| format!("{} {}", b.device.family, b.device.part);
+                let id_width = boards
+                    .iter()
+                    .map(|b| b.id.chars().count())
+                    .max()
+                    .unwrap_or(0);
+                let name_width = boards
+                    .iter()
+                    .map(|b| b.name.chars().count())
+                    .max()
+                    .unwrap_or(0);
                 let width = boards.iter().map(|b| device(b).len()).max().unwrap_or(0);
                 for board in &boards {
                     println(&format!(
-                        "  {:<10} {:<20} {:<width$}  {}",
+                        "  {:<id_width$} {:<name_width$} {:<width$}  {}",
                         board.id,
                         board.name,
                         device(board),

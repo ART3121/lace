@@ -1,0 +1,194 @@
+{
+  "id": "c5g",
+  "name": "Terasic Cyclone V GX Starter Kit (C5G)",
+  "source": "Terasic Cyclone V GX Starter Kit User Manual (June 5, 2014; version 1.2.1 on the Terasic site; revision B hardware), tables 3-2 to 3-6. Compared pin by pin and I/O standard by I/O standard with two files of the C5G System CD v1.3.0: the golden top (Demonstrations/C5G_UART_USB_LED/C5G_golden_top.qsf), where HEX2 and HEX3 are GPIO[22] to GPIO[35], and the factory demo (Demonstrations/C5G_Default/C5G_Default.qsf): 65 of 65 equal. The FPGA is alone in the JTAG chain with JP2 shorted (pins 1-2), and the CD programs it at @1.",
+  "device": {
+    "family": "Cyclone V",
+    "part": "5CGXFC5C6F27C7"
+  },
+  "jtag": {
+    "cable": "usb-blaster",
+    "position": 1
+  },
+  "signals": [
+    {
+      "name": "CLOCK_50_B5B",
+      "direction": "input",
+      "pins": [
+        "PIN_R20"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input (bank 5B)"
+    },
+    {
+      "name": "CLOCK_50_B6A",
+      "direction": "input",
+      "pins": [
+        "PIN_N20"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input (bank 6A)"
+    },
+    {
+      "name": "CLOCK_50_B7A",
+      "direction": "input",
+      "pins": [
+        "PIN_H12"
+      ],
+      "io_standard": "2.5 V",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input (bank 7A)"
+    },
+    {
+      "name": "CLOCK_50_B8A",
+      "direction": "input",
+      "pins": [
+        "PIN_M10"
+      ],
+      "io_standard": "2.5 V",
+      "clock_mhz": 50,
+      "description": "50 MHz clock input (bank 8A)"
+    },
+    {
+      "name": "KEY",
+      "direction": "input",
+      "pins": [
+        "PIN_P11",
+        "PIN_P12",
+        "PIN_Y15",
+        "PIN_Y16"
+      ],
+      "io_standard": "1.2 V",
+      "active_low": true,
+      "description": "Push-buttons, debounced: pressed reads 0"
+    },
+    {
+      "name": "CPU_RESET_n",
+      "direction": "input",
+      "pins": [
+        "PIN_AB24"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "CPU reset push-button (KEY4): pressed reads 0. The manual lists only KEY0 to KEY3 on the debounce circuit"
+    },
+    {
+      "name": "SW",
+      "direction": "input",
+      "pins": [
+        "PIN_AC9",
+        "PIN_AE10",
+        "PIN_AD13",
+        "PIN_AC8",
+        "PIN_W11",
+        "PIN_AB10",
+        "PIN_V10",
+        "PIN_AC10",
+        "PIN_Y11",
+        "PIN_AE19"
+      ],
+      "io_standard": "1.2 V",
+      "description": "Slide switches, not debounced: up reads 1"
+    },
+    {
+      "name": "LEDR",
+      "direction": "output",
+      "pins": [
+        "PIN_F7",
+        "PIN_F6",
+        "PIN_G6",
+        "PIN_G7",
+        "PIN_J8",
+        "PIN_J7",
+        "PIN_K10",
+        "PIN_K8",
+        "PIN_H7",
+        "PIN_J10"
+      ],
+      "io_standard": "2.5 V",
+      "description": "Red LEDs: 1 turns one on"
+    },
+    {
+      "name": "LEDG",
+      "direction": "output",
+      "pins": [
+        "PIN_L7",
+        "PIN_K6",
+        "PIN_D8",
+        "PIN_E9",
+        "PIN_A5",
+        "PIN_B6",
+        "PIN_H8",
+        "PIN_H9"
+      ],
+      "io_standard": "2.5 V",
+      "description": "Green LEDs: 1 turns one on"
+    },
+    {
+      "name": "HEX0",
+      "direction": "output",
+      "pins": [
+        "PIN_V19",
+        "PIN_V18",
+        "PIN_V17",
+        "PIN_W18",
+        "PIN_Y20",
+        "PIN_Y19",
+        "PIN_Y18"
+      ],
+      "io_standard": "1.2 V",
+      "active_low": true,
+      "description": "Seven-segment digit 0, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX1",
+      "direction": "output",
+      "pins": [
+        "PIN_AA18",
+        "PIN_AD26",
+        "PIN_AB19",
+        "PIN_AE26",
+        "PIN_AE25",
+        "PIN_AC19",
+        "PIN_AF24"
+      ],
+      "io_standard": "1.2 V",
+      "active_low": true,
+      "description": "Seven-segment digit 1, common anode: 0 lights a segment"
+    },
+    {
+      "name": "HEX2",
+      "direction": "output",
+      "pins": [
+        "PIN_AD7",
+        "PIN_AD6",
+        "PIN_U20",
+        "PIN_V22",
+        "PIN_V20",
+        "PIN_W21",
+        "PIN_W20"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Seven-segment digit 2, common anode: 0 lights a segment. Shares GPIO22 to GPIO28 of the 40-pin header, and lights only with the DIP switches S1 and S2 on the back of the board set to ON"
+    },
+    {
+      "name": "HEX3",
+      "direction": "output",
+      "pins": [
+        "PIN_Y24",
+        "PIN_Y23",
+        "PIN_AA23",
+        "PIN_AA22",
+        "PIN_AC24",
+        "PIN_AC23",
+        "PIN_AC22"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Seven-segment digit 3, common anode: 0 lights a segment. Shares GPIO29 to GPIO35 of the 40-pin header, and lights only with the DIP switches S1 and S2 on the back of the board set to ON"
+    }
+  ]
+}

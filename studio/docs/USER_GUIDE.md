@@ -632,9 +632,9 @@ preferência, o Studio já usa a pasta `lace-learn` do repositório.
 
 A aba **Placa FPGA** (o botão **Placa** na barra de ferramentas, ou Fluxo >
 Mostrar a placa FPGA) leva o projeto para a placa. No alto ficam a placa (a
-DE2-115 ou a DE10-Nano) e o topo que vai para ela; vazio, o topo do
-projeto, ou o processador, se houver um só. Embaixo, três etapas, cada uma
-com o estado:
+DE2-115, a DE10-Nano ou a Cyclone V GX Starter Kit) e o topo que vai para
+ela; vazio, o topo do projeto, ou o processador, se houver um só. Embaixo,
+três etapas, cada uma com o estado:
 
 1. **Ligações**: uma linha por porta do topo, com o sinal da placa, os bits
    dele (vazio: os de baixo) e **Inverter**. Os botões das placas são
