@@ -39,7 +39,20 @@
    macOS, e os dois do Windows, o completo e o web), os pedaços do bundle,
    o `SHA256SUMS` e as notas do CHANGELOG. Os instaladores publicados se
    testam à mão.
-7. A branch vai para a `main`.
+7. A extensão do VS Code vai anexada à release, à mão: o README manda baixar
+   o `lace-vscode-<versão da extensão>.vsix` da release nova. No commit da
+   tag:
+
+   ```
+   (cd editors/vscode && npm ci && npm run package)
+   cp editors/vscode/lace-<versão da extensão>.vsix lace-vscode-<versão da extensão>.vsix
+   gh release upload v<versão> lace-vscode-<versão da extensão>.vsix
+   ```
+
+   O `npm run package` monta antes o RTL viewer de `packages/rtl-viewer`,
+   que precisa das dependências dele (`npm ci` lá). Com uma versão nova da
+   extensão, troque também o nome do arquivo nos comandos do `README.md`.
+8. A branch vai para a `main`.
 
 Os instaladores de cada execução do `release.yml` também ficam como
 artefatos do workflow por 14 dias.

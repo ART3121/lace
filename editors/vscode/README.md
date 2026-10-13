@@ -7,7 +7,10 @@ onda, a síntese e os arquivos do projeto (pôr, tirar, ordenar, renomear).
 Realce e lint de Verilog ficam com as extensões que já existem.
 
 A extensão tem versão própria, separada da do Lace, e ainda não está no
-Marketplace.
+Marketplace: o `lace-vscode-<versão>.vsix` vai anexado à release do Lace, e
+se instala com `code --install-extension lace-vscode-<versão>.vsix` ou, no
+VS Code, em Extensões > `...` > **Install from VSIX...** (o passo a passo
+está no [README do Lace](../../README.md#extensão-do-vs-code)).
 
 ## O que faz
 

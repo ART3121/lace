@@ -25,7 +25,9 @@ Substitui a orquestração da AURORA.
 Duas interfaces sobre o mesmo núcleo (`lace-core`): a linha de comando
 `lace` e o [Lace Studio](studio/README.md), o ambiente gráfico (editor,
 compilação, simulação e ondas numa janela), em `studio/`. O instalador
-traz os dois.
+traz os dois. Para quem prefere o VS Code, a
+[extensão do Lace](editors/vscode/README.md) usa a linha de comando e se
+instala à parte ([abaixo](#extensão-do-vs-code)).
 
 O Lace só executa as ferramentas do bundle instalado com ele, nas versões
 exatas do bundle (ver [docs/BUNDLE.md](docs/BUNDLE.md)). No Linux e no macOS
@@ -96,6 +98,7 @@ Para remover o Lace com o bundle inteiro: `lace uninstall`.
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
 | surfer-aurora | visualizador de formas de onda | sim |
 | Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`lace learn`, e a vista Exercícios do Studio); precisa do Icarus | não |
+| RTL viewer | o esquemático interativo do netlist da síntese, no navegador (`lace synth --open`); precisa do Yosys | sim |
 
 Para instalar um aplicativo do bundle depois, sem reinstalar o Lace:
 `lace install`, que abre a lista no terminal, ou `lace install verilator`.
@@ -104,6 +107,30 @@ Para ver se há versão nova do Lace e das ferramentas: `lace update --check`.
 Detalhes, remoção e problemas conhecidos: [docs/INSTALL.md](docs/INSTALL.md).
 Quem tem o Solar 0.1.0 (o nome anterior do Lace) desinstala o Solar antes:
 [docs/INSTALL.md, Quem tem o Solar 0.1.0](docs/INSTALL.md#quem-tem-o-solar-010).
+
+### Extensão do VS Code
+
+A extensão ainda não está no Marketplace: o arquivo dela,
+`lace-vscode-<versão>.vsix`, vai anexado à release do Lace. Ela precisa do
+Lace instalado (acima) e do VS Code 1.90 ou mais novo.
+
+```sh
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.7.0/lace-vscode-0.1.0.vsix
+code --install-extension lace-vscode-0.1.0.vsix
+```
+
+No Windows, os mesmos dois comandos no PowerShell, com `curl.exe` no lugar
+de `curl`. Sem o terminal: baixe o `.vsix` da
+[página da release](https://github.com/ART3121/lace/releases/latest) e, no
+VS Code, abra Extensões, o menu `...` e **Install from VSIX...**. Para
+atualizar, instale o `.vsix` novo do mesmo jeito; para remover, desinstale
+pela aba Extensões.
+
+A extensão ativa numa pasta com `.spf` e procura o `lace` no `PATH`. Se o
+VS Code não o achar (no Linux e no macOS, aberto pelo menu do sistema, ele
+pode não ver o `~/.local/bin`), ponha o caminho do executável na
+configuração `lace.path`. O que ela faz, e o que cada versão do Lace
+habilita: [editors/vscode/README.md](editors/vscode/README.md).
 
 ## Depois de instalar
 
@@ -168,6 +195,7 @@ as ferramentas rodam. O formato de cada um está em
 |---|---|
 | [docs/INSTALL.md](docs/INSTALL.md) | instalar, mudar componentes, remover |
 | [studio/README.md](studio/README.md) | o Lace Studio: usar, compilar, a documentação dele (`studio/docs/`) |
+| [editors/vscode/README.md](editors/vscode/README.md) | a extensão do VS Code: o que faz, configurações, compilar e testar |
 | [docs/CLI.md](docs/CLI.md) | a linha de comando `lace` |
 | [docs/LEARN.md](docs/LEARN.md) | os exercícios do `lace learn`: fazer e escrever |
 | [docs/API.md](docs/API.md) | a API do `lace-core`, para a CLI e para interfaces futuras |
