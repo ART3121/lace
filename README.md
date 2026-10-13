@@ -20,7 +20,6 @@ Orquestrador do desenvolvimento em Verilog e de processadores SAPHO, o
 processador soft-core do NIPS-CERN (UFJF). Cria projetos, compila C± e C com
 o YANC, verifica e simula com Icarus Verilog e Verilator, sintetiza com
 Yosys, desenha o esquemático com Graphviz e abre as ondas no surfer-aurora.
-Substitui a orquestração da AURORA.
 
 Duas interfaces sobre o mesmo núcleo (`lace-core`): a linha de comando
 `lace` e o [Lace Studio](studio/README.md), o ambiente gráfico (editor,
@@ -91,7 +90,7 @@ Para remover o Lace com o bundle inteiro: `lace uninstall`.
 |---|---|---|
 | Lace Studio | o ambiente gráfico; no Linux precisa do webkit2gtk 4.1 do sistema | sim |
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim |
-| Icarus Verilog | simulador Verilog, o padrão da AURORA, e a verificação do `lace check` | sim |
+| Icarus Verilog | simulador Verilog, o padrão do `lace sim`, e a verificação do `lace check` | sim |
 | Verilator | simulador compilado e o `lace check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles | não |
 | cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) | não |
 | Yosys | síntese; lê as portas para o testbench-modelo do `lace add` | sim |
