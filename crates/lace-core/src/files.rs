@@ -963,19 +963,30 @@ impl Project {
     pub fn remove_file(&mut self, role: FileRole, path: impl AsRef<Utf8Path>) -> Result<bool> {
         self.begin_write()?;
         let path = self.absolute(path.as_ref());
+        let removed = self.unlist(role, &path);
+        if removed {
+            self.save()?;
+        }
+        Ok(removed)
+    }
+
+    /// Tira `path` (absoluto) da lista do papel e desfaz a escolha de topo ou
+    /// de testbench que apontava para ele, sem gravar. Diz se ele estava na
+    /// lista. Quem chama já tem a trava de [`Project::begin_write`].
+    pub(crate) fn unlist(&mut self, role: FileRole, path: &Utf8Path) -> bool {
         let root = self.root.clone();
         let list = self.list_mut(role);
         let before = list.len();
         list.retain(|entry| {
             entry_path(entry)
                 .map(|p| resolve(&root, p))
-                .is_none_or(|p| p != path)
+                .is_none_or(|p| p.as_path() != path)
         });
         let removed = list.len() != before;
         let selected = self.document["structure"][role.selected_key()]
             .as_str()
             .map(|p| self.resolve_path(p));
-        if selected.as_ref() == Some(&path) {
+        if selected.as_deref() == Some(path) {
             self.document["structure"][role.selected_key()] = "".into();
             if role == FileRole::Synthesizable
                 && let Some(structure) = self.document["structure"].as_object_mut()
@@ -983,10 +994,7 @@ impl Project {
                 structure.remove(TOP_MODULE_KEY);
             }
         }
-        if removed {
-            self.save()?;
-        }
-        Ok(removed)
+        removed
     }
 
     /// Marca o módulo de topo do projeto: grava `topLevelFile` e deixa só este

@@ -44,3 +44,4 @@ signal-hook = { version = "0.3", default-features = false }
 win32job = "2"
 fst-reader = "0.17"
 roxmltree = "0.21"
+trash = "5.2.9"

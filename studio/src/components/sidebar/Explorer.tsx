@@ -44,6 +44,7 @@ import {
   newFileIn,
   newFolderIn,
   openWave,
+  removeProcessor,
   runBuild,
   runCheck,
   runFastSimulation,
@@ -508,6 +509,9 @@ function ProcessorNode({ processor }: { processor: ProcessorStatus }) {
       { label: t('explorer.newInput'), run: () => openDialog({ kind: 'newInput', processor: name }) },
       { separator: true },
       { label: t('common.reveal'), run: () => void revealItemInDir(processor.dir).catch(showError) },
+      { separator: true },
+      // Não no meio de uma operação, que pode estar usando o processador.
+      { label: t('action.removeProcessor'), danger: true, disabled: !!useJobs.getState().running, run: () => void removeProcessor(name) },
     ]);
 
   const fileRow = (path: string, depth: number, options: { label?: string; badge?: string; muted?: boolean } = {}) => (

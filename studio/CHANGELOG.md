@@ -7,6 +7,11 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Acrescentado
 
+- **Remover processador**, no botão direito do processador no explorador e
+  em Projeto > Remover processador (que pergunta qual). A confirmação
+  oferece tirar só do projeto, com a pasta ficando no disco, ou tirar e
+  mandar a pasta para a lixeira. O Verilog e o testbench gerados saem das
+  listas de arquivos, e a aba do processador fecha. É o `lace proc remove`.
 - A página **Experimental** nas Preferências, com os recursos do Lace que
   ainda mudam muito, desligados por padrão. Hoje há um, a **Placa FPGA**.
   O que se liga ali vale também para a CLI (`lace experimental`), e o

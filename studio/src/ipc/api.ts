@@ -11,6 +11,7 @@ import type {
   ExperimentalReport,
   Feature,
   FileMismatch,
+  ProcRemoveReport,
   ProjectFile,
   RunComparison,
   RunRecord,
@@ -118,6 +119,10 @@ export const api = {
     processorDefaults: () => call<NewProcessorDefaults>('project_processor_defaults'),
     addProcessor: (request: NewProcessorRequest) =>
       call<Processor>('project_add_processor', { request }),
+    /** Tira o processador do projeto (`lace proc remove`); com `toTrash`, a
+     * pasta dele vai para a lixeira, e sem, fica no disco. */
+    removeProcessor: (name: string, toTrash: boolean) =>
+      call<ProcRemoveReport>('project_remove_processor', { name, toTrash }),
     configureProcessor: (
       name: string,
       config: { frequency_mhz?: number | null; clocks?: number | null; show_arrays?: boolean | null },

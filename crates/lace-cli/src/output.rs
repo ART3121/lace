@@ -23,7 +23,8 @@ use lace_core::{
     AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
     Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, LayoutConversion,
     ModuleInstance, MovedPath, Platform, PreparedLayout, Processor, Project, ProjectFile,
-    RunningProcess, SchematicResult, Severity, SimulationResult, Simulator, Status, Step,
+    RemovedProcessor, RunningProcess, SchematicResult, Severity, SimulationResult, Simulator,
+    Status, Step,
     StepReport, SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool, Toolchain,
     component,
 };
@@ -266,6 +267,37 @@ impl Output {
             self.warning(&format!("{typed} was not in the project"));
         }
         Ok(())
+    }
+
+    /// `lace proc remove`: o processador, os arquivos que saíram das listas
+    /// (com a marca do topo e do testbench escolhido) e onde ficou a pasta.
+    /// O JSON sai à parte.
+    pub fn processor_removed(&self, removed: &RemovedProcessor, trashed: bool, root: &Utf8Path) {
+        if self.json {
+            return;
+        }
+        println!("Processor removed from the project: {}", removed.name);
+        if !removed.unregistered.is_empty() {
+            let files: Vec<String> = removed
+                .unregistered
+                .iter()
+                .map(|file| {
+                    let mark = match (file.role, file.top_level) {
+                        (FileRole::Synthesizable, true) => " (it was the top)",
+                        (FileRole::Testbench, true) => " (it was the selected testbench)",
+                        _ => "",
+                    };
+                    format!("{}{mark}", relative(&file.path, root))
+                })
+                .collect();
+            println!("  Out of the file lists: {}", files.join(", "));
+        }
+        let dir = relative(&removed.dir, root);
+        if trashed {
+            println!("  Its folder went to the trash: {dir}");
+        } else if removed.dir.exists() {
+            println!("  Its folder stays on disk: {dir}");
+        }
     }
 
     /// Um caminho de `lace move` e os arquivos do projeto que foram com ele;

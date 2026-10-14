@@ -47,7 +47,7 @@ import { t, type Key } from './i18n';
 import { api } from './ipc/api';
 import type { Feature, Simulator } from './ipc/lace-types';
 import { useApp } from './state/app';
-import { openDialog, prompt } from './state/dialogs';
+import { confirm, openDialog, prompt } from './state/dialogs';
 import { MAX_GROUPS, saveActive, useEditor } from './state/editor';
 import { featureOn } from './state/experimental';
 import { useHierarchy } from './state/hierarchy';
@@ -61,7 +61,7 @@ import { useSettingsPage } from './state/settingsPage';
 import { guarded, showError, useToasts } from './state/toasts';
 import { openWaveTab, waveInTab } from './state/waves';
 import { toggledTheme } from './themes';
-import { baseName, extension, joinPath, resolveFrom } from './util/paths';
+import { baseName, extension, isInside, joinPath, relativeTo, resolveFrom } from './util/paths';
 
 export type ActionCategory = 'file' | 'edit' | 'view' | 'project' | 'flow' | 'tools' | 'help';
 
@@ -408,6 +408,46 @@ export async function addVerilogFiles(paths?: string[]) {
   await useProject.getState().refresh();
 }
 
+/** Tira um processador do projeto (`lace proc remove`), depois de perguntar
+ * o que fazer com a pasta dele: ficar no disco ou ir para a lixeira. A aba
+ * do processador fecha; com a pasta na lixeira, fecham também as abas dos
+ * arquivos de dentro dela, como no apagar do Explorador. */
+export async function removeProcessor(name: string) {
+  const snapshot = useProject.getState().snapshot;
+  const processor = snapshot?.processors.find((p) => p.name === name);
+  if (!snapshot || !processor) return;
+  const folder = relativeTo(processor.dir, snapshot.root);
+  const answer = await confirm({
+    title: t('dialog.removeProcessor.title', { name }),
+    message: t('dialog.removeProcessor.message', { folder }),
+    // Três botões, um deles de texto longo: no diálogo estreito, não cabem.
+    wide: true,
+    buttons: [
+      { label: t('dialog.removeProcessor.keep'), value: 'keep', primary: true },
+      { label: t('dialog.removeProcessor.trash'), value: 'trash', danger: true },
+      { label: t('common.cancel'), value: 'cancel' },
+    ],
+  });
+  if (answer !== 'keep' && answer !== 'trash') return;
+  const result = await guarded(() => api.project.removeProcessor(name, answer === 'trash'));
+  if (!result) return;
+  const editor = useEditor.getState();
+  for (const tab of editor.tabs) {
+    const own = tab.kind === 'processor' && tab.data?.name === name;
+    const inside = result.trashed && !!tab.path && isInside(tab.path, processor.dir);
+    if (!own && !inside) continue;
+    if (tab.path) editor.setDirty(tab.path, false);
+    await editor.closeTab(tab.id);
+  }
+  useToasts.getState().push({
+    kind: 'success',
+    title: t('project.processorRemoved', { name }),
+    detail: t(result.trashed ? 'project.processorRemoved.trashed' : 'project.processorRemoved.kept', { folder }),
+  });
+  useProject.getState().bumpTree();
+  await useProject.getState().refresh();
+}
+
 function applyZoom(zoom: number) {
   useLayout.getState().setZoom(zoom);
   void getCurrentWebview()
@@ -662,6 +702,15 @@ export const ACTIONS: Action[] = [
   { id: 'newTestbench', label: 'action.newTestbench', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'newVerilog', testbench: true }) },
   { id: 'newCocotb', label: 'action.newCocotb', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'newVerilog', testbench: true, cocotb: true }) },
   { id: 'newProcessor', label: 'action.newProcessor', category: 'project', keys: 'Ctrl+Alt+P', icon: Cpu, enabled: hasSpf, run: () => openDialog({ kind: 'newProcessor' }) },
+  {
+    id: 'removeProcessor',
+    label: 'action.removeProcessor',
+    category: 'project',
+    // Não no meio de uma operação: ela pode estar compilando ou simulando o
+    // processador.
+    enabled: () => canRun() && (useProject.getState().snapshot?.processors.length ?? 0) > 0,
+    run: () => openDialog({ kind: 'removeProcessor' }),
+  },
   { id: 'chooseTop', label: 'action.chooseTop', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'chooseTop' }) },
   { id: 'chooseTestbench', label: 'action.chooseTestbench', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'chooseTestbench' }) },
   { id: 'refreshProject', label: 'action.refreshProject', category: 'project', enabled: hasProject, run: () => { useProject.getState().bumpTree(); return useProject.getState().refresh(); } },

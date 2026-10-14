@@ -34,6 +34,9 @@ ratatui = { workspace = true, features = ["unstable-rendered-line-info"] }
 tempfile.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+# `lace proc remove --delete` manda a pasta do processador para a lixeira do
+# sistema, como o Studio: nada de código do usuário se perde de vez.
+trash.workspace = true
 
 [dev-dependencies]
 jsonschema.workspace = true

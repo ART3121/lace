@@ -225,6 +225,7 @@ módulos, o que tem o nome do arquivo. Sem nenhum dos dois, é erro
 |---|---|---|
 | `proc add <NOME> [--lang cmm\|cpp] [--inputs N] [--outputs N] [--nubits N] [--nbmant N] [--nbexpo N] [--nugain N] [--ndstac N] [--sdepth N]` | cria a pasta `<NOME>/`, o fonte-modelo `<NOME>/<NOME>.cmm` (ou `.cpp`) e a entrada no `.spf`; a pasta de saída, `<NOME>/<NOME>/`, nasce no primeiro build | `Project::add_processor` |
 | `proc set [NOME] [--freq MHZ] [--clocks N] [--arrays true\|false]` | grava frequência, clocks e exportação de arrays no `.spf`; valem a partir do próximo build. Sem `NOME`, o processador da pasta | `Project::configure_processor` |
+| `proc remove <NOME> [--delete [--yes]]` | tira o processador do projeto: a entrada no `.spf`, o Verilog e o testbench gerados das listas (com a escolha de topo e de testbench que apontava para eles) e a pasta temporária do Lace. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer como não registrados no `lace status`. Com `--delete`, a pasta vai para a lixeira do sistema; antes, pergunta no terminal, e sem terminal exige `--yes` | `Project::remove_processor` |
 
 As opções `--nubits` a `--sdepth` são só de C±; com `--lang cpp`, o comando
 recusa (código 2). Os padrões são os da AURORA (23, 16, 6, 128). O
@@ -876,6 +877,7 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `move` | `move.json` | o `.spf` e um `MovedPath` por origem: de onde, para onde e os arquivos do projeto que foram junto |
 | `order` | `order.json` | o `.spf` e a lista do arquivo, na ordem nova |
 | `proc add`, `proc set` | `proc.json` | o `Processor` criado ou atualizado |
+| `proc remove` | `proc-remove.json` | o que saiu (`removed`: `name`, `dir` e os arquivos tirados das listas em `unregistered`) e se a pasta foi para a lixeira (`trashed`) |
 | `convert` | `convert.json` | o `.spf` e o `LayoutConversion`: os processadores convertidos, o que mudou de lugar, o que ficou e por quê, os fontes que perderam a linha do nome, os nomes que não servem e as subpastas que ficaram |
 | `build` | `build.json` | o `.spf` e um `BuildResult` por processador compilado; nenhum num projeto sem processadores |
 | `check` | `check.json` | o `CheckResult` |

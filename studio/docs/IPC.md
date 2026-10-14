@@ -98,6 +98,7 @@ usuário mexeu depois de aplicar um layout) não passa pelo backend: fica no
 | `project_processor_defaults` | | `NewProcessor` com os padrões da AURORA | |
 | `project_add_processor` | `request: NewProcessorRequest` | `Processor` do Core | `lace proc add` |
 | `project_configure_processor` | `name`, `frequencyMhz?`, `clocks?`, `showArrays?` | `Processor` | `lace proc set` |
+| `project_remove_processor` | `name`, `toTrash` | `{ removed, trashed }`: o que saiu (`name`, `dir` e os arquivos tirados das listas em `unregistered`) e se a pasta foi para a lixeira | `lace proc remove [--delete]` |
 | `project_output_values` | `processor`, `port` | `number[]` | |
 | `verilog_modules` | `text` | os módulos declarados | `verilog::modules_in` |
 | `project_move` | `from`, `to` (o caminho final), `overwrite` | `MovedPath` do Core: `from`, `to` e os arquivos do projeto que foram junto | `lace move` |

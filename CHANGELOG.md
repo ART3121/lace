@@ -2,6 +2,13 @@
 
 ## Não publicada
 
+- `lace proc remove <nome>` tira um processador do projeto: a entrada no
+  `.spf`, o Verilog e o testbench gerados das listas de arquivos (com a
+  escolha de topo e de testbench que apontava para eles) e a pasta
+  temporária do Lace. A pasta do processador fica no disco; com `--delete`,
+  ela vai para a lixeira do sistema, depois de perguntar (sem terminal,
+  com `--yes`). No Core, `Project::remove_processor`; o `--json` é o
+  `docs/schema/proc-remove.json`.
 - As placas FPGA viraram um componente experimental, desligado por padrão:
   desligado, todo `lace fpga` sai com 2 e diz como ligar. O comando novo
   `lace experimental` lista os componentes experimentais, e `lace

@@ -1893,6 +1893,27 @@ export interface ProjectFile {
   top_level: boolean;
 }
 /**
+ * O que [`Project::remove_processor`] tirou do projeto.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "RemovedProcessor".
+ */
+export interface RemovedProcessor {
+  /**
+   * O nome do processador.
+   */
+  name: string;
+  /**
+   * A pasta dele (`<raiz>/<nome>`), que continua no disco.
+   */
+  dir: string;
+  /**
+   * Os arquivos de dentro da pasta que estavam registrados e saíram das
+   * listas: o papel de cada um e se era o topo ou o testbench escolhido.
+   */
+  unregistered: ProjectFile[];
+}
+/**
  * O contexto de uma operação guardada.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -3914,6 +3935,39 @@ export interface OrderReport {
    * A lista em que o arquivo está, na ordem nova.
    */
   files: ProjectFile[];
+}
+/**
+ * `lace proc remove`: o processador que saiu do projeto e se a pasta dele
+ * foi para a lixeira (`--delete`).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ProcRemoveReport".
+ */
+export interface ProcRemoveReport {
+  removed: RemovedProcessor1;
+  /**
+   * A pasta foi para a lixeira do sistema; `false`, ela continua no disco
+   * (ou não existia).
+   */
+  trashed: boolean;
+}
+/**
+ * O que saiu: o nome, a pasta e os arquivos que saíram das listas.
+ */
+export interface RemovedProcessor1 {
+  /**
+   * O nome do processador.
+   */
+  name: string;
+  /**
+   * A pasta dele (`<raiz>/<nome>`), que continua no disco.
+   */
+  dir: string;
+  /**
+   * Os arquivos de dentro da pasta que estavam registrados e saíram das
+   * listas: o papel de cada um e se era o topo ou o testbench escolhido.
+   */
+  unregistered: ProjectFile[];
 }
 /**
  * Um processador do projeto, com todos os caminhos já absolutos.

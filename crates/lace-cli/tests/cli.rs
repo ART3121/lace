@@ -387,6 +387,77 @@ fn proc_add_and_set_with_arrays() {
 }
 
 #[test]
+fn proc_remove_takes_the_processor_out_and_keeps_its_folder() {
+    let (_guard, root) = new_project("p");
+    lace_in(&root).args(["proc", "add", "soma"]).assert().success();
+    lace_in(&root)
+        .args(["proc", "add", "filtro", "--lang", "cpp"])
+        .assert()
+        .success();
+    // O Verilog e o testbench que o build gera, registrados e escolhidos.
+    std::fs::create_dir_all(root.join("soma/soma")).unwrap();
+    std::fs::write(
+        root.join("soma/soma/soma.v"),
+        "module soma(input clk);\nendmodule\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("soma/soma/soma_tb.v"),
+        "module soma_tb;\nsoma u(.clk(1'b0));\nendmodule\n",
+    )
+    .unwrap();
+    lace_in(&root)
+        .args(["add", "soma/soma/soma.v", "soma/soma/soma_tb.v"])
+        .assert()
+        .success();
+
+    lace_in(&root)
+        .args(["proc", "remove", "nada"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("available: soma, filtro"));
+    // A lixeira pede um sim; sem terminal, só com --yes, e nada muda.
+    lace_in(&root)
+        .args(["proc", "remove", "soma", "--delete"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("--delete --yes"));
+    lace_in(&root)
+        .args(["proc", "remove", "soma", "--yes"])
+        .assert()
+        .code(2);
+    assert_eq!(spf(&root)["structure"]["processors"][0]["name"], "soma");
+
+    lace_in(&root)
+        .args(["proc", "remove", "soma"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "Processor removed from the project: soma",
+        ))
+        .stdout(predicate::str::contains("(it was the top)"))
+        .stdout(predicate::str::contains("(it was the selected testbench)"))
+        .stdout(predicate::str::contains("Its folder stays on disk"));
+    let doc = spf(&root);
+    assert_eq!(
+        doc["structure"]["processors"],
+        serde_json::json!([{"name": "filtro", "language": "cpp"}])
+    );
+    assert_eq!(doc["structure"]["synthesizableFiles"], serde_json::json!([]));
+    assert_eq!(doc["structure"]["testbenchFiles"], serde_json::json!([]));
+    assert_eq!(doc["structure"]["topLevelFile"], "");
+    assert!(root.join("soma/soma.cmm").is_file());
+
+    let report = json(
+        lace_in(&root).args(["--json", "proc", "remove", "filtro"]),
+        0,
+    );
+    assert_eq!(report["removed"]["name"], "filtro");
+    assert_eq!(report["removed"]["unregistered"], serde_json::json!([]));
+    assert_eq!(report["trashed"], false);
+}
+
+#[test]
 fn build_without_processors_exits_0() {
     let (_guard, root) = new_project("p");
     // Sem bundle nenhum: um projeto só de Verilog nem chega a precisar dele.

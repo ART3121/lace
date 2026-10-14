@@ -106,6 +106,10 @@ fn commands_without_tools_match_their_schemas() {
         "report-clean",
         &run(&mut at(), &["report", "clean", "--yes"], 0),
     );
+    conforms(
+        "proc-remove",
+        &run(&mut at(), &["proc", "remove", "soma"], 0),
+    );
 
     // Erros: do Core (projeto que não existe) e da própria CLI.
     let error = run(&mut at(), &["-C", "nao_existe", "status"], 2);

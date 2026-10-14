@@ -139,6 +139,7 @@ pub fn run() {
             commands::project::project_set_testbench,
             commands::project::project_processor_defaults,
             commands::project::project_add_processor,
+            commands::project::project_remove_processor,
             commands::project::project_configure_processor,
             commands::project::project_output_values,
             commands::project::verilog_modules,

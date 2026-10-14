@@ -57,6 +57,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::error::{LaceError, Result};
+use crate::files::{FileRole, ProjectFile};
 use crate::{paths, spf};
 
 /// Frequência padrão quando o `.spf` não traz `clk` (a da AURORA).
@@ -998,9 +999,97 @@ impl Project {
         Ok(&self.processors[index])
     }
 
+    /// Tira um processador do projeto e grava o `.spf`: sai a entrada dele em
+    /// `structure.processors`, saem das listas os arquivos registrados de
+    /// dentro da pasta dele (o Verilog e o testbench que o build gerou), com
+    /// a escolha de topo ou de testbench que apontava para eles, e sai o que
+    /// só o Lace guardava dele (`.lace/Temp/<nome>`).
+    ///
+    /// A pasta do processador, com o fonte e as entradas, fica no disco, como
+    /// um arquivo em [`Project::remove_verilog`]. Quem quiser apagá-la usa
+    /// [`RemovedProcessor::dir`]: a CLI e o Studio a mandam para a lixeira,
+    /// se pedido. Enquanto ela fica, os `.v` gerados lá dentro aparecem em
+    /// [`Project::unregistered_verilog`], como qualquer Verilog solto.
+    ///
+    /// ```
+    /// use lace_core::{Language, NewProcessor, Project};
+    /// # let tmp = tempfile::tempdir()?;
+    /// # let dir = camino::Utf8Path::from_path(tmp.path()).unwrap();
+    /// let mut project = Project::create(dir, "p")?;
+    /// project.add_processor(&NewProcessor::new("soma", Language::Cmm))?;
+    ///
+    /// let removed = project.remove_processor("soma")?;
+    /// assert!(project.processors().is_empty());
+    /// assert!(removed.dir.join("soma.cmm").is_file());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Erros
+    ///
+    /// - [`LaceError::ProcessorNotFound`] se o processador não existir; nada
+    ///   muda;
+    /// - [`LaceError::Io`] se o `.spf` não puder ser gravado. A pasta
+    ///   temporária só sai depois de o `.spf` ser gravado, e um erro ao
+    ///   apagá-la fica no log, sem desfazer a remoção.
+    pub fn remove_processor(&mut self, name: &str) -> Result<RemovedProcessor> {
+        self.begin_write()?;
+        let Some(index) = self.processors.iter().position(|p| p.name == name) else {
+            let available = self.processors.iter().map(|p| p.name.clone()).collect();
+            self.release_write();
+            return Err(LaceError::ProcessorNotFound {
+                name: name.to_owned(),
+                available,
+            });
+        };
+        let processor = self.processors[index].clone();
+
+        let unregistered: Vec<ProjectFile> = [FileRole::Synthesizable, FileRole::Testbench]
+            .into_iter()
+            .flat_map(|role| self.files(role))
+            .filter(|file| file.path.starts_with(&processor.dir))
+            .collect();
+        for file in &unregistered {
+            self.unlist(file.role, &file.path);
+        }
+        // A entrada: o nome (o formato antigo) ou o objeto.
+        if let Some(list) = self.document["structure"]["processors"].as_array_mut() {
+            list.retain(|entry| {
+                entry.as_str() != Some(name) && entry["name"].as_str() != Some(name)
+            });
+        }
+        self.save()?;
+        self.processors.remove(index);
+
+        if processor.temp_dir.is_dir()
+            && let Err(error) = std::fs::remove_dir_all(&processor.temp_dir)
+        {
+            tracing::warn!(dir = %processor.temp_dir, %error, "Could not delete the temporary folder of a removed processor");
+        }
+        tracing::info!(name, "Processor removed");
+        Ok(RemovedProcessor {
+            name: processor.name,
+            dir: processor.dir,
+            unregistered,
+        })
+    }
+
     fn processor_paths(&self, name: &str, language: Language, file: Option<&str>) -> Processor {
         processor_paths(&self.root, name, language, file)
     }
+}
+
+/// O que [`Project::remove_processor`] tirou do projeto.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct RemovedProcessor {
+    /// O nome do processador.
+    pub name: String,
+    /// A pasta dele (`<raiz>/<nome>`), que continua no disco.
+    #[schemars(with = "String")]
+    pub dir: Utf8PathBuf,
+    /// Os arquivos de dentro da pasta que estavam registrados e saíram das
+    /// listas: o papel de cada um e se era o topo ou o testbench escolhido.
+    pub unregistered: Vec<ProjectFile>,
 }
 
 /// Parâmetros de simulação de um processador, para
@@ -2045,6 +2134,110 @@ mod tests {
             project.configure_processor("nada", &ProcessorConfig::default()),
             Err(LaceError::ProcessorNotFound { .. })
         ));
+    }
+
+    #[test]
+    fn removing_a_processor_takes_out_its_entry_and_files_and_keeps_the_folder() {
+        let (_guard, dir) = tmp();
+        let mut project = Project::create(&dir, "demo").unwrap();
+        let soma = project
+            .add_processor(&NewProcessor::new("soma", Language::Cmm))
+            .unwrap()
+            .clone();
+        project
+            .add_processor(&NewProcessor::new("filtro", Language::Cpp))
+            .unwrap();
+        // O que um build deixaria: o Verilog e o testbench gerados,
+        // registrados e escolhidos, e a pasta temporária.
+        soma.ensure_dirs().unwrap();
+        std::fs::write(soma.verilog_path(), "module soma(input clk);\nendmodule\n").unwrap();
+        std::fs::write(
+            soma.testbench_path(),
+            "module soma_tb;\nsoma u(.clk(1'b0));\nendmodule\n",
+        )
+        .unwrap();
+        std::fs::write(soma.temp_dir.join("soma.vvp"), "").unwrap();
+        let root = project.root().to_owned();
+        std::fs::write(root.join("top.v"), "module top;\nendmodule\n").unwrap();
+        project
+            .add_file(FileRole::Synthesizable, root.join("top.v"), None)
+            .unwrap();
+        project
+            .add_file(FileRole::Synthesizable, soma.verilog_path(), None)
+            .unwrap();
+        project
+            .add_file(FileRole::Testbench, soma.testbench_path(), None)
+            .unwrap();
+        project.set_top_level(soma.verilog_path()).unwrap();
+        project.set_testbench(soma.testbench_path()).unwrap();
+
+        let removed = project.remove_processor("soma").unwrap();
+        assert_eq!((removed.name.as_str(), &removed.dir), ("soma", &soma.dir));
+        let gone: Vec<_> = removed
+            .unregistered
+            .iter()
+            .map(|f| (f.role, f.path.clone(), f.top_level))
+            .collect();
+        assert_eq!(
+            gone,
+            [
+                (FileRole::Synthesizable, soma.verilog_path(), true),
+                (FileRole::Testbench, soma.testbench_path(), true),
+            ]
+        );
+
+        let reopened = Project::open(project.spf_path()).unwrap();
+        for p in [&project, &reopened] {
+            let names: Vec<_> = p.processors().iter().map(|p| p.name.as_str()).collect();
+            assert_eq!(names, ["filtro"]);
+        }
+        let synthesizable: Vec<_> = reopened
+            .files(FileRole::Synthesizable)
+            .into_iter()
+            .map(|f| f.path)
+            .collect();
+        assert_eq!(synthesizable, [root.join("top.v")]);
+        assert!(reopened.files(FileRole::Testbench).is_empty());
+        assert!(reopened.top_level().is_none());
+        assert!(reopened.testbench().is_none());
+        // A pasta fica, com o fonte e o que o build gerou; a temporária sai,
+        // e o Verilog gerado passa a ser um Verilog solto do projeto.
+        assert!(soma.source.is_file() && soma.verilog_path().is_file());
+        assert!(!soma.temp_dir.exists());
+        assert!(
+            reopened
+                .unregistered_verilog()
+                .contains(&soma.verilog_path())
+        );
+    }
+
+    #[test]
+    fn removing_an_unknown_or_old_style_processor() {
+        let (_guard, dir) = tmp();
+        let spf = dir.join("x.spf");
+        std::fs::write(
+            &spf,
+            r#"{"structure": {"processors": ["velho", {"name": "novo", "extra": 1}]}}"#,
+        )
+        .unwrap();
+        let mut project = Project::open(&spf).unwrap();
+        let before = std::fs::read_to_string(&spf).unwrap();
+        assert!(matches!(
+            project.remove_processor("Velho"),
+            Err(LaceError::ProcessorNotFound { available, .. }) if available == ["velho", "novo"]
+        ));
+        assert_eq!(std::fs::read_to_string(&spf).unwrap(), before);
+
+        // Sem a pasta no disco, e no formato antigo (só o nome), também sai;
+        // a trava da recusa acima foi solta.
+        project.remove_processor("velho").unwrap();
+        let doc: Value = serde_json::from_str(&std::fs::read_to_string(&spf).unwrap()).unwrap();
+        assert_eq!(
+            doc["structure"]["processors"],
+            json!([{"name": "novo", "extra": 1}])
+        );
+        project.remove_processor("novo").unwrap();
+        assert!(Project::open(&spf).unwrap().processors().is_empty());
     }
 
     #[test]

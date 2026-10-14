@@ -5,7 +5,7 @@ import { open as openNative } from '@tauri-apps/plugin-dialog';
 import { Check } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-import { ACTIONS, isAvailable, isEnabled, projectsFolder, runAction } from '../../actions';
+import { ACTIONS, isAvailable, isEnabled, projectsFolder, removeProcessor, runAction } from '../../actions';
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
 import type { Language, NewProcessorDefaults } from '../../ipc/types';
@@ -741,6 +741,33 @@ function TargetPicker() {
   );
 }
 
+/** Escolhe o processador a remover; a confirmação vem depois
+ * (`removeProcessor`, actions.ts). O alvo, se é um processador, vem
+ * primeiro. */
+function RemoveProcessorPicker() {
+  const t = useT();
+  const processors = useProject((s) => s.snapshot?.processors);
+  const target = useProject((s) => s.target);
+  const items = useMemo(() => {
+    const names = (processors ?? []).map((p) => p.name);
+    return target && names.includes(target) ? [target, ...names.filter((n) => n !== target)] : names;
+  }, [processors, target]);
+  return (
+    <ListPicker
+      placeholder={t('dialog.removeProcessor.placeholder')}
+      items={items}
+      filter={(name, q) => name.toLowerCase().includes(q.trim())}
+      render={(name) => (
+        <>
+          <span className="palette__label">{name}</span>
+          <span className="palette__category">{t('dialog.target.processor')}</span>
+        </>
+      )}
+      onPick={(name) => void removeProcessor(name)}
+    />
+  );
+}
+
 // Informação ---------------------------------------------------------------------
 
 function ShortcutsDialog() {
@@ -887,6 +914,7 @@ function ConfirmDialog({ options, resolve }: { options: ConfirmOptions; resolve:
   return (
     <Dialog
       title={options.title}
+      wide={options.wide}
       onSubmit={() => resolve(primary.value)}
       footer={options.buttons.map((b) => (
         <Button key={b.value} variant={b.danger ? 'danger' : b.primary ? 'primary' : 'default'} autoFocus={b === primary} onClick={() => resolve(b.value)}>
@@ -932,6 +960,8 @@ export function Dialogs() {
       return <ThemePicker />;
     case 'target':
       return hasProject ? <TargetPicker /> : null;
+    case 'removeProcessor':
+      return hasProject ? <RemoveProcessorPicker /> : null;
     case 'layout':
       return <LayoutPicker />;
     case 'shortcuts':

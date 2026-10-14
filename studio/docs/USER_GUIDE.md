@@ -416,6 +416,20 @@ o número de clocks, a exportação de arrays para a onda e o tempo simulado
 que eles dão, as entradas e as saídas da última simulação. A frequência e os
 clocks valem a partir do próximo build.
 
+Para tirar um processador do projeto: botão direito nele no explorador >
+**Remover processador...**, ou Projeto > Remover processador, que pergunta
+qual. A confirmação oferece duas saídas:
+- **Remover do projeto**: sai a entrada no `.spf`, e com ela o Verilog e o
+  testbench gerados nas listas de arquivos (se um deles era o topo ou o
+  testbench simulado, a escolha fica vazia). A pasta do processador fica no
+  disco, e os `.v` gerados nela aparecem em Fora do projeto.
+- **Remover e mandar a pasta para a lixeira**: o mesmo, e a pasta inteira
+  (fonte, entradas, arquivos gerados) vai para a lixeira do sistema, de
+  onde dá para recuperar. As abas dos arquivos dela fecham.
+
+A aba do processador fecha nos dois casos. Durante uma operação, a remoção
+fica desabilitada. Na CLI, é o `lace proc remove`.
+
 ### 4.1 A onda
 
 Wave (F8), ou Onda (Ctrl+F8) depois de simular, abre a onda no Surfer. A

@@ -23,8 +23,8 @@ use lace_core::{
 use crate::output::Output;
 use crate::report::{
     AddReport, BuildReport, CheckReport, ConvertReport, MoveReport, OrderReport, PortValues,
-    ReportCleanReport, ReportListReport, ReportShowReport, SavedLayoutReport, SimReport,
-    SynthReport, WaveReport,
+    ProcRemoveReport, ReportCleanReport, ReportListReport, ReportShowReport, SavedLayoutReport,
+    SimReport, SynthReport, WaveReport,
 };
 use crate::settings;
 use crate::{
@@ -393,8 +393,44 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
                 );
             }
         }
+        ProcCommand::Remove { name, delete, yes } => {
+            // Com --delete, a pergunta vem antes de mexer no projeto.
+            let dir = project.require_processor(name)?.dir.clone();
+            if *delete && !*yes && dir.exists() {
+                confirm_trash(name, &dir)?;
+            }
+            let removed = project.remove_processor(name)?;
+            let trashed = *delete && removed.dir.exists();
+            if trashed {
+                trash::delete(&removed.dir).map_err(|e| {
+                    anyhow::anyhow!(
+                        "{name} is out of the project, but its folder did not go to the trash ({e}): {}",
+                        removed.dir
+                    )
+                })?;
+            }
+            out.processor_removed(&removed, trashed, project.root());
+            out.json(&ProcRemoveReport { removed, trashed })?;
+        }
     }
     Ok(())
+}
+
+/// `lace proc remove --delete` sem `--yes`: a pasta do processador só vai
+/// para a lixeira com um sim no terminal.
+fn confirm_trash(name: &str, dir: &Utf8Path) -> anyhow::Result<()> {
+    if !std::io::stdin().is_terminal() {
+        bail!("No terminal to confirm: use lace proc remove {name} --delete --yes");
+    }
+    eprint!("Remove processor {name} from the project and move its folder {dir} to the trash? [y/N] ");
+    std::io::stderr().flush()?;
+    let mut answer = String::new();
+    std::io::stdin().lock().read_line(&mut answer)?;
+    if matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
+        Ok(())
+    } else {
+        bail!("Nothing was removed")
+    }
 }
 
 fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {

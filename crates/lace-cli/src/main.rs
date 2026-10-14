@@ -412,6 +412,17 @@ enum ProcCommand {
         #[arg(long, value_name = "true|false")]
         arrays: Option<bool>,
     },
+    /// Remove a processor from the project; its folder stays on disk unless --delete
+    Remove {
+        /// Processor name
+        name: String,
+        /// Also move the processor folder (source, inputs, generated files) to the trash
+        #[arg(long)]
+        delete: bool,
+        /// Do not ask for confirmation before --delete
+        #[arg(short, long, requires = "delete")]
+        yes: bool,
+    },
 }
 
 #[derive(clap::Args)]

@@ -21,8 +21,8 @@ use lace_core::fpga::{Board, Connection, FpgaBuildResult, FpgaProgramResult, Qua
 use lace_core::history::{RunComparison, RunRecord, RunSummary};
 use lace_core::{
     AddedFile, BuildResult, BundleComponent, CheckResult, Event, FileMismatch, HierarchyResult,
-    LayoutConversion, MovedPath, Processor, ProjectFile, ProjectIssue, SchematicResult,
-    SimulationResult, SynthesisResult, SystemCompiler, WaveProcessor,
+    LayoutConversion, MovedPath, Processor, ProjectFile, ProjectIssue, RemovedProcessor,
+    SchematicResult, SimulationResult, SynthesisResult, SystemCompiler, WaveProcessor,
 };
 use lace_learn::{DevReport, ExerciseStatus, Grade};
 use schemars::JsonSchema;
@@ -66,6 +66,7 @@ reports! {
     "move" => MoveReport,
     "order" => OrderReport,
     "proc" => Processor,
+    "proc-remove" => ProcRemoveReport,
     "convert" => ConvertReport,
     "build" => BuildReport,
     "check" => CheckReport,
@@ -184,6 +185,17 @@ pub struct RemoveReport {
     /// Pedidos, mas que não estavam no projeto.
     #[schemars(with = "Vec<String>")]
     pub not_registered: Vec<Utf8PathBuf>,
+}
+
+/// `lace proc remove`: o processador que saiu do projeto e se a pasta dele
+/// foi para a lixeira (`--delete`).
+#[derive(Serialize, JsonSchema)]
+pub struct ProcRemoveReport {
+    /// O que saiu: o nome, a pasta e os arquivos que saíram das listas.
+    pub removed: RemovedProcessor,
+    /// A pasta foi para a lixeira do sistema; `false`, ela continua no disco
+    /// (ou não existia).
+    pub trashed: bool,
 }
 
 /// `lace move`.

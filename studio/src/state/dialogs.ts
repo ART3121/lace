@@ -28,12 +28,17 @@ export interface ConfirmOptions {
   title: string;
   message: string;
   buttons: ConfirmButton[];
+  /** O diálogo largo, para botões de texto longo. */
+  wide?: boolean;
 }
 
 export type DialogSpec =
   // `parent` e `name` já preenchidos: recriar o projeto cujo .spf sumiu.
   | { kind: 'newProject'; parent?: string; name?: string }
   | { kind: 'newProcessor' }
+  // A lista dos processadores; o escolhido passa pela confirmação de
+  // `removeProcessor` (actions.ts).
+  | { kind: 'removeProcessor' }
   | { kind: 'newVerilog'; testbench: boolean; folder?: string; cocotb?: boolean }
   | { kind: 'newInput'; processor: string }
   | { kind: 'install'; components?: string[] }

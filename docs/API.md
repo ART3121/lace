@@ -238,6 +238,7 @@ pasta do processador) e `output_path(n)` (na de saída).
 | `Project::create(pai, nome)` | Cria `<pai>/<nome>/<nome>.spf` vazio, no formato da AURORA. Recusa se já existir. |
 | `project.add_processor(&NewProcessor)` | Cria a pasta do processador, o fonte-modelo dentro dela (3.5) e a entrada no `.spf`; a pasta de saída nasce no primeiro `build`. Recusa nome repetido, nome que não passa em `validate_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
 | `project.configure_processor(nome, &ProcessorConfig)` | Grava `clk`, `numClocks` e `showArrays` no `.spf` (campos `None` ficam como estão). Uma entrada no formato antigo (só o nome) vira objeto. Valem a partir do próximo `build`. Frequência de 1 a `MAX_FREQUENCY_MHZ` (500000) e clocks de 1 a `MAX_CLOCKS` (2147483647); fora disso, `InvalidParameter`, e nada é gravado. |
+| `project.remove_processor(nome)` | Tira o processador do projeto e grava o `.spf`: a entrada em `structure.processors` (no formato antigo ou de objeto), os arquivos registrados de dentro da pasta dele (o Verilog e o testbench gerados), com a escolha de topo ou de testbench que apontava para eles, e a pasta temporária `.lace/Temp/<nome>`. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer em `unregistered_verilog`. Devolve `RemovedProcessor`: `name`, `dir` (para quem quiser apagar a pasta; a CLI e o Studio a mandam para a lixeira, se pedido) e `unregistered` (os `ProjectFile` que saíram, com o papel e a marca de topo). Nome que não existe: `ProcessorNotFound`, e nada muda. |
 | `project.issues()` | O que está estranho no `.spf` sem impedir de abrir (`Vec<ProjectIssue>`, abaixo). Só lê. |
 | `processor.is_built()` | O `<nome>.v` e o testbench existem na pasta de saída. Não diz se estão atualizados em relação ao fonte. |
 | `project.legacy_processors()`, `project.convert_layout()` | Os processadores na estrutura do YANC 6.x, e a conversão deles (3.6). |
@@ -277,9 +278,9 @@ parâmetro (`#NUBITS`), o valor e a regra. Em C, só as portas contam.
 | `metadata.projectName`, `createdAt`, `computerName`, `appVersion` | não | na criação |
 | `metadata.lastModified` | não | em toda gravação |
 | `metadata.projectPath`, `structure.basePath` | não (a raiz é o diretório do `.spf`) | em toda gravação, com a raiz atual |
-| `structure.processors` | sim | `add_processor` |
-| `structure.synthesizableFiles`, `testbenchFiles` | sim | `add_verilog`, `remove_verilog`, `set_top`, `add_file`, `remove_file`, `set_top_level`, `set_testbench` |
-| `structure.topLevelFile`, `testbenchFile` | sim | `add_verilog` (o primeiro de cada papel), `remove_verilog`, `set_top`, `set_top_level`, `set_testbench` |
+| `structure.processors` | sim | `add_processor`, `configure_processor`, `remove_processor` |
+| `structure.synthesizableFiles`, `testbenchFiles` | sim | `add_verilog`, `remove_verilog`, `set_top`, `add_file`, `remove_file`, `set_top_level`, `set_testbench`, `remove_processor` |
+| `structure.topLevelFile`, `testbenchFile` | sim | `add_verilog` (o primeiro de cada papel), `remove_verilog`, `set_top`, `set_top_level`, `set_testbench`, `remove_processor` |
 | qualquer outro (`commandOverrides`, `folders`, ...) | não | preservado como estava |
 
 A leitura é tolerante como a da AURORA: JSON estrito primeiro; se falhar, tira

@@ -9,7 +9,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::{
     AddedFile, Control, FileRole, HierarchyOptions, HierarchyResult, LaceError, Language,
     LayoutConversion, ListPosition, MovedPath, NewProcessor, Processor, ProcessorConfig, Project,
-    ProjectFile, ProjectIssue,
+    ProjectFile, ProjectIssue, RemovedProcessor,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
@@ -459,6 +459,45 @@ pub async fn project_add_processor(
             }
         }
         Ok(project.add_processor(&spec)?.clone())
+    })
+    .await
+}
+
+/// O que `project_remove_processor` fez, como o `lace proc remove --json`.
+#[derive(Debug, Clone, Serialize)]
+pub struct ProcessorRemoval {
+    /// O que saiu: o nome, a pasta e os arquivos que saíram das listas.
+    pub removed: RemovedProcessor,
+    /// A pasta foi para a lixeira do sistema; `false`, ela continua no disco
+    /// (ou não existia).
+    pub trashed: bool,
+}
+
+/// Tira um processador do projeto (`lace proc remove`): a entrada no `.spf`,
+/// os arquivos dele nas listas e o temporário do Lace. Com `to_trash`, a
+/// pasta dele vai para a lixeira do sistema, como o apagar do Explorador;
+/// sem, fica no disco.
+#[tauri::command]
+pub async fn project_remove_processor(
+    app: AppHandle,
+    name: String,
+    to_trash: bool,
+) -> IpcResult<ProcessorRemoval> {
+    blocking(app, move |_, state| {
+        let removed = state.project()?.remove_processor(&name)?;
+        let trashed = to_trash && removed.dir.exists();
+        if trashed {
+            trash::delete(&removed.dir).map_err(|e| {
+                IpcError::new(
+                    codes::IO,
+                    format!(
+                        "{name} is out of the project, but its folder did not go to the trash ({e}): {}",
+                        removed.dir
+                    ),
+                )
+            })?;
+        }
+        Ok(ProcessorRemoval { removed, trashed })
     })
     .await
 }
