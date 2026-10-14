@@ -143,6 +143,20 @@ Com um arquivo do mesmo nome no destino, o Studio pergunta antes de
 substituir, e o que estava lá vai para a lixeira. O `.spf`, a pasta `.lace`
 e as pastas dos processadores não se movem: o Lace os acha pelo lugar.
 
+**Se o `.spf` for apagado** com o projeto aberto (pelo gerenciador de
+arquivos, pelo terminal, por um `git`), o Studio avisa que sem ele não há
+operação de projeto: compilar, verificar, simular, sintetizar, a placa,
+os sinais da onda, o histórico e mexer nas fontes ficam desabilitados, e
+o nome do projeto na barra de status ganha um alerta. A pasta continua
+aberta: as abas, salvar, a árvore de arquivos, a busca, renomear e mover
+(só no disco, já que não há `.spf` para manter em dia) continuam. No alto
+do Explorador aparece o aviso com o botão **Criar um novo projeto**, que
+abre o Novo projeto com esta pasta e este nome: criar ali grava só um
+`.spf` novo, sem apagar arquivo nenhum, e as fontes e os processadores
+precisam ser registrados de novo. As Fontes, a Hierarquia e o Navegador
+de fluxo, que vêm do `.spf`, mostram só o aviso. Se o `.spf` voltar
+(restaurado da lixeira ou do git), o projeto volta sozinho.
+
 Nas três vistas, as setas andam pela árvore: cima e baixo de linha em
 linha, direita abre (ou entra), esquerda fecha (ou sobe para o pai), Home e
 End vão ao começo e ao fim, Enter abre e Ctrl+Enter abre no grupo do editor

@@ -20,6 +20,7 @@ import { useEditor } from '../../state/editor';
 import { useJobs, type ActionStatus } from '../../state/jobs';
 import { useProject } from '../../state/project';
 import { Empty, Kbd, Section, StatusDot } from '../common';
+import { MissingSpfNotice } from './MissingSpfNotice';
 
 function Item({
   label,
@@ -62,6 +63,7 @@ function ActionItem({ id, statusKey, hint }: { id: string; statusKey?: string; h
 export function FlowNavigator() {
   const t = useT();
   const snapshot = useProject((s) => s.snapshot);
+  const spfMissing = useProject((s) => s.spfMissing);
   const target = useProject((s) => s.target);
   const running = useJobs((s) => s.running);
   const statusByKey = useJobs((s) => s.statusByKey);
@@ -71,6 +73,14 @@ export function FlowNavigator() {
     return (
       <div className="sidebar__body">
         <Empty>{t('explorer.noProject')}</Empty>
+      </div>
+    );
+  }
+  // Toda etapa do fluxo é operação de projeto: sem o .spf, só o aviso.
+  if (spfMissing) {
+    return (
+      <div className="sidebar__body flow-nav">
+        <MissingSpfNotice />
       </div>
     );
   }

@@ -15,6 +15,10 @@ use serde::Serialize;
 pub mod codes {
     /// Nenhum projeto aberto.
     pub const NO_PROJECT: &str = "no_project";
+    /// O `.spf` do projeto aberto não existe mais (apagado depois de
+    /// aberto): sem ele não há operação de projeto, mas a pasta e os
+    /// arquivos continuam acessíveis.
+    pub const SPF_MISSING: &str = "spf_missing";
     /// Já há uma operação rodando.
     pub const BUSY: &str = "busy";
     /// Caminho fora da pasta do projeto numa operação que só vale dentro dela.

@@ -65,6 +65,7 @@ import { Badge, Empty, FoldContext, IconButton, openContextMenu, Section, Spinne
 import { fileIcon } from '../editor/tabIcons';
 import { beginDrag, movePath, reorder, sameTarget, useDrag, type DragSource, type DropSection } from './dnd';
 import { ViewActions } from '../layout/ViewActions';
+import { MissingSpfNotice } from './MissingSpfNotice';
 
 // Uma linha da árvore ----------------------------------------------------
 
@@ -965,6 +966,7 @@ function DirNode({
   version: number;
 }) {
   const snapshot = useProject((s) => s.snapshot)!;
+  const spfMissing = useProject((s) => s.spfMissing);
   const active = useActivePath();
   const showHidden = useLayout((s) => s.showHidden);
   const [children, setChildren] = useState<DirEntry[] | null>(null);
@@ -985,9 +987,13 @@ function DirNode({
   }, [isOpen, entry.path, version]);
 
   const root = snapshot.root;
-  const isTop = samePath(entry.path, snapshot.top_level);
-  const isSim = samePath(entry.path, snapshot.selected_testbench);
+  // Sem o .spf, o que ele dizia (topo, simulado, registrado) não vale mais, e
+  // o menu fica só com as operações de arquivo.
+  const project = !spfMissing;
+  const isTop = project && samePath(entry.path, snapshot.top_level);
+  const isSim = project && samePath(entry.path, snapshot.selected_testbench);
   const registered =
+    project &&
     !entry.is_dir &&
     (snapshot.synthesizable.some((f) => samePath(f.path, entry.path)) || snapshot.testbenches.some((f) => samePath(f.path, entry.path)));
 
@@ -1019,9 +1025,9 @@ function DirNode({
 
   const menu = (e: React.MouseEvent) => {
     const dir = entry.is_dir ? entry.path : dirName(entry.path);
-    const verilog = ['v', 'sv'].includes(extension(entry.path));
+    const verilog = project && ['v', 'sv'].includes(extension(entry.path));
     // Um .py entra no projeto como testbench cocotb; topo, nunca.
-    const cocotb = !entry.is_dir && extension(entry.path) === 'py';
+    const cocotb = project && !entry.is_dir && extension(entry.path) === 'py';
     openContextMenu(e, [
       ...(entry.is_dir ? [] : openItems(entry.path)),
       { label: t('action.newFile'), run: () => void newFileIn(dir) },
@@ -1225,6 +1231,7 @@ const FOLDS: Record<ExplorerMode, { version: number; open: boolean }> = {
 export function Explorer() {
   const t = useT();
   const snapshot = useProject((s) => s.snapshot);
+  const spfMissing = useProject((s) => s.spfMissing);
   const mode = useLayout((s) => s.explorerMode);
   const showHidden = useLayout((s) => s.showHidden);
   const hierarchyLoading = useHierarchy((s) => s.loading);
@@ -1320,7 +1327,7 @@ export function Explorer() {
             </IconButton>
           </>
         )}
-        {mode === 'sources' && (
+        {mode === 'sources' && !spfMissing && (
           <IconButton label={t('action.addVerilog')} onClick={() => void addVerilogFiles()}>
             <FilePlus size={15} />
           </IconButton>
@@ -1328,7 +1335,7 @@ export function Explorer() {
         {mode === 'hierarchy' ? (
           <IconButton
             label={t('hierarchy.elaborate')}
-            disabled={hierarchyLoading || running}
+            disabled={hierarchyLoading || running || spfMissing}
             onClick={() => void useHierarchy.getState().refresh()}
           >
             {hierarchyLoading ? <Spinner /> : <Boxes size={15} />}
@@ -1365,9 +1372,12 @@ export function Explorer() {
         </div>
       </div>
       <div className="sidebar__body">
+        {/* Sem o .spf, as fontes e a hierarquia (que vêm dele) saem; a árvore
+            de arquivos continua, embaixo do aviso. */}
+        {spfMissing && <MissingSpfNotice />}
         <FoldContext.Provider value={fold}>
-          {mode === 'sources' && <SourcesView />}
-          {mode === 'hierarchy' && <HierarchyView expanded={flipped} toggle={flip} />}
+          {mode === 'sources' && !spfMissing && <SourcesView />}
+          {mode === 'hierarchy' && !spfMissing && <HierarchyView expanded={flipped} toggle={flip} />}
           {mode === 'files' && <FilesView expanded={expanded} toggle={toggle} expand={expand} />}
         </FoldContext.Provider>
       </div>

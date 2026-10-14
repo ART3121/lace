@@ -723,6 +723,33 @@ a {
   overflow: auto;
 }
 
+/* O aviso de .spf apagado (MissingSpfNotice), no alto do Explorer e no lugar
+   do Navegador de fluxo. */
+.spf-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  font-size: var(--text-sm);
+}
+
+.spf-missing p {
+  margin: 0;
+}
+
+.spf-missing__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warn);
+  font-weight: 600;
+}
+
 /* Seções recolhíveis */
 
 .section__header {
@@ -1562,6 +1589,11 @@ body.is-dragging * {
 
 .statusbar__project {
   color: var(--text-1);
+}
+
+/* O projeto aberto cujo .spf foi apagado. */
+.statusbar__project--missing {
+  color: var(--warn);
 }
 
 .statusbar__button {

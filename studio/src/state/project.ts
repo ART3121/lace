@@ -7,13 +7,15 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { create } from 'zustand';
 
+import { t } from '../i18n';
 import { api } from '../ipc/api';
-import type { ProjectSnapshot } from '../ipc/types';
+import type { IpcError, ProjectSnapshot } from '../ipc/types';
+import { baseName } from '../util/paths';
 import { useApp } from './app';
 import { useEditor } from './editor';
 import { useHierarchy } from './hierarchy';
 import { useLayout } from './layout';
-import { guarded, showError } from './toasts';
+import { guarded, onErrorCode, showError, useToasts } from './toasts';
 
 interface ProjectState {
   snapshot: ProjectSnapshot | null;
@@ -23,11 +25,19 @@ interface ProjectState {
   treeVersion: number;
   /** Fechando: as abas somem uma a uma e a sessão gravada não pode mudar. */
   closing: boolean;
+  /** O `.spf` do projeto aberto foi apagado: sem ele não há operação de
+   * projeto (compilar, simular, mexer nas fontes). A pasta continua aberta,
+   * com as abas e a árvore de arquivos, e o Explorer oferece criar o projeto
+   * de novo. Volta a `false` quando o `.spf` reaparece. */
+  spfMissing: boolean;
 
   open: (path: string) => Promise<boolean>;
   create: (parent: string, name: string) => Promise<boolean>;
   close: () => Promise<boolean>;
   refresh: () => Promise<void>;
+  /** Liga `spfMissing`. Só na primeira vez avisa e traz o Explorer, e então
+   * devolve `true`. */
+  markSpfMissing: () => boolean;
   setTarget: (name: string | null) => void;
   bumpTree: () => void;
 }
@@ -57,7 +67,7 @@ function loadTarget(spf: string): string | null {
 async function activate(snapshot: ProjectSnapshot): Promise<void> {
   const saved = loadTarget(snapshot.spf);
   const target = saved && snapshot.processors.some((p) => p.name === saved) ? saved : null;
-  useProject.setState({ snapshot, target, treeVersion: useProject.getState().treeVersion + 1 });
+  useProject.setState({ snapshot, target, spfMissing: false, treeVersion: useProject.getState().treeVersion + 1 });
   useHierarchy.getState().clear();
   if (useLayout.getState().explorerMode === 'hierarchy') void useHierarchy.getState().refresh();
   void setTitle(snapshot.name);
@@ -71,6 +81,7 @@ export const useProject = create<ProjectState>((set, get) => ({
   target: null,
   treeVersion: 0,
   closing: false,
+  spfMissing: false,
 
   open: async (path) => {
     if (get().snapshot && !(await get().close())) return false;
@@ -106,7 +117,7 @@ export const useProject = create<ProjectState>((set, get) => ({
     }
     useEditor.getState().reset();
     await guarded(() => api.project.close());
-    set({ snapshot: null, target: null, closing: false });
+    set({ snapshot: null, target: null, closing: false, spfMissing: false });
     useHierarchy.getState().clear();
     void setTitle(null);
     useEditor.getState().openView('welcome');
@@ -118,15 +129,43 @@ export const useProject = create<ProjectState>((set, get) => ({
     try {
       const snapshot = await api.project.snapshot();
       const target = get().target;
+      // O .spf voltou (restaurado por fora, ou recriado pela CLI).
+      if (get().spfMissing) {
+        useToasts.getState().push({ kind: 'success', title: t('project.spfBack') });
+      }
       set({
         snapshot,
+        spfMissing: false,
         target: target && snapshot.processors.some((p) => p.name === target) ? target : null,
       });
     } catch (error) {
-      // O projeto sumiu do disco ou o .spf ficou ilegível: mostra o erro e
-      // mantém o último retrato, para o usuário salvar o que tem aberto.
+      // O .spf foi apagado: o aviso do projeto, uma vez só, e não um erro a
+      // cada arquivo que o vigia vê mudar.
+      if ((error as IpcError)?.code === 'spf_missing') {
+        get().markSpfMissing();
+        return;
+      }
+      // O .spf ficou ilegível: mostra o erro e mantém o último retrato, para
+      // o usuário salvar o que tem aberto.
       showError(error);
     }
+  },
+
+  markSpfMissing: () => {
+    const snapshot = get().snapshot;
+    if (!snapshot || get().spfMissing) return false;
+    set({ spfMissing: true });
+    useToasts.getState().push(
+      {
+        kind: 'warning',
+        title: t('project.spfMissing.title', { file: baseName(snapshot.spf) }),
+        detail: t('project.spfMissing.detail'),
+      },
+      15000,
+    );
+    // O aviso com o botão de criar o projeto fica no Explorer.
+    useLayout.getState().revealView('explorer');
+    return true;
   },
 
   setTarget: (name) => {
@@ -143,6 +182,11 @@ export const useProject = create<ProjectState>((set, get) => ({
 
   bumpTree: () => set({ treeVersion: get().treeVersion + 1 }),
 }));
+
+// Uma operação que falha porque o .spf sumiu liga o aviso do projeto. Da
+// primeira vez ele mesmo explica, e o erro genérico não aparece; depois, quem
+// tentou uma operação recebe o erro.
+onErrorCode('spf_missing', () => useProject.getState().markSpfMissing());
 
 // A sessão (abas abertas, em que grupo) é gravada a cada mudança de abas.
 useEditor.subscribe((state, previous) => {

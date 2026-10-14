@@ -208,8 +208,20 @@ export function moveInto(path: string, dir: string): Promise<string | null> {
 }
 
 /** Move ou renomeia pelo Core, que mantém o `.spf` em dia; pergunta antes de
- * substituir o que já existe em `to`. Devolve o caminho novo. */
+ * substituir o que já existe em `to`. Devolve o caminho novo. Sem o `.spf`
+ * (`spfMissing`), não há o que manter em dia: move só no disco. */
 export async function movePath(path: string, to: string): Promise<string | null> {
+  if (useProject.getState().spfMissing) {
+    try {
+      await api.fs.rename(path, to);
+    } catch (error) {
+      showError(error);
+      return null;
+    }
+    useEditor.getState().renamed(path, to);
+    useProject.getState().bumpTree();
+    return to;
+  }
   let moved: string;
   try {
     moved = (await api.project.move(path, to)).to;

@@ -52,6 +52,9 @@ const FLOW_BUTTONS = TOOLBAR_ITEMS.filter((item) => item.group === 'flow');
 export function Toolbar() {
   const t = useT();
   const snapshot = useProject((s) => s.snapshot);
+  // Sem o .spf, os botões do fluxo ficam desabilitados: redesenha quando ele
+  // some ou volta (`isEnabled` lê o estado na hora de desenhar).
+  const spfMissing = useProject((s) => s.spfMissing);
   const target = useProject((s) => s.target);
   const running = useJobs((s) => s.running);
   // O botão Sinais mostra quantos itens a escolha da onda tem; sem escolha,
@@ -80,7 +83,7 @@ export function Toolbar() {
         <select
           className="select select--small"
           value={target ?? ''}
-          disabled={!snapshot || !!running}
+          disabled={!snapshot || spfMissing || !!running}
           onChange={(e) => useProject.getState().setTarget(e.target.value || null)}
         >
           <option value="">{t('toolbar.targetProject')}</option>

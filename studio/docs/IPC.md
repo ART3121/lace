@@ -385,6 +385,7 @@ da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
 | `code` | Quando |
 |---|---|
 | `no_project` | o comando precisa de um projeto aberto |
+| `spf_missing` | o `.spf` do projeto aberto foi apagado depois de aberto: os comandos de projeto e os fluxos recusam (os `fs_*` continuam, pela pasta) |
 | `busy` | já há uma operação rodando |
 | `outside_project` | criar, renomear ou apagar fora da pasta do projeto |
 | `conflict` | o arquivo mudou no disco desde que foi lido |

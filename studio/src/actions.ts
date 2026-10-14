@@ -83,8 +83,12 @@ export interface Action {
 // Condições -------------------------------------------------------------
 
 const hasProject = () => useProject.getState().snapshot !== null;
+/** Há projeto e o `.spf` dele existe: toda operação de projeto (compilar,
+ * simular, mexer nas fontes, o histórico) precisa dele. Os arquivos da
+ * pasta, a busca e o fechar continuam sem ele (`spfMissing`). */
+const hasSpf = () => hasProject() && !useProject.getState().spfMissing;
 const idle = () => useJobs.getState().running === null;
-const canRun = () => hasProject() && idle();
+const canRun = () => hasSpf() && idle();
 const hasEditor = () => activeEditor() !== null;
 const hasLearnExercise = () => currentExercise(useLearn.getState().snapshot) !== null;
 
@@ -132,7 +136,7 @@ export function hasComponent(name: string): boolean {
 /** A onda do alvo (o projeto ou o processador escolhido) já existe. */
 function hasWave(): boolean {
   const snapshot = useProject.getState().snapshot;
-  if (!snapshot) return false;
+  if (!snapshot || useProject.getState().spfMissing) return false;
   const name = target();
   if (!name) return snapshot.waveform !== null;
   return snapshot.processors.some((p) => p.name === name && p.waveform !== null);
@@ -616,13 +620,13 @@ export const ACTIONS: Action[] = [
   { id: 'selectTheme', label: 'action.selectTheme', category: 'view', keys: 'Ctrl+K T', run: () => openDialog({ kind: 'theme' }) },
 
   // Projeto
-  { id: 'addVerilog', label: 'action.addVerilog', category: 'project', enabled: hasProject, run: () => addVerilogFiles() },
-  { id: 'newVerilog', label: 'action.newVerilog', category: 'project', icon: FileCode, enabled: hasProject, run: () => openDialog({ kind: 'newVerilog', testbench: false }) },
-  { id: 'newTestbench', label: 'action.newTestbench', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'newVerilog', testbench: true }) },
-  { id: 'newCocotb', label: 'action.newCocotb', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'newVerilog', testbench: true, cocotb: true }) },
-  { id: 'newProcessor', label: 'action.newProcessor', category: 'project', keys: 'Ctrl+Alt+P', icon: Cpu, enabled: hasProject, run: () => openDialog({ kind: 'newProcessor' }) },
-  { id: 'chooseTop', label: 'action.chooseTop', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'chooseTop' }) },
-  { id: 'chooseTestbench', label: 'action.chooseTestbench', category: 'project', enabled: hasProject, run: () => openDialog({ kind: 'chooseTestbench' }) },
+  { id: 'addVerilog', label: 'action.addVerilog', category: 'project', enabled: hasSpf, run: () => addVerilogFiles() },
+  { id: 'newVerilog', label: 'action.newVerilog', category: 'project', icon: FileCode, enabled: hasSpf, run: () => openDialog({ kind: 'newVerilog', testbench: false }) },
+  { id: 'newTestbench', label: 'action.newTestbench', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'newVerilog', testbench: true }) },
+  { id: 'newCocotb', label: 'action.newCocotb', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'newVerilog', testbench: true, cocotb: true }) },
+  { id: 'newProcessor', label: 'action.newProcessor', category: 'project', keys: 'Ctrl+Alt+P', icon: Cpu, enabled: hasSpf, run: () => openDialog({ kind: 'newProcessor' }) },
+  { id: 'chooseTop', label: 'action.chooseTop', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'chooseTop' }) },
+  { id: 'chooseTestbench', label: 'action.chooseTestbench', category: 'project', enabled: hasSpf, run: () => openDialog({ kind: 'chooseTestbench' }) },
   { id: 'refreshProject', label: 'action.refreshProject', category: 'project', enabled: hasProject, run: () => { useProject.getState().bumpTree(); return useProject.getState().refresh(); } },
 
   // Fluxo
@@ -640,14 +644,14 @@ export const ACTIONS: Action[] = [
     run: () => runFastSimulation(),
   },
   { id: 'openWave', label: 'action.openWave', category: 'flow', keys: 'Ctrl+F8', icon: Activity, enabled: hasWave, run: () => openWave() },
-  { id: 'waveSignals', label: 'action.waveSignals', category: 'flow', icon: ListFilter, enabled: hasProject, run: () => openDialog({ kind: 'waveSignals' }) },
+  { id: 'waveSignals', label: 'action.waveSignals', category: 'flow', icon: ListFilter, enabled: hasSpf, run: () => openDialog({ kind: 'waveSignals' }) },
   { id: 'synthesize', label: 'action.synthesize', category: 'flow', keys: 'F10', icon: CircuitBoard, enabled: canRun, run: () => runSynthesis() },
   { id: 'showSchematic', label: 'action.showSchematic', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('schematic') },
   { id: 'showStatistics', label: 'action.showStatistics', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('synthesis') },
   { id: 'fpgaBuildProgram', label: 'action.fpgaBuildProgram', category: 'flow', icon: Upload, enabled: canRun, run: () => runFpgaBuildAndProgram() },
   { id: 'fpgaBuild', label: 'action.fpgaBuild', category: 'flow', icon: Hammer, enabled: canRun, run: () => runFpgaBuild() },
   { id: 'fpgaProgram', label: 'action.fpgaProgram', category: 'flow', icon: Upload, enabled: canRun, run: () => runFpgaProgram() },
-  { id: 'showBoard', label: 'action.showBoard', category: 'flow', icon: Microchip, enabled: hasProject, run: () => useEditor.getState().openView('board') },
+  { id: 'showBoard', label: 'action.showBoard', category: 'flow', icon: Microchip, enabled: hasSpf, run: () => useEditor.getState().openView('board') },
   { id: 'fullFlow', label: 'action.fullFlow', category: 'flow', keys: 'F5', enabled: canRun, run: fullFlow },
   {
     id: 'cancel',
@@ -675,13 +679,13 @@ export const ACTIONS: Action[] = [
     checked: () => settings()?.simulator === 'verilator',
     run: () => useApp.getState().updateSettings((s) => ({ ...s, simulator: 'verilator' })),
   },
-  { id: 'chooseTarget', label: 'action.chooseTarget', category: 'flow', enabled: () => hasProject() && idle(), run: () => openDialog({ kind: 'target' }) },
+  { id: 'chooseTarget', label: 'action.chooseTarget', category: 'flow', enabled: () => hasSpf() && idle(), run: () => openDialog({ kind: 'target' }) },
   {
     id: 'viewHierarchy',
     label: 'action.viewHierarchy',
     category: 'flow',
     icon: Boxes,
-    enabled: hasProject,
+    enabled: hasSpf,
     run: () => {
       useLayout.getState().setExplorerMode('hierarchy');
       reveal('explorer');
@@ -698,12 +702,12 @@ export const ACTIONS: Action[] = [
     category: 'tools',
     run: () => useEditor.getState().openView('toolchain', { check: String(Date.now()) }),
   },
-  { id: 'history', label: 'action.history', category: 'tools', keys: 'Ctrl+Shift+H', enabled: hasProject, run: () => reveal('reports') },
+  { id: 'history', label: 'action.history', category: 'tools', keys: 'Ctrl+Shift+H', enabled: hasSpf, run: () => reveal('reports') },
   {
     id: 'lastReport',
     label: 'action.lastReport',
     category: 'tools',
-    enabled: hasProject,
+    enabled: hasSpf,
     run: async () => {
       try {
         const report = await api.history.show(null);
@@ -720,7 +724,7 @@ export const ACTIONS: Action[] = [
     id: 'compareReports',
     label: 'action.compareReports',
     category: 'tools',
-    enabled: hasProject,
+    enabled: hasSpf,
     run: () => useEditor.getState().openView('compare', { id: null, against: null }),
   },
   { id: 'cleanReports', label: 'action.cleanReports', category: 'tools', enabled: canRun, run: () => openDialog({ kind: 'cleanReports' }) },

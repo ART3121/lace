@@ -34,6 +34,18 @@ export const useToasts = create<ToastState>((set, get) => ({
   dismiss: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
 }));
 
+/** Quem reage a um código de erro antes do aviso: devolve `true` se já avisou
+ * o usuário do seu jeito, e então o aviso genérico não aparece. */
+type ErrorHandler = (error: IpcError) => boolean;
+
+const handlers = new Map<string, ErrorHandler>();
+
+/** Registra quem reage a um código de erro em `showError`: o estado do
+ * projeto, por exemplo, liga o aviso de `.spf` apagado no `spf_missing`. */
+export function onErrorCode(code: string, handler: ErrorHandler): void {
+  handlers.set(code, handler);
+}
+
 /** Mostra um erro do backend: o texto traduzido pelo código e, embaixo, a
  * mensagem original do Core. */
 export function showError(error: unknown): void {
@@ -42,6 +54,7 @@ export function showError(error: unknown): void {
   const title = errorText(ipc);
   // O mesmo erro vai para o log do backend, para quem investiga pelo terminal.
   void invoke('log_frontend', { level: 'warn', message: `${ipc.code}: ${ipc.message}` }).catch(() => undefined);
+  if (handlers.get(ipc.code)?.(ipc)) return;
   useToasts.getState().push({
     kind: 'error',
     title,

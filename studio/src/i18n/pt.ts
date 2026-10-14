@@ -196,6 +196,13 @@ export const pt = {
   'explorer.sources': 'Fontes',
   'explorer.files': 'Arquivos',
   'explorer.noProject': 'Nenhum projeto aberto.',
+  'explorer.spfMissing.title': 'O arquivo do projeto foi apagado: {file}',
+  'explorer.spfMissing.body': 'Sem ele, o Lace não compila, não simula e não mexe nas fontes do projeto. Os arquivos da pasta continuam aqui, e as abas abertas também.',
+  'explorer.spfMissing.create': 'Criar um novo projeto',
+  'explorer.spfMissing.hint': 'O projeto novo começa com esta pasta e este nome: criar aqui grava só um .spf novo, sem apagar arquivo nenhum, e as fontes e os processadores precisam ser registrados de novo. Se o .spf voltar, o projeto volta sozinho.',
+  'project.spfMissing.title': 'O arquivo do projeto foi apagado: {file}',
+  'project.spfMissing.detail': 'Sem o .spf não há operações de projeto. No Explorer há um botão para criar o projeto de novo.',
+  'project.spfBack': 'O arquivo do projeto voltou: as operações de projeto estão liberadas.',
   'explorer.modules': 'Módulos',
   'explorer.testbenches': 'Testbenches',
   'explorer.processors': 'Processadores SAPHO',
@@ -424,6 +431,7 @@ export const pt = {
 
   // Barra de status
   'status.noProject': 'Nenhum projeto',
+  'status.spfMissing': 'O arquivo do projeto ({file}) foi apagado: sem ele não há operações de projeto',
   'status.top': 'Topo: {name}',
   'status.noTop': 'Sem topo',
   'status.testbench': 'TB: {name}',
@@ -922,6 +930,7 @@ export const pt = {
   // Erros, pelo código (o texto do Core aparece embaixo)
   'error.title': 'Erro',
   'error.no_project': 'Abra ou crie um projeto primeiro.',
+  'error.spf_missing': 'O arquivo do projeto (.spf) não existe mais: sem ele não há operações de projeto.',
   'error.busy': 'Já há uma operação rodando. Espere ou clique em Parar.',
   'error.outside_project': 'Essa operação só vale dentro da pasta do projeto.',
   'error.conflict': 'O arquivo mudou no disco.',

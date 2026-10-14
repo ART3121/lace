@@ -21,6 +21,13 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   reinicia sozinho na versão nova; ao abrir, um aviso diz a versão. No
   Windows, quando a atualização cai no assistente de instalação, o Studio
   fecha e o assistente o abre de novo no fim.
+- O aviso de `.spf` apagado: se o arquivo do projeto aberto some, o Studio
+  avisa que sem ele não há operação de projeto, desabilita compilar,
+  simular, sintetizar e mexer nas fontes, e põe no alto do Explorador o
+  botão **Criar um novo projeto**, com a pasta e o nome deste projeto. A
+  árvore de arquivos, as abas e salvar continuam, e o projeto volta sozinho
+  se o `.spf` reaparecer. Antes, cada operação dava um erro de projeto
+  inválido, e o vigia de arquivos repetia o erro a cada arquivo salvo.
 - A aba Placa FPGA conhece a Terasic Cyclone V GX Starter Kit (C5G). HEX2
   e HEX3 dividem os pinos com o conector GPIO e só acendem com as chaves
   DIP S1 e S2, no verso da placa, em ON.

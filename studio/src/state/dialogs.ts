@@ -31,7 +31,8 @@ export interface ConfirmOptions {
 }
 
 export type DialogSpec =
-  | { kind: 'newProject' }
+  // `parent` e `name` já preenchidos: recriar o projeto cujo .spf sumiu.
+  | { kind: 'newProject'; parent?: string; name?: string }
   | { kind: 'newProcessor' }
   | { kind: 'newVerilog'; testbench: boolean; folder?: string; cocotb?: boolean }
   | { kind: 'newInput'; processor: string }

@@ -92,6 +92,7 @@ function UpdateIndicator() {
 export function StatusBar() {
   const t = useT();
   const snapshot = useProject((s) => s.snapshot);
+  const spfMissing = useProject((s) => s.spfMissing);
   const target = useProject((s) => s.target);
   const running = useJobs((s) => s.running);
   const last = useJobs((s) => s.last);
@@ -114,7 +115,18 @@ export function StatusBar() {
       <div className="statusbar__left">
         {snapshot ? (
           <>
-            {shown('project') && <span className="statusbar__item statusbar__project">{snapshot.name}</span>}
+            {shown('project') &&
+              (spfMissing ? (
+                <span
+                  className="statusbar__item statusbar__project statusbar__project--missing"
+                  title={t('status.spfMissing', { file: baseName(snapshot.spf) })}
+                >
+                  <TriangleAlert size={12} />
+                  {snapshot.name}
+                </span>
+              ) : (
+                <span className="statusbar__item statusbar__project">{snapshot.name}</span>
+              ))}
             {shown('top') && (
               <span className="statusbar__item" title={snapshot.top_level ?? undefined}>
                 {snapshot.top_module ? t('status.top', { name: snapshot.top_module }) : t('status.noTop')}

@@ -83,15 +83,19 @@ function rememberProjectsDir(parent: string) {
 
 // Projeto ---------------------------------------------------------------------
 
-function NewProjectDialog() {
+/** `initialParent` e `initialName` vêm preenchidos quando o .spf do projeto
+ * aberto sumiu: criar o projeto ali regrava só o .spf, e os arquivos da pasta
+ * continuam (`Project::create`). */
+function NewProjectDialog({ initialParent, initialName }: { initialParent?: string; initialName?: string }) {
   const t = useT();
-  const [name, setName] = useState('');
-  const [parent, setParent] = useState('');
+  const [name, setName] = useState(initialName ?? '');
+  const [parent, setParent] = useState(initialParent ?? '');
   const desktop = isTauri();
 
   useEffect(() => {
+    if (initialParent) return;
     void projectsFolder().then(setParent).catch(() => undefined);
-  }, []);
+  }, [initialParent]);
 
   // A regra de nome é do Core (`validate_project_name`): o diálogo pergunta
   // a ele enquanto o usuário digita, e mostra o motivo ao passar o mouse.
@@ -898,7 +902,7 @@ export function Dialogs() {
   if (!dialog) return null;
   switch (dialog.kind) {
     case 'newProject':
-      return <NewProjectDialog />;
+      return <NewProjectDialog initialParent={dialog.parent} initialName={dialog.name} />;
     case 'cleanReports':
       return hasProject ? <CleanReportsDialog /> : null;
     case 'newProcessor':

@@ -402,7 +402,7 @@ pub fn run(
         return Ok(outcome);
     }
 
-    let mut project = Project::open(spf)?;
+    let mut project = crate::state::open_project(spf)?;
 
     if let FlowRequest::FpgaProgram { cable } = request {
         let toolchain = toolchain::require(settings)?;
