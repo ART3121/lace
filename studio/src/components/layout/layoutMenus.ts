@@ -4,10 +4,10 @@
 // Aparência, com as barras e as regiões: de qualquer parte da janela que
 // esteja à vista se chega de volta às que foram escondidas.
 
-import { action, isEnabled, runAction, toolbarItemAvailable } from '../../actions';
+import { action, isEnabled, runAction, TOOLBAR_STYLE_ACTIONS, toolbarItemAvailable } from '../../actions';
 import { t, type Key } from '../../i18n';
 import { useLayout, type RegionId, type ViewId } from '../../state/layout';
-import { isViewAvailable, REGION_IDS, regionOf, STATUS_ITEMS, TOOLBAR_ITEMS, VIEW_INFO } from '../../state/layoutModel';
+import { isViewAvailable, REGION_IDS, regionOf, STATUS_ITEMS, TOOLBAR_ITEMS, TOOLBAR_STYLES, VIEW_INFO } from '../../state/layoutModel';
 import type { MenuItem } from '../common';
 
 /** O item de menu de uma ação de actions.ts, com a marca se ela liga e
@@ -132,9 +132,20 @@ function itemChecklist(bar: 'toolbar' | 'statusbar', list: { id: string; label: 
   });
 }
 
+/** O menu da barra de ferramentas, em qualquer modelo: os itens dele, os
+ * modelos (layoutModel.ts, TOOLBAR_STYLES), com a marca no do layout em uso,
+ * e as barras. */
 export function toolbarMenu(): MenuItem[] {
-  const items = TOOLBAR_ITEMS.filter((item) => toolbarItemAvailable(item.id));
-  return [...itemChecklist('toolbar', items), SEPARATOR, actionItem('toggleToolbar'), SEPARATOR, appearanceSubmenu()];
+  const style = useLayout.getState().live.bars.toolbarStyle;
+  const items = TOOLBAR_ITEMS[style].filter((item) => toolbarItemAvailable(item.id));
+  return [
+    ...itemChecklist('toolbar', items),
+    SEPARATOR,
+    { label: t('layout.toolbarModel'), submenu: TOOLBAR_STYLES.map((style) => actionItem(TOOLBAR_STYLE_ACTIONS[style])) },
+    actionItem('toggleToolbar'),
+    SEPARATOR,
+    appearanceSubmenu(),
+  ];
 }
 
 export function statusBarMenu(): MenuItem[] {

@@ -10,7 +10,6 @@ import {
   FileText,
   GitCompare,
   GraduationCap,
-  House,
   Info,
   Microchip,
   ScrollText,
@@ -51,8 +50,6 @@ export function tabIcon(tab: Tab): LucideIcon {
   switch (tab.kind) {
     case 'file':
       return fileIcon(tab.path ?? '');
-    case 'welcome':
-      return House;
     case 'settings':
       return Settings;
     case 'toolchain':

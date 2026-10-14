@@ -23,6 +23,7 @@ import { showError } from '../../state/toasts';
 import { baseName, relativeTo } from '../../util/paths';
 import { IconButton, openContextMenu, type MenuItem } from '../common';
 import { chromeMenu } from '../layout/layoutMenus';
+import { RunControls } from '../layout/RunControls';
 import { AboutView } from '../views/AboutView';
 import { CompareView } from '../views/CompareView';
 import { ProcessorView } from '../views/ProcessorView';
@@ -43,8 +44,6 @@ export function tabTitle(tab: Tab): string {
   switch (tab.kind) {
     case 'file':
       return baseName(tab.path ?? '');
-    case 'welcome':
-      return t('welcome.title');
     case 'settings':
       return t('settings.title');
     case 'toolchain':
@@ -200,6 +199,10 @@ function TabBar({ group, count }: { group: EditorGroup; count: number }) {
   const drop = useTabDrag((s) => (s.drop && !('split' in s.drop) && s.drop.group === group.id ? s.drop.index : null));
   const strip = useRef<HTMLDivElement>(null);
   const tabs = group.tabIds.map((id) => all.find((tab) => tab.id === id)).filter((tab): tab is Tab => !!tab);
+  // No modelo `editor` da barra de ferramentas, o Executar fica no canto das
+  // abas do grupo em uso; o arquivo da frente dele pode mudar a etapa.
+  const run = useLayout((s) => !s.zen && s.live.bars.toolbar && s.live.bars.toolbarStyle === 'editor');
+  const focused = useEditor((s) => s.activeGroup === group.id);
 
   // A aba ativa entra na vista rolando só a barra de abas. O `scrollIntoView`
   // rolava também os ancestrais, até a raiz da janela: com muitas abas, a
@@ -265,6 +268,7 @@ function TabBar({ group, count }: { group: EditorGroup; count: number }) {
         })}
       </div>
       <div className="editor-group__actions">
+        {run && focused && <RunControls variant="editor" path={tabs.find((tab) => tab.id === group.activeId)?.path ?? null} />}
         <IconButton
           label={`${t('tab.splitRight')} (Ctrl+\\)`}
           disabled={count >= MAX_GROUPS || !group.activeId}
@@ -284,8 +288,6 @@ function TabBar({ group, count }: { group: EditorGroup; count: number }) {
 
 function ViewContent({ tab }: { tab: Tab }) {
   switch (tab.kind) {
-    case 'welcome':
-      return <WelcomeView />;
     case 'settings':
       return <SettingsView />;
     case 'toolchain':

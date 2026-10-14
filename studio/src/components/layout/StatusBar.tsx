@@ -1,16 +1,30 @@
 // A barra de status: o projeto (topo, testbench, alvo) à esquerda, a
 // operação rodando ou o último resultado no meio, e à direita os
-// problemas, o cursor, a linguagem, o simulador e o bundle.
+// problemas, o cursor, a linguagem, o simulador, o bundle e os botões das
+// regiões (a barra lateral esquerda, o painel e a direita).
 //
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
 // Preferências > Layout da janela). A espera de um atalho de duas etapas e a
 // linha do Vim aparecem sempre: sem elas, o teclado parece não responder. O
 // aviso de Lace mais novo também, até a atualização.
 
-import { CircleAlert, CircleArrowUp, LayoutTemplate, RotateCw, TriangleAlert } from 'lucide-react';
+import {
+  CircleAlert,
+  CircleArrowUp,
+  PanelBottom,
+  PanelBottomDashed,
+  PanelLeft,
+  PanelLeftDashed,
+  PanelRight,
+  PanelRightDashed,
+  RotateCw,
+  SquareSplitHorizontal,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useChord } from '../../actions';
+import { action, runAction, useChord } from '../../actions';
 import { languageLabel } from '../../editor/monaco';
 import { setVimStatusNode } from '../../editor/vim';
 import { formatDuration, useT, type Key } from '../../i18n';
@@ -19,12 +33,10 @@ import { useEditor } from '../../state/editor';
 import { lastFlowKey, phaseKey, useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
-import { openDialog } from '../../state/dialogs';
-import { useLayoutStatus } from '../../state/savedLayouts';
 import { canUpdate, finishPending, offerUpdate, useUpdates } from '../../state/updates';
 import { baseName } from '../../util/paths';
 import { Kbd, openContextMenu, Spinner } from '../common';
-import { layoutItems, statusBarMenu } from './layoutMenus';
+import { statusBarMenu } from './layoutMenus';
 
 export function Elapsed({ since }: { since: number }) {
   const [now, setNow] = useState(Date.now());
@@ -35,26 +47,42 @@ export function Elapsed({ since }: { since: number }) {
   return <span className="mono">{formatDuration(Math.max(0, now - since))}</span>;
 }
 
-/** O layout em uso, com um ponto quando a janela está diferente da foto
- * dele. O clique troca de layout; o botão direito salva ou restaura. */
-function LayoutIndicator() {
+/** Mostrar e esconder a barra lateral esquerda, o painel e a direita, como
+ * os botões do canto da barra de título do VS Code. O ícone tracejado e
+ * apagado é o da região escondida; o do painel acompanha a posição dele. */
+function RegionToggles() {
   const t = useT();
-  const { layout, dirty } = useLayoutStatus();
+  // Redesenha quando uma região aparece ou some (`checked` lê o estado).
+  useLayout((s) => s.live.regions);
+  const panelRight = useLayout((s) => s.live.panelPosition === 'right');
+  const toggles: { id: string; on: LucideIcon; off: LucideIcon }[] = [
+    { id: 'toggleSidebar', on: PanelLeft, off: PanelLeftDashed },
+    panelRight
+      ? { id: 'togglePanel', on: SquareSplitHorizontal, off: SquareSplitHorizontal }
+      : { id: 'togglePanel', on: PanelBottom, off: PanelBottomDashed },
+    { id: 'toggleRightSidebar', on: PanelRight, off: PanelRightDashed },
+  ];
   return (
-    <button
-      type="button"
-      className="statusbar__item statusbar__button statusbar__layout"
-      title={t(dirty ? 'layout.indicator.modified' : 'layout.indicator', { name: layout.name })}
-      onClick={() => openDialog({ kind: 'layout' })}
-      onContextMenu={(e) => {
-        e.stopPropagation();
-        openContextMenu(e, layoutItems());
-      }}
-    >
-      <LayoutTemplate size={12} />
-      {layout.name}
-      {dirty && <span className="statusbar__dirty" aria-hidden />}
-    </button>
+    <div className="statusbar__regions">
+      {toggles.map(({ id, on, off }) => {
+        const a = action(id);
+        const shown = !!a.checked?.();
+        const Icon = shown ? on : off;
+        return (
+          <button
+            key={id}
+            type="button"
+            className={`statusbar__button statusbar__region${shown ? ' is-on' : ''}`}
+            aria-pressed={shown}
+            aria-label={t(a.label)}
+            title={`${t(a.label)}${a.keys ? ` (${a.keys})` : ''}`}
+            onClick={() => runAction(id)}
+          >
+            <Icon size={14} />
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -200,7 +228,7 @@ export function StatusBar() {
             {toolchain?.found ? t('status.bundle', { bundle: toolchain.bundle ?? '' }) : toolchain ? t('status.toolchainMissing') : ''}
           </button>
         )}
-        {shown('layout') && <LayoutIndicator />}
+        {shown('regions') && <RegionToggles />}
       </div>
     </footer>
   );

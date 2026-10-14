@@ -46,6 +46,20 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - O botão de escolher o terminal, no cabeçalho de qualquer terminal, abre o
   INFO, o Terminal ou um terminal de etapa. Um terminal aberto fica aberto
   nas próximas sessões até ser fechado pelo X do cabeçalho.
+- Preferências > Layout da janela escolhe o **modelo da barra de
+  ferramentas**, que passa a fazer parte de cada layout: a **clássica**,
+  numa linha própria; o **Executar na barra de título**, com o Alvo e o
+  Parar; e o **Executar no editor**, os mesmos controles no canto das
+  abas, que somem quando não há aba aberta. A seta do Executar abre o menu
+  com todas as etapas e os atalhos, e a etapa escolhida ali passa a ser a do
+  botão; no editor, com o fonte C± ou C++ de um processador na frente, o
+  botão sugere compilar esse processador.
+  Nos dois modelos novos, o editor ganha a altura da barra. O botão direito
+  na barra também troca o modelo, e a lista do que ela esconde é a do
+  modelo em uso.
+- Dois layouts prontos, **Executar na barra de título** e **Executar no
+  editor**. O segundo também põe o Navegador de fluxo na barra lateral
+  direita.
 
 ### Mudado
 
@@ -56,6 +70,13 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   no seletor e no menu Exibir) e o Quartus Prime nas Preferências e nas
   Ferramentas do Lace. O backend recusa os comandos e as operações da
   placa com `experimental_disabled`. Liga em Preferências > Experimental.
+- Na barra de ferramentas clássica, um separador fica entre os grupos do
+  fluxo: compilar, simular, a onda e o hardware.
+- No fim da barra de status, o nome do layout em uso dá lugar a três
+  botões, como os do canto da barra de título do VS Code: mostrar e
+  esconder a barra lateral esquerda, o painel e a barra lateral direita. O
+  layout se troca por Ctrl+K L, pelo menu Exibir > Layout ou pelas
+  Preferências.
 - Os seis consoles de etapa (C±, ASM, Verilog, Wave, RTLViewer e Placa, que
   correspondem aos terminais da AURORA) começam fechados. Aberto pelo seletor
   ou por Exibir > Consoles, um deles mostra o que a etapa já tinha escrito e
@@ -79,6 +100,21 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   nem sobrescrito) e depois mostra o que mudou de lugar e o que ficou. A
   conversão também fica em Arquivo > Converter projeto para o YANC 7.1, e o
   painel de problemas avisa até lá.
+- Fechar o projeto, abrir um projeto sem abas guardadas e abrir o Studio
+  sem projeto não abrem mais a aba **Lace Studio**: o editor vazio já mostra
+  a mesma tela.
+- No menu Arquivo, os projetos recentes ficam no submenu **Abrir recente**,
+  que abre ao lado com o mouse em cima, em vez de ocupar o menu inteiro.
+- Com as Preferências ou o RTLViewer na frente, as barras laterais e o
+  painel se escondem, e voltam como estavam quando outra aba vem para a
+  frente. O layout salvo não muda com isso.
+
+### Corrigido
+
+- Um layout pronto, o Padrão inclusive, aparecia como modificado (o ponto
+  depois do nome, na barra de status) logo depois de escolhido: a vista
+  Exercícios não estava na lista dele e entrava sozinha no fim da barra
+  lateral.
 
 ## [0.7.0] - 2026-10-12
 

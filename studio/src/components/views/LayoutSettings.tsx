@@ -4,14 +4,16 @@
 //
 // Para não pesar: do layout em uso, só o que serve agora fica à vista (Salvar
 // e Restaurar aparecem quando a janela está diferente dele; o resto vai no
-// menu ⋯); as vistas aparecem agrupadas por região, como na janela, cada uma
-// com o olho e o menu dela; e os itens das barras ficam recolhidos. As vistas
-// e os itens de recurso experimental desligado não aparecem.
+// menu ⋯); o modelo da barra de ferramentas se escolhe por um desenho de
+// cada um, e a lista de itens embaixo é a do modelo escolhido; as vistas
+// aparecem agrupadas por região, como na janela, cada uma com o olho e o
+// menu dela; e os itens das barras ficam recolhidos. As vistas e os itens de
+// recurso experimental desligado não aparecem.
 
 import { Eye, EyeOff, MoreHorizontal } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
-import { toolbarItemAvailable } from '../../actions';
+import { runAction, TOOLBAR_STYLE_ACTIONS, toolbarItemAvailable } from '../../actions';
 import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { useLayout, type RegionId, type ViewId } from '../../state/layout';
@@ -21,10 +23,11 @@ import {
   REGION_LABELS,
   STATUS_ITEMS,
   TOOLBAR_ITEMS,
+  TOOLBAR_STYLES,
   VIEW_INFO,
   type ActivityBarSide,
-  type LayoutBars,
   type PanelPosition,
+  type ToolbarStyle,
 } from '../../state/layoutModel';
 import {
   applyLayout,
@@ -89,6 +92,42 @@ function ViewItem({ view, region, before, after }: { view: ViewId; region: Regio
   );
 }
 
+/** Um modelo da barra de ferramentas: um desenho da janela com o lugar dos
+ * botões do fluxo marcado, o nome e o que ele faz. Escolher um modelo mostra
+ * a barra, se estava escondida. */
+function ToolbarModel({ style, selected }: { style: ToolbarStyle; selected: boolean }) {
+  const t = useT();
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      className={`toolbar-model${selected ? ' is-selected' : ''}`}
+      onClick={() => runAction(TOOLBAR_STYLE_ACTIONS[style])}
+    >
+      <span className={`toolbar-sketch toolbar-sketch--${style}`} aria-hidden>
+        <span className="toolbar-sketch__title">
+          <span className="toolbar-sketch__menus" />
+          {style === 'titlebar' && <span className="toolbar-sketch__run" />}
+        </span>
+        {style === 'classic' && (
+          <span className="toolbar-sketch__tools">
+            <span className="toolbar-sketch__run" />
+          </span>
+        )}
+        <span className="toolbar-sketch__body">
+          <span className="toolbar-sketch__side" />
+          <span className="toolbar-sketch__editor">
+            <span className="toolbar-sketch__tabs">{style === 'editor' && <span className="toolbar-sketch__run" />}</span>
+          </span>
+        </span>
+      </span>
+      <span className="toolbar-model__name">{t(`layout.toolbar.${style}`)}</span>
+      <span className="toolbar-model__hint">{t(`layout.toolbar.${style}.hint`)}</span>
+    </button>
+  );
+}
+
 /** Os itens de uma barra, recolhidos: a lista só abre quando se quer mexer. */
 function BarItems({ bar, title, items }: { bar: 'toolbar' | 'statusbar'; title: string; items: { id: string; label: Key }[] }) {
   const t = useT();
@@ -124,12 +163,21 @@ export function LayoutSettings() {
   const state = useLayout.getState;
 
   const status = dirty ? t('settings.layout.modified') : layout.readOnly ? t('settings.layout.readOnly') : t('settings.layout.saved');
-  const bar = (key: Exclude<keyof LayoutBars, 'activitybar'>, label: string) => (
+  const bar = (key: 'menubar' | 'toolbar' | 'statusbar', label: string) => (
     <SettingRow label={label}>{(id) => <Switch id={id} checked={live.bars[key]} onChange={(value) => state().setBar(key, value)} />}</SettingRow>
   );
+  // As Preferências são uma aba larga: as regiões estão escondidas agora, e
+  // as chaves mostram e mudam as que voltam ao sair delas.
+  const wideRegions = useLayout((s) => s.wideSaved?.visible ?? null);
   const region = (id: RegionId) => (
     <SettingRow key={id} label={t(REGION_LABELS[id])}>
-      {(control) => <Switch id={control} checked={live.regions[id].visible} onChange={(value) => state().setRegionVisible(id, value)} />}
+      {(control) => (
+        <Switch
+          id={control}
+          checked={wideRegions ? wideRegions[id] : live.regions[id].visible}
+          onChange={(value) => state().setLayoutRegionVisible(id, value)}
+        />
+      )}
     </SettingRow>
   );
 
@@ -174,9 +222,22 @@ export function LayoutSettings() {
           </SettingRow>
         </SettingsGroup>
 
+        <SettingsGroup title={t('settings.layout.toolbar')} hint={t('settings.layout.toolbarHint')}>
+          <div className="toolbar-models" role="radiogroup" aria-label={t('layout.toolbarModel')}>
+            {TOOLBAR_STYLES.map((style) => (
+              <ToolbarModel key={style} style={style} selected={live.bars.toolbarStyle === style} />
+            ))}
+          </div>
+          {bar('toolbar', t('settings.layout.toolbarShow'))}
+          <BarItems
+            bar="toolbar"
+            title={t('settings.layout.toolbarItems')}
+            items={TOOLBAR_ITEMS[live.bars.toolbarStyle].filter((item) => toolbarItemAvailable(item.id))}
+          />
+        </SettingsGroup>
+
         <SettingsGroup title={t('settings.layout.bars')}>
           {bar('menubar', t('layout.bar.menubar'))}
-          {bar('toolbar', t('layout.bar.toolbar'))}
           {bar('statusbar', t('layout.bar.statusbar'))}
           <SettingRow label={t('layout.bar.activitybar')}>
             {() => (
@@ -194,7 +255,7 @@ export function LayoutSettings() {
           </SettingRow>
         </SettingsGroup>
 
-        <SettingsGroup title={t('settings.layout.regions')}>
+        <SettingsGroup title={t('settings.layout.regions')} hint={wideRegions ? t('settings.layout.regionsWide') : undefined}>
           {REGION_IDS.map(region)}
           <SettingRow label={t('settings.layout.panelPosition')}>
             {() => (
@@ -234,7 +295,6 @@ export function LayoutSettings() {
         </SettingsGroup>
 
         <SettingsGroup title={t('settings.layout.items')} hint={t('settings.layout.itemsHint')}>
-          <BarItems bar="toolbar" title={t('layout.bar.toolbar')} items={TOOLBAR_ITEMS.filter((item) => toolbarItemAvailable(item.id))} />
           <BarItems bar="statusbar" title={t('layout.bar.statusbar')} items={STATUS_ITEMS} />
         </SettingsGroup>
       </fieldset>

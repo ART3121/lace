@@ -30,7 +30,6 @@ import { featureOn, useExperimental } from './experimental';
 import { showError } from './toasts';
 
 export type ViewKind =
-  | 'welcome'
   | 'settings'
   | 'toolchain'
   | 'schematic'
@@ -692,7 +691,9 @@ export const useEditor = create<EditorState>((set, get) => {
           if (tab.kind === 'file' && tab.path) {
             const exists = await api.fs.stat(tab.path).catch(() => null);
             if (exists && !exists.is_dir) await get().openFile(tab.path);
-          } else if (tab.kind !== 'file' && tab.kind !== 'compare') {
+          } else if (tab.kind !== 'file' && tab.kind !== 'compare' && String(tab.kind) !== 'welcome') {
+            // A aba de boas-vindas saiu (o editor vazio mostra a mesma tela),
+            // mas pode estar numa sessão gravada antes.
             get().openView(tab.kind, tab.data);
           }
         }

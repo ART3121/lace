@@ -37,10 +37,25 @@ import {
 export type { ConsoleChannel, ConsoleId, RegionId, ViewId } from './layoutModel';
 export type ExplorerMode = 'sources' | 'hierarchy' | 'files';
 
-/** O que o zen esconde e devolve ao sair. */
+/** O que o zen (e uma aba larga) esconde e devolve ao sair. */
 interface ZenSaved {
   visible: Record<RegionId, boolean>;
   panelMaximized: boolean;
+}
+
+const ALL_HIDDEN: Record<RegionId, boolean> = { left: false, right: false, panel: false };
+
+function savedRegions(live: LayoutBody, panelMaximized: boolean): ZenSaved {
+  return {
+    visible: { left: live.regions.left.visible, right: live.regions.right.visible, panel: live.regions.panel.visible },
+    panelMaximized,
+  };
+}
+
+function withVisible(body: LayoutBody, visible: Record<RegionId, boolean>): LayoutBody {
+  let out = body;
+  for (const id of REGION_IDS) out = withRegion(out, id, { visible: visible[id] });
+  return out;
 }
 
 interface LayoutState {
@@ -57,6 +72,11 @@ interface LayoutState {
   /** As regiões de antes do zen. Dentro do zen, Ctrl+B e Ctrl+J ainda
    * mostram as regiões; ao sair, vale o que está aqui. */
   zenSaved: ZenSaved | null;
+  /** As regiões de antes de uma aba larga (as Preferências, o RTLViewer)
+   * ficar na frente (state/wideTabs.ts). Enquanto ela está ali, as três
+   * regiões ficam escondidas; Ctrl+B e Ctrl+J ainda as mostram, e ao sair
+   * vale o que está aqui, como no zen. */
+  wideSaved: ZenSaved | null;
   /** A gaveta do terminal de shell, que só existe no zen. */
   zenShell: boolean;
   /** Muda a cada layout aplicado: a área de trabalho põe os tamanhos de novo. */
@@ -80,6 +100,14 @@ interface LayoutState {
   toggleView: (view: ViewId) => void;
   toggleRegion: (region: RegionId) => void;
   setRegionVisible: (region: RegionId, visible: boolean) => void;
+  /** A visibilidade da região no layout (as chaves de Preferências > Layout
+   * da janela): com uma aba larga na frente, muda a que volta ao sair dela,
+   * sem mostrar a região agora. */
+  setLayoutRegionVisible: (region: RegionId, visible: boolean) => void;
+  /** Uma aba larga ficou na frente: esconde as regiões. No zen, nada muda. */
+  enterWide: () => void;
+  /** Nenhuma aba larga na frente: as regiões voltam como estavam. */
+  exitWide: () => void;
   setPanelMaximized: (value: boolean) => void;
   moveView: (view: ViewId, to: RegionId, index?: number) => void;
   setViewHidden: (view: ViewId, hidden: boolean) => void;
@@ -174,14 +202,13 @@ export function isOnScreen(state: Pick<LayoutState, 'live'>, view: ViewId): bool
   return region.visible && region.active === view;
 }
 
-/** O arranjo sem o zen: no zen, as regiões visíveis são as de antes dele. É
- * o que se grava e o que se compara com o layout salvo. */
-export function effectiveLive(state: Pick<LayoutState, 'live' | 'zenSaved'>): LayoutBody {
-  const { live, zenSaved } = state;
-  if (!zenSaved) return live;
-  let body = live;
-  for (const id of REGION_IDS) body = withRegion(body, id, { visible: zenSaved.visible[id] });
-  return body;
+/** O arranjo sem o zen e sem a aba larga: as regiões visíveis são as de
+ * antes deles. É o que se grava e o que se compara com o layout salvo. A aba
+ * larga só esconde fora do zen, então as regiões dela, quando há, são as de
+ * antes dos dois. */
+export function effectiveLive(state: Pick<LayoutState, 'live' | 'zenSaved' | 'wideSaved'>): LayoutBody {
+  const saved = state.wideSaved ?? state.zenSaved;
+  return saved ? withVisible(state.live, saved.visible) : state.live;
 }
 
 /** As marcas de não lido sem as das vistas que estão na tela. */
@@ -202,6 +229,7 @@ export const useLayout = create<LayoutState>((set, get) => ({
   zoom: saved.zoom ?? 1,
   zen: false,
   zenSaved: null,
+  wideSaved: null,
   zenShell: false,
   epoch: 0,
   focusView: null,
@@ -247,6 +275,29 @@ export const useLayout = create<LayoutState>((set, get) => ({
       unread: withoutOnScreen(state.unread, live),
       ...(region === 'panel' ? { panelMaximized: false } : {}),
     });
+  },
+  setLayoutRegionVisible: (region, visible) => {
+    const { wideSaved } = get();
+    if (wideSaved) set({ wideSaved: { ...wideSaved, visible: { ...wideSaved.visible, [region]: visible } } });
+    else get().setRegionVisible(region, visible);
+  },
+  enterWide: () => {
+    const state = get();
+    if (state.wideSaved || state.zen) return;
+    set({ wideSaved: savedRegions(state.live, state.panelMaximized), live: withVisible(state.live, ALL_HIDDEN), panelMaximized: false });
+  },
+  exitWide: () => {
+    const state = get();
+    const saved = state.wideSaved;
+    if (!saved) return;
+    if (state.zen) {
+      // O zen entrou depois e guardou as regiões escondidas: ao sair dele,
+      // voltam as de antes da aba larga.
+      set({ wideSaved: null, zenSaved: saved });
+      return;
+    }
+    const live = withVisible(state.live, saved.visible);
+    set({ wideSaved: null, live, panelMaximized: saved.panelMaximized, unread: withoutOnScreen(state.unread, live) });
   },
   setPanelMaximized: (value) => {
     const live = withRegion(get().live, 'panel', { visible: true });
@@ -297,9 +348,14 @@ export const useLayout = create<LayoutState>((set, get) => ({
   },
   applyBody: (body) => {
     const state = get();
-    const live = normalizeBody(body);
+    const normalized = normalizeBody(body);
+    // Com uma aba larga na frente, as regiões do layout novo aparecem ao
+    // sair dela.
+    const wideSaved = state.wideSaved ? savedRegions(normalized, false) : null;
+    const live = wideSaved ? withVisible(normalized, ALL_HIDDEN) : normalized;
     set({
       live,
+      wideSaved,
       zen: false,
       zenSaved: null,
       zenShell: false,
@@ -326,23 +382,20 @@ export const useLayout = create<LayoutState>((set, get) => ({
       get().exitZen();
       return;
     }
-    let hidden = live;
-    for (const id of REGION_IDS) hidden = withRegion(hidden, id, { visible: false });
     set({
       zen: true,
-      zenSaved: {
-        visible: { left: live.regions.left.visible, right: live.regions.right.visible, panel: live.regions.panel.visible },
-        panelMaximized,
-      },
+      zenSaved: savedRegions(live, panelMaximized),
       zenShell: false,
-      live: hidden,
+      live: withVisible(live, ALL_HIDDEN),
       panelMaximized: false,
     });
   },
   exitZen: () => {
     const state = get();
     if (!state.zen || !state.zenSaved) return;
-    const live = effectiveLive(state);
+    // Só as regiões do zen: com uma aba larga na frente, elas continuam
+    // escondidas até sair dela.
+    const live = withVisible(state.live, state.zenSaved.visible);
     set({
       zen: false,
       zenSaved: null,
@@ -367,14 +420,16 @@ useLayout.subscribe((state, previous) => {
   if (
     state.live === previous.live &&
     state.zenSaved === previous.zenSaved &&
+    state.wideSaved === previous.wideSaved &&
     state.explorerMode === previous.explorerMode &&
     state.showHidden === previous.showHidden &&
     state.zoom === previous.zoom
   ) {
     return;
   }
-  // No zen, guarda o layout de antes dele: fechar o Studio no zen não deixa
-  // as regiões escondidas na próxima abertura.
+  // No zen e com uma aba larga na frente, guarda o layout de antes deles:
+  // fechar o Studio assim não deixa as regiões escondidas na próxima
+  // abertura.
   const stored: Stored = {
     v: STORAGE_VERSION,
     live: effectiveLive(state),

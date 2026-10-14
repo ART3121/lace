@@ -89,24 +89,62 @@ export const REGION_LABELS: Record<RegionId, Key> = {
   panel: 'layout.region.panel',
 };
 
-/** Os itens da barra de ferramentas que podem ser escondidos, na ordem dela.
- * `group` junta os botões que ficam lado a lado, entre separadores. */
-export const TOOLBAR_ITEMS: { id: string; label: Key; group: 'file' | 'target' | 'flow' | 'running' }[] = [
-  { id: 'newProject', label: 'action.newProject', group: 'file' },
-  { id: 'openProject', label: 'action.openProject', group: 'file' },
-  { id: 'save', label: 'action.save', group: 'file' },
-  { id: 'target', label: 'toolbar.target', group: 'target' },
-  // Os botões do fluxo com o nome que aparece neles (C±, Verilog, Wave...).
-  { id: 'build', label: 'toolbar.build', group: 'flow' },
-  { id: 'check', label: 'toolbar.check', group: 'flow' },
-  { id: 'simulate', label: 'toolbar.simulate', group: 'flow' },
-  { id: 'fastSim', label: 'toolbar.fastSim', group: 'flow' },
-  { id: 'openWave', label: 'toolbar.openWave', group: 'flow' },
-  { id: 'waveSignals', label: 'toolbar.waveSignals', group: 'flow' },
-  { id: 'synthesize', label: 'toolbar.synthesize', group: 'flow' },
-  { id: 'showBoard', label: 'toolbar.board', group: 'flow' },
-  { id: 'running', label: 'layout.item.running', group: 'running' },
-];
+/** Onde ficam os botões do fluxo, um modelo por layout: `classic`, a barra
+ * de ferramentas numa linha própria, com os botões lado a lado (Toolbar.tsx);
+ * `titlebar`, o Alvo, o Executar e o Parar no fim da barra de título; e
+ * `editor`, os mesmos no canto das abas do editor, que num fonte C± ou C++
+ * sugerem compilar o processador dele (RunControls.tsx, nos dois últimos). Os três são "a barra de
+ * ferramentas" do layout: `bars.toolbar` mostra ou esconde a do modelo. */
+export const TOOLBAR_STYLES = ['classic', 'titlebar', 'editor'] as const;
+export type ToolbarStyle = (typeof TOOLBAR_STYLES)[number];
+
+export function isToolbarStyle(value: unknown): value is ToolbarStyle {
+  return typeof value === 'string' && (TOOLBAR_STYLES as readonly string[]).includes(value);
+}
+
+/** Os grupos de botões do fluxo na barra clássica, entre separadores. */
+export type FlowSection = 'compile' | 'simulate' | 'wave' | 'hardware';
+
+export interface ToolbarItem {
+  id: string;
+  label: Key;
+  /** Na barra clássica: os de arquivo, o alvo, os do fluxo e o que está
+   * rodando. */
+  group?: 'file' | 'target' | 'flow' | 'running';
+  section?: FlowSection;
+}
+
+/** Os itens que podem ser escondidos em cada modelo, na ordem dele. O que
+ * está escondido fica numa lista só do layout (`hidden.toolbar`): o Alvo,
+ * escondido num modelo, também fica escondido nos outros. */
+export const TOOLBAR_ITEMS: Record<ToolbarStyle, ToolbarItem[]> = {
+  classic: [
+    { id: 'newProject', label: 'action.newProject', group: 'file' },
+    { id: 'openProject', label: 'action.openProject', group: 'file' },
+    { id: 'save', label: 'action.save', group: 'file' },
+    { id: 'target', label: 'toolbar.target', group: 'target' },
+    // Os botões do fluxo com o nome que aparece neles (C±, Verilog, Wave...).
+    { id: 'build', label: 'toolbar.build', group: 'flow', section: 'compile' },
+    { id: 'check', label: 'toolbar.check', group: 'flow', section: 'compile' },
+    { id: 'simulate', label: 'toolbar.simulate', group: 'flow', section: 'simulate' },
+    { id: 'fastSim', label: 'toolbar.fastSim', group: 'flow', section: 'simulate' },
+    { id: 'openWave', label: 'toolbar.openWave', group: 'flow', section: 'wave' },
+    { id: 'waveSignals', label: 'toolbar.waveSignals', group: 'flow', section: 'wave' },
+    { id: 'synthesize', label: 'toolbar.synthesize', group: 'flow', section: 'hardware' },
+    { id: 'showBoard', label: 'toolbar.board', group: 'flow', section: 'hardware' },
+    { id: 'running', label: 'layout.item.running', group: 'running' },
+  ],
+  titlebar: [
+    { id: 'target', label: 'toolbar.target' },
+    { id: 'run', label: 'run.label' },
+    { id: 'stop', label: 'toolbar.stop' },
+  ],
+  editor: [
+    { id: 'target', label: 'toolbar.target' },
+    { id: 'run', label: 'run.label' },
+    { id: 'stop', label: 'toolbar.stop' },
+  ],
+};
 
 /** Os itens da barra de status que podem ser escondidos. A espera de um
  * atalho de duas etapas e a linha do Vim não estão aqui: aparecem sempre. */
@@ -121,7 +159,7 @@ export const STATUS_ITEMS: { id: string; label: Key }[] = [
   { id: 'language', label: 'layout.item.language' },
   { id: 'simulator', label: 'layout.item.simulator' },
   { id: 'bundle', label: 'layout.item.bundle' },
-  { id: 'layout', label: 'layout.item.layout' },
+  { id: 'regions', label: 'layout.item.regions' },
 ];
 
 export interface RegionLayout {
@@ -143,6 +181,7 @@ export interface LayoutSizes {
 export interface LayoutBars {
   menubar: boolean;
   toolbar: boolean;
+  toolbarStyle: ToolbarStyle;
   statusbar: boolean;
   activitybar: ActivityBarSide;
 }
@@ -173,17 +212,35 @@ const SIZE_MIN = 60;
 const SIZE_MAX = 4000;
 
 /** O Padrão: no painel, o INFO e o shell lado a lado, depois Problemas. Os
- * terminais de etapa ficam entre o shell e Problemas, fechados. */
+ * terminais de etapa ficam entre o shell e Problemas, fechados. Os layouts
+ * prontos listam todas as vistas: uma que faltasse entraria no fim da região
+ * dela ao aplicar (`normalizeBody`), e o layout pareceria modificado. */
 export const DEFAULT_BODY: LayoutBody = {
   regions: {
-    left: { views: ['explorer', 'flow', 'search', 'reports'], active: 'explorer', visible: true },
+    left: { views: ['explorer', 'flow', 'search', 'reports', 'learn'], active: 'explorer', visible: true },
     right: { views: [], active: null, visible: false },
     panel: { views: ['info', 'terminal', ...CONSOLE_CHANNELS, 'problems'], active: 'info', visible: true },
   },
   panelPosition: 'bottom',
   sizes: DEFAULT_SIZES,
-  bars: { menubar: true, toolbar: true, statusbar: true, activitybar: 'left' },
+  bars: { menubar: true, toolbar: true, toolbarStyle: 'classic', statusbar: true, activitybar: 'left' },
   hidden: { views: [...CONSOLE_CHANNELS], toolbar: [], statusbar: [] },
+};
+
+/** O Padrão com o Executar na barra de título: a janela ganha a linha da
+ * barra de ferramentas. */
+const TITLEBAR_BODY: LayoutBody = { ...DEFAULT_BODY, bars: { ...DEFAULT_BODY.bars, toolbarStyle: 'titlebar' } };
+
+/** O Padrão com o Executar no canto das abas do editor e o Navegador de fluxo
+ * na barra lateral direita, com todas as etapas à vista. */
+const EDITOR_BODY: LayoutBody = {
+  ...DEFAULT_BODY,
+  regions: {
+    ...DEFAULT_BODY.regions,
+    left: { views: ['explorer', 'search', 'reports', 'learn'], active: 'explorer', visible: true },
+    right: { views: ['flow'], active: 'flow', visible: true },
+  },
+  bars: { ...DEFAULT_BODY.bars, toolbarStyle: 'editor' },
 };
 
 export interface Preset {
@@ -195,7 +252,11 @@ export interface Preset {
 
 export const DEFAULT_LAYOUT_ID = 'default';
 
-export const PRESETS: Preset[] = [{ id: DEFAULT_LAYOUT_ID, nameKey: 'layout.preset.default', body: DEFAULT_BODY }];
+export const PRESETS: Preset[] = [
+  { id: DEFAULT_LAYOUT_ID, nameKey: 'layout.preset.default', body: DEFAULT_BODY },
+  { id: 'run-titlebar', nameKey: 'layout.preset.titlebar', body: TITLEBAR_BODY },
+  { id: 'run-editor', nameKey: 'layout.preset.editor', body: EDITOR_BODY },
+];
 
 // Validação ----------------------------------------------------------------
 
@@ -299,6 +360,7 @@ export function normalizeBody(raw: unknown, fallback: LayoutBody = DEFAULT_BODY)
     bars: {
       menubar: bool(barsRaw.menubar, fallback.bars.menubar),
       toolbar: bool(barsRaw.toolbar, fallback.bars.toolbar),
+      toolbarStyle: isToolbarStyle(barsRaw.toolbarStyle) ? barsRaw.toolbarStyle : fallback.bars.toolbarStyle,
       statusbar: bool(barsRaw.statusbar, fallback.bars.statusbar),
       activitybar:
         barsRaw.activitybar === 'left' || barsRaw.activitybar === 'right' || barsRaw.activitybar === 'hidden'
@@ -406,7 +468,8 @@ export function setItemHidden(list: string[], id: string, hidden: boolean): stri
   return hidden ? [...rest, id] : rest;
 }
 
-/** A barra de ferramentas e a de status: o item aparece? */
+/** A barra de ferramentas (a do modelo do layout) e a de status: o item
+ * aparece? */
 export function itemShown(body: LayoutBody, bar: 'toolbar' | 'statusbar', id: string): boolean {
   return !body.hidden[bar].includes(id);
 }

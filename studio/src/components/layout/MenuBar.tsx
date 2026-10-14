@@ -1,8 +1,9 @@
 // A barra de menus: Arquivo, Editar, Exibir, Projeto, Fluxo, Ferramentas,
 // Ajuda. Cada item é uma ação de actions.ts; o atalho aparece ao lado, e a
 // marca nas que ligam e desligam. O Exibir tem submenus (Consoles,
-// Aparência): solto, ele não caberia na altura mínima da janela. As ações
-// de recurso experimental desligado não aparecem, nem o separador delas.
+// Aparência): solto, ele não caberia na altura mínima da janela. Os projetos
+// recentes do Arquivo também ficam num submenu, Abrir recente. As ações de
+// recurso experimental desligado não aparecem, nem o separador delas.
 //
 // Os menus (`Menus`) ficam na barra de título integrada (TitleBar.tsx) ou,
 // sem ela, numa linha própria (`MenuBar`).
@@ -18,6 +19,7 @@ import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
 import { LaceMark, MenuList, openContextMenu, type MenuItem } from '../common';
 import { actionItem, APPEARANCE_ENTRIES, chromeMenu, LAYOUT_ENTRIES } from './layoutMenus';
+import { RunControls } from './RunControls';
 
 /** Uma ação, um separador ou um submenu (um nível só). */
 type Entry = string | { submenu: Key; entries: readonly string[] };
@@ -127,12 +129,15 @@ function useItems(entries: Entry[]): MenuItem[] {
       } else if (typeof entry === 'object') {
         items.push({ label: t(entry.submenu), submenu: build(entry.entries) });
       } else if (entry === 'recent') {
+        // Os recentes num submenu, que abre ao lado com o mouse em cima.
         const existing = recent.filter((r) => r.exists).slice(0, 8);
-        items.push({ label: t('menu.openRecent'), disabled: true });
-        if (existing.length === 0) items.push({ label: `   ${t('menu.noRecent')}`, disabled: true });
-        for (const r of existing) {
-          items.push({ label: `   ${r.name}`, run: () => void useProject.getState().open(r.spf) });
-        }
+        items.push({
+          label: t('menu.openRecent'),
+          submenu:
+            existing.length === 0
+              ? [{ label: t('menu.noRecent'), disabled: true }]
+              : existing.map((r) => ({ label: r.name, run: () => void useProject.getState().open(r.spf) })),
+        });
       } else if (isAvailable(action(entry))) {
         items.push(actionItem(entry));
       }
@@ -229,12 +234,14 @@ export function Menus() {
 
 /** A barra de menus numa linha própria, quando a barra de título integrada
  * não está à vista: em tela cheia, ou com a janela ainda com a moldura do
- * sistema (state/titleBar.ts). */
-export function MenuBar() {
+ * sistema (state/titleBar.ts). Os controles de execução ficam no fim dela;
+ * com os menus escondidos, ela aparece só com eles. */
+export function MenuBar({ menus, run }: { menus: boolean; run: boolean }) {
   return (
     <div className="menubar" onContextMenu={chromeContextMenu}>
       <LaceMark className="menubar__logo" />
-      <Menus />
+      {menus && <Menus />}
+      {run && <RunControls variant="titlebar" />}
     </div>
   );
 }

@@ -36,6 +36,7 @@ import { activeLayout } from './state/savedLayouts';
 import { applyTitleBar, useTitleBar, watchWindow } from './state/titleBar';
 import { showError } from './state/toasts';
 import { startUpdateChecks } from './state/updates';
+import { watchWideTabs } from './state/wideTabs';
 import type { Theme } from './themes';
 import { extension, resolveFrom } from './util/paths';
 
@@ -90,6 +91,7 @@ async function start(): Promise<() => void> {
   // Os atalhos de duas etapas (Ctrl+K Z) também valem com o foco no editor.
   for (const a of chordActions()) bindEditorChord(a.keys!, () => runAction(a.id));
   cleanups.push(watchZen());
+  cleanups.push(watchWideTabs());
 
   await getCurrentWebview()
     .setZoom(useLayout.getState().zoom)
@@ -172,12 +174,11 @@ async function start(): Promise<() => void> {
   });
   cleanups.push(unlistenClose);
 
-  // Reabre o último projeto, como a AURORA.
+  // Reabre o último projeto, como a AURORA. Sem ele, o editor vazio mostra
+  // o começo (WelcomeView.tsx).
   const last = useApp.getState().recent[0] ?? (await api.app.recent().catch(() => []))[0];
   if (settings?.restore_last_project && last?.exists) {
     await useProject.getState().open(last.spf);
-  } else {
-    useEditor.getState().openView('welcome');
   }
   // Um quadro para o React desenhar o projeto antes de a janela aparecer.
   window.setTimeout(reveal, 0);
@@ -193,6 +194,12 @@ export function App() {
   const zen = useLayout((s) => s.zen);
   const bars = useLayout((s) => s.live.bars);
   const menus = !zen && bars.menubar;
+  // A barra de ferramentas do modelo do layout: a clássica numa linha
+  // própria; a da barra de título (RunControls.tsx) no fim dela ou da barra
+  // de menus, que sem os menus aparece só com ela. A do editor fica na barra
+  // de abas (EditorArea.tsx).
+  const toolbar = !zen && bars.toolbar;
+  const run = toolbar && bars.toolbarStyle === 'titlebar';
   // A faixa integrada sai em tela cheia (o zen com tela cheia, a tela cheia
   // do macOS): não há janela para mover, e os menus, se à vista, voltam para
   // a barra de menus. Esconder a barra de menus no layout tira só os menus
@@ -237,8 +244,8 @@ export function App() {
   const appClass = `app${zen ? ' app--zen' : ''}${hud ? ' app--hud' : ''}${zenCentered ? ' app--zen-centered' : ''}${zen && zenShell ? ' app--zen-shell' : ''}`;
   return (
     <div className={appClass} style={zenCentered ? ({ '--zen-width': `${zenWidth(fontSize)}px` } as CSSProperties) : undefined}>
-      {titleBar ? <TitleBar menus={menus} /> : menus && <MenuBar />}
-      {!zen && bars.toolbar && <Toolbar />}
+      {titleBar ? <TitleBar menus={menus} run={run} /> : (menus || run) && <MenuBar menus={menus} run={run} />}
+      {toolbar && bars.toolbarStyle === 'classic' && <Toolbar />}
       <Workbench />
       {hud ? <ZenHud /> : <StatusBar />}
       <Dialogs />

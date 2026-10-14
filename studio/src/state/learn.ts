@@ -220,8 +220,6 @@ export const useLearn = create<LearnState>((set, get) => ({
     if (left?.tabIds.includes(view)) useEditor.getState().split(view, 'right');
     const first = useEditor.getState().groups[0];
     if (first) useEditor.getState().activate(fileTabId(exercise.file), first.id);
-    const welcome = viewTabId('welcome');
-    if (useEditor.getState().tabs.some((tab) => tab.id === welcome)) await useEditor.getState().closeTab(welcome);
     get().enterSession();
   },
 

@@ -1,5 +1,6 @@
 // A barra de título integrada (state/titleBar.ts): os menus à esquerda, o
-// título no meio e, no Windows e no Linux, os botões da janela à direita. No
+// título no meio e, à direita, os controles de execução (RunControls.tsx) e,
+// no Windows e no Linux, os botões da janela. No
 // macOS, os botões coloridos do sistema ficam por cima da faixa, no canto
 // esquerdo, e ela deixa o espaço deles.
 //
@@ -15,14 +16,15 @@ import { useTitleBar } from '../../state/titleBar';
 import { showError } from '../../state/toasts';
 import { LaceMark } from '../common';
 import { chromeContextMenu, Menus } from './MenuBar';
+import { RunControls } from './RunControls';
 
-export function TitleBar({ menus }: { menus: boolean }) {
+export function TitleBar({ menus, run }: { menus: boolean; run: boolean }) {
   const mac = useTitleBar((s) => s.platform === 'macos');
   const focused = useTitleBar((s) => s.focused);
   const title = windowTitle(useProject((s) => s.snapshot?.name ?? null));
   return (
     <div
-      className={`titlebar${mac ? ' titlebar--mac' : ''}${focused ? '' : ' is-inactive'}`}
+      className={`titlebar${mac ? ' titlebar--mac' : ''}${run ? ' titlebar--run' : ''}${focused ? '' : ' is-inactive'}`}
       data-tauri-drag-region="deep"
       onContextMenu={chromeContextMenu}
     >
@@ -31,7 +33,10 @@ export function TitleBar({ menus }: { menus: boolean }) {
         {menus && <Menus />}
       </div>
       <div className="titlebar__title">{title}</div>
-      <div className="titlebar__end">{!mac && <WindowControls />}</div>
+      <div className="titlebar__end">
+        {run && <RunControls variant="titlebar" />}
+        {!mac && <WindowControls />}
+      </div>
     </div>
   );
 }

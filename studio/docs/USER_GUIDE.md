@@ -37,16 +37,16 @@ o que o Studio grava continua legível pela AURORA. Os temporários ficam em
 
 ```
  título       Arquivo Editar Exibir Projeto Fluxo Ferramentas Ajuda   projeto - Lace Studio   _ □ X
- ferramentas  Novo Abrir Salvar | Alvo [Projeto] | C± Verilog Wave Rápida Onda RTLViewer | Parar
+ ferramentas  Novo Abrir Salvar | Alvo [Projeto] | C± Verilog | Wave Rápida | Onda Sinais | RTLViewer | Parar
  ┌──┬────────────────┬──────────────────────────────────┬──────────────┐
  │  │ barra lateral  │ abas: arquivos e vistas          │ barra lateral│
  │at│ esquerda       │                                  │ direita      │
  │iv│ (explorador,   │                                  │ (vazia no    │
  │id│  fluxo, busca, ├──────────────────────────────────┤  Padrão)     │
  │ad│  relatórios)   │ painel: C±, ASM, Verilog, Wave,  │              │
- │es│                │ RTLViewer, Problemas, Terminal       │              │
+ │es│                │ RTLViewer, Problemas, Terminal   │              │
  └──┴────────────────┴──────────────────────────────────┴──────────────┘
- status       projeto, topo, testbench | operação ou último resultado | problemas, cursor, simulador, bundle, layout
+ status       projeto, topo, testbench | operação ou último resultado | problemas, cursor, simulador, bundle, regiões
 ```
 
 Esse é o layout Padrão. Cada vista pode ir para outra região, e cada barra
@@ -57,6 +57,10 @@ e item pode ser escondido (seção 2.4).
   janela, e dois cliques nela maximizam e restauram. No macOS, os botões
   coloridos do sistema ficam no canto esquerdo da faixa. Em tela cheia a
   faixa some, e os menus ficam numa linha própria.
+- **Barra de ferramentas**: no Padrão, uma linha própria com os botões de
+  arquivo, o Alvo e os do fluxo lado a lado, com um separador entre
+  compilar, simular, a onda e o hardware. Há outros dois modelos, com o
+  botão Executar na barra de título ou no editor (seção 2.4).
 - **Barra de atividades**, à esquerda: as vistas da barra lateral esquerda
   em cima; Ferramentas do Lace e Preferências embaixo. Clicar na vista
   aberta esconde a barra lateral (Ctrl+B faz o mesmo).
@@ -75,8 +79,10 @@ e item pode ser escondido (seção 2.4).
   mover para ela. Ctrl+Alt+B esconde e mostra.
 - **Barra de status**: o que está sendo feito agora e há quanto tempo, ou
   como terminou a última operação. Clicar nos contadores de problemas abre
-  o painel Problemas; clicar no bundle abre as Ferramentas do Lace; clicar
-  no nome do layout troca de layout.
+  o painel Problemas; clicar no bundle abre as Ferramentas do Lace. No
+  fim, três botões mostram e escondem a barra lateral esquerda, o painel e
+  a barra lateral direita, como Ctrl+B, Ctrl+J e Ctrl+Alt+B; o da região
+  escondida fica apagado.
 
 Todo divisor entre as áreas pode ser arrastado, e o tamanho fica guardado.
 Duplo clique num divisor volta ao tamanho do layout em uso.
@@ -239,6 +245,7 @@ O editor fica sempre no meio.
 | esconder uma vista | botão direito > Esconder; ela volta pelo menu Exibir (Exibir > Consoles, para um terminal, ou pelo seletor de terminal da seção 6), pela paleta ou por Preferências > Layout da janela |
 | esconder uma barra ou uma região | Exibir > Aparência, ou o botão direito em qualquer barra |
 | esconder um botão da barra de ferramentas ou um item da barra de status | botão direito na barra: a lista marca o que aparece |
+| trocar o modelo da barra de ferramentas | Preferências > Layout da janela, ou o botão direito na barra > Modelo da barra |
 | pôr o painel à direita do editor | Exibir > Aparência > Painel à direita |
 | pôr a barra de atividades à direita, ou escondê-la | Exibir > Aparência |
 
@@ -255,27 +262,51 @@ e regiões. Sem a barra de status, o indicador do canto, o mesmo do zen,
 mostra a operação, o resultado e a linha do Vim. Sem o seletor de alvo na
 barra de ferramentas, o alvo se escolhe em Fluxo > Escolher o alvo.
 
+As Preferências e o RTLViewer usam a janela inteira: enquanto um deles está
+na frente, as barras laterais e o painel ficam escondidos, e voltam como
+estavam quando outra aba vem para a frente. Nesse meio tempo, Ctrl+B,
+Ctrl+J e os botões da barra de status ainda os mostram. O layout salvo não
+muda com isso.
+
 Numa janela estreita demais para tudo, a barra lateral direita deixa de
 aparecer e depois o painel volta para baixo do editor. O layout continua o
 mesmo: com a janela larga de novo, tudo volta.
 
+**Modelos da barra de ferramentas.** Cada layout escolhe onde ficam os
+botões do fluxo. Preferências > Layout da janela mostra um desenho de cada
+modelo; o botão direito na barra também troca, em Modelo da barra.
+
+| Modelo | Onde | Como funciona |
+|---|---|---|
+| Clássica | numa linha abaixo dos menus | os botões de arquivo, o Alvo e os do fluxo lado a lado, como na seção 5 |
+| Na barra de título | no fim da barra de título, antes dos botões da janela | o Alvo, o botão **Executar** e o **Parar**. O Executar roda a etapa que mostra (de início, Simular). A seta ao lado dele abre o menu com todas as etapas e os atalhos, e a etapa escolhida ali passa a ser a do botão. Abrir a onda, escolher os sinais e mostrar a placa rodam pelo menu sem mudar o botão |
+| No editor | no canto das abas do editor em uso; sem nenhuma aba aberta, some com a barra de abas | os mesmos controles do modelo anterior, com o mesmo comportamento. Com o fonte C± ou C++ de um processador na frente, o Executar sugere **Compilar** esse processador; com qualquer outro arquivo, fica a etapa escolhida no menu |
+
+Nos dois últimos, a linha da barra de ferramentas some e o editor ganha a
+altura dela. Sem a barra de título integrada (em tela cheia), o Executar
+do segundo modelo fica no fim da barra de menus. O botão direito na barra
+esconde os itens do modelo em uso.
+
 **Layouts com nome.** Um layout é uma foto da janela. Mexer na janela
-(Ctrl+B, Ctrl+J, arrastar um divisor, mover uma vista) não muda a foto. O
-nome do layout em uso fica na barra de status, com um ponto quando a janela
-está diferente da foto.
+(Ctrl+B, Ctrl+J, arrastar um divisor, mover uma vista) não muda a foto.
+Preferências > Layout da janela mostra o layout em uso e avisa quando a
+janela está diferente da foto.
 
 | Para | Faça |
 |---|---|
-| gravar a janela no layout em uso | Exibir > Layout > Salvar layout, ou o botão direito no nome do layout |
+| gravar a janela no layout em uso | Exibir > Layout > Salvar layout |
 | criar outro layout | Exibir > Layout > Salvar layout como |
 | voltar à foto | Exibir > Layout > Restaurar layout |
-| trocar de layout | Ctrl+K L, ou clique no nome do layout |
+| trocar de layout | Ctrl+K L, ou Exibir > Layout > Selecionar layout |
 | voltar ao Padrão | Exibir > Layout > Voltar ao layout padrão |
 | renomear, excluir, ajustar tudo numa tela | Preferências > Layout da janela |
 
-O Padrão é a janela de antes dos layouts e não muda: salvar sobre ele pede
-um nome e cria outro. Trocar de layout descarta o que não foi gravado no
-anterior. Os layouts ficam nas preferências (`settings.json`, seção 9),
+Há três layouts prontos: o Padrão, a janela de antes dos layouts, e dois
+com outro modelo da barra de ferramentas, **Executar na barra de título** e
+**Executar no editor**. O último também põe o Navegador de fluxo na barra
+lateral direita, com todas as etapas à vista. Os prontos não mudam: salvar
+sobre um deles pede um nome e cria outro. Trocar de layout descarta o que
+não foi gravado no anterior. Os layouts ficam nas preferências (`settings.json`, seção 9),
 valem em qualquer projeto e são os mesmos no Windows, no Linux e no macOS;
 a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
 
@@ -463,6 +494,10 @@ a conversão fica em **Arquivo > Converter projeto para o YANC 7.1**, e o
 painel de problemas avisa até lá (`lace convert` faz o mesmo no terminal).
 
 ## 5. Os botões do fluxo
+
+Os botões são os da barra de ferramentas clássica. Nos outros dois modelos
+(seção 2.4), as mesmas etapas ficam no menu da seta do **Executar**, com as
+mesmas teclas.
 
 | Botão | Tecla | Faz | Comando equivalente do Lace |
 |---|---|---|---|
@@ -675,7 +710,7 @@ paleta, a seção FPGA do Fluxo, o terminal **Placa** e o Quartus Prime das
 Preferências e das Ferramentas do Lace. Desligar com a aba aberta a fecha.
 O `fpga.json` do projeto fica como está.
 
-A aba **Placa FPGA** (o botão **Placa** na barra de ferramentas, ou Fluxo >
+A aba **Placa FPGA** (o botão **FPGA** na barra de ferramentas, ou Fluxo >
 Mostrar a placa FPGA) leva o projeto para a placa. No alto ficam a placa (a
 DE2-115, a DE10-Nano ou a Cyclone V GX Starter Kit) e o topo que vai para
 ela; vazio, o topo do projeto, ou o processador, se houver um só. Embaixo,
@@ -773,7 +808,7 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 |---|---|
 | Geral | idioma (do sistema, português, inglês), reabrir o último projeto, procurar atualizações ao abrir e a cada 12 horas (seção 8); no Windows, o shell do terminal: PowerShell ou Prompt de Comando (`cmd`) |
 | Aparência | o tema (ver abaixo) |
-| Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem) e os itens das barras de ferramentas e de status (seção 2.4) |
+| Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem), o modelo da barra de ferramentas e os itens dela e da barra de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
 | Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`) e, com a placa FPGA ligada, a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |

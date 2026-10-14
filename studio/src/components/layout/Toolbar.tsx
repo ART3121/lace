@@ -1,7 +1,11 @@
-// A barra de ferramentas: projeto, o alvo (projeto ou um processador), os
-// botões do fluxo com os nomes que a AURORA usava (C±, Verilog, Wave,
-// RTLViewer), os Sinais da onda e o botão de parar. O simulador se escolhe no
-// menu Fluxo e nas Preferências.
+// A barra de ferramentas clássica, numa linha própria: projeto, o alvo
+// (projeto ou um processador), os botões do fluxo com os nomes que a AURORA
+// usava (C±, Verilog, Wave, RTLViewer), os Sinais da onda e o botão de
+// parar. Um separador fica entre os grupos do fluxo: compilar, simular, a
+// onda e o hardware. O simulador se escolhe no menu Fluxo e nas Preferências.
+//
+// É o modelo `classic` do layout (layoutModel.ts, TOOLBAR_STYLES); os outros
+// dois põem o Executar na barra de título ou no editor (RunControls.tsx).
 //
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
 // Preferências > Layout da janela); um grupo sem nenhum botão some com o
@@ -16,7 +20,7 @@ import { useApp } from '../../state/app';
 import { useExperimental } from '../../state/experimental';
 import { phaseKey, useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
-import { TOOLBAR_ITEMS } from '../../state/layoutModel';
+import { TOOLBAR_ITEMS, type FlowSection } from '../../state/layoutModel';
 import { useProject } from '../../state/project';
 import type { Key } from '../../i18n';
 import { openContextMenu, Spinner } from '../common';
@@ -47,8 +51,10 @@ function ToolButton({ id, label, badge, note }: { id: string; label?: Key; badge
   );
 }
 
-const FILE_BUTTONS = TOOLBAR_ITEMS.filter((item) => item.group === 'file');
-const FLOW_BUTTONS = TOOLBAR_ITEMS.filter((item) => item.group === 'flow');
+const ITEMS = TOOLBAR_ITEMS.classic;
+const FILE_BUTTONS = ITEMS.filter((item) => item.group === 'file');
+const FLOW_BUTTONS = ITEMS.filter((item) => item.group === 'flow');
+const FLOW_SECTIONS: FlowSection[] = ['compile', 'simulate', 'wave', 'hardware'];
 
 export function Toolbar() {
   const t = useT();
@@ -99,10 +105,11 @@ export function Toolbar() {
       </label>,
     );
   }
-  const flow = FLOW_BUTTONS.filter((item) => shown(item.id));
-  if (flow.length) {
+  for (const section of FLOW_SECTIONS) {
+    const flow = FLOW_BUTTONS.filter((item) => item.section === section && shown(item.id));
+    if (!flow.length) continue;
     segments.push(
-      <div key="flow" className="toolbar__group">
+      <div key={section} className="toolbar__group">
         {flow.map((item) =>
           item.id === 'waveSignals' ? (
             <ToolButton

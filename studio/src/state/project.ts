@@ -74,7 +74,6 @@ async function activate(snapshot: ProjectSnapshot): Promise<void> {
   void setTitle(snapshot.name);
   void useApp.getState().refreshRecent();
   await useEditor.getState().restoreSession(snapshot.spf);
-  if (useEditor.getState().tabs.length === 0) useEditor.getState().openView('welcome');
   // Um projeto da estrutura de pastas do YANC 6.x não compila: a AURORA
   // pergunta ao abrir se pode converter, e o Studio também.
   if (legacyProcessors(snapshot).length > 0) void convertLayout();
@@ -176,7 +175,6 @@ export const useProject = create<ProjectState>((set, get) => ({
     set({ snapshot: null, target: null, closing: false, spfMissing: false });
     useHierarchy.getState().clear();
     void setTitle(null);
-    useEditor.getState().openView('welcome');
     return true;
   },
 

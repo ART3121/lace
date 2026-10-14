@@ -407,6 +407,8 @@ a {
 
 /* Barra de ferramentas --------------------------------------------------- */
 
+/* O modelo clássico (Toolbar.tsx), numa linha própria. */
+
 .toolbar {
   grid-area: toolbar;
   height: var(--h-toolbar);
@@ -492,6 +494,85 @@ a {
   font-weight: 600;
   line-height: 14px;
   text-align: center;
+}
+
+/* Controles de execução -------------------------------------------------- */
+
+/* O Alvo, o Executar com a seta do menu e o Parar (RunControls.tsx), no fim
+ * da barra de título ou da barra de menus, na altura dos menus, ou no canto
+ * das abas do editor, antes do botão de dividir. */
+.run {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 100%;
+  padding: 0 var(--space-2);
+}
+
+.menubar .run {
+  margin-left: auto;
+  padding-right: 0;
+}
+
+.run--editor {
+  padding: 0 var(--space-1) 0 0;
+}
+
+/* Mais específico que o .select--small, que vem depois e tem 24 px. */
+.run .run__target {
+  height: 22px;
+  max-width: 140px;
+}
+
+.run__split {
+  display: flex;
+  height: 22px;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-md);
+  background: var(--brand-soft);
+  overflow: hidden;
+}
+
+.run__main,
+.run__more,
+.run__stop {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--brand-text);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.run__main {
+  gap: 6px;
+  padding: 0 var(--space-2);
+}
+
+.run__more {
+  padding: 0 3px;
+  border-left: 1px solid var(--brand);
+}
+
+.run__stop {
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  color: var(--error);
+}
+
+.run__main:hover:not(:disabled),
+.run__more:hover,
+.run__stop:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.run__main:disabled,
+.run__stop:disabled {
+  color: var(--text-3);
 }
 
 .segmented {
@@ -1614,12 +1695,27 @@ body.is-dragging * {
   color: var(--brand-text);
 }
 
-/* O ponto do layout em uso com mudanças que não foram salvas. */
-.statusbar__dirty {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-1);
+/* Os botões das regiões, no fim da barra: o da região escondida fica
+   apagado. */
+.statusbar__regions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  height: 100%;
+  margin-left: 2px;
+}
+
+.statusbar__region {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  color: var(--text-3);
+}
+
+.statusbar__region.is-on {
+  color: var(--text-1);
 }
 
 /* Vistas ----------------------------------------------------------------- */
@@ -2360,6 +2456,120 @@ body.is-dragging * {
 }
 
 /* Os itens de uma barra, recolhidos até alguém abrir. */
+/* Os modelos da barra de ferramentas (Layout da janela): em cada um, um
+ * desenho da janela com o lugar dos botões do fluxo na cor da marca. */
+.toolbar-models {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.toolbar-model {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-1);
+  color: var(--text-1);
+  font: inherit;
+  text-align: left;
+}
+
+.toolbar-model:hover {
+  border-color: var(--border-strong);
+}
+
+.toolbar-model.is-selected {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.toolbar-model__name {
+  color: var(--text-0);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.toolbar-model__hint {
+  color: var(--text-2);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.toolbar-sketch {
+  display: flex;
+  flex-direction: column;
+  height: 72px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-0);
+}
+
+.toolbar-sketch__title,
+.toolbar-sketch__tools,
+.toolbar-sketch__tabs {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  height: 10px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar-sketch__tabs {
+  justify-content: flex-end;
+}
+
+.toolbar-sketch__menus {
+  width: 40%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--text-3);
+}
+
+.toolbar-sketch__run {
+  height: 5px;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+.toolbar-sketch__title .toolbar-sketch__run {
+  width: 28%;
+  margin-left: auto;
+}
+
+.toolbar-sketch__tools .toolbar-sketch__run {
+  width: 70%;
+}
+
+.toolbar-sketch__tabs .toolbar-sketch__run {
+  width: 30%;
+}
+
+.toolbar-sketch__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.toolbar-sketch__side {
+  width: 24%;
+  border-right: 1px solid var(--border);
+  background: var(--bg-1);
+}
+
+.toolbar-sketch__editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
 .settings-details summary {
   display: flex;
   align-items: center;

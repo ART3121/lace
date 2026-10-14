@@ -54,7 +54,7 @@ import { useHierarchy } from './state/hierarchy';
 import { useJobs } from './state/jobs';
 import { isOnScreen, useLayout, type RegionId, type ViewId } from './state/layout';
 import { currentExercise, useLearn } from './state/learn';
-import { CONSOLE_CHANNELS, regionOf, VIEW_INFO } from './state/layoutModel';
+import { CONSOLE_CHANNELS, regionOf, TOOLBAR_STYLES, VIEW_INFO, type ToolbarStyle } from './state/layoutModel';
 import { convertLayout, useProject } from './state/project';
 import { resetLayout, restoreLayout, saveLayout, saveLayoutAs } from './state/savedLayouts';
 import { useSettingsPage } from './state/settingsPage';
@@ -122,6 +122,20 @@ function toggleActivityBar() {
 
 function toggleBar(bar: 'menubar' | 'toolbar' | 'statusbar') {
   useLayout.getState().setBar(bar, !live().bars[bar]);
+}
+
+/** As ações que escolhem o modelo da barra de ferramentas. */
+export const TOOLBAR_STYLE_ACTIONS: Record<ToolbarStyle, string> = {
+  classic: 'toolbarClassic',
+  titlebar: 'toolbarTitlebar',
+  editor: 'toolbarEditor',
+};
+
+/** Troca o modelo da barra de ferramentas e a mostra, se estava escondida:
+ * quem escolhe um modelo quer vê-lo. */
+function setToolbarStyle(style: ToolbarStyle) {
+  useLayout.getState().setBar('toolbarStyle', style);
+  if (!live().bars.toolbar) useLayout.getState().setBar('toolbar', true);
 }
 
 /** Preferências > Layout da janela: as Preferências abertas nessa página. */
@@ -570,6 +584,16 @@ export const ACTIONS: Action[] = [
   },
   { id: 'toggleMenuBar', label: 'action.toggleMenuBar', menuLabel: 'layout.bar.menubar', category: 'view', checked: () => live().bars.menubar, run: () => toggleBar('menubar') },
   { id: 'toggleToolbar', label: 'action.toggleToolbar', menuLabel: 'layout.bar.toolbar', category: 'view', checked: () => live().bars.toolbar, run: () => toggleBar('toolbar') },
+  ...TOOLBAR_STYLES.map(
+    (style): Action => ({
+      id: TOOLBAR_STYLE_ACTIONS[style],
+      label: `action.toolbar.${style}` as const,
+      menuLabel: `layout.toolbar.${style}` as const,
+      category: 'view',
+      checked: () => live().bars.toolbarStyle === style,
+      run: () => setToolbarStyle(style),
+    }),
+  ),
   {
     id: 'toggleActivityBar',
     label: 'action.toggleActivityBar',
