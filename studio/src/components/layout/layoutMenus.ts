@@ -4,10 +4,10 @@
 // Aparência, com as barras e as regiões: de qualquer parte da janela que
 // esteja à vista se chega de volta às que foram escondidas.
 
-import { action, isEnabled, runAction } from '../../actions';
+import { action, isEnabled, runAction, toolbarItemAvailable } from '../../actions';
 import { t, type Key } from '../../i18n';
 import { useLayout, type RegionId, type ViewId } from '../../state/layout';
-import { REGION_IDS, regionOf, STATUS_ITEMS, TOOLBAR_ITEMS, VIEW_INFO } from '../../state/layoutModel';
+import { isViewAvailable, REGION_IDS, regionOf, STATUS_ITEMS, TOOLBAR_ITEMS, VIEW_INFO } from '../../state/layoutModel';
 import type { MenuItem } from '../common';
 
 /** O item de menu de uma ação de actions.ts, com a marca se ela liga e
@@ -80,10 +80,11 @@ export function viewMenu(view: ViewId): MenuItem[] {
   ];
 }
 
-/** As vistas de uma região, marcadas as que aparecem: desmarcar esconde. */
+/** As vistas de uma região, marcadas as que aparecem: desmarcar esconde.
+ * As de recurso experimental desligado ficam de fora. */
 function viewChecklist(region: RegionId): MenuItem[] {
   const { live } = useLayout.getState();
-  return live.regions[region].views.map((view) => {
+  return live.regions[region].views.filter(isViewAvailable).map((view) => {
     const shown = !live.hidden.views.includes(view);
     return {
       label: t(VIEW_INFO[view].label),
@@ -132,7 +133,8 @@ function itemChecklist(bar: 'toolbar' | 'statusbar', list: { id: string; label: 
 }
 
 export function toolbarMenu(): MenuItem[] {
-  return [...itemChecklist('toolbar', TOOLBAR_ITEMS), SEPARATOR, actionItem('toggleToolbar'), SEPARATOR, appearanceSubmenu()];
+  const items = TOOLBAR_ITEMS.filter((item) => toolbarItemAvailable(item.id));
+  return [...itemChecklist('toolbar', items), SEPARATOR, actionItem('toggleToolbar'), SEPARATOR, appearanceSubmenu()];
 }
 
 export function statusBarMenu(): MenuItem[] {

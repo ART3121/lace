@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 
-export const SETTINGS_PAGES = ['general', 'appearance', 'layout', 'editor', 'simulation', 'toolchain'] as const;
+export const SETTINGS_PAGES = ['general', 'appearance', 'layout', 'editor', 'simulation', 'toolchain', 'experimental'] as const;
 export type SettingsPage = (typeof SETTINGS_PAGES)[number];
 
 const STORAGE_KEY = 'lace-studio:settings-page';

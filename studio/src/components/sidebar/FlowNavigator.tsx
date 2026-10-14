@@ -17,6 +17,7 @@ import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';
+import { useFeature } from '../../state/experimental';
 import { useJobs, type ActionStatus } from '../../state/jobs';
 import { useProject } from '../../state/project';
 import { Empty, Kbd, Section, StatusDot } from '../common';
@@ -67,6 +68,7 @@ export function FlowNavigator() {
   const target = useProject((s) => s.target);
   const running = useJobs((s) => s.running);
   const statusByKey = useJobs((s) => s.statusByKey);
+  const fpga = useFeature('fpga');
   const simulator = useApp((s) => s.settings?.simulator ?? 'icarus');
 
   if (!snapshot) {
@@ -162,12 +164,15 @@ export function FlowNavigator() {
         <Item label={t('action.showStatistics')} onClick={() => useEditor.getState().openView('synthesis')} />
       </Section>
 
-      <Section title={t('flow.fpga')}>
-        <Item label={t('action.showBoard')} onClick={() => useEditor.getState().openView('board')} />
-        <ActionItem id="fpgaBuildProgram" statusKey="fpgaProgram" />
-        <ActionItem id="fpgaBuild" />
-        <ActionItem id="fpgaProgram" />
-      </Section>
+      {/* A placa FPGA é experimental: desligada, a seção nem aparece. */}
+      {fpga && (
+        <Section title={t('flow.fpga')}>
+          <Item label={t('action.showBoard')} onClick={() => useEditor.getState().openView('board')} />
+          <ActionItem id="fpgaBuildProgram" statusKey="fpgaProgram" />
+          <ActionItem id="fpgaBuild" />
+          <ActionItem id="fpgaProgram" />
+        </Section>
+      )}
 
       <Section title={t('flow.reports')}>
         {(['lastReport', 'compareReports'] as const).map((id) => (

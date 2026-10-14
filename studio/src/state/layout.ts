@@ -9,16 +9,20 @@
 
 import { create } from 'zustand';
 
+import { useExperimental } from './experimental';
 import {
   clampSize,
   DEFAULT_BODY,
   isConsoleChannel,
+  isViewAvailable,
   isViewId,
   moveView as moveViewIn,
   normalizeBody,
   REGION_IDS,
   regionOf,
+  setEnabledFeatures,
   setItemHidden as setItemHiddenIn,
+  settleActive,
   setViewHidden as setViewHiddenIn,
   visibleViews,
   withRegion,
@@ -64,8 +68,13 @@ interface LayoutState {
 
   /** Mostra a vista: a região dela aparece com ela na frente. Uma vista
    * escondida só volta com `explicit` (o usuário pediu por ela); sem isso,
-   * devolve `false` e nada muda. */
+   * devolve `false` e nada muda. Uma de recurso experimental desligado
+   * nunca aparece. */
   revealView: (view: ViewId, options?: { explicit?: boolean }) => boolean;
+  /** Um recurso experimental ligou ou desligou: as regiões se desenham de
+   * novo sem as vistas que deixaram de existir (ou com as que voltaram), e
+   * a ativa de cada uma se acerta. O layout não muda. */
+  refreshViews: () => void;
   /** O clique num ícone da barra de atividades: mostra a vista ou, se ela
    * já está na frente, esconde a região, como no VS Code. */
   toggleView: (view: ViewId) => void;
@@ -160,7 +169,7 @@ export function takeFreshStart(): boolean {
  * frente dela. */
 export function isOnScreen(state: Pick<LayoutState, 'live'>, view: ViewId): boolean {
   const { live } = state;
-  if (live.hidden.views.includes(view)) return false;
+  if (live.hidden.views.includes(view) || !isViewAvailable(view)) return false;
   const region = live.regions[regionOf(live, view)];
   return region.visible && region.active === view;
 }
@@ -198,6 +207,7 @@ export const useLayout = create<LayoutState>((set, get) => ({
   focusView: null,
 
   revealView: (view, { explicit = false } = {}) => {
+    if (!isViewAvailable(view)) return false;
     const state = get();
     let live = state.live;
     if (live.hidden.views.includes(view)) {
@@ -216,6 +226,11 @@ export const useLayout = create<LayoutState>((set, get) => ({
       focusTimer = window.setTimeout(() => get().focusView === view && set({ focusView: null }), 1000);
     }
     return true;
+  },
+  refreshViews: () => {
+    // Um objeto novo mesmo sem mudança na ativa: quem desenha as regiões lê
+    // `live`, e a lista de vistas à mostra mudou.
+    set({ live: { ...settleActive(get().live) } });
   },
   toggleView: (view) => {
     const { live } = get();
@@ -339,6 +354,14 @@ export const useLayout = create<LayoutState>((set, get) => ({
   },
   toggleZenShell: () => set({ zenShell: get().zen && !get().zenShell }),
 }));
+
+// As vistas dos recursos experimentais (o console Placa) aparecem e somem
+// com eles (state/experimental.ts).
+useExperimental.subscribe((state, previous) => {
+  if (state.enabled === previous.enabled) return;
+  setEnabledFeatures(state.enabled);
+  useLayout.getState().refreshViews();
+});
 
 useLayout.subscribe((state, previous) => {
   if (

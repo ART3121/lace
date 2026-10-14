@@ -283,6 +283,66 @@ fn top_without_top_level_shows_hint() {
     assert!(top["module"].is_null());
 }
 
+/// `lace` com a pasta de configuração do Lace (a do `experimental.json`)
+/// em `config`: o teste não lê nem grava a do usuário.
+fn lace_with_config(config: &Utf8Path) -> Command {
+    let mut cmd = lace();
+    cmd.env("APPDATA", config)
+        .env("XDG_CONFIG_HOME", config)
+        .env("HOME", config);
+    cmd
+}
+
+#[test]
+fn fpga_is_experimental_and_off_until_enabled() {
+    let (_guard, config) = tempdir();
+    let lace = || lace_with_config(&config);
+    lace()
+        .args(["fpga", "boards"])
+        .assert()
+        .code(2)
+        .stdout("")
+        .stderr(predicate::str::contains(
+            "Error: The experimental component fpga (FPGA boards) is disabled",
+        ))
+        .stderr(predicate::str::contains(
+            "Enable it with: lace experimental enable fpga",
+        ));
+    let list = stdout(lace().arg("experimental"), 0);
+    assert!(list.contains("  fpga  off  FPGA boards"), "{list}");
+
+    lace()
+        .args(["experimental", "enable", "fpga"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Enabled fpga (FPGA boards)"));
+    lace()
+        .args(["fpga", "boards"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("de2-115"));
+    let report = json(lace().args(["--json", "experimental"]), 0);
+    assert_eq!(report["components"][0]["feature"], "fpga");
+    assert_eq!(report["components"][0]["enabled"], true);
+    assert!(
+        report["path"]
+            .as_str()
+            .unwrap()
+            .ends_with("experimental.json")
+    );
+
+    lace()
+        .args(["experimental", "disable", "fpga"])
+        .assert()
+        .success();
+    lace().args(["fpga", "check"]).assert().code(2);
+    lace()
+        .args(["experimental", "enable", "nada"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("[possible values: fpga]"));
+}
+
 #[test]
 fn proc_add_and_set_with_arrays() {
     let (_guard, root) = new_project("proj");

@@ -67,6 +67,26 @@ pub(crate) fn user_cache_dir() -> Result<Utf8PathBuf> {
     to_utf8(base.join("lace"))
 }
 
+/// A pasta de configuração do Lace, só do usuário: `%APPDATA%\lace` no
+/// Windows, `~/Library/Application Support/lace` no macOS,
+/// `$XDG_CONFIG_HOME/lace` ou `~/.config/lace` no Linux. Não é criada aqui.
+/// `None` sem a variável de onde ela sai (`APPDATA`, `HOME`).
+pub(crate) fn user_config_dir() -> Option<Utf8PathBuf> {
+    let var = |name: &str| {
+        std::env::var_os(name)
+            .map(std::path::PathBuf::from)
+            .filter(|p| p.is_absolute())
+    };
+    let base = if cfg!(windows) {
+        var("APPDATA")
+    } else if cfg!(target_os = "macos") {
+        var("HOME").map(|h| h.join("Library/Application Support"))
+    } else {
+        var("XDG_CONFIG_HOME").or_else(|| var("HOME").map(|h| h.join(".config")))
+    };
+    to_utf8(base?.join("lace")).ok()
+}
+
 /// Recusa um caminho com caractere fora do ASCII onde o simulador abre
 /// arquivo por nome. Até o YANC 6.x, o Verilog e o testbench citavam as
 /// memórias e as entradas pelo caminho absoluto, e o `vvp` do Icarus recusa

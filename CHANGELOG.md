@@ -2,6 +2,16 @@
 
 ## Não publicada
 
+- As placas FPGA viraram um componente experimental, desligado por padrão:
+  desligado, todo `lace fpga` sai com 2 e diz como ligar. O comando novo
+  `lace experimental` lista os componentes experimentais, e `lace
+  experimental enable fpga` e `disable fpga` ligam e desligam. O que fica
+  ligado vai para `experimental.json`, na pasta de configuração do Lace
+  (`%APPDATA%\lace` no Windows, `~/.config/lace` no Linux), e vale também
+  para o Lace Studio, que liga e desliga o mesmo arquivo em Preferências >
+  Experimental. No Core, o módulo `experimental` e o erro
+  `experimental_disabled` ([docs/CLI.md](docs/CLI.md), "Componentes
+  experimentais").
 - O Lace avisa quando há versão nova. O Lace Studio procura uns segundos
   depois de abrir e, aberto, a cada 12 horas (`lace update --check`), e
   oferece a atualização num diálogo; o indicador na barra de status fica

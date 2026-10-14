@@ -7,6 +7,12 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Acrescentado
 
+- A página **Experimental** nas Preferências, com os recursos do Lace que
+  ainda mudam muito, desligados por padrão. Hoje há um, a **Placa FPGA**.
+  O que se liga ali vale também para a CLI (`lace experimental`), e o
+  contrário: os dois leem o `experimental.json` do Lace, cujo caminho a
+  página mostra. Um `lace experimental enable` dado num terminal fora do
+  Studio vale quando a janela volta a ter o foco.
 - Na aba Fontes, em Fora do projeto, um **+** ao lado de cada arquivo, que
   aparece ao passar o ponteiro, o registra no projeto sem passar pelo menu
   de contexto, e o botão de lista com **+** no cabeçalho da seção registra
@@ -43,6 +49,13 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Mudado
 
+- A placa FPGA virou recurso experimental e vem desligada. Desligada, ela
+  sai da janela, não fica só cinza: a aba Placa FPGA (desligar com ela
+  aberta a fecha), o botão FPGA da barra de ferramentas, as ações do menu
+  Fluxo e da paleta, a seção FPGA do Fluxo, o terminal Placa (no painel,
+  no seletor e no menu Exibir) e o Quartus Prime nas Preferências e nas
+  Ferramentas do Lace. O backend recusa os comandos e as operações da
+  placa com `experimental_disabled`. Liga em Preferências > Experimental.
 - Os seis consoles de etapa (C±, ASM, Verilog, Wave, RTLViewer e Placa, que
   correspondem aos terminais da AURORA) começam fechados. Aberto pelo seletor
   ou por Exibir > Consoles, um deles mostra o que a etapa já tinha escrito e

@@ -680,6 +680,18 @@ teclas do modo watch, a pasta de exercícios e o formato das trilhas estão em
 
 ### Placas FPGA: `lace fpga`
 
+As placas FPGA são um componente experimental, desligado por padrão. Com
+ele desligado, todo `lace fpga` sai com 2 e o aviso de como ligar:
+
+```
+$ lace fpga build
+Error: The experimental component fpga (FPGA boards) is disabled
+  Enable it with: lace experimental enable fpga (in Lace Studio: Settings > Experimental)
+```
+
+Ligado com `lace experimental enable fpga` (ou no Studio, em Preferências >
+Experimental), vale para a CLI e para o Studio.
+
 A placa e a ligação das portas do topo aos sinais dela ficam no
 `fpga.json`, ao lado do `.spf` ([FPGA.md](FPGA.md)).
 
@@ -692,6 +704,25 @@ A placa e a ligação das portas do topo aos sinais dela ficam no
 
 A compilação e a gravação para a placa não entram no histórico
 (`lace report`).
+
+### Componentes experimentais: `lace experimental`
+
+Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
+Hoje há uma, `fpga` (as placas FPGA: `lace fpga` e, no Studio, a aba Placa
+FPGA).
+
+| Comando | Faz |
+|---|---|
+| `lace experimental` | lista os componentes experimentais, se cada um está ligado (`on`) ou não (`off`), e o arquivo onde isso fica |
+| `lace experimental enable <componente>` | liga o componente, para a CLI e para o Studio |
+| `lace experimental disable <componente>` | desliga |
+
+O que está ligado fica em `experimental.json`, na pasta de configuração do
+Lace (`%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace` ou
+`~/.config/lace` no Linux, `~/Library/Application Support/lace` no macOS):
+`{"enabled": ["fpga"]}`. A página Experimental das Preferências do Studio
+liga e desliga o mesmo arquivo. Sem o arquivo, ou com ele ilegível, nada
+está ligado.
 
 ### Bundle
 
@@ -825,6 +856,7 @@ CLI acrescenta o comando que resolve:
 | `stale_bitstream` | `Build for the board again with: lace fpga build, then program` |
 | `no_cable` | ligar a placa pela porta do USB-Blaster, com a chave RUN/PROG em RUN, e o driver do USB-Blaster (na pasta `drivers` do Quartus, no Windows) |
 | `quartus_missing` | `Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS` |
+| `experimental_disabled` | `Enable it with: lace experimental enable <componente> (in Lace Studio: Settings > Experimental)` |
 
 ### JSON
 
@@ -861,6 +893,7 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `fpga build` | `fpga-build.json` | os processadores compilados antes (`builds`) e a compilação para a placa (`fpga`, `null` se um processador falhou): os passos do Quartus, os diagnósticos, os artefatos (o `.sof`, o `.rbf`, o `.svf`), os recursos (`resources`) e o tempo de cada clock (`timing`) |
 | `fpga program` | `fpga-program.json` | a gravação: a placa, o `.sof`, o cabo, a posição JTAG, o passo `program` e os diagnósticos |
 | `fpga program --list` | `fpga-cables.json` | os cabos ligados (`cables`), como o `quartus_pgm -l` os escreve |
+| `experimental` (e `enable`, `disable`) | `experimental.json` | o arquivo do que está ligado (`path`) e cada componente (`components`: `feature`, `enabled`, `description`), já com a mudança |
 | `install` | `install.json` | a pasta, os aplicativos instalados depois e os que entraram. Exige nomes: com `--json` não há lista |
 | `update` | `update.json` | o Lace (instalado, último publicado, se é mais novo), o bundle (instalado e o da última release), cada aplicativo com a versão instalada, a da release e a upstream (`null` quando a consulta falhou), e o que o comando fez (`checked`, `up_to_date`, `updated`, `wizard_opened`). O que o instalador escreve vai para o stderr |
 | `uninstall` | `uninstall.json` | a pasta da instalação e se ela já saiu (`false` no Windows, onde o desinstalador termina depois que o `lace` sai). O que o `uninstall.sh` escreve vai para o stderr |

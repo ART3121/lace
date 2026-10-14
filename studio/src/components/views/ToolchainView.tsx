@@ -13,6 +13,7 @@ import type { FileMismatch } from '../../ipc/lace-types';
 import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';
+import { useFeature } from '../../state/experimental';
 import { useJobs } from '../../state/jobs';
 import { guarded } from '../../state/toasts';
 import { offerUpdate, useUpdates } from '../../state/updates';
@@ -29,6 +30,8 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
   // A busca automática, ao abrir o Studio, também preenche a tabela.
   const updates = useUpdates((s) => s.report);
   const checking = useUpdates((s) => s.checking);
+  // O Quartus só serve à placa FPGA, experimental: desligada, a seção some.
+  const fpga = useFeature('fpga');
 
   const verify = async () => {
     setVerifying(true);
@@ -286,20 +289,24 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
       )}
       {info.compiler_error && <p className="text-error">{info.compiler_error.message}</p>}
 
-      <h2>{t('toolchain.quartus')}</h2>
-      {info.quartus ? (
-        <dl className="kv">
-          <dt>{t('toolchain.quartusVersion')}</dt>
-          <dd>
-            {info.quartus.version ?? '?'} <Badge>{t('toolchain.system')}</Badge>
-          </dd>
-          <dt>{t('toolchain.quartusRoot')}</dt>
-          <dd className="mono">{info.quartus.root}</dd>
-        </dl>
-      ) : (
-        <p className="muted">{t('toolchain.quartusNone')}</p>
+      {fpga && (
+        <>
+          <h2>{t('toolchain.quartus')}</h2>
+          {info.quartus ? (
+            <dl className="kv">
+              <dt>{t('toolchain.quartusVersion')}</dt>
+              <dd>
+                {info.quartus.version ?? '?'} <Badge>{t('toolchain.system')}</Badge>
+              </dd>
+              <dt>{t('toolchain.quartusRoot')}</dt>
+              <dd className="mono">{info.quartus.root}</dd>
+            </dl>
+          ) : (
+            <p className="muted">{t('toolchain.quartusNone')}</p>
+          )}
+          {info.quartus_error && <p className="text-error">{info.quartus_error.message}</p>}
+        </>
       )}
-      {info.quartus_error && <p className="text-error">{info.quartus_error.message}</p>}
 
     </div>
   );

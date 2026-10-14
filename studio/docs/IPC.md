@@ -176,7 +176,10 @@ Core recusa nome e parâmetro que o YANC não compila (`invalid_name`,
 | `flow_cancel` | `job?` | `bool`: havia operação para cancelar |
 | `flow_running` | | o identificador da operação rodando, ou `null` |
 
-Uma operação por vez: começar outra com uma rodando é `busy`.
+Uma operação por vez: começar outra com uma rodando é `busy`. Os fluxos
+`fpga_build` e `fpga_program` são da placa FPGA, experimental: com ela
+desligada, `flow_start` recusa com `experimental_disabled`, sem começar a
+operação.
 
 ### `FlowRequest`
 
@@ -234,7 +237,20 @@ Toda operação termina com exatamente um `finished` ou um `failed`.
 O `stdout` e o `stderr` de cada passo vêm cortados em 256 KiB, guardando o
 fim; o que foi cortado já chegou linha a linha pelos eventos.
 
+## Recursos experimentais (`commands/experimental.rs`)
+
+| Comando | Argumentos | Devolve | Equivale a |
+|---|---|---|---|
+| `experimental_list` | | `{ path, components }`: o `experimental.json` (`null` sem pasta de configuração) e cada recurso (`feature`, `enabled`, `description`), lidos do disco a cada chamada | `lace experimental --json` |
+| `experimental_set` | `feature` (`"fpga"`), `enabled` | o mesmo, já com a mudança | `lace experimental enable\|disable <recurso>` |
+
+O arquivo é o do Core, na pasta de configuração do Lace, e não o
+`settings.json` do Studio: ligar aqui vale também para a CLI, e o contrário.
+
 ## Placa FPGA (`commands/fpga.rs`)
+
+A placa FPGA é um recurso experimental: desligada, todo comando daqui
+responde `experimental_disabled`.
 
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
@@ -397,7 +413,9 @@ da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
 
 Os erros do Core chegam com o código dele (`LaceError::code`, API.md do
 Lace, seção 8): por exemplo `invalid_name` (nome de projeto fora da regra),
-`cannot_move`, `path_exists` e `outside_project` (de `project_move`).
+`cannot_move`, `path_exists` e `outside_project` (de `project_move`), e
+`experimental_disabled` (os comandos e os fluxos da placa FPGA com ela
+desligada; a interface relê os recursos e tira a placa da janela).
 | `no_waveform` | a onda pedida ainda não existe |
 | `compiler_invalid` | a pasta do compilador nas preferências não tem os três programas |
 | `bundle_not_found` | nenhuma instalação do Lace foi achada (mensagem com onde procurou) |

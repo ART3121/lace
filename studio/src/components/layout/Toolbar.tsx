@@ -10,9 +10,10 @@
 import { CircleStop } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { action, isEnabled, runAction, signalChoice } from '../../actions';
+import { action, isEnabled, runAction, signalChoice, toolbarItemAvailable } from '../../actions';
 import { useT, t as translate } from '../../i18n';
 import { useApp } from '../../state/app';
+import { useExperimental } from '../../state/experimental';
 import { phaseKey, useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { TOOLBAR_ITEMS } from '../../state/layoutModel';
@@ -61,9 +62,11 @@ export function Toolbar() {
   // a onda grava todos e o botão fica sem número.
   const chosen = useProject((s) => s.snapshot?.wave_selection?.length ?? 0);
   const hidden = useLayout((s) => s.live.hidden.toolbar);
-  // Redesenha quando a informação do bundle chega.
+  // Redesenha quando a informação do bundle chega, e quando um recurso
+  // experimental liga ou desliga: o botão FPGA só existe com a placa ligada.
   useApp((s) => s.toolchain);
-  const shown = (id: string) => !hidden.includes(id);
+  useExperimental((s) => s.enabled);
+  const shown = (id: string) => !hidden.includes(id) && toolbarItemAvailable(id);
 
   const segments: ReactNode[] = [];
   const file = FILE_BUTTONS.filter((item) => shown(item.id));

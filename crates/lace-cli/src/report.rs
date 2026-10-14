@@ -16,6 +16,7 @@
 use std::collections::BTreeMap;
 
 use camino::Utf8PathBuf;
+use lace_core::experimental::FeatureState;
 use lace_core::fpga::{Board, Connection, FpgaBuildResult, FpgaProgramResult, Quartus, Resolved};
 use lace_core::history::{RunComparison, RunRecord, RunSummary};
 use lace_core::{
@@ -94,6 +95,7 @@ reports! {
     "fpga-build" => FpgaBuildReport,
     "fpga-program" => FpgaProgramResult,
     "fpga-cables" => FpgaCablesReport,
+    "experimental" => ExperimentalReport,
     "error" => ErrorReport,
 }
 
@@ -684,4 +686,17 @@ pub struct FpgaCablesReport {
     /// Como o `quartus_pgm -l` os escreve (`USB-Blaster [USB-0]`); vazio,
     /// nenhum.
     pub cables: Vec<String>,
+}
+
+/// `lace experimental`: os recursos experimentais e se cada um está ligado,
+/// já com a mudança de `enable` ou `disable`.
+#[derive(Serialize, JsonSchema)]
+pub struct ExperimentalReport {
+    /// O arquivo do que está ligado (`experimental.json`, na pasta de
+    /// configuração do Lace); `null` se o sistema não diz onde fica essa
+    /// pasta.
+    #[schemars(with = "Option<String>")]
+    pub path: Option<Utf8PathBuf>,
+    /// Os recursos, na ordem da lista.
+    pub components: Vec<FeatureState>,
 }

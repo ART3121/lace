@@ -175,6 +175,10 @@ pub async fn flow_start(
     let state = app.state::<AppState>();
     let spf = state.spf()?;
     let settings = state.settings.get();
+    // A placa FPGA é experimental: desligada, o fluxo nem começa.
+    if let Some(feature) = request.feature() {
+        lace_core::experimental::require(feature)?;
+    }
     let (id, cancel) = reserve(&state)?;
     let tx = start_forwarder(channel);
     let _ = tx.send(Msg::Message(JobMessage::Started {

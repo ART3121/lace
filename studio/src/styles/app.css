@@ -2130,6 +2130,13 @@ body.is-dragging * {
   font-size: var(--text-sm);
 }
 
+/* Preferências > Experimental: onde o Core guarda o que está ligado. */
+.settings-experimental__file {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
 .settings-group__rows {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

@@ -777,6 +777,7 @@ export const en: Record<Key, string> = {
   'settings.editor': 'Editor',
   'settings.simulation': 'Simulation',
   'settings.toolchain': 'Lace bundle',
+  'settings.experimental': 'Experimental',
   'settings.language': 'Language',
   'settings.language.system': 'System',
   'settings.theme': 'Theme',
@@ -843,6 +844,13 @@ export const en: Record<Key, string> = {
   'settings.quartusDir': 'Quartus Prime',
   'settings.quartusDirHint': 'The folder of a Quartus version (C:\\intelFPGA_lite\\22.1std), to compile for Intel boards. Empty: QUARTUS_ROOTDIR and the installer default folders. Like the CLI --quartus.',
   'settings.saved': 'Settings saved',
+  'settings.experimental.hint':
+    'Lace features that still change a lot and may break from one release to the next. They stay off until you turn them on, and what you turn on here also applies to the CLI (lace experimental).',
+  'settings.experimental.file': 'Stored in',
+  'settings.experimental.none': 'This version of Lace has no experimental features.',
+  'experimental.fpga': 'FPGA board',
+  'experimental.fpga.hint':
+    'Compile with Quartus Prime and program the board. When on, the FPGA board tab, the FPGA toolbar button, the Flow menu actions, the Board console and Quartus Prime in the Lace bundle settings appear; in the CLI, lace fpga.',
 
   'search.placeholder': 'Search the project',
   'search.regex': 'Regular expression',
@@ -918,6 +926,7 @@ export const en: Record<Key, string> = {
   'error.title': 'Error',
   'error.no_project': 'Open or create a project first.',
   'error.spf_missing': 'The project file (.spf) no longer exists: no project operations without it.',
+  'error.experimental_disabled': 'This experimental feature is off. Turn it on in Settings > Experimental.',
   'error.busy': 'Another operation is running. Wait or click Stop.',
   'error.outside_project': 'This only works inside the project folder.',
   'error.conflict': 'The file changed on disk.',

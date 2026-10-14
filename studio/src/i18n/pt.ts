@@ -800,6 +800,7 @@ export const pt = {
   'settings.editor': 'Editor',
   'settings.simulation': 'Simulação',
   'settings.toolchain': 'Bundle do Lace',
+  'settings.experimental': 'Experimental',
   'settings.language': 'Idioma',
   'settings.language.system': 'Do sistema',
   'settings.theme': 'Tema',
@@ -866,6 +867,15 @@ export const pt = {
   'settings.quartusDir': 'Quartus Prime',
   'settings.quartusDirHint': 'A pasta de uma versão do Quartus (C:\\intelFPGA_lite\\22.1std), para compilar para as placas Intel. Vazio: QUARTUS_ROOTDIR e as pastas padrão do instalador. Como o --quartus da CLI.',
   'settings.saved': 'Preferências gravadas',
+  // Preferências > Experimental: os recursos experimentais do Lace, que o
+  // Core guarda e a CLI também lê (lace experimental).
+  'settings.experimental.hint':
+    'Recursos do Lace que ainda mudam muito e podem quebrar de uma versão para outra. Ficam desligados até você ligar, e o que você liga aqui vale também para a CLI (lace experimental).',
+  'settings.experimental.file': 'Guardado em',
+  'settings.experimental.none': 'Esta versão do Lace não tem recursos experimentais.',
+  'experimental.fpga': 'Placa FPGA',
+  'experimental.fpga.hint':
+    'Compilar pelo Quartus Prime e gravar na placa. Ligada, aparecem a aba Placa FPGA, o botão FPGA da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle do Lace; na CLI, o lace fpga.',
 
   // Busca
   'search.placeholder': 'Buscar no projeto',
@@ -945,6 +955,7 @@ export const pt = {
   'error.title': 'Erro',
   'error.no_project': 'Abra ou crie um projeto primeiro.',
   'error.spf_missing': 'O arquivo do projeto (.spf) não existe mais: sem ele não há operações de projeto.',
+  'error.experimental_disabled': 'Esse recurso experimental está desligado. Ligue em Preferências > Experimental.',
   'error.busy': 'Já há uma operação rodando. Espere ou clique em Parar.',
   'error.outside_project': 'Essa operação só vale dentro da pasta do projeto.',
   'error.conflict': 'O arquivo mudou no disco.',

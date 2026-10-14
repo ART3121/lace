@@ -11,8 +11,13 @@
 // O layout guarda o que está escondido, não o que aparece: uma vista ou um
 // item que uma versão futura acrescentar aparece sozinho, e uma vista que não
 // está em região nenhuma vai para a região padrão dela.
+//
+// Uma vista de recurso experimental desligado (o console Placa, sem a placa
+// FPGA) não existe na sessão: não aparece em região, seletor nem menu, mas
+// continua no layout, no mesmo lugar, para voltar quando o recurso ligar.
 
 import type { Key } from '../i18n';
+import type { Feature } from '../ipc/lace-types';
 
 /** Os terminais de etapa, com os nomes da AURORA (console/consoles.ts).
  * Ficam fechados até o usuário abrir um; o INFO recebe tudo o que eles
@@ -42,6 +47,8 @@ export interface ViewInfo {
   region: RegionId;
   /** A ação que revela a vista (o atalho dela aparece nas dicas). */
   action: string;
+  /** O recurso experimental de que a vista faz parte (state/experimental.ts). */
+  feature?: Feature;
 }
 
 export const VIEW_INFO: Record<ViewId, ViewInfo> = {
@@ -56,10 +63,25 @@ export const VIEW_INFO: Record<ViewId, ViewInfo> = {
   verilog: { label: 'panel.verilog', region: 'panel', action: 'viewConsoleVerilog' },
   wave: { label: 'panel.wave', region: 'panel', action: 'viewConsoleWave' },
   rtlViewer: { label: 'panel.rtlViewer', region: 'panel', action: 'viewConsoleRTLViewer' },
-  fpga: { label: 'panel.fpga', region: 'panel', action: 'viewConsoleFpga' },
+  fpga: { label: 'panel.fpga', region: 'panel', action: 'viewConsoleFpga', feature: 'fpga' },
   problems: { label: 'panel.problems', region: 'panel', action: 'showProblems' },
   terminal: { label: 'panel.terminal', region: 'panel', action: 'toggleTerminal' },
 };
+
+/** Os recursos experimentais ligados. Começa sem nenhum, como o Core até
+ * responder; quem atualiza é a store da janela (layout.ts). */
+let enabledFeatures: ReadonlySet<Feature> = new Set();
+
+export function setEnabledFeatures(features: ReadonlySet<Feature>): void {
+  enabledFeatures = features;
+}
+
+/** A vista existe nesta sessão: não é de recurso experimental, ou o dela
+ * está ligado. */
+export function isViewAvailable(view: ViewId): boolean {
+  const feature = VIEW_INFO[view].feature;
+  return !feature || enabledFeatures.has(feature);
+}
 
 export const REGION_LABELS: Record<RegionId, Key> = {
   left: 'layout.region.left',
@@ -201,18 +223,22 @@ export function clampSize(value: unknown, fallback: number): number {
   return Math.round(Math.min(SIZE_MAX, Math.max(SIZE_MIN, value)));
 }
 
-/** A primeira vista da região que não está escondida. */
+/** A primeira vista da região que aparece. */
 function firstShown(views: ViewId[], hidden: ViewId[]): ViewId | null {
-  return views.find((view) => !hidden.includes(view)) ?? null;
+  return views.find((view) => !hidden.includes(view) && isViewAvailable(view)) ?? null;
 }
 
-/** Acerta a vista ativa de cada região: uma que está nela e não está
- * escondida, ou nenhuma. */
-function settleActive(body: LayoutBody): LayoutBody {
+/** Acerta a vista ativa de cada região: uma que está nela e aparece, ou
+ * nenhuma. */
+export function settleActive(body: LayoutBody): LayoutBody {
   let regions = body.regions;
   for (const id of REGION_IDS) {
     const region = regions[id];
-    const ok = region.active !== null && region.views.includes(region.active) && !body.hidden.views.includes(region.active);
+    const ok =
+      region.active !== null &&
+      region.views.includes(region.active) &&
+      !body.hidden.views.includes(region.active) &&
+      isViewAvailable(region.active);
     if (ok) continue;
     regions = { ...regions, [id]: { ...region, active: firstShown(region.views, body.hidden.views) } };
   }
@@ -348,7 +374,7 @@ export function regionOf(body: LayoutBody, view: ViewId): RegionId {
 
 /** As vistas da região que aparecem, na ordem. */
 export function visibleViews(body: LayoutBody, region: RegionId): ViewId[] {
-  return body.regions[region].views.filter((view) => !body.hidden.views.includes(view));
+  return body.regions[region].views.filter((view) => !body.hidden.views.includes(view) && isViewAvailable(view));
 }
 
 export function withRegion(body: LayoutBody, region: RegionId, change: Partial<RegionLayout>): LayoutBody {

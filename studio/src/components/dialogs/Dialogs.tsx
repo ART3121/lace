@@ -5,7 +5,7 @@ import { open as openNative } from '@tauri-apps/plugin-dialog';
 import { Check } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-import { ACTIONS, isEnabled, projectsFolder, runAction } from '../../actions';
+import { ACTIONS, isAvailable, isEnabled, projectsFolder, runAction } from '../../actions';
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
 import type { Language, NewProcessorDefaults } from '../../ipc/types';
@@ -755,7 +755,7 @@ function ShortcutsDialog() {
           </tr>
         </thead>
         <tbody>
-          {ACTIONS.filter((a) => a.keys).map((a) => (
+          {ACTIONS.filter((a) => a.keys && isAvailable(a)).map((a) => (
             <tr key={a.id}>
               <td>{t(a.label)}</td>
               <td>

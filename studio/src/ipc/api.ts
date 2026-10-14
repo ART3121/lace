@@ -8,6 +8,8 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   AddedFile,
   Board,
+  ExperimentalReport,
+  Feature,
   FileMismatch,
   ProjectFile,
   RunComparison,
@@ -194,7 +196,16 @@ export const api = {
     reset: (root: string, name: string) => call<void>('learn_reset', { root, name }),
   },
 
-  /** A placa FPGA (commands/fpga.rs); a compilação é o fluxo `fpga_build`. */
+  /** Os recursos experimentais do Lace (commands/experimental.rs): o mesmo
+   * `experimental.json` do `lace experimental` da CLI. */
+  experimental: {
+    list: () => call<ExperimentalReport>('experimental_list'),
+    set: (feature: Feature, enabled: boolean) => call<ExperimentalReport>('experimental_set', { feature, enabled }),
+  },
+
+  /** A placa FPGA (commands/fpga.rs), experimental: desligada, cada comando
+   * daqui responde `experimental_disabled`. A compilação é o fluxo
+   * `fpga_build`. */
   fpga: {
     boards: () => call<Board[]>('fpga_boards'),
     /** O `fpga.json`; `null` se ainda não existe. */

@@ -27,6 +27,7 @@ import { api } from './ipc/api';
 import { useApp } from './state/app';
 import { confirm } from './state/dialogs';
 import { useEditor } from './state/editor';
+import { useExperimental } from './state/experimental';
 import { useHierarchy } from './state/hierarchy';
 import { takeFreshStart, useLayout } from './state/layout';
 import { useLearn } from './state/learn';
@@ -60,12 +61,21 @@ function reveal() {
 async function start(): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
-  const settings = await useApp.getState().init();
+  // Os recursos experimentais antes do último projeto: a sessão dele não
+  // reabre a aba de um recurso desligado (state/experimental.ts).
+  const [settings] = await Promise.all([useApp.getState().init(), useExperimental.getState().load()]);
   // A barra de título integrada antes de a janela aparecer: no Windows e no
   // Linux, a moldura do sistema sai (state/titleBar.ts).
   const os = useApp.getState().info?.os;
   if (os) await applyTitleBar(os);
   cleanups.push(await watchWindow());
+  // Um `lace experimental enable|disable` dado num terminal fora do Studio
+  // vale quando a janela volta a ter o foco.
+  cleanups.push(
+    await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+      if (focused) void useExperimental.getState().load();
+    }),
+  );
   // Sem a janela guardada no localStorage (a primeira abertura, ou o
   // armazenamento da WebView limpo), ela abre no layout em uso. A janela
   // ainda está escondida: o primeiro quadro já sai nele.

@@ -1,6 +1,8 @@
 //! `lace fpga`: as placas FPGA, as ligações do `fpga.json` e a compilação
-//! para a placa pelo Quartus.
+//! para a placa pelo Quartus. É um recurso experimental, desligado até o
+//! usuário ligar com `lace experimental enable fpga`.
 
+use lace_core::experimental::{self, Feature};
 use lace_core::fpga::{self, Cable, FpgaConfig, SignalDirection};
 use lace_core::{BuildResult, Control, LaceError};
 
@@ -8,13 +10,15 @@ use crate::output::{BOLD, DIM, OK, Output, WARNING, paint};
 use crate::report::{FpgaBoardsReport, FpgaBuildReport, FpgaCablesReport, FpgaCheckReport};
 use crate::{Cli, FpgaCommand};
 
-/// Roda um subcomando de `lace fpga`.
+/// Roda um subcomando de `lace fpga`. As placas são um recurso experimental:
+/// desligadas, nenhum subcomando roda, e o erro diz como ligar.
 pub fn run(
     cli: &Cli,
     command: &FpgaCommand,
     out: &Output,
     control: &Control,
 ) -> anyhow::Result<bool> {
+    experimental::require(Feature::Fpga)?;
     match command {
         FpgaCommand::Boards { board } => boards(board.as_deref(), out),
         FpgaCommand::Check { show_top } => check(cli, *show_top, out),

@@ -516,6 +516,18 @@ pub enum LaceError {
         tail: String,
     },
 
+    /// Um recurso experimental que o usuário não ligou
+    /// ([`crate::experimental`]): a placa FPGA, por exemplo. Vem de
+    /// [`experimental::require`](crate::experimental::require), que a CLI e o
+    /// Studio chamam antes de oferecer o recurso. O texto não diz como ligar:
+    /// cada interface tem o seu caminho (`lace experimental enable`, as
+    /// Preferências do Studio).
+    #[error("The experimental component {feature} ({}) is disabled", feature.name())]
+    ExperimentalDisabled {
+        /// O recurso.
+        feature: crate::experimental::Feature,
+    },
+
     /// Falha de I/O do próprio Lace: criar diretório, ler ou gravar arquivo.
     #[error("{context}: {path}: {source}")]
     Io {
@@ -589,6 +601,7 @@ impl LaceError {
             LaceError::InvalidBoard { .. } => "invalid_board",
             LaceError::NoFpgaConfig(_) => "no_fpga_config",
             LaceError::InvalidFpgaConfig { .. } => "invalid_fpga_config",
+            LaceError::ExperimentalDisabled { .. } => "experimental_disabled",
         }
     }
 

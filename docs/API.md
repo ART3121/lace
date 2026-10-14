@@ -1734,6 +1734,11 @@ fora do Linux) fica `None`.
 As placas, o `fpga.json` e as regras das ligações estão em
 [FPGA.md](FPGA.md).
 
+As placas são um recurso experimental (5.10.1). As funções de `fpga`
+funcionam com ele desligado, para quem usa o Core como biblioteca e para
+os testes; quem as oferece ao usuário (a CLI, o Studio) chama
+`experimental::require(Feature::Fpga)` antes.
+
 `fpga::prepare(Option<&Toolchain>, &Project) -> Result<Prepared>` lê o
 `fpga.json` e a placa, acha o topo (o do `fpga.json`; senão o do projeto;
 senão o processador, se for um só), lê as portas dele do Verilog e confere
@@ -1795,6 +1800,30 @@ Conferido em 2026-10-09 com o Quartus Prime 25.1 Lite no Windows e uma
 DE2-115 (compilar e gravar). As mensagens e os relatórios também foram
 conferidos em relatórios publicados do Quartus II 13.1 e 14.0 e do Quartus
 Prime 17.1, 18.0 e 18.1.
+
+### 5.10.1 Recursos experimentais: o módulo `experimental`
+
+Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
+`Feature` lista os recursos (hoje, `Feature::Fpga`, a placa FPGA), com
+`id()` (`"fpga"`, o identificador do arquivo e da CLI), `name()` e
+`description()`, em inglês; `Feature::ALL` tem todos.
+
+O que está ligado fica em `experimental.json`, na pasta de configuração do
+Lace do usuário (`%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace` ou
+`~/.config/lace` no Linux, `~/Library/Application Support/lace` no macOS),
+como `{"enabled": ["fpga"]}`. `settings_path()` devolve o arquivo (`None`
+sem `APPDATA` ou `HOME`).
+
+| Função | Faz |
+|---|---|
+| `is_enabled(Feature) -> bool` | o recurso está ligado |
+| `require(Feature) -> Result<()>` | `ExperimentalDisabled` se ele está desligado |
+| `states() -> Vec<FeatureState>` | cada recurso, se está ligado e a descrição |
+| `set_enabled(Feature, bool) -> Result<()>` | liga ou desliga, gravando o arquivo de forma atômica e criando a pasta |
+
+A leitura falha fechada: sem a pasta, sem o arquivo ou com ele ilegível,
+nada está ligado. Gravar mantém os identificadores que esta versão não
+conhece.
 
 ---
 
@@ -2123,6 +2152,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `NoCable` | `no_cable` | `fpga::program` sem `cable` e sem cabo de gravação ligado | ligar a placa pela porta do USB-Blaster, e o driver dele |
 | `StaleBitstream` | `stale_bitstream` | `fpga::program` com um `.sof` que não descreve o projeto de agora: um fonte, uma memória, o `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi trocado, ou a compilação não terminou | `fpga::build` de novo |
 | `QuartusMissing` | `quartus_missing` | `fpga::build`, `fpga::program` ou `tool(Tool::Quartus)` sem Quartus (2.5) | instalar o Quartus Prime Lite com o suporte à família da placa, ou declarar a pasta dele |
+| `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `lace experimental enable <recurso>`, ou Preferências > Experimental no Studio |
 
 O enum é `#[non_exhaustive]`: todo `match` precisa de `_`.
 

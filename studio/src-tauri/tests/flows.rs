@@ -418,6 +418,13 @@ fn fpga_build_refuses_before_building() {
         program.command_line(),
         "lace-studio fpga program --cable \"USB-Blaster [USB-0]\""
     );
+    // Os dois são da placa FPGA, experimental: `jobs.rs` não os começa com
+    // ela desligada. `flows::run` não confere, e o resto do teste roda.
+    let fpga = Some(lace_core::experimental::Feature::Fpga);
+    assert_eq!(request.feature(), fpga);
+    assert_eq!(program.feature(), fpga);
+    let build: FlowRequest = serde_json::from_str(r#"{"flow":"build"}"#).unwrap();
+    assert_eq!(build.feature(), None);
     let Some(mut settings) = settings() else {
         return;
     };

@@ -2,16 +2,28 @@
 // Uma página por assunto, com a lista delas à esquerda (numa área estreita,
 // em cima). A página aberta é lembrada (state/settingsPage.ts). Cada
 // preferência é uma linha: o nome e a descrição à esquerda, o controle à
-// direita (settingsParts.tsx).
+// direita (settingsParts.tsx). A página Experimental é outra coisa: liga os
+// recursos experimentais do Lace, que o Core guarda fora do settings.json e
+// que valem também para a CLI (state/experimental.ts).
 
 import { open } from '@tauri-apps/plugin-dialog';
-import { Activity, FileCode, LayoutTemplate, Package, Palette, SlidersHorizontal, type LucideIcon } from 'lucide-react';
+import {
+  Activity,
+  FileCode,
+  FlaskConical,
+  LayoutTemplate,
+  Package,
+  Palette,
+  SlidersHorizontal,
+  type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 
 import { restartShell } from '../../console/shell';
 import { useT, type Key } from '../../i18n';
 import type { Settings } from '../../ipc/types';
 import { useApp } from '../../state/app';
+import { useExperimental, useFeature } from '../../state/experimental';
 import { SETTINGS_PAGES, useSettingsPage, type SettingsPage } from '../../state/settingsPage';
 import { DEFAULT_LIGHT_THEME, DEFAULT_THEME, SYSTEM_THEME, THEMES, themeById, type SyntaxColors, type Theme } from '../../themes';
 import { Button, Segmented, Switch } from '../common';
@@ -25,6 +37,7 @@ const PAGES: Record<SettingsPage, { label: Key; icon: LucideIcon }> = {
   editor: { label: 'settings.editor', icon: FileCode },
   simulation: { label: 'settings.simulation', icon: Activity },
   toolchain: { label: 'settings.toolchain', icon: Package },
+  experimental: { label: 'settings.experimental', icon: FlaskConical },
 };
 
 /** Abaixo desta largura, a lista de páginas vai para cima do conteúdo. */
@@ -101,6 +114,7 @@ export function SettingsView() {
         {page === 'editor' && <EditorPage settings={settings} />}
         {page === 'simulation' && <SimulationPage settings={settings} />}
         {page === 'toolchain' && <ToolchainPage settings={settings} />}
+        {page === 'experimental' && <ExperimentalPage />}
       </div>
     </div>
   );
@@ -304,6 +318,8 @@ function ToolchainPage({ settings }: { settings: Settings }) {
   const t = useT();
   const set = setter(useApp((s) => s.updateSettings));
   const toolchain = useApp((s) => s.toolchain);
+  // O Quartus só serve à placa FPGA, experimental: desligada, a linha some.
+  const fpga = useFeature('fpga');
 
   const browse = async (key: 'toolchain_dir' | 'compiler_dir' | 'quartus_dir' | 'learn_dir') => {
     const chosen = await open({ directory: true, multiple: false });
@@ -337,23 +353,25 @@ function ToolchainPage({ settings }: { settings: Settings }) {
           </>
         )}
       </SettingRow>
-      <SettingRow label={t('settings.quartusDir')} hint={t('settings.quartusDirHint')} stack>
-        {(id) => (
-          <>
-            <div className="input-group">
-              <input
-                id={id}
-                className="input"
-                value={settings.quartus_dir ?? ''}
-                placeholder={toolchain?.quartus?.root ?? ''}
-                onChange={(e) => set('quartus_dir', e.target.value || null)}
-              />
-              <Button onClick={() => void browse('quartus_dir')}>{t('common.browse')}</Button>
-            </div>
-            {toolchain?.quartus_error && <p className="text-error">{toolchain.quartus_error.message}</p>}
-          </>
-        )}
-      </SettingRow>
+      {fpga && (
+        <SettingRow label={t('settings.quartusDir')} hint={t('settings.quartusDirHint')} stack>
+          {(id) => (
+            <>
+              <div className="input-group">
+                <input
+                  id={id}
+                  className="input"
+                  value={settings.quartus_dir ?? ''}
+                  placeholder={toolchain?.quartus?.root ?? ''}
+                  onChange={(e) => set('quartus_dir', e.target.value || null)}
+                />
+                <Button onClick={() => void browse('quartus_dir')}>{t('common.browse')}</Button>
+              </div>
+              {toolchain?.quartus_error && <p className="text-error">{toolchain.quartus_error.message}</p>}
+            </>
+          )}
+        </SettingRow>
+      )}
       <SettingRow label={t('settings.learnDir')} hint={t('settings.learnDirHint')} stack>
         {(id) => (
           <div className="input-group">
@@ -362,6 +380,39 @@ function ToolchainPage({ settings }: { settings: Settings }) {
           </div>
         )}
       </SettingRow>
+    </SettingsGroup>
+  );
+}
+
+/**
+ * Os recursos experimentais do Lace, um interruptor por recurso. Ligar ou
+ * desligar grava no experimental.json do Core e vale na hora: o que é do
+ * recurso aparece ou some da janela, e a CLI passa a aceitar ou recusar os
+ * comandos dele.
+ */
+function ExperimentalPage() {
+  const t = useT();
+  const components = useExperimental((s) => s.components);
+  const path = useExperimental((s) => s.path);
+  return (
+    <SettingsGroup
+      hint={
+        <>
+          {t('settings.experimental.hint')}
+          {path && (
+            <span className="settings-experimental__file">
+              {t('settings.experimental.file')} <code>{path}</code>
+            </span>
+          )}
+        </>
+      }
+    >
+      {components.length === 0 && <div className="settings-group__block muted">{t('settings.experimental.none')}</div>}
+      {components.map(({ feature, enabled }) => (
+        <SettingRow key={feature} label={t(`experimental.${feature}`)} hint={t(`experimental.${feature}.hint`)}>
+          {(id) => <Switch id={id} checked={enabled} onChange={(value) => void useExperimental.getState().set(feature, value)} />}
+        </SettingRow>
+      ))}
     </SettingsGroup>
   );
 }

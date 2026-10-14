@@ -238,6 +238,12 @@ pub(crate) fn boolean(value: Option<&Value>) -> Option<bool> {
 /// Grava de forma atômica (arquivo temporário + rename), como a AURORA, com
 /// indentação de 2 espaços como o `JSON.stringify(dados, null, 2)` dela.
 pub(crate) fn write(path: &Utf8Path, doc: &Value) -> Result<()> {
+    write_json(path, doc, "Writing project")
+}
+
+/// Como [`write`], para outro JSON do Lace: `context` é o que o erro de I/O
+/// diz que o Lace fazia ("Writing settings").
+pub(crate) fn write_json(path: &Utf8Path, doc: &Value, context: &'static str) -> Result<()> {
     let mut text = serde_json::to_string_pretty(doc).map_err(|e| invalid(path, e))?;
     text.push('\n');
     // Nome único: duas gravações ao mesmo tempo não disputam o mesmo
@@ -245,7 +251,7 @@ pub(crate) fn write(path: &Utf8Path, doc: &Value) -> Result<()> {
     static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
     let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let tmp = Utf8PathBuf::from(format!("{path}.{}-{n}.tmp", std::process::id()));
-    std::fs::write(&tmp, text).map_err(LaceError::io("Writing project", &tmp))?;
+    std::fs::write(&tmp, text).map_err(LaceError::io(context, &tmp))?;
     // No Windows, a troca pode esbarrar num leitor que abriu o `.spf` sem
     // permitir a remoção (outro programa) ou numa troca anterior ainda em
     // curso: tenta de novo por alguns milissegundos.
@@ -262,7 +268,7 @@ pub(crate) fn write(path: &Utf8Path, doc: &Value) -> Result<()> {
             }
             Err(e) => {
                 let _ = std::fs::remove_file(&tmp);
-                return Err(LaceError::io("Writing project", path)(e));
+                return Err(LaceError::io(context, path)(e));
             }
             Ok(()) => return Ok(()),
         }

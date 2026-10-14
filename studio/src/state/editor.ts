@@ -13,15 +13,20 @@
 // DocInfo aqui, com o horário de modificação lido do disco. Gravar manda
 // esse horário junto: se o arquivo mudou por fora, o backend recusa
 // (`conflict`) e o usuário escolhe.
+//
+// A vista de um recurso experimental desligado (a Placa FPGA, sem a placa
+// ligada) não abre, nem pela sessão gravada, e fecha quando ele desliga.
 
 import { create } from 'zustand';
 
 import { disposeModel, ensureModel, getModel } from '../editor/monaco';
 import { t } from '../i18n';
 import { api } from '../ipc/api';
+import type { Feature } from '../ipc/lace-types';
 import type { IpcError } from '../ipc/types';
 import { baseName } from '../util/paths';
 import { confirm } from './dialogs';
+import { featureOn, useExperimental } from './experimental';
 import { showError } from './toasts';
 
 export type ViewKind =
@@ -131,6 +136,16 @@ interface EditorState {
 }
 
 export const fileTabId = (path: string) => `file:${path}`;
+
+/** As vistas de recurso experimental (state/experimental.ts). */
+const VIEW_FEATURE: Partial<Record<ViewKind, Feature>> = { board: 'fpga' };
+
+/** A vista existe nesta sessão: não é de recurso experimental, ou o dela
+ * está ligado. */
+export function viewAvailable(kind: ViewKind): boolean {
+  const feature = VIEW_FEATURE[kind];
+  return !feature || featureOn(feature);
+}
 
 export function viewTabId(kind: ViewKind, data?: Record<string, string | null>): string {
   switch (kind) {
@@ -336,6 +351,7 @@ export const useEditor = create<EditorState>((set, get) => {
     },
 
     openView: (kind, data) => {
+      if (!viewAvailable(kind)) return;
       const id = viewTabId(kind, data);
       const holder = get().groups.find((group) => group.tabIds.includes(id));
       if (holder) {
@@ -725,3 +741,11 @@ async function reload(path: string): Promise<void> {
 export async function saveActive(): Promise<void> {
   await useEditor.getState().save();
 }
+
+// Um recurso experimental desligado leva as abas das vistas dele.
+useExperimental.subscribe((state, previous) => {
+  if (state.enabled === previous.enabled) return;
+  for (const tab of useEditor.getState().tabs) {
+    if (tab.kind !== 'file' && !viewAvailable(tab.kind)) void useEditor.getState().closeTab(tab.id);
+  }
+});

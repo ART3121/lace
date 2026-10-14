@@ -113,6 +113,32 @@ fn commands_without_tools_match_their_schemas() {
     let error = run(&mut at(), &["remove", "nunca.v"], 2);
     assert_eq!(error["error"]["code"], "cli");
     conforms("error", &error);
+
+    // Os recursos experimentais, com a pasta de configuração do Lace numa
+    // pasta só do teste: a placa FPGA desligada e depois ligada.
+    let (_config_guard, config) = tempdir();
+    let experimental = || {
+        let mut cmd = at();
+        cmd.env("APPDATA", &config)
+            .env("XDG_CONFIG_HOME", &config)
+            .env("HOME", &config);
+        cmd
+    };
+    conforms(
+        "experimental",
+        &run(&mut experimental(), &["experimental"], 0),
+    );
+    let error = run(&mut experimental(), &["fpga", "boards"], 2);
+    assert_eq!(error["error"]["code"], "experimental_disabled");
+    conforms("error", &error);
+    conforms(
+        "experimental",
+        &run(&mut experimental(), &["experimental", "enable", "fpga"], 0),
+    );
+    conforms(
+        "fpga-boards",
+        &run(&mut experimental(), &["fpga", "boards"], 0),
+    );
 }
 
 #[test]

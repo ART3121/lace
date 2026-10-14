@@ -1569,6 +1569,9 @@ fn hint(error: &LaceError) -> Option<String> {
         LaceError::QuartusMissing => {
             "Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS".into()
         }
+        LaceError::ExperimentalDisabled { feature } => format!(
+            "Enable it with: lace experimental enable {feature} (in Lace Studio: Settings > Experimental)"
+        ),
         _ => return None,
     })
 }

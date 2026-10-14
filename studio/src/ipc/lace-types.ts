@@ -362,6 +362,13 @@ export type Stream = 'stdout' | 'stderr';
  */
 export type ResultTag = 'result';
 /**
+ * Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Feature".
+ */
+export type Feature = 'fpga';
+/**
  * O cabo de gravação embutido na placa.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -1122,6 +1129,26 @@ export interface ResultLine {
   result: {
     [k: string]: unknown | undefined;
   };
+}
+/**
+ * Um recurso e se está ligado.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FeatureState".
+ */
+export interface FeatureState {
+  /**
+   * O recurso.
+   */
+  feature: 'fpga';
+  /**
+   * Ligado.
+   */
+  enabled: boolean;
+  /**
+   * O que ele faz, em inglês ([`Feature::description`]).
+   */
+  description: string;
 }
 /**
  * Uma placa.
@@ -3432,6 +3459,25 @@ export interface ErrorInfo2 {
    * O comando que resolve, quando há um.
    */
   hint?: string | null;
+}
+/**
+ * `lace experimental`: os recursos experimentais e se cada um está ligado,
+ * já com a mudança de `enable` ou `disable`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ExperimentalReport".
+ */
+export interface ExperimentalReport {
+  /**
+   * O arquivo do que está ligado (`experimental.json`, na pasta de
+   * configuração do Lace); `null` se o sistema não diz onde fica essa
+   * pasta.
+   */
+  path: string | null;
+  /**
+   * Os recursos, na ordem da lista.
+   */
+  components: FeatureState[];
 }
 /**
  * `lace fpga boards`: as placas conhecidas, ou a pedida.

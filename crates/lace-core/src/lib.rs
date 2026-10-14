@@ -19,6 +19,9 @@
 //! | placas FPGA | [`fpga::boards`], [`fpga::prepare`] | as placas, o `fpga.json` conferido e o topo da placa |
 //! | Quartus Prime (do sistema) | [`fpga::build()`] | [`fpga::FpgaBuildResult`]: o `.sof`, o `.rbf` e o `.svf`, os recursos e o tempo |
 //!
+//! As placas FPGA são um recurso experimental ([`experimental`]), desligado
+//! até o usuário ligar: a CLI e o Studio só as oferecem ligadas.
+//!
 //! Todas as ferramentas saem do bundle versionado instalado com o Lace
 //! ([`Toolchain`]); nenhuma do `PATH`. As exceções são o compilador C++ do
 //! Verilator no Linux e no macOS, que vem do sistema ([`SystemCompiler`]; no
@@ -136,6 +139,7 @@ pub mod cocotb;
 mod control;
 mod diagnostics;
 mod error;
+pub mod experimental;
 mod files;
 pub mod fpga;
 mod hierarchy;

@@ -1,15 +1,18 @@
 // A barra de menus: Arquivo, Editar, Exibir, Projeto, Fluxo, Ferramentas,
 // Ajuda. Cada item é uma ação de actions.ts; o atalho aparece ao lado, e a
 // marca nas que ligam e desligam. O Exibir tem submenus (Consoles,
-// Aparência): solto, ele não caberia na altura mínima da janela.
+// Aparência): solto, ele não caberia na altura mínima da janela. As ações
+// de recurso experimental desligado não aparecem, nem o separador delas.
 //
 // Os menus (`Menus`) ficam na barra de título integrada (TitleBar.tsx) ou,
 // sem ela, numa linha própria (`MenuBar`).
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
+import { action, isAvailable } from '../../actions';
 import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
+import { useExperimental } from '../../state/experimental';
 import { useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
@@ -92,6 +95,18 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
   { label: 'menu.help', entries: ['laceDocs', 'saphoManual', '-', 'shortcuts', 'about'] },
 ];
 
+/** Sem separador no começo, no fim nem dois seguidos: as ações que não
+ * existem nesta sessão podiam deixar dois juntos. */
+function tidy(items: MenuItem[]): MenuItem[] {
+  const out: MenuItem[] = [];
+  for (const item of items) {
+    if (item.separator && (out.length === 0 || out[out.length - 1].separator)) continue;
+    out.push(item);
+  }
+  while (out.length > 0 && out[out.length - 1].separator) out.pop();
+  return out;
+}
+
 function useItems(entries: Entry[]): MenuItem[] {
   const t = useT();
   const recent = useApp((s) => s.recent);
@@ -102,6 +117,7 @@ function useItems(entries: Entry[]): MenuItem[] {
   useProject((s) => s.snapshot);
   useLayout((s) => s.live);
   useLayout((s) => s.panelMaximized);
+  useExperimental((s) => s.enabled);
 
   const build = (list: readonly Entry[]): MenuItem[] => {
     const items: MenuItem[] = [];
@@ -117,11 +133,11 @@ function useItems(entries: Entry[]): MenuItem[] {
         for (const r of existing) {
           items.push({ label: `   ${r.name}`, run: () => void useProject.getState().open(r.spf) });
         }
-      } else {
+      } else if (isAvailable(action(entry))) {
         items.push(actionItem(entry));
       }
     }
-    return items;
+    return tidy(items);
   };
   return build(entries);
 }

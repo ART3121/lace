@@ -17,7 +17,7 @@ import type { Diagnostic, ProjectIssue } from '../../ipc/lace-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { useLayout, type ConsoleId, type ViewId } from '../../state/layout';
-import { CONSOLE_CHANNELS, VIEW_INFO } from '../../state/layoutModel';
+import { CONSOLE_CHANNELS, isViewAvailable, VIEW_INFO } from '../../state/layoutModel';
 import { useProject } from '../../state/project';
 import { relativeUp } from '../../util/paths';
 import { Empty, IconButton, openContextMenu, type MenuItem } from '../common';
@@ -37,7 +37,8 @@ function useResize(ref: React.RefObject<HTMLElement | null>, fit: () => void) {
 const TERMINALS: ViewId[] = ['info', 'terminal', ...CONSOLE_CHANNELS];
 
 /** Escolhe o terminal que aparece: os abertos têm a marca, e escolher um
- * fechado abre ele no lugar onde estava. */
+ * fechado abre ele no lugar onde estava. O de um recurso experimental
+ * desligado (o Placa) não está na lista. */
 function TerminalPicker() {
   const t = useT();
   const pick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -47,7 +48,7 @@ function TerminalPicker() {
       checked: !hidden.views.includes(view),
       run: () => useLayout.getState().revealView(view, { explicit: true }),
     });
-    const [info, shell, ...stages] = TERMINALS.map(item);
+    const [info, shell, ...stages] = TERMINALS.filter(isViewAvailable).map(item);
     // O menu abre embaixo do botão, também quando ele é acionado pelo teclado.
     const rect = e.currentTarget.getBoundingClientRect();
     openContextMenu({ clientX: rect.left, clientY: rect.bottom + 2, preventDefault: () => e.preventDefault() }, [

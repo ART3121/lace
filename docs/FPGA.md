@@ -1,11 +1,28 @@
 # Placas FPGA
 
 O Lace leva um projeto para uma placa FPGA: confere as ligações das portas
-do topo aos sinais da placa, gera o topo da placa e compila pelo Quartus
-Prime, sem abrir a interface dele. Gravar pelo cabo USB da placa vem na
-próxima etapa. Este documento descreve o que já existe: as placas, o
-`fpga.json`, `lace fpga boards`, `lace fpga check`, `lace fpga build`, a
-detecção do Quartus e o componente `openfpgaloader`.
+do topo aos sinais da placa, gera o topo da placa, compila pelo Quartus
+Prime, sem abrir a interface dele, e grava pelo cabo USB da placa. Este
+documento descreve as placas, o `fpga.json`, `lace fpga boards`, `lace fpga
+check`, `lace fpga build`, `lace fpga program`, a detecção do Quartus e o
+componente `openfpgaloader`.
+
+**É um componente experimental, desligado por padrão.** Ligue com:
+
+```
+lace experimental enable fpga
+```
+
+ou no Studio, em Preferências > Experimental > Placa FPGA. O que se liga
+num vale para o outro: os dois leem o `experimental.json` da pasta de
+configuração do Lace ([CLI.md](CLI.md), "Componentes experimentais").
+Desligado, todo `lace fpga` sai com 2 e diz como ligar
+(`experimental_disabled`), e o Studio tira da janela a aba Placa FPGA, o
+botão FPGA da barra de ferramentas, as ações do menu Fluxo e da paleta, a
+seção FPGA do navegador de fluxo, o console Placa e o Quartus Prime das
+Preferências e da tela do bundle; os comandos da placa no backend do
+Studio respondem `experimental_disabled`. O `fpga.json` e a pasta
+`.lace/fpga/` do projeto ficam como estão.
 
 ## Placas
 

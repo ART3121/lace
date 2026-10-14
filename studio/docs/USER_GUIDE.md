@@ -545,7 +545,7 @@ um terminal por etapa, que correspondem aos terminais da AURORA:
 | Verilog | TVERI | a verificação do Icarus e o lint do Verilator |
 | Wave | TWAVE | a elaboração e a simulação: o que o testbench escreve, as saídas do processador, onde ficou a onda |
 | RTLViewer | TRTLViewer | a síntese do Yosys |
-| Placa | | a compilação e a gravação pelo Quartus |
+| Placa | | a compilação e a gravação pelo Quartus; só existe com a placa FPGA ligada (seção 7.2) |
 
 Os abertos têm a marca. Escolher um fechado abre ele com o que a etapa já
 escreveu, separado por rodada, e daí em diante ele recebe as linhas novas
@@ -665,6 +665,16 @@ preferência, o Studio já usa a pasta `lace-learn` do repositório.
 
 ## 7.2 Placa FPGA
 
+A placa FPGA é um recurso experimental e vem desligada. Ligue em
+Preferências > Experimental > **Placa FPGA**, ou com `lace experimental
+enable fpga` num terminal: os dois mexem no mesmo arquivo, e o que um liga
+vale para o outro (um comando dado num terminal fora do Studio vale quando
+a janela volta a ter o foco). Desligada, a placa sai da janela: a aba Placa
+FPGA, o botão **FPGA** da barra de ferramentas, as ações do menu Fluxo e da
+paleta, a seção FPGA do Fluxo, o terminal **Placa** e o Quartus Prime das
+Preferências e das Ferramentas do Lace. Desligar com a aba aberta a fecha.
+O `fpga.json` do projeto fica como está.
+
 A aba **Placa FPGA** (o botão **Placa** na barra de ferramentas, ou Fluxo >
 Mostrar a placa FPGA) leva o projeto para a placa. No alto ficam a placa (a
 DE2-115, a DE10-Nano ou a Cyclone V GX Starter Kit) e o topo que vai para
@@ -711,7 +721,8 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
 - cada executável e onde está;
 - o compilador do Verilator (do sistema no Linux e no macOS, do bundle no
   Windows);
-- o Quartus Prime, quando encontrado, com a versão e a pasta;
+- com a placa FPGA ligada (seção 7.2), o Quartus Prime, quando encontrado,
+  com a versão e a pasta;
 - **Conferir os hashes**: o `lace tools --verify`;
 - **Procurar atualizações**: o `lace update --check`, com a versão
   instalada, a da última release e a upstream de cada componente. O
@@ -765,7 +776,8 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem) e os itens das barras de ferramentas e de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
-| Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`) e a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
+| Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`) e, com a placa FPGA ligada, a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
+| Experimental | os recursos do Lace que ainda mudam muito, desligados por padrão: hoje, a **Placa FPGA** (seção 7.2). Ficam no `experimental.json` da pasta de configuração do Lace (o caminho aparece na página), não no `settings.json`, e valem também para a CLI (`lace experimental`) |
 
 As preferências ficam em `settings.json`, na pasta de configuração do
 aplicativo: `~/.config/com.nipscern.lace-studio/` no Linux,

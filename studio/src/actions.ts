@@ -1,6 +1,7 @@
 // Todas as ações do Studio num lugar só. Os menus, a barra de ferramentas,
 // o navegador de fluxo, a paleta de comandos e os atalhos de teclado leem
-// daqui: uma ação nova aparece em todos de uma vez.
+// daqui: uma ação nova aparece em todos de uma vez. Uma ação de recurso
+// experimental desligado (`feature`, state/experimental.ts) some de todos.
 //
 // Os atalhos seguem os da AURORA onde ela tinha (F5 a F10, Shift+F5,
 // Ctrl+Alt+P, Ctrl+Alt+N, Ctrl+Shift+O, Ctrl+Shift+P) e os do VS Code no
@@ -44,10 +45,11 @@ import { activeEditor } from './editor/host';
 import { vimActive } from './editor/vim';
 import { t, type Key } from './i18n';
 import { api } from './ipc/api';
-import type { Simulator } from './ipc/lace-types';
+import type { Feature, Simulator } from './ipc/lace-types';
 import { useApp } from './state/app';
 import { openDialog, prompt } from './state/dialogs';
 import { MAX_GROUPS, saveActive, useEditor } from './state/editor';
+import { featureOn } from './state/experimental';
 import { useHierarchy } from './state/hierarchy';
 import { useJobs } from './state/jobs';
 import { isOnScreen, useLayout, type RegionId, type ViewId } from './state/layout';
@@ -77,6 +79,9 @@ export interface Action {
   enabled?: () => boolean;
   /** Liga e desliga: os menus mostram a marca quando é `true`. */
   checked?: () => boolean;
+  /** O recurso experimental de que a ação faz parte: desligado, ela não
+   * aparece em lugar nenhum e não roda. */
+  feature?: Feature;
   run: () => unknown;
 }
 
@@ -612,6 +617,7 @@ export const ACTIONS: Action[] = [
     id: VIEW_INFO[channel].action,
     label: `action.${VIEW_INFO[channel].action}` as Key,
     category: 'view' as const,
+    feature: VIEW_INFO[channel].feature,
     run: () => reveal(channel),
   })),
   { id: 'zoomIn', label: 'action.zoomIn', category: 'view', keys: 'Ctrl+=', run: () => applyZoom(useLayout.getState().zoom + 0.1) },
@@ -655,10 +661,11 @@ export const ACTIONS: Action[] = [
   { id: 'synthesize', label: 'action.synthesize', category: 'flow', keys: 'F10', icon: CircuitBoard, enabled: canRun, run: () => runSynthesis() },
   { id: 'showSchematic', label: 'action.showSchematic', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('schematic') },
   { id: 'showStatistics', label: 'action.showStatistics', category: 'flow', enabled: hasProject, run: () => useEditor.getState().openView('synthesis') },
-  { id: 'fpgaBuildProgram', label: 'action.fpgaBuildProgram', category: 'flow', icon: Upload, enabled: canRun, run: () => runFpgaBuildAndProgram() },
-  { id: 'fpgaBuild', label: 'action.fpgaBuild', category: 'flow', icon: Hammer, enabled: canRun, run: () => runFpgaBuild() },
-  { id: 'fpgaProgram', label: 'action.fpgaProgram', category: 'flow', icon: Upload, enabled: canRun, run: () => runFpgaProgram() },
-  { id: 'showBoard', label: 'action.showBoard', category: 'flow', icon: Microchip, enabled: hasSpf, run: () => useEditor.getState().openView('board') },
+  // A placa FPGA, experimental.
+  { id: 'fpgaBuildProgram', label: 'action.fpgaBuildProgram', category: 'flow', icon: Upload, feature: 'fpga', enabled: canRun, run: () => runFpgaBuildAndProgram() },
+  { id: 'fpgaBuild', label: 'action.fpgaBuild', category: 'flow', icon: Hammer, feature: 'fpga', enabled: canRun, run: () => runFpgaBuild() },
+  { id: 'fpgaProgram', label: 'action.fpgaProgram', category: 'flow', icon: Upload, feature: 'fpga', enabled: canRun, run: () => runFpgaProgram() },
+  { id: 'showBoard', label: 'action.showBoard', category: 'flow', icon: Microchip, feature: 'fpga', enabled: hasSpf, run: () => useEditor.getState().openView('board') },
   { id: 'fullFlow', label: 'action.fullFlow', category: 'flow', keys: 'F5', enabled: canRun, run: fullFlow },
   {
     id: 'cancel',
@@ -768,8 +775,22 @@ export function action(id: string): Action {
   return found;
 }
 
+/** A ação existe nesta sessão: não é de recurso experimental, ou o dela
+ * está ligado. Quem lista ações (menus, paleta, atalhos, barra, navegador
+ * de fluxo) pula as que não existem. */
+export function isAvailable(a: Action): boolean {
+  return !a.feature || featureOn(a.feature);
+}
+
+/** Um item da barra de ferramentas existe: o de uma ação, se ela existe; os
+ * outros (o alvo, o que está rodando), sempre. */
+export function toolbarItemAvailable(id: string): boolean {
+  const a = BY_ID.get(id);
+  return !a || isAvailable(a);
+}
+
 export function isEnabled(a: Action): boolean {
-  return a.enabled ? a.enabled() : true;
+  return isAvailable(a) && (a.enabled ? a.enabled() : true);
 }
 
 /** Roda uma ação se estiver habilitada. */

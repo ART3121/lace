@@ -3,6 +3,7 @@
 //! negócio mora aqui.
 
 mod commands;
+mod experimental;
 mod fpga;
 mod install;
 mod installation;
@@ -177,9 +178,11 @@ enum Command {
     Report(ReportArgs),
     /// Learn Verilog with exercises checked on every save, like rustlings (no subcommand: watch mode)
     Learn(LearnArgs),
-    /// Put the design on an FPGA board: the boards, the fpga.json connections, the Quartus build and programming
+    /// Experimental, off by default: put the design on an FPGA board with Quartus Prime (lace experimental enable fpga)
     #[command(subcommand)]
     Fpga(FpgaCommand),
+    /// Turn experimental components on and off (no subcommand: list them)
+    Experimental(ExperimentalArgs),
     /// Show the bundled tools and their versions
     Tools {
         /// Verify each executable against the manifest SHA-256
@@ -338,6 +341,30 @@ enum LearnDevCommand {
     Check {
         /// The track folder (default: the installed verilog track, or the one in LACE_LEARN_DIR)
         track: Option<Utf8PathBuf>,
+    },
+}
+
+/// `lace experimental`: sem subcomando, a lista.
+#[derive(clap::Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct ExperimentalArgs {
+    #[command(subcommand)]
+    command: Option<ExperimentalCommand>,
+}
+
+#[derive(Subcommand)]
+enum ExperimentalCommand {
+    /// Turn an experimental component on, for the CLI and Lace Studio
+    Enable {
+        /// The component
+        #[arg(value_parser = experimental::component_parser())]
+        component: String,
+    },
+    /// Turn an experimental component off, for the CLI and Lace Studio
+    Disable {
+        /// The component
+        #[arg(value_parser = experimental::component_parser())]
+        component: String,
     },
 }
 

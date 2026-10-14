@@ -18,6 +18,7 @@
 use std::time::{Duration, SystemTime};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use lace_core::experimental::Feature;
 use lace_core::fpga::{self, FpgaBuildResult, FpgaConfig, FpgaProgramResult};
 use lace_core::history::{self, Operation};
 use lace_core::{
@@ -143,6 +144,16 @@ impl FlowRequest {
             FlowRequest::Learn { .. } => "learn",
             FlowRequest::FpgaBuild => "fpga_build",
             FlowRequest::FpgaProgram { .. } => "fpga_program",
+        }
+    }
+
+    /// O recurso experimental de que o fluxo faz parte: `jobs.rs` não o
+    /// começa com o recurso desligado. [`run`] não confere, como as funções
+    /// do Core que ele chama.
+    pub fn feature(&self) -> Option<Feature> {
+        match self {
+            FlowRequest::FpgaBuild | FlowRequest::FpgaProgram { .. } => Some(Feature::Fpga),
+            _ => None,
         }
     }
 

@@ -5,15 +5,18 @@
 // Para não pesar: do layout em uso, só o que serve agora fica à vista (Salvar
 // e Restaurar aparecem quando a janela está diferente dele; o resto vai no
 // menu ⋯); as vistas aparecem agrupadas por região, como na janela, cada uma
-// com o olho e o menu dela; e os itens das barras ficam recolhidos.
+// com o olho e o menu dela; e os itens das barras ficam recolhidos. As vistas
+// e os itens de recurso experimental desligado não aparecem.
 
 import { Eye, EyeOff, MoreHorizontal } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
+import { toolbarItemAvailable } from '../../actions';
 import { useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { useLayout, type RegionId, type ViewId } from '../../state/layout';
 import {
+  isViewAvailable,
   REGION_IDS,
   REGION_LABELS,
   STATUS_ITEMS,
@@ -45,12 +48,19 @@ function menuBelow(e: MouseEvent<HTMLElement>, items: MenuItem[]) {
   openContextMenu({ clientX: rect.left, clientY: rect.bottom + 4, preventDefault: () => e.preventDefault() }, items);
 }
 
-function ViewItem({ view, region, index, count }: { view: ViewId; region: RegionId; index: number; count: number }) {
+/** Uma vista da lista. `before` e `after` são as vizinhas na lista, que pode
+ * pular vistas da região (as de recurso experimental desligado): subir põe a
+ * vista antes de `before`, e descer, depois de `after`. */
+function ViewItem({ view, region, before, after }: { view: ViewId; region: RegionId; before: ViewId | null; after: ViewId | null }) {
   const t = useT();
   const hidden = useLayout((s) => s.live.hidden.views.includes(view));
   const name = t(VIEW_INFO[view].label);
   const Icon = VIEW_ICONS[view];
-  const move = (to: number) => useLayout.getState().moveView(view, region, to);
+  const moveNextTo = (neighbor: ViewId, offset: 0 | 1) => {
+    // A posição conta sem a própria vista, como `moveView` espera.
+    const rest = useLayout.getState().live.regions[region].views.filter((v) => v !== view);
+    useLayout.getState().moveView(view, region, rest.indexOf(neighbor) + offset);
+  };
   return (
     <li className={`settings-view${hidden ? ' is-hidden' : ''}`}>
       <Icon size={14} strokeWidth={1.7} className="settings-view__icon" aria-hidden />
@@ -68,8 +78,8 @@ function ViewItem({ view, region, index, count }: { view: ViewId; region: Region
           menuBelow(e, [
             ...moveItems(view),
             { separator: true },
-            { label: t('settings.layout.up'), disabled: index === 0, run: () => move(index - 1) },
-            { label: t('settings.layout.down'), disabled: index === count - 1, run: () => move(index + 1) },
+            { label: t('settings.layout.up'), disabled: !before, run: () => before && moveNextTo(before, 0) },
+            { label: t('settings.layout.down'), disabled: !after, run: () => after && moveNextTo(after, 1) },
           ])
         }
       >
@@ -204,7 +214,7 @@ export function LayoutSettings() {
         <SettingsGroup title={t('settings.layout.views')} hint={t('settings.layout.viewsHint')}>
           <div className="settings-views">
             {REGION_IDS.map((id) => {
-              const views = live.regions[id].views;
+              const views = live.regions[id].views.filter(isViewAvailable);
               return (
                 <section key={id} className="settings-views__region" aria-label={t(REGION_LABELS[id])}>
                   <h4 className="settings-views__title">{t(REGION_LABELS[id])}</h4>
@@ -213,7 +223,7 @@ export function LayoutSettings() {
                   ) : (
                     <ul className="settings-views__list">
                       {views.map((view, index) => (
-                        <ViewItem key={view} view={view} region={id} index={index} count={views.length} />
+                        <ViewItem key={view} view={view} region={id} before={views[index - 1] ?? null} after={views[index + 1] ?? null} />
                       ))}
                     </ul>
                   )}
@@ -224,7 +234,7 @@ export function LayoutSettings() {
         </SettingsGroup>
 
         <SettingsGroup title={t('settings.layout.items')} hint={t('settings.layout.itemsHint')}>
-          <BarItems bar="toolbar" title={t('layout.bar.toolbar')} items={TOOLBAR_ITEMS} />
+          <BarItems bar="toolbar" title={t('layout.bar.toolbar')} items={TOOLBAR_ITEMS.filter((item) => toolbarItemAvailable(item.id))} />
           <BarItems bar="statusbar" title={t('layout.bar.statusbar')} items={STATUS_ITEMS} />
         </SettingsGroup>
       </fieldset>

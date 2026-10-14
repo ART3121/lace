@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExperimentalReport",
+  "description": "`lace experimental`: os recursos experimentais e se cada um está ligado,\njá com a mudança de `enable` ou `disable`.",
+  "type": "object",
+  "properties": {
+    "path": {
+      "description": "O arquivo do que está ligado (`experimental.json`, na pasta de\nconfiguração do Lace); `null` se o sistema não diz onde fica essa\npasta.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "components": {
+      "description": "Os recursos, na ordem da lista.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FeatureState"
+      }
+    }
+  },
+  "required": [
+    "path",
+    "components"
+  ],
+  "$defs": {
+    "FeatureState": {
+      "description": "Um recurso e se está ligado.",
+      "type": "object",
+      "properties": {
+        "feature": {
+          "description": "O recurso.",
+          "$ref": "#/$defs/Feature"
+        },
+        "enabled": {
+          "description": "Ligado.",
+          "type": "boolean"
+        },
+        "description": {
+          "description": "O que ele faz, em inglês ([`Feature::description`]).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feature",
+        "enabled",
+        "description"
+      ]
+    },
+    "Feature": {
+      "description": "Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`).",
+      "oneOf": [
+        {
+          "description": "A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus\nPrime e a gravação na placa (`lace fpga`, a aba Placa FPGA do\nStudio).",
+          "type": "string",
+          "const": "fpga"
+        }
+      ]
+    }
+  }
+}
