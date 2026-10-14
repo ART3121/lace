@@ -30,11 +30,19 @@ Convenções:
 | `wave_open` | `processor?`, `path?` | `WaveOpened`: `waveform`, `pid`, `log`, `outdated` (os processadores compilados de novo depois da simulação: PC e linha em números) | `lace wave [-p NOME] [ONDA]` |
 | `log_frontend` | `level` (`error`, `warn`, `info`), `message` | | |
 | `dev_smoke_script` | | o roteiro de `LACE_STUDIO_SMOKE`, só na build de desenvolvimento; senão `null` | |
+| `app_exit` | `restart: boolean` | (não volta: o Studio sai) | |
 
 `log_frontend` escreve no log do backend, com o alvo `lace_studio::ui`, o
 que a interface manda: erros de JavaScript, `console.error` e todo erro
 mostrado num aviso. `dev_smoke_script` alimenta o roteiro de fumaça
 (DEVELOPMENT.md, seção 3).
+
+`app_exit` sai do Studio pelo caminho de sempre (a operação rodando é
+cancelada e os terminais fecham) e, com `restart`, abre de novo o
+executável com que ele começou, guardado ao abrir: depois do `lace update`,
+é o da versão nova. A interface grava os arquivos e a sessão antes de
+chamar. Sem `restart`, só fecha: é o que o Studio faz no Windows para o
+assistente de instalação trocar os arquivos dele.
 
 `wave_open` sem `path` abre a onda da simulação do processador ou, sem
 processador, a do projeto (`waveform_path` do Core). Se ela ainda não
@@ -298,7 +306,11 @@ quando ele não rodou.
 
 `lace_update` passa `--yes`: quem pergunta é a interface, antes de chamar,
 com a versão instalada, a nova e a pasta (o `UpdateReport` de
-`lace_update_check`). No `result`, `action` diz o que aconteceu:
+`lace_update_check`). No Windows passa também `--reopen-studio`, que faz o
+assistente de instalação, quando a atualização cai nele, abrir o Studio de
+novo no fim. A interface chama `lace_update_check` sozinha ao abrir e a
+cada 12 horas (`check_updates` nas preferências), e depois de `updated`
+reinicia o Studio com `app_exit`. No `result`, `action` diz o que aconteceu:
 `updated` (a atualização por componentes trocou os arquivos que mudaram,
 `method: "components"`, com o que mudou em `changes`; ou, no Linux e no
 macOS, o instalador da release trocou o `lace` e o bundle, `method:

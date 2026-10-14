@@ -215,6 +215,10 @@ pub struct Options<'a> {
     pub full: bool,
     /// `--from`: um instalador no disco, sem rede.
     pub from: Option<&'a Utf8Path>,
+    /// `--reopen-studio`: quem pede é o Lace Studio, que fecha para a
+    /// atualização. No Windows, o assistente de instalação o abre de novo
+    /// quando termina.
+    pub reopen_studio: bool,
 }
 
 pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> anyhow::Result<()> {
@@ -226,6 +230,7 @@ pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> any
         env!("CARGO_PKG_VERSION"),
         toolchain.map(Toolchain::manifest),
     )?;
+    crate::update_check::record(&report.lace.latest);
     let installation = installation::prefix();
     report.prefix = installation.as_ref().ok().cloned();
     if out.is_text() {
@@ -295,7 +300,7 @@ pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> any
                     .collect()
             })
             .unwrap_or_default();
-        windows(out, &report.lace.latest, &installed)?
+        windows(out, &report.lace.latest, &installed, options.reopen_studio)?
     } else {
         unix(out, &prefix, &report.lace.latest)?
     };
@@ -834,7 +839,7 @@ fn version_key(version: &str) -> Vec<u64> {
 
 /// `candidate` é mais nova que `current`. Uma versão sem dígitos (a tag
 /// `test`) não se compara: nunca é mais nova, nem mais velha.
-fn is_newer(candidate: &str, current: &str) -> bool {
+pub(crate) fn is_newer(candidate: &str, current: &str) -> bool {
     let (candidate, current) = (version_key(candidate), version_key(current));
     !candidate.is_empty() && !current.is_empty() && candidate > current
 }
@@ -1051,8 +1056,15 @@ fn unix(out: &Output, prefix: &Utf8Path, version: &str) -> anyhow::Result<Update
 
 /// No Windows, o assistente de instalação da versão nova, que lembra a
 /// pasta, com os componentes `installed` marcados. Ele troca o `lace.exe`,
-/// então roda depois que este `lace` sai.
-fn windows(out: &Output, version: &str, installed: &[String]) -> anyhow::Result<UpdateAction> {
+/// então roda depois que este `lace` sai. Com `reopen_studio`, ele abre o
+/// Lace Studio quando termina (`/REOPENSTUDIO=1`, em `lace.iss`): o Studio
+/// que pediu a atualização fecha para o assistente trocar os arquivos dele.
+fn windows(
+    out: &Output,
+    version: &str,
+    installed: &[String],
+    reopen_studio: bool,
+) -> anyhow::Result<UpdateAction> {
     // Fica depois que o `lace` sai: o assistente roda dela.
     let work = release::work_dir()?.keep();
     let work = Utf8PathBuf::from_path_buf(work)
@@ -1083,6 +1095,9 @@ fn windows(out: &Output, version: &str, installed: &[String]) -> anyhow::Result<
             false
         }
     };
+    if reopen_studio {
+        command.arg("/REOPENSTUDIO=1");
+    }
     installation::open_wizard(&mut command).with_context(|| format!("Opening {setup}"))?;
     if out.is_text() {
         if selected {

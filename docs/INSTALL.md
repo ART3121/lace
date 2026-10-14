@@ -206,7 +206,10 @@ O desinstalador do Windows apaga o `toolchain/` inteiro, com o que o
 `toolchain/` com a seleção dele, que não conhece os aplicativos
 acrescentados depois: marque-os lá também.
 
-**Atualizar:** `lace update --check` compara as versões; `lace update`
+**Atualizar:** o Lace Studio procura versão nova ao abrir, oferece a
+atualização e reinicia na versão nova; o `lace`, num terminal, avisa no fim
+de um comando, uma vez por dia ([CLI.md](CLI.md), "Bundle").
+`lace update --check` compara as versões; `lace update`
 atualiza por componentes (abaixo, em [Atualizar por componentes](#atualizar-por-componentes)),
 sem abrir o assistente e sem tirar o que o `lace install` acrescentou, e a
 lista de programas do Windows passa a mostrar a versão nova. Numa
@@ -308,7 +311,10 @@ instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 mais nova, que o `lace update` lê no lugar do GitHub. O bundle de lá
 precisa ser o instalado; outro bundle é atualizar (`lace update`).
 
-**Atualizar:** `lace update --check` mostra se há Lace mais novo e,
+**Atualizar:** o Lace Studio procura versão nova ao abrir, oferece a
+atualização e reinicia na versão nova; o `lace`, num terminal, avisa no fim
+de um comando, uma vez por dia ([CLI.md](CLI.md), "Bundle").
+`lace update --check` mostra se há Lace mais novo e,
 para cada aplicativo, a versão instalada, a do bundle da última release e a
 última upstream. `lace update` atualiza por componentes (abaixo). Numa
 instalação anterior à 0.7.0, ou com `lace update --full`, ele reinstala

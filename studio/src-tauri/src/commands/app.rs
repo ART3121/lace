@@ -1,4 +1,5 @@
-//! Comandos do aplicativo: versão, preferências, recentes e abrir a onda.
+//! Comandos do aplicativo: versão, preferências, recentes, abrir a onda,
+//! sair e reiniciar.
 
 use camino::Utf8PathBuf;
 use serde::Serialize;
@@ -154,4 +155,13 @@ pub fn dev_smoke_script() -> Option<String> {
     } else {
         None
     }
+}
+
+/// Fecha o Studio e, com `restart`, abre ele de novo: depois de o `lace
+/// update` trocar a instalação, o Studio que roda ainda é o antigo. Sem
+/// `restart`, só fecha, para o assistente de instalação do Windows trocar os
+/// arquivos dele. A interface grava os arquivos abertos antes de chamar.
+#[tauri::command]
+pub fn app_exit(app: AppHandle, restart: bool) {
+    crate::exit(&app, restart);
 }

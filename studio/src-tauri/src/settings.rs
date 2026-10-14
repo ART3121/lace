@@ -63,6 +63,9 @@ pub struct Settings {
     pub verbose: bool,
     /// Reabrir o último projeto ao iniciar.
     pub restore_last_project: bool,
+    /// Procurar Lace mais novo ao abrir o Studio e, com ele aberto, a cada
+    /// 12 horas (`lace update --check`), e oferecer a atualização.
+    pub check_updates: bool,
     /// O shell do terminal no Windows: `powershell` (o Windows PowerShell)
     /// ou `cmd` (o Prompt de Comando). Nos outros sistemas não vale: o
     /// terminal abre o shell do usuário (`$SHELL`).
@@ -105,6 +108,7 @@ impl Default for Settings {
             sim_timeout_s: None,
             verbose: false,
             restore_last_project: true,
+            check_updates: true,
             terminal_shell: "powershell".into(),
             editor: EditorSettings::default(),
             zen: ZenSettings::default(),

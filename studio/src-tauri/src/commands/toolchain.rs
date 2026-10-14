@@ -102,9 +102,16 @@ pub async fn lace_install(
 /// é a interface, antes de chamar. A operação não para no meio: cancelar
 /// mataria o `lace` com o instalador, filho dele, trocando o `bin/` e o
 /// `toolchain/`, e o instalador seguiria sozinho.
+///
+/// Atualizado, a interface reinicia o Studio ([`crate::exit`]). Com o
+/// assistente do Windows, ela fecha o Studio para ele trocar os arquivos, e
+/// o `--reopen-studio` faz o assistente abrir o Studio quando termina.
 #[tauri::command]
 pub async fn lace_update(app: AppHandle, channel: Channel<JobMessage>) -> IpcResult<u32> {
-    let args = ["update", "--yes", "--json"].map(String::from).to_vec();
+    let mut args = ["update", "--yes", "--json"].map(String::from).to_vec();
+    if cfg!(windows) {
+        args.push("--reopen-studio".into());
+    }
     start_cli_job(&app, "update", args, false, channel)
 }
 

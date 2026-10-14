@@ -84,6 +84,8 @@ export interface Settings {
   sim_timeout_s: number | null;
   verbose: boolean;
   restore_last_project: boolean;
+  /** Procurar Lace mais novo ao abrir e a cada 12 horas (state/updates.ts). */
+  check_updates: boolean;
   /** Windows: `powershell` ou `cmd`. */
   terminal_shell: 'powershell' | 'cmd';
   editor: EditorSettings;

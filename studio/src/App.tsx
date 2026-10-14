@@ -34,6 +34,7 @@ import { useProject } from './state/project';
 import { activeLayout } from './state/savedLayouts';
 import { applyTitleBar, useTitleBar, watchWindow } from './state/titleBar';
 import { showError } from './state/toasts';
+import { startUpdateChecks } from './state/updates';
 import type { Theme } from './themes';
 import { extension, resolveFrom } from './util/paths';
 
@@ -170,6 +171,10 @@ async function start(): Promise<() => void> {
   }
   // Um quadro para o React desenhar o projeto antes de a janela aparecer.
   window.setTimeout(reveal, 0);
+
+  // Lace mais novo publicado: procura logo depois de abrir e a cada 12
+  // horas, e oferece a atualização (state/updates.ts).
+  cleanups.push(startUpdateChecks());
 
   return () => cleanups.forEach((cleanup) => cleanup());
 }

@@ -1,19 +1,21 @@
 // O bundle do Lace: o equivalente gráfico do `lace tools`, com a conferência
 // dos hashes, a busca de atualização (`lace update --check`), a atualização
-// (`lace update --yes`, depois de confirmar) e a instalação de componentes
-// (`lace install`). A saída da última instalação ou atualização aparece aqui.
+// (`lace update --yes`, depois de confirmar, e o reinício do Studio, em
+// state/updates.ts) e a instalação de componentes (`lace install`). A saída
+// da última instalação ou atualização aparece aqui.
 
 import { CircleArrowUp, CircleCheck, CircleX, Download, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { FileMismatch, UpdateReport } from '../../ipc/lace-types';
+import type { FileMismatch } from '../../ipc/lace-types';
 import { useApp } from '../../state/app';
-import { confirm, openDialog } from '../../state/dialogs';
+import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { guarded } from '../../state/toasts';
+import { offerUpdate, useUpdates } from '../../state/updates';
 import { Badge, Button, Spinner } from '../common';
 
 export function ToolchainView({ checkToken }: { checkToken: string | null }) {
@@ -22,11 +24,11 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
   const running = useJobs((s) => s.running);
   const cliLog = useJobs((s) => s.cliLog);
   const logRef = useRef<HTMLPreElement>(null);
-  const windows = useApp((s) => s.info?.os.startsWith('windows') ?? false);
   const [mismatches, setMismatches] = useState<FileMismatch[] | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const [updates, setUpdates] = useState<UpdateReport | null>(null);
-  const [checking, setChecking] = useState(false);
+  // A busca automática, ao abrir o Studio, também preenche a tabela.
+  const updates = useUpdates((s) => s.report);
+  const checking = useUpdates((s) => s.checking);
 
   const verify = async () => {
     setVerifying(true);
@@ -34,39 +36,10 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
     setVerifying(false);
   };
 
-  const checkUpdates = async () => {
-    setChecking(true);
-    setUpdates(((await guarded(() => api.toolchain.updateCheck())) as UpdateReport | undefined) ?? null);
-    setChecking(false);
-  };
-
-  // A CLI perguntaria no terminal; aqui a pergunta é o diálogo, e o `--yes`
-  // vai depois do sim.
-  const update = async (report: UpdateReport) => {
-    const answer = await confirm({
-      title: t('dialog.update.title'),
-      message: t(windows ? 'dialog.update.messageWindows' : 'dialog.update.message', {
-        installed: report.lace.installed,
-        latest: report.lace.latest,
-        prefix: report.prefix ?? '',
-      }),
-      buttons: [
-        { label: t('toolchain.update', { version: report.lace.latest }), value: 'update', primary: true },
-        { label: t('common.cancel'), value: 'cancel' },
-      ],
-    });
-    if (answer !== 'update') return;
-    const result = await useJobs.getState().update();
-    // Atualizado, a tabela passa a vir do lace novo. Com o assistente do
-    // Windows, ela espera o usuário terminar lá.
-    if (result?.action === 'updated') {
-      setUpdates(null);
-      void checkUpdates();
-    }
-  };
+  const checkUpdates = () => void useUpdates.getState().check();
 
   useEffect(() => {
-    if (checkToken) void checkUpdates();
+    if (checkToken) checkUpdates();
   }, [checkToken]);
 
   // A saída rola para o fim a cada linha nova.
@@ -106,7 +79,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
           <Button icon={verifying ? <Spinner /> : <ShieldCheck size={14} />} disabled={verifying} onClick={() => void verify()}>
             {t('toolchain.verify')}
           </Button>
-          <Button icon={checking ? <Spinner /> : <Download size={14} />} disabled={checking || !info.lace_cli} onClick={() => void checkUpdates()}>
+          <Button icon={checking ? <Spinner /> : <Download size={14} />} disabled={checking || !info.lace_cli} onClick={checkUpdates}>
             {t('toolchain.checkUpdates')}
           </Button>
         </div>
@@ -169,7 +142,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
                   variant="primary"
                   icon={running?.flow === 'update' ? <Spinner /> : <CircleArrowUp size={14} />}
                   disabled={!!running}
-                  onClick={() => void update(updates)}
+                  onClick={() => void offerUpdate()}
                 >
                   {t('toolchain.update', { version: updates.lace.latest })}
                 </Button>

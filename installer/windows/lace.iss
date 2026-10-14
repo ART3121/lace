@@ -106,8 +106,12 @@ Name: "studioicon"; Description: "Create a desktop shortcut for Lace Studio"; Co
 Name: "{autoprograms}\Lace Studio"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio
 Name: "{autodesktop}\Lace Studio"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Tasks: studioicon
 
+; O Lace Studio que pediu a atualização (`lace update --reopen-studio`, que
+; passa /REOPENSTUDIO=1) fechou para o assistente trocar os arquivos dele: ele
+; abre de novo sozinho, sem a caixa da página final.
 [Run]
-Filename: "{app}\toolchain\studio\lace-studio.exe"; Description: "Open Lace Studio"; Components: studio; Flags: postinstall nowait skipifsilent unchecked
+Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Flags: nowait runasoriginaluser; Check: ReopenStudio
+Filename: "{app}\toolchain\studio\lace-studio.exe"; Description: "Open Lace Studio"; Components: studio; Flags: postinstall nowait skipifsilent unchecked; Check: not ReopenStudio
 
 [InstallDelete]
 #ifndef Web
@@ -222,6 +226,13 @@ end;
   página de componentes, ou antes de instalar numa instalação silenciosa
   sem /COMPONENTS. Um componente a mais que a Recomendada põe o tipo em
   Avançada, com a lista. }
+{ /REOPENSTUDIO=1: o `lace update` do Lace Studio abriu este assistente, e o
+  Studio fechou para ele (ver [Run]). }
+function ReopenStudio: Boolean;
+begin
+  Result := ExpandConstant('{param:REOPENSTUDIO|0}') = '1';
+end;
+
 procedure PreselectOnce;
 begin
   if not Preselected then begin

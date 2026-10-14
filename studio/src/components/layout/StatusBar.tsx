@@ -4,9 +4,10 @@
 //
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
 // Preferências > Layout da janela). A espera de um atalho de duas etapas e a
-// linha do Vim aparecem sempre: sem elas, o teclado parece não responder.
+// linha do Vim aparecem sempre: sem elas, o teclado parece não responder. O
+// aviso de Lace mais novo também, até a atualização.
 
-import { CircleAlert, LayoutTemplate, TriangleAlert } from 'lucide-react';
+import { CircleAlert, CircleArrowUp, LayoutTemplate, RotateCw, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useChord } from '../../actions';
@@ -20,6 +21,7 @@ import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
 import { openDialog } from '../../state/dialogs';
 import { useLayoutStatus } from '../../state/savedLayouts';
+import { canUpdate, finishPending, offerUpdate, useUpdates } from '../../state/updates';
 import { baseName } from '../../util/paths';
 import { Kbd, openContextMenu, Spinner } from '../common';
 import { layoutItems, statusBarMenu } from './layoutMenus';
@@ -52,6 +54,37 @@ function LayoutIndicator() {
       <LayoutTemplate size={12} />
       {layout.name}
       {dirty && <span className="statusbar__dirty" aria-hidden />}
+    </button>
+  );
+}
+
+/** Lace mais novo publicado: o clique oferece a atualização. Depois dela,
+ * se o Studio não conseguiu sair (um arquivo que não gravou), o clique
+ * reinicia ou fecha. */
+function UpdateIndicator() {
+  const t = useT();
+  const report = useUpdates((s) => s.report);
+  const pending = useUpdates((s) => s.pending);
+  const updating = useJobs((s) => s.running?.flow === 'update');
+  if (updating) return null;
+  if (pending) {
+    return (
+      <button type="button" className="statusbar__item statusbar__button statusbar__update" onClick={finishPending}>
+        <RotateCw size={12} />
+        {t(pending.mode === 'restart' ? 'update.restartPending' : 'update.quitPending')}
+      </button>
+    );
+  }
+  if (!canUpdate(report)) return null;
+  return (
+    <button
+      type="button"
+      className="statusbar__item statusbar__button statusbar__update"
+      title={t('update.availableHint', { installed: report.lace.installed })}
+      onClick={() => void offerUpdate()}
+    >
+      <CircleArrowUp size={12} />
+      {t('update.available', { version: report.lace.latest })}
     </button>
   );
 }
@@ -145,6 +178,7 @@ export function StatusBar() {
         )}
         {activeIsFile && languageId && shown('language') && <span className="statusbar__item">{languageLabel(languageId)}</span>}
         {shown('simulator') && <span className="statusbar__item">{simulator === 'icarus' ? 'Icarus' : 'Verilator'}</span>}
+        <UpdateIndicator />
         {shown('bundle') && (
           <button
             type="button"

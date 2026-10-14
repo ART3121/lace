@@ -16,6 +16,7 @@ mod report;
 mod settings;
 mod uninstall;
 mod update;
+mod update_check;
 mod wave_choice;
 
 use std::process::ExitCode;
@@ -198,6 +199,9 @@ enum Command {
         /// Update from a local Lace installer of the new version (folder, .tar.gz, payload/, or a folder with the release files), without network
         #[arg(long, value_name = "PATH", conflicts_with = "full")]
         from: Option<Utf8PathBuf>,
+        /// Run by Lace Studio, which closes for the update: on Windows, the setup wizard opens it again when it finishes
+        #[arg(long, hide = true)]
+        reopen_studio: bool,
     },
     /// Install the bundle apps from the downloaded release files (run by the Windows web installer)
     #[command(hide = true)]
@@ -556,6 +560,8 @@ fn main() -> ExitCode {
     let out = output::Output::new(mode, cli.verbose > 0);
     let cancel = cancel_on_signals();
     let control = out.control(cancel.clone());
+    // A consulta da última versão roda enquanto o comando roda.
+    let update_check = update_check::start(out.is_text() && cli.command.checks_for_updates());
 
     let code = match commands::run(&cli, &out, &control) {
         Ok(true) => ExitCode::SUCCESS,
@@ -568,7 +574,23 @@ fn main() -> ExitCode {
     if cancel.is_cancelled() {
         ExitCode::from(EXIT_CANCELLED)
     } else {
+        update_check::finish(update_check);
         code
+    }
+}
+
+impl Command {
+    /// O comando avisa no fim quando há Lace mais novo (`update_check`). Fora
+    /// ficam o `lace update`, que já compara as versões, o `lace uninstall`
+    /// e os comandos internos.
+    fn checks_for_updates(&self) -> bool {
+        !matches!(
+            self,
+            Command::Update { .. }
+                | Command::Uninstall { .. }
+                | Command::Setup { .. }
+                | Command::Completions { .. }
+        )
     }
 }
 

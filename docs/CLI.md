@@ -676,6 +676,26 @@ O compilador do sistema para o Verilator (Linux e macOS), quando está fora
 do local padrão, é declarado com `--compiler <DIR>` ou `LACE_COMPILER`
 ([De onde vêm as ferramentas](#de-onde-vêm-as-ferramentas)).
 
+Um `lace` instalado pelo instalador procura sozinho, uma vez por dia, se há
+Lace mais novo publicado (a mesma consulta do `lace update`). A consulta
+roda enquanto o comando roda, e no fim, se há versão nova, uma linha no
+stderr avisa:
+
+```
+Lace 0.8.0 is available (this is 0.7.0): update with lace update
+```
+
+O aviso de uma versão sai uma vez por dia até a atualização. Se a consulta
+não voltou até o fim do comando, o comando espera por ela no máximo 1,5 s
+e o aviso fica para a próxima vez; sem rede, ela tenta de novo uma hora
+depois. A hora da última consulta, a versão achada e a do último aviso
+ficam em `lace/update-check.json` na pasta de cache do usuário
+(`$XDG_CACHE_HOME` ou `~/.cache` no Linux e no macOS, `%LOCALAPPDATA%` no
+Windows); o `lace update` também grava ali o que consultou. Não há consulta
+nem aviso com `--json` ou `--events`, fora de um terminal, no `lace update`
+e no `lace uninstall`, num `lace` que não veio do instalador, com a
+variável `CI` definida ou com `LACE_NO_UPDATE_CHECK=1`.
+
 `lace setup --payload <pasta> --prefix <pasta> [--components a,b]` instala
 o bundle desses aplicativos em `<prefix>/toolchain`, a partir dos arquivos
 da release baixados em `<payload>`: extrai os pedaços, confere os

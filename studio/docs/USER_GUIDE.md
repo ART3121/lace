@@ -689,16 +689,33 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
   que mudaram. Se a atualização por componentes não der certo, a
   instalação fica como estava e vem o instalador inteiro da release: no
   Linux e no macOS ele troca o `lace` e o bundle com os mesmos
-  componentes; no Windows, abre o assistente de instalação, e depois de
-  terminar nele clique em **Atualizar** no alto da tela para reler o
-  bundle.
+  componentes; no Windows, abre o assistente de instalação.
+
+O Studio procura sozinho: uns segundos depois de abrir e, aberto, a cada 12
+horas, ele roda o `lace update --check` sem mostrar nada. Achando um Lace
+mais novo, oferece a atualização num diálogo, com **Atualizar e reiniciar**
+e **Depois**; se outro diálogo estiver aberto ou uma operação rodando, o
+aviso vem no canto da janela. A oferta de cada versão aparece uma vez por
+sessão, e o indicador **Lace X disponível**, na barra de status, fica até a
+atualização: o clique nele abre o diálogo de novo. Sem rede, a busca só
+tenta de novo na próxima vez. Preferências > Geral > Procurar atualizações
+desliga a busca automática; o botão desta tela continua valendo.
+
+Atualizado, o Studio grava os arquivos abertos e as abas da sessão e
+reinicia na versão nova; os terminais fecham. Ao abrir de novo, um aviso
+diz para que versão ele foi. Se algum arquivo não gravar (um conflito com
+o disco cancelado, por exemplo), o Studio não sai: grave o arquivo e
+clique em **Reiniciar para concluir a atualização**, na barra de status.
+No Windows, quando a atualização cai no assistente de instalação, o Studio
+fecha para o assistente trocar os arquivos dele (um diálogo avisa antes), e
+o assistente abre o Studio de novo quando a instalação termina.
 
 A atualização não para no meio: o Parar some e o Shift+F5 não faz nada
 enquanto ela roda, porque parar o `lace` no meio da troca deixaria a
 instalação pela metade. Um `lace` que não veio do instalador (um build
-local) não se atualiza por aqui. O Studio que está aberto continua sendo o
-antigo: quando a atualização troca o Studio, a tela avisa, e ele vale
-depois de fechar e abrir o Studio.
+local) não se atualiza por aqui, e a busca automática não oferece nada.
+Um `lace update` rodado num terminal, fora do Studio, não reinicia o
+Studio aberto: ele vale depois de fechar e abrir o Studio.
 
 ## 9. Preferências
 
@@ -708,7 +725,7 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 
 | Página | Preferência |
 |---|---|
-| Geral | idioma (do sistema, português, inglês), reabrir o último projeto; no Windows, o shell do terminal: PowerShell ou Prompt de Comando (`cmd`) |
+| Geral | idioma (do sistema, português, inglês), reabrir o último projeto, procurar atualizações ao abrir e a cada 12 horas (seção 8); no Windows, o shell do terminal: PowerShell ou Prompt de Comando (`cmd`) |
 | Aparência | o tema (ver abaixo) |
 | Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem) e os itens das barras de ferramentas e de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |

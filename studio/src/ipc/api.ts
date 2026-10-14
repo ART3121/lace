@@ -80,6 +80,9 @@ export const api = {
     forgetRecent: (spf: string) => call<void>('recent_forget', { spf }),
     openWave: (processor?: string | null, path?: string | null) =>
       call<WaveOpened>('wave_open', { processor: processor ?? null, path: path ?? null }),
+    /** Fecha o Studio e, com `restart`, abre ele de novo (depois do `lace
+     * update`). Quem chama grava os arquivos antes. */
+    exit: (restart: boolean) => call<void>('app_exit', { restart }),
   },
 
   /** A onda numa aba (`wave_tab.rs`). */

@@ -2,6 +2,20 @@
 
 ## Não publicada
 
+- O Lace avisa quando há versão nova. O Lace Studio procura uns segundos
+  depois de abrir e, aberto, a cada 12 horas (`lace update --check`), e
+  oferece a atualização num diálogo; o indicador na barra de status fica
+  até ela. Atualizado, o Studio grava os arquivos abertos e reinicia sozinho
+  na versão nova. No Windows, quando a atualização cai no assistente de
+  instalação, o Studio fecha para ele trocar os arquivos e o assistente o
+  abre de novo no fim (`lace update --reopen-studio`, que o Studio passa, e
+  o `/REOPENSTUDIO=1` do assistente). Vale a partir desta versão: um Studio
+  0.7.0 não procura nem reinicia.
+- O `lace`, num terminal, consulta uma vez por dia a última release
+  enquanto o comando roda e, se há Lace mais novo, avisa no fim, no stderr,
+  uma vez por dia por versão ([docs/CLI.md](docs/CLI.md), "Bundle"). Não
+  consulta com `--json` ou `--events`, fora de um terminal, num `lace` que
+  não veio do instalador, com `CI` ou com `LACE_NO_UPDATE_CHECK=1`.
 - A placa Terasic Cyclone V GX Starter Kit (C5G, Cyclone V GX
   5CGXFC5C6F27C7), com `"board": "c5g"` no `fpga.json`: os quatro clocks de
   50 MHz, KEY, o CPU_RESET_n, SW, LEDR, LEDG e os quatro displays. Os 65

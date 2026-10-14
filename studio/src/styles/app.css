@@ -1561,6 +1561,11 @@ body.is-dragging * {
   color: var(--text-0);
 }
 
+/* Lace mais novo publicado, ou a atualização esperando o reinício. */
+.statusbar__update {
+  color: var(--brand-text);
+}
+
 /* O ponto do layout em uso com mudanças que não foram salvas. */
 .statusbar__dirty {
   width: 6px;

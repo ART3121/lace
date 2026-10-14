@@ -15,7 +15,7 @@
 //! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
 //! | [`terminal`] | o terminal de shell |
-//! | [`commands::app`] | versão, preferências, recentes, abrir a onda |
+//! | [`commands::app`] | versão, preferências, recentes, abrir a onda, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
 //! | [`commands::wave`] | a escolha dos sinais da onda e o layout salvo |
 //!
@@ -45,6 +45,9 @@ pub mod toolchain;
 pub mod watcher;
 pub mod wave_tab;
 
+use std::path::PathBuf;
+use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use camino::Utf8PathBuf;
@@ -63,9 +66,32 @@ const SHUTDOWN_WAIT: Duration = Duration::from_secs(3);
 /// deste tempo, com o fundo escuro, em vez de o Studio ficar invisível.
 const REVEAL_FALLBACK: Duration = Duration::from_secs(10);
 
+/// O executável com que o Studio abriu. Fica guardado antes de tudo porque
+/// a atualização o troca: no Linux, o `current_exe` de depois seria o
+/// arquivo apagado.
+static STARTING_EXE: OnceLock<PathBuf> = OnceLock::new();
+
+/// O Studio abre de novo depois de sair ([`exit`]).
+static RESTART: AtomicBool = AtomicBool::new(false);
+
+/// Sai do Studio do jeito de sempre (a operação rodando é cancelada e os
+/// terminais fecham, em `shutdown`) e, com `restart`, abre de novo o
+/// executável com que ele começou, que depois de uma atualização é o da
+/// versão nova.
+pub fn exit(app: &AppHandle, restart: bool) {
+    RESTART.store(restart, Ordering::SeqCst);
+    app.exit(0);
+}
+
 /// Abre o Studio.
 pub fn run() {
     init_tracing();
+    match std::env::current_exe() {
+        Ok(exe) => {
+            let _ = STARTING_EXE.set(exe);
+        }
+        Err(error) => tracing::warn!("Could not find the Studio executable: {error}"),
+    }
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -99,6 +125,7 @@ pub fn run() {
             commands::app::wave_open,
             commands::app::log_frontend,
             commands::app::dev_smoke_script,
+            commands::app::app_exit,
             commands::project::project_default_parent,
             commands::project::project_open,
             commands::project::project_create,
@@ -171,8 +198,29 @@ pub fn run() {
     app.run(|app, event| {
         if let RunEvent::Exit = event {
             shutdown(app);
+            if RESTART.load(Ordering::SeqCst) {
+                relaunch();
+            }
         }
     });
+}
+
+/// Abre um Studio novo, com os mesmos argumentos, enquanto este termina de
+/// sair. Não é o `AppHandle::restart` do Tauri porque ele recusa, no macOS,
+/// um caminho com symlink, e o Studio pode ter sido aberto pelo atalho de
+/// `~/Applications`, que é um.
+fn relaunch() {
+    let Some(exe) = STARTING_EXE.get() else {
+        tracing::error!("Not restarting: the Studio executable is unknown");
+        return;
+    };
+    match std::process::Command::new(exe)
+        .args(std::env::args_os().skip(1))
+        .spawn()
+    {
+        Ok(_) => tracing::info!("Restarting {}", exe.display()),
+        Err(error) => tracing::error!("Could not restart {}: {error}", exe.display()),
+    }
 }
 
 /// Ao sair: cancela a operação rodando (que encerra as ferramentas com tudo

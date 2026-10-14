@@ -125,6 +125,9 @@ function GeneralPage({ settings }: { settings: Settings }) {
       <SettingRow label={t('settings.restoreLast')}>
         {(id) => <Switch id={id} checked={settings.restore_last_project} onChange={(v) => set('restore_last_project', v)} />}
       </SettingRow>
+      <SettingRow label={t('settings.checkUpdates')} hint={t('settings.checkUpdatesHint')}>
+        {(id) => <Switch id={id} checked={settings.check_updates} onChange={(v) => set('check_updates', v)} />}
+      </SettingRow>
       {/* Nos outros sistemas o terminal abre o shell do usuário ($SHELL). */}
       {windows && (
         <SettingRow label={t('settings.terminalShell')} hint={t('settings.terminalShellHint')}>

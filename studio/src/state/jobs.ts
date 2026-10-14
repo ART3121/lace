@@ -772,16 +772,11 @@ export const useJobs = create<JobsState>((set, get) => ({
         : t('console.updateDone', { version });
       cliLine(text, 'success');
       useToasts.getState().push({ kind: 'success', title: text });
-      // O Studio que está aberto é o antigo: o novo vale ao abrir de novo.
-      if (changes?.components.includes('studio')) {
-        const restart = t('console.updateRestart');
-        cliLine(restart, 'info');
-        useToasts.getState().push({ kind: 'info', title: restart }, 10000);
-      }
+      // O Studio que está aberto é o antigo: ele reinicia (state/updates.ts).
+      cliLine(t('console.updateRestart'), 'info');
     } else if (report.action === 'wizard_opened') {
-      const text = t('console.updateWizard', { version });
-      cliLine(text, 'info');
-      useToasts.getState().push({ kind: 'info', title: text }, 10000);
+      // O diálogo que fecha o Studio vem em seguida (state/updates.ts).
+      cliLine(t('console.updateWizard', { version }), 'info');
     } else {
       const text = t('console.updateCurrent', { version });
       cliLine(text, 'info');

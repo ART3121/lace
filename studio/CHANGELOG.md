@@ -7,6 +7,15 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Acrescentado
 
+- A busca de atualização automática: uns segundos depois de abrir e a cada
+  12 horas, o Studio roda o `lace update --check` e, havendo Lace mais
+  novo, oferece **Atualizar e reiniciar** num diálogo. O indicador **Lace X
+  disponível**, na barra de status, fica até a atualização. Preferências >
+  Geral > Procurar atualizações desliga a busca.
+- Depois da atualização, o Studio grava os arquivos abertos e a sessão e
+  reinicia sozinho na versão nova; ao abrir, um aviso diz a versão. No
+  Windows, quando a atualização cai no assistente de instalação, o Studio
+  fecha e o assistente o abre de novo no fim.
 - A aba Placa FPGA conhece a Terasic Cyclone V GX Starter Kit (C5G). HEX2
   e HEX3 dividem os pinos com o conector GPIO e só acendem com as chaves
   DIP S1 e S2, no verso da placa, em ON.
