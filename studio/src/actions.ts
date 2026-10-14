@@ -513,7 +513,27 @@ export const ACTIONS: Action[] = [
   // Editar
   { id: 'undo', label: 'action.undo', category: 'edit', keys: 'Ctrl+Z', enabled: hasEditor, run: () => editorCommand('undo') },
   { id: 'redo', label: 'action.redo', category: 'edit', keys: 'Ctrl+Y', enabled: hasEditor, run: () => editorCommand('redo') },
-  { id: 'find', label: 'action.find', category: 'edit', keys: 'Ctrl+F', enabled: hasEditor, run: () => editorCommand('actions.find') },
+  // Com um arquivo na frente, a busca no arquivo; com o RTLViewer, a busca
+  // dele; sem nenhum dos dois (outra vista, o editor vazio), a Busca do
+  // projeto.
+  {
+    id: 'find',
+    label: 'action.find',
+    category: 'edit',
+    keys: 'Ctrl+F',
+    enabled: () => hasEditor() || hasProject(),
+    run: () => {
+      if (hasEditor()) return editorCommand('actions.find');
+      const { tabs, activeId } = useEditor.getState();
+      const viewerSearch = document.querySelector<HTMLInputElement>('.rtlViewer-search input');
+      if (tabs.find((tab) => tab.id === activeId)?.kind === 'schematic' && viewerSearch) {
+        viewerSearch.focus();
+        viewerSearch.select();
+        return;
+      }
+      reveal('search');
+    },
+  },
   {
     id: 'replace',
     label: 'action.replace',
@@ -940,7 +960,8 @@ function zenEscape(target: Element | null): void {
 }
 
 /** Teclas que o editor resolve sozinho, e que o Studio deixa passar quando
- * o foco está nele. */
+ * o foco está nele. O Ctrl+F só sem o Vim: com ele, o monaco-vim o tomaria
+ * como página para baixo, e a busca no arquivo vem antes (handleShortcut). */
 const EDITOR_KEYS = new Set(['Ctrl+Z', 'Ctrl+Y', 'Ctrl+F', 'Ctrl+H', 'Ctrl+G', 'Shift+Alt+F']);
 
 /** Com o Vim ligado, estas também ficam com o editor: Ctrl+B (página para
@@ -993,7 +1014,8 @@ export function handleShortcut(event: KeyboardEvent): void {
 
   const a = BY_KEYS.get(combo);
   if (!a) return;
-  if (inEditor && (EDITOR_KEYS.has(combo) || (VIM_KEYS.has(combo) && vimActive()))) return;
+  const vimFind = combo === 'Ctrl+F' && vimActive();
+  if (inEditor && !vimFind && (EDITOR_KEYS.has(combo) || (VIM_KEYS.has(combo) && vimActive()))) return;
   // No RTLViewer, o Ctrl+F é a busca dele (SchematicView).
   if (combo === 'Ctrl+F' && target?.closest('.rtlViewer')) return;
   if (inShell && !/^(Shift\+)?F\d+$/.test(combo) && !combo.startsWith('Ctrl+Shift+') && combo !== 'Ctrl+`') return;

@@ -113,6 +113,8 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - Com as Preferências ou o RTLViewer na frente, as barras laterais e o
   painel se escondem, e voltam como estavam quando outra aba vem para a
   frente. O layout salvo não muda com isso.
+- Sem arquivo na frente (outra vista, o editor vazio), o Ctrl+F abre a Busca
+  do projeto; com o RTLViewer na frente, a busca dele.
 
 ### Corrigido
 
@@ -120,6 +122,8 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   depois do nome, na barra de status) logo depois de escolhido: a vista
   Exercícios não estava na lista dele e entrava sozinha no fim da barra
   lateral.
+- Com o modo Vim ligado, o Ctrl+F no editor descia uma página (o Ctrl+F do
+  Vim) em vez de abrir a busca no arquivo.
 
 ## [0.7.0] - 2026-10-12
 

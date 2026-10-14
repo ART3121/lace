@@ -908,6 +908,10 @@ Dentro do Terminal, as teclas com Ctrl sozinho (Ctrl+C, Ctrl+W, Ctrl+P) vão
 para o shell; só as teclas de função e as combinações com Ctrl+Shift
 continuam do Studio.
 
+O Ctrl+F busca no arquivo da frente. Com o RTLViewer na frente, vai para a
+busca dele; sem arquivo nem RTLViewer (outra vista, o editor vazio), abre a
+Busca do projeto, como Ctrl+Shift+F.
+
 ### Modo Vim
 
 Editar > Alternar modo Vim, ou a caixa nas Preferências. O editor passa a
@@ -924,7 +928,9 @@ a linha de comando. Além dos comandos do Vim:
 
 Com o Vim ligado e o foco no editor, Ctrl+B e Ctrl+O ficam com o Vim
 (página para cima, voltar no histórico de saltos) em vez de esconder a
-barra lateral e abrir arquivo. Os outros atalhos do Studio continuam. No
+barra lateral e abrir arquivo. O Ctrl+F não: ele abre a busca no arquivo, e
+não desce uma página como no Vim (Page Down desce). Os outros atalhos do
+Studio continuam. No
 modo zen, a linha do Vim aparece no indicador do canto, porque a barra de
 status está escondida; Esc duas vezes não sai do zen, Ctrl+K Z sai.
 
