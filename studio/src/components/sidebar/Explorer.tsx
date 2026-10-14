@@ -31,6 +31,7 @@ import {
   Folder,
   FolderOpen,
   FolderPlus,
+  ListPlus,
   Package,
   Plus,
   RefreshCw,
@@ -587,6 +588,29 @@ function ProcessorNode({ processor }: { processor: ProcessorStatus }) {
   );
 }
 
+/** O + de um arquivo fora do projeto: registra no .spf, como o "Adicionar ao
+ * projeto" do menu de contexto, que decide se é módulo ou testbench. Só
+ * aparece com o ponteiro ou o foco na linha (app.css). O clique, a tecla e
+ * o arrastar ficam no botão e não chegam à linha, que abriria o arquivo ou
+ * começaria a arrastá-lo. */
+function AddToProjectButton({ path }: { path: string }) {
+  return (
+    <IconButton
+      label={t('explorer.addToProject')}
+      className="icon-btn--small tree__add"
+      onClick={(e) => {
+        e.stopPropagation();
+        void addVerilogFiles([path]);
+      }}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      <Plus size={14} />
+    </IconButton>
+  );
+}
+
 function SourcesView() {
   useT();
   const snapshot = useProject((s) => s.snapshot)!;
@@ -663,7 +687,18 @@ function SourcesView() {
       </Section>
 
       {snapshot.unregistered.length > 0 && (
-        <Section title={t('explorer.unregistered')} count={snapshot.unregistered.length} defaultOpen={false}>
+        <Section
+          title={t('explorer.unregistered')}
+          count={snapshot.unregistered.length}
+          defaultOpen={false}
+          actions={
+            // Não o + dos outros cabeçalhos, que cria arquivo novo: este
+            // registra os que já existem.
+            <IconButton label={t('explorer.addAllToProject')} onClick={() => void addVerilogFiles(snapshot.unregistered)}>
+              <ListPlus size={14} />
+            </IconButton>
+          }
+        >
           {snapshot.unregistered.map((path) => (
             <Row
               key={path}
@@ -673,6 +708,7 @@ function SourcesView() {
               title={t('explorer.unregisteredHint')}
               path={path}
               muted
+              badges={<AddToProjectButton path={path} />}
               onClick={() => openPreview(path)}
               onDoubleClick={() => openPinned(path)}
               onPointerDown={(e) => beginDrag(e, { path, isDir: false, movable: false, verilog: true })}

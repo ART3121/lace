@@ -355,17 +355,32 @@ export async function addVerilogFiles(paths?: string[]) {
     });
     files = Array.isArray(chosen) ? chosen : typeof chosen === 'string' ? [chosen] : [];
   }
+  // Um arquivo: o aviso diz onde ele entrou. Vários (o + de "Fora do
+  // projeto", uma seleção no diálogo): um aviso só, com as contas.
+  const added = { module: 0, testbench: 0 };
   for (const file of files) {
     try {
-      const added = await api.project.addVerilog(file, false);
-      useToasts.getState().push({
-        kind: 'success',
-        title: baseName(added.path),
-        detail: added.role === 'testbench' ? t('explorer.testbenches') : t('explorer.modules'),
-      });
+      const result = await api.project.addVerilog(file, false);
+      const testbench = result.role === 'testbench';
+      added[testbench ? 'testbench' : 'module'] += 1;
+      if (files.length === 1) {
+        useToasts.getState().push({
+          kind: 'success',
+          title: baseName(result.path),
+          detail: testbench ? t('explorer.testbenches') : t('explorer.modules'),
+        });
+      }
     } catch (error) {
       showError(error);
     }
+  }
+  const count = added.module + added.testbench;
+  if (files.length > 1 && count > 0) {
+    useToasts.getState().push({
+      kind: 'success',
+      title: t('explorer.addedMany', { count }),
+      detail: t('explorer.addedManyDetail', { modules: added.module, testbenches: added.testbench }),
+    });
   }
   await useProject.getState().refresh();
 }

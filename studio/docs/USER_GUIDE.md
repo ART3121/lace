@@ -100,7 +100,11 @@ cria um módulo, um testbench ou um processador.
   gerado), as **Memórias** (`.mif`), a **Simulação** (entradas, saídas e a
   onda) e, recolhidos, os **Intermediários do YANC** (logs e traduções da
   pasta temporária).
-- *Fora do projeto*: os `.v` da pasta que ainda não estão no `.spf`.
+- *Fora do projeto*: os `.v` da pasta que ainda não estão no `.spf`. O
+  **+** que aparece ao passar o ponteiro (ou com a linha em foco) registra o
+  arquivo, como o Adicionar ao projeto do menu de contexto: um testbench vai
+  para Testbenches, o resto para Módulos. O botão de lista com **+**, no
+  cabeçalho da seção, registra todos de uma vez.
 
 **Hierarquia** mostra a árvore de instâncias como o Icarus a elabora: em
 *Design*, os módulos que ninguém instancia (o topo, marcado) com tudo o que

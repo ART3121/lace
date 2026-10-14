@@ -7,6 +7,11 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Acrescentado
 
+- Na aba Fontes, em Fora do projeto, um **+** ao lado de cada arquivo, que
+  aparece ao passar o ponteiro, o registra no projeto sem passar pelo menu
+  de contexto, e o botão de lista com **+** no cabeçalho da seção registra
+  todos. Adicionar vários arquivos de uma vez mostra um aviso só, com
+  quantos foram para Módulos e para Testbenches.
 - A busca de atualização automática: uns segundos depois de abrir e a cada
   12 horas, o Studio roda o `lace update --check` e, havendo Lace mais
   novo, oferece **Atualizar e reiniciar** num diálogo. O indicador **Lace X

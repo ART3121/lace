@@ -952,6 +952,22 @@ body.is-dragging * {
   padding-left: var(--space-2);
 }
 
+/* O + de um arquivo fora do projeto, que o registra: só com o ponteiro ou o
+   foco na linha, para a lista não virar uma coluna de +. O espaço fica
+   reservado, e o nome não muda de largura ao passar o ponteiro. */
+.tree__add {
+  visibility: hidden;
+}
+
+.tree__row:hover .tree__add,
+.tree__row:focus-within .tree__add {
+  visibility: visible;
+}
+
+.icon-btn.tree__add:hover:not(:disabled) {
+  color: var(--brand-text);
+}
+
 .tree__empty {
   padding: 2px var(--space-3) 2px 30px;
   color: var(--text-3);
