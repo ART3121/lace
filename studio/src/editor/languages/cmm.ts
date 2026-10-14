@@ -39,7 +39,7 @@ interface Diretiva {
  * #PRACA e #TOAQUI são comandos (vão dentro de função); as demais, cabeçalho.
  */
 const DIRETIVAS: readonly Diretiva[] = [
-  { nome: 'PRNAME', argumento: '${1:nome}', doc: 'Nome do processador.' },
+  { nome: 'PRNAME', argumento: '${1:nome}', doc: 'Nome do processador. Só até o YANC 6.x: na 7.1 é erro, e o processador se chama como o arquivo.' },
   { nome: 'NUBITS', argumento: '${1:32}', doc: 'Largura da palavra da ULA, em bits.' },
   { nome: 'NBMANT', argumento: '${1:23}', doc: 'Bits de mantissa do float (padrão 23).' },
   { nome: 'NBEXPO', argumento: '${1:8}', doc: 'Bits de expoente do float (padrão 8).' },

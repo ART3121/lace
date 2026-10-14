@@ -4,7 +4,7 @@ mod common;
 
 use camino::Utf8Path;
 use lace_core::{
-    ArtifactKind, BuildOptions, BuildResult, Control, FileRole, LaceError, Language, Project,
+    BuildOptions, BuildResult, Control, FileRole, LaceError, Language, NewProcessor, Project,
     Severity, Status, Step, Toolchain, build,
 };
 
@@ -67,8 +67,16 @@ fn example_builds_in_both_languages() {
                 .iter()
                 .all(|d| d.severity == Severity::Info)
         );
-        for artifact in result.artifacts.iter().filter(|a| a.required) {
-            assert!(artifact.fresh, "{:?} não foi gerado", artifact.kind);
+        for artifact in &result.artifacts {
+            assert!(
+                artifact.path.starts_with(&processor.output_dir),
+                "{:?} fora da pasta de saída: {}",
+                artifact.kind,
+                artifact.path
+            );
+            if artifact.required {
+                assert!(artifact.fresh, "{:?} não foi gerado", artifact.kind);
+            }
         }
         insta::assert_json_snapshot!(
             format!("build_ok_{}", processor.name),
@@ -79,9 +87,10 @@ fn example_builds_in_both_languages() {
 }
 
 #[test]
-fn verilog_embeds_the_final_simulation_path() {
-    // Os artefatos não são relocáveis: o testbench abre
-    // `<proc>/Simulation/input_0.txt` por caminho absoluto.
+fn the_generated_verilog_names_its_files_relative_to_the_output_folder() {
+    // A estrutura do YANC 7.1: o Verilog e o testbench citam as memórias,
+    // a tabela do PC e as saídas pelo nome, e as entradas na pasta do fonte,
+    // e o projeto pode mudar de pasta sem compilar de novo.
     let Some(toolchain) = common::toolchain() else {
         return;
     };
@@ -95,22 +104,16 @@ fn verilog_embeds_the_final_simulation_path() {
         &Control::default(),
     )
     .unwrap();
-    let tb = result
-        .artifacts
-        .iter()
-        .find(|a| a.kind == ArtifactKind::Testbench)
-        .unwrap();
-    // O asmcomp troca `\\` por `/` antes de embutir (hdl.c), então no Windows
-    // o caminho aparece como `C:/.../Simulation/output_0.txt`.
-    let text = std::fs::read_to_string(&tb.path)
-        .unwrap()
-        .replace('\\', "/");
-    let expected = processor
-        .simulation_dir()
-        .join("output_0.txt")
-        .as_str()
-        .replace('\\', "/");
-    assert!(text.contains(&expected), "{expected}");
+    assert!(result.succeeded());
+    let verilog = std::fs::read_to_string(processor.verilog_path()).unwrap();
+    assert!(verilog.contains(".DFILE(\"soma_data.mif\")"), "{verilog}");
+    assert!(verilog.contains(".IFILE(\"soma_inst.mif\")"), "{verilog}");
+    let testbench = std::fs::read_to_string(processor.testbench_path()).unwrap();
+    assert!(testbench.contains("$fopen(\"output_0.txt\""), "{testbench}");
+    assert!(
+        !testbench.contains(root.as_str()),
+        "caminho absoluto no testbench"
+    );
 }
 
 #[test]
@@ -157,14 +160,18 @@ fn cmm_error_points_to_source_file_and_line() {
 
     assert_eq!(result.status, Status::Failed);
     assert_eq!(result.failed_step, Some(Step::Compile));
-    assert_eq!(result.steps.len(), 1, "não pode seguir para o appcomp");
+    assert_eq!(
+        result.steps.len(),
+        1,
+        "não pode seguir para o próximo passo"
+    );
     let error = result
         .diagnostics
         .iter()
         .find(|d| d.severity == Severity::Error)
         .unwrap();
     assert_eq!(error.file.as_deref(), Some(processor.source.as_path()));
-    assert_eq!(error.line, Some(16));
+    assert_eq!(error.line, Some(15));
     assert!(error.message.contains("'total'"));
 
     insta::assert_json_snapshot!(
@@ -175,9 +182,9 @@ fn cmm_error_points_to_source_file_and_line() {
 }
 
 #[test]
-fn cpp_error_points_to_preprocessed_file() {
-    // O cpppp não emite marcadores de linha, então o cppcomp numera as linhas
-    // do pp.cpp. Sem #include, as linhas coincidem com as do fonte.
+fn cpp_error_points_to_the_file_the_compiler_read() {
+    // O cppcomp do YANC 7.1 pré-processa na memória e cita o arquivo e a
+    // linha escritos (o fonte, ou o cabeçalho incluído).
     let Some(toolchain) = common::toolchain() else {
         return;
     };
@@ -195,20 +202,41 @@ fn cpp_error_points_to_preprocessed_file() {
 
     assert_eq!(result.status, Status::Failed);
     assert_eq!(result.failed_step, Some(Step::Compile));
-    let error = result
-        .diagnostics
-        .iter()
-        .find(|d| d.severity == Severity::Error)
-        .unwrap();
+    let error = result.first_error().unwrap();
+    assert_eq!(error.file.as_deref(), Some(processor.source.as_path()));
+    assert_eq!(error.line, Some(5));
+
+    // Um erro dentro de um cabeçalho da pasta do processador cita o
+    // cabeçalho, que o cppcomp acha sem `-I`.
+    std::fs::write(
+        processor.dir.join("util.h"),
+        "int dobro(int x)\n{\n    return x + y;\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        &processor.source,
+        "#include \"util.h\"\nvoid main(void)\n{\n    out(0, dobro(in(0)));\n}\n",
+    )
+    .unwrap();
+    let result = build(
+        &toolchain,
+        processor,
+        &BuildOptions::default(),
+        &Control::default(),
+    )
+    .unwrap();
+    let error = result.first_error().unwrap();
     assert_eq!(
         error.file.as_deref(),
-        Some(processor.temp_dir.join("pp.cpp").as_path())
+        Some(processor.dir.join("util.h").as_path())
     );
-    assert_eq!(error.line, Some(7));
+    assert_eq!(error.line, Some(3));
 }
 
 #[test]
-fn name_traps_are_caught_before_running() {
+fn a_name_line_left_from_yanc_6_is_the_compiler_error() {
+    // Na 7.1 o processador se chama como o arquivo, e o `#PRNAME` que sobrou
+    // de um fonte da 6.x é erro do cmmcomp, na linha dele.
     let Some(toolchain) = common::toolchain() else {
         return;
     };
@@ -216,38 +244,140 @@ fn name_traps_are_caught_before_running() {
     let project = Project::open(&root).unwrap();
     let processor = project.require_processor("soma").unwrap();
     let source = std::fs::read_to_string(&processor.source).unwrap();
-
-    std::fs::write(
-        &processor.source,
-        source.replace("#PRNAME soma", "#PRNAME outro"),
+    std::fs::write(&processor.source, format!("#PRNAME outro\n{source}")).unwrap();
+    let result = build(
+        &toolchain,
+        processor,
+        &BuildOptions::default(),
+        &Control::default(),
     )
     .unwrap();
+    assert_eq!(result.status, Status::Failed);
+    assert_eq!(result.failed_step, Some(Step::Compile));
+    let error = result.first_error().unwrap();
+    assert_eq!(error.file.as_deref(), Some(processor.source.as_path()));
+    assert_eq!(error.line, Some(1));
+    assert!(error.message.contains("#PRNAME"), "{error:?}");
+    assert!(!processor.output_dir.join("outro.v").exists());
+}
+
+#[test]
+fn the_source_must_carry_the_processor_name() {
+    let Some(toolchain) = common::toolchain() else {
+        return;
+    };
+    let (_guard, root) = common::example("soma");
+    std::fs::rename(root.join("soma/soma.cmm"), root.join("soma/outro.cmm")).unwrap();
+    let spf = root.join("soma.spf");
+    let text = std::fs::read_to_string(&spf).unwrap();
+    std::fs::write(
+        &spf,
+        text.replacen(
+            "\"name\": \"soma\"",
+            "\"name\": \"soma\", \"sourceFile\": \"outro.cmm\"",
+            1,
+        ),
+    )
+    .unwrap();
+    let project = Project::open(&root).unwrap();
     let err = build(
         &toolchain,
-        processor,
+        project.require_processor("soma").unwrap(),
         &BuildOptions::default(),
         &Control::default(),
     )
     .unwrap_err();
     assert!(
-        matches!(&err, LaceError::InvalidSource { reason, .. } if reason.contains("'outro'")),
+        matches!(&err, LaceError::InvalidSource { reason, .. } if reason.contains("soma.cmm")),
         "{err}"
     );
+}
 
-    std::fs::write(&processor.source, source.replace("#PRNAME soma", "")).unwrap();
+#[test]
+fn a_project_in_the_old_layout_is_refused_until_converted() {
+    let Some(toolchain) = common::toolchain() else {
+        return;
+    };
+    let (_guard, root) = common::example("soma");
+    // Como a 6.x deixava: o fonte, com #PRNAME, em Software/, e um build
+    // antigo em Hardware/ e Simulation/.
+    for (from, to) in [
+        ("soma/soma.cmm", "soma/Software/soma.cmm"),
+        ("filtro/filtro.cpp", "filtro/Software/filtro.cpp"),
+    ] {
+        std::fs::create_dir_all(root.join(to).parent().unwrap()).unwrap();
+        let text = std::fs::read_to_string(root.join(from)).unwrap();
+        let name = if from.ends_with(".cmm") {
+            "#PRNAME soma\n"
+        } else {
+            "#pragma yanc prname filtro\n"
+        };
+        std::fs::write(root.join(to), format!("{name}{text}")).unwrap();
+        std::fs::remove_file(root.join(from)).unwrap();
+    }
+    std::fs::create_dir_all(root.join("soma/Hardware")).unwrap();
+    std::fs::write(
+        root.join("soma/Hardware/soma.v"),
+        "module soma; endmodule\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(root.join("soma/Simulation")).unwrap();
+    std::fs::write(root.join("soma/Simulation/input_0.txt"), "1\n").unwrap();
+    std::fs::write(root.join("soma/Simulation/output_0.txt"), "55\n").unwrap();
+    let mut project = Project::open(&root).unwrap();
+    project
+        .add_file(
+            FileRole::Synthesizable,
+            root.join("soma/Hardware/soma.v"),
+            None,
+        )
+        .unwrap();
+    project
+        .set_top_level(root.join("soma/Hardware/soma.v"))
+        .unwrap();
+    assert_eq!(project.legacy_processors().len(), 2);
+    assert!(
+        project
+            .issues()
+            .iter()
+            .any(|i| i.kind == lace_core::IssueKind::LegacyLayout)
+    );
     let err = build(
         &toolchain,
-        processor,
+        project.require_processor("soma").unwrap(),
         &BuildOptions::default(),
         &Control::default(),
     )
     .unwrap_err();
-    assert!(
-        matches!(&err, LaceError::InvalidSource { reason, .. } if reason.contains("#PRNAME")),
-        "{err}"
-    );
+    assert!(matches!(err, LaceError::LegacyLayout { .. }), "{err}");
 
-    assert!(!processor.hardware_dir().join("outro.v").exists());
+    let report = project.convert_layout().unwrap();
+    assert_eq!(report.processors, ["soma", "filtro"]);
+    assert!(report.skipped.is_empty(), "{report:#?}");
+    assert_eq!(report.name_lines.len(), 2);
+    assert!(root.join("soma/soma.cmm").is_file());
+    assert!(root.join("soma/input_0.txt").is_file());
+    assert!(root.join("soma/soma/soma.v").is_file());
+    assert!(root.join("soma/soma/output_0.txt").is_file());
+    for old in ["Software", "Hardware", "Simulation"] {
+        assert!(!root.join("soma").join(old).exists(), "{old}");
+    }
+    // O .spf segue o arquivo.
+    let reopened = Project::open(&root).unwrap();
+    assert_eq!(reopened.top_level(), Some(root.join("soma/soma/soma.v")));
+    assert!(reopened.legacy_processors().is_empty());
+    assert!(project.convert_layout().unwrap().is_empty());
+
+    for processor in reopened.processors() {
+        let result = build(
+            &toolchain,
+            processor,
+            &BuildOptions::default(),
+            &Control::default(),
+        )
+        .unwrap();
+        assert!(result.succeeded(), "{:#?}", result.diagnostics);
+    }
 }
 
 #[test]
@@ -292,12 +422,17 @@ fn new_processors_build_as_created() {
     };
     let (_guard, dir) = common::tempdir();
     let mut project = Project::create(&dir, "novo").unwrap();
-    let mut sem_saida = lace_core::NewProcessor::new("sem_saida", Language::Cmm);
+    let mut sem_saida = NewProcessor::new("sem_saida", Language::Cmm);
     sem_saida.output_ports = 0;
+    let mut pilhas = NewProcessor::new("pilhas", Language::Cmm);
+    pilhas.ndstac = Some(8);
+    pilhas.sdepth = Some(4);
+    pilhas.nugain = 64;
     for spec in [
-        lace_core::NewProcessor::new("cmm", Language::Cmm),
-        lace_core::NewProcessor::new("cpp", Language::Cpp),
+        NewProcessor::new("cmm", Language::Cmm),
+        NewProcessor::new("cpp", Language::Cpp),
         sem_saida,
+        pilhas,
     ] {
         project.add_processor(&spec).unwrap();
     }
@@ -328,7 +463,7 @@ fn register_generated_adds_the_verilog_and_the_testbench() {
     let mut project = Project::create(&dir, "gerados").unwrap();
     for name in ["soma", "filtro"] {
         project
-            .add_processor(&lace_core::NewProcessor::new(name, Language::Cmm))
+            .add_processor(&NewProcessor::new(name, Language::Cmm))
             .unwrap();
     }
     let builds = lace_core::build_processors(
@@ -341,9 +476,9 @@ fn register_generated_adds_the_verilog_and_the_testbench() {
     )
     .unwrap();
     let root = project.root().to_owned();
-    let soma_v = root.join("soma/Hardware/soma.v");
-    let soma_tb = root.join("soma/Simulation/soma_tb.v");
-    let filtro_v = root.join("filtro/Hardware/filtro.v");
+    let soma_v = root.join("soma/soma/soma.v");
+    let soma_tb = root.join("soma/soma/soma_tb.v");
+    let filtro_v = root.join("filtro/filtro/filtro.v");
 
     // Sem RTL e sem testbench: o primeiro processador vira o topo e o
     // testbench escolhido; o segundo só entra nas listas.
@@ -361,19 +496,15 @@ fn register_generated_adds_the_verilog_and_the_testbench() {
     assert_eq!(
         summary,
         [
-            ("soma/Hardware/soma.v".into(), FileRole::Synthesizable, true),
+            ("soma/soma/soma.v".into(), FileRole::Synthesizable, true),
+            ("soma/soma/soma_tb.v".into(), FileRole::Testbench, true),
             (
-                "soma/Simulation/soma_tb.v".into(),
-                FileRole::Testbench,
-                true
-            ),
-            (
-                "filtro/Hardware/filtro.v".into(),
+                "filtro/filtro/filtro.v".into(),
                 FileRole::Synthesizable,
                 false
             ),
             (
-                "filtro/Simulation/filtro_tb.v".into(),
+                "filtro/filtro/filtro_tb.v".into(),
                 FileRole::Testbench,
                 false
             ),
@@ -414,7 +545,7 @@ fn register_generated_keeps_the_top_and_skips_failed_builds() {
         .unwrap();
     for name in ["soma", "ruim"] {
         project
-            .add_processor(&lace_core::NewProcessor::new(name, Language::Cmm))
+            .add_processor(&NewProcessor::new(name, Language::Cmm))
             .unwrap();
     }
     let ruim = project.require_processor("ruim").unwrap().source.clone();

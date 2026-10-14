@@ -55,6 +55,17 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   mesmo sem aviso nenhum.
 - O painel não troca mais de aba no meio de uma operação: o INFO vem para a
   frente no começo e, numa falha, rola até o primeiro erro.
+- A estrutura de pastas do YANC 7.1, a mesma da AURORA: o processador novo
+  é a pasta `<proc>/` com o fonte, sem `#PRNAME` e sem as pilhas que
+  ninguém escolheu (o campo vazio diz "pelo programa"); o arquivo de
+  entrada novo fica ao lado do fonte (`<proc>/input_<n>.txt`); o que o YANC
+  gera, com as saídas da simulação, fica em `<proc>/<proc>/`. A aba
+  Toolchain não lista mais o `appcomp` e o `cpppp`, que a 7.1 não tem.
+- Ao abrir um projeto com `Software/`, `Hardware/` e `Simulation/`, o
+  Studio pergunta se pode converter para a estrutura nova (nada é apagado
+  nem sobrescrito) e depois mostra o que mudou de lugar e o que ficou. A
+  conversão também fica em Arquivo > Converter projeto para o YANC 7.1, e o
+  painel de problemas avisa até lá.
 
 ## [0.7.0] - 2026-10-12
 

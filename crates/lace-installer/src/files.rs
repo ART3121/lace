@@ -8,7 +8,7 @@
 //! para baixar só os pedaços com arquivos que mudaram ([`crate::update`]).
 //!
 //! ```json
-//! { "schema": 1, "lace_version": "0.7.0", "bundle": "2026.10.07", "platform": "linux-x64",
+//! { "schema": 1, "lace_version": "0.7.0", "bundle": "2026.10.13", "platform": "linux-x64",
 //!   "groups": [
 //!     { "chunk": "lace.tar.zst", "components": [],
 //!       "files": { "bin/lace": "<sha256>", "toolchain/bundle.json": "<sha256>" } },

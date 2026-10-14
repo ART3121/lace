@@ -294,8 +294,8 @@ describe('CliLaceClient', () => {
       const [soma] = (run as { result: BuildReport }).result.results;
       assert.equal(soma.failed_step, 'compile');
       // O lace falso troca só o ${ROOT}; o resto do caminho é o gravado.
-      assert.equal(soma.diagnostics[0].file, `${demo}/soma/Software/soma.cmm`);
-      assert.equal(soma.diagnostics[0].line, 15);
+      assert.equal(soma.diagnostics[0].file, `${demo}/soma/soma.cmm`);
+      assert.equal(soma.diagnostics[0].line, 14);
     });
 
     it('proc add e proc set: o nome, a linguagem e só o que muda', async () => {

@@ -144,6 +144,7 @@ pub fn run() {
             commands::project::processor_check_name,
             commands::project::project_reorder,
             commands::project::project_move,
+            commands::project::project_convert_layout,
             commands::project::project_hierarchy,
             commands::files::fs_read_dir,
             commands::files::fs_read_text,

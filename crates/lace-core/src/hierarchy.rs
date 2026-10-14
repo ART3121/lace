@@ -7,7 +7,7 @@
 //! testbench:  iverilog [-g2012] [-y <SAPHO>] -s <módulo do testbench>
 //!             -o <trabalho>/tb-<n>.vvp <design> <testbench>                         cwd raiz
 //! processador: iverilog [-g2012] -y <SAPHO> -s <nome>_tb
-//!             -o <trabalho>/proc-<nome>.vvp Hardware/<nome>.v Simulation/<nome>_tb.v
+//!             -o <trabalho>/proc-<nome>.vvp <saída>/<nome>.v <saída>/<nome>_tb.v
 //! ```
 //!
 //! `<trabalho>` é `<raiz>/.lace/Temp/hierarchy/`, refeita a cada chamada. Os
@@ -52,7 +52,7 @@ use crate::toolchain::{Tool, Toolchain};
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct HierarchyOptions {
-    /// Só este processador, compilado antes: o `Hardware/<nome>.v` dele como
+    /// Só este processador, compilado antes: o `<nome>.v` gerado dele como
     /// design e o testbench que o build gerou. `None`: o projeto inteiro.
     pub processor: Option<String>,
 }
@@ -196,7 +196,7 @@ pub fn hierarchy(
         Some(name) => {
             let verilog = processor_verilog(project, name)?;
             let processor = project.require_processor(name)?;
-            let testbench = processor.simulated_testbench();
+            let testbench = processor.testbench_path();
             if testbench.is_file() {
                 targets.push(Target::processor(name, &verilog, testbench)?);
             }
@@ -234,7 +234,7 @@ pub fn hierarchy(
                 .map(|f| f.path)
                 .collect();
             for processor in project.processors() {
-                let testbench = processor.simulated_testbench();
+                let testbench = processor.testbench_path();
                 let Ok(verilog) = processor_verilog(project, &processor.name) else {
                     continue;
                 };

@@ -40,7 +40,8 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Arquivos `input_<n>.txt` e `output_<n>.txt` | Feito | criar entrada, abrir, e os valores de cada saída depois da simulação |
 | "Processador ativo" pelo arquivo focado | Diferente | o alvo é escolhido na barra de ferramentas (projeto ou um processador) e lembrado por projeto |
 | Renomear ou apagar processador | Depende do Lace | o Core cria e configura processador, mas não renomeia nem remove |
-| Nome com `-` | Diferente | o Lace recusa, porque o `cmmcomp` não aceita no `#PRNAME` (API.md do Lace, seção 10) |
+| Nome com `-` | Feito | o YANC 7.1 recusa o arquivo, e a AURORA 7.1 e o Lace recusam o nome na hora de criar |
+| Estrutura de pastas do YANC 7.1 (`<proc>/` e `<proc>/<proc>/`) | Feito | a mesma da AURORA; o projeto antigo é convertido ao abrir, perguntando antes (`project_convert_layout`) |
 
 ## Explorador
 

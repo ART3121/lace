@@ -159,7 +159,7 @@ Processador SAPHO:
 ```sh
 lace new demo
 cd demo
-lace proc add filtro       # cria filtro/Software/filtro.cmm
+lace proc add filtro       # cria filtro/filtro.cmm
 lace build                 # C± -> Verilog, memórias e testbench, pelo YANC
 lace sim -p filtro         # simula e mostra as saídas
 lace wave -p filtro
@@ -176,8 +176,12 @@ lace report list           # todos, do mais novo para o mais antigo
 lace report compare        # o mais novo contra o anterior comparável
 ```
 
-Os valores de entrada do processador ficam em
-`filtro/Simulation/input_0.txt`, um por linha. Para mover ou renomear um
+Os projetos seguem a estrutura do YANC 7.1: o fonte e os valores de entrada
+ficam na pasta do processador (`filtro/filtro.cmm`, `filtro/input_0.txt`,
+um valor por linha), e tudo o que o YANC gera, com as saídas da simulação,
+em `filtro/filtro/`. Um projeto da estrutura antiga (`Software/`,
+`Hardware/`, `Simulation/`) é convertido com `lace convert`, ou pelo Studio
+ao abri-lo. Para mover ou renomear um
 arquivo do projeto sem tirá-lo do `.spf`, use `lace move` (`lace move
 contador.v rtl/`). Caminhos na linha de comando são relativos ao diretório
 atual do shell. A referência da linha de comando,

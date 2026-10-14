@@ -315,7 +315,8 @@ pub struct SimulationContext {
     pub component_version: Option<String>,
     /// Hash dos fontes, com os testbenches, e dos programas dos processadores.
     pub sources: String,
-    /// Hash das entradas dos processadores (`Simulation/input_*.txt`).
+    /// Hash das entradas dos processadores (`<proc>/input_*.txt`, ao lado
+    /// do fonte).
     pub inputs: String,
     /// A simulação gravou onda.
     pub waveform: bool,
@@ -1340,13 +1341,14 @@ fn sources_fingerprint(project: &Project, with_testbenches: bool) -> String {
     hash.hex()
 }
 
-/// Hash das entradas dos processadores (`Simulation/input_*.txt`).
+/// Hash das entradas dos processadores (`<proc>/input_*.txt`, ao lado do
+/// fonte).
 fn inputs_fingerprint(project: &Project) -> String {
     let mut files: Vec<Utf8PathBuf> = project
         .processors()
         .iter()
         .flat_map(|p| {
-            p.simulation_dir()
+            p.dir
                 .read_dir_utf8()
                 .into_iter()
                 .flatten()

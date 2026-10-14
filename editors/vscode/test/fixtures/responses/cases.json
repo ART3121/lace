@@ -1,6 +1,6 @@
 {
   "note": "Gravado por scripts/record-fixtures.mjs; não edite à mão.",
-  "recordedWith": "lace 0.6.0",
+  "recordedWith": "lace 0.7.0",
   "cases": [
     {
       "args": [
@@ -521,7 +521,7 @@
       "stdout": "proc-add-novo.json",
       "creates": [
         {
-          "path": "${ROOT}/novo/Software/novo.cmm",
+          "path": "${ROOT}/novo/novo.cmm",
           "from": "proc-add-novo.created.cmm"
         }
       ]

@@ -99,9 +99,11 @@ impl FpgaBuildResult {
 /// Compila o projeto para a placa do `fpga.json`: confere as ligações
 /// ([`super::prepare`]), grava o topo da placa, o `.qsf` e o `.sdc` na pasta
 /// da placa ([`build_dir`]) e roda o Quartus, um programa por passo. Os
-/// processadores precisam estar compilados ([`crate::build`]): o Verilog
-/// deles aponta para as memórias pelo caminho absoluto, e um projeto
-/// copiado de outra pasta precisa de um build novo.
+/// processadores precisam estar compilados ([`crate::build`]). O Verilog
+/// deles cita as memórias pelo nome, relativo ao diretório de quem o
+/// compila: as memórias e a tabela do PC vão para a pasta da placa, a do
+/// projeto do Quartus, antes da compilação. Que o Quartus as procura ali é
+/// suposição, ainda não conferida numa compilação.
 ///
 /// Os fontes são os da síntese ([`crate::synthesize`]): a biblioteca SAPHO,
 /// se o projeto tem processadores, e os do projeto, mais o topo da placa.
@@ -171,6 +173,7 @@ pub fn build(
         &qsf::settings(resolved, &sources, project.root())?,
     )?;
     write(&clocks, &qsf::constraints(resolved))?;
+    crate::simulate::stage_processor_files(project, &dir)?;
     // A compilação anterior deixa de valer para a gravação já agora, e as
     // entradas são lidas antes do Quartus: o registro descreve o que ele leu.
     manifest::remove(&dir);

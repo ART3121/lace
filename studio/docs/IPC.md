@@ -101,6 +101,7 @@ usuário mexeu depois de aplicar um layout) não passa pelo backend: fica no
 | `project_output_values` | `processor`, `port` | `number[]` | |
 | `verilog_modules` | `text` | os módulos declarados | `verilog::modules_in` |
 | `project_move` | `from`, `to` (o caminho final), `overwrite` | `MovedPath` do Core: `from`, `to` e os arquivos do projeto que foram junto | `lace move` |
+| `project_convert_layout` | | `LayoutConversion` do Core: os processadores convertidos, o que mudou de lugar, o que ficou e por quê, os fontes que perderam o `#PRNAME`, os nomes que não servem e as subpastas que ficaram | `lace convert` |
 | `project_hierarchy` | | `HierarchyResult` do Core | `lace hierarchy --json` |
 
 Abrir e criar tornam o projeto o aberto: guardam o `.spf`, põem nos
@@ -134,12 +135,14 @@ seção 5.4.1. Não compila os processadores nem grava relatório.
 | `processors` | `ProcessorStatus[]`: os campos do `Processor` do Core, mais `built`, `inputs` e `outputs` (`{ port, path }`), `missing_inputs`, `waveform` e `generated` (o que o build gerou e existe: `verilog`, `testbench`, `assembly`, `memories[]`, `intermediates[]`, os `.txt` e `.log` da pasta temporária) |
 | `waveform` | a onda da simulação do projeto, se já existe |
 | `top_candidates` | os Verilog que podem ser o topo pela regra do Core (qualquer um, menos nome de testbench e testbench cocotb `.py`): registrados, o gerado de cada processador e os de fora do `.spf` |
-| `issues` | `ProjectIssue[]` do Core (`Project::issues`): `kind` (`rescued_path`, `selection_not_registered`, `testbench_as_top`, `invalid_processor_name`), `path`, `detail`, `message`; o painel Problemas mostra como aviso, traduzido pelo `kind` |
+| `issues` | `ProjectIssue[]` do Core (`Project::issues`): `kind` (`rescued_path`, `selection_not_registered`, `testbench_as_top`, `invalid_processor_name`, `duplicate_file`, `nested_project`, `legacy_layout`), `path`, `detail`, `message`; o painel Problemas mostra como aviso, traduzido pelo `kind`. Com `legacy_layout`, o Studio oferece a conversão ao abrir o projeto |
 
 `NewProcessorRequest`: `name`, `language` (`cmm` ou `cpp`) e, opcionais,
 `input_ports`, `output_ports`, `nubits`, `nbmant`, `nbexpo`, `nugain`,
-`ndstac`, `sdepth`. Ausente fica com o padrão do Core. O Core recusa nome e
-parâmetro que o YANC não compila (`invalid_name`, `invalid_parameter`).
+`ndstac`, `sdepth`. Ausente fica com o padrão do Core; `ndstac` e `sdepth`
+ausentes ficam fora do fonte, e o YANC calcula as pilhas pelo programa. O
+Core recusa nome e parâmetro que o YANC não compila (`invalid_name`,
+`invalid_parameter`).
 
 ## Arquivos (`commands/files.rs`)
 

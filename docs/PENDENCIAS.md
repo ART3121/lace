@@ -19,14 +19,15 @@ Ao corrigir um item, tire-o daqui e registre no CHANGELOG.
 
 Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O Lace só embrulha essas ferramentas; a correção é nelas.
 
-### O `cpppp` não marca a linha de origem (`#line`), e no fluxo C os erros e a linha da onda apontam para o `pp.cpp`
+### Suspeita: no macOS, os compiladores do YANC 7.1 não acham `Macros/`, `SAPHO/` e `Header/`
 
 - **Área:** Externo (YANC)
-- **Gravidade:** baixa (externo)
-- **Chave:** `externo-cpppp-sem-line`
+- **Gravidade:** alta (externo): sem isso, nenhum processador compila no macOS com a 7.1
+- **Chave:** `externo-yanc-exe-dir-macos`
 
-**Problema:** sobra de `layout-c-rotulado-como-cmm` (o rótulo `C` foi corrigido em 2026-10-04). O `cpppp` tira as diretivas e junta os `#include` sem escrever `#line`, então a linha 12 do `pp.cpp` não diz de que arquivo e linha veio. O Lace não tem como voltar ao fonte sem adivinhar (casar texto falha onde há macro).
-**Esperado/onde:** o `cpppp` emitir `# <linha> "<arquivo>"` como o `cpp` do gcc (`CPPComp/Sources/cpppp.c`, `process_file`); o `cppcomp` contar as linhas por esses marcadores; o Lace já lê `arquivo:linha` dos diagnósticos.
+**Problema:** deduzido do código, não reproduzido num Mac. Na 7.1, cada ferramenta acha as pastas da biblioteca ao lado do próprio executável (`Compilers/common/exe_dir.c`, `exe_dir`), e as opções que as davam (`-m`, `-d`) saíram. Fora do Windows, `exe_dir` lê `/proc/self/exe`, que não existe no macOS; o caminho volta vazio, `exe_find_dir` devolve `NULL`, e o `cmmcomp` e o `asmcomp` param com o erro de pasta que falta ("instale o YANC de novo"). A CI do YANC não roda no macOS.
+**Reproduzir:** num Mac, `cmmcomp prog.cmm` com o YANC 7.1 instalado, ou `lace build` com o bundle `darwin-arm64` de 2026-10-13.
+**Esperado/onde:** um ramo `__APPLE__` em `exe_dir` com `_NSGetExecutablePath` (de `<mach-o/dyld.h>`) seguido de `realpath`, para resolver os symlinks como o `/proc/self/exe` resolve no Linux.
 
 ### Os dois .spf do repositório hits não listam rtl/noise/noise_gauss.v e não simulam no Lace nem na AURORA
 

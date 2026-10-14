@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConvertReport",
+  "description": "`lace convert`.",
+  "type": "object",
+  "properties": {
+    "project": {
+      "description": "O `.spf`.",
+      "type": "string"
+    },
+    "processors": {
+      "description": "Os processadores que tinham a estrutura antiga, na ordem do `.spf`.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "moved": {
+      "description": "O que mudou de lugar.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ConvertedPath"
+      }
+    },
+    "skipped": {
+      "description": "O que ficou onde estava, com o motivo.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SkippedPath"
+      }
+    },
+    "name_lines": {
+      "description": "Os fontes que perderam a linha do nome (`#PRNAME`, `#pragma yanc\nprname`).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RemovedNameLine"
+      }
+    },
+    "invalid_names": {
+      "description": "Os processadores cujo nome não serve mais: na 7.1 ele vira o módulo\nVerilog, e o YANC recusa um fonte com esse nome.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "remaining_dirs": {
+      "description": "As subpastas antigas que ficaram, por não estarem vazias.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "project",
+    "processors",
+    "moved",
+    "skipped",
+    "name_lines",
+    "invalid_names",
+    "remaining_dirs"
+  ],
+  "$defs": {
+    "ConvertedPath": {
+      "description": "Um arquivo ou pasta que a conversão moveu.",
+      "type": "object",
+      "properties": {
+        "processor": {
+          "description": "De que processador.",
+          "type": "string"
+        },
+        "from": {
+          "description": "Onde estava, absoluto.",
+          "type": "string"
+        },
+        "to": {
+          "description": "Onde ficou, absoluto.",
+          "type": "string"
+        },
+        "generated": {
+          "description": "É algo que o YANC gera (foi para a pasta de saída).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "processor",
+        "from",
+        "to",
+        "generated"
+      ]
+    },
+    "SkippedPath": {
+      "description": "Um arquivo ou pasta que a conversão deixou onde estava.",
+      "type": "object",
+      "properties": {
+        "processor": {
+          "description": "De que processador.",
+          "type": "string"
+        },
+        "from": {
+          "description": "Onde está, absoluto.",
+          "type": "string"
+        },
+        "to": {
+          "description": "Para onde iria.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Por quê: o destino já existe, ou o erro do sistema.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processor",
+        "from",
+        "to",
+        "reason"
+      ]
+    },
+    "RemovedNameLine": {
+      "description": "Um fonte que perdeu a linha do nome.",
+      "type": "object",
+      "properties": {
+        "processor": {
+          "description": "De que processador.",
+          "type": "string"
+        },
+        "file": {
+          "description": "O fonte, já no lugar novo.",
+          "type": "string"
+        },
+        "old_name": {
+          "description": "O nome que a linha dava, que era o do módulo Verilog até a 6.x. Se\ndifere do processador, o topo que instanciava o módulo pelo nome\nantigo precisa do novo.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processor",
+        "file",
+        "old_name"
+      ]
+    }
+  }
+}

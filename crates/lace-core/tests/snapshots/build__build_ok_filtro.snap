@@ -11,46 +11,15 @@ expression: "normalized(&result, &root, &toolchain)"
   "clocks": 2000,
   "steps": [
     {
-      "step": "preprocess",
-      "tool": "cpppp",
-      "command": {
-        "program": "[TOOLCHAIN]/yanc/bin/cpppp",
-        "args": [
-          "-i",
-          "[PROJETO]/filtro/Software/filtro.cpp",
-          "-o",
-          "[PROJETO]/.lace/Temp/filtro/pp.cpp",
-          "-I",
-          "[TOOLCHAIN]/yanc/Header",
-          "-I",
-          "[PROJETO]/filtro/Software"
-        ],
-        "cwd": "[PROJETO]/.lace/Temp/filtro",
-        "env": [],
-        "inherit": []
-      },
-      "termination": {
-        "kind": "exited",
-        "value": 0
-      },
-      "stdout": "",
-      "stderr": "",
-      "duration_ms": "[ms]"
-    },
-    {
       "step": "compile",
       "tool": "cppcomp",
       "command": {
         "program": "[TOOLCHAIN]/yanc/bin/cppcomp",
         "args": [
-          "-i",
-          "[PROJETO]/.lace/Temp/filtro/pp.cpp",
-          "-p",
-          "[PROJETO]/filtro",
-          "-n",
-          "filtro",
-          "-t",
-          "[PROJETO]/.lace/Temp/filtro"
+          "[PROJETO]/filtro/filtro.cpp",
+          "-o",
+          "[PROJETO]/filtro/filtro",
+          "--lang=en"
         ],
         "cwd": "[PROJETO]/filtro",
         "env": [],
@@ -65,52 +34,19 @@ expression: "normalized(&result, &root, &toolchain)"
       "duration_ms": "[ms]"
     },
     {
-      "step": "pre_assemble",
-      "tool": "appcomp",
-      "command": {
-        "program": "[TOOLCHAIN]/yanc/bin/appcomp",
-        "args": [
-          "-i",
-          "[PROJETO]/filtro/Software/filtro.asm",
-          "-t",
-          "[PROJETO]/.lace/Temp/filtro",
-          "-en"
-        ],
-        "cwd": "[PROJETO]/.lace/Temp/filtro",
-        "env": [],
-        "inherit": []
-      },
-      "termination": {
-        "kind": "exited",
-        "value": 0
-      },
-      "stdout": "Info: 16 instructions and 5 variables were found\nSweet: got the memory count nailed down! Now let's see which circuits you'll need...\n",
-      "stderr": "",
-      "duration_ms": "[ms]"
-    },
-    {
       "step": "assemble",
       "tool": "asmcomp",
       "command": {
         "program": "[TOOLCHAIN]/yanc/bin/asmcomp",
         "args": [
-          "-i",
-          "[PROJETO]/filtro/Software/filtro.asm",
-          "-p",
-          "[PROJETO]/filtro",
-          "-d",
-          "[TOOLCHAIN]/yanc/SAPHO",
-          "-m",
-          "[TOOLCHAIN]/yanc/Macros",
-          "-t",
-          "[PROJETO]/.lace/Temp/filtro",
+          "[PROJETO]/filtro/filtro/filtro.asm",
           "-f",
           "100",
           "-c",
           "2000",
-          "-en"
+          "--lang=en"
         ],
-        "cwd": "[PROJETO]/.lace/Temp/filtro",
+        "cwd": "[PROJETO]/filtro/filtro",
         "env": [],
         "inherit": []
       },
@@ -118,29 +54,20 @@ expression: "normalized(&result, &root, &toolchain)"
         "kind": "exited",
         "value": 0
       },
-      "stdout": "Info: ULA resource -> integer adder\nInfo: ULA resource -> < operator for int\nInfo: adding data output handling\nInfo: stack depths from the program: SDEPTH 2, NDSTAC 2\nInfo: using 5% of the Assembly Instruction Set\nInfo: using 5% of the ULA operations\nSweet: the processor is good to go.\n",
+      "stdout": "Info: 16 instructions and 5 variables were found\nInfo: ULA resource -> integer adder\nInfo: ULA resource -> < operator for int\nInfo: adding data output handling\nInfo: stack depths from the program: SDEPTH 2, NDSTAC 2\nInfo: using 5% of the Assembly Instruction Set\nInfo: using 5% of the ULA operations\nSweet: the processor is good to go.\n",
       "stderr": "",
       "duration_ms": "[ms]"
     }
   ],
   "diagnostics": [
     {
-      "tool": "appcomp",
+      "tool": "asmcomp",
       "severity": "info",
       "message": "16 instructions and 5 variables were found",
       "file": null,
       "line": null,
       "column": null,
       "raw": "Info: 16 instructions and 5 variables were found"
-    },
-    {
-      "tool": "appcomp",
-      "severity": "info",
-      "message": "got the memory count nailed down! Now let's see which circuits you'll need...",
-      "file": null,
-      "line": null,
-      "column": null,
-      "raw": "Sweet: got the memory count nailed down! Now let's see which circuits you'll need..."
     },
     {
       "tool": "asmcomp",
@@ -209,67 +136,61 @@ expression: "normalized(&result, &root, &toolchain)"
   "artifacts": [
     {
       "kind": "assembly",
-      "path": "[PROJETO]/filtro/Software/filtro.asm",
+      "path": "[PROJETO]/filtro/filtro/filtro.asm",
       "required": true,
       "fresh": true
     },
     {
       "kind": "verilog",
-      "path": "[PROJETO]/filtro/Hardware/filtro.v",
+      "path": "[PROJETO]/filtro/filtro/filtro.v",
       "required": true,
       "fresh": true
     },
     {
       "kind": "data_memory",
-      "path": "[PROJETO]/filtro/Hardware/filtro_data.mif",
+      "path": "[PROJETO]/filtro/filtro/filtro_data.mif",
       "required": true,
       "fresh": true
     },
     {
       "kind": "instruction_memory",
-      "path": "[PROJETO]/filtro/Hardware/filtro_inst.mif",
+      "path": "[PROJETO]/filtro/filtro/filtro_inst.mif",
       "required": true,
       "fresh": true
     },
     {
       "kind": "testbench",
-      "path": "[PROJETO]/filtro/Simulation/filtro_tb.v",
+      "path": "[PROJETO]/filtro/filtro/filtro_tb.v",
       "required": true,
       "fresh": true
     },
     {
       "kind": "program_counter_map",
-      "path": "[PROJETO]/.lace/Temp/filtro/pc_filtro_mem.txt",
+      "path": "[PROJETO]/filtro/filtro/pc_filtro_mem.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "source_translation",
-      "path": "[PROJETO]/.lace/Temp/filtro/trad_cmm.txt",
+      "path": "[PROJETO]/filtro/filtro/src_lines.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "opcode_translation",
-      "path": "[PROJETO]/.lace/Temp/filtro/trad_opcode.txt",
+      "path": "[PROJETO]/filtro/filtro/trad_opcode.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "compiler_log",
-      "path": "[PROJETO]/.lace/Temp/filtro/cmm_log.txt",
+      "path": "[PROJETO]/filtro/filtro/prog_log.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "pre_assembler_log",
-      "path": "[PROJETO]/.lace/Temp/filtro/app_log.txt",
-      "required": false,
-      "fresh": true
-    },
-    {
-      "kind": "preprocessed_source",
-      "path": "[PROJETO]/.lace/Temp/filtro/pp.cpp",
+      "path": "[PROJETO]/filtro/filtro/app_log.txt",
       "required": false,
       "fresh": true
     }

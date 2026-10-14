@@ -217,10 +217,21 @@ export interface NewProcessorDefaults {
   nbmant: number;
   nbexpo: number;
   nugain: number;
-  ndstac: number;
-  sdepth: number;
+  /** `null`: sem a diretiva, e o YANC calcula a pilha pelo programa. */
+  ndstac: number | null;
+  sdepth: number | null;
   input_ports: number;
   output_ports: number;
+}
+
+/** `Project::convert_layout` do Core (`lace_core::LayoutConversion`). */
+export interface LayoutConversion {
+  processors: string[];
+  moved: { processor: string; from: string; to: string; generated: boolean }[];
+  skipped: { processor: string; from: string; to: string; reason: string }[];
+  name_lines: { processor: string; file: string; old_name: string }[];
+  invalid_names: string[];
+  remaining_dirs: string[];
 }
 
 /** `commands/files.rs`. */

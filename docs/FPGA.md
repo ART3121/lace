@@ -148,9 +148,11 @@ lace fpga build
 
 1. Confere o `fpga.json`, a placa e o Quartus antes de compilar qualquer
    coisa: faltar um deles não custa o build dos processadores.
-2. Compila os processadores com o YANC, como `lace synth`: o Verilog de um
-   processador aponta para as memórias (`.mif`) pelo caminho absoluto, e
-   um projeto copiado de outra pasta precisa de um build novo.
+2. Compila os processadores com o YANC, como `lace synth`. O Verilog de um
+   processador cita as memórias (`.mif`) pelo nome, como o YANC 7.1 gera,
+   e elas vão para a pasta da placa, a do projeto do Quartus, antes da
+   compilação. Que o Quartus as procura ali é suposição, ainda não
+   conferida numa compilação.
 3. Confere as ligações (`lace fpga check`) e grava o projeto do Quartus na
    pasta da placa.
 4. Roda os quatro programas que a interface do Quartus roda ao compilar,

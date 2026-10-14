@@ -1,25 +1,7 @@
-//! Leitura do cabeçalho do programa-fonte.
-//!
-//! O nome dos artefatos de hardware NÃO vem do `-n` passado ao compilador: o
-//! `asmcomp` usa o `#PRNAME` que o `appcomp` registrou em `app_log.txt`.
-//! Conferido no YANC 5.6 e no 6.0:
-//!
-//! - `#PRNAME outro` num processador `foo` gera `Hardware/outro.v` ao lado de
-//!   `Temp/pc_foo_mem.txt`, e o Verilog lê o arquivo de memória pelo nome
-//!   errado;
-//! - sem `#PRNAME`, os artefatos saem com um número no lugar do nome
-//!   (`Hardware/5.v` na 5.6, `Hardware/1.v` na 6.0).
-//!
-//! Por isso o Lace lê o nome declarado no fonte antes de compilar.
+//! Leitura do cabeçalho do programa-fonte: as diretivas de C± (`#NUBITS 23`)
+//! e os pragmas de C (`#pragma yanc nubits 23`), sem os comentários.
 
 use crate::Language;
-
-/// O nome declarado no fonte: `#PRNAME <nome>` em C±, `#pragma yanc prname
-/// <nome>` em C. Se houver mais de uma declaração, vale a última, como nos
-/// compiladores. Comentários `//` e `/* */` são ignorados.
-pub(crate) fn declared_name(text: &str, language: Language) -> Option<String> {
-    declared(text, language, "PRNAME")
-}
 
 /// A largura da palavra, `#NUBITS` (`#pragma yanc nubits` em C), entre 2 e
 /// 63; sem a diretiva, 32, o padrão dos compiladores (23 + 8 + 1).
@@ -112,15 +94,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn cmm_prname() {
-        let src = "// #PRNAME comentado\n#PRNAME soma\n#NUBITS 32\n";
-        assert_eq!(declared_name(src, Language::Cmm).as_deref(), Some("soma"));
-    }
-
-    #[test]
-    fn cmm_prname_inside_block_comment_is_ignored() {
-        let src = "/* #PRNAME velho\n */\nvoid main() {}\n";
-        assert_eq!(declared_name(src, Language::Cmm), None);
+    fn directives_in_comments_are_ignored() {
+        let src = "// #NUBITS 16\n/* #NUBITS 8\n */\n#NUBITS 23\n";
+        assert_eq!(declared_nubits(src, Language::Cmm), 23);
+        assert_eq!(declared_nubits("/* #NUBITS 8 */", Language::Cmm), 32);
     }
 
     #[test]
@@ -133,8 +110,10 @@ mod tests {
 
     #[test]
     fn last_declaration_wins() {
-        let src = "#PRNAME a\n#PRNAME b\n";
-        assert_eq!(declared_name(src, Language::Cmm).as_deref(), Some("b"));
+        assert_eq!(
+            declared_nubits("#NUBITS 16\n#NUBITS 24\n", Language::Cmm),
+            24
+        );
     }
 
     #[test]
@@ -149,8 +128,8 @@ mod tests {
 
     #[test]
     fn cpp_pragma() {
-        let src = "#pragma yanc nubits 32\n#pragma yanc prname filtro  \nint main() {}\n";
-        assert_eq!(declared_name(src, Language::Cpp).as_deref(), Some("filtro"));
-        assert_eq!(declared_name(src, Language::Cmm), None);
+        let src = "#pragma yanc nubits 24  \nint main() {}\n";
+        assert_eq!(declared_nubits(src, Language::Cpp), 24);
+        assert_eq!(declared_nubits(src, Language::Cmm), 32);
     }
 }

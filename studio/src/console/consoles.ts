@@ -9,8 +9,8 @@
 //
 // | Etapa    | Na AURORA | O que recebe |
 // |----------|-----------|--------------|
-// | cmm      | TCMM      | cpppp, cmmcomp, cppcomp (passos preprocess e compile) |
-// | asm      | TASM      | appcomp e asmcomp (pre_assemble e assemble) |
+// | cmm      | TCMM      | cmmcomp, cppcomp (compile); cpppp (preprocess) até o YANC 6.x |
+// | asm      | TASM      | asmcomp (assemble); appcomp (pre_assemble) até o YANC 6.x |
 // | verilog  | TVERI     | iverilog -tnull e verilator --lint-only (check_syntax, lint) |
 // | wave     | TWAVE     | iverilog/vvp ou verilator (elaborate, verilate, simulate) |
 // | rtlViewer    | TRTLViewer    | yosys e dot (synthesize, graph, render) |

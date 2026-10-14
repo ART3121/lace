@@ -9,8 +9,8 @@
 //! outros pinos para a mesma placa. A comparação é pelo conteúdo, e não pela
 //! data: um build que regrava os mesmos arquivos não invalida a compilação.
 //!
-//! Fora do registro ficam os arquivos que um `$readmemh` do usuário lê fora
-//! de `Hardware/`: o Lace não sabe quais são.
+//! Fora do registro ficam os arquivos que um `$readmemh` do usuário lê: o
+//! Lace não sabe quais são.
 
 use std::collections::BTreeMap;
 
@@ -53,17 +53,12 @@ pub(crate) fn inputs(
     let mut files: Vec<Utf8PathBuf> =
         crate::synth::with_library(toolchain, project, crate::synth::project_sources(project)?)?;
     for processor in project.processors() {
-        let dir = processor.hardware_dir();
-        let Ok(entries) = dir.read_dir_utf8() else {
-            continue;
-        };
-        let mut memories: Vec<Utf8PathBuf> = entries
-            .flatten()
-            .map(|e| e.into_path())
-            .filter(|p| p.extension() == Some("mif"))
-            .collect();
-        memories.sort();
-        files.extend(memories);
+        files.extend(
+            processor
+                .files_read_by_verilog()
+                .into_iter()
+                .filter(|p| p.extension() == Some("mif") && p.is_file()),
+        );
     }
     files.push(FpgaConfig::path(project.root()));
     let mut out = BTreeMap::new();

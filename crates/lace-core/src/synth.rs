@@ -55,7 +55,8 @@ pub enum DesignTarget {
     /// O módulo de topo do projeto ([`Project::top_level`]) com todos os
     /// arquivos sintetizáveis e o Verilog de todos os processadores.
     TopLevel,
-    /// Um processador compilado sozinho: `Hardware/<nome>.v` + biblioteca.
+    /// Um processador compilado sozinho: `<nome>/<nome>/<nome>.v` +
+    /// biblioteca.
     Processor(String),
 }
 
@@ -66,7 +67,7 @@ pub struct CheckOptions {
     /// Só os módulos deste arquivo (com o resto do projeto para resolver as
     /// instâncias). `None`: o projeto inteiro.
     pub file: Option<Utf8PathBuf>,
-    /// Só este processador, compilado antes: o `Hardware/<nome>.v` dele e o
+    /// Só este processador, compilado antes: o `<nome>.v` gerado dele e o
     /// testbench que o build gerou, no lugar do design do projeto. Com
     /// `file`, os módulos do arquivo, resolvidos com o Verilog do processador.
     pub processor: Option<String>,
@@ -200,14 +201,14 @@ impl SchematicResult {
 ///
 /// 1. `iverilog -tnull -Wall` sobre o design inteiro (os sintetizáveis do
 ///    `.spf`, os `.v` de `<raiz>/TopLevel/`, legado da AURORA, e o
-///    `Hardware/<nome>.v` de cada processador), sem `-s`: todo módulo raiz é
+///    `<nome>.v` gerado de cada processador), sem `-s`: todo módulo raiz é
 ///    elaborado, e um erro num módulo fora da árvore do topo também aparece;
 /// 2. para cada testbench registrado, `iverilog -tnull -Wall -s <testbench>`
 ///    com o design, que pega o erro no testbench antes de simular.
 ///
-/// Com `options.processor`, o design é só o `Hardware/<nome>.v` do
+/// Com `options.processor`, o design é só o `<nome>.v` gerado do
 /// processador, e o testbench é o que o build gerou
-/// (`Simulation/<nome>_tb.v`); os passos são os mesmos, e o lint usa o
+/// (`<nome>/<nome>/<nome>_tb.v`); os passos são os mesmos, e o lint usa o
 /// processador como topo.
 ///
 /// Com `options.file`, só os módulos daquele arquivo como raiz (com o design
@@ -251,7 +252,7 @@ pub fn check(
         project
             .buildable_processors()
             .into_iter()
-            .filter(|p| !p.hardware_dir().join(format!("{}.v", p.name)).is_file())
+            .filter(|p| !p.verilog_path().is_file())
             .collect()
     } else {
         Vec::new()
@@ -260,7 +261,7 @@ pub fn check(
     let (design, testbenches, mut lint_top) = match &options.processor {
         Some(name) => {
             let verilog = processor_verilog(project, name)?;
-            let testbench = project.require_processor(name)?.simulated_testbench();
+            let testbench = project.require_processor(name)?.testbench_path();
             let testbenches = if testbench.is_file() {
                 vec![testbench]
             } else {
@@ -297,9 +298,7 @@ pub fn check(
         if let Some(processor) = unbuilt.first() {
             return Err(LaceError::NotBuilt {
                 processor: processor.name.clone(),
-                missing: processor
-                    .hardware_dir()
-                    .join(format!("{}.v", processor.name)),
+                missing: processor.verilog_path(),
             });
         }
         return Err(LaceError::EmptyProject(project.spf_path().to_owned()));
@@ -566,6 +565,9 @@ pub fn synthesize(
 
     let work = project.temp_dir().join("synth").join(&top);
     std::fs::create_dir_all(&work).map_err(LaceError::io("Creating directory", &work))?;
+    // O Yosys roda na raiz, e o Verilog de cada processador lê as memórias
+    // pelo nome, relativo a ela.
+    crate::simulate::stage_processor_files(project, project.root())?;
     let netlist = work.join("hierarchy.json");
     let stat = work.join("stat.json");
     let check_log = work.join("check.log");
@@ -744,10 +746,10 @@ fn yosys_selection(module: &str) -> String {
     }
 }
 
-/// O `Hardware/<nome>.v` que o build gerou para o processador.
+/// O `<nome>/<nome>/<nome>.v` que o build gerou para o processador.
 pub(crate) fn processor_verilog(project: &Project, name: &str) -> Result<Utf8PathBuf> {
     let processor = project.require_processor(name)?;
-    let verilog = processor.hardware_dir().join(format!("{name}.v"));
+    let verilog = processor.verilog_path();
     if !verilog.is_file() {
         return Err(LaceError::NotBuilt {
             processor: name.to_owned(),
@@ -775,7 +777,8 @@ pub(crate) fn missing_registered(project: &Project, path: Utf8PathBuf, reason: &
 
 /// Os fontes do projeto para checagem, síntese e hierarquia, na ordem da
 /// AURORA: sintetizáveis do `.spf`, `.v` de `<raiz>/TopLevel/` (legado da
-/// AURORA) e o `Hardware/*.v` de cada processador, sem testbenches.
+/// AURORA) e o Verilog que o build gerou para cada processador, sem
+/// testbenches.
 pub(crate) fn project_sources(project: &Project) -> Result<Vec<Utf8PathBuf>> {
     let mut files = Vec::new();
     for file in project.files(FileRole::Synthesizable) {
@@ -797,13 +800,9 @@ pub(crate) fn project_sources(project: &Project) -> Result<Vec<Utf8PathBuf>> {
         );
     }
     for processor in project.processors() {
-        let hardware = processor.hardware_dir();
-        if hardware.is_dir() {
-            files.extend(
-                verilog_in(&hardware)?
-                    .into_iter()
-                    .filter(|f| !is_test_file(f)),
-            );
+        let verilog = processor.verilog_path();
+        if verilog.is_file() {
+            files.push(verilog);
         }
     }
     Ok(dedup(files))
@@ -928,7 +927,9 @@ pub(crate) fn include_paths(
     root: &Utf8Path,
 ) -> Invocation {
     let mut invocation = invocation.arg("-grelative-include");
-    if let Some(dir) = before {
+    // O testbench gerado de um processador fica na pasta onde ele roda: a
+    // mesma pasta duas vezes não muda a busca.
+    if let Some(dir) = before.filter(|dir| *dir != root) {
         invocation = invocation.arg("-I").icarus_path_arg(dir);
     }
     invocation.arg("-I").icarus_path_arg(root)

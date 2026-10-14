@@ -963,7 +963,7 @@ fn unregistered_verilog_skips_registered_hidden_and_processors() {
         .add_processor(&NewProcessor::new("soma", Language::Cmm))
         .unwrap()
         .clone();
-    write(soma.hardware_dir().join("soma.v"), AND_GATE);
+    write(soma.verilog_path(), AND_GATE);
 
     let mut found = project.unregistered_verilog();
     found.sort();
@@ -1171,6 +1171,7 @@ fn move_path_refuses_what_stays_in_place() {
     write(root.join("rtl/a.v"), AND_GATE);
     write(root.join("b.v"), AND_GATE);
     std::fs::create_dir_all(root.join(".lace/Temp")).unwrap();
+    std::fs::create_dir_all(root.join("soma/soma")).unwrap();
     let spf_before = read(project.spf_path());
 
     let spf = project.spf_path().to_owned();
@@ -1178,9 +1179,8 @@ fn move_path_refuses_what_stays_in_place() {
         (spf.clone(), root.join("x.spf")),
         (root.join(".lace"), root.join("lace")),
         (root.join("soma"), root.join("outro")),
-        (root.join("soma/Software"), root.join("Software")),
-        (root.join("soma/Hardware"), root.join("Hardware")),
-        (root.join("soma/Software/soma.cmm"), root.join("soma.cmm")),
+        (root.join("soma/soma"), root.join("saida")),
+        (root.join("soma/soma.cmm"), root.join("soma.cmm")),
         (root.join("rtl"), root.join("rtl/dentro")),
         (root.join("b.v"), root.join(".lace/b.v")),
     ] {
@@ -1196,12 +1196,12 @@ fn move_path_refuses_what_stays_in_place() {
     let err = project.move_path("nao_existe.v", "c.v").unwrap_err();
     assert!(matches!(err, LaceError::InvalidProject { .. }), "{err}");
     assert_eq!(read(project.spf_path()), spf_before, "nada mudou no .spf");
-    assert!(root.join("b.v").is_file() && root.join("soma/Software/soma.cmm").is_file());
+    assert!(root.join("b.v").is_file() && root.join("soma/soma.cmm").is_file());
 
     // O resto da pasta de um processador pode mudar de nome.
-    write(root.join("soma/Simulation/input_0.txt"), "1\n");
+    write(root.join("soma/input_0.txt"), "1\n");
     project
-        .move_path("soma/Simulation/input_0.txt", "soma/Simulation/input_1.txt")
+        .move_path("soma/input_0.txt", "soma/input_1.txt")
         .unwrap();
     // Mover para o mesmo lugar não faz nada.
     let same = project.move_path("b.v", "b.v").unwrap();
@@ -2069,7 +2069,7 @@ fn generated_processor_verilog_can_be_the_top() {
     .unwrap();
     assert!(built.succeeded(), "{built:#?}");
 
-    let verilog = soma.hardware_dir().join("soma.v");
+    let verilog = soma.verilog_path();
     project.set_top(verilog.as_str()).unwrap();
     assert_eq!(project.top_level(), Some(verilog.clone()));
     assert_eq!(project.top_module().unwrap().as_deref(), Some("soma"));

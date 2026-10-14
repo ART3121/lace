@@ -55,22 +55,17 @@ pub fn copy_dir(from: &Utf8Path, to: &Utf8Path) {
 }
 
 /// Copia um projeto de `examples/` para um diretório temporário, sem os
-/// artefatos de builds anteriores.
+/// artefatos de builds anteriores (`.lace/` e a pasta de saída de cada
+/// processador, `<proc>/<proc>/`).
 pub fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
     let (guard, dir) = tempdir();
     let target = dir.join(name);
     copy_dir(&workspace().join("examples").join(name), &target);
     let _ = std::fs::remove_dir_all(target.join(".lace"));
     for entry in target.read_dir_utf8().unwrap() {
-        let proc_dir = entry.unwrap().into_path();
-        let _ = std::fs::remove_dir_all(proc_dir.join("Hardware"));
-        if let Ok(files) = proc_dir.join("Software").read_dir_utf8() {
-            for file in files {
-                let file = file.unwrap().into_path();
-                if file.extension() == Some("asm") {
-                    std::fs::remove_file(file).unwrap();
-                }
-            }
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_dir() {
+            let _ = std::fs::remove_dir_all(entry.path().join(entry.file_name()));
         }
     }
     (guard, target)

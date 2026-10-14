@@ -288,7 +288,7 @@ export class ExplorerFollower implements vscode.Disposable {
         continue;
       }
       const processor = status.processors.find(
-        (p) => isInside(p.dir, from) || p.source === from || [join(p.dir, 'Software'), join(p.dir, 'Hardware'), join(p.dir, 'Simulation')].includes(from),
+        (p) => isInside(p.dir, from) || p.source === from || p.output_dir === from,
       );
       if (processor) {
         void vscode.window.showWarningMessage(

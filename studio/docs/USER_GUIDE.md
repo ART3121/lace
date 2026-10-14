@@ -87,9 +87,9 @@ Duplo clique num divisor volta ao tamanho do layout em uso.
 
 - *Módulos*: os sintetizáveis registrados, com o topo marcado pelo nome do
   módulo, e o Verilog que o build de cada processador gerou
-  (`<proc>/Hardware/<proc>.v`), marcado como **Gerado**.
+  (`<proc>/<proc>/<proc>.v`), marcado como **Gerado**.
 - *Testbenches*: os registrados, com o simulado marcado, e o testbench que o
-  YANC gerou para cada processador (`<proc>/Simulation/<proc>_tb.v`). O
+  YANC gerou para cada processador (`<proc>/<proc>/<proc>_tb.v`). O
   menu de um testbench tem **Marcar como o testbench simulado**, que só
   marca: quem simula é a Wave (F8) ou a Rápida (F9). No gerado, que ainda
   não está no `.spf`, o mesmo item antes o registra como testbench.
@@ -342,7 +342,7 @@ arquivo sobre outro da mesma seção (ele entra antes desse), ou use **Subir
 na lista** e **Descer na lista** no menu do arquivo.
 
 **O topo** pode ser qualquer arquivo Verilog, inclusive o `.v` que o build
-de um processador gerou (`<proc>/Hardware/<proc>.v`) e um `.v` que ainda não
+de um processador gerou (`<proc>/<proc>/<proc>.v`) e um `.v` que ainda não
 está no projeto, que passa a ser registrado. A exceção é o nome de
 testbench: `tb_<nome>.v`, `<nome>_tb.v` e `tb.v` não viram topo. Escolha
 pelo botão direito no arquivo (nas Fontes, na árvore de arquivos ou na
@@ -358,17 +358,23 @@ simulado, clique com o botão direito no arquivo, no explorador.
 2. **Projeto > Novo processador SAPHO** (Ctrl+Alt+P): nome (letras,
    números e `_`, sem começar por número), linguagem (C± ou C), portas de
    entrada e de saída e, em C±, a arquitetura (largura, mantissa, expoente,
-   ganho, pilhas). Os padrões são os da AURORA. O Studio abre o fonte criado.
-3. Escreva o programa. `#PRNAME` precisa ser o nome do processador: o Lace
-   confere antes de compilar.
+   ganho, pilhas; as pilhas vazias ficam por conta do YANC, que as calcula
+   pelo programa). Os padrões são os da AURORA. O Studio cria a pasta
+   `<processador>/` com o fonte `<processador>.cmm` (ou `.cpp`) e o abre.
+   Tudo o que o YANC gera vai para `<processador>/<processador>/`, a pasta
+   de saída, que nasce no primeiro build: a estrutura do YANC 7.1, a mesma
+   da AURORA.
+3. Escreva o programa. O processador se chama como o arquivo, e o fonte não
+   leva `#PRNAME`: o YANC 7.1 recusa a diretiva e diz para apagar a linha.
 4. Entradas: no explorador, botão direito no processador > **Novo arquivo
-   de entrada**. É o `Simulation/input_<n>.txt` da porta `n` de `in(n)`, um
-   valor por linha.
+   de entrada**. É o `<processador>/input_<n>.txt`, ao lado do fonte, da
+   porta `n` de `in(n)`, um valor por linha. As saídas da simulação ficam
+   na pasta de saída (`output_<n>.txt`).
 5. Escolha o processador no **Alvo** da barra de ferramentas. Com o alvo
    num processador, os botões agem só nele; com o alvo em "Projeto", agem no
    projeto inteiro (todos os processadores e o testbench do projeto).
-6. **C±** (F6): compila (cmmcomp, appcomp, asmcomp). Os erros do YANC
-   apontam a linha do fonte.
+6. **C±** (F6): compila (cmmcomp ou cppcomp, depois asmcomp). Os erros do
+   YANC apontam a linha do fonte, ou do cabeçalho incluído, em C.
 7. **Wave** (F8) ou **Rápida** (F9): simula o processador com o testbench
    que o YANC gerou; a Rápida, no Verilator e sem gravar onda. No fim, o
    INFO mostra os valores de cada porta de saída (`Saída 0: 55`), e
@@ -444,6 +450,17 @@ onda abre com a escolha nova. Um processador
 SAPHO entra sempre, porque as instruções e as variáveis dependem dele. Nada
 marcado é o padrão: a onda grava todos os sinais. No Verilator, que grava
 tudo de qualquer jeito, o layout mostra só os marcados.
+
+**Projeto da estrutura antiga.** Até o YANC 6.x cada processador tinha
+`Software/`, `Hardware/` e `Simulation/`, que o YANC 7.1 não compila. Ao
+abrir um projeto assim, o Studio pergunta se pode converter, como a AURORA:
+o fonte e os arquivos da pessoa vão para a pasta do processador, o que o
+YANC gerou vai para a pasta de saída, nada é apagado nem sobrescrito, a
+linha `#PRNAME` sai do fonte e o `.spf` passa a apontar para os lugares
+novos. Depois, uma janela diz o que mudou de lugar, o que ficou e por quê,
+e avisa quando o módulo Verilog de um processador mudou de nome. Recusada,
+a conversão fica em **Arquivo > Converter projeto para o YANC 7.1**, e o
+painel de problemas avisa até lá (`lace convert` faz o mesmo no terminal).
 
 ## 5. Os botões do fluxo
 
@@ -523,8 +540,8 @@ um terminal por etapa, que correspondem aos terminais da AURORA:
 
 | Terminal | Na AURORA | O que mostra |
 |---|---|---|
-| C± | TCMM | o compilador de C± ou de C (cmmcomp, cpppp, cppcomp) |
-| ASM | TASM | o pré-montador e o montador (appcomp, asmcomp) e o resumo do build |
+| C± | TCMM | o compilador de C± ou de C (cmmcomp, cppcomp) |
+| ASM | TASM | o montador (asmcomp) e o resumo do build |
 | Verilog | TVERI | a verificação do Icarus e o lint do Verilator |
 | Wave | TWAVE | a elaboração e a simulação: o que o testbench escreve, as saídas do processador, onde ficou a onda |
 | RTLViewer | TRTLViewer | a síntese do Yosys |
@@ -864,5 +881,6 @@ status está escondida; Esc duas vezes não sai do zen, Ctrl+K Z sai.
 | A aba da onda diz que o bundle não traz o cliente web | o bundle é anterior ao cliente web do Surfer; a onda abre em janela até um bundle novo |
 | A aba da onda recusa uma onda grande | acima de 256 MB a onda abre em janela (o ícone de janela, no alto da aba) |
 | "O arquivo mudou no disco" ao salvar | outro programa alterou o arquivo; escolha sobrescrever ou recarregar |
-| "O fonte do processador não está como o YANC espera" | o arquivo precisa se chamar `<processador>.cmm` e ter `#PRNAME <processador>` |
+| "O fonte do processador não está como o YANC espera" | o arquivo precisa se chamar `<processador>.cmm` (ou `.cpp`) |
+| "Este processador ainda está na estrutura de pastas do YANC 6.x" | converta o projeto: **Arquivo > Converter projeto para o YANC 7.1** |
 | "O caminho é longo demais para o YANC" | no Windows o YANC aceita até 259 caracteres; mova o projeto para uma pasta mais curta |

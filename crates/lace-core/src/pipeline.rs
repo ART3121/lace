@@ -34,11 +34,13 @@ use crate::toolchain::Tool;
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum Step {
-    /// `cpppp`, só no fluxo C.
+    /// `cpppp`, do YANC até a 6.x, nos relatórios antigos (o `cppcomp` da
+    /// 7.1 pré-processa).
     Preprocess,
     /// `cmmcomp` ou `cppcomp`: fonte para assembly.
     Compile,
-    /// `appcomp`: conta instruções e variáveis.
+    /// `appcomp`, do YANC até a 6.x, nos relatórios antigos (o `asmcomp` da
+    /// 7.1 faz as duas passadas).
     PreAssemble,
     /// `asmcomp`: assembly para Verilog e memórias.
     Assemble,
@@ -124,28 +126,31 @@ pub enum Status {
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ArtifactKind {
-    /// `Software/<nome>.asm`
+    /// `<nome>/<nome>/<nome>.asm`, na pasta de saída do processador.
     Assembly,
-    /// `Hardware/<nome>.v`, o processador sintetizável.
+    /// `<nome>/<nome>/<nome>.v`, o processador sintetizável.
     Verilog,
-    /// `Hardware/<nome>_data.mif`
+    /// `<nome>/<nome>/<nome>_data.mif`
     DataMemory,
-    /// `Hardware/<nome>_inst.mif`
+    /// `<nome>/<nome>/<nome>_inst.mif`
     InstructionMemory,
-    /// `Simulation/<nome>_tb.v`: o testbench que o asmcomp gera na pasta
-    /// temporária, copiado para cá pelo build, como a AURORA faz.
+    /// `<nome>/<nome>/<nome>_tb.v`: o testbench que o `asmcomp` gera, que
+    /// roda na pasta de saída.
     Testbench,
-    /// `<temp>/pp.cpp`, saída do `cpppp`.
+    /// `<temp>/pp.cpp`, saída do `cpppp` do YANC até a 6.x, nos relatórios
+    /// antigos.
     PreprocessedSource,
-    /// `<temp>/pc_<nome>_mem.txt`, liga endereço de instrução a linha do fonte.
+    /// `<nome>/<nome>/pc_<nome>_mem.txt`, liga endereço de instrução a linha
+    /// do fonte.
     ProgramCounterMap,
-    /// `<temp>/trad_cmm.txt`
+    /// `<nome>/<nome>/src_lines.txt`: o texto de cada linha do fonte.
     SourceTranslation,
-    /// `<temp>/trad_opcode.txt`
+    /// `<nome>/<nome>/trad_opcode.txt`
     OpcodeTranslation,
-    /// `<temp>/cmm_log.txt`
+    /// `<nome>/<nome>/prog_log.txt`: as variáveis, o número de instruções
+    /// e a pasta do fonte.
     CompilerLog,
-    /// `<temp>/app_log.txt`
+    /// `<nome>/<nome>/app_log.txt`
     PreAssemblerLog,
     /// O `.vvp` do Icarus.
     IcarusImage,
@@ -153,7 +158,7 @@ pub enum ArtifactKind {
     VerilatedModel,
     /// Onda da simulação (VCD ou FST).
     Waveform,
-    /// `Simulation/output_<n>.txt`, escrito pelo testbench.
+    /// `<nome>/<nome>/output_<n>.txt`, escrito pelo testbench.
     SimulationOutput,
     /// Netlist JSON do Yosys.
     Netlist,

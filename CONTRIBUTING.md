@@ -147,8 +147,10 @@ Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 | `spf.rs` | leitura tolerante e gravação atômica do `.spf` da AURORA, e as entradas de processador |
 | `files.rs` | os arquivos Verilog do projeto no `.spf`: `add_verilog`, `remove_verilog`, `set_top`, `top_module`, `testbench_module`, `unregistered_verilog`, `add_file`, `set_top_level`, `set_testbench`; mover e renomear com o `.spf` em dia (`move_path`, `MovedPath`); os arquivos de entrada e saída da simulação (`read_data_file`, `Processor::write_input`, `read_output_values`) |
 | `verilog.rs` | módulo público `lace_core::verilog`: `classify`, `modules_in`, `read_interfaces`, `module_template`, `testbench_template` |
-| `build.rs` | `build` e `build_processors` (YANC): `BuildOptions`, `BuildResult`, `OnFailure`; os comandos de cada passo em `Plan::steps` |
-| `source.rs` | lê o `#PRNAME` (C±) ou o `#pragma yanc prname` (C) do fonte antes de compilar |
+| `build.rs` | `build`, `build_processors` e `build_steps` (YANC 7.1): `BuildOptions`, `BuildResult`, `OnFailure`; os comandos de cada passo em `Plan::steps`, com a pasta de saída do processador |
+| `yanc.rs` | a versão mínima do YANC (7.1) e a recusa de um bundle mais velho (`YancTooOld`) |
+| `layout.rs` | a conversão de um projeto da estrutura do YANC 6.x (`Software/`, `Hardware/`, `Simulation/`) para a do 7.1 (`Project::convert_layout`), a mesma da AURORA |
+| `source.rs` | lê as diretivas do cabeçalho do fonte (`#NUBITS`, `#pragma yanc nubits`), sem os comentários |
 | `simulate.rs` | `simulate` (um processador), `simulate_project` (o testbench do projeto), `waveform_path`, `missing_inputs`; os comandos do Icarus e do Verilator em `execute`; a injeção de `$dumpvars` |
 | `synth.rs` | `check` (Icarus e, com `lint`, Verilator), `synthesize` (Yosys), `render_schematic` (`show` do Yosys e `dot`); `CheckOptions`, `DesignTarget`; os arquivos do design (`project_sources`, `processor_verilog`), que `hierarchy.rs` também usa |
 | `hierarchy.rs` | `hierarchy`: a árvore de instâncias do design e de cada testbench, elaborada pelo Icarus e lida do `.vvp` (`parse_vvp`); `HierarchyOptions`, `HierarchyResult`, `Elaboration`, `ModuleInstance` |
@@ -197,7 +199,7 @@ pública do Core: o crate não roda ferramenta por conta própria, só chama o
 
 | Caminho | O que é |
 |---|---|
-| `crates/lace-core/tests/` | `api_contract.rs` (garantias da API), `build.rs` (YANC, com snapshots em `snapshots/`), `control.rs` (cancelamento, prazo e eventos com o Icarus), `tools.rs` (simulação, síntese, esquemático, Surfer), `verilog_flow.rs` (o fluxo Verilog, mover arquivos e a hierarquia; a primeira metade roda sem ferramenta), `yanc_regression.rs` (os casos de teste do YANC), `common/mod.rs` (como achar o bundle) |
+| `crates/lace-core/tests/` | `api_contract.rs` (garantias da API), `build.rs` (YANC, com snapshots em `snapshots/`, e a conversão da estrutura antiga), `control.rs` (cancelamento, prazo e eventos com o Icarus), `tools.rs` (simulação, síntese, esquemático, Surfer), `verilog_flow.rs` (o fluxo Verilog, mover arquivos e a hierarquia; a primeira metade roda sem ferramenta), `yanc_regression.rs` (os casos de teste do YANC), `common/mod.rs` (como achar o bundle) |
 | `crates/lace-cli/tests/cli.rs` | a CLI de ponta a ponta: códigos de saída, texto, JSON, eventos e Ctrl+C |
 | `crates/lace-cli/tests/schema.rs` | a saída `--json` de cada comando, validada contra `docs/schema/` |
 | `crates/lace-cli/tests/learn.rs` | o `lace learn` de ponta a ponta, com a trilha de teste e o `--json` validado |
@@ -314,8 +316,8 @@ Quando uma ferramenta escreve algo que o Lace mostra como `unknown`, ou com
 a gravidade errada:
 
 1. `crates/lace-core/src/diagnostics.rs`: `parse_line` escolhe o
-   interpretador pela ferramenta: `parse_yanc_phrase` (`cmmcomp`, `appcomp`,
-   `asmcomp`), `parse_c_style` e `parse_tool_prefixed` (`cpppp`, `cppcomp`),
+   interpretador pela ferramenta: `parse_yanc_phrase` (`cmmcomp`,
+   `asmcomp`), `parse_c_style` e `parse_tool_prefixed` (`cppcomp`),
    `parse_c_style` e `parse_icarus` (`iverilog`, `vvp`), `parse_verilator`,
    `parse_yosys`, `parse_graphviz`. Acrescente o caso na função da
    ferramenta.
@@ -448,8 +450,9 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
 - **Regra de negócio no Core.** A CLI abre, chama e mostra. As mensagens do
   Core não citam comandos; os comandos aparecem só em `hint`, na CLI.
 - **O Core nunca sobrescreve código do usuário.** Criar processador ou
-  arquivo recusa se o arquivo já existe; só artefatos gerados (`Hardware/`,
-  `.asm`, `.lace/Temp/`) são reescritos.
+  arquivo recusa se o arquivo já existe; só artefatos gerados (a pasta de
+  saída de cada processador, `.lace/Temp/`) são reescritos. A conversão da
+  estrutura antiga (`convert_layout`) move sem apagar nem sobrescrever.
 - **Tipos públicos.** Os enums públicos são `#[non_exhaustive]`, e as
   structs que podem ganhar campos também (`CheckOptions` é construída com
   `CheckOptions::default()` e campo a campo). Os resultados implementam

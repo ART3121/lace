@@ -23,12 +23,12 @@ cocotb, e o cocotb precisa de simulador, compilador e Python que casem.
 
 ## 1. O que vem no bundle
 
-Bundle `2026.10.07`. Os pacotes, com as versões fixadas em
+Bundle `2026.10.13`. Os pacotes, com as versões fixadas em
 `bundle/versions.json`:
 
 | Pacote | Versão | O que traz | De onde vem |
 |---|---|---|---|
-| YANC | v6.0 (`6cafe47`) | `cmmcomp`, `appcomp`, `asmcomp`, `cpppp`, `cppcomp`, a biblioteca SAPHO, macros e headers | compilado do fonte pelo empacotamento |
+| YANC | v7.1 (`6c32d94`) | `cmmcomp`, `asmcomp`, `cppcomp`, a biblioteca SAPHO, macros e headers (até a 6.x vinham também o `appcomp` e o `cpppp`, que a 7.1 juntou ao `asmcomp` e ao `cppcomp`) | compilado do fonte pelo empacotamento |
 | surfer-aurora | v0.7.0-nips.10 (`d0af8a7`) | o fork do Surfer da AURORA e o cliente web (WASM) dele | o executável, pré-compilado do commit fixado pelo workflow `surfer-aurora.yml` numa pré-release deste repositório e conferido pelo SHA-256 fixado (`prebuilt`); sem ele, compilado do fonte pelo empacotamento; o cliente web, o zip que a CI do fork publica na mesma tag, conferido pelo SHA-256 fixado |
 | OSS CAD Suite | release 2026-09-29 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys, o `dot` do Graphviz e o openFPGALoader. Windows: o Yosys e o openFPGALoader | pacote oficial, conferido pelo SHA-256 publicado |
 | msys | `ucrt64-v1` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
@@ -160,7 +160,7 @@ Como cada ferramenta é executada:
 
 | Ferramenta | Linux e macOS | Windows |
 |---|---|---|
-| YANC | o binário em `yanc/bin/` | `yanc/bin/*.exe` |
+| YANC | o binário em `yanc/bin/`; da 7.1 em diante, cada um acha `SAPHO/`, `Macros/` e `Header/` em `../` a partir do próprio executável, então as quatro pastas andam juntas | `yanc/bin/*.exe`, idem |
 | Icarus | `/bin/bash oss-cad-suite/bin/<ferramenta>`: o lançador do pacote, que carrega o binário de `libexec/` com as bibliotecas do próprio pacote | o `.exe` de `msys/ucrt64/bin/`, com `PATH` nesse diretório, onde estão as DLLs |
 | Yosys, `dot` | como o Icarus | o `.exe` de `oss-cad-suite/bin/` (ou `graphviz/bin/dot.exe`) com `PATH` em `bin;lib` do pacote, como o `environment.bat` |
 | Verilator | Perl do sistema com o script `oss-cad-suite/bin/verilator`, que roda o `bin/verilator_bin` do pacote; o `make` e o compilador são os do sistema; o `make` gerado usa o Python do pacote (`PYTHON3=`) | o `msys/ucrt64/bin/perl.exe` com o script `msys/ucrt64/bin/verilator`, que roda o `verilator_bin.exe` ao lado (`VERILATOR_BIN=verilator_bin.exe`, com `--no-unlimited-stack`; ver [API.md, seção 5.2](API.md#52-simulatetoolchain-processor-simulationoptions-control---resultsimulationresult)); o `make` é o da camada MSYS (`msys/usr/bin/make.exe`), que roda o `verilated.mk` com o `sh` dela e compila com o `g++` de `ucrt64/bin`; o `make` gerado usa `msys/ucrt64/bin/python.exe` |

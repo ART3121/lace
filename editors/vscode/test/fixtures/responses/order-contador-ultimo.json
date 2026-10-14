@@ -13,7 +13,7 @@
     },
     {
       "role": "synthesizable",
-      "path": "${ROOT}/soma/Hardware/soma.v",
+      "path": "${ROOT}/soma/soma/soma.v",
       "top_level": false
     },
     {

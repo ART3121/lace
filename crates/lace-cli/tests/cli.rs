@@ -37,30 +37,40 @@ fn tempdir() -> (tempfile::TempDir, Utf8PathBuf) {
     (dir, path)
 }
 
+/// Copia um projeto sem `.lace/` e sem a pasta de saída dos processadores
+/// (`<proc>/<proc>/`), os restos de um build anterior.
 fn copy_dir(from: &Utf8Path, to: &Utf8Path) {
+    copy_tree(from, to, 0);
+}
+
+fn copy_tree(from: &Utf8Path, to: &Utf8Path, depth: usize) {
     std::fs::create_dir_all(to).unwrap();
     for entry in from.read_dir_utf8().unwrap() {
         let entry = entry.unwrap();
         let name = entry.file_name();
-        if name == ".lace" || name == "Hardware" || name.ends_with(".asm") {
+        // `from` é a pasta de um processador, filha da raiz.
+        let output_folder = depth == 1 && from.file_name() == Some(name);
+        if name == ".lace" || output_folder {
             continue;
         }
         let target = to.join(name);
         if entry.file_type().unwrap().is_dir() {
-            copy_dir(entry.path(), &target);
+            copy_tree(entry.path(), &target, depth + 1);
         } else {
             std::fs::copy(entry.path(), &target).unwrap();
         }
     }
 }
 
+/// Um projeto de `examples/` numa pasta temporária.
 fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
     let (guard, dir) = tempdir();
     let from = Utf8Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../examples")
         .join(name);
-    copy_dir(&from, &dir.join(name));
-    (guard, dir.join(name))
+    let root = dir.join(name);
+    copy_dir(&from, &root);
+    (guard, root)
 }
 
 /// Um projeto vazio criado pela CLI: `(guarda, raiz)`.
@@ -281,9 +291,9 @@ fn proc_add_and_set_with_arrays() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Processor created"));
-    let source = std::fs::read_to_string(root.join("alu/Software/alu.cpp")).unwrap();
+    let source = std::fs::read_to_string(root.join("alu/alu.cpp")).unwrap();
     assert!(source.contains("#pragma yanc nuioin 2"));
-    assert!(root.join("alu/Hardware").is_dir());
+    assert!(!source.contains("prname"), "{source}");
 
     // Nome repetido é erro do Lace, não do build: código 2, com o código estável.
     let err = json(lace_in(&root).args(["--json", "proc", "add", "alu"]), 2);
@@ -344,20 +354,22 @@ fn build_adds_the_generated_files_to_the_project() {
         .args(["proc", "add", "soma"])
         .assert()
         .success();
-    let soma_v = Utf8Path::new("soma").join("Hardware").join("soma.v");
-    let soma_tb = Utf8Path::new("soma").join("Simulation").join("soma_tb.v");
+    let soma_v = Utf8Path::new("soma").join("soma").join("soma.v");
+    let soma_tb = Utf8Path::new("soma").join("soma").join("soma_tb.v");
     lace_in(&root)
         .env("LACE_TOOLCHAIN", &tc)
         .arg("build")
         .assert()
         .success()
-        .stdout(predicate::str::contains(format!("Module added: {soma_v} (top)")))
+        .stdout(predicate::str::contains(format!(
+            "Module added: {soma_v} (top)"
+        )))
         .stdout(predicate::str::contains(format!(
             "Testbench added: {soma_tb} (selected testbench)"
         )));
     let structure = &spf(&root)["structure"];
-    assert_eq!(structure["topLevelFile"], "soma/Hardware/soma.v");
-    assert_eq!(structure["testbenchFile"], "soma/Simulation/soma_tb.v");
+    assert_eq!(structure["topLevelFile"], "soma/soma/soma.v");
+    assert_eq!(structure["testbenchFile"], "soma/soma/soma_tb.v");
 
     // Já registrados: o build seguinte não repete. Tirado, volta.
     let report = json(
@@ -379,7 +391,7 @@ fn build_adds_the_generated_files_to_the_project() {
     );
     assert_eq!(report["registered"][0]["role"], "synthesizable");
     let files = spf(&root)["structure"]["synthesizableFiles"].clone();
-    assert_eq!(files[0]["path"], "soma/Hardware/soma.v", "{files:#}");
+    assert_eq!(files[0]["path"], "soma/soma/soma.v", "{files:#}");
 }
 
 #[test]
@@ -1041,12 +1053,15 @@ fn build_error_is_exit_code_1_with_file_and_line() {
         return;
     };
     let (_guard, root) = example("com_erro");
+    let line = 15;
     lace()
         .args(["-C", root.as_str(), "build", "-p", "conta"])
         .env("LACE_TOOLCHAIN", &tc)
         .assert()
         .code(1)
-        .stdout(predicate::str::contains("conta.cmm:16: error:"));
+        .stdout(predicate::str::contains(format!(
+            "conta.cmm:{line}: error:"
+        )));
 }
 
 #[test]
@@ -1114,7 +1129,7 @@ fn check_does_not_build_the_processors() {
         .env("LACE_TOOLCHAIN", &tc)
         .assert()
         .success();
-    let verilog = root.join("soma/Hardware/soma.v");
+    let verilog = root.join("soma/soma/soma.v");
     let written = std::fs::metadata(&verilog).unwrap().modified().unwrap();
     let report = check(&["-p", "soma"], 0);
     assert!(report.get("builds").is_none(), "{report}");
@@ -1150,14 +1165,16 @@ fn processor_simulation_prints_outputs() {
         ))
         .stdout(predicate::str::contains(format!(
             "testbench           {}",
-            shown("soma/Simulation/soma_tb.v")
+            shown("soma/soma/soma_tb.v")
         )))
         .stdout(predicate::str::contains("Output 0: 55"))
         .stdout(predicate::str::contains(
             "Open the waveform with: lace wave -p soma",
         ));
-    // O testbench que o asmcomp gerou fica em Simulation/, como na AURORA.
-    assert!(root.join("soma/Simulation/soma_tb.v").is_file());
+    // O que o YANC gera fica na pasta de saída, como na AURORA: o testbench
+    // e a saída da simulação, que roda nela.
+    assert!(root.join("soma/soma/soma_tb.v").is_file());
+    assert!(root.join("soma/soma/output_0.txt").is_file());
 
     let report = json(
         lace_in(&root)
@@ -1184,7 +1201,7 @@ fn processor_simulation_names_missing_inputs() {
         .args(["proc", "add", "eco"])
         .assert()
         .success();
-    let source = root.join("eco/Software/eco.cmm");
+    let source = root.join("eco/eco.cmm");
     let header = std::fs::read_to_string(&source).unwrap();
     let header = &header[..header.find("void main").unwrap()];
     std::fs::write(
@@ -1199,10 +1216,10 @@ fn processor_simulation_names_missing_inputs() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "Create eco/Simulation/input_0.txt with one value per line",
+            "Create eco/input_0.txt with one value per line",
         ));
 
-    std::fs::write(root.join("eco/Simulation/input_0.txt"), "4\n").unwrap();
+    std::fs::write(root.join("eco/input_0.txt"), "4\n").unwrap();
     let report = json(
         lace_in(&root)
             .args(["--json", "sim", "-p", "eco"])
@@ -1938,12 +1955,9 @@ fn a_failed_build_says_what_ran_and_what_did_not() {
     for expected in [
         "Build of conta (C±, 100 MHz, 2000 clocks): failed after".to_owned(),
         "cmmcomp exited with code 1".to_owned(),
-        "not run   pre assemble  appcomp".to_owned(),
+        "not run   assemble      asmcomp".to_owned(),
         "Not generated:".to_owned(),
-        format!(
-            "testbench           {}",
-            shown("conta/Simulation/conta_tb.v")
-        ),
+        format!("testbench           {}", shown("conta/conta/conta_tb.v")),
         "Simulation not run: the build of conta did not finish".to_owned(),
     ] {
         assert!(text.contains(&expected), "{expected}:\n{text}");
@@ -1959,7 +1973,9 @@ fn commands_find_the_project_from_any_inner_folder() {
         .args(["proc", "add", "soma"])
         .assert()
         .success();
-    for inner in ["soma", "soma/Software", "soma/Simulation"] {
+    // A pasta de saída nasce no primeiro build.
+    std::fs::create_dir_all(root.join("soma/soma")).unwrap();
+    for inner in ["soma", "soma/soma"] {
         let status = json(lace_in(&root.join(inner)).args(["--json", "status"]), 0);
         assert!(
             status["spf"].as_str().unwrap().ends_with("demo.spf"),
@@ -1987,7 +2003,7 @@ fn status_and_proc_set_know_the_processor_of_the_folder() {
             .assert()
             .success();
     }
-    let here = root.join("filtro/Software");
+    let here = root.join("filtro/filtro");
     std::fs::create_dir_all(&here).unwrap();
 
     let status = json(lace_in(&here).args(["--json", "status"]), 0);
@@ -2025,7 +2041,7 @@ fn build_check_and_synth_inside_a_processor_folder_act_on_it() {
         return;
     }
     let (_guard, root) = example("soma");
-    let here = root.join("filtro/Software");
+    let here = root.join("filtro");
     let run = |dir: &Utf8Path, args: &[&str]| {
         let mut cmd = lace_in(dir);
         cmd.arg("--json").args(args).env("LACE_TOOLCHAIN", &tc);
@@ -2072,7 +2088,7 @@ fn sim_inside_a_processor_folder_simulates_that_processor() {
     let (_guard, root) = example("soma");
     // Da pasta do código do filtro: o filtro, sem -p.
     let sim = json(
-        lace_in(&root.join("filtro/Software"))
+        lace_in(&root.join("filtro"))
             .args(["--json", "sim"])
             .env("LACE_TOOLCHAIN", &tc),
         0,

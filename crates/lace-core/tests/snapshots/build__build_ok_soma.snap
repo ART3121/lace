@@ -16,17 +16,10 @@ expression: "normalized(&result, &root, &toolchain)"
       "command": {
         "program": "[TOOLCHAIN]/yanc/bin/cmmcomp",
         "args": [
-          "-i",
-          "soma.cmm",
-          "-n",
-          "soma",
-          "-p",
-          "[PROJETO]/soma",
-          "-m",
-          "[TOOLCHAIN]/yanc/Macros",
-          "-t",
-          "[PROJETO]/.lace/Temp/soma",
-          "-en"
+          "[PROJETO]/soma/soma.cmm",
+          "-o",
+          "[PROJETO]/soma/soma",
+          "--lang=en"
         ],
         "cwd": "[PROJETO]/soma",
         "env": [],
@@ -41,52 +34,19 @@ expression: "normalized(&result, &root, &toolchain)"
       "duration_ms": "[ms]"
     },
     {
-      "step": "pre_assemble",
-      "tool": "appcomp",
-      "command": {
-        "program": "[TOOLCHAIN]/yanc/bin/appcomp",
-        "args": [
-          "-i",
-          "[PROJETO]/soma/Software/soma.asm",
-          "-t",
-          "[PROJETO]/.lace/Temp/soma",
-          "-en"
-        ],
-        "cwd": "[PROJETO]/.lace/Temp/soma",
-        "env": [],
-        "inherit": []
-      },
-      "termination": {
-        "kind": "exited",
-        "value": 0
-      },
-      "stdout": "Info: 16 instructions and 5 variables were found\nSweet: got the memory count nailed down! Now let's see which circuits you'll need...\n",
-      "stderr": "",
-      "duration_ms": "[ms]"
-    },
-    {
       "step": "assemble",
       "tool": "asmcomp",
       "command": {
         "program": "[TOOLCHAIN]/yanc/bin/asmcomp",
         "args": [
-          "-i",
-          "[PROJETO]/soma/Software/soma.asm",
-          "-p",
-          "[PROJETO]/soma",
-          "-d",
-          "[TOOLCHAIN]/yanc/SAPHO",
-          "-m",
-          "[TOOLCHAIN]/yanc/Macros",
-          "-t",
-          "[PROJETO]/.lace/Temp/soma",
+          "[PROJETO]/soma/soma/soma.asm",
           "-f",
           "100",
           "-c",
           "2000",
-          "-en"
+          "--lang=en"
         ],
-        "cwd": "[PROJETO]/.lace/Temp/soma",
+        "cwd": "[PROJETO]/soma/soma",
         "env": [],
         "inherit": []
       },
@@ -94,7 +54,7 @@ expression: "normalized(&result, &root, &toolchain)"
         "kind": "exited",
         "value": 0
       },
-      "stdout": "Info: ULA resource -> integer adder\nInfo: ULA resource -> < operator for int\nInfo: adding data output handling\nInfo: using 5% of the Assembly Instruction Set\nInfo: using 5% of the ULA operations\nSweet: the processor is good to go.\n",
+      "stdout": "Info: 16 instructions and 5 variables were found\nInfo: ULA resource -> integer adder\nInfo: ULA resource -> < operator for int\nInfo: adding data output handling\nInfo: using 5% of the Assembly Instruction Set\nInfo: using 5% of the ULA operations\nSweet: the processor is good to go.\n",
       "stderr": "",
       "duration_ms": "[ms]"
     }
@@ -119,22 +79,13 @@ expression: "normalized(&result, &root, &toolchain)"
       "raw": "Sweet: it compiled! Now you just gotta figure out why it doesn't work."
     },
     {
-      "tool": "appcomp",
+      "tool": "asmcomp",
       "severity": "info",
       "message": "16 instructions and 5 variables were found",
       "file": null,
       "line": null,
       "column": null,
       "raw": "Info: 16 instructions and 5 variables were found"
-    },
-    {
-      "tool": "appcomp",
-      "severity": "info",
-      "message": "got the memory count nailed down! Now let's see which circuits you'll need...",
-      "file": null,
-      "line": null,
-      "column": null,
-      "raw": "Sweet: got the memory count nailed down! Now let's see which circuits you'll need..."
     },
     {
       "tool": "asmcomp",
@@ -194,61 +145,61 @@ expression: "normalized(&result, &root, &toolchain)"
   "artifacts": [
     {
       "kind": "assembly",
-      "path": "[PROJETO]/soma/Software/soma.asm",
+      "path": "[PROJETO]/soma/soma/soma.asm",
       "required": true,
       "fresh": true
     },
     {
       "kind": "verilog",
-      "path": "[PROJETO]/soma/Hardware/soma.v",
+      "path": "[PROJETO]/soma/soma/soma.v",
       "required": true,
       "fresh": true
     },
     {
       "kind": "data_memory",
-      "path": "[PROJETO]/soma/Hardware/soma_data.mif",
+      "path": "[PROJETO]/soma/soma/soma_data.mif",
       "required": true,
       "fresh": true
     },
     {
       "kind": "instruction_memory",
-      "path": "[PROJETO]/soma/Hardware/soma_inst.mif",
+      "path": "[PROJETO]/soma/soma/soma_inst.mif",
       "required": true,
       "fresh": true
     },
     {
       "kind": "testbench",
-      "path": "[PROJETO]/soma/Simulation/soma_tb.v",
+      "path": "[PROJETO]/soma/soma/soma_tb.v",
       "required": true,
       "fresh": true
     },
     {
       "kind": "program_counter_map",
-      "path": "[PROJETO]/.lace/Temp/soma/pc_soma_mem.txt",
+      "path": "[PROJETO]/soma/soma/pc_soma_mem.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "source_translation",
-      "path": "[PROJETO]/.lace/Temp/soma/trad_cmm.txt",
+      "path": "[PROJETO]/soma/soma/src_lines.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "opcode_translation",
-      "path": "[PROJETO]/.lace/Temp/soma/trad_opcode.txt",
+      "path": "[PROJETO]/soma/soma/trad_opcode.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "compiler_log",
-      "path": "[PROJETO]/.lace/Temp/soma/cmm_log.txt",
+      "path": "[PROJETO]/soma/soma/prog_log.txt",
       "required": false,
       "fresh": true
     },
     {
       "kind": "pre_assembler_log",
-      "path": "[PROJETO]/.lace/Temp/soma/app_log.txt",
+      "path": "[PROJETO]/soma/soma/app_log.txt",
       "required": false,
       "fresh": true
     }

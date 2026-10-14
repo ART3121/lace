@@ -39,9 +39,9 @@ Processador SAPHO:
 ```
 lace new demo
 cd demo
-lace proc add soma               # cria soma/Software/soma.cmm
-# edite soma/Software/soma.cmm
-# ponha os valores de entrada em soma/Simulation/input_0.txt, um por linha
+lace proc add soma               # cria soma/soma.cmm
+# edite soma/soma.cmm
+# ponha os valores de entrada em soma/input_0.txt, um por linha
 lace build                       # C± -> Verilog, memórias e testbench, pelo YANC
 lace sim -p soma                 # simula e mostra as saídas
 lace sim -p soma --fast          # as mesmas saídas, no Verilator e sem onda
@@ -55,8 +55,8 @@ procura o `.spf` na pasta atual e, se não achar, nas de cima, como o git
 acha o repositório. Fora de qualquer projeto, o erro é `project_not_found`.
 `-C` aponta outro lugar para começar a busca.
 
-**Dentro da pasta de um processador** (`soma/`, `soma/Software/`,
-`soma/Hardware/`, `soma/Simulation/` ou `.lace/Temp/soma/`), os comandos que
+**Dentro da pasta de um processador** (`soma/`, a pasta de saída
+`soma/soma/` ou `.lace/Temp/soma/`), os comandos que
 recebem um processador e não receberam nenhum agem sobre ele: `build`,
 `check`, `sim`, `wave`, `synth` e `proc set`. No resto do projeto, eles agem
 sobre o projeto inteiro (`proc set` pede o nome). `lace status` marca o
@@ -180,7 +180,7 @@ testbench, que é ignorado; um processador com nome que não compila.
 | `lace add <ARQUIVO>... [--tb]` | registra cada arquivo (`.v`, `.sv`, ou `.py`, um testbench cocotb); o que não existe é criado a partir do modelo. Confere todos antes de registrar o primeiro: um nome que não serve recusa o comando inteiro, e nada é criado nem registrado | `Project::check_add_verilog`, `Project::add_verilog` |
 | `lace remove <ARQUIVO>...` | tira do projeto, e do topo ou do testbench simulado se era um deles; não apaga do disco | `Project::remove_verilog` |
 | `lace top` | mostra o arquivo de topo e o módulo de topo, ou diz que não há topo e como escolher | `Project::top_level`, `Project::top_module` |
-| `lace top <ARQUIVO\|MÓDULO>` | escolhe o topo: se o argumento é um arquivo, ele (qualquer `.v` ou `.sv`, inclusive o `Hardware/<proc>.v` gerado; registrado se não estava); senão, o arquivo registrado que declara esse módulo. Recusa nome de testbench (`tb_<nome>.v`, `<nome>_tb.v`, `tb.v`), arquivo que não é Verilog (`invalid_name`) e módulo declarado em mais de um arquivo (`ambiguous_module`, com os arquivos); nada é gravado | `Project::set_top` |
+| `lace top <ARQUIVO\|MÓDULO>` | escolhe o topo: se o argumento é um arquivo, ele (qualquer `.v` ou `.sv`, inclusive o `<proc>/<proc>/<proc>.v` gerado; registrado se não estava); senão, o arquivo registrado que declara esse módulo. Recusa nome de testbench (`tb_<nome>.v`, `<nome>_tb.v`, `tb.v`), arquivo que não é Verilog (`invalid_name`) e módulo declarado em mais de um arquivo (`ambiguous_module`, com os arquivos); nada é gravado | `Project::set_top` |
 | `lace move [--after] <ORIGEM>... <DESTINO>` | move ou renomeia arquivos e pastas do projeto; os registrados continuam no projeto, com o topo e o testbench simulado acompanhando. Com `--after`, só registra no `.spf` o que já foi movido | `Project::move_path`, `Project::record_move` |
 | `lace order <ARQUIVO> (--first \| --last \| --before <OUTRO> \| --after <OUTRO>)` | muda a posição do arquivo na lista dele e mostra a lista numerada; os compiladores leem nessa ordem, e um `` `define `` só vale para os de baixo | `Project::reorder_file` |
 
@@ -202,7 +202,7 @@ caminho `DESTINO` (renomear). As pastas que faltam são criadas. Com várias ori
 `DESTINO` precisa ser uma pasta (código 2). Para cada origem, diz de onde
 para onde foi e quais arquivos continuam no projeto, com o papel de cada um.
 Ficam no lugar o `.spf`, a pasta `.lace` e, de cada processador, a pasta,
-`Software/`, `Hardware/`, `Simulation/` e o fonte (`cannot_move`); o destino
+a pasta de saída e o fonte (`cannot_move`); o destino
 que existe não é sobrescrito (`path_exists`). As origens anteriores à que
 falhou já foram movidas.
 
@@ -223,20 +223,45 @@ módulos, o que tem o nome do arquivo. Sem nenhum dos dois, é erro
 
 | Comando | Faz | Função do Core |
 |---|---|---|
-| `proc add <NOME> [--lang cmm\|cpp] [--inputs N] [--outputs N] [--nubits N] [--nbmant N] [--nbexpo N] [--nugain N] [--ndstac N] [--sdepth N]` | cria diretórios, fonte-modelo e entrada no `.spf` | `Project::add_processor` |
+| `proc add <NOME> [--lang cmm\|cpp] [--inputs N] [--outputs N] [--nubits N] [--nbmant N] [--nbexpo N] [--nugain N] [--ndstac N] [--sdepth N]` | cria a pasta `<NOME>/`, o fonte-modelo `<NOME>/<NOME>.cmm` (ou `.cpp`) e a entrada no `.spf`; a pasta de saída, `<NOME>/<NOME>/`, nasce no primeiro build | `Project::add_processor` |
 | `proc set [NOME] [--freq MHZ] [--clocks N] [--arrays true\|false]` | grava frequência, clocks e exportação de arrays no `.spf`; valem a partir do próximo build. Sem `NOME`, o processador da pasta | `Project::configure_processor` |
 
 As opções `--nubits` a `--sdepth` são só de C±; com `--lang cpp`, o comando
-recusa (código 2). Os padrões são os da AURORA (23, 16, 6, 128, 5, 5). Com
+recusa (código 2). Os padrões são os da AURORA (23, 16, 6, 128). O
+fonte-modelo segue o YANC 7.1: sem `#PRNAME` (o processador se chama como o
+arquivo), sem `#NDSTAC` e `#SDEPTH` se elas não forem dadas (o YANC calcula
+as pilhas pelo programa) e sem `#NUGAIN` se ele for 128. Com
 só `--nbmant` ou `--nbexpo`, `--nubits` acompanha (`#NBMANT + #NBEXPO + 1`,
 o único que o `asmcomp` aceita). O Core recusa, antes de criar qualquer
-coisa, nome que não compila (palavra do C± ou do Verilog, módulo da
-biblioteca SAPHO, mais de 64 caracteres) e parâmetro fora do que o YANC
+coisa, nome que o YANC 7.1 recusa como módulo (palavra do Verilog ou do
+SystemVerilog, começo com dígito ou com `__`), módulo da biblioteca SAPHO,
+nome reservado do Windows, mais de 64 caracteres, e parâmetro fora do que o YANC
 compila (`invalid_parameter`: `#NUBITS` diferente da soma ou acima de 32,
 `#NBEXPO` fora de 2 a 8, `#NUGAIN` que não é potência de dois, pilha 0, mais
 de 256 portas). `proc set` recusa `--freq` fora de 1 a 500000 e `--clocks`
 fora de 1 a 2147483647, com o motivo. Os processadores do projeto aparecem
 no `lace status`.
+
+### Projeto da estrutura antiga: `lace convert`
+
+Até o YANC 6.x cada processador tinha `Software/` (o fonte e o `.asm`),
+`Hardware/` (o Verilog e as memórias) e `Simulation/` (o testbench e as
+entradas e saídas). O YANC 7.1 não compila mais assim: o fonte e os
+arquivos da pessoa ficam em `<proc>/`, e tudo o que ele gera em
+`<proc>/<proc>/`. Num projeto antigo, o `build` recusa com `legacy_layout`,
+e o `lace status` avisa.
+
+`lace convert` faz a conversão que a AURORA faz ao abrir um projeto antigo
+(`Project::convert_layout`): o que o YANC gerava (o `.asm`, o `.v`, o
+testbench, as memórias, as tabelas, as saídas e a onda) vai para a pasta de
+saída; o resto (o fonte, os arquivos de arrays, `input_<n>.txt`, um `.v`
+posto à mão em `Hardware/`, uma subpasta) vai para a pasta do processador.
+Nada é apagado nem sobrescrito: um destino que já existe deixa o arquivo
+onde estava, com um aviso, e a subpasta antiga só sai vazia. A linha
+`#PRNAME` (ou `#pragma yanc prname`) sai do fonte; se ela dava ao módulo
+Verilog outro nome que não o do processador, um aviso lembra de atualizar
+quem o instancia. O `.spf` passa a apontar para os lugares novos. Num
+projeto já convertido, não faz nada. Com `--json`, o `convert.json`.
 
 ### Compilar, verificar, simular, sintetizar
 
@@ -252,8 +277,8 @@ no `lace status`.
 
 Depois de compilar, `build`, `sim`, `synth` e `fpga build` põem no `.spf`
 o que cada processador gerou e o projeto ainda não tem, como a AURORA: o
-`Hardware/<nome>.v` como módulo e o `Simulation/<nome>_tb.v` como
-testbench, no fim de cada lista (`Module added: soma/Hardware/soma.v`).
+`<nome>/<nome>/<nome>.v` como módulo e o `<nome>/<nome>/<nome>_tb.v` como
+testbench, no fim de cada lista (`Module added: soma/soma/soma.v`).
 Num projeto sem módulos, o do primeiro processador vira o topo; sem
 testbench, o testbench dele vira o simulado. O que já está registrado fica
 como está, e o que foi tirado com `lace remove` volta no build seguinte.
@@ -359,8 +384,8 @@ resto do design para resolver as instâncias; um testbench é elaborado com o
 design.
 
 Com `-p NOME`, ou dentro da pasta do processador, o design é só o
-`<NOME>/Hardware/<NOME>.v` que o build gerou, e o testbench é o dele,
-`<NOME>/Simulation/<NOME>_tb.v`; os passos são os mesmos, e o lint usa o
+`<NOME>/<NOME>/<NOME>.v` que o build gerou, e o testbench é o dele,
+`<NOME>/<NOME>/<NOME>_tb.v`; os passos são os mesmos, e o lint usa o
 processador como topo. Os outros processadores não são compilados nem
 verificados.
 
@@ -381,7 +406,7 @@ passo. Avisos, do Icarus ou do Verilator, não fazem o `check` falhar. O
 - com `-p`, depois de uma simulação que deu certo, os valores de cada porta
   de saída, uma linha por porta: `Output 0: 5 -2 26`;
 - quando falta um arquivo de entrada do processador, qual criar:
-  `Warning: Create soma/Simulation/input_0.txt with one value per line (the testbench reads it)`;
+  `Warning: Create soma/input_0.txt with one value per line (the testbench reads it)`;
 - quando passa do `--timeout`, o título
   `timed out, vvp stopped at the 1 s limit` e a dica
   `Does the testbench reach $finish? Without it the simulation never ends.
@@ -438,9 +463,14 @@ testado. Com as duas extensões no disco, `lace wave` abre a mais recente.
 Com um `$dumpfile` que é uma expressão que o Lace não resolve, a onda vai
 para onde o testbench mandar, em VCD, e `lace wave` pede o arquivo.
 
-Com `-p`, o testbench é o que o YANC gerou e o build copiou para
-`<NOME>/Simulation/<NOME>_tb.v`, como a AURORA, e a onda fica em
-`.lace/Temp/<NOME>/<NOME>_tb.fst` (`.vcd` com o Verilator).
+Com `-p`, o testbench é o que o YANC gerou, `<NOME>/<NOME>/<NOME>_tb.v`, e
+a simulação roda nessa pasta de saída, como o YANC 7.1 pede e a AURORA faz:
+o testbench lê as entradas na pasta do processador (`../input_<n>.txt`) e
+grava ali as saídas (`output_<n>.txt`) e a onda (`<NOME>_tb.fst`, ou `.vcd`
+com o Verilator). Escolhido como testbench do projeto (`lace sim
+<NOME>/<NOME>/<NOME>_tb.v`), ele também roda na pasta de saída; qualquer
+outro testbench roda na raiz, para onde vão as memórias e o
+`pc_<proc>_mem.txt` de cada processador, que o Verilog gerado lê pelo nome.
 
 #### Testbench cocotb
 
@@ -717,16 +747,15 @@ lace completions bash > ~/.local/share/bash-completion/completions/lace
 ```
 Build of conta (C±, 100 MHz, 2000 clocks): failed after 2 ms: cmmcomp exited with code 1
     failed    compile       cmmcomp         2 ms
-    not run   pre assemble  appcomp
     not run   assemble      asmcomp
-  /home/eu/projetos/com_erro/conta/Software/conta.cmm:16: error: c'mon dude, declare the variable 'total' properly!
+  /home/eu/projetos/com_erro/conta/conta.cmm:15: error: c'mon dude, declare the variable 'total' properly!
   Written before it stopped:
-    assembly            conta/Software/conta.asm
+    assembly            conta/conta/conta.asm
   Not generated:
-    processor Verilog   conta/Hardware/conta.v
-    data memory         conta/Hardware/conta_data.mif
-    instruction memory  conta/Hardware/conta_inst.mif
-    testbench           conta/Simulation/conta_tb.v
+    processor Verilog   conta/conta/conta.v
+    data memory         conta/conta/conta_data.mif
+    instruction memory  conta/conta/conta_inst.mif
+    testbench           conta/conta/conta_tb.v
 Simulation not run: the build of conta did not finish
 Report run-000001: lace report show 1
 ```
@@ -783,6 +812,8 @@ CLI acrescenta o comando que resolve:
 | `module_not_found` | nenhuma: a mensagem já lista os módulos do projeto |
 | `ambiguous_module` | `Choose it by file: lace top <arquivo>` |
 | `component_missing` | `Install it with: lace install <componente>` |
+| `legacy_layout` | `Convert it with: lace convert (nothing is deleted or overwritten)` |
+| `yanc_too_old` | `Install the current bundle with: lace update` |
 | `project_not_found` | `Create one with: lace new <name>, or point to it with -C <folder>` |
 | `no_reports` | `lace build, check, sim and synth each store a report` |
 | `report_not_found` | `List them with: lace report list` |
@@ -813,6 +844,7 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `move` | `move.json` | o `.spf` e um `MovedPath` por origem: de onde, para onde e os arquivos do projeto que foram junto |
 | `order` | `order.json` | o `.spf` e a lista do arquivo, na ordem nova |
 | `proc add`, `proc set` | `proc.json` | o `Processor` criado ou atualizado |
+| `convert` | `convert.json` | o `.spf` e o `LayoutConversion`: os processadores convertidos, o que mudou de lugar, o que ficou e por quê, os fontes que perderam a linha do nome, os nomes que não servem e as subpastas que ficaram |
 | `build` | `build.json` | o `.spf` e um `BuildResult` por processador compilado; nenhum num projeto sem processadores |
 | `check` | `check.json` | o `CheckResult` |
 | `hierarchy` | `hierarchy.json` | o `HierarchyResult`: o design e cada testbench, com a árvore de instâncias e o status de cada elaboração |

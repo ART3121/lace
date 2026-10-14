@@ -37,7 +37,7 @@ describe('problemas do check', () => {
     assert.ok([...byFile.keys()].every(inRoot));
     assert.ok([...outside.keys()].some((file) => file.includes('SAPHO')));
     // O Verilator dá a coluna; o Icarus, não.
-    const soma = byFile.get(`${ROOT}/soma/Hardware/soma.v`) ?? [];
+    const soma = byFile.get(`${ROOT}/soma/soma/soma.v`) ?? [];
     assert.ok(soma.some((p) => p.tool === 'verilator' && p.column !== null));
   });
 

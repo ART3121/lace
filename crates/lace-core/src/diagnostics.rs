@@ -2,8 +2,9 @@
 //!
 //! Cada ferramenta tem seu dialeto (todos conferidos executando-as):
 //!
-//! - `cmmcomp`, `appcomp` e `asmcomp` escrevem frases em inglês (o Lace sempre
-//!   passa `-en`) com a linha no meio do texto e sem nome de arquivo:
+//! - `cmmcomp` e `asmcomp` (e o `appcomp` dos relatórios antigos) escrevem
+//!   frases em inglês (o Lace sempre passa `--lang=en`) com a linha no meio
+//!   do texto e sem nome de arquivo:
 //!   `Error on line 42: there's no variable 'x'!`,
 //!   `Syntax error on line 3. You're a confused soul!`,
 //!   `Heads up on line 7: ...`, `Info: ...`. O `asmcomp` cita arquivos de
@@ -11,7 +12,7 @@
 //! - `cppcomp`, `iverilog` e o compilador C++ que o Verilator chama usam o
 //!   formato de compilador C: `<arquivo>:<linha>[:<coluna>]: error: ...`. O
 //!   Icarus também escreve `<arquivo>:<linha>: syntax error`.
-//!   `cppcomp` e `cpppp` emitem `<ferramenta>: <mensagem>`.
+//!   `cppcomp` emite `<ferramenta>: <mensagem>`.
 //! - Verilator: `%Error: <arquivo>:<linha>:<coluna>: ...`,
 //!   `%Warning-<CÓDIGO>: ...`, seguidos de linhas indentadas com o trecho do
 //!   fonte, que são anexadas ao diagnóstico anterior.
@@ -66,13 +67,12 @@ pub enum Severity {
 /// ```json
 /// { "tool": "cmmcomp", "severity": "error",
 ///   "message": "c'mon dude, declare the variable 'total' properly!",
-///   "file": "/p/conta/Software/conta.cmm", "line": 16, "column": null,
-///   "raw": "Error on line 16: c'mon dude, declare the variable 'total' properly!" }
+///   "file": "/p/conta/conta.cmm", "line": 15, "column": null,
+///   "raw": "Error on line 15: c'mon dude, declare the variable 'total' properly!" }
 /// ```
 ///
-/// No fluxo C, o `cppcomp` numera as linhas do arquivo pré-processado
-/// (`<temp>/pp.cpp`), e é esse o `file` que aparece: o `cpppp` não emite
-/// marcadores `#line` que permitam voltar ao fonte original.
+/// No fluxo C, o `cppcomp` cita o arquivo e a linha do fonte, ou do
+/// cabeçalho incluído onde está o erro.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct Diagnostic {
     /// A ferramenta que escreveu a mensagem.
@@ -80,7 +80,7 @@ pub struct Diagnostic {
     /// A gravidade.
     pub severity: Severity,
     /// A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma
-    /// da ferramenta (inglês: o Lace sempre pede `-en` ao YANC).
+    /// da ferramenta (inglês: o Lace sempre pede inglês ao YANC).
     pub message: String,
     /// O arquivo a que a mensagem se refere, como a ferramenta o escreveu
     /// (normalmente absoluto, porque o Lace passa caminhos absolutos).

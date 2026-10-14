@@ -24,7 +24,7 @@ describe('Lace: processadores', () => {
   });
 
   it('Novo processador: lace proc add, o fonte abre e a vista o mostra', async () => {
-    const source = join(workspace, 'novo', 'Software', 'novo.cmm');
+    const source = join(workspace, 'novo', 'novo.cmm');
     try {
       const result = await run<LaceRun<Processor>>('lace.newProcessor', { name: 'novo', language: 'cmm' });
       assert.equal(result?.status, 'succeeded');

@@ -25,10 +25,10 @@
       "recommended": true,
       "package": "yanc",
       "closure": false,
-      "select": { "*": ["bin/cmmcomp*", "bin/appcomp*", "bin/asmcomp*", "bin/cpppp*", "bin/cppcomp*", "SAPHO/**", "Macros/**", "Header/**", "README.md"] },
+      "select": { "*": ["bin/cmmcomp*", "bin/asmcomp*", "bin/cppcomp*", "SAPHO/**", "Macros/**", "Header/**", "README.md"] },
       "run": {
-        "unix": ["bin/cmmcomp", "bin/appcomp", "bin/asmcomp", "bin/cpppp", "bin/cppcomp"],
-        "windows-x64": ["bin/cmmcomp.exe", "bin/appcomp.exe", "bin/asmcomp.exe", "bin/cpppp.exe", "bin/cppcomp.exe"]
+        "unix": ["bin/cmmcomp", "bin/asmcomp", "bin/cppcomp"],
+        "windows-x64": ["bin/cmmcomp.exe", "bin/asmcomp.exe", "bin/cppcomp.exe"]
       }
     },
     {

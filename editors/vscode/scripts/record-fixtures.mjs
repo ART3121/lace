@@ -137,8 +137,8 @@ try {
   const buildResult = { schema: 'events.json', resultSchema: 'build.json' };
   const brokenSapho = copyDemo('sapho quebrado');
   writeFileSync(
-    join(brokenSapho.root, 'soma', 'Software', 'soma.cmm'),
-    readFileSync(join(brokenSapho.root, 'soma', 'Software', 'soma.cmm'), 'utf8').replace('out(0, 0);', 'out(0, 0'),
+    join(brokenSapho.root, 'soma', 'soma.cmm'),
+    readFileSync(join(brokenSapho.root, 'soma', 'soma.cmm'), 'utf8').replace('out(0, 0);', 'out(0, 0'),
   );
   record(brokenSapho, 'build-soma-erro.events.jsonl', ['--events', 'build', '-p', 'soma'], {
     ...buildResult,
@@ -158,9 +158,9 @@ try {
     state: 'initial',
     next: 'proc-novo',
   });
-  const novoSource = join(sapho.root, 'novo', 'Software', 'novo.cmm');
+  const novoSource = join(sapho.root, 'novo', 'novo.cmm');
   writeFileSync(join(out, 'proc-add-novo.created.cmm'), readFileSync(novoSource));
-  cases.at(-1).creates = [{ path: '${ROOT}/novo/Software/novo.cmm', from: 'proc-add-novo.created.cmm' }];
+  cases.at(-1).creates = [{ path: '${ROOT}/novo/novo.cmm', from: 'proc-add-novo.created.cmm' }];
   record(sapho, 'status-proc-novo.json', ['--json', 'status'], { schema: 'status.json', state: 'proc-novo' });
 
   // As ferramentas de arquivo, cada uma a partir do .spf de depois do build

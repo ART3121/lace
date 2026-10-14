@@ -1,6 +1,6 @@
 {
-  "waveform": "${ROOT}/.lace/Temp/soma/soma_tb.fst",
-  "pid": 1227134,
+  "waveform": "${ROOT}/soma/soma/soma_tb.fst",
+  "pid": 187153,
   "log": "${ROOT}/.lace/Temp/surfer/soma_tb.fst.log",
   "layout": "${ROOT}/wave/soma_tb.surf.ron",
   "saved_layout": {

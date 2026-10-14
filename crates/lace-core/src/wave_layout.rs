@@ -9,7 +9,7 @@
 //! fonte da instrução (`linetabs`). O testbench grava todos eles. E o
 //! `asmcomp` e o `cmmcomp` deixam, na pasta temporária do processador, as
 //! tabelas que dão nome a esses números: `trad_opcode.txt` (`<índice>
-//! <mnemônico> <operando>`) e `trad_cmm.txt` (`<linha> <texto da linha>`).
+//! <mnemônico> <operando>`) e `src_lines.txt` (`<linha> <texto da linha>`).
 //!
 //! Este módulo lê o cabeçalho da onda, acha cada processador (o escopo que
 //! tem `valr2` e `linetabs`), transforma as tabelas em tradutores de valor
@@ -108,14 +108,14 @@ pub struct MappingTranslator {
 pub struct WaveProcessor {
     /// O escopo da instância na onda (`soma_tb.proc`).
     pub instance: String,
-    /// O processador (o `#PRNAME`, nome da pasta no projeto).
+    /// O processador (o nome da pasta no projeto e do fonte).
     pub processor: String,
     /// Quantas variáveis do programa estão na onda (cada elemento de array
     /// conta).
     pub variables: usize,
     /// O PC aparece como instrução de assembly (havia `trad_opcode.txt`).
     pub assembly: bool,
-    /// A linha do fonte aparece como texto (havia `trad_cmm.txt`).
+    /// A linha do fonte aparece como texto (havia `src_lines.txt`).
     pub source: bool,
     /// As tabelas são mais novas que a onda: o processador foi compilado de
     /// novo depois da simulação, e o assembly e a linha do C± sairiam
@@ -706,7 +706,7 @@ fn tables_dir(
     processor: &str,
 ) -> Option<Utf8PathBuf> {
     if let Some(proc) = project.and_then(|p| p.processor(processor)) {
-        return Some(proc.temp_dir.clone());
+        return Some(proc.output_dir.clone());
     }
     let dir = waveform.parent()?;
     dir.join(format!("pc_{processor}_mem.txt"))
@@ -721,7 +721,7 @@ struct Tables {
     source: Option<String>,
     /// Mais novas que a onda: não valem para ela.
     outdated: bool,
-    /// Os pares (função, variável) do `cmm_log.txt`: desfazem o nome de um
+    /// Os pares (função, variável) do `prog_log.txt`: desfazem o nome de um
     /// sinal como `me1_f_get_v_x_v_p_e_`, em que a função tem `_v_`.
     variables: Vec<(String, String)>,
 }
@@ -743,7 +743,7 @@ impl Tables {
             matches!((modified, recorded), (Ok(table), Some(wave)) if table > wave)
         };
         let memory = format!("pc_{processor}_mem.txt");
-        if ["trad_opcode.txt", "trad_cmm.txt", memory.as_str()]
+        if ["trad_opcode.txt", "src_lines.txt", memory.as_str()]
             .into_iter()
             .any(newer)
         {
@@ -764,7 +764,7 @@ impl Tables {
         };
         // `<função> <variável> <tipo> [...]`, uma por declaração; `num_ins`
         // e outras linhas de dois campos ficam de fora.
-        let variables = read("cmm_log.txt")?
+        let variables = read("prog_log.txt")?
             .unwrap_or_default()
             .lines()
             .filter_map(|line| {
@@ -777,7 +777,7 @@ impl Tables {
             .collect();
         Ok(Tables {
             opcode: read("trad_opcode.txt")?,
-            source: read("trad_cmm.txt")?,
+            source: read("src_lines.txt")?,
             outdated: false,
             variables,
         })
@@ -804,7 +804,7 @@ fn mapping_name(kind: &str, processor: &str) -> String {
 /// Uma tabela do YANC (`<número> <texto>` por linha) como tradutor do
 /// Surfer, que casa pelo valor dos bits do sinal de `bits` de largura:
 ///
-/// - um número negativo (as linhas especiais -1, -2 e -3 do `trad_cmm.txt`)
+/// - um número negativo (as linhas especiais -1, -2 e -3 do `src_lines.txt`)
 ///   vira o padrão de bits sem sinal (`0xFFFFF` para -1 em 20 bits), porque
 ///   o Surfer não casa valor com sinal; sem largura, sai;
 /// - linha sem texto sai: o Surfer recusa o arquivo inteiro por ela;
@@ -1294,7 +1294,7 @@ fn io_items(instance: &Scope) -> Vec<Item> {
 }
 
 /// `(função, variável)` de `me1_f_main_v_soma_e_`; `global` fica `global`.
-/// Com os pares do `cmm_log.txt` (`names`), o par cujo sufixo
+/// Com os pares do `prog_log.txt` (`names`), o par cujo sufixo
 /// `_f_<função>_v_<variável>_e_` fecha o sinal: sem eles, uma função com
 /// `_v_` no nome (`get_v_x`) seria cortada no lugar errado.
 fn variable_name(signal: &str, names: &[(String, String)]) -> Option<(String, String)> {
@@ -1791,14 +1791,14 @@ $upscope $end $upscope $end $enddefinitions $end";
     }
 
     /// Uma onda de processador com as tabelas do YANC na mesma pasta, como a
-    /// `.lace/Temp/<proc>/` de um projeto.
+    /// pasta de saída de um processador.
     fn wave_with_tables(dir: &Utf8Path) -> Utf8PathBuf {
         let wave = dir.join("soma_tb.vcd");
         let body = format!("#0\nb{COMPLEX} +\nb0 '\n#10\nb1 '\nbxx +\n");
         std::fs::write(&wave, format!("{HEADER}{body}")).unwrap();
         std::fs::write(dir.join("pc_soma_mem.txt"), "11111111111111111111\n").unwrap();
         std::fs::write(dir.join("trad_opcode.txt"), "0 NOP \n1 LOD 5\n").unwrap();
-        std::fs::write(dir.join("trad_cmm.txt"), "-1 INTERNAL\n1 int soma;\n").unwrap();
+        std::fs::write(dir.join("src_lines.txt"), "-1 INTERNAL\n1 int soma;\n").unwrap();
         // A onda depois do build, como numa simulação de verdade: o relógio
         // do sistema de arquivos pode dar a mesma hora às quatro gravações.
         let later = std::time::SystemTime::now() + std::time::Duration::from_secs(2);

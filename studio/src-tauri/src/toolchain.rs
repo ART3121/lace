@@ -355,9 +355,10 @@ pub fn info(settings: &Settings) -> ToolchainInfo {
     let toolchain = &located.toolchain;
     let manifest = toolchain.manifest();
     let bundled = toolchain.system_compiler().is_some_and(|c| c.bundled);
-    let tools = Tool::all()
-        .iter()
-        .map(|&tool| {
+    let tools = toolchain
+        .tools()
+        .into_iter()
+        .map(|tool| {
             let (path, error) = match toolchain.tool(tool) {
                 Ok(path) => (Some(path), None),
                 Err(error) => (None, Some(IpcError::from(error))),

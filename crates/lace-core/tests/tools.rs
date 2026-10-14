@@ -49,12 +49,15 @@ fn icarus_simulates_both_languages() {
         // O testbench do asmcomp pede `<nome>_tb.vcd`; o Icarus grava sempre
         // FST, com a extensão trocada numa cópia do testbench.
         let wave = result.waveform.unwrap();
-        assert_eq!(wave.path, processor.temp_dir.join(format!("{name}_tb.fst")));
+        assert_eq!(
+            wave.path,
+            processor.output_dir.join(format!("{name}_tb.fst"))
+        );
         assert_eq!(wave.format, WaveformFormat::Fst);
         assert!(common::is_fst(&wave.path), "{} não é FST", wave.path);
         assert!(processor.testbench_path().is_file());
         // O layout do Surfer acha o processador na onda FST e as tabelas que
-        // o YANC deixou na pasta temporária dele.
+        // o YANC deixou na pasta de saída dele.
         let layout = wave_layout(&wave.path).unwrap().expect("a processor wave");
         let found = &layout.processors[..];
         assert_eq!(found.len(), 1, "{found:#?}");
@@ -135,7 +138,7 @@ fn fast_simulation_of_a_processor() {
     );
     // Nenhuma onda no disco, e o modelo fica à parte do da simulação com onda.
     for wave in ["soma_tb.vcd", "soma_tb.fst"] {
-        assert!(!processor.temp_dir.join(wave).exists(), "{wave}");
+        assert!(!processor.output_dir.join(wave).exists(), "{wave}");
     }
     assert!(processor.temp_dir.join("obj_dir_fast_soma_tb").is_dir());
     assert!(!processor.temp_dir.join("obj_dir_soma_tb").exists());
@@ -169,15 +172,16 @@ fn simulation_requires_a_build() {
 #[test]
 fn project_simulation_with_processor_testbench() {
     // O modo projeto da AURORA com o testbench padrão do processador: roda na
-    // raiz, com o pc_soma_mem.txt copiado para lá.
+    // pasta de saída dele, a única em que o testbench gerado roda certo.
     let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog, Tool::Vvp]) else {
         return;
     };
     let (_guard, mut project) = built("soma");
     let processor = project.require_processor("soma").unwrap().clone();
-    let generated = processor.temp_dir.join("soma_tb.v");
-    let tb = processor.simulation_dir().join("soma_tb.v");
-    std::fs::copy(&generated, &tb).unwrap();
+    // O testbench que o asmcomp gerou, que lê `../input_<n>.txt` e grava as
+    // saídas ao lado dele.
+    let tb = processor.testbench_path();
+    assert!(tb.is_file(), "{tb}");
     project.set_testbench(&tb).unwrap();
 
     let result = simulate_project(
@@ -189,12 +193,12 @@ fn project_simulation_with_processor_testbench() {
     .unwrap();
     assert_eq!(result.status, Status::Succeeded, "{result:#?}");
     assert_eq!(result.top, "soma_tb");
-    assert!(project.root().join("pc_soma_mem.txt").is_file());
+    assert!(!project.root().join("pc_soma_mem.txt").exists());
     // O `$dumpfile("soma_tb.vcd")` do testbench vira `.fst` na cópia
     // simulada; o testbench do usuário não muda.
     assert_eq!(
         result.waveform.unwrap().path,
-        project.root().join("soma_tb.fst")
+        processor.output_dir.join("soma_tb.fst")
     );
     assert!(
         std::fs::read_to_string(&tb)
@@ -207,7 +211,6 @@ fn project_simulation_with_processor_testbench() {
 /// Um programa que deixa um complexo na memória: o layout lê o valor dele
 /// da onda FST e o traduz.
 const COMPLEX_PROGRAM: &str = "\
-#PRNAME cx
 #NUBITS 32
 #NBMANT 23
 #NBEXPO 8
@@ -605,7 +608,8 @@ fn surfer_opens_and_closes() {
 
 /// Vários processadores num projeto: um topo do usuário instancia o `soma`
 /// (C±, 23 bits), o `filtro` (C, 32 bits) e o `soma` de novo, e a simulação
-/// e a síntese do projeto levam o Verilog e o `pc_<nome>_mem.txt` de cada um.
+/// e a síntese do projeto levam o Verilog de cada um, com as memórias e o
+/// `pc_<nome>_mem.txt` copiados para a raiz.
 #[test]
 fn several_processors_simulate_and_synthesize_together() {
     let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog, Tool::Vvp, Tool::Yosys]) else {
@@ -675,8 +679,16 @@ fn several_processors_simulate_and_synthesize_together() {
     for line in ["a = 55", "b = 55", "c = 55"] {
         assert!(run.stdout.contains(line), "{line}:\n{}", run.stdout);
     }
-    assert!(root.join("pc_soma_mem.txt").is_file());
-    assert!(root.join("pc_filtro_mem.txt").is_file());
+    for file in [
+        "pc_soma_mem.txt",
+        "pc_filtro_mem.txt",
+        "soma_data.mif",
+        "soma_inst.mif",
+        "filtro_data.mif",
+        "filtro_inst.mif",
+    ] {
+        assert!(root.join(file).is_file(), "{file}");
+    }
 
     let synth = synthesize(
         &toolchain,

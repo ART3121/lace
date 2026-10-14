@@ -3,15 +3,17 @@
 //! Dois modos:
 //!
 //! - [`simulate`]: um processador já compilado, com o testbench que o
-//!   `asmcomp` gerou e o build copiou para `Simulation/<nome>_tb.v`
-//!   ([`Processor::testbench_path`]). Roda no diretório temporário do
-//!   processador, onde já estão o `pc_<nome>_mem.txt` que o `.v` lê por nome
-//!   relativo e onde o testbench grava a onda.
+//!   `asmcomp` gerou na pasta de saída ([`Processor::testbench_path`]). Roda
+//!   nela, como o YANC 7.1 pede: o testbench e o Verilog citam as memórias,
+//!   a tabela do PC, as saídas e a onda pelo nome, e as entradas como
+//!   `../input_<n>.txt`, na pasta do fonte.
 //! - [`simulate_project`]: o testbench escolhido no `.spf` com os arquivos
 //!   sintetizáveis do projeto, como o botão Wave da AURORA
 //!   (`js/compilation/icarus_da_onda.ts`, `verilator_da_onda.ts`). Roda na
-//!   raiz do projeto, para onde são copiados os `pc_*_mem.txt` de todos os
-//!   processadores e os arquivos que o testbench lê por nome relativo.
+//!   raiz do projeto, para onde são copiados as memórias e o
+//!   `pc_<nome>_mem.txt` de cada processador
+//!   ([`Processor::files_read_by_verilog`]) e os arquivos que o testbench lê
+//!   por nome relativo.
 //!
 //! Comandos, com `H` = biblioteca SAPHO (`yanc/SAPHO`), que só entra quando
 //! o projeto tem processadores:
@@ -25,9 +27,7 @@
 //! ```
 //!
 //! A biblioteca entra por `-y`: o simulador só carrega o módulo que faltar,
-//! então `myFIFO.v` só entra quando alguém o instancia. As memórias (`.mif`)
-//! e os arquivos de `Simulation/` são abertos por caminho absoluto, embutido
-//! pelo `asmcomp`, e não precisam ser copiados.
+//! então `myFIFO.v` só entra quando alguém o instancia.
 //!
 //! A onda sai com o nome do `$dumpfile` do testbench e a extensão do formato
 //! que o simulador grava: FST no Icarus (`vvp -fst`), o padrão; VCD no
@@ -168,7 +168,7 @@ impl SimulationOptions {
 /// processador ainda não foi compilado.
 pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result<Utf8PathBuf> {
     if let Some(processor) = processor {
-        let testbench = processor.simulated_testbench();
+        let testbench = processor.testbench_path();
         if !testbench.is_file() {
             return Err(LaceError::NotBuilt {
                 processor: processor.name.clone(),
@@ -176,11 +176,11 @@ pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result
             });
         }
         let text = read(&testbench)?;
-        return Ok(match dump_of(&text, &processor.temp_dir) {
+        return Ok(match dump_of(&text, &processor.output_dir) {
             Dump::Path(wave) => newest_wave(wave),
             _ => newest_wave(
                 processor
-                    .temp_dir
+                    .output_dir
                     .join(format!("{}_tb.vcd", processor.name)),
             ),
         });
@@ -195,7 +195,8 @@ pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result
         ));
     }
     let text = read(&testbench)?;
-    match dump_of(&text, project.root()) {
+    let run_dir = project_run_dir(project, &testbench);
+    match dump_of(&text, &run_dir) {
         Dump::Path(wave) => return Ok(newest_wave(wave)),
         Dump::Unknown => {
             return Err(LaceError::InvalidProject {
@@ -211,9 +212,20 @@ pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result
         .testbench_module()?
         .unwrap_or_else(|| testbench.file_stem().unwrap_or_default().to_owned());
     Ok(newest(
-        &[Simulator::Icarus, Simulator::Verilator]
-            .map(|s| project.root().join(injected_wave(&top, s))),
+        &[Simulator::Icarus, Simulator::Verilator].map(|s| run_dir.join(injected_wave(&top, s))),
     ))
+}
+
+/// Onde a simulação do projeto roda com `testbench`: na raiz do projeto, ou,
+/// com o testbench que o YANC gerou para um processador, na pasta de saída
+/// dele, a única onde ele roda certo (cita os arquivos pelo caminho relativo
+/// a ela). É a regra da AURORA (`segmentosDaSimulacao`).
+fn project_run_dir(project: &Project, testbench: &Utf8Path) -> Utf8PathBuf {
+    project
+        .processors()
+        .iter()
+        .find(|p| p.testbench_path() == testbench)
+        .map_or_else(|| project.root().to_owned(), |p| p.output_dir.clone())
 }
 
 /// A onda de um `$dumpfile`: a do Icarus (`.fst`) ou a do Verilator
@@ -283,7 +295,7 @@ pub struct SimulationResult {
     /// A onda gerada, se a simulação chegou ao fim; nunca na simulação
     /// rápida.
     pub waveform: Option<Waveform>,
-    /// `Simulation/output_<n>.txt` escritos nesta simulação.
+    /// `<proc>/<proc>/output_<n>.txt` escritos nesta simulação.
     #[schemars(with = "Vec<String>")]
     pub outputs: Vec<Utf8PathBuf>,
     /// Arquivos que o testbench tenta ler e que não existem. Não impedem a
@@ -324,7 +336,7 @@ pub struct Waveform {
 ///
 /// Roda no diretório temporário do processador. A onda sai em
 /// `<temp>/<nome>_tb.fst` (`.vcd` no Verilator) e as saídas em
-/// `Simulation/output_<n>.txt`. Na simulação rápida
+/// `<proc>/<proc>/output_<n>.txt`. Na simulação rápida
 /// ([`SimulationOptions::fast`]), roda no Verilator e não grava onda; as
 /// saídas saem do mesmo jeito.
 ///
@@ -365,8 +377,8 @@ pub fn simulate(
     let started = Instant::now();
     let name = &processor.name;
     crate::paths::check_simulator_path(&processor.dir)?;
-    let testbench = processor.simulated_testbench();
-    let verilog = processor.hardware_dir().join(format!("{name}.v"));
+    let testbench = processor.testbench_path();
+    let verilog = processor.verilog_path();
     for path in [&testbench, &verilog] {
         if !path.is_file() {
             return Err(LaceError::NotBuilt {
@@ -376,9 +388,12 @@ pub fn simulate(
         }
     }
     let text = read(&testbench)?;
+    // O testbench roda na pasta de saída: as entradas, `../input_<n>.txt`,
+    // ficam na pasta do fonte.
+    let cwd = &processor.output_dir;
     let missing_inputs: Vec<_> = data_files_read(&text)
         .into_iter()
-        .map(|f| processor.temp_dir.join(f))
+        .map(|f| crate::paths::normalize(&cwd.join(f)))
         .chain(absolute_inputs(&text))
         .filter(|p| !p.is_file())
         .collect();
@@ -393,9 +408,9 @@ pub fn simulate(
     let (wave, renamed) = if options.fast {
         (None, None)
     } else {
-        let wave = match dump_of(&text, &processor.temp_dir) {
+        let wave = match dump_of(&text, cwd) {
             Dump::Path(wave) => wave,
-            _ => processor.temp_dir.join(format!("{name}_tb.vcd")),
+            _ => cwd.join(format!("{name}_tb.vcd")),
         };
         // No Icarus, o `$dumpfile("<nome>_tb.vcd")` do testbench gerado
         // vira `.fst` na cópia simulada.
@@ -405,7 +420,7 @@ pub fn simulate(
     // Uma cópia do testbench que avisa quando o programa lê mais valores do
     // que uma entrada tem; sem o trecho esperado, vai a cópia só com a onda
     // renomeada, ou o testbench como está.
-    let copied = watch_inputs(renamed.as_deref().unwrap_or(&text), &counts).or(renamed);
+    let copied = watch_inputs(renamed.as_deref().unwrap_or(&text), cwd, &counts).or(renamed);
     let (simulated, instrumented) = match copied {
         Some(copied) => {
             let copy = processor.temp_dir.join(format!("instr_{name}_tb.v"));
@@ -422,9 +437,9 @@ pub fn simulate(
         wave_required: wave.is_some(),
         wave,
         files: vec![verilog, simulated],
-        cwd: processor.temp_dir.clone(),
+        cwd: cwd.clone(),
         work: processor.temp_dir.clone(),
-        output_dirs: vec![processor.simulation_dir()],
+        output_dirs: vec![cwd.clone()],
         sapho: true,
         notes,
         instrumented,
@@ -472,7 +487,7 @@ fn note(
 }
 
 /// Confere as entradas que o testbench do processador lê
-/// (`Simulation/input_<n>.txt`) antes de simular: o testbench do YANC lê com
+/// (`<proc>/input_<n>.txt`) antes de simular: o testbench do YANC lê com
 /// `$fscanf` sem olhar o resultado, e uma linha que não é número viraria um
 /// valor qualquer, sem aviso.
 ///
@@ -493,7 +508,7 @@ fn check_inputs(
     let (low, high) = (-(1i64 << (bits - 1)), (1i64 << bits) - 1);
     let mut notes = Vec::new();
     let mut counts = HashMap::new();
-    for input in absolute_inputs(testbench)
+    for input in inputs_read(testbench, &processor.output_dir)
         .into_iter()
         .filter(|p| p.is_file())
     {
@@ -528,7 +543,11 @@ fn check_inputs(
 /// Tudo entra nas linhas que já existem, e os diagnósticos da cópia apontam
 /// para o testbench original. `None` se o testbench não tem o trecho
 /// esperado (de outro gerador): ele roda como está, sem o aviso.
-fn watch_inputs(testbench: &str, counts: &HashMap<Utf8PathBuf, usize>) -> Option<String> {
+fn watch_inputs(
+    testbench: &str,
+    cwd: &Utf8Path,
+    counts: &HashMap<Utf8PathBuf, usize>,
+) -> Option<String> {
     const DECLARATION: &str = "integer scan_result;";
     if !testbench.contains(DECLARATION) {
         return None;
@@ -551,9 +570,13 @@ fn watch_inputs(testbench: &str, counts: &HashMap<Utf8PathBuf, usize>) -> Option
         else {
             continue;
         };
-        let values = counts.get(Utf8Path::new(&path)).copied().unwrap_or(0);
-        // No `$display`, `%` abre um formato.
-        let shown = path.replace('%', "%%");
+        // O caminho resolvido a partir da pasta onde o testbench roda, que é
+        // o que o aviso mostra.
+        let path = resolve_from(cwd, &path);
+        let values = counts.get(&path).copied().unwrap_or(0);
+        // No `$display`, `%` abre um formato; num texto Verilog, `\` abre um
+        // escape.
+        let shown = path.as_str().replace('\\', "/").replace('%', "%%");
         let warning = format!(
             "begin {read} if (scan_result != 1 && !lace_eof_{port}) begin lace_eof_{port} = 1; \
              $display(\"WARNING: {shown}:{}: the program reads more values than this file has ({values}); from here on the port repeats the last one\"); end end",
@@ -648,6 +671,7 @@ pub fn simulate_project(
     };
     let _span = tracing::info_span!("simulate_project", %top).entered();
     let root = project.root().to_owned();
+    let run_dir = project_run_dir(project, &testbench);
     let work = project.temp_dir();
     // A simulação do projeto lê o que o build de cada processador grava e
     // copia arquivos para a raiz: nada disso pode correr junto com outra.
@@ -662,7 +686,7 @@ pub fn simulate_project(
             .map(|p| crate::paths::run_lock(&p.temp_dir, &p.name)),
     )
     .collect::<Result<Vec<_>>>()?;
-    // O Verilog de cada processador abre as memórias por caminho absoluto.
+    // O simulador recebe o caminho completo do Verilog de cada processador.
     if !project.processors().is_empty() {
         crate::paths::check_simulator_path(&root)?;
     }
@@ -686,24 +710,15 @@ pub fn simulate_project(
         push(file.path);
     }
     for processor in project.processors() {
-        let verilog = processor
-            .hardware_dir()
-            .join(format!("{}.v", processor.name));
+        let verilog = processor.verilog_path();
         if verilog.is_file() {
             push(verilog);
         }
     }
 
-    // O `.v` de cada processador lê `pc_<nome>_mem.txt` por nome relativo ao
-    // CWD da simulação, que aqui é a raiz.
-    for processor in project.processors() {
-        let map = processor
-            .temp_dir
-            .join(format!("pc_{}_mem.txt", processor.name));
-        if map.is_file() {
-            copy(&map, &root.join(map.file_name().expect("File has a name")))?;
-        }
-    }
+    // O `.v` de cada processador lê as memórias e `pc_<nome>_mem.txt` por
+    // nome relativo ao CWD da simulação.
+    stage_processor_files(project, &run_dir)?;
 
     if cocotb {
         let Some(run) = crate::cocotb::prepare(
@@ -737,7 +752,7 @@ pub fn simulate_project(
             output_dirs: project
                 .processors()
                 .iter()
-                .map(Processor::simulation_dir)
+                .map(|p| p.output_dir.clone())
                 .collect(),
             sapho: !project.processors().is_empty(),
             notes: cocotb_notes,
@@ -750,7 +765,7 @@ pub fn simulate_project(
     // Dados que o testbench lê por nome relativo vêm da pasta dele.
     let text = read(&testbench)?;
     let tb_dir = testbench.parent().expect("File has a parent").to_owned();
-    let (missing, mut notes) = stage_data_files(&text, &tb_dir, &root, &work)?;
+    let (missing, mut notes) = stage_data_files(&text, &tb_dir, &run_dir, &work)?;
     let mut missing_inputs = missing;
     missing_inputs.extend(absolute_inputs(&text).into_iter().filter(|p| !p.is_file()));
 
@@ -774,7 +789,7 @@ pub fn simulate_project(
         // `$dumpvars` do testbench, e o Lace não injeta o dele.
         None
     } else {
-        Some(dump_of(&text, &root))
+        Some(dump_of(&text, &run_dir))
     };
     if dump
         .as_ref()
@@ -840,7 +855,7 @@ pub fn simulate_project(
             let copy = instrumented.clone();
             (
                 instrumented,
-                Some(root.join(wave)),
+                Some(run_dir.join(wave)),
                 false,
                 Some((copy, original)),
             )
@@ -860,12 +875,12 @@ pub fn simulate_project(
         wave,
         wave_required,
         files,
-        cwd: root,
+        cwd: run_dir,
         work,
         output_dirs: project
             .processors()
             .iter()
-            .map(Processor::simulation_dir)
+            .map(|p| p.output_dir.clone())
             .collect(),
         sapho: !project.processors().is_empty(),
         notes,
@@ -1555,7 +1570,7 @@ fn string_constant(code: &str, name: &str) -> Option<String> {
 
 /// Arquivos que o testbench lê por nome relativo: `$readmemb/h("x")` e
 /// `$fopen("x", "r...")`. Caminhos absolutos ficam de fora (o `asmcomp` usa
-/// absoluto para `Simulation/input_<n>.txt`; esses são conferidos à parte).
+/// absoluto para as entradas; esses são conferidos à parte).
 fn data_files_read(testbench: &str) -> Vec<String> {
     let code = strip_comments(testbench);
     let mut names: Vec<String> = Vec::new();
@@ -1586,6 +1601,32 @@ fn data_files_read(testbench: &str) -> Vec<String> {
 }
 
 /// Os `input_<n>.txt` abertos por caminho absoluto no testbench gerado.
+/// Os arquivos que o testbench abre para ler (`$fopen(..., "r")`), com o
+/// caminho resolvido a partir de `cwd`, a pasta onde ele roda.
+fn inputs_read(testbench: &str, cwd: &Utf8Path) -> Vec<Utf8PathBuf> {
+    let code = strip_comments(testbench);
+    string_calls(&code, "$fopen")
+        .into_iter()
+        .filter_map(|(name, rest)| {
+            let mode = rest
+                .trim_start_matches([',', ' ', '\t'])
+                .strip_prefix('"')?;
+            (mode.starts_with('r') && !name.is_empty() && !name.contains(['<', '>']))
+                .then(|| resolve_from(cwd, name))
+        })
+        .collect()
+}
+
+/// `name` como o simulador o abre rodando em `cwd`: um caminho absoluto fica
+/// como está; um relativo, a partir de `cwd`, sem `..`.
+fn resolve_from(cwd: &Utf8Path, name: &str) -> Utf8PathBuf {
+    if crate::paths::is_rooted(name) {
+        Utf8PathBuf::from(name)
+    } else {
+        crate::paths::normalize(&cwd.join(name.strip_prefix("./").unwrap_or(name)))
+    }
+}
+
 fn absolute_inputs(testbench: &str) -> Vec<Utf8PathBuf> {
     let code = strip_comments(testbench);
     string_calls(&code, "$fopen")
@@ -1785,26 +1826,50 @@ fn output_files(dirs: &[Utf8PathBuf]) -> Vec<(Utf8PathBuf, Option<std::time::Sys
     files
 }
 
-/// Os arquivos de entrada (`Simulation/input_<n>.txt`) que o testbench de um
-/// processador vai ler e que ainda não existem. Serve para a interface avisar
-/// antes de simular. A mesma lista sai em
+/// Os arquivos de entrada (`<proc>/input_<n>.txt`, ao lado do fonte) que o
+/// testbench de um processador vai ler e que ainda não existem. Serve para a
+/// interface avisar antes de simular. A mesma lista sai em
 /// [`SimulationResult::missing_inputs`] depois.
 ///
 /// # Erros
 ///
 /// [`LaceError::NotBuilt`] se o processador ainda não tem testbench.
 pub fn missing_inputs(processor: &Processor) -> Result<Vec<Utf8PathBuf>> {
-    let testbench = processor.simulated_testbench();
+    let testbench = processor.testbench_path();
     if !testbench.is_file() {
         return Err(LaceError::NotBuilt {
             processor: processor.name.clone(),
             missing: testbench,
         });
     }
-    Ok(absolute_inputs(&read(&testbench)?)
+    Ok(inputs_read(&read(&testbench)?, &processor.output_dir)
         .into_iter()
         .filter(|p| !p.is_file())
         .collect())
+}
+
+/// Copia para `dest`, o diretório de uma simulação ou síntese que não roda
+/// na pasta de saída de cada processador, os arquivos que o Verilog gerado
+/// lê pelo nome ([`Processor::files_read_by_verilog`]), como a AURORA faz
+/// (`stageProcessorMemoryFiles`). Um processador ainda não compilado fica de
+/// fora: o Verilog dele também não entra.
+pub(crate) fn stage_processor_files(project: &Project, dest: &Utf8Path) -> Result<()> {
+    std::fs::create_dir_all(dest).map_err(LaceError::io("Creating directory", dest))?;
+    for processor in project.processors() {
+        // Copiar um arquivo sobre ele mesmo pode truncá-lo no Windows.
+        if processor.output_dir == dest {
+            continue;
+        }
+        for file in processor.files_read_by_verilog() {
+            if file.is_file() {
+                copy(
+                    &file,
+                    &dest.join(file.file_name().expect("File has a name")),
+                )?;
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -2057,22 +2122,27 @@ endmodule
 
     #[test]
     fn short_inputs_get_a_warning_in_the_testbench_copy() {
+        // Como o YANC 7.1 escreve: a entrada pelo caminho relativo à pasta de
+        // saída, onde o testbench roda.
         let tb = "integer data_in_0;\n\
-                  initial begin\n    data_in_0 = $fopen(\"/p/le/Simulation/input_0.txt\", \"r\");\nend\n\
+                  initial begin\n    data_in_0 = $fopen(\"../input_0.txt\", \"r\");\nend\n\
                   integer scan_result;\n\
                   always @ (negedge clk) begin  \n    \
                   if (data_in_0 != 0 && proc_req_in == 1) scan_result = $fscanf(data_in_0, \"%d\", in_0);\nend\n";
         let mut counts = HashMap::new();
-        counts.insert(Utf8PathBuf::from("/p/le/Simulation/input_0.txt"), 2);
-        let watched = watch_inputs(tb, &counts).unwrap();
+        counts.insert(Utf8PathBuf::from("/p/le/input_0.txt"), 2);
+        let cwd = Utf8Path::new("/p/le/le");
+        let watched = watch_inputs(tb, cwd, &counts).unwrap();
         assert_eq!(
             watched.lines().count(),
             tb.lines().count(),
             "as linhas ficam"
         );
         assert!(watched.contains("integer scan_result; reg lace_eof_0 = 0;"));
-        assert!(watched.contains("WARNING: /p/le/Simulation/input_0.txt:3: the program reads more values than this file has (2)"));
-        assert!(watch_inputs("module tb; endmodule", &counts).is_none());
+        assert!(watched.contains(
+            "WARNING: /p/le/input_0.txt:3: the program reads more values than this file has (2)"
+        ));
+        assert!(watch_inputs("module tb; endmodule", cwd, &counts).is_none());
         // O aviso que o vvp escreve vira diagnóstico com o arquivo e a linha.
         let d = crate::diagnostics::parse(
             Tool::Vvp,

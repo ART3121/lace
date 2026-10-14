@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Processor",
-  "description": "Um processador do projeto, com todos os caminhos já absolutos.\n\nOs valores de simulação (`frequency_mhz`, `clocks`, `show_arrays`) vêm do\n`.spf` (`clk`, `numClocks`, `showArrays`) ou dos padrões da AURORA\n([`DEFAULT_FREQUENCY_MHZ`], [`DEFAULT_CLOCKS`], `false`). Para mudá-los\nsó num build, use [`BuildOptions`](crate::BuildOptions).\n\nA linguagem é resolvida como na AURORA: `language` declarada no `.spf`;\nsenão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir em\n`Software/` (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.",
+  "description": "Um processador do projeto, com todos os caminhos já absolutos.\n\nOs valores de simulação (`frequency_mhz`, `clocks`, `show_arrays`) vêm do\n`.spf` (`clk`, `numClocks`, `showArrays`) ou dos padrões da AURORA\n([`DEFAULT_FREQUENCY_MHZ`], [`DEFAULT_CLOCKS`], `false`). Para mudá-los\nsó num build, use [`BuildOptions`](crate::BuildOptions).\n\nA linguagem é resolvida como na AURORA: `language` declarada no `.spf`;\nsenão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir na\npasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.",
   "type": "object",
   "properties": {
     "name": {
-      "description": "O nome: diretório, `#PRNAME`, nome do módulo Verilog e dos artefatos.",
+      "description": "O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos\ngerados.",
       "type": "string"
     },
     "language": {
@@ -13,15 +13,19 @@
       "$ref": "#/$defs/Language"
     },
     "dir": {
-      "description": "`<raiz>/<nome>`, o `-p` dos compiladores.",
+      "description": "`<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que\ninicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos\ndo C).",
       "type": "string"
     },
     "source": {
-      "description": "O programa-fonte, em `Software/`.",
+      "description": "O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.",
+      "type": "string"
+    },
+    "output_dir": {
+      "description": "`<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,\nas memórias, o testbench, as tabelas da onda e as saídas da\nsimulação, que roda nela.",
       "type": "string"
     },
     "temp_dir": {
-      "description": "Diretório de intermediários, o `-t` dos compiladores.",
+      "description": "`<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
       "type": "string"
     },
     "frequency_mhz": {
@@ -37,7 +41,7 @@
       "minimum": 0
     },
     "show_arrays": {
-      "description": "Exporta arrays para a simulação (`-A` do `cmmcomp`).",
+      "description": "Exporta cada elemento de array como um sinal da onda\n(`--wave-arrays` do `cmmcomp`).",
       "type": "boolean"
     }
   },
@@ -46,6 +50,7 @@
     "language",
     "dir",
     "source",
+    "output_dir",
     "temp_dir",
     "frequency_mhz",
     "clocks",
@@ -61,7 +66,7 @@
           "const": "cmm"
         },
         {
-          "description": "C, pré-processado pelo `cpppp` e compilado pelo `cppcomp`. A AURORA e o\nYANC chamam de \"cpp\" e usam a extensão `.cpp`.",
+          "description": "C, compilado pelo `cppcomp`. A AURORA e o YANC chamam de \"cpp\" e\nusam a extensão `.cpp`.",
           "type": "string",
           "const": "cpp"
         }

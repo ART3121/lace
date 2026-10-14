@@ -34,6 +34,7 @@ import type {
   ListPosition,
   ModuleInterface,
   MovedPath,
+  LayoutConversion,
   NewProcessorDefaults,
   NewProcessorRequest,
   Processor,
@@ -132,6 +133,9 @@ export const api = {
      * final. Erro `path_exists` se ele já existe, sem `overwrite`. */
     move: (from: string, to: string, overwrite = false) =>
       call<MovedPath>('project_move', { from, to, overwrite }),
+    /** Converte da estrutura de pastas do YANC 6.x para a do 7.1
+     * (`Project::convert_layout`). */
+    convertLayout: () => call<LayoutConversion>('project_convert_layout'),
     /** `null` se o nome de projeto serve; senão o erro do Core. */
     checkName: (name: string) => call<IpcError | null>('project_check_name', { name }),
     /** Muda a posição de um arquivo na lista dele (`lace order`); devolve

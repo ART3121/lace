@@ -118,8 +118,8 @@ pub struct Invocation {
     /// vão com `/`.
     pub args: Vec<String>,
     /// Diretório de trabalho. Faz parte do contrato de várias ferramentas (o
-    /// `appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench
-    /// grava a onda nele), por isso nunca é herdado.
+    /// testbench do YANC lê e grava os arquivos dele relativo a ele, e grava
+    /// a onda nele), por isso nunca é herdado.
     #[schemars(with = "String")]
     pub cwd: Utf8PathBuf,
     /// Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.

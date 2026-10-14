@@ -1,5 +1,5 @@
 {
-  "bundle": "2026.10.07",
+  "bundle": "2026.10.13",
   "packages": {
     "oss-cad-suite": {
       "version": "2026-09-29",
@@ -19,9 +19,9 @@
       }
     },
     "yanc": {
-      "version": "v6.0",
+      "version": "v7.1",
       "repository": "https://github.com/nipscernlab/yanc",
-      "commit": "6cafe471ca939b527264ffd4503edc51de9b9b57"
+      "commit": "6c32d94a00436d479b6cc2d7f7d3e4b106d3b1e1"
     },
     "surfer-aurora": {
       "version": "v0.7.0-nips.10",

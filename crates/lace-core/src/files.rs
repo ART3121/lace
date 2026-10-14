@@ -240,8 +240,8 @@ impl Project {
     }
 
     /// Registra no `.spf` o que o build de cada processador gerou e o projeto
-    /// ainda não tem: o `Hardware/<nome>.v` entre os sintetizáveis e o
-    /// `Simulation/<nome>_tb.v` entre os testbenches, no fim de cada lista.
+    /// ainda não tem: o `<nome>/<nome>/<nome>.v` entre os sintetizáveis e o
+    /// `<nome>/<nome>/<nome>_tb.v` entre os testbenches, no fim de cada lista.
     /// É o que a AURORA faz ao atualizar a árvore de arquivos, e o que
     /// `lace build`, `sim`, `synth` e `fpga build` chamam depois de compilar.
     ///
@@ -252,7 +252,7 @@ impl Project {
     ///   Um arquivo tirado com [`remove_file`](Self::remove_file) volta no
     ///   build seguinte.
     ///
-    /// As operações já usavam o `Hardware/<nome>.v` sem ele estar no `.spf`
+    /// As operações já usavam o `<nome>.v` gerado sem ele estar no `.spf`
     /// (e tiram o repetido quando está); registrado, ele aparece na lista de
     /// arquivos de quem lê o `.spf`, e a AURORA, que só compila o que está
     /// nele, o encontra.
@@ -995,7 +995,7 @@ impl Project {
     /// testbench registrado muda de lista). O nome do módulo de topo é o nome
     /// do arquivo sem extensão.
     ///
-    /// Qualquer Verilog pode ser o topo, inclusive o `Hardware/<nome>.v` que
+    /// Qualquer Verilog pode ser o topo, inclusive o `<nome>.v` que
     /// o build de um processador gerou (registrá-lo não o duplica no design:
     /// as operações tiram os repetidos). A exceção é o nome de testbench
     /// ([`is_testbench_name`](crate::verilog::is_testbench_name)):
@@ -1074,9 +1074,9 @@ impl Project {
     /// desfeito antes do erro.
     ///
     /// Ficam onde estão, porque o Core os acha pelo lugar: o `.spf`, a pasta
-    /// `.lace`, e de cada processador a pasta, `Software/`, `Hardware/`,
-    /// `Simulation/` e o fonte. Os outros arquivos de dentro delas (entradas,
-    /// saídas, gerados) podem ser movidos.
+    /// `.lace`, e de cada processador a pasta, a de saída e o fonte. Os
+    /// outros arquivos de dentro delas (entradas, saídas, gerados) podem ser
+    /// movidos.
     ///
     /// ```
     /// use lace_core::{FileRole, Project};
@@ -1303,15 +1303,8 @@ impl Project {
             if path == processor.dir {
                 return Some("A processor folder is found by the processor name");
             }
-            let fixed = [
-                processor.software_dir(),
-                processor.hardware_dir(),
-                processor.simulation_dir(),
-            ];
-            if fixed.iter().any(|dir| path == dir) {
-                return Some(
-                    "Software/, Hardware/ and Simulation/ are where the processor expects them",
-                );
+            if path == processor.output_dir {
+                return Some("The output folder of a processor is where YANC writes it");
             }
             if path == processor.source {
                 return Some("The processor source is found by the processor name");
@@ -1322,7 +1315,7 @@ impl Project {
 
     /// Troca no documento os caminhos que estavam em `from` (ou dentro dele)
     /// pelos de `to`. Diz se algo mudou; não grava.
-    fn rewrite_moved(&mut self, from: &Utf8Path, to: &Utf8Path) -> bool {
+    pub(crate) fn rewrite_moved(&mut self, from: &Utf8Path, to: &Utf8Path) -> bool {
         let root = self.root.clone();
         let moved = |stored: &str| -> Option<Utf8PathBuf> {
             let path = resolve(&root, stored);
@@ -1585,24 +1578,25 @@ fn copy_tree(from: &Utf8Path, to: &Utf8Path) -> Result<()> {
 }
 
 impl Processor {
-    /// `Simulation/input_<porta>.txt`: um valor decimal por linha, lido pelo
-    /// testbench com `$fscanf(..., "%d", ...)` quando o processador lê a porta.
+    /// `<proc>/input_<porta>.txt`, ao lado do fonte: um valor decimal por
+    /// linha, lido pelo testbench com `$fscanf(..., "%d", ...)` quando o
+    /// processador lê a porta.
     pub fn input_path(&self, port: u32) -> Utf8PathBuf {
-        self.simulation_dir().join(format!("input_{port}.txt"))
+        self.dir.join(format!("input_{port}.txt"))
     }
 
-    /// `Simulation/output_<porta>.txt`: um valor decimal por linha, escrito
-    /// pelo testbench a cada `out()` do programa.
+    /// `<proc>/<proc>/output_<porta>.txt`, na pasta de saída: um valor
+    /// decimal por linha, escrito pelo testbench a cada `out()` do programa.
     pub fn output_path(&self, port: u32) -> Utf8PathBuf {
-        self.simulation_dir().join(format!("output_{port}.txt"))
+        self.output_dir.join(format!("output_{port}.txt"))
     }
 
     /// Grava o arquivo de entrada de uma porta (substitui o anterior: é dado
     /// de estímulo, não código).
     pub fn write_input(&self, port: u32, text: &str) -> Result<Utf8PathBuf> {
         let path = self.input_path(port);
-        std::fs::create_dir_all(self.simulation_dir())
-            .map_err(LaceError::io("Creating directory", self.simulation_dir()))?;
+        std::fs::create_dir_all(&self.dir)
+            .map_err(LaceError::io("Creating directory", &self.dir))?;
         std::fs::write(&path, text).map_err(LaceError::io("Writing input", &path))?;
         Ok(path)
     }
@@ -1927,7 +1921,7 @@ mod tests {
             .unwrap()
             .clone();
         let path = processor.write_input(0, "1\n2\n").unwrap();
-        assert_eq!(path, processor.simulation_dir().join("input_0.txt"));
+        assert_eq!(path, processor.dir.join("input_0.txt"));
         assert!(processor.read_output(0).is_err());
     }
 

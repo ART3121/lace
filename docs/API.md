@@ -109,6 +109,7 @@ procurar, para o atalho `~/.local/bin/lace` do instalador funcionar.
 | `verified_files()` | quantos executáveis os manifestos listam |
 | `tool(Tool)` | o caminho do executável, conferido no disco agora; recusa um symlink que sai do bundle (`InvalidBundle`) e, para o Verilator, a falta do `bin/verilator_bin` que o script Perl chama (sem ele, o script o procuraria no `PATH`) |
 | `available()` | as ferramentas presentes |
+| `tools()` | as ferramentas que o Lace roda: todas, menos o `appcomp` e o `cpppp`, que o YANC 7.1 não tem mais (ficam em `Tool` para os relatórios antigos); é a lista do `lace tools` e da aba Toolchain do Studio |
 | `hdl_dir()`, `macros_dir()`, `headers_dir()` | os diretórios do YANC (`SAPHO/`, `Macros/`, `Header/`) |
 | `surfer_web_dir()` | o cliente web do Surfer (`surfer-aurora/web/`: `index.html`, `surfer.js`, `surfer_bg.wasm`); `ToolchainIncomplete` num bundle que não o traz |
 | `system_compiler()` | o `SystemCompiler` do Verilator, se encontrado |
@@ -189,18 +190,43 @@ a pasta e o nome do usuário (no Linux, também `LANG` e `TMPDIR`). A lista
   <projeto>.spf                  arquivo de projeto (JSON, formato AURORA)
   *.v                            Verilog do usuário, em qualquer subpasta, registrado no .spf
   <tb>.fst ou <tb>.vcd           onda da simulação do projeto (o $dumpfile do testbench)
-  <processador>/
-    Software/<processador>.cmm   fonte (ou .cpp); o .asm gerado fica aqui
-    Hardware/                    <processador>.v, _data.mif, _inst.mif gerados
-    Simulation/                  input_<n>.txt (usuário), output_<n>.txt (simulação)
-  .lace/Temp/<processador>/      intermediários do YANC, testbench, onda, .vvp, obj_dir
+  <processador>/                 o que a pessoa escreve:
+    <processador>.cmm            o fonte (ou .cpp), que dá o nome ao processador
+    input_<n>.txt, cade_<n>.txt  as entradas da simulação
+    ...                          os arquivos que inicializam arrays, os cabeçalhos do C
+    <processador>/               a pasta de saída: tudo o que o YANC gera
+      <processador>.asm, .v, _data.mif, _inst.mif, _tb.v
+      prog_log.txt, src_lines.txt, trad_opcode.txt, app_log.txt, pc_<processador>_mem.txt
+      output_<n>.txt, toma_<n>.txt, <processador>_tb.fst   o que a simulação grava
+  .lace/Temp/<processador>/      o que só o Lace usa: .vvp, obj_dir, testbench instrumentado
   .lace/Temp/                    simulação do projeto (.vvp, obj_dir, testbench instrumentado)
   .lace/Temp/synth/<topo>/       síntese: script, log, netlist, esquemáticos
   .lace/Temp/hierarchy/          hierarquia: um .vvp por elaboração, refeita a cada chamada
 ```
 
+É a estrutura do YANC 7.1, a de quem o usa no terminal (`cmmcomp soma.cmm`
+grava em `./soma/`), e a da AURORA desde a 7.1. O Verilog e o testbench que
+o YANC gera citam os arquivos pelo caminho relativo à pasta de saída: o
+projeto pode mudar de pasta sem compilar de novo.
+
+Até o YANC 6.x cada processador tinha `Software/` (o fonte e o `.asm`),
+`Hardware/` (o Verilog e as memórias) e `Simulation/` (o testbench e as
+entradas e saídas), que não compilam mais. `processor.legacy_dirs()` diz
+quais dessas pastas um processador ainda tem, `project.legacy_processors()`
+quais processadores, `issues()` avisa (`legacy_layout`), o `build` recusa
+(`LegacyLayout`), e `project.convert_layout()` converte (3.6).
+
 A raiz é sempre o diretório do `.spf`. O `basePath` gravado dentro do arquivo
 é ignorado na leitura, para que um projeto copiado de outra máquina funcione.
+
+`Processor` tem `name`, `language`, `dir` (a pasta do processador),
+`source` (`<dir>/<nome>.<ext>`), `output_dir` (`<dir>/<nome>`, a pasta de
+saída), `temp_dir` (`.lace/Temp/<nome>`), `frequency_mhz`, `clocks` e
+`show_arrays`. Os caminhos dos arquivos gerados: `assembly_path()`,
+`verilog_path()`, `testbench_path()` e `files_read_by_verilog()` (as duas
+memórias e a tabela do PC, que o Verilog gerado lê pelo nome e que quem o
+lê fora da pasta de saída copia antes); os das portas, `input_path(n)` (na
+pasta do processador) e `output_path(n)` (na de saída).
 
 ### 3.2 Abrir e criar
 
@@ -210,10 +236,11 @@ A raiz é sempre o diretório do `.spf`. O `basePath` gravado dentro do arquivo
 | `Project::discover(caminho)` | Acha o projeto que contém o caminho: o `.spf` dele ou da primeira pasta acima que tenha um, com a regra de `open` em cada pasta. É o que a CLI usa, para os comandos funcionarem de qualquer pasta do projeto. Sem nenhum até a raiz do sistema, `ProjectNotFound`. |
 | `project.processor_at(caminho)` | O processador cuja pasta (ou a temporária dele) contém o caminho; `None` fora delas. A CLI usa para `sim` e `wave` sem `-p`. |
 | `Project::create(pai, nome)` | Cria `<pai>/<nome>/<nome>.spf` vazio, no formato da AURORA. Recusa se já existir. |
-| `project.add_processor(&NewProcessor)` | Cria diretórios, fonte-modelo e entrada no `.spf`. Recusa nome repetido, nome que não passa em `validate_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
+| `project.add_processor(&NewProcessor)` | Cria a pasta do processador, o fonte-modelo dentro dela (3.5) e a entrada no `.spf`; a pasta de saída nasce no primeiro `build`. Recusa nome repetido, nome que não passa em `validate_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
 | `project.configure_processor(nome, &ProcessorConfig)` | Grava `clk`, `numClocks` e `showArrays` no `.spf` (campos `None` ficam como estão). Uma entrada no formato antigo (só o nome) vira objeto. Valem a partir do próximo `build`. Frequência de 1 a `MAX_FREQUENCY_MHZ` (500000) e clocks de 1 a `MAX_CLOCKS` (2147483647); fora disso, `InvalidParameter`, e nada é gravado. |
 | `project.issues()` | O que está estranho no `.spf` sem impedir de abrir (`Vec<ProjectIssue>`, abaixo). Só lê. |
-| `processor.is_built()` | O `Hardware/<nome>.v` e o testbench existem. Não diz se estão atualizados em relação ao fonte. |
+| `processor.is_built()` | O `<nome>.v` e o testbench existem na pasta de saída. Não diz se estão atualizados em relação ao fonte. |
+| `project.legacy_processors()`, `project.convert_layout()` | Os processadores na estrutura do YANC 6.x, e a conversão deles (3.6). |
 | `project.buildable_processors()` | Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o botão Wave da AURORA compila antes de simular o projeto. |
 
 Todo método que altera o projeto grava o `.spf` na hora (gravação atômica:
@@ -226,8 +253,8 @@ a `MAX_PORTS` (256, teto do Lace; o `asmcomp` gera testbench corrompido com
 100000). Só em C±: `#NBEXPO` de 2 a 8 (acima disso o `cmmcomp` converte
 constantes com o `float` da máquina), `#NBMANT` de pelo menos 2, `#NUBITS`
 até 32 e igual a `#NBMANT + #NBEXPO + 1` (o `asmcomp` exige), `#NUGAIN`
-potência de dois e `#NDSTAC` e `#SDEPTH` de pelo menos 1 (pilha vazia passa
-no build e quebra a simulação). O erro é `InvalidParameter`, com o
+potência de dois e `#NDSTAC` e `#SDEPTH`, quando dados, de pelo menos 1
+(pilha vazia passa no build e quebra a simulação). O erro é `InvalidParameter`, com o
 parâmetro (`#NUBITS`), o valor e a regra. Em C, só as portas contam.
 
 `ProjectIssue` (de `issues()`) tem `kind`, `path` (absoluto), `detail` e
@@ -239,6 +266,7 @@ parâmetro (`#NUBITS`), o valor e a regra. Em C, só as portas contam.
 | `selection_not_registered` | `topLevelFile` ou `testbenchFile` aponta para um arquivo fora da lista do papel; é ignorado | o campo |
 | `testbench_as_top` | `topLevelFile` tem nome de testbench (3.4); é ignorado | o campo |
 | `invalid_processor_name` | um processador do `.spf` com nome que o YANC não compila (`x-y`, `void`); o `build` dele recusa com `InvalidName` | o nome |
+| `legacy_layout` | um processador ainda tem `Software/`, `Hardware/` ou `Simulation/`; o `build` dele recusa com `LegacyLayout` até `convert_layout` (3.6) | o nome |
 | `duplicate_file` | um arquivo repetido numa lista (também por outro caminho, `rtl/../rtl/a.v`, `rtl\a.v`) ou nas duas; conta uma vez (4.1), e a próxima gravação tira as entradas que sobram | a lista |
 | `nested_project` | uma pasta acima da raiz tem `.spf`: o projeto está dentro de outro; o `path` é o `.spf` de fora | nenhum |
 
@@ -272,10 +300,10 @@ Cada processador é uma string (formato antigo) ou um objeto:
 |---|---|---|---|
 | `name` | texto | obrigatório | nome do processador |
 | `language` | `"cpp"` ou ausente | C± | linguagem |
-| `sourceFile` / `cmmFile` | texto | `<nome>.<ext>` | só o nome do arquivo importa; a extensão ajuda a decidir a linguagem |
+| `sourceFile` / `cmmFile` | texto | `<nome>.<ext>` | só o nome do arquivo importa; a extensão ajuda a decidir a linguagem. O YANC 7.1 dá ao processador o nome do arquivo, e o `build` recusa outro que não `<nome>.<ext>` |
 | `clk` | inteiro positivo (número ou texto) | 100 | `frequency_mhz`, `-f` do `asmcomp` |
 | `numClocks` | inteiro positivo | 2000 | `clocks`, `-c` do `asmcomp` |
-| `showArrays` | booleano | `false` | `show_arrays`, `-A` do `cmmcomp` |
+| `showArrays` | booleano | `false` | `show_arrays`, `--wave-arrays` do `cmmcomp` |
 
 `clk: 12.5` é erro (`InvalidProjectFile`). A AURORA trunca para 12 em
 silêncio; o Lace recusa para não compilar com um valor que ninguém escolheu.
@@ -286,21 +314,23 @@ repetido (sem diferença de caixa). Um nome que só não compila (`x-y`) abre,
 com aviso em `issues()`, e o `build` recusa.
 
 A linguagem é resolvida nesta ordem: `language` declarada; extensão de
-`sourceFile`/`cmmFile`; o arquivo que existir em `Software/` (`.cmm` antes de
+`sourceFile`/`cmmFile`; o arquivo que existir na pasta do processador (ou,
+num projeto da estrutura do YANC 6.x, em `Software/`; `.cmm` antes de
 `.cpp`); C±.
 
 ### 3.4 Nomes
 
 | Nome | Regra | Por quê |
 |---|---|---|
-| Processador | `[A-Za-z_][A-Za-z0-9_]*`, até `MAX_PROCESSOR_NAME` (64) caracteres, fora as palavras do C± (`void`, `in`, `out`, ...), do Verilog e do SystemVerilog (`module`, `logic`, ...), os módulos da biblioteca SAPHO (`core`, `processor`, `ula`, ...) e os nomes reservados do Windows (`validate_processor_name`) | vira `#PRNAME` (lexer do `cmmcomp`), módulo Verilog e nome de arquivo; acima de 97 caracteres o `cmmcomp` morre com sinal 11, e `core` instanciaria a si mesmo |
+| Processador | a regra do YANC 7.1 (`Compilers/common/proc_name.c`): `[A-Za-z_][A-Za-z0-9_]*`, sem começar por `__`, fora as palavras reservadas do Verilog e do SystemVerilog (`module`, `logic`, `int`, `void`, ...); e mais, do Lace: até `MAX_PROCESSOR_NAME` (64) caracteres, fora os módulos da biblioteca SAPHO (`core`, `processor`, `ula`, ...) e os nomes reservados do Windows (`validate_processor_name`) | vira a pasta, o nome do fonte e o módulo Verilog, e o YANC recusa um fonte com nome que não serve de módulo; `core` instanciaria a si mesmo. Palavras do C± que não são do Verilog (`in`, `out`, `sqrt`) servem: conferido compilando e simulando |
 | Módulo de topo | o escolhido pelo nome com `set_top` (campo `topLevelModule`), senão o único módulo do arquivo de topo, ou o que tem o nome do arquivo (`top_module`, 4.1) | vai em `hierarchy -top` da síntese e no `--top-module` do lint |
-| Arquivo de topo | qualquer Verilog, inclusive o `Hardware/<nome>.v` gerado de um processador, menos nome de testbench: `tb_<nome>.v`, `<nome>_tb.v`, `tb.v` (`verilog::is_testbench_name`) | o testbench não é o design |
+| Arquivo de topo | qualquer Verilog, inclusive o `<nome>/<nome>/<nome>.v` gerado de um processador, menos nome de testbench: `tb_<nome>.v`, `<nome>_tb.v`, `tb.v` (`verilog::is_testbench_name`) | o testbench não é o design |
 | Módulo do testbench | a mesma regra, no testbench (`testbench_module`) | vai em `-s` e `--top-module` da simulação do projeto e do `check` |
 | Projeto | letras sem acento (`A-Z`, `a-z`), dígitos, `_` e `-`, começando por letra, até `MAX_PROJECT_NAME` (64) caracteres; fora `CON`, `COM1` e os outros nomes reservados do Windows (`validate_project_name`). `create` também recusa um nome que só difere na caixa de outro da mesma pasta (`Ok1` ao lado de `ok1`), e não deixa pasta para trás se não conseguir gravar o `.spf` | vira a pasta, o `.spf` e parte do caminho de tudo que as ferramentas recebem; espaço e acento exigem que cada script e ferramenta cite o argumento direito |
 
-A AURORA aceita `-` em nome de processador; o Lace não, porque o `cmmcomp`
-não aceita no `#PRNAME`. `validate_processor_name(nome)` é pública, como a
+A AURORA de antes da 7.1 aceitava `-` em nome de processador; o YANC 7.1
+recusa o arquivo, e o Lace também.
+`validate_processor_name(nome)` é pública, como a
 de projeto, para avisar enquanto o usuário digita.
 
 A regra de projeto só vale para criar (`Project::create`): um projeto que
@@ -310,18 +340,19 @@ o usuário digita; o erro é `InvalidName`, com o motivo em `reason`.
 
 ### 3.5 Fonte-modelo de `add_processor`
 
-C± (padrões da AURORA em `NewProcessor::new`):
+C± (padrões da AURORA em `NewProcessor::new`), como o YANC 7.1 pede: sem
+`#PRNAME` (o processador se chama como o arquivo, e a diretiva é erro), e
+sem as diretivas que têm padrão no YANC quando ninguém escolheu outro
+valor: `#NDSTAC` e `#SDEPTH` só com `ndstac`/`sdepth` dados (sem elas o
+`asmcomp` calcula as pilhas pelo programa), `#NUGAIN` só quando difere de
+128.
 
 ```
-#PRNAME soma
 #NUBITS 23
-#NDSTAC 5
-#SDEPTH 5
 #NUIOIN 1
 #NUIOOU 1
 #NBMANT 16
 #NBEXPO 6
-#NUGAIN 128
 
 void main()
 {
@@ -330,17 +361,15 @@ void main()
 }
 ```
 
-O `cmmcomp` recusa função de corpo vazio, e um corpo só com comentário conta
-como vazio (a fonte-modelo da AURORA, que é assim, não compila no YANC:
-conferido na 5.6 e na 6.0).
-Por isso o modelo traz uma instrução. Com `output_ports = 0` não há porta
+O modelo traz uma instrução: o `cmmcomp` até a 6.0 recusava função de corpo
+vazio, e um corpo só com comentário contava como vazio (conferido na 5.6 e
+na 6.0; a 7.1 aceita o bloco vazio). Com `output_ports = 0` não há porta
 para o `out`, e o corpo é `int x = 0;`, que compila com um aviso de variável
 não usada.
 
 C:
 
 ```
-#pragma yanc prname filtro
 #pragma yanc nuioin 1
 #pragma yanc nuioou 1
 
@@ -351,6 +380,33 @@ void main(void)
 
 No fluxo C, largura, mantissa, expoente e pilhas são padrões de compilação do
 `cppcomp` e não vão para o fonte.
+
+### 3.6 Converter da estrutura do YANC 6.x: `convert_layout`
+
+`project.convert_layout() -> Result<LayoutConversion>` faz o que a AURORA
+faz ao abrir um projeto antigo (`js/project/estrutura_antiga.ts`), para que
+o projeto convertido abra igual nas duas:
+
+- de `Software/`, `Hardware/` e `Simulation/` de cada processador, o que o
+  YANC gera ou gerava (o `.asm`, o `.v`, o testbench, as memórias, a tabela
+  do PC, as tabelas e os logs de nome fixo, `output_<n>.txt`,
+  `toma_<n>.txt`, a onda) vai para a pasta de saída; o resto, que é da
+  pessoa (o fonte, os arquivos de arrays, `input_<n>.txt`, um `.v` posto à
+  mão em `Hardware/`, uma subpasta), vai para a pasta do processador;
+- nada é apagado nem sobrescrito: um destino que já existe deixa o arquivo
+  onde estava (`skipped`, com o motivo), e a subpasta antiga só sai vazia
+  (`remaining_dirs`, as que ficaram);
+- a linha `#PRNAME` (ou `#pragma yanc prname`) sai do fonte (`name_lines`,
+  com o nome que ela dava ao módulo Verilog: se difere do processador, quem
+  instanciava o módulo pelo nome antigo precisa do novo);
+- o `.spf` acompanha (os arquivos registrados, o topo, o testbench
+  escolhido), e as entradas dos processadores perdem os campos de pasta da
+  AURORA antiga (`softwarePath`, `hardwarePath`, `simulationPath`);
+- `invalid_names` lista os processadores com nome que não serve mais (na
+  7.1 ele vira o módulo).
+
+Num projeto já convertido, o relatório vem vazio (`is_empty()`) e nada é
+gravado. Um arquivo que não pôde ser movido não é erro: fica em `skipped`.
 
 ---
 
@@ -386,7 +442,7 @@ na AURORA (4.4).
 | `resolve_path(texto)` | converte um caminho como está no `.spf` para absoluto |
 | `move_path(de, para) -> Result<MovedPath>` | move ou renomeia um arquivo ou pasta do projeto; os arquivos registrados continuam registrados no lugar novo |
 | `record_move(de, para) -> Result<MovedPath>` | registra no `.spf` um movimento que já aconteceu fora do Lace, sem tocar no disco |
-| `register_generated(builds) -> Result<Vec<AddedFile>>` | registra o `Hardware/<nome>.v` e o `Simulation/<nome>_tb.v` que cada build bem-sucedido gerou e o projeto ainda não tem (5.1.1) |
+| `register_generated(builds) -> Result<Vec<AddedFile>>` | registra o `<nome>.v` e o `<nome>_tb.v` que cada build bem-sucedido gerou na pasta de saída e o projeto ainda não tem (5.1.1) |
 
 `add_verilog(toolchain, caminho, testbench)`:
 
@@ -425,7 +481,7 @@ absoluto, resolvido a partir do diretório atual do shell.
 `set_top(alvo)` usa `alvo` como arquivo (absoluto ou relativo à raiz) se ele
 existir, registrando-o como sintetizável (um arquivo que estava entre os
 testbenches muda de lista). Qualquer Verilog serve, inclusive o
-`Hardware/<nome>.v` que o build de um processador gerou: registrado, ele
+`<nome>/<nome>/<nome>.v` que o build de um processador gerou: registrado, ele
 continua entrando uma vez só no design, porque `check`, a simulação, a
 síntese e a hierarquia tiram os repetidos. Nome de testbench (`tb_<nome>.v`,
 `<nome>_tb.v`, `tb.v`) é `InvalidName`, e nada muda; senão, procura um módulo com esse nome nos
@@ -460,9 +516,9 @@ criadas. Os dois são absolutos ou relativos à raiz.
   `topLevelFile`, `testbenchFile` e `topLevelModule` acompanham. O papel e a
   marca de topo ou de testbench escolhido não mudam.
 - Ficam onde estão, porque o Core os acha pelo lugar: o `.spf`, a pasta
-  `.lace` e, de cada processador, a pasta, `Software/`, `Hardware/`,
-  `Simulation/` e o fonte (`CannotMove`). O resto de dentro delas (entradas,
-  saídas, gerados) pode mudar de lugar. Nada vai para dentro de `.lace`, e
+  `.lace` e, de cada processador, a pasta, a pasta de saída e o fonte
+  (`CannotMove`). O resto de dentro delas (entradas, saídas, gerados) pode
+  mudar de lugar. Nada vai para dentro de `.lace`, e
   uma pasta não vai para dentro dela mesma (`CannotMove`).
 - O destino que já existe não é sobrescrito (`PathExists`), inclusive um
   link quebrado; renomear só a caixa (`a.v` para `A.v`) funciona também num
@@ -572,9 +628,10 @@ espera `#100` e chama `$finish`.
 
 ### 4.3 Entradas e saídas da simulação
 
-O testbench que o `asmcomp` gera lê `Simulation/input_<n>.txt` e escreve
-`Simulation/output_<n>.txt`, por caminho absoluto embutido no testbench. Os
-dois têm um valor decimal com sinal por linha.
+O testbench que o `asmcomp` gera lê `<proc>/input_<n>.txt`, na pasta do
+processador, e escreve `<proc>/<proc>/output_<n>.txt`, na de saída, por
+caminho relativo a ela (`../input_<n>.txt`, `output_<n>.txt`), onde a
+simulação roda. Os dois têm um valor decimal com sinal por linha.
 
 | Método de `Processor` | Faz |
 |---|---|
@@ -629,52 +686,61 @@ pôr prazo e acompanhar a saída estão em 5.8.
 
 ### 5.1 `build(&Toolchain, &Processor, &BuildOptions, &Control) -> Result<BuildResult>`
 
-Do fonte ao Verilog sintetizável.
+Do fonte ao Verilog sintetizável, com o YANC 7.1 ou mais novo.
 
 Antes de executar qualquer coisa:
 
-1. o fonte precisa existir e se chamar `<processador>.<ext>`;
-2. em C±, o fonte precisa declarar `#PRNAME <processador>`; em C, um
-   `#pragma yanc prname`, se houver, precisa ser o nome do processador;
-3. nenhum caminho pode passar de `YANC_PATH_LIMIT` (259 no Windows, 1000
+1. o YANC do bundle precisa ser o 7.1 ou mais novo (`YancTooOld`): até a
+   6.x a linha de comando e as pastas eram outras;
+2. o processador precisa estar na estrutura do YANC 7.1, sem `Software/`,
+   `Hardware/` nem `Simulation/` (`LegacyLayout`; ver 3.6);
+3. o fonte precisa existir e se chamar `<processador>.<ext>`: o YANC dá ao
+   processador o nome do arquivo (`InvalidSource`);
+4. nenhum caminho pode passar de `YANC_PATH_LIMIT` (259 no Windows, 1000
    nos outros sistemas; ver 9.1);
-4. `Software/`, `Hardware/`, `Simulation/` e o diretório temporário são
-   criados.
+5. a pasta de saída e a temporária são criadas.
 
-O `asmcomp` grava o testbench na pasta temporária (`T/<nome>_tb.v`). No fim
-de um build que deu certo, o Lace o copia para `Simulation/<nome>_tb.v`
-(`Processor::testbench_path`), como a AURORA (`processor_compiler.ts`), e é
-essa cópia que a simulação roda; um build novo a sobrescreve.
-
-Os itens 1 e 2 existem porque o YANC tem duas armadilhas: o `cmmcomp` reabre
-o fonte pelo nome do processador no fim da compilação, e o `asmcomp` dá aos
-arquivos de `Hardware/` o nome do `#PRNAME`, não o do `-n`. Um `#PRNAME`
-diferente gera `Hardware/<outro>.v`; sem `#PRNAME`, um nome de lixo.
-
-Comandos, com `P` = diretório do processador e `T` = diretório temporário:
+Comandos, com `D` = pasta do processador e `O` = pasta de saída (`D/<nome>`):
 
 | Passo | Comando | CWD |
 |---|---|---|
-| `preprocess` (só C) | `cpppp -i <fonte> -o T/pp.cpp -I <headers> -I P/Software` | `T` |
-| `compile` (C±) | `cmmcomp -i <nome>.cmm -n <nome> -p P -m <macros> -t T [-A] -en` | `P` |
-| `compile` (C) | `cppcomp -i T/pp.cpp -p P -n <nome> -t T` | `P` |
-| `pre_assemble` | `appcomp -i P/Software/<nome>.asm -t T -en` | `T` |
-| `assemble` | `asmcomp -i <asm> -p P -d <hdl> -m <macros> -t T -f <MHz> -c <clocks> -en` | `T` |
+| `compile` (C±) | `cmmcomp D/<nome>.cmm -o O [--wave-arrays] --lang=en` | `D` |
+| `compile` (C) | `cppcomp D/<nome>.cpp -o O --lang=en` | `D` |
+| `assemble` | `asmcomp O/<nome>.asm -f <MHz> -c <clocks> --lang=en` | `O` |
 
-O Lace sempre passa `-en` aos três compiladores do fluxo C±, para que o
-parser de mensagens trabalhe sobre um idioma só. `cpppp` e `cppcomp` não
-conhecem a flag.
+`build_steps(Language)` dá essa lista, com a ferramenta de cada passo; a CLI
+a usa para dizer o que não chegou a rodar.
 
-Tudo é compilado no destino final: o `asmcomp` embute caminhos absolutos no
-Verilog e no testbench, então mover os artefatos depois quebra a simulação.
+Cada ferramenta acha `SAPHO/`, `Macros/` e `Header/` ao lado do próprio
+executável (o Lace confere antes que o bundle os tem). O compilador grava em
+`O` o `.asm`, `prog_log.txt` (com a pasta do fonte, `srcdir`, onde o
+`asmcomp` lê os arquivos que inicializam arrays), `src_lines.txt` e
+`pc_<nome>_mem.txt`; o `asmcomp`, ao lado do `.asm`, o Verilog, as
+memórias, o testbench, `app_log.txt` e `trad_opcode.txt`. O `cppcomp`
+pré-processa o C na memória e procura os `#include` na pasta do fonte e,
+por último, no `Header/` do bundle.
+
+O Verilog e o testbench citam os arquivos pelo caminho relativo a `O`: as
+memórias, a tabela do PC, `output_<n>.txt` e `toma_<n>.txt` pelo nome,
+`input_<n>.txt` e `cade_<n>.txt` como `../input_<n>.txt`. Nada é copiado
+nem reescrito: o testbench roda em `O` (5.2), e a simulação do projeto, a
+síntese e a placa, que leem o Verilog de outro lugar, copiam antes as
+memórias e a tabela (`Processor::files_read_by_verilog`).
+
+Um `#PRNAME` ou `#pragma yanc prname` que sobrou de um fonte da 6.x é erro
+do compilador, que diz para apagar a linha; o Lace deixa a mensagem vir
+dele, com a linha, como qualquer erro do fonte.
+
+O Lace pede as mensagens em inglês (`--lang=en`), mesmo com `YANC_LANG=pt`
+no ambiente, para que o parser trabalhe sobre um idioma só.
 
 `BuildOptions` sobrepõe `frequency_mhz`, `clocks` e `show_arrays` só neste
 build, sem gravar no `.spf`.
 
-Artefatos obrigatórios: `assembly`, `verilog`, `data_memory`,
-`instruction_memory`, `testbench`. Intermediários: `program_counter_map`,
-`source_translation`, `opcode_translation`, `compiler_log`,
-`pre_assembler_log`, `preprocessed_source` (C).
+Artefatos, todos na pasta de saída. Obrigatórios: `assembly`, `verilog`,
+`data_memory`, `instruction_memory`, `testbench`. Intermediários:
+`program_counter_map`, `source_translation`, `opcode_translation`,
+`compiler_log`, `pre_assembler_log`.
 
 ### 5.1.1 `build_processors(&Toolchain, processadores, &BuildOptions, OnFailure, &Control, on_result) -> Result<Vec<BuildResult>>`
 
@@ -701,8 +767,8 @@ if builds.iter().all(BuildResult::succeeded) {
 ```
 
 Depois do build, `project.register_generated(&builds)` põe no `.spf` o que
-cada processador gerou e o projeto ainda não tem: o `Hardware/<nome>.v`
-entre os sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches,
+cada processador gerou e o projeto ainda não tem: o `<nome>/<nome>/<nome>.v`
+entre os sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches,
 no fim de cada lista. É o que a AURORA faz ao atualizar a árvore de
 arquivos, e a CLI e o Studio chamam depois de todo build. Só os builds que
 terminaram bem entram. Num projeto sem sintetizáveis, o `.v` do primeiro
@@ -710,7 +776,7 @@ processador vira o topo; num sem testbench, o testbench dele vira o
 escolhido. O que já está registrado, em qualquer lista, fica como está; o
 que foi tirado com `remove_file` volta no build seguinte. Devolve um
 `AddedFile` por arquivo registrado (`created` é sempre `false`). As
-operações já usavam o `Hardware/<nome>.v` sem ele no `.spf` e tiram o
+operações já usavam o `<nome>.v` gerado sem ele no `.spf` e tiram o
 repetido quando está; o testbench registrado passa a ser elaborado pelo
 `check` e mostrado pela `hierarchy`, uma vez só.
 
@@ -719,25 +785,29 @@ repetido quando está; o testbench registrado passa a ser elaborado pelo
 Simula um processador com o testbench que o `build` gerou. Duração e
 frequência já estão no testbench (vêm de `clocks` e `frequency_mhz` do build).
 
-Com `<SAPHO>` = a biblioteca SAPHO (`yanc/SAPHO/` do bundle):
+Com `<SAPHO>` = a biblioteca SAPHO (`yanc/SAPHO/` do bundle), `O` = a pasta
+de saída do processador e `T` = a temporária:
 
 | Simulador | Passo | Comando | CWD |
 |---|---|---|---|
-| Icarus | `elaborate` | `iverilog -y <SAPHO> -s <nome>_tb -o T/<nome>_tb.vvp P/Hardware/<nome>.v T/instr_<nome>_tb.v` | `T` |
-| Icarus | `simulate` | `vvp -n [-i] T/<nome>_tb.vvp -fst`, com `-i` quando o `Control` tem receptor de eventos (5.8); sem `-fst` só quando a onda não vai para um `.fst` (o formato da onda, abaixo) | `T` |
+| Icarus | `elaborate` | `iverilog -y <SAPHO> -s <nome>_tb -o T/<nome>_tb.vvp O/<nome>.v T/instr_<nome>_tb.v` | `O` |
+| Icarus | `simulate` | `vvp -n [-i] T/<nome>_tb.vvp -fst`, com `-i` quando o `Control` tem receptor de eventos (5.8); sem `-fst` só quando a onda não vai para um `.fst` (o formato da onda, abaixo) | `O` |
 | Verilator | `verilate` | `perl verilator --binary --main --trace -j 0 ... --top-module <nome>_tb -Mdir T/obj_dir_<nome>_tb -y <SAPHO> <arquivos>` | `T` |
-| Verilator | `simulate` | `T/obj_dir_<nome>_tb/V<nome>_tb` | `T` |
+| Verilator | `simulate` | `T/obj_dir_<nome>_tb/V<nome>_tb` | `O` |
 
-O CWD é o diretório temporário porque o `.v` do processador lê
-`pc_<nome>_mem.txt` por nome relativo e o testbench grava a onda em
-`<nome>_tb.fst` (`.vcd` no Verilator), também relativo. As memórias `.mif` e os arquivos de
-`Simulation/` são abertos por caminho absoluto.
+O CWD é a pasta de saída, como o YANC 7.1 pede: o `.v` do processador lê as
+memórias e `pc_<nome>_mem.txt` pelo nome, e o testbench lê as entradas na
+pasta do processador (`../input_<n>.txt`) e grava as saídas e a onda
+(`<nome>_tb.fst`, `.vcd` no Verilator) ali.
 
 O caminho do processador não pode ter caractere fora do ASCII
-(`NonAsciiPath`): o YANC grava no `.v` e no testbench o caminho absoluto das
-memórias e das entradas, e o `vvp` recusa nome de arquivo com acento ("contains
-non-printable characters"), seguindo sem os dados. O aviso do `vvp`, se
-aparecer, também vira erro.
+(`NonAsciiPath`). Até o YANC 6.x, o `.v` e o testbench citavam memórias e
+entradas pelo caminho absoluto, e o `vvp` recusa nome de arquivo com acento
+("contains non-printable characters"), seguindo sem os dados. Na 7.1 eles
+citam pelo nome relativo, e no Linux a simulação numa pasta com acento
+funciona (conferido); o Lace ainda passa ao simulador o caminho completo dos
+arquivos, e a recusa fica até isso ser conferido no Windows. O aviso do
+`vvp`, se aparecer, também vira erro.
 
 Em toda chamada do Icarus (simulação, `check`, `hierarchy`), um `include`
 procura primeiro na pasta do arquivo que inclui (`-grelative-include`) e
@@ -766,8 +836,9 @@ Um build (5.1) ou uma simulação de um processador trava
 `.lace/Temp/<nome>.lock` enquanto roda, e `simulate_project` trava a do
 projeto (`.lace/Temp/.project.lock`) e a de cada processador. Uma segunda
 operação no mesmo processador, de outro processo (o Studio e a CLI) ou da
-mesma, não espera: é `OperationInProgress`, e nada é alterado. Antes, as duas
-regravavam `Hardware/` e a pasta temporária ao mesmo tempo e falhavam juntas.
+mesma, não espera: é `OperationInProgress`, e nada é alterado. Sem a trava,
+as duas regravariam a pasta de saída e a temporária ao mesmo tempo e
+falhariam juntas.
 
 A biblioteca SAPHO entra por `-y`: o simulador carrega só os módulos que
 faltarem. Ela vem do YANC (`Toolchain::sapho_library`) e só entra quando há
@@ -869,10 +940,14 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
 1. O testbench é `project.testbench()`. O módulo simulado (`-s`,
    `--top-module`) é `project.testbench_module()`: vem do conteúdo do
    testbench, não só do nome do arquivo.
-2. Arquivos: os sintetizáveis do `.spf`, depois o `Hardware/<nome>.v` de cada
+2. Arquivos: os sintetizáveis do `.spf`, depois o `<nome>.v` gerado de cada
    processador compilado que não esteja na lista, e o testbench por último.
-3. Copia para a raiz o `pc_<nome>_mem.txt` de cada processador compilado.
-4. Copia para a raiz os arquivos que o testbench lê por nome relativo
+3. Roda na raiz do projeto, ou, se o testbench é o que o YANC gerou para um
+   processador (`<nome>/<nome>/<nome>_tb.v`), na pasta de saída dele, a
+   única em que ele roda certo (a regra da AURORA). Copia para essa pasta as
+   memórias e o `pc_<nome>_mem.txt` de cada processador compilado, que o
+   `.v` dele lê pelo nome (`Processor::files_read_by_verilog`).
+4. Copia para lá os arquivos que o testbench lê por nome relativo
    (`$readmemb("x")`, `$readmemh("x")`, `$fopen("x", "r")`), a partir da pasta
    do testbench, com duas restrições:
    - nada é escrito fora da raiz: um `$readmemh("../dados/x.hex")` lê, como
@@ -984,9 +1059,9 @@ Verilator 5.050 do bundle, nos dois simuladores; no Linux e no macOS, com o
 
 Onde a simulação grava a onda, sem simular: é o que `lace wave` abre sem
 argumento. Com um processador, a do testbench que o `asmcomp` gerou
-(`.lace/Temp/<nome>/<nome>_tb.fst` ou `.vcd`); sem, a do testbench do
-projeto: o nome do `$dumpfile` dele, ou, sem `$dumpfile`, a onda que o
-Lace injeta na raiz (5.3, passo 5). Das duas extensões, `.fst` do Icarus e
+(`<nome>/<nome>/<nome>_tb.fst` ou `.vcd`, na pasta de saída); sem, a do
+testbench do projeto: o nome do `$dumpfile` dele, ou, sem `$dumpfile`, a
+onda que o Lace injeta na pasta onde ele roda (5.3, passos 3 e 5). Das duas extensões, `.fst` do Icarus e
 `.vcd` do Verilator, vale a mais recente (a do Icarus se nenhuma existe
 ainda). Com um testbench cocotb, `<raiz>/<módulo de teste>.fst` (Icarus)
 ou `.vcd` (Verilator), a mais recente (5.3.2).
@@ -999,7 +1074,7 @@ expressão que o Lace não resolve (5.3, passo 5).
 
 Confere se o Verilog do projeto elabora, sem simular nem sintetizar. Não
 gera nada. O design é o conjunto dos sintetizáveis do `.spf`, do
-`Hardware/<nome>.v` de cada processador e dos `.v` de `<raiz>/TopLevel/`
+`<nome>.v` gerado de cada processador e dos `.v` de `<raiz>/TopLevel/`
 (legado da AURORA), sem testbenches. A biblioteca SAPHO entra por `-y` só se
 o projeto tem processadores.
 
@@ -1036,8 +1111,8 @@ Com `file`, só os módulos daquele arquivo são elaborados como raiz (um `-s`
 para cada um), com o design para resolver as instâncias. Se o arquivo é
 testbench, o passo é a elaboração dele com o design.
 
-Com `processor`, o design é só o `Hardware/<nome>.v` do processador, e o
-único testbench é o que o build gerou (`Simulation/<nome>_tb.v`, se
+Com `processor`, o design é só o `<nome>.v` gerado do processador, e o
+único testbench é o que o build gerou (`<nome>/<nome>/<nome>_tb.v`, se
 existe); os passos são os mesmos, e o lint usa o processador como topo. Os
 arquivos do `.spf` e os outros processadores ficam de fora. O processador
 precisa ter sido compilado (`NotBuilt`).
@@ -1090,7 +1165,7 @@ refeita a cada chamada:
 |---|---|---|
 | `elaborate` | `iverilog [-g2012] [-y <SAPHO>] -o <T>/design.vvp <design>` | com design |
 | `elaborate` | `iverilog [-g2012] [-y <SAPHO>] -s <módulo do testbench> -o <T>/tb-<n>.vvp <design> <testbench>` | um por testbench registrado |
-| `elaborate` | `iverilog [-g2012] -y <SAPHO> -s <nome>_tb -o <T>/proc-<nome>.vvp Hardware/<nome>.v Simulation/<nome>_tb.v` | um por processador compilado |
+| `elaborate` | `iverilog [-g2012] -y <SAPHO> -s <nome>_tb -o <T>/proc-<nome>.vvp <saída>/<nome>.v <saída>/<nome>_tb.v` | um por processador compilado |
 
 Como no `check`, o design vai sem `-s`, e o Icarus elabora como raiz cada
 módulo que ninguém instancia; com recursão parametrizada, as raízes vão com
@@ -1099,7 +1174,7 @@ falha não interrompe as outras: a árvore do design aparece mesmo com um
 testbench quebrado. O cancelamento para tudo. Um processador nunca compilado
 fica de fora, sem erro.
 
-Com `processor`, o design é só o `Hardware/<nome>.v` do processador, e o
+Com `processor`, o design é só o `<nome>.v` gerado do processador, e o
 único testbench é o que o build gerou; o processador precisa ter sido
 compilado (`NotBuilt`).
 
@@ -1166,10 +1241,13 @@ Síntese de visualização (a do RTLViewer da AURORA), sem mapear para FPGA.
 | Alvo | Topo | Arquivos |
 |---|---|---|
 | `DesignTarget::TopLevel` | o nome do arquivo de topo (`project.top_level()`, ver 3.4) | o design de `check` (5.4) |
-| `DesignTarget::Processor(nome)` | o processador | `Hardware/<nome>.v` |
+| `DesignTarget::Processor(nome)` | o processador | `<nome>/<nome>/<nome>.v` |
 
 Quando o projeto tem processadores, todo `.v` da biblioteca SAPHO
-(`yanc/SAPHO/` do bundle) que não é testbench entra primeiro.
+(`yanc/SAPHO/` do bundle) que não é testbench entra primeiro. O Yosys roda
+na raiz, e o Verilog de cada processador lê as memórias pelo nome, relativo
+a ela: antes da síntese, as memórias e o `pc_<nome>_mem.txt` de cada
+processador compilado vão para a raiz (`Processor::files_read_by_verilog`).
 
 Script gravado em `.lace/Temp/synth/<topo>/yosys_script.ys`:
 
@@ -1330,7 +1408,7 @@ pasta da onda, se ela tem `pc_<nome>_mem.txt`):
 | Tabela do YANC | Tradutor | Sinal |
 |---|---|---|
 | `trad_opcode.txt` (`<índice> <mnemônico> <operando>`) | `lace_asm_<proc>`, `Bits` = largura do `valr2` | `valr2` |
-| `trad_cmm.txt` (`<linha> <texto>`; -1, -2 e -3 viram `0xFFFFF`, `0xFFFFE`, `0xFFFFD` em 20 bits) | `lace_src_<proc>` | `linetabs` |
+| `src_lines.txt` (`<linha> <texto>`; -1, -2 e -3 viram `0xFFFFF`, `0xFFFFE`, `0xFFFFD` em 20 bits) | `lace_src_<proc>` | `linetabs` |
 | os valores dos complexos no corpo da onda | `lace_complex`, um `0b<bits> <re> <im>i` por valor | `comp_me3_*`, `comp_arr_me3_*` |
 
 Linha de tabela sem texto sai: o Surfer recusa o tradutor inteiro por ela.
@@ -1353,7 +1431,7 @@ Detalhes dos nomes: o rótulo da linha do fonte é `C (<proc>)` num
 processador em C e `C± (<proc>)` em C±; o elemento de um array leva o índice
 lido inteiro depois do último `_e_` (o `asmcomp` usa `%04d`, então o 10000
 tem cinco dígitos e fica no mesmo grupo); a variável de uma função com
-`_v_` no nome (`get_v_x`) é desfeita pelos pares do `cmm_log.txt` do build;
+`_v_` no nome (`get_v_x`) é desfeita pelos pares do `prog_log.txt` do build;
 um escopo com `.` no nome (o identificador escapado `\u.pa `) continua um
 componente só no caminho do `.surf.ron`; `delta_int` e `delta_float`, que o
 Icarus grava como `real`, ficam sem formato de bits.
@@ -1664,8 +1742,11 @@ ajuste) e o Verilog do topo da placa (`board_top`).
 
 `fpga::build` compila o projeto para a placa pelo Quartus:
 
-1. `prepare`; os processadores precisam estar compilados (o Verilog deles
-   aponta para as memórias pelo caminho absoluto: a CLI compila antes);
+1. `prepare`; os processadores precisam estar compilados (a CLI compila
+   antes). O Verilog deles cita as memórias pelo nome, relativo ao
+   diretório de quem o compila: as memórias e a tabela do PC vão para a
+   pasta da placa, a do projeto do Quartus, antes da compilação. Que o
+   Quartus procura ali é suposição, ainda não conferida numa compilação;
 2. grava em `fpga::build_dir(projeto, placa)`, `<raiz>/.lace/fpga/<placa>/`,
    o topo da placa (`lace_board_top.v`), o `.qsf` (a FPGA, os fontes da
    síntese mais o topo da placa, um pino por bit com o padrão de I/O, o
@@ -1762,8 +1843,11 @@ tenha falhado (5.4.1).
 
 | Operação | `Step` / `Tool` |
 |---|---|
-| `build` C± | `compile`/`cmmcomp`, `pre_assemble`/`appcomp`, `assemble`/`asmcomp` |
-| `build` C | `preprocess`/`cpppp`, `compile`/`cppcomp`, `pre_assemble`, `assemble` |
+| `build` C± | `compile`/`cmmcomp`, `assemble`/`asmcomp` |
+| `build` C | `compile`/`cppcomp`, `assemble`/`asmcomp` |
+
+`preprocess`/`cpppp` e `pre_assemble`/`appcomp` só aparecem nos relatórios
+de builds feitos com o YANC até a 6.x.
 | `simulate*` Icarus | `elaborate`/`iverilog`, `simulate`/`vvp` |
 | `simulate*` Verilator | `verilate`/`verilator`, `simulate`/`verilator` |
 | `check` | `check_syntax`/`iverilog` (um para o design, um por testbench), `lint`/`verilator` (com `lint`) |
@@ -1791,21 +1875,21 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 
 | `ArtifactKind` | Arquivo | Produzido por |
 |---|---|---|
-| `assembly` | `Software/<nome>.asm` | `build` |
-| `verilog` | `Hardware/<nome>.v` | `build` |
-| `data_memory` | `Hardware/<nome>_data.mif` | `build` |
-| `instruction_memory` | `Hardware/<nome>_inst.mif` | `build` |
-| `testbench` | `Simulation/<nome>_tb.v`, copiado de `T/<nome>_tb.v` | `build` |
-| `preprocessed_source` | `T/pp.cpp` | `build` C |
+| `assembly` | `O/<nome>.asm` (`O` = `<nome>/<nome>/`, a pasta de saída) | `build` |
+| `verilog` | `O/<nome>.v` | `build` |
+| `data_memory` | `O/<nome>_data.mif` | `build` |
+| `instruction_memory` | `O/<nome>_inst.mif` | `build` |
+| `testbench` | `O/<nome>_tb.v` | `build` |
+| `preprocessed_source` | `pp.cpp` (só nos relatórios do YANC até a 6.x) | `build` C |
 | `program_counter_map` | `T/pc_<nome>_mem.txt` | `build` |
-| `source_translation` | `T/trad_cmm.txt` | `build` |
+| `source_translation` | `O/src_lines.txt` | `build` |
 | `opcode_translation` | `T/trad_opcode.txt` | `build` |
-| `compiler_log` | `T/cmm_log.txt` | `build` |
+| `compiler_log` | `O/prog_log.txt` | `build` |
 | `pre_assembler_log` | `T/app_log.txt` | `build` |
 | `icarus_image` | `<trabalho>/<topo>.vvp`; na hierarquia, `hierarchy/design.vvp`, `hierarchy/tb-<n>.vvp`, `hierarchy/proc-<nome>.vvp` | `simulate*` Icarus, `hierarchy` |
 | `verilated_model` | `<trabalho>/obj_dir_<topo>/V<topo>`; na simulação rápida, `obj_dir_fast_<topo>` | `simulate*` Verilator |
 | `waveform` | nome do `$dumpfile`, ou o da onda injetada (5.3) | `simulate*` |
-| `simulation_output` | `Simulation/output_<n>.txt` | `simulate*` |
+| `simulation_output` | `O/output_<n>.txt` | `simulate*` |
 | `netlist` | `synth/<topo>/hierarchy.json` | `synthesize` |
 | `synthesis_statistics` | `synth/<topo>/stat.json` (não obrigatório) | `synthesize` |
 | `schematic_graph` | `synth/<topo>/<módulo>.dot` | `render_schematic` |
@@ -1820,7 +1904,7 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 
 Um elemento de `results` na saída real de
 `lace -C com_erro build -p conta --json` (caminhos encurtados, bundle em
-`/opt/lace/toolchain`, artefatos cortados):
+`/opt/lace/toolchain`, com o YANC 7.1, artefatos cortados):
 
 ```json
 {
@@ -1836,15 +1920,15 @@ Um elemento de `results` na saída real de
       "tool": "cmmcomp",
       "command": {
         "program": "/opt/lace/toolchain/yanc/bin/cmmcomp",
-        "args": ["-i", "conta.cmm", "-n", "conta", "-p", "/home/eu/projetos/com_erro/conta",
-                 "-m", "/opt/lace/toolchain/yanc/Macros", "-t", "/home/eu/projetos/com_erro/.lace/Temp/conta", "-en"],
-        "cwd": "/home/eu/projetos/com_erro/conta",
+        "args": ["/home/eu/projetos/com_erro/conta/conta.cmm",
+                 "-o", "/home/eu/projetos/com_erro/.lace/Temp/conta", "--lang=en"],
+        "cwd": "/home/eu/projetos/com_erro/.lace/Temp/conta",
         "env": [],
         "inherit": []
       },
       "termination": { "kind": "exited", "value": 1 },
       "stdout": "",
-      "stderr": "Error on line 16: c'mon dude, declare the variable 'total' properly!\n",
+      "stderr": "Error on line 15: c'mon dude, declare the variable 'total' properly!\n",
       "duration_ms": 3
     }
   ],
@@ -1853,15 +1937,15 @@ Um elemento de `results` na saída real de
       "tool": "cmmcomp",
       "severity": "error",
       "message": "c'mon dude, declare the variable 'total' properly!",
-      "file": "/home/eu/projetos/com_erro/conta/Software/conta.cmm",
-      "line": 16,
+      "file": "/home/eu/projetos/com_erro/conta/conta.cmm",
+      "line": 15,
       "column": null,
-      "raw": "Error on line 16: c'mon dude, declare the variable 'total' properly!"
+      "raw": "Error on line 15: c'mon dude, declare the variable 'total' properly!"
     }
   ],
   "artifacts": [
-    { "kind": "assembly", "path": "/home/eu/projetos/com_erro/conta/Software/conta.asm", "required": true, "fresh": true },
-    { "kind": "verilog", "path": "/home/eu/projetos/com_erro/conta/Hardware/conta.v", "required": true, "fresh": false }
+    { "kind": "assembly", "path": "/home/eu/projetos/com_erro/conta/conta/conta.asm", "required": true, "fresh": true },
+    { "kind": "verilog", "path": "/home/eu/projetos/com_erro/conta/conta/conta.v", "required": true, "fresh": false }
   ]
 }
 ```
@@ -1889,10 +1973,10 @@ encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
       "command": {
         "program": "/bin/bash",
         "args": ["/opt/lace/toolchain/oss-cad-suite/bin/iverilog",
-                 "-grelative-include", "-I", "/home/eu/projetos/soma/soma/Simulation", "-I", "/home/eu/projetos/soma/.lace/Temp/soma",
+                 "-grelative-include", "-I", "/home/eu/projetos/soma/soma/soma",
                  "-y", "/opt/lace/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp",
-                 "/home/eu/projetos/soma/soma/Hardware/soma.v", "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v"],
-        "cwd": "/home/eu/projetos/soma/.lace/Temp/soma",
+                 "/home/eu/projetos/soma/soma/soma/soma.v", "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v"],
+        "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
       },
@@ -1907,7 +1991,7 @@ encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
       "command": {
         "program": "/bin/bash",
         "args": ["/opt/lace/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "-fst"],
-        "cwd": "/home/eu/projetos/soma/.lace/Temp/soma",
+        "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
       },
@@ -1921,16 +2005,16 @@ encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
     { "tool": "vvp", "severity": "info", "message": "FST info: dumpfile soma_tb.fst opened for output.",
       "file": null, "line": null, "column": null, "raw": "FST info: dumpfile soma_tb.fst opened for output." },
     { "tool": "vvp", "severity": "info", "message": "$finish called at 985000 (1ps)",
-      "file": "/home/eu/projetos/soma/soma/Simulation/soma_tb.v", "line": 61, "column": null,
+      "file": "/home/eu/projetos/soma/soma/soma/soma_tb.v", "line": 61, "column": null,
       "raw": "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)" }
   ],
   "artifacts": [
     { "kind": "icarus_image", "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "required": true, "fresh": true },
-    { "kind": "waveform", "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.fst", "required": true, "fresh": true },
-    { "kind": "simulation_output", "path": "/home/eu/projetos/soma/soma/Simulation/output_0.txt", "required": false, "fresh": true }
+    { "kind": "waveform", "path": "/home/eu/projetos/soma/soma/soma/soma_tb.fst", "required": true, "fresh": true },
+    { "kind": "simulation_output", "path": "/home/eu/projetos/soma/soma/soma/output_0.txt", "required": false, "fresh": true }
   ],
-  "waveform": { "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.fst", "format": "fst" },
-  "outputs": ["/home/eu/projetos/soma/soma/Simulation/output_0.txt"],
+  "waveform": { "path": "/home/eu/projetos/soma/soma/soma/soma_tb.fst", "format": "fst" },
+  "outputs": ["/home/eu/projetos/soma/soma/soma/output_0.txt"],
   "missing_inputs": []
 }
 ```
@@ -1945,8 +2029,8 @@ campos de localização são opcionais.
 
 | Ferramenta | Formato reconhecido | Arquivo |
 |---|---|---|
-| `cmmcomp`, `appcomp`, `asmcomp` | `Error on line N: ...`, `Syntax error on line N. ...`, `Heads up on line N: ...`, `Warning on line N: ...`, `Error: ...`, `Info: ...`, `Error in function f: ...` (sem linha); `asmcomp`: `Error: line N of file 'x' ...` | o fonte do processador (preenchido pelo Lace), ou o arquivo de dados citado |
-| `cpppp`, `cppcomp` | `<arquivo>:<linha>: error: ...`, `<ferramenta>: ...` | o `pp.cpp`: o `cpppp` não emite `#line` |
+| `cmmcomp`, `asmcomp` (e o `appcomp` dos relatórios antigos) | `Error on line N: ...`, `Syntax error on line N. ...`, `Heads up on line N: ...`, `Warning on line N: ...`, `Error: ...`, `Info: ...`, `Error in function f: ...` (sem linha); `asmcomp`: `Error: line N of file 'x' ...` | o fonte do processador (preenchido pelo Lace), ou o arquivo de dados citado |
+| `cppcomp` | `<arquivo>:<linha>: error: ...`, `<ferramenta>: ...` | o fonte, ou o cabeçalho incluído onde está o erro |
 | `iverilog`, `vvp` | `<arquivo>:<linha>: error: ...`, `<arquivo>:<linha>: syntax error`, `<arquivo>: No such file or directory`, `ERROR: ...`, `FATAL: ...` | o que a ferramenta cita |
 | `verilator` | `%Error: <arquivo>:<linha>:<coluna>: ...`, `%Warning-<CÓDIGO>: ...` (o código vai para o fim da mensagem entre colchetes); erros do `g++` no formato C | o que a ferramenta cita |
 | `yosys` | `<arquivo>:<linha>: ERROR: ...`, `ERROR: ...`, `Warning: ...`, com ou sem espaço depois dos dois-pontos; a gravidade no começo da linha vem antes do local (o aviso de latch traz um `proc_dlatch.cc:542:` do Yosys no meio da mensagem) | o que a ferramenta cita |
@@ -2005,7 +2089,9 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `ProcessorNotFound` | `processor_not_found` | nome inexistente | ver `available` |
 | `InvalidName` | `invalid_name` | nome de projeto, processador ou topo da síntese fora das regras de 3.4; arquivo com nome de testbench como topo; arquivo que não é `.v` nem `.sv` nas listas, ou `.py` fora dos testbenches; `.py` novo ou simulado com nome que não é identificador do Python; `check` de um `.py`; `build` de processador do `.spf` com nome que não compila | outro nome, ou outro arquivo |
 | `InvalidProjectFile` | `invalid_project_file` | `.spf` ilegível, campo com tipo errado (3.3), processador com nome vazio, com barra ou repetido, ou `clk`/`numClocks` fora da faixa | corrigir o `.spf` |
-| `InvalidSource` | `invalid_source` | fonte ausente, nome errado, `#PRNAME` ausente ou diferente | corrigir o fonte |
+| `InvalidSource` | `invalid_source` | fonte ausente, ou com outro nome que não `<processador>.<ext>` | corrigir o fonte |
+| `LegacyLayout` | `legacy_layout` | `build` de um processador na estrutura de pastas do YANC 6.x (`Software/`, `Hardware/`, `Simulation/`) | `convert_layout` (3.6) |
+| `YancTooOld` | `yanc_too_old` | `build` com um bundle cujo YANC é anterior à 7.1 | instalar o bundle atual |
 | `NotBuilt` | `not_built` | simular, sintetizar ou elaborar a hierarquia de processador sem `build`; `waveform_path` de processador não compilado | rodar `build` |
 | `NoTestbench` | `no_testbench` | `simulate_project` ou `waveform_path` sem testbench | `add_verilog` de um testbench, ou `set_testbench` |
 | `NoCocotbToplevel` | `no_cocotb_toplevel` | `simulate_project` de um testbench cocotb sem a diretiva `# aurora-toplevel:` num projeto sem topo | a diretiva no `.py`, ou `set_top` |
@@ -2103,9 +2189,6 @@ Limites desta versão:
   de uma saída maior (um testbench que imprime sem parar) sai, e uma linha
   `[Lace: N bytes of output left out here]` marca o corte. A saída ao vivo do
   `Control` (5.8) passa inteira. Os diagnósticos saem do que foi guardado.
-- No fluxo C, a linha dos erros e a da onda são as do `pp.cpp`: o `cpppp`
-  do YANC tira as diretivas e junta os `#include` sem marcar a linha de
-  origem (`#line`), e o Lace não tem como voltar ao fonte sem adivinhar.
 - Plataformas: ver 9.1.
 
 ### 9.1 Plataformas
@@ -2149,10 +2232,8 @@ O que muda por sistema, e como o Lace trata:
 |---|---|---|
 | Abrir projeto | regrava o `.spf` (`lastOpened`, `exists`) | só lê |
 | `clk` fracionário | trunca | recusa |
-| `-` no nome do processador | aceita | recusa (o `cmmcomp` não aceita) |
-| `#PRNAME` ausente ou diferente | compila e gera nomes errados | recusa antes de compilar |
 | Diretório temporário | `<raiz>/.aurora/Temp` | `<raiz>/.lace/Temp` |
-| Idioma do YANC | o da interface (`-pt` ou `-en`) | sempre `-en` |
+| Idioma do YANC | o da interface (`--lang=pt` ou `--lang=en`) | sempre inglês (`--lang=en`) |
 | Ambiente do filho | herda o da AURORA | vazio + o mínimo |
 | Classificação de arquivos | por conteúdo, refeita a cada carga do projeto | por conteúdo, com a mesma regra, quando `add_verilog` registra; o papel fica gravado no `.spf` |
 | Verificação | `iverilog -tnull -s <topo>` | `iverilog` sem `-s` (todas as raízes), um por testbench e, com `lint`, `verilator --lint-only` |

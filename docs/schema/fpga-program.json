@@ -139,7 +139,7 @@
       "description": "Um passo de uma operação. Em JSON, em `snake_case` (`\"pre_assemble\"`).",
       "oneOf": [
         {
-          "description": "`cpppp`, só no fluxo C.",
+          "description": "`cpppp`, do YANC até a 6.x, nos relatórios antigos (o `cppcomp` da\n7.1 pré-processa).",
           "type": "string",
           "const": "preprocess"
         },
@@ -149,7 +149,7 @@
           "const": "compile"
         },
         {
-          "description": "`appcomp`: conta instruções e variáveis.",
+          "description": "`appcomp`, do YANC até a 6.x, nos relatórios antigos (o `asmcomp` da\n7.1 faz as duas passadas).",
           "type": "string",
           "const": "pre_assemble"
         },
@@ -274,7 +274,7 @@
           "const": "cmmcomp"
         },
         {
-          "description": "Pré-assembler do YANC: conta instruções e variáveis do `.asm` e\nregistra o `#PRNAME` em `app_log.txt`.",
+          "description": "Pré-assembler do YANC até a 6.x, que contava instruções e variáveis\ndo `.asm`. Na 7.1 é a primeira passada do [`Tool::Asmcomp`]; fica aqui\npara os relatórios de builds antigos.",
           "type": "string",
           "const": "appcomp"
         },
@@ -284,12 +284,12 @@
           "const": "asmcomp"
         },
         {
-          "description": "Pré-processador do fluxo C do YANC (`#include`, `#define`).",
+          "description": "Pré-processador do fluxo C do YANC até a 6.x (`#include`,\n`#define`). Na 7.1 faz parte do [`Tool::Cppcomp`]; fica aqui para os\nrelatórios de builds antigos.",
           "type": "string",
           "const": "cpppp"
         },
         {
-          "description": "Compilador C do YANC: `.cpp` pré-processado para `.asm`.",
+          "description": "Compilador C do YANC: `.cpp` para `.asm`, com o pré-processador.",
           "type": "string",
           "const": "cppcomp"
         },
@@ -356,7 +356,7 @@
           }
         },
         "cwd": {
-          "description": "Diretório de trabalho. Faz parte do contrato de várias ferramentas (o\n`appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench\ngrava a onda nele), por isso nunca é herdado.",
+          "description": "Diretório de trabalho. Faz parte do contrato de várias ferramentas (o\ntestbench do YANC lê e grava os arquivos dele relativo a ele, e grava\na onda nele), por isso nunca é herdado.",
           "type": "string"
         },
         "env": {
@@ -492,7 +492,7 @@
       ]
     },
     "Diagnostic": {
-      "description": "Uma mensagem de uma ferramenta, com os campos que deu para extrair.\n\n`file`, `line` e `column` são opcionais porque o `cmmcomp` não informa\narquivo nem coluna, e várias mensagens não informam nem a linha. Quando a\nferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila\num fonte só), `file` vem preenchido pelo Lace.\n\nEm JSON:\n\n```json\n{ \"tool\": \"cmmcomp\", \"severity\": \"error\",\n  \"message\": \"c'mon dude, declare the variable 'total' properly!\",\n  \"file\": \"/p/conta/Software/conta.cmm\", \"line\": 16, \"column\": null,\n  \"raw\": \"Error on line 16: c'mon dude, declare the variable 'total' properly!\" }\n```\n\nNo fluxo C, o `cppcomp` numera as linhas do arquivo pré-processado\n(`<temp>/pp.cpp`), e é esse o `file` que aparece: o `cpppp` não emite\nmarcadores `#line` que permitam voltar ao fonte original.",
+      "description": "Uma mensagem de uma ferramenta, com os campos que deu para extrair.\n\n`file`, `line` e `column` são opcionais porque o `cmmcomp` não informa\narquivo nem coluna, e várias mensagens não informam nem a linha. Quando a\nferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila\num fonte só), `file` vem preenchido pelo Lace.\n\nEm JSON:\n\n```json\n{ \"tool\": \"cmmcomp\", \"severity\": \"error\",\n  \"message\": \"c'mon dude, declare the variable 'total' properly!\",\n  \"file\": \"/p/conta/conta.cmm\", \"line\": 15, \"column\": null,\n  \"raw\": \"Error on line 15: c'mon dude, declare the variable 'total' properly!\" }\n```\n\nNo fluxo C, o `cppcomp` cita o arquivo e a linha do fonte, ou do\ncabeçalho incluído onde está o erro.",
       "type": "object",
       "properties": {
         "tool": {
@@ -504,7 +504,7 @@
           "$ref": "#/$defs/Severity"
         },
         "message": {
-          "description": "A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma\nda ferramenta (inglês: o Lace sempre pede `-en` ao YANC).",
+          "description": "A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma\nda ferramenta (inglês: o Lace sempre pede inglês ao YANC).",
           "type": "string"
         },
         "file": {

@@ -32,7 +32,7 @@ export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<L
     given?.name ??
     (await vscode.window.showInputBox({
       title: `Novo processador SAPHO em ${project.name}`,
-      prompt: 'O nome é a pasta, o #PRNAME do programa e o nome do módulo Verilog.',
+      prompt: 'O nome é a pasta, o nome do fonte e o nome do módulo Verilog.',
       placeHolder: 'proc',
       validateInput: (value) => validateName(value, existing),
     }));

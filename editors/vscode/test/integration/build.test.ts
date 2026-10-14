@@ -17,7 +17,7 @@ const soma = { kind: 'entry', entry: { role: 'processor', label: 'soma', path: n
 
 describe('Lace: Compilar', () => {
   let api: LaceExtensionApi;
-  const source = vscode.Uri.file(join(workspace, 'soma', 'Software', 'soma.cmm'));
+  const source = vscode.Uri.file(join(workspace, 'soma', 'soma.cmm'));
 
   beforeEach(async () => {
     api = await activate();

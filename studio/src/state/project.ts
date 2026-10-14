@@ -12,6 +12,7 @@ import { api } from '../ipc/api';
 import type { IpcError, ProjectSnapshot } from '../ipc/types';
 import { baseName } from '../util/paths';
 import { useApp } from './app';
+import { confirm } from './dialogs';
 import { useEditor } from './editor';
 import { useHierarchy } from './hierarchy';
 import { useLayout } from './layout';
@@ -74,6 +75,61 @@ async function activate(snapshot: ProjectSnapshot): Promise<void> {
   void useApp.getState().refreshRecent();
   await useEditor.getState().restoreSession(snapshot.spf);
   if (useEditor.getState().tabs.length === 0) useEditor.getState().openView('welcome');
+  // Um projeto da estrutura de pastas do YANC 6.x não compila: a AURORA
+  // pergunta ao abrir se pode converter, e o Studio também.
+  if (legacyProcessors(snapshot).length > 0) void convertLayout();
+}
+
+/** Os processadores ainda na estrutura de pastas do YANC 6.x. */
+function legacyProcessors(snapshot: ProjectSnapshot): string[] {
+  return snapshot.issues
+    .filter((issue) => issue.kind === 'legacy_layout' && issue.detail)
+    .map((issue) => issue.detail!);
+}
+
+/** Converte o projeto da estrutura de pastas do YANC 6.x para a do 7.1
+ * (`lace convert`), perguntando antes, e mostra o que mudou de lugar. */
+export async function convertLayout(): Promise<void> {
+  const snapshot = useProject.getState().snapshot;
+  if (!snapshot) return;
+  const legacy = legacyProcessors(snapshot);
+  if (legacy.length === 0) return;
+  const answer = await confirm({
+    title: t('dialog.convertLayout.title'),
+    message: t('dialog.convertLayout.message', { processors: legacy.join(', ') }),
+    buttons: [
+      { label: t('dialog.convertLayout.convert'), value: 'convert', primary: true },
+      { label: t('dialog.convertLayout.later'), value: 'later' },
+    ],
+  });
+  if (answer !== 'convert') return;
+  const report = await guarded(() => api.project.convertLayout());
+  if (!report) return;
+  await useProject.getState().refresh();
+  useProject.getState().bumpTree();
+  const root = snapshot.root.replace(/\\/g, '/');
+  const shown = (path: string) => {
+    const p = path.replace(/\\/g, '/');
+    return p.startsWith(`${root}/`) ? p.slice(root.length + 1) : p;
+  };
+  const lines = [t('dialog.convertLayout.moved', { count: report.moved.length })];
+  for (const s of report.skipped) {
+    lines.push(t('dialog.convertLayout.skipped', { path: shown(s.from), reason: s.reason }));
+  }
+  for (const line of report.name_lines.filter((l) => l.old_name !== l.processor)) {
+    lines.push(t('dialog.convertLayout.renamed', { processor: line.processor, old: line.old_name }));
+  }
+  for (const name of report.invalid_names) {
+    lines.push(t('dialog.convertLayout.invalid', { processor: name }));
+  }
+  for (const dir of report.remaining_dirs) {
+    lines.push(t('dialog.convertLayout.remaining', { path: shown(dir) }));
+  }
+  await confirm({
+    title: t('dialog.convertLayout.doneTitle'),
+    message: lines.join('\n'),
+    buttons: [{ label: t('dialog.convertLayout.ok'), value: 'ok', primary: true }],
+  });
 }
 
 export const useProject = create<ProjectState>((set, get) => ({

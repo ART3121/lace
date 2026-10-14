@@ -20,12 +20,12 @@
     },
     {
       "role": "synthesizable",
-      "path": "${ROOT}/soma/Hardware/soma.v",
+      "path": "${ROOT}/soma/soma/soma.v",
       "top_level": false
     },
     {
       "role": "synthesizable",
-      "path": "${ROOT}/filtro/Hardware/filtro.v",
+      "path": "${ROOT}/filtro/filtro/filtro.v",
       "top_level": false
     }
   ],
@@ -42,12 +42,12 @@
     },
     {
       "role": "testbench",
-      "path": "${ROOT}/soma/Simulation/soma_tb.v",
+      "path": "${ROOT}/soma/soma/soma_tb.v",
       "top_level": false
     },
     {
       "role": "testbench",
-      "path": "${ROOT}/filtro/Simulation/filtro_tb.v",
+      "path": "${ROOT}/filtro/filtro/filtro_tb.v",
       "top_level": false
     }
   ],
@@ -65,7 +65,8 @@
       "name": "soma",
       "language": "cmm",
       "dir": "${ROOT}/soma",
-      "source": "${ROOT}/soma/Software/soma.cmm",
+      "source": "${ROOT}/soma/soma.cmm",
+      "output_dir": "${ROOT}/soma/soma",
       "temp_dir": "${ROOT}/.lace/Temp/soma",
       "frequency_mhz": 50,
       "clocks": 5000,
@@ -76,7 +77,8 @@
       "name": "filtro",
       "language": "cmm",
       "dir": "${ROOT}/filtro",
-      "source": "${ROOT}/filtro/Software/filtro.cmm",
+      "source": "${ROOT}/filtro/filtro.cmm",
+      "output_dir": "${ROOT}/filtro/filtro",
       "temp_dir": "${ROOT}/.lace/Temp/filtro",
       "frequency_mhz": 100,
       "clocks": 2000,
@@ -87,7 +89,8 @@
       "name": "novo",
       "language": "cmm",
       "dir": "${ROOT}/novo",
-      "source": "${ROOT}/novo/Software/novo.cmm",
+      "source": "${ROOT}/novo/novo.cmm",
+      "output_dir": "${ROOT}/novo/novo",
       "temp_dir": "${ROOT}/.lace/Temp/novo",
       "frequency_mhz": 100,
       "clocks": 2000,

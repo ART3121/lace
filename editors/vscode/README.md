@@ -50,8 +50,8 @@ está no [README do Lace](../../README.md#extensão-do-vs-code)).
   editor. **Configurar o processador** (`lace proc set`): a frequência, os
   clocks simulados e a exportação de arrays, que valem no próximo build.
 - **C± e o assembly do SAPHO** têm realce, comentários, pares de
-  delimitadores e snippets das diretivas e das funções (`.cmm`, e os `.asm`
-  de `Software/`). As listas são as do Studio, conferidas contra o YANC; o
+  delimitadores e snippets das diretivas e das funções (`.cmm`, e o `.asm`
+  que o YANC 7.1 gera em `<processador>/<processador>/`). As listas são as do Studio, conferidas contra o YANC; o
   `i` só é a unidade imaginária dentro de um literal complexo (`2+3i`).
 - **Check** (`lace check`): o projeto, um arquivo, um processador, ou com o
   lint do Verilator. Os erros e avisos vão para o painel Problemas, só os

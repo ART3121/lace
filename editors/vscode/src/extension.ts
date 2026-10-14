@@ -29,6 +29,7 @@ import { SourceDecorations } from './sources/decorations';
 import { SourcesDragAndDrop } from './sources/dragAndDrop';
 import { SourcesProvider } from './sources/provider';
 import { LaceStatusBar } from './statusBar';
+import { registerSaphoAssembly } from './asmLanguage';
 import { processorOf } from './commands/common';
 import { isVerilogFile } from './verilog';
 
@@ -56,6 +57,7 @@ export interface LaceExtensionApi {
 const CHECK_ON_SAVE_DELAY_MS = 300;
 
 export async function activate(context: vscode.ExtensionContext): Promise<LaceExtensionApi> {
+  registerSaphoAssembly(context);
   const log = vscode.window.createOutputChannel('Lace', { log: true });
   const tools = vscode.window.createOutputChannel('Lace: ferramentas');
   const connection = new LaceConnection(log);

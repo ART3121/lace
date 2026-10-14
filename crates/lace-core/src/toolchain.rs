@@ -200,15 +200,18 @@ impl fmt::Display for Platform {
 pub enum Tool {
     /// Compilador C± do YANC: `.cmm` para `.asm`.
     Cmmcomp,
-    /// Pré-assembler do YANC: conta instruções e variáveis do `.asm` e
-    /// registra o `#PRNAME` em `app_log.txt`.
+    /// Pré-assembler do YANC até a 6.x, que contava instruções e variáveis
+    /// do `.asm`. Na 7.1 é a primeira passada do [`Tool::Asmcomp`]; fica aqui
+    /// para os relatórios de builds antigos.
     Appcomp,
     /// Assembler do YANC: `.asm` para o Verilog do processador, as memórias
     /// `.mif` e o testbench.
     Asmcomp,
-    /// Pré-processador do fluxo C do YANC (`#include`, `#define`).
+    /// Pré-processador do fluxo C do YANC até a 6.x (`#include`,
+    /// `#define`). Na 7.1 faz parte do [`Tool::Cppcomp`]; fica aqui para os
+    /// relatórios de builds antigos.
     Cpppp,
-    /// Compilador C do YANC: `.cpp` pré-processado para `.asm`.
+    /// Compilador C do YANC: `.cpp` para `.asm`, com o pré-processador.
     Cppcomp,
     /// Compilador do Icarus Verilog.
     Iverilog,
@@ -852,10 +855,22 @@ impl Toolchain {
 
     /// Quais ferramentas este bundle (e o compilador, para o Perl) tem agora.
     pub fn available(&self) -> Vec<Tool> {
+        self.tools()
+            .into_iter()
+            .filter(|&t| self.tool(t).is_ok())
+            .collect()
+    }
+
+    /// As ferramentas que o Lace roda, na ordem de [`Tool::all`]: todas,
+    /// menos o `appcomp` e o `cpppp`, que o YANC 7.1 não tem mais (o
+    /// `asmcomp` faz as duas passadas e o `cppcomp` pré-processa). É a lista
+    /// que um relatório do bundle mostra; uma ferramenta dela que
+    /// [`Toolchain::tool`] não acha está faltando.
+    pub fn tools(&self) -> Vec<Tool> {
         Tool::all()
             .iter()
             .copied()
-            .filter(|&t| self.tool(t).is_ok())
+            .filter(|t| !matches!(t, Tool::Appcomp | Tool::Cpppp))
             .collect()
     }
 

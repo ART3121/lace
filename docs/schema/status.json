@@ -146,7 +146,7 @@
       "type": "object",
       "properties": {
         "name": {
-          "description": "O nome: diretório, `#PRNAME`, nome do módulo Verilog e dos artefatos.",
+          "description": "O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos\ngerados.",
           "type": "string"
         },
         "language": {
@@ -154,15 +154,19 @@
           "$ref": "#/$defs/Language"
         },
         "dir": {
-          "description": "`<raiz>/<nome>`, o `-p` dos compiladores.",
+          "description": "`<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que\ninicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos\ndo C).",
           "type": "string"
         },
         "source": {
-          "description": "O programa-fonte, em `Software/`.",
+          "description": "O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.",
+          "type": "string"
+        },
+        "output_dir": {
+          "description": "`<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,\nas memórias, o testbench, as tabelas da onda e as saídas da\nsimulação, que roda nela.",
           "type": "string"
         },
         "temp_dir": {
-          "description": "Diretório de intermediários, o `-t` dos compiladores.",
+          "description": "`<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
           "type": "string"
         },
         "frequency_mhz": {
@@ -178,7 +182,7 @@
           "minimum": 0
         },
         "show_arrays": {
-          "description": "Exporta arrays para a simulação (`-A` do `cmmcomp`).",
+          "description": "Exporta cada elemento de array como um sinal da onda\n(`--wave-arrays` do `cmmcomp`).",
           "type": "boolean"
         },
         "built": {
@@ -191,6 +195,7 @@
         "language",
         "dir",
         "source",
+        "output_dir",
         "temp_dir",
         "frequency_mhz",
         "clocks",
@@ -207,7 +212,7 @@
           "const": "cmm"
         },
         {
-          "description": "C, pré-processado pelo `cpppp` e compilado pelo `cppcomp`. A AURORA e o\nYANC chamam de \"cpp\" e usam a extensão `.cpp`.",
+          "description": "C, compilado pelo `cppcomp`. A AURORA e o YANC chamam de \"cpp\" e\nusam a extensão `.cpp`.",
           "type": "string",
           "const": "cpp"
         }
@@ -229,7 +234,7 @@
           ]
         },
         "detail": {
-          "description": "O complemento do tipo: o caminho como estava gravado\n(`rescued_path`), o campo do `.spf` (`selection_not_registered`,\n`testbench_as_top`) ou o nome do processador\n(`invalid_processor_name`).",
+          "description": "O complemento do tipo: o caminho como estava gravado\n(`rescued_path`), o campo do `.spf` (`selection_not_registered`,\n`testbench_as_top`) ou o nome do processador\n(`invalid_processor_name`, `legacy_layout`).",
           "type": [
             "string",
             "null"
@@ -279,6 +284,11 @@
           "description": "O projeto está dentro da pasta de outro (uma pasta acima tem `.spf`):\nos arquivos dele aparecem também no outro.",
           "type": "string",
           "const": "nested_project"
+        },
+        {
+          "description": "Um processador ainda tem a estrutura de pastas de antes do YANC 7.1\n(`Software/`, `Hardware/`, `Simulation/`): o build dele recusa com\n`legacy_layout` até a conversão ([`Project::convert_layout`]).",
+          "type": "string",
+          "const": "legacy_layout"
         }
       ]
     }

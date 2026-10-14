@@ -8,8 +8,8 @@
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::{
     AddedFile, Control, FileRole, HierarchyOptions, HierarchyResult, LaceError, Language,
-    ListPosition, MovedPath, NewProcessor, Processor, ProcessorConfig, Project, ProjectFile,
-    ProjectIssue,
+    LayoutConversion, ListPosition, MovedPath, NewProcessor, Processor, ProcessorConfig, Project,
+    ProjectFile, ProjectIssue,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
@@ -70,9 +70,11 @@ pub struct ProcessorStatus {
     pub processor: Processor,
     /// O Verilog e o testbench gerados existem.
     pub built: bool,
-    /// Os arquivos de entrada (`Simulation/input_<n>.txt`) que existem.
+    /// Os arquivos de entrada (`<proc>/input_<n>.txt`, ao lado do fonte)
+    /// que existem.
     pub inputs: Vec<PortFile>,
-    /// Os arquivos de saída (`Simulation/output_<n>.txt`) que existem.
+    /// Os arquivos de saída (`<proc>/<proc>/output_<n>.txt`, na pasta de
+    /// saída) que existem.
     pub outputs: Vec<PortFile>,
     /// Entradas que o testbench lê e que não existem (só depois do build).
     pub missing_inputs: Vec<Utf8PathBuf>,
@@ -86,28 +88,36 @@ pub struct ProcessorStatus {
 /// Só entram os que existem.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct GeneratedFiles {
-    /// `Hardware/<nome>.v`: o processador em Verilog, um módulo do design.
+    /// `<nome>.v`: o processador em Verilog, um módulo do design.
     pub verilog: Option<Utf8PathBuf>,
-    /// `Simulation/<nome>_tb.v`: o testbench que o `asmcomp` gera.
+    /// `<nome>_tb.v`: o testbench que o `asmcomp` gera.
     pub testbench: Option<Utf8PathBuf>,
-    /// `Software/<nome>.asm`: o assembly que o `cmmcomp` gera.
+    /// `<nome>.asm`: o assembly que o compilador gera.
     pub assembly: Option<Utf8PathBuf>,
-    /// `Hardware/*.mif`: as memórias de dados e de instruções.
+    /// `*.mif`: as memórias de dados e de instruções.
     pub memories: Vec<Utf8PathBuf>,
-    /// Os `.txt` e `.log` da pasta temporária: logs e traduções do YANC.
+    /// As tabelas e os logs do YANC (`prog_log.txt`, `src_lines.txt`,
+    /// `trad_opcode.txt`, `app_log.txt`, `pc_<nome>_mem.txt`).
     pub intermediates: Vec<Utf8PathBuf>,
 }
 
 impl GeneratedFiles {
     fn of(processor: &Processor) -> Self {
         let existing = |path: Utf8PathBuf| path.is_file().then_some(path);
-        let name = &processor.name;
+        let out = &processor.output_dir;
         Self {
-            verilog: existing(processor.hardware_dir().join(format!("{name}.v"))),
+            verilog: existing(processor.verilog_path()),
             testbench: existing(processor.testbench_path()),
-            assembly: existing(processor.software_dir().join(format!("{name}.asm"))),
-            memories: files_with(&processor.hardware_dir(), &["mif"]),
-            intermediates: files_with(&processor.temp_dir, &["txt", "log"]),
+            assembly: existing(processor.assembly_path()),
+            memories: files_with(out, &["mif"]),
+            // As saídas da simulação são das portas, e não do build.
+            intermediates: files_with(out, &["txt", "log"])
+                .into_iter()
+                .filter(|p| {
+                    p.file_name()
+                        .is_some_and(|n| !n.starts_with("output_") && !n.starts_with("toma_"))
+                })
+                .collect(),
         }
     }
 }
@@ -149,8 +159,8 @@ pub fn snapshot(project: &Project) -> ProjectSnapshot {
             ProcessorStatus {
                 processor: p.clone(),
                 built,
-                inputs: port_files(&p.simulation_dir(), "input_"),
-                outputs: port_files(&p.simulation_dir(), "output_"),
+                inputs: port_files(&p.dir, "input_"),
+                outputs: port_files(&p.output_dir, "output_"),
                 missing_inputs: if built {
                     lace_core::missing_inputs(p).unwrap_or_default()
                 } else {
@@ -412,9 +422,9 @@ pub struct NewProcessorRequest {
     pub nbexpo: Option<u32>,
     /// `#NUGAIN`.
     pub nugain: Option<u32>,
-    /// `#NDSTAC`.
+    /// `#NDSTAC`; ausente, o YANC calcula pelo programa.
     pub ndstac: Option<u32>,
-    /// `#SDEPTH`.
+    /// `#SDEPTH`; ausente, o YANC calcula pelo programa.
     pub sdepth: Option<u32>,
 }
 
@@ -433,6 +443,9 @@ pub async fn project_add_processor(
     blocking(app, move |_, state| {
         let mut project = state.project()?;
         let mut spec = NewProcessor::new(&request.name, request.language);
+        // Sem as duas, o YANC calcula as pilhas pelo programa.
+        spec.ndstac = request.ndstac;
+        spec.sdepth = request.sdepth;
         for (value, field) in [
             (request.input_ports, &mut spec.input_ports),
             (request.output_ports, &mut spec.output_ports),
@@ -440,8 +453,6 @@ pub async fn project_add_processor(
             (request.nbmant, &mut spec.nbmant),
             (request.nbexpo, &mut spec.nbexpo),
             (request.nugain, &mut spec.nugain),
-            (request.ndstac, &mut spec.ndstac),
-            (request.sdepth, &mut spec.sdepth),
         ] {
             if let Some(value) = value {
                 *field = value;
@@ -522,6 +533,15 @@ pub async fn project_move(
         }
     })
     .await
+}
+
+/// Converte os processadores da estrutura de pastas do YANC 6.x
+/// (`Software/`, `Hardware/`, `Simulation/`) para a do 7.1
+/// (`Project::convert_layout`, o `lace convert`). Nada é apagado nem
+/// sobrescrito; o relatório diz o que mudou de lugar e o que ficou.
+#[tauri::command]
+pub async fn project_convert_layout(app: AppHandle) -> IpcResult<LayoutConversion> {
+    blocking(app, |_, state| Ok(state.project()?.convert_layout()?)).await
 }
 
 /// A hierarquia do design e dos testbenches, elaborada pelo Icarus

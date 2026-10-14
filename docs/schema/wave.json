@@ -80,7 +80,7 @@
           "type": "string"
         },
         "processor": {
-          "description": "O processador (o `#PRNAME`, nome da pasta no projeto).",
+          "description": "O processador (o nome da pasta no projeto e do fonte).",
           "type": "string"
         },
         "variables": {
@@ -94,7 +94,7 @@
           "type": "boolean"
         },
         "source": {
-          "description": "A linha do fonte aparece como texto (havia `trad_cmm.txt`).",
+          "description": "A linha do fonte aparece como texto (havia `src_lines.txt`).",
           "type": "boolean"
         },
         "outdated": {

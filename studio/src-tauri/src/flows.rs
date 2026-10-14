@@ -660,7 +660,7 @@ fn record(
 /// escreveu, na ordem das portas. A porta sai do nome do arquivo, como na
 /// CLI (`port_values`), porque o `Processor` não guarda o `#NUIOOU`.
 fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValues> {
-    let dir = processor.simulation_dir();
+    let dir = &processor.output_dir;
     let mut ports: Vec<u32> = result
         .outputs
         .iter()

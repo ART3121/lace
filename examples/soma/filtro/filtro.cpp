@@ -1,4 +1,3 @@
-#pragma yanc prname filtro
 #pragma yanc nuioin 1
 #pragma yanc nuioou 1
 

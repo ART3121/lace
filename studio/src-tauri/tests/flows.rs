@@ -301,7 +301,7 @@ fn build_error_comes_back_as_diagnostic_not_err() {
     let result = &build.builds[0];
     assert_eq!(result.status, Status::Failed);
     let error = result.first_error().expect("diagnóstico de erro");
-    assert_eq!(error.line, Some(16), "{error:?}");
+    assert_eq!(error.line, Some(15), "{error:?}");
     assert!(
         error
             .file
@@ -438,5 +438,5 @@ fn fpga_build_refuses_before_building() {
     let error = flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
     assert_eq!(error.code, "quartus_missing");
     // Nenhum processador foi compilado.
-    assert!(!root.join("soma/Hardware/soma.v").exists());
+    assert!(!root.join("soma/soma/soma.v").exists());
 }

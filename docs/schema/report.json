@@ -254,7 +254,7 @@
           "type": "string"
         },
         "inputs": {
-          "description": "Hash das entradas dos processadores (`Simulation/input_*.txt`).",
+          "description": "Hash das entradas dos processadores (`<proc>/input_*.txt`, ao lado\ndo fonte).",
           "type": "string"
         },
         "waveform": {

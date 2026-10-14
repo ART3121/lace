@@ -11,7 +11,8 @@ use crate::error::{LaceError, Result};
 /// Dois limites valem ao mesmo tempo, e o menor manda:
 ///
 /// - **Buffers do YANC.** Os compiladores montam caminhos com `snprintf` em
-///   buffers fixos; o menor tem 1001 bytes (`appcomp`, `eval.c`). Estourar
+///   buffers fixos; o menor tem 1001 bytes (a primeira passada do
+///   `asmcomp`). Estourar
 ///   trunca o caminho em silêncio e o compilador abre o arquivo errado.
 /// - **MAX_PATH do Windows.** Os `.exe` do YANC usam o runtime C do mingw, que
 ///   não é "long path aware": `fopen` falha acima de 259 caracteres. É o
@@ -67,11 +68,14 @@ pub(crate) fn user_cache_dir() -> Result<Utf8PathBuf> {
 }
 
 /// Recusa um caminho com caractere fora do ASCII onde o simulador abre
-/// arquivo por nome. O YANC grava no Verilog e no testbench o caminho
-/// absoluto das memórias (`<proc>/Hardware/<proc>_inst.mif`) e das entradas
-/// (`<proc>/Simulation/input_<n>.txt`), e o `vvp` do Icarus recusa nome de
-/// arquivo com byte fora do ASCII ("contains non-printable characters"): o
-/// processador rodaria sem programa e sem entradas, sem erro.
+/// arquivo por nome. Até o YANC 6.x, o Verilog e o testbench citavam as
+/// memórias e as entradas pelo caminho absoluto, e o `vvp` do Icarus recusa
+/// nome de arquivo com byte fora do ASCII ("contains non-printable
+/// characters"): o processador rodava sem programa e sem entradas, sem erro.
+/// O YANC 7.1 cita tudo pelo nome relativo à pasta de saída, e no Linux a
+/// simulação numa pasta com acento funciona (conferido); o Lace ainda passa
+/// ao simulador o caminho completo dos arquivos, e a recusa fica até isso
+/// ser conferido no Windows.
 pub(crate) fn check_simulator_path(path: &Utf8Path) -> Result<()> {
     if path.as_str().is_ascii() {
         Ok(())

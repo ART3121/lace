@@ -189,15 +189,16 @@ function NewProcessorDialog() {
         nbmant: String(d.nbmant),
         nbexpo: String(d.nbexpo),
         nugain: String(d.nugain),
-        ndstac: String(d.ndstac),
-        sdepth: String(d.sdepth),
+        // Vazias: sem a diretiva, e o YANC calcula as pilhas pelo programa.
+        ndstac: d.ndstac === null ? '' : String(d.ndstac),
+        sdepth: d.sdepth === null ? '' : String(d.sdepth),
       });
     });
   }, []);
 
-  // A regra do nome é do Core (`validate_processor_name`): além de letras,
-  // números e _, recusa palavras do C± e do Verilog, módulos da biblioteca
-  // SAPHO e nomes longos. O motivo aparece ao passar o mouse.
+  // A regra do nome é do Core (`validate_processor_name`), a do YANC 7.1:
+  // além de letras, números e _, recusa palavras do Verilog, módulos da
+  // biblioteca SAPHO e nomes longos. O motivo aparece ao passar o mouse.
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
     if (!name) {
@@ -246,12 +247,13 @@ function NewProcessorDialog() {
     await useEditor.getState().openFile(processor.source);
   };
 
-  const numberField = (key: string, label: string) => (
+  const numberField = (key: string, label: string, placeholder?: string) => (
     <Field label={label}>
       <input
         className="input"
         type="number"
         min={0}
+        placeholder={placeholder}
         value={fields[key] ?? ''}
         onChange={(e) => {
           const next = { ...fields, [key]: e.target.value };
@@ -304,8 +306,8 @@ function NewProcessorDialog() {
           {numberField('nbmant', t('dialog.newProcessor.nbmant'))}
           {numberField('nbexpo', t('dialog.newProcessor.nbexpo'))}
           {numberField('nugain', t('dialog.newProcessor.nugain'))}
-          {numberField('ndstac', t('dialog.newProcessor.ndstac'))}
-          {numberField('sdepth', t('dialog.newProcessor.sdepth'))}
+          {numberField('ndstac', t('dialog.newProcessor.ndstac'), t('dialog.newProcessor.auto'))}
+          {numberField('sdepth', t('dialog.newProcessor.sdepth'), t('dialog.newProcessor.auto'))}
         </div>
       ) : (
         <p className="muted">{t('dialog.newProcessor.cppNote')}</p>
@@ -415,7 +417,8 @@ function NewInputDialog({ processor }: { processor: string }) {
   const submit = async () => {
     const n = Number.parseInt(port, 10);
     if (!p || !(n >= 0)) return;
-    const path = joinPath(p.dir, 'Simulation', `input_${n}.txt`);
+    // Ao lado do fonte, onde o testbench do YANC 7.1 lê (`../input_<n>.txt`).
+    const path = joinPath(p.dir, `input_${n}.txt`);
     if ((await guarded(() => api.fs.createFile(path, ''))) === undefined) return;
     close();
     await useProject.getState().refresh();
@@ -424,7 +427,7 @@ function NewInputDialog({ processor }: { processor: string }) {
 
   return (
     <Dialog title={t('dialog.newInput.title')} onSubmit={() => void submit()} footer={<Footer submit={t('common.create')} />}>
-      <Field label={t('dialog.newInput.port')} hint={p ? relativeTo(joinPath(p.dir, 'Simulation', `input_${port}.txt`), snapshot.root) : undefined}>
+      <Field label={t('dialog.newInput.port')} hint={p ? relativeTo(joinPath(p.dir, `input_${port}.txt`), snapshot.root) : undefined}>
         <input className="input input--narrow" type="number" min={0} autoFocus value={port} onChange={(e) => setPort(e.target.value)} />
       </Field>
       <p className="muted">{t('processor.noInputs')}</p>
@@ -891,7 +894,7 @@ function ConfirmDialog({ options, resolve }: { options: ConfirmOptions; resolve:
         </Button>
       ))}
     >
-      <p>{options.message}</p>
+      <p style={{ whiteSpace: 'pre-line' }}>{options.message}</p>
     </Dialog>
   );
 }

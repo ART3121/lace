@@ -5,7 +5,7 @@
       "PRNAME"
     ],
     "body": "#PRNAME ${1:nome}",
-    "description": "Nome do processador."
+    "description": "Nome do processador. Só até o YANC 6.x: na 7.1 é erro, e o processador se chama como o arquivo."
   },
   "#NUBITS": {
     "prefix": [

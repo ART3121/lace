@@ -26,6 +26,58 @@
   gravado numa placa.
 - `lace fpga boards` alinha as colunas pelo maior id e pelo maior nome;
   antes, um nome com mais de 20 letras desalinhava a tabela.
+- O bundle traz o YANC v7.1 (`6c32d94`, bundle `2026.10.13`), e o Lace
+  segue as regras dele, como a AURORA 7.1. A 7.1 mudou a linha de comando,
+  os compiladores e as pastas: o fonte é o argumento sem opção, o
+  processador se chama como o arquivo (o `#PRNAME` virou erro), cada
+  ferramenta acha `SAPHO/`, `Macros/` e `Header/` ao lado do próprio
+  executável, o `asmcomp` faz as duas passadas e o `cppcomp` pré-processa
+  (não há mais `appcomp` nem `cpppp`), e tudo o que é gerado vai para uma
+  pasta de saída, com os arquivos citados pelo caminho relativo a ela. O
+  build roda `cmmcomp <proc>.cmm -o <proc>/<proc> --lang=en` (ou o
+  `cppcomp`) e `asmcomp <proc>/<proc>/<proc>.asm`. Um bundle com o YANC até a
+  6.x é recusado com `yanc_too_old`.
+- **Estrutura de pastas do YANC 7.1.** O processador é a pasta `<proc>/`,
+  com o fonte `<proc>.cmm` (ou `.cpp`) e os arquivos da pessoa (os de
+  arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos do C); tudo o que
+  o YANC gera fica em `<proc>/<proc>/`: o `.asm`, o Verilog, as memórias, o
+  testbench, as tabelas da onda (`src_lines.txt`, `prog_log.txt`) e o que a
+  simulação grava (`output_<n>.txt`, a onda). `Software/`, `Hardware/` e
+  `Simulation/` saíram. A simulação de um processador roda na pasta de
+  saída, como o YANC pede; a do projeto roda na raiz (ou na pasta de saída,
+  com o testbench gerado de um processador) e copia para lá as memórias e o
+  `pc_<proc>_mem.txt` de cada processador, como a síntese e a compilação
+  para a placa (que as copia para a pasta da placa; não conferido no
+  Quartus). Nada é reescrito no Verilog gerado, e o projeto pode mudar de
+  pasta sem compilar de novo. `Processor` ganhou `output_dir` e
+  `assembly_path`, `verilog_path`, `files_read_by_verilog`; saíram
+  `software_dir`, `hardware_dir` e `simulation_dir`.
+- **Conversão do projeto antigo.** Um processador com `Software/`,
+  `Hardware/` ou `Simulation/` não compila (`legacy_layout`, e o aviso em
+  `lace status`). `lace convert` (`Project::convert_layout`) faz a
+  conversão da AURORA: o que o YANC gerava vai para a pasta de saída, o
+  resto para a do processador, nada é apagado nem sobrescrito, a linha
+  `#PRNAME` sai do fonte e o `.spf` acompanha, com um relatório do que
+  mudou, do que ficou e dos módulos que mudaram de nome. O Lace Studio
+  pergunta ao abrir um projeto antigo.
+- **Processador novo.** O fonte-modelo sai sem `#PRNAME`, sem `#NDSTAC` e
+  `#SDEPTH` se elas não forem dadas (o YANC calcula as pilhas pelo
+  programa) e sem `#NUGAIN` se ele for 128; a pasta de saída nasce no
+  primeiro build. O nome segue a regra do YANC 7.1: a lista de palavras
+  reservadas do Verilog e do SystemVerilog dele, e nada de `__` no começo;
+  palavras do C± que não são do Verilog (`in`, `out`, `sqrt`) passaram a
+  valer. `NewProcessor::ndstac` e `sdepth` viraram `Option`.
+- No fluxo C, os erros apontam o fonte (ou o cabeçalho incluído) e a linha
+  escrita, e não mais o `pp.cpp`; a onda mostra cada linha como foi
+  escrita. Sai das pendências o `externo-cpppp-sem-line`. No macOS, a 7.1
+  parece não achar as pastas da biblioteca (deduzido do código do YANC,
+  não conferido num Mac: [docs/PENDENCIAS.md](docs/PENDENCIAS.md),
+  `externo-yanc-exe-dir-macos`).
+- `lace tools` e a aba Toolchain do Studio não listam mais o `appcomp` e o
+  `cpppp`; o resumo de um build que falhou mostra os passos que não rodaram
+  com os da 7.1 (`build_steps`). Os exemplos de `examples/` estão na
+  estrutura nova, e os testes que comparam o `.asm` com os goldens do YANC
+  usam os casos de teste da 7.1.
 
 ## 0.7.0 (2026-10-12)
 

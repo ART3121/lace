@@ -53,7 +53,7 @@ import { useJobs } from './state/jobs';
 import { isOnScreen, useLayout, type RegionId, type ViewId } from './state/layout';
 import { currentExercise, useLearn } from './state/learn';
 import { CONSOLE_CHANNELS, regionOf, VIEW_INFO } from './state/layoutModel';
-import { useProject } from './state/project';
+import { convertLayout, useProject } from './state/project';
 import { resetLayout, restoreLayout, saveLayout, saveLayoutAs } from './state/savedLayouts';
 import { useSettingsPage } from './state/settingsPage';
 import { guarded, showError, useToasts } from './state/toasts';
@@ -418,6 +418,13 @@ export const ACTIONS: Action[] = [
   { id: 'newProject', label: 'action.newProject', category: 'file', keys: 'Ctrl+Alt+N', icon: FolderPlus, run: () => openDialog({ kind: 'newProject' }) },
   { id: 'openProject', label: 'action.openProject', category: 'file', keys: 'Ctrl+Shift+O', icon: FolderOpen, run: openProjectDialog },
   { id: 'closeProject', label: 'action.closeProject', category: 'file', enabled: hasProject, run: () => useProject.getState().close() },
+  {
+    id: 'convertLayout',
+    label: 'action.convertLayout',
+    category: 'file',
+    enabled: () => !!useProject.getState().snapshot?.issues.some((i) => i.kind === 'legacy_layout'),
+    run: () => convertLayout(),
+  },
   {
     id: 'revealProject',
     label: 'action.revealProject',

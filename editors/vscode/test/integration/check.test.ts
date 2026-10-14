@@ -27,7 +27,7 @@ describe('Lace: Verificar', () => {
     const result = await run<LaceRun<CheckReport>>('lace.check');
     assert.equal(result?.status, 'succeeded');
     assert.deepEqual(lastCall('check'), ['-C', spf, '--events', 'check']);
-    const soma = vscode.languages.getDiagnostics(vscode.Uri.file(join(workspace, 'soma', 'Hardware', 'soma.v')));
+    const soma = vscode.languages.getDiagnostics(vscode.Uri.file(join(workspace, 'soma', 'soma', 'soma.v')));
     assert.ok(soma.length > 0, 'sem os avisos de soma.v');
     assert.ok(soma.every((d) => d.severity === vscode.DiagnosticSeverity.Warning));
   });

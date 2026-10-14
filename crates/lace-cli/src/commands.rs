@@ -22,8 +22,9 @@ use lace_core::{
 
 use crate::output::Output;
 use crate::report::{
-    AddReport, BuildReport, CheckReport, MoveReport, OrderReport, PortValues, ReportCleanReport,
-    ReportListReport, ReportShowReport, SavedLayoutReport, SimReport, SynthReport, WaveReport,
+    AddReport, BuildReport, CheckReport, ConvertReport, MoveReport, OrderReport, PortValues,
+    ReportCleanReport, ReportListReport, ReportShowReport, SavedLayoutReport, SimReport,
+    SynthReport, WaveReport,
 };
 use crate::settings;
 use crate::{
@@ -81,6 +82,15 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
             })?;
         }
         Command::Proc(command) => proc_command(cli, command, out)?,
+        Command::Convert => {
+            let mut project = open(cli)?;
+            let conversion = project.convert_layout()?;
+            out.converted(&conversion, project.root());
+            out.json(&ConvertReport {
+                project: project.spf_path().to_owned(),
+                conversion,
+            })?;
+        }
         Command::Build(args) => return build(cli, args, out, control),
         Command::Check(args) => return check(cli, args, out, control),
         Command::Hierarchy(args) => return hierarchy(cli, args, out, control),
@@ -331,13 +341,14 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
                 (args.nbmant, &mut spec.nbmant),
                 (args.nbexpo, &mut spec.nbexpo),
                 (args.nugain, &mut spec.nugain),
-                (args.ndstac, &mut spec.ndstac),
-                (args.sdepth, &mut spec.sdepth),
             ] {
                 if let Some(value) = value {
                     *field = value;
                 }
             }
+            // Sem as duas, o YANC calcula as pilhas pelo programa.
+            spec.ndstac = args.ndstac;
+            spec.sdepth = args.sdepth;
             let processor = project.add_processor(&spec)?;
             out.message("Processor created", &processor.source);
             out.json(processor)?;
@@ -654,7 +665,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
 /// zero) vem com o motivo em `error`, sem derrubar o resto: o resumo, as
 /// outras portas e o relatório continuam.
 fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValues> {
-    let dir = processor.simulation_dir();
+    let dir = &processor.output_dir;
     let mut ports: Vec<u32> = result
         .outputs
         .iter()

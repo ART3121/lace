@@ -20,8 +20,8 @@ use lace_core::fpga::{Board, Connection, FpgaBuildResult, FpgaProgramResult, Qua
 use lace_core::history::{RunComparison, RunRecord, RunSummary};
 use lace_core::{
     AddedFile, BuildResult, BundleComponent, CheckResult, Event, FileMismatch, HierarchyResult,
-    MovedPath, Processor, ProjectFile, ProjectIssue, SchematicResult, SimulationResult,
-    SynthesisResult, SystemCompiler, WaveProcessor,
+    LayoutConversion, MovedPath, Processor, ProjectFile, ProjectIssue, SchematicResult,
+    SimulationResult, SynthesisResult, SystemCompiler, WaveProcessor,
 };
 use lace_learn::{DevReport, ExerciseStatus, Grade};
 use schemars::JsonSchema;
@@ -65,6 +65,7 @@ reports! {
     "move" => MoveReport,
     "order" => OrderReport,
     "proc" => Processor,
+    "convert" => ConvertReport,
     "build" => BuildReport,
     "check" => CheckReport,
     "hierarchy" => HierarchyResult,
@@ -193,6 +194,18 @@ pub struct MoveReport {
     pub moved: Vec<MovedPath>,
 }
 
+/// `lace convert`.
+#[derive(Serialize, JsonSchema)]
+pub struct ConvertReport {
+    /// O `.spf`.
+    #[schemars(with = "String")]
+    pub project: Utf8PathBuf,
+    /// O que a conversão fez; vazio num projeto que já estava na estrutura
+    /// do YANC 7.1.
+    #[serde(flatten)]
+    pub conversion: LayoutConversion,
+}
+
 /// `lace order`.
 #[derive(Serialize, JsonSchema)]
 pub struct OrderReport {
@@ -225,8 +238,8 @@ pub struct BuildReport {
     /// Um por processador compilado. Vazio num projeto sem processadores.
     pub results: Vec<BuildResult>,
     /// Os arquivos que o build gerou e que entraram no `.spf` agora
-    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+    /// sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
     /// Vazio se já estavam no projeto.
     pub registered: Vec<AddedFile>,
     /// O relatório gravado no histórico do projeto (`run-000042`), para
@@ -252,8 +265,8 @@ pub struct SimReport {
     /// `null`.
     pub builds: Vec<BuildResult>,
     /// Os arquivos que o build gerou e que entraram no `.spf` agora
-    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+    /// sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
     /// Vazio se já estavam no projeto.
     pub registered: Vec<AddedFile>,
     /// A simulação.
@@ -272,7 +285,7 @@ pub struct SimReport {
 pub struct PortValues {
     /// O número da porta.
     pub port: u32,
-    /// `Simulation/output_<porta>.txt`.
+    /// `<proc>/<proc>/output_<porta>.txt`, na pasta de saída.
     #[schemars(with = "String")]
     pub path: Utf8PathBuf,
     /// Os valores, na ordem em que saíram. Vazio quando a porta não pôde ser
@@ -337,8 +350,8 @@ pub struct SynthReport {
     /// Os processadores, compilados antes. Se um falha, o resto é `null`.
     pub builds: Vec<BuildResult>,
     /// Os arquivos que o build gerou e que entraram no `.spf` agora
-    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+    /// sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
     /// Vazio se já estavam no projeto.
     pub registered: Vec<AddedFile>,
     /// A síntese.
@@ -657,8 +670,8 @@ pub struct FpgaBuildReport {
     /// Os processadores. Se um falha, `fpga` é `null`.
     pub builds: Vec<BuildResult>,
     /// Os arquivos que o build gerou e que entraram no `.spf` agora
-    /// (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-    /// sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+    /// (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+    /// sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
     /// Vazio se já estavam no projeto.
     pub registered: Vec<AddedFile>,
     /// A compilação para a placa.

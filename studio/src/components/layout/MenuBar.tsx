@@ -33,7 +33,7 @@ const CONSOLE_ENTRIES = [
 const MENUS: { label: Key; entries: Entry[] }[] = [
   {
     label: 'menu.file',
-    entries: ['newProject', 'openProject', 'recent', 'closeProject', '-', 'newFile', 'newFolder', 'openFile', '-', 'save', 'saveAll', '-', 'closeTab', 'reopenTab', '-', 'revealProject', 'settings', '-', 'quit'],
+    entries: ['newProject', 'openProject', 'recent', 'closeProject', 'convertLayout', '-', 'newFile', 'newFolder', 'openFile', '-', 'save', 'saveAll', '-', 'closeTab', 'reopenTab', '-', 'revealProject', 'settings', '-', 'quit'],
   },
   { label: 'menu.edit', entries: ['undo', 'redo', '-', 'find', 'replace', 'findInFiles', '-', 'goToLine', 'formatDocument', '-', 'toggleVim'] },
   {

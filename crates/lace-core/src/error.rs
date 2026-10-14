@@ -168,9 +168,8 @@ pub enum LaceError {
     OutsideProject(Utf8PathBuf),
 
     /// [`Project::move_path`](crate::Project::move_path) recusou o movimento:
-    /// o `.spf`, a pasta `.lace`, a pasta de um processador, as pastas
-    /// `Software/`, `Hardware/` e `Simulation/` dele e o fonte ficam onde o
-    /// Core os procura; uma pasta não vai para dentro dela mesma; nada vai
+    /// o `.spf`, a pasta `.lace`, a pasta de um processador, a pasta de saída
+    /// dele e o fonte ficam onde o Core os procura; uma pasta não vai para dentro dela mesma; nada vai
     /// para dentro de `.lace`. Nada foi alterado.
     #[error("Cannot move {path}: {reason}")]
     CannotMove {
@@ -205,9 +204,9 @@ pub enum LaceError {
     /// usado.
     ///
     /// Processador e módulo de topo precisam ser identificadores
-    /// (`[A-Za-z_][A-Za-z0-9_]*`), porque viram `#PRNAME`, nome de módulo
-    /// Verilog e nome de arquivo. Projeto precisa ser um nome de pasta válido
-    /// no Windows e no Linux.
+    /// (`[A-Za-z_][A-Za-z0-9_]*`), porque viram nome de arquivo e de módulo
+    /// Verilog. Projeto precisa ser um nome de pasta válido no Windows e no
+    /// Linux.
     #[error("Invalid name '{name}': {reason}")]
     InvalidName {
         /// O nome recusado.
@@ -228,17 +227,44 @@ pub enum LaceError {
     },
 
     /// O programa-fonte de um processador não pode ser compilado como está:
-    /// não existe, não se chama `<processador>.<ext>`, não tem `#PRNAME`, ou
-    /// declara um nome diferente do processador.
+    /// não existe, ou não se chama `<processador>.<ext>` (o YANC 7.1 dá ao
+    /// processador o nome do arquivo).
     ///
-    /// Vem de [`build`](crate::build), antes de rodar qualquer compilador. Ver
-    /// as armadilhas de nome do YANC na documentação de `build`.
+    /// Vem de [`build`](crate::build), antes de rodar qualquer compilador.
     #[error("Invalid source {path}: {reason}")]
     InvalidSource {
         /// O arquivo-fonte.
         path: Utf8PathBuf,
         /// O que está errado.
         reason: String,
+    },
+
+    /// Um processador ainda tem a estrutura de pastas de antes do YANC 7.1
+    /// (`Software/`, `Hardware/`, `Simulation/`), que não compila mais.
+    ///
+    /// Vem de [`build`](crate::build), antes de rodar qualquer compilador. O
+    /// conserto é [`Project::convert_layout`](crate::Project::convert_layout);
+    /// o texto não diz como chamá-lo, cada interface tem o seu caminho.
+    #[error(
+        "Processor {processor} still has the folder layout of YANC 6.x (Software/, Hardware/, Simulation/ in {dir}); the project needs to be converted to the layout of YANC 7.1"
+    )]
+    LegacyLayout {
+        /// O processador.
+        processor: String,
+        /// A pasta dele.
+        dir: Utf8PathBuf,
+    },
+
+    /// O YANC do bundle é anterior à 7.1, que mudou a linha de comando e as
+    /// pastas: o Lace não sabe mais usá-lo.
+    ///
+    /// Vem de [`build`](crate::build), antes de rodar qualquer compilador.
+    #[error("The bundle has YANC {found}, and Lace needs YANC {minimum} or newer")]
+    YancTooOld {
+        /// A versão do componente no manifesto do bundle.
+        found: String,
+        /// A menor que o Lace usa.
+        minimum: String,
     },
 
     /// A operação precisa de artefatos que [`build`](crate::build) ainda não
@@ -534,6 +560,8 @@ impl LaceError {
             LaceError::InvalidName { .. } => "invalid_name",
             LaceError::InvalidProjectFile { .. } => "invalid_project_file",
             LaceError::InvalidSource { .. } => "invalid_source",
+            LaceError::LegacyLayout { .. } => "legacy_layout",
+            LaceError::YancTooOld { .. } => "yanc_too_old",
             LaceError::NotBuilt { .. } => "not_built",
             LaceError::NoTestbench(_) => "no_testbench",
             LaceError::NoCocotbToplevel(_) => "no_cocotb_toplevel",

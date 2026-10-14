@@ -21,10 +21,11 @@ use lace_core::fpga::{FpgaBuildResult, FpgaProgramResult, ResourceUsage};
 use lace_core::history::{Availability, MetricComparison, RunComparison, RunMetadata, RunSummary};
 use lace_core::{
     AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
-    Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, ModuleInstance, MovedPath,
-    Platform, PreparedLayout, Processor, Project, ProjectFile, RunningProcess, SchematicResult,
-    Severity, SimulationResult, Simulator, Status, Step, StepReport, SynthesisMetric,
-    SynthesisResult, Termination, TestStatus, Tool, Toolchain, component,
+    Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, LayoutConversion,
+    ModuleInstance, MovedPath, Platform, PreparedLayout, Processor, Project, ProjectFile,
+    RunningProcess, SchematicResult, Severity, SimulationResult, Simulator, Status, Step,
+    StepReport, SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool, Toolchain,
+    component,
 };
 use serde::Serialize;
 
@@ -269,6 +270,61 @@ impl Output {
 
     /// Um caminho de `lace move` e os arquivos do projeto que foram com ele;
     /// `after` quando só o `.spf` mudou (`--after`).
+    /// `lace convert`: o que mudou de lugar, o que ficou, os fontes sem a
+    /// linha do nome e os nomes que não servem mais.
+    pub fn converted(&self, conversion: &LayoutConversion, root: &Utf8Path) {
+        if self.json {
+            return;
+        }
+        if conversion.is_empty() {
+            println!("Nothing to convert: the project already has the folder layout of YANC 7.1");
+            return;
+        }
+        println!(
+            "Converted to the folder layout of YANC 7.1: {}",
+            conversion.processors.join(", ")
+        );
+        for moved in &conversion.moved {
+            println!(
+                "  {} -> {}",
+                relative(&moved.from, root),
+                relative(&moved.to, root)
+            );
+        }
+        for skipped in &conversion.skipped {
+            self.warning(&format!(
+                "{} stayed where it was ({}); it would go to {}",
+                relative(&skipped.from, root),
+                skipped.reason,
+                relative(&skipped.to, root)
+            ));
+        }
+        for line in &conversion.name_lines {
+            println!(
+                "  {}: removed the line that named the processor ({}); YANC 7.1 names it after the file",
+                relative(&line.file, root),
+                line.old_name
+            );
+            if line.old_name != line.processor {
+                self.warning(&format!(
+                    "The Verilog module of processor {} was {} and is now {}: update the modules that instantiate it",
+                    line.processor, line.old_name, line.processor
+                ));
+            }
+        }
+        for name in &conversion.invalid_names {
+            self.warning(&format!(
+                "Processor {name} cannot be built: its name does not work as a Verilog module"
+            ));
+        }
+        for dir in &conversion.remaining_dirs {
+            self.warning(&format!(
+                "{} stayed because it is not empty",
+                relative(dir, root)
+            ));
+        }
+    }
+
     pub fn moved(&self, moved: &MovedPath, root: &Utf8Path, after: bool) {
         if self.json {
             return;
@@ -576,19 +632,7 @@ impl Output {
             result.frequency_mhz,
             result.clocks
         );
-        let planned: &[(Step, Tool)] = match result.language {
-            Language::Cpp => &[
-                (Step::Preprocess, Tool::Cpppp),
-                (Step::Compile, Tool::Cppcomp),
-                (Step::PreAssemble, Tool::Appcomp),
-                (Step::Assemble, Tool::Asmcomp),
-            ],
-            _ => &[
-                (Step::Compile, Tool::Cmmcomp),
-                (Step::PreAssemble, Tool::Appcomp),
-                (Step::Assemble, Tool::Asmcomp),
-            ],
-        };
+        let planned = lace_core::build_steps(result.language);
         self.summary(Summary {
             title: &format!("Build of {}", result.processor),
             detail: &detail,
@@ -1008,9 +1052,10 @@ impl Output {
         toolchain: &Toolchain,
         mismatches: Option<&[FileMismatch]>,
     ) -> anyhow::Result<()> {
-        let tools: Vec<_> = Tool::all()
-            .iter()
-            .map(|&t| (t, toolchain.tool(t)))
+        let tools: Vec<_> = toolchain
+            .tools()
+            .into_iter()
+            .map(|t| (t, toolchain.tool(t)))
             .collect();
         let manifest = toolchain.manifest();
         // O Perl do Verilator vem do sistema no Linux e no macOS, e do
@@ -1491,6 +1536,10 @@ fn hint(error: &LaceError) -> Option<String> {
         LaceError::ComponentMissing(component) => {
             format!("Install it with: lace install {component}")
         }
+        LaceError::LegacyLayout { .. } => {
+            "Convert it with: lace convert (nothing is deleted or overwritten)".into()
+        }
+        LaceError::YancTooOld { .. } => "Install the current bundle with: lace update".into(),
         LaceError::NonAsciiPath { .. } => {
             "Move the project to a folder without accents or other non-ASCII characters".into()
         }

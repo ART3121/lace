@@ -86,10 +86,10 @@
 //! ```text
 //! <raiz>/
 //!   <projeto>.spf
-//!   <processador>/Software/   fonte .cmm ou .cpp, .asm gerado
-//!   <processador>/Hardware/   .v e .mif gerados
-//!   <processador>/Simulation/ input_<n>.txt (usuário), output_<n>.txt (simulação)
-//!   .lace/Temp/<processador>/ intermediários do YANC, testbench, onda, .vvp
+//!   <processador>/            fonte .cmm ou .cpp, input_<n>.txt, arquivos de arrays (usuário)
+//!   <processador>/<processador>/  tudo o que o YANC gera (.asm, .v, .mif, testbench,
+//!                             tabelas) e o que a simulação grava (output_<n>.txt, a onda)
+//!   .lace/Temp/<processador>/ o que só o Lace usa: .vvp, modelo do Verilator, testbench instrumentado
 //!   .lace/Temp/               simulação do projeto, síntese (synth/<topo>/), hierarquia (hierarchy/)
 //!   .lace/fpga/<placa>/       o projeto do Quartus e os arquivos de gravação (fpga::build)
 //! ```
@@ -106,8 +106,8 @@
 //!   nunca do `PATH`. O processo filho recebe um ambiente vazio, mais o
 //!   mínimo que cada ferramenta exige (ver `docs/BUNDLE.md`).
 //! - **Nunca sobrescreve código.** Criar processador ou arquivo com conteúdo
-//!   recusa se o arquivo já existir. Artefatos gerados (`Hardware/`, `.asm`,
-//!   `Temp/`) são reescritos a cada operação.
+//!   recusa se o arquivo já existir. Artefatos gerados (a pasta de saída de
+//!   cada processador, `Temp/`) são reescritos a cada operação.
 //! - **Compatível com a AURORA.** O `.spf` é lido e gravado no formato dela,
 //!   preservando o que o Lace não entende.
 //! - **Síncrono, cancelável e ao vivo.** Cada operação bloqueia até as
@@ -140,6 +140,7 @@ mod files;
 pub mod fpga;
 mod hierarchy;
 pub mod history;
+mod layout;
 mod paths;
 mod pipeline;
 mod process;
@@ -155,14 +156,16 @@ pub mod verilog;
 mod wave;
 mod wave_layout;
 mod wave_signals;
+mod yanc;
 
-pub use build::{BuildOptions, BuildResult, OnFailure, build, build_processors};
+pub use build::{BuildOptions, BuildResult, OnFailure, build, build_processors, build_steps};
 pub use cocotb::{TestCase, TestReport, TestStatus};
 pub use control::{CancelToken, Control, Event, Stream};
 pub use diagnostics::{Diagnostic, Severity};
 pub use error::{LaceError, Result};
 pub use files::{AddedFile, FileRole, ListPosition, MovedPath, ProjectFile, read_data_file};
 pub use hierarchy::{Elaboration, HierarchyOptions, HierarchyResult, ModuleInstance, hierarchy};
+pub use layout::{ConvertedPath, LayoutConversion, RemovedNameLine, SkippedPath};
 pub use paths::YANC_PATH_LIMIT;
 pub use pipeline::{Artifact, ArtifactKind, Status, Step, StepReport};
 pub use process::{

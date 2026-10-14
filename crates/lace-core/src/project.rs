@@ -3,12 +3,22 @@
 //! ```text
 //! <raiz>/
 //!   <projeto>.spf              # JSON, ver o módulo spf
-//!   <processador>/
-//!     Software/<processador>.cmm | .cpp
-//!     Hardware/                # .v e .mif gerados pelo asmcomp
-//!     Simulation/              # input_N.txt / output_N.txt
-//!   .lace/Temp/<processador>/ # intermediários (-t dos compiladores)
+//!   <processador>/             # o que a pessoa escreve:
+//!     <processador>.cmm | .cpp #   o fonte, que dá o nome ao processador
+//!     input_N.txt, cade_K.txt  #   as entradas da simulação
+//!     ...                      #   os arquivos de arrays, os cabeçalhos do C
+//!     <processador>/           # a pasta de saída: tudo o que o YANC gera
+//!       <processador>.asm, .v, _data.mif, _inst.mif, _tb.v
+//!       prog_log.txt, src_lines.txt, trad_opcode.txt, app_log.txt,
+//!       pc_<processador>_mem.txt, output_N.txt, toma_K.txt, a onda
+//!   .lace/Temp/<processador>/  # o que só o Lace usa (o .vvp, o modelo do
+//!                              # Verilator, a cópia instrumentada do testbench)
 //! ```
+//!
+//! É a estrutura do YANC 7.1, a de quem o usa no terminal (`cmmcomp
+//! soma.cmm` grava em `./soma/`), e a da AURORA desde a 7.1. Até a 6.x cada
+//! processador tinha `Software/`, `Hardware/` e `Simulation/`; um projeto
+//! assim não compila mais e é convertido por [`Project::convert_layout`].
 //!
 //! A raiz do projeto é sempre o diretório do `.spf`; o `basePath` gravado no
 //! arquivo é ignorado na leitura, como a AURORA faz ao abrir um projeto
@@ -31,7 +41,8 @@
 //!
 //! let mut project = Project::create(dir, "demo")?;
 //! let soma = project.add_processor(&NewProcessor::new("soma", Language::Cmm))?;
-//! assert!(soma.source.ends_with("soma/Software/soma.cmm"));
+//! assert!(soma.source.ends_with("soma/soma.cmm"));
+//! assert!(soma.output_dir.ends_with("soma/soma"));
 //!
 //! let reopened = Project::open(dir.join("demo"))?;
 //! assert_eq!(reopened.processors().len(), 1);
@@ -52,6 +63,9 @@ use crate::{paths, spf};
 pub const DEFAULT_FREQUENCY_MHZ: u32 = 100;
 /// Número de clocks padrão quando o `.spf` não traz `numClocks` (o da AURORA).
 pub const DEFAULT_CLOCKS: u32 = 2000;
+
+/// O `#NUGAIN` que o YANC assume sem a diretiva.
+const DEFAULT_NUGAIN: u32 = 128;
 
 /// Maior `numClocks`: o testbench gerado conta os clocks num inteiro de 32
 /// bits com sinal, e o `asmcomp` recusa acima disso.
@@ -86,8 +100,8 @@ pub const MAX_PROCESSOR_NAME: usize = 64;
 pub enum Language {
     /// C±, compilado pelo `cmmcomp`.
     Cmm,
-    /// C, pré-processado pelo `cpppp` e compilado pelo `cppcomp`. A AURORA e o
-    /// YANC chamam de "cpp" e usam a extensão `.cpp`.
+    /// C, compilado pelo `cppcomp`. A AURORA e o YANC chamam de "cpp" e
+    /// usam a extensão `.cpp`.
     Cpp,
 }
 
@@ -100,7 +114,7 @@ impl Language {
         }
     }
 
-    fn from_extension(ext: &str) -> Option<Self> {
+    pub(crate) fn from_extension(ext: &str) -> Option<Self> {
         match ext.to_ascii_lowercase().as_str() {
             "cmm" => Some(Language::Cmm),
             "cpp" => Some(Language::Cpp),
@@ -117,90 +131,98 @@ impl Language {
 /// só num build, use [`BuildOptions`](crate::BuildOptions).
 ///
 /// A linguagem é resolvida como na AURORA: `language` declarada no `.spf`;
-/// senão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir em
-/// `Software/` (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
+/// senão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir na
+/// pasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
 pub struct Processor {
-    /// O nome: diretório, `#PRNAME`, nome do módulo Verilog e dos artefatos.
+    /// O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
+    /// gerados.
     pub name: String,
     /// A linguagem do fonte.
     pub language: Language,
-    /// `<raiz>/<nome>`, o `-p` dos compiladores.
+    /// `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
+    /// inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
+    /// do C).
     #[schemars(with = "String")]
     pub dir: Utf8PathBuf,
-    /// O programa-fonte, em `Software/`.
+    /// O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
     #[schemars(with = "String")]
     pub source: Utf8PathBuf,
-    /// Diretório de intermediários, o `-t` dos compiladores.
+    /// `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
+    /// as memórias, o testbench, as tabelas da onda e as saídas da
+    /// simulação, que roda nela.
+    #[schemars(with = "String")]
+    pub output_dir: Utf8PathBuf,
+    /// `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+    /// Verilator, a cópia instrumentada do testbench, a trava de execução).
     #[schemars(with = "String")]
     pub temp_dir: Utf8PathBuf,
     /// Frequência de operação em MHz (`-f` do `asmcomp`).
     pub frequency_mhz: u32,
     /// Clocks a simular (`-c` do `asmcomp`, vai para o testbench).
     pub clocks: u32,
-    /// Exporta arrays para a simulação (`-A` do `cmmcomp`).
+    /// Exporta cada elemento de array como um sinal da onda
+    /// (`--wave-arrays` do `cmmcomp`).
     pub show_arrays: bool,
 }
 
 impl Processor {
-    /// `<dir>/Software`: o fonte e o `.asm` gerado.
-    pub fn software_dir(&self) -> Utf8PathBuf {
-        self.dir.join("Software")
+    /// `<saída>/<nome>.asm`, o que o compilador gera e o `asmcomp` lê.
+    pub fn assembly_path(&self) -> Utf8PathBuf {
+        self.output_dir.join(format!("{}.asm", self.name))
     }
 
-    /// `<dir>/Hardware`: o Verilog e as memórias gerados pelo `asmcomp`.
-    pub fn hardware_dir(&self) -> Utf8PathBuf {
-        self.dir.join("Hardware")
+    /// `<saída>/<nome>.v`, o processador sintetizável.
+    pub fn verilog_path(&self) -> Utf8PathBuf {
+        self.output_dir.join(format!("{}.v", self.name))
     }
 
-    /// `<dir>/Simulation`: `input_<n>.txt` (do usuário) e `output_<n>.txt`
-    /// (escritos pela simulação).
-    pub fn simulation_dir(&self) -> Utf8PathBuf {
-        self.dir.join("Simulation")
-    }
-
-    /// O testbench do processador, `Simulation/<nome>_tb.v`: o que o
-    /// `asmcomp` gera na pasta temporária, copiado para cá pelo
-    /// [`build`](crate::build), como a AURORA faz. É o que a simulação roda.
+    /// `<saída>/<nome>_tb.v`, o testbench que o `asmcomp` gera. Ele cita os
+    /// arquivos pelo caminho relativo à pasta de saída, e só roda com ela
+    /// como diretório de trabalho.
     pub fn testbench_path(&self) -> Utf8PathBuf {
-        self.simulation_dir().join(format!("{}_tb.v", self.name))
+        self.output_dir.join(format!("{}_tb.v", self.name))
     }
 
-    /// Onde o `asmcomp` grava o testbench: `<temp>/<nome>_tb.v`.
-    pub(crate) fn generated_testbench(&self) -> Utf8PathBuf {
-        self.temp_dir.join(format!("{}_tb.v", self.name))
-    }
-
-    /// O testbench que a simulação usa: o de `Simulation/` e, num projeto
-    /// compilado por um Lace que ainda não o copiava, o da pasta temporária.
-    pub(crate) fn simulated_testbench(&self) -> Utf8PathBuf {
-        let copied = self.testbench_path();
-        if copied.is_file() {
-            copied
-        } else {
-            self.generated_testbench()
-        }
+    /// Os arquivos que o Verilog gerado lê pelo nome, relativo ao diretório
+    /// de trabalho de quem o roda: as memórias (`<nome>_data.mif`,
+    /// `<nome>_inst.mif`) e a tabela do PC (`pc_<nome>_mem.txt`). Uma
+    /// simulação, síntese ou compilação para a placa fora da pasta de saída
+    /// precisa deles copiados para o diretório dela.
+    pub fn files_read_by_verilog(&self) -> [Utf8PathBuf; 3] {
+        let n = &self.name;
+        [
+            self.output_dir.join(format!("{n}_data.mif")),
+            self.output_dir.join(format!("{n}_inst.mif")),
+            self.output_dir.join(format!("pc_{n}_mem.txt")),
+        ]
     }
 
     /// Já foi compilado: o Verilog e o testbench gerados existem no disco.
     /// Não diz se estão atualizados em relação ao fonte.
     pub fn is_built(&self) -> bool {
-        self.hardware_dir()
-            .join(format!("{}.v", self.name))
-            .is_file()
-            && self.simulated_testbench().is_file()
+        self.verilog_path().is_file() && self.testbench_path().is_file()
     }
 
-    /// Cria `Software/`, `Hardware/`, `Simulation/` e o diretório temporário,
-    /// se faltarem. Os compiladores YANC não criam diretório de forma
-    /// confiável (o `cmmcomp` não cria nenhum), então o Lace faz isso antes
-    /// de qualquer execução.
+    /// As pastas da estrutura de antes do YANC 7.1 (`Software/`,
+    /// `Hardware/`, `Simulation/`) que este processador ainda tem. Vazio na
+    /// estrutura atual. Ver [`Project::convert_layout`].
+    pub fn legacy_dirs(&self) -> Vec<Utf8PathBuf> {
+        crate::layout::LEGACY_DIRS
+            .iter()
+            .map(|d| self.dir.join(d))
+            .filter(|d| d.is_dir())
+            .collect()
+    }
+
+    /// Cria a pasta do processador, a de saída e a temporária, se faltarem.
+    /// O YANC 7.1 cria a de saída sozinho, mas o Lace confere antes que
+    /// nenhuma delas é um arquivo.
     pub fn ensure_dirs(&self) -> Result<()> {
         for dir in [
-            self.software_dir(),
-            self.hardware_dir(),
-            self.simulation_dir(),
+            self.dir.clone(),
+            self.output_dir.clone(),
             self.temp_dir.clone(),
         ] {
             if dir.exists() && !dir.is_dir() {
@@ -236,12 +258,15 @@ pub struct NewProcessor {
     pub nbexpo: u32,
     /// `#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o
     /// `cmmcomp` recusa (um divisor genérico viraria o caminho crítico da
-    /// ULA). Só C±.
+    /// ULA). Só C±; o fonte só traz a diretiva quando difere de 128, o
+    /// padrão do YANC.
     pub nugain: u32,
-    /// `#NDSTAC`: profundidade da pilha de dados. Só C±.
-    pub ndstac: u32,
+    /// `#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão:
+    /// sem a diretiva, e o `asmcomp` calcula a profundidade pelo programa.
+    pub ndstac: Option<u32>,
     /// `#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±.
-    pub sdepth: u32,
+    /// `None`, o padrão: sem a diretiva, calculada pelo programa.
+    pub sdepth: Option<u32>,
     /// `#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada.
     pub input_ports: u32,
     /// `#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída.
@@ -250,8 +275,8 @@ pub struct NewProcessor {
 
 impl NewProcessor {
     /// Um processador com os padrões da AURORA: 23 bits de palavra, mantissa
-    /// 16, expoente 6, ganho 128, pilhas de 5, uma porta de entrada e uma de
-    /// saída.
+    /// 16, expoente 6, ganho 128, as pilhas que o YANC calcular pelo
+    /// programa, uma porta de entrada e uma de saída.
     ///
     /// ```
     /// use lace_core::{Language, NewProcessor};
@@ -267,9 +292,9 @@ impl NewProcessor {
             nubits: 23,
             nbmant: 16,
             nbexpo: 6,
-            nugain: 128,
-            ndstac: 5,
-            sdepth: 5,
+            nugain: DEFAULT_NUGAIN,
+            ndstac: None,
+            sdepth: None,
             input_ports: 1,
             output_ports: 1,
         }
@@ -283,8 +308,8 @@ impl NewProcessor {
     ///   constantes com o `float` da máquina e perde a faixa), `#NBMANT` de
     ///   pelo menos 2, `#NUBITS` até 32 e igual a `#NBMANT + #NBEXPO + 1`
     ///   (o `asmcomp` exige), `#NUGAIN` potência de dois, `#NDSTAC` e
-    ///   `#SDEPTH` de pelo menos 1 (pilha vazia passa no build e quebra a
-    ///   simulação).
+    ///   `#SDEPTH`, quando dados, de pelo menos 1 (pilha vazia passa no build
+    ///   e quebra a simulação).
     ///
     /// ```
     /// use lace_core::{Language, NewProcessor};
@@ -355,40 +380,50 @@ impl NewProcessor {
             );
         }
         for (name, value) in [("#NDSTAC", self.ndstac), ("#SDEPTH", self.sdepth)] {
-            if value == 0 {
-                return bad(name, value, "a stack needs at least 1 position".into());
+            if value == Some(0) {
+                return bad(name, 0, "a stack needs at least 1 position".into());
             }
         }
         Ok(())
     }
 
+    /// O fonte-modelo. Sem `#PRNAME` nem `#pragma yanc prname`: no YANC 7.1
+    /// o processador se chama como o arquivo, e as duas diretivas são erro.
+    /// As diretivas que têm padrão no YANC só entram com outro valor: as
+    /// pilhas quando escolhidas, o `#NUGAIN` quando difere de 128.
     fn source_text(&self) -> String {
         match self.language {
             // O `cmmcomp` recusa função de corpo vazio (só comentário também
             // conta como vazio): o modelo traz uma instrução. `out(0, 0)` só
             // compila se houver porta de saída.
-            Language::Cmm => format!(
-                "#PRNAME {}\n#NUBITS {}\n#NDSTAC {}\n#SDEPTH {}\n#NUIOIN {}\n#NUIOOU {}\n\
-                 #NBMANT {}\n#NBEXPO {}\n#NUGAIN {}\n\nvoid main()\n{{\n{}}}\n",
-                self.name,
-                self.nubits,
-                self.ndstac,
-                self.sdepth,
-                self.input_ports,
-                self.output_ports,
-                self.nbmant,
-                self.nbexpo,
-                self.nugain,
-                if self.output_ports > 0 {
-                    "    // out(porta, valor) escreve numa porta de saída\n    out(0, 0);\n"
-                } else {
-                    "    int x = 0;\n"
-                },
-            ),
+            Language::Cmm => {
+                let optional = |directive: &str, value: Option<u32>| {
+                    value.map_or_else(String::new, |v| format!("{directive} {v}\n"))
+                };
+                format!(
+                    "#NUBITS {}\n{}{}#NUIOIN {}\n#NUIOOU {}\n#NBMANT {}\n#NBEXPO {}\n{}\n\
+                     void main()\n{{\n{}}}\n",
+                    self.nubits,
+                    optional("#NDSTAC", self.ndstac),
+                    optional("#SDEPTH", self.sdepth),
+                    self.input_ports,
+                    self.output_ports,
+                    self.nbmant,
+                    self.nbexpo,
+                    optional(
+                        "#NUGAIN",
+                        Some(self.nugain).filter(|&g| g != DEFAULT_NUGAIN)
+                    ),
+                    if self.output_ports > 0 {
+                        "    // out(porta, valor) escreve numa porta de saída\n    out(0, 0);\n"
+                    } else {
+                        "    int x = 0;\n"
+                    },
+                )
+            }
             Language::Cpp => format!(
-                "#pragma yanc prname {}\n#pragma yanc nuioin {}\n#pragma yanc nuioou {}\n\n\
-                 void main(void)\n{{\n}}\n",
-                self.name, self.input_ports, self.output_ports,
+                "#pragma yanc nuioin {}\n#pragma yanc nuioou {}\n\nvoid main(void)\n{{\n}}\n",
+                self.input_ports, self.output_ports,
             ),
         }
     }
@@ -470,7 +505,7 @@ impl Project {
     /// Acha o projeto que contém `start`: o `.spf` de `start` ou do primeiro
     /// diretório acima dele que tenha um, como o git acha o repositório.
     /// Assim um comando funciona de qualquer pasta do projeto: da pasta de um
-    /// processador, de `Software/`, de uma pasta de fontes.
+    /// processador, da pasta de saída dele, de uma pasta de fontes.
     ///
     /// `start` pode ser o próprio `.spf`, que é aberto direto, ou um arquivo
     /// do projeto, e aí a busca começa na pasta dele. Em cada pasta vale a
@@ -509,9 +544,8 @@ impl Project {
         Err(LaceError::ProjectNotFound(first))
     }
 
-    /// O processador cuja pasta contém `path` (a pasta dele, com
-    /// `Software/`, `Hardware/` e `Simulation/`, ou a temporária dele em
-    /// `.lace/Temp/`). `None` fora de todas.
+    /// O processador cuja pasta contém `path` (a pasta dele, com a de saída
+    /// dentro, ou a temporária dele em `.lace/Temp/`). `None` fora de todas.
     pub fn processor_at(&self, path: impl AsRef<Utf8Path>) -> Option<&Processor> {
         let path = path.as_ref();
         let path = paths::canonicalize(path).unwrap_or_else(|_| path.to_owned());
@@ -523,7 +557,8 @@ impl Project {
     /// O que está estranho no `.spf` mas não impede de abrir: um caminho de
     /// outra máquina achado pela cauda, um `topLevelFile` ou `testbenchFile`
     /// fora da lista (ignorado), um topo com nome de testbench (ignorado), um
-    /// processador com nome que o YANC não compila. As interfaces mostram
+    /// processador com nome que o YANC não compila, um processador na
+    /// estrutura de pastas de antes do YANC 7.1. As interfaces mostram
     /// como aviso ao abrir (`lace status`, painel de problemas do Studio).
     ///
     /// Só lê; o que dá para consertar sozinho (o caminho achado) é consertado
@@ -531,6 +566,17 @@ impl Project {
     pub fn issues(&self) -> Vec<ProjectIssue> {
         let mut issues = self.file_issues();
         for processor in &self.processors {
+            if !processor.legacy_dirs().is_empty() {
+                issues.push(ProjectIssue::new(
+                    IssueKind::LegacyLayout,
+                    Some(processor.dir.clone()),
+                    Some(processor.name.clone()),
+                    format!(
+                        "Processor '{}' still has the folder layout of YANC 6.x (Software/, Hardware/, Simulation/) and does not build until the project is converted",
+                        processor.name
+                    ),
+                ));
+            }
             if let Err(LaceError::InvalidName { reason, .. }) =
                 validate_processor_name(&processor.name)
             {
@@ -675,12 +721,16 @@ impl Project {
         Self::from_document(spf_path, document)
     }
 
-    /// Cria um processador: `Software/`, `Hardware/`, `Simulation/`, o
-    /// diretório temporário, o fonte a partir do modelo e a entrada no `.spf`
-    /// (`{"name"}` em C±, `{"name", "language": "cpp"}` em C). Grava o `.spf`.
+    /// Cria um processador: a pasta `<raiz>/<nome>/`, o fonte
+    /// `<nome>.cmm` (ou `.cpp`) dentro dela, a partir do modelo, e a entrada
+    /// no `.spf` (`{"name"}` em C±, `{"name", "language": "cpp"}` em C).
+    /// Grava o `.spf`. A pasta de saída, `<nome>/<nome>/`, nasce no primeiro
+    /// [`build`](crate::build), como a AURORA faz.
     ///
-    /// O fonte-modelo em C± tem as nove diretivas (`#PRNAME`, `#NUBITS`, ...)
-    /// e um `main` vazio; em C, os pragmas de nome e de portas.
+    /// O fonte-modelo em C± tem as diretivas do cabeçalho (`#NUBITS`,
+    /// `#NBMANT`, ...; as pilhas e o `#NUGAIN` só com valor escolhido) e um
+    /// `main`; em C, os pragmas das portas. Não tem `#PRNAME`: o processador
+    /// se chama como o arquivo.
     ///
     /// # Erros
     ///
@@ -717,7 +767,14 @@ impl Project {
                 reason: "The source already exists; Lace does not overwrite code".into(),
             });
         }
-        processor.ensure_dirs()?;
+        if processor.dir.exists() && !processor.dir.is_dir() {
+            return Err(LaceError::InvalidProject {
+                path: processor.dir,
+                reason: "Exists but is not a directory".into(),
+            });
+        }
+        std::fs::create_dir_all(&processor.dir)
+            .map_err(LaceError::io("Creating directory", &processor.dir))?;
         std::fs::write(&processor.source, spec.source_text())
             .map_err(LaceError::io("Creating source", &processor.source))?;
 
@@ -776,6 +833,11 @@ impl Project {
         result
     }
 
+    /// Solta a trava de `begin_write` sem gravar: a mudança não aconteceu.
+    pub(crate) fn release_write(&mut self) {
+        self.write_lock = None;
+    }
+
     fn write_document(&mut self) -> Result<()> {
         self.repair_rescued();
         self.repair_duplicates();
@@ -828,13 +890,13 @@ impl Project {
             .collect()
     }
 
-    /// O processador cujo build gera `path`: o Verilog (`Hardware/<nome>.v`)
-    /// ou o testbench (`Simulation/<nome>_tb.v`). Um desses registrado e
+    /// O processador cujo build gera `path`: o Verilog (`<nome>/<nome>/<nome>.v`)
+    /// ou o testbench (`<nome>/<nome>/<nome>_tb.v`). Um desses registrado e
     /// ausente quer dizer processador ainda não compilado.
     pub(crate) fn generated_by(&self, path: &Utf8Path) -> Option<&Processor> {
-        self.processors.iter().find(|p| {
-            path == p.hardware_dir().join(format!("{}.v", p.name)) || path == p.testbench_path()
-        })
+        self.processors
+            .iter()
+            .find(|p| path == p.verilog_path() || path == p.testbench_path())
     }
 
     /// O processador com esse nome, se houver.
@@ -966,7 +1028,8 @@ fn processor_paths(
     Processor {
         name: name.to_owned(),
         language,
-        source: dir.join("Software").join(file),
+        source: dir.join(file),
+        output_dir: dir.join(name),
         temp_dir: root.join(".lace").join("Temp").join(name),
         dir,
         frequency_mhz: DEFAULT_FREQUENCY_MHZ,
@@ -977,16 +1040,17 @@ fn processor_paths(
 
 /// Resolve a linguagem como a AURORA (`processor_source.ts` e
 /// `processor_dispatch.ts`): `language` declarada; senão a extensão de
-/// `sourceFile`/`cmmFile`; senão procura `<nome>.cmm` e depois `<nome>.cpp` em
-/// `Software/`; senão C±.
+/// `sourceFile`/`cmmFile`; senão procura `<nome>.cmm` e depois `<nome>.cpp` na
+/// pasta do processador (e, num projeto da estrutura de antes do YANC 7.1,
+/// em `Software/`); senão C±.
 fn processor_from_entry(
     spf_path: &Utf8Path,
     root: &Utf8Path,
     entry: spf::RawEntry,
 ) -> Result<Processor> {
     let name = entry.name;
-    // Só o nome do arquivo importa: o cmmcomp sempre procura o fonte em
-    // `<proc>/Software/`, então um diretório no sourceFile não teria efeito.
+    // Só o nome do arquivo importa: o fonte fica sempre na pasta do
+    // processador, então um diretório no sourceFile não teria efeito.
     let file = entry
         .source_file
         .or(entry.cmm_file)
@@ -1011,11 +1075,12 @@ fn processor_from_entry(
         .as_deref()
         .and_then(|f| Utf8Path::new(f).extension())
         .and_then(Language::from_extension);
-    let software = root.join(&name).join("Software");
+    let dir = root.join(&name);
     let probed = || {
-        [Language::Cmm, Language::Cpp]
-            .into_iter()
-            .find(|l| software.join(format!("{name}.{}", l.extension())).is_file())
+        [Language::Cmm, Language::Cpp].into_iter().find(|l| {
+            let file = format!("{name}.{}", l.extension());
+            dir.join(&file).is_file() || dir.join("Software").join(&file).is_file()
+        })
     };
     let language = declared
         .or(from_file)
@@ -1122,8 +1187,9 @@ pub(crate) fn spf_in(dir: &Utf8Path) -> Result<Option<Utf8PathBuf>> {
     }
 }
 
-/// O nome do processador vira `#PRNAME`, nome de módulo Verilog e nome de
-/// arquivo, então precisa ser um identificador válido para os três. A AURORA
+/// O nome do processador vira nome de arquivo, nome de módulo Verilog e, até
+/// o YANC 6.x, `#PRNAME`, então precisa ser um identificador válido para os
+/// três. A AURORA
 /// aceita `-`, mas o lexer do cmmcomp não (`{LETRA}({LETRA}|[0-9])*`).
 /// Um identificador Verilog simples (letras, dígitos e `_`, começando por
 /// letra ou `_`). `context` diz por que o nome precisa ser assim.
@@ -1146,17 +1212,23 @@ pub(crate) fn validate_identifier(name: &str, context: &str) -> Result<()> {
 }
 
 /// Confere um nome de processador, a regra de
-/// [`Project::add_processor`]. O nome vira `#PRNAME`, a pasta, os arquivos
-/// e o módulo Verilog `<nome>` (e `<nome>_tb`), então precisa servir para
-/// todos:
+/// [`Project::add_processor`]. O nome vira a pasta, o fonte, os arquivos e
+/// o módulo Verilog `<nome>` (e `<nome>_tb`), então precisa servir para
+/// todos. A regra é a do YANC 7.1 (`Compilers/common/proc_name.c`), que
+/// recusa o fonte com outro nome, mais o que o Lace sabe que quebra depois:
 ///
-/// - identificador: letras sem acento, dígitos e `_`, começando por letra ou
-///   `_` (a AURORA aceita `-`, o lexer do `cmmcomp` não);
-/// - até [`MAX_PROCESSOR_NAME`] caracteres;
-/// - fora das palavras do C± (`void`, `int`, `in`, `out`, ...), das do
-///   Verilog e do SystemVerilog (`module`, `wire`, `logic`, ...), dos
-///   módulos da biblioteca SAPHO (`core`, `processor`, `ula`, ...) e dos
-///   nomes reservados do Windows.
+/// - identificador: letras sem acento, dígitos e `_`, sem dígito no começo
+///   (a AURORA de antes aceitava `-`), e sem `__` no começo (o YANC guarda
+///   esses nomes para os dele);
+/// - fora das palavras reservadas do Verilog e do SystemVerilog (`module`,
+///   `wire`, `logic`, ...), a lista do YANC;
+/// - fora dos módulos da biblioteca SAPHO (`core`, `processor`, `ula`, ...):
+///   o processador instanciaria a si mesmo;
+/// - fora dos nomes reservados do Windows, porque vira pasta;
+/// - até [`MAX_PROCESSOR_NAME`] caracteres.
+///
+/// Palavras do C± (`in`, `out`, `sqrt`) servem: na 7.1 o nome não vai para
+/// o fonte.
 ///
 /// Uma interface pode chamar enquanto o usuário digita.
 ///
@@ -1164,8 +1236,11 @@ pub(crate) fn validate_identifier(name: &str, context: &str) -> Result<()> {
 /// use lace_core::validate_processor_name;
 ///
 /// assert!(validate_processor_name("filtro_fir").is_ok());
-/// for bad in ["proc-1", "void", "module", "core", "con"] {
+/// for bad in ["proc-1", "2fast", "__x", "void", "module", "core", "con"] {
 ///     assert!(validate_processor_name(bad).is_err(), "{bad}");
+/// }
+/// for good in ["out", "sqrt", "main"] {
+///     assert!(validate_processor_name(good).is_ok(), "{good}");
 /// }
 /// ```
 ///
@@ -1187,6 +1262,11 @@ pub fn validate_processor_name(name: &str) -> Result<()> {
             "Use only letters, digits and '_', starting with a letter or '_'".into(),
         ));
     }
+    if name.starts_with("__") {
+        return Err(invalid(
+            "YANC keeps the names starting with '__' for its own, and refuses a source named like that".into(),
+        ));
+    }
     if name.len() > MAX_PROCESSOR_NAME {
         return Err(invalid(format!(
             "At most {MAX_PROCESSOR_NAME} characters (it has {}): the YANC compilers keep the name in fixed buffers",
@@ -1196,14 +1276,9 @@ pub fn validate_processor_name(name: &str) -> Result<()> {
     if is_windows_reserved(name) {
         return Err(invalid(WINDOWS_RESERVED_REASON.into()));
     }
-    if CMM_WORDS.contains(&name) {
-        return Err(invalid(
-            "It is a C± keyword or built-in function, and #PRNAME would not compile".into(),
-        ));
-    }
     if VERILOG_WORDS.contains(&name) {
         return Err(invalid(
-            "It is a Verilog keyword, and the processor module would not compile".into(),
+            "It is a Verilog or SystemVerilog keyword, which YANC refuses as the name of the processor module".into(),
         ));
     }
     if SAPHO_MODULES.contains(&name) {
@@ -1215,119 +1290,221 @@ pub fn validate_processor_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-/// Palavras do lexer do `cmmcomp` (`CMMComp/Sources/CMMComp.l`).
-const CMM_WORDS: &[&str] = &[
-    "abs", "atan", "break", "case", "ceil", "comp", "complex", "conj", "continue", "copy", "cos",
-    "cosh", "default", "do", "else", "exp", "fase", "fin", "float", "floor", "for", "fout", "if",
-    "imag", "in", "int", "log", "norm", "out", "pow", "pset", "real", "return", "round", "sign",
-    "sin", "sinh", "sqrt", "switch", "tan", "tanh", "void", "while",
-];
-
-/// Palavras reservadas do Verilog 2005 e as mais comuns do SystemVerilog
-/// (o Icarus lê os processadores com `-g2012`).
+/// As palavras reservadas do Verilog (IEEE 1364-2005) e do SystemVerilog
+/// (IEEE 1800-2017) que o YANC 7.1 recusa como nome de processador: cópia
+/// de `Compilers/common/proc_name.c`, na mesma ordem. Um módulo pode ser lido
+/// pelo Icarus, pelo Verilator ou pelo Quartus em qualquer um dos modos.
 const VERILOG_WORDS: &[&str] = &[
+    "accept_on",
+    "alias",
     "always",
+    "always_comb",
+    "always_ff",
+    "always_latch",
     "and",
+    "assert",
     "assign",
+    "assume",
     "automatic",
+    "before",
     "begin",
+    "bind",
+    "bins",
+    "binsof",
+    "bit",
+    "break",
     "buf",
     "bufif0",
     "bufif1",
+    "byte",
     "case",
     "casex",
     "casez",
     "cell",
+    "chandle",
+    "checker",
+    "class",
+    "clocking",
     "cmos",
     "config",
+    "const",
+    "constraint",
+    "context",
+    "continue",
+    "cover",
+    "covergroup",
+    "coverpoint",
+    "cross",
     "deassign",
     "default",
     "defparam",
     "design",
     "disable",
+    "dist",
+    "do",
     "edge",
     "else",
     "end",
     "endcase",
+    "endchecker",
+    "endclass",
+    "endclocking",
     "endconfig",
     "endfunction",
     "endgenerate",
+    "endgroup",
+    "endinterface",
     "endmodule",
+    "endpackage",
     "endprimitive",
+    "endprogram",
+    "endproperty",
+    "endsequence",
     "endspecify",
     "endtable",
     "endtask",
+    "enum",
     "event",
+    "eventually",
+    "expect",
+    "export",
+    "extends",
+    "extern",
+    "final",
+    "first_match",
     "for",
     "force",
+    "foreach",
     "forever",
     "fork",
+    "forkjoin",
     "function",
     "generate",
     "genvar",
+    "global",
     "highz0",
     "highz1",
     "if",
+    "iff",
     "ifnone",
+    "ignore_bins",
+    "illegal_bins",
+    "implements",
+    "implies",
+    "import",
     "incdir",
     "include",
     "initial",
     "inout",
     "input",
+    "inside",
     "instance",
+    "int",
     "integer",
+    "interconnect",
+    "interface",
+    "intersect",
     "join",
+    "join_any",
+    "join_none",
     "large",
+    "let",
     "liblist",
     "library",
+    "local",
     "localparam",
+    "logic",
+    "longint",
     "macromodule",
+    "matches",
     "medium",
+    "modport",
     "module",
     "nand",
     "negedge",
+    "nettype",
+    "new",
+    "nexttime",
     "nmos",
     "nor",
     "noshowcancelled",
     "not",
     "notif0",
     "notif1",
+    "null",
     "or",
     "output",
+    "package",
+    "packed",
     "parameter",
     "pmos",
     "posedge",
     "primitive",
+    "priority",
+    "program",
+    "property",
+    "protected",
     "pull0",
     "pull1",
     "pulldown",
     "pullup",
     "pulsestyle_ondetect",
     "pulsestyle_onevent",
+    "pure",
+    "rand",
+    "randc",
+    "randcase",
+    "randsequence",
     "rcmos",
     "real",
     "realtime",
+    "ref",
     "reg",
+    "reject_on",
     "release",
     "repeat",
+    "restrict",
+    "return",
     "rnmos",
     "rpmos",
     "rtran",
     "rtranif0",
     "rtranif1",
+    "s_always",
+    "s_eventually",
+    "s_nexttime",
+    "s_until",
+    "s_until_with",
     "scalared",
+    "sequence",
+    "shortint",
+    "shortreal",
     "showcancelled",
     "signed",
     "small",
+    "soft",
+    "solve",
     "specify",
     "specparam",
+    "static",
+    "string",
+    "strong",
     "strong0",
     "strong1",
+    "struct",
+    "super",
     "supply0",
     "supply1",
+    "sync_accept_on",
+    "sync_reject_on",
     "table",
+    "tagged",
     "task",
+    "this",
+    "throughout",
     "time",
+    "timeprecision",
+    "timeunit",
     "tran",
     "tranif0",
     "tranif1",
@@ -1337,68 +1514,35 @@ const VERILOG_WORDS: &[&str] = &[
     "triand",
     "trior",
     "trireg",
-    "unsigned",
-    "use",
-    "uwire",
-    "vectored",
-    "wait",
-    "wand",
-    "weak0",
-    "weak1",
-    "while",
-    "wire",
-    "wor",
-    "xnor",
-    "xor",
-    "always_comb",
-    "always_ff",
-    "always_latch",
-    "assert",
-    "assume",
-    "bit",
-    "break",
-    "byte",
-    "chandle",
-    "class",
-    "const",
-    "continue",
-    "cover",
-    "do",
-    "endclass",
-    "endinterface",
-    "endpackage",
-    "endprogram",
-    "enum",
-    "export",
-    "extern",
-    "final",
-    "foreach",
-    "import",
-    "inside",
-    "int",
-    "interface",
-    "logic",
-    "longint",
-    "modport",
-    "new",
-    "null",
-    "package",
-    "priority",
-    "program",
-    "return",
-    "sequence",
-    "shortint",
-    "static",
-    "string",
-    "struct",
-    "super",
-    "this",
     "type",
     "typedef",
     "union",
     "unique",
+    "unique0",
+    "unsigned",
+    "until",
+    "until_with",
+    "untyped",
+    "use",
+    "uwire",
+    "var",
+    "vectored",
     "virtual",
     "void",
+    "wait",
+    "wait_order",
+    "wand",
+    "weak",
+    "weak0",
+    "weak1",
+    "while",
+    "wildcard",
+    "wire",
+    "with",
+    "within",
+    "wor",
+    "xnor",
+    "xor",
 ];
 
 /// Os módulos da biblioteca SAPHO do YANC (`SAPHO/*.v`), compilados junto
@@ -1474,7 +1618,7 @@ pub struct ProjectIssue {
     /// O complemento do tipo: o caminho como estava gravado
     /// (`rescued_path`), o campo do `.spf` (`selection_not_registered`,
     /// `testbench_as_top`) ou o nome do processador
-    /// (`invalid_processor_name`).
+    /// (`invalid_processor_name`, `legacy_layout`).
     pub detail: Option<String>,
     /// O aviso inteiro, em inglês, pronto para mostrar.
     pub message: String,
@@ -1519,6 +1663,10 @@ pub enum IssueKind {
     /// O projeto está dentro da pasta de outro (uma pasta acima tem `.spf`):
     /// os arquivos dele aparecem também no outro.
     NestedProject,
+    /// Um processador ainda tem a estrutura de pastas de antes do YANC 7.1
+    /// (`Software/`, `Hardware/`, `Simulation/`): o build dele recusa com
+    /// `legacy_layout` até a conversão ([`Project::convert_layout`]).
+    LegacyLayout,
 }
 
 const WINDOWS_RESERVED_REASON: &str = "Reserved name on Windows (CON, PRN, AUX, NUL, COM0-9, LPT0-9): the folder could not be created there";
@@ -1678,10 +1826,9 @@ mod tests {
         for inner in [
             root.clone(),
             soma.dir.clone(),
-            soma.software_dir(),
-            soma.simulation_dir(),
+            soma.output_dir.clone(),
             soma.temp_dir.clone(),
-            soma.software_dir().join("soma.cmm"),
+            soma.source.clone(),
             project.spf_path().to_owned(),
         ] {
             let found = Project::discover(&inner).unwrap();
@@ -1689,8 +1836,8 @@ mod tests {
         }
 
         // A pasta diz o processador; fora das dele, nenhum.
-        let found = Project::discover(soma.software_dir()).unwrap();
-        for inner in [&soma.dir, &soma.software_dir(), &soma.temp_dir] {
+        let found = Project::discover(&soma.output_dir).unwrap();
+        for inner in [&soma.dir, &soma.output_dir, &soma.temp_dir] {
             assert_eq!(found.processor_at(inner).unwrap().name, "soma", "{inner}");
         }
         assert!(found.processor_at(&root).is_none());
@@ -1727,12 +1874,21 @@ mod tests {
             .unwrap();
 
         let root = dir.join("meu_projeto");
-        for sub in ["Software", "Hardware", "Simulation"] {
-            assert!(root.join("soma").join(sub).is_dir(), "{sub}");
-        }
-        let src = std::fs::read_to_string(root.join("soma/Software/soma.cmm")).unwrap();
-        assert!(src.starts_with("#PRNAME soma\n"));
-        assert!(root.join("filtro/Software/filtro.cpp").is_file());
+        // Só a pasta do processador, com o fonte: a de saída nasce no build.
+        let names: Vec<_> = std::fs::read_dir(root.join("soma"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .collect();
+        assert_eq!(names, ["soma.cmm"]);
+        let src = std::fs::read_to_string(root.join("soma/soma.cmm")).unwrap();
+        // Sem #PRNAME, e sem as diretivas que têm padrão no YANC.
+        assert_eq!(
+            src,
+            "#NUBITS 23\n#NUIOIN 1\n#NUIOOU 1\n#NBMANT 16\n#NBEXPO 6\n\nvoid main()\n{\n    \
+             // out(porta, valor) escreve numa porta de saída\n    out(0, 0);\n}\n"
+        );
+        let cpp = std::fs::read_to_string(root.join("filtro/filtro.cpp")).unwrap();
+        assert!(cpp.starts_with("#pragma yanc nuioin 1\n"), "{cpp}");
 
         let reopened = Project::open(&root).unwrap();
         assert_eq!(reopened.name(), "meu_projeto");
@@ -1894,25 +2050,31 @@ mod tests {
     #[test]
     fn language_resolution_order() {
         let (_guard, dir) = tmp();
+        // Um projeto da estrutura do YANC 6.x também tem a linguagem
+        // descoberta pelo fonte em `Software/`, para a conversão.
         std::fs::create_dir_all(dir.join("sonda/Software")).unwrap();
         std::fs::write(dir.join("sonda/Software/sonda.cpp"), "").unwrap();
+        std::fs::create_dir_all(dir.join("nova")).unwrap();
+        std::fs::write(dir.join("nova/nova.cpp"), "").unwrap();
         std::fs::write(
             dir.join("x.spf"),
             r#"{"structure": {"processors": [
                 "sonda",
                 {"name": "ext", "sourceFile": "C:\\a\\ext.cpp"},
                 {"name": "decl", "language": "cpp", "clk": 50, "numClocks": 10, "showArrays": true},
-                {"name": "padrao"}
+                {"name": "padrao"},
+                "nova"
             ]}}"#,
         )
         .unwrap();
         let project = Project::open(dir.join("x.spf")).unwrap();
         let lang = |n| project.processor(n).unwrap().language;
         assert_eq!(lang("sonda"), Language::Cpp);
+        assert_eq!(lang("nova"), Language::Cpp);
         assert_eq!(lang("ext"), Language::Cpp);
         assert_eq!(
             project.processor("ext").unwrap().source,
-            dir.join("ext/Software/ext.cpp")
+            dir.join("ext/ext.cpp")
         );
         assert_eq!(lang("padrao"), Language::Cmm);
         let decl = project.processor("decl").unwrap();
@@ -1968,15 +2130,22 @@ mod tests {
         for bad in [
             "void",
             "int",
-            "out",
             "module",
             "wire",
             "logic",
+            "always_ff",
             "core",
             "processor",
             "ula",
+            "__x",
+            "2fast",
         ] {
             assert!(validate_processor_name(bad).is_err(), "{bad}");
+        }
+        // Palavras do C± que não são do Verilog: no YANC 7.1 o nome não vai
+        // para o fonte (conferido compilando e simulando `out`, `in` e `sqrt`).
+        for good in ["out", "in", "sqrt", "main"] {
+            assert!(validate_processor_name(good).is_ok(), "{good}");
         }
         assert!(validate_processor_name(&"a".repeat(64)).is_ok());
         assert!(validate_processor_name(&"a".repeat(65)).is_err());
@@ -1998,8 +2167,8 @@ mod tests {
                 s.nubits = 37;
             }),
             ("#NBEXPO", |s| s.nbexpo = 9),
-            ("#NDSTAC", |s| s.ndstac = 0),
-            ("#SDEPTH", |s| s.sdepth = 0),
+            ("#NDSTAC", |s| s.ndstac = Some(0)),
+            ("#SDEPTH", |s| s.sdepth = Some(0)),
             ("#NUIOIN", |s| s.input_ports = 100_000),
         ];
         for (field, change) in cases {

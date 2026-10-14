@@ -506,7 +506,8 @@ export type IssueKind =
   | 'testbench_as_top'
   | 'invalid_processor_name'
   | 'duplicate_file'
-  | 'nested_project';
+  | 'nested_project'
+  | 'legacy_layout';
 /**
  * Uma ferramenta em `lace tools`: onde está, ou por que não está.
  *
@@ -600,7 +601,7 @@ export interface AddedFile {
  *   "failed_step": null, "frequency_mhz": 100, "clocks": 2000,
  *   "steps": [ { "step": "compile", "tool": "cmmcomp", "...": "..." } ],
  *   "diagnostics": [],
- *   "artifacts": [ { "kind": "verilog", "path": "/p/soma/Hardware/soma.v",
+ *   "artifacts": [ { "kind": "verilog", "path": "/p/soma/soma/soma.v",
  *                    "required": true, "fresh": true } ] }
  * ```
  *
@@ -633,8 +634,8 @@ export interface BuildResult {
    */
   clocks: number;
   /**
-   * Um relatório por compilador executado. Em C±: `compile`,
-   * `pre_assemble`, `assemble`. Em C: `preprocess` antes dos três.
+   * Um relatório por compilador executado: `compile` e `assemble`
+   * ([`build_steps`]).
    */
   steps: StepReport[];
   /**
@@ -643,11 +644,10 @@ export interface BuildResult {
    */
   diagnostics: Diagnostic[];
   /**
-   * Obrigatórios: `Software/<nome>.asm`, `Hardware/<nome>.v`,
-   * `Hardware/<nome>_data.mif`, `Hardware/<nome>_inst.mif` e o testbench
-   * `Simulation/<nome>_tb.v`. Intermediários (`pc_<nome>_mem.txt`,
-   * `trad_cmm.txt`, `trad_opcode.txt`, `cmm_log.txt`, `app_log.txt`,
-   * `pp.cpp`), quando existem.
+   * Obrigatórios, na pasta de saída: `<nome>.asm`, `<nome>.v`,
+   * `<nome>_data.mif`, `<nome>_inst.mif` e o testbench `<nome>_tb.v`.
+   * Intermediários (`pc_<nome>_mem.txt`, `src_lines.txt`,
+   * `trad_opcode.txt`, `prog_log.txt`, `app_log.txt`), quando existem.
    */
   artifacts: Artifact[];
   /**
@@ -760,8 +760,8 @@ export interface Invocation {
   args: string[];
   /**
    * Diretório de trabalho. Faz parte do contrato de várias ferramentas (o
-   * `appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench
-   * grava a onda nele), por isso nunca é herdado.
+   * testbench do YANC lê e grava os arquivos dele relativo a ele, e grava
+   * a onda nele), por isso nunca é herdado.
    */
   cwd: string;
   /**
@@ -787,13 +787,12 @@ export interface Invocation {
  * ```json
  * { "tool": "cmmcomp", "severity": "error",
  *   "message": "c'mon dude, declare the variable 'total' properly!",
- *   "file": "/p/conta/Software/conta.cmm", "line": 16, "column": null,
- *   "raw": "Error on line 16: c'mon dude, declare the variable 'total' properly!" }
+ *   "file": "/p/conta/conta.cmm", "line": 15, "column": null,
+ *   "raw": "Error on line 15: c'mon dude, declare the variable 'total' properly!" }
  * ```
  *
- * No fluxo C, o `cppcomp` numera as linhas do arquivo pré-processado
- * (`<temp>/pp.cpp`), e é esse o `file` que aparece: o `cpppp` não emite
- * marcadores `#line` que permitam voltar ao fonte original.
+ * No fluxo C, o `cppcomp` cita o arquivo e a linha do fonte, ou do
+ * cabeçalho incluído onde está o erro.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "Diagnostic".
@@ -823,7 +822,7 @@ export interface Diagnostic {
   severity: 'error' | 'warning' | 'info' | 'unknown';
   /**
    * A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma
-   * da ferramenta (inglês: o Lace sempre pede `-en` ao YANC).
+   * da ferramenta (inglês: o Lace sempre pede inglês ao YANC).
    */
   message: string;
   /**
@@ -935,8 +934,8 @@ export interface Invocation1 {
   args: string[];
   /**
    * Diretório de trabalho. Faz parte do contrato de várias ferramentas (o
-   * `appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench
-   * grava a onda nele), por isso nunca é herdado.
+   * testbench do YANC lê e grava os arquivos dele relativo a ele, e grava
+   * a onda nele), por isso nunca é herdado.
    */
   cwd: string;
   /**
@@ -985,6 +984,76 @@ export interface CheckResult {
   duration_ms: number;
 }
 /**
+ * Um arquivo ou pasta que a conversão moveu.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ConvertedPath".
+ */
+export interface ConvertedPath {
+  /**
+   * De que processador.
+   */
+  processor: string;
+  /**
+   * Onde estava, absoluto.
+   */
+  from: string;
+  /**
+   * Onde ficou, absoluto.
+   */
+  to: string;
+  /**
+   * É algo que o YANC gera (foi para a pasta de saída).
+   */
+  generated: boolean;
+}
+/**
+ * Um arquivo ou pasta que a conversão deixou onde estava.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SkippedPath".
+ */
+export interface SkippedPath {
+  /**
+   * De que processador.
+   */
+  processor: string;
+  /**
+   * Onde está, absoluto.
+   */
+  from: string;
+  /**
+   * Para onde iria.
+   */
+  to: string;
+  /**
+   * Por quê: o destino já existe, ou o erro do sistema.
+   */
+  reason: string;
+}
+/**
+ * Um fonte que perdeu a linha do nome.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "RemovedNameLine".
+ */
+export interface RemovedNameLine {
+  /**
+   * De que processador.
+   */
+  processor: string;
+  /**
+   * O fonte, já no lugar novo.
+   */
+  file: string;
+  /**
+   * O nome que a linha dava, que era o do módulo Verilog até a 6.x. Se
+   * difere do processador, o topo que instanciava o módulo pelo nome
+   * antigo precisa do novo.
+   */
+  old_name: string;
+}
+/**
  * Um erro do Lace.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -1021,8 +1090,8 @@ export interface Invocation2 {
   args: string[];
   /**
    * Diretório de trabalho. Faz parte do contrato de várias ferramentas (o
-   * `appcomp` e o `asmcomp` leem `app_log.txt` relativo a ele, o testbench
-   * grava a onda nele), por isso nunca é herdado.
+   * testbench do YANC lê e grava os arquivos dele relativo a ele, e grava
+   * a onda nele), por isso nunca é herdado.
    */
   cwd: string;
   /**
@@ -1899,7 +1968,8 @@ export interface SimulationContext {
    */
   sources: string;
   /**
-   * Hash das entradas dos processadores (`Simulation/input_*.txt`).
+   * Hash das entradas dos processadores (`<proc>/input_*.txt`, ao lado
+   * do fonte).
    */
   inputs: string;
   /**
@@ -2562,7 +2632,7 @@ export interface SimulationResult {
    */
   waveform: Waveform | null;
   /**
-   * `Simulation/output_<n>.txt` escritos nesta simulação.
+   * `<proc>/<proc>/output_<n>.txt` escritos nesta simulação.
    */
   outputs: string[];
   /**
@@ -2670,7 +2740,7 @@ export interface PortValues {
    */
   port: number;
   /**
-   * `Simulation/output_<porta>.txt`.
+   * `<proc>/<proc>/output_<porta>.txt`, na pasta de saída.
    */
   path: string;
   /**
@@ -2692,7 +2762,8 @@ export interface PortValues {
  */
 export interface ProcessorStatus {
   /**
-   * O nome: diretório, `#PRNAME`, nome do módulo Verilog e dos artefatos.
+   * O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
+   * gerados.
    */
   name: string;
   /**
@@ -2700,15 +2771,24 @@ export interface ProcessorStatus {
    */
   language: 'cmm' | 'cpp';
   /**
-   * `<raiz>/<nome>`, o `-p` dos compiladores.
+   * `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
+   * inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
+   * do C).
    */
   dir: string;
   /**
-   * O programa-fonte, em `Software/`.
+   * O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
    */
   source: string;
   /**
-   * Diretório de intermediários, o `-t` dos compiladores.
+   * `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
+   * as memórias, o testbench, as tabelas da onda e as saídas da
+   * simulação, que roda nela.
+   */
+  output_dir: string;
+  /**
+   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;
   /**
@@ -2720,7 +2800,8 @@ export interface ProcessorStatus {
    */
   clocks: number;
   /**
-   * Exporta arrays para a simulação (`-A` do `cmmcomp`).
+   * Exporta cada elemento de array como um sinal da onda
+   * (`--wave-arrays` do `cmmcomp`).
    */
   show_arrays: boolean;
   /**
@@ -2745,7 +2826,8 @@ export interface ProjectIssue {
     | 'testbench_as_top'
     | 'invalid_processor_name'
     | 'duplicate_file'
-    | 'nested_project';
+    | 'nested_project'
+    | 'legacy_layout';
   /**
    * O arquivo ou a pasta envolvida, absoluta.
    */
@@ -2754,7 +2836,7 @@ export interface ProjectIssue {
    * O complemento do tipo: o caminho como estava gravado
    * (`rescued_path`), o campo do `.spf` (`selection_not_registered`,
    * `testbench_as_top`) ou o nome do processador
-   * (`invalid_processor_name`).
+   * (`invalid_processor_name`, `legacy_layout`).
    */
   detail: string | null;
   /**
@@ -3172,7 +3254,7 @@ export interface WaveProcessor {
    */
   instance: string;
   /**
-   * O processador (o `#PRNAME`, nome da pasta no projeto).
+   * O processador (o nome da pasta no projeto e do fonte).
    */
   processor: string;
   /**
@@ -3185,7 +3267,7 @@ export interface WaveProcessor {
    */
   assembly: boolean;
   /**
-   * A linha do fonte aparece como texto (havia `trad_cmm.txt`).
+   * A linha do fonte aparece como texto (havia `src_lines.txt`).
    */
   source: boolean;
   /**
@@ -3229,8 +3311,8 @@ export interface BuildReport {
   results: BuildResult[];
   /**
    * Os arquivos que o build gerou e que entraram no `.spf` agora
-   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+   * sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
    * Vazio se já estavam no projeto.
    */
   registered: AddedFile[];
@@ -3287,6 +3369,44 @@ export interface CheckResult1 {
   duration_ms: number;
 }
 /**
+ * `lace convert`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ConvertReport".
+ */
+export interface ConvertReport {
+  /**
+   * O `.spf`.
+   */
+  project: string;
+  /**
+   * Os processadores que tinham a estrutura antiga, na ordem do `.spf`.
+   */
+  processors: string[];
+  /**
+   * O que mudou de lugar.
+   */
+  moved: ConvertedPath[];
+  /**
+   * O que ficou onde estava, com o motivo.
+   */
+  skipped: SkippedPath[];
+  /**
+   * Os fontes que perderam a linha do nome (`#PRNAME`, `#pragma yanc
+   * prname`).
+   */
+  name_lines: RemovedNameLine[];
+  /**
+   * Os processadores cujo nome não serve mais: na 7.1 ele vira o módulo
+   * Verilog, e o YANC recusa um fonte com esse nome.
+   */
+  invalid_names: string[];
+  /**
+   * As subpastas antigas que ficaram, por não estarem vazias.
+   */
+  remaining_dirs: string[];
+}
+/**
  * Qualquer comando que não conseguiu rodar (código de saída 2).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -3339,8 +3459,8 @@ export interface FpgaBuildReport {
   builds: BuildResult[];
   /**
    * Os arquivos que o build gerou e que entraram no `.spf` agora
-   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+   * sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
    * Vazio se já estavam no projeto.
    */
   registered: AddedFile[];
@@ -3758,15 +3878,16 @@ export interface OrderReport {
  * só num build, use [`BuildOptions`](crate::BuildOptions).
  *
  * A linguagem é resolvida como na AURORA: `language` declarada no `.spf`;
- * senão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir em
- * `Software/` (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
+ * senão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir na
+ * pasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "Processor".
  */
 export interface Processor {
   /**
-   * O nome: diretório, `#PRNAME`, nome do módulo Verilog e dos artefatos.
+   * O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
+   * gerados.
    */
   name: string;
   /**
@@ -3774,15 +3895,24 @@ export interface Processor {
    */
   language: 'cmm' | 'cpp';
   /**
-   * `<raiz>/<nome>`, o `-p` dos compiladores.
+   * `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
+   * inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
+   * do C).
    */
   dir: string;
   /**
-   * O programa-fonte, em `Software/`.
+   * O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
    */
   source: string;
   /**
-   * Diretório de intermediários, o `-t` dos compiladores.
+   * `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
+   * as memórias, o testbench, as tabelas da onda e as saídas da
+   * simulação, que roda nela.
+   */
+  output_dir: string;
+  /**
+   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;
   /**
@@ -3794,7 +3924,8 @@ export interface Processor {
    */
   clocks: number;
   /**
-   * Exporta arrays para a simulação (`-A` do `cmmcomp`).
+   * Exporta cada elemento de array como um sinal da onda
+   * (`--wave-arrays` do `cmmcomp`).
    */
   show_arrays: boolean;
 }
@@ -4049,8 +4180,8 @@ export interface SimReport {
   builds: BuildResult[];
   /**
    * Os arquivos que o build gerou e que entraram no `.spf` agora
-   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+   * sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
    * Vazio se já estavam no projeto.
    */
   registered: AddedFile[];
@@ -4150,8 +4281,8 @@ export interface SynthReport {
   builds: BuildResult[];
   /**
    * Os arquivos que o build gerou e que entraram no `.spf` agora
-   * (`Project::register_generated`): o `Hardware/<nome>.v` entre os
-   * sintetizáveis e o `Simulation/<nome>_tb.v` entre os testbenches.
+   * (`Project::register_generated`): o `<nome>/<nome>/<nome>.v` entre os
+   * sintetizáveis e o `<nome>/<nome>/<nome>_tb.v` entre os testbenches.
    * Vazio se já estavam no projeto.
    */
   registered: AddedFile[];

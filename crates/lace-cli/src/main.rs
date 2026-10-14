@@ -158,6 +158,9 @@ enum Command {
     /// Manage SAPHO processors
     #[command(subcommand)]
     Proc(ProcCommand),
+    /// Convert the processors from the folder layout of YANC 6.x (Software/, Hardware/,
+    /// Simulation/) to the one of YANC 7.1; nothing is deleted or overwritten
+    Convert,
     /// Compile processors to Verilog (YANC)
     Build(BuildArgs),
     /// Check that the Verilog elaborates (iverilog -tnull)
@@ -406,13 +409,13 @@ struct ProcAddArgs {
     /// Exponent bits (#NBEXPO)
     #[arg(long, help_heading = "C± only")]
     nbexpo: Option<u32>,
-    /// norm(x) gain, a power of two (#NUGAIN)
+    /// norm(x) gain, a power of two (#NUGAIN); default: 128
     #[arg(long, help_heading = "C± only")]
     nugain: Option<u32>,
-    /// Data stack depth (#NDSTAC)
+    /// Data stack depth (#NDSTAC); default: YANC computes it from the program
     #[arg(long, help_heading = "C± only")]
     ndstac: Option<u32>,
-    /// Instruction stack depth (#SDEPTH)
+    /// Instruction stack depth (#SDEPTH); default: YANC computes it from the program
     #[arg(long, help_heading = "C± only")]
     sdepth: Option<u32>,
 }
