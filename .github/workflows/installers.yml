@@ -24,6 +24,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   INNO_VERSION: "6.7.3"
+  # O instalador oficial (github.com/jrsoftware/issrc, release is-6_7_3).
+  INNO_SHA256: "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732"
   # O menor macOS que os binários compilados aqui aceitam: o do OSS CAD Suite.
   # Vale para o YANC, o Lace, o surfer-aurora e o Studio.
   MACOSX_DEPLOYMENT_TARGET: "13.0"
@@ -141,17 +143,23 @@ jobs:
       - name: Inno Setup
         if: runner.os == 'Windows'
         shell: pwsh
-        # O runner já traz um Inno Setup, de versão que muda com a imagem; o
-        # lace.iss usa o modo escuro e as imagens PNG da 6.6 em diante. Com
-        # outra versão que a fixada, instala a fixada por cima.
+        # O runner já traz um Inno Setup, de versão que muda com a imagem (a
+        # 6.7.1 em 2026-10-15); o lace.iss usa o modo escuro e as imagens PNG
+        # da 6.6 em diante. Com outra versão que a fixada, instala a fixada
+        # por cima, do instalador oficial conferido pelo SHA-256 (o
+        # Chocolatey não tem a 6.7.3).
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1'
           $have = (Get-ItemProperty $key -ErrorAction SilentlyContinue).DisplayVersion
           "Inno Setup no runner: $have (fixado: $env:INNO_VERSION)"
           if ($have -ne $env:INNO_VERSION -or -not (Test-Path $iscc)) {
-            choco install innosetup --version=$env:INNO_VERSION -y --no-progress --force
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $tag = "is-" + $env:INNO_VERSION.Replace('.', '_')
+            $exe = Join-Path $env:RUNNER_TEMP "innosetup-$env:INNO_VERSION.exe"
+            Invoke-WebRequest "https://github.com/jrsoftware/issrc/releases/download/$tag/innosetup-$env:INNO_VERSION.exe" -OutFile $exe
+            $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+            if ($sha -ne $env:INNO_SHA256) { throw "SHA-256 do instalador do Inno Setup não confere: $sha" }
+            Start-Process -FilePath $exe -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait
             $have = (Get-ItemProperty $key -ErrorAction SilentlyContinue).DisplayVersion
             "Inno Setup instalado: $have"
             if ($have -ne $env:INNO_VERSION) { throw "Inno Setup $env:INNO_VERSION não ficou instalado ($have)" }
