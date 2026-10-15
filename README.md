@@ -54,8 +54,10 @@ irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 
 O script baixa o instalador da última release, confere o SHA-256 com o
 `SHA256SUMS` da release e o abre: a instalação guiada no terminal no Linux e
-no macOS, o assistente no Windows. Nos dois, o tipo **Recommended** é o
-padrão e o **Advanced** deixa escolher os componentes. No Linux e no macOS,
+no macOS, o assistente no Windows. Nos dois, primeiro se escolhe um perfil
+(abaixo): o **SAPHO** é o recomendado, e o **Custom**, para uso avançado,
+deixa marcar os componentes. O assistente do Windows pergunta antes o
+idioma, inglês ou português. No Linux e no macOS,
 instala em `~/.local/share/lace`, com o atalho `~/.local/bin/lace`. O Lace
 Studio entra no menu de aplicativos.
 
@@ -63,11 +65,12 @@ Sem perguntas (scripts, laboratórios, CI):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes
+curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes --profile verilog
 curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes --components yanc,icarus,verilator
 ```
 
 ```powershell
-$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"
+$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"
 irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 ```
 
@@ -84,20 +87,31 @@ arquivo baixado pelo navegador (ver [docs/INSTALL.md](docs/INSTALL.md)).
 
 Para remover o Lace com o bundle inteiro: `lace uninstall`.
 
-### Componentes
+### Perfis e componentes
 
-| Componente | O que é | Na instalação Recommended |
+A instalação começa por um perfil, que marca os aplicativos de um tipo de
+trabalho; a lista inteira aparece, com os do perfil marcados e travados. O
+Lace (CLI & Core) vem sempre.
+
+| Perfil | Para quem | Deixa de fora |
 |---|---|---|
-| Lace Studio | o ambiente gráfico; no Linux precisa do webkit2gtk 4.1 do sistema | sim |
-| YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim |
-| Icarus Verilog | simulador Verilog, o padrão do `lace sim`, e a verificação do `lace check` | sim |
-| Verilator | simulador compilado e o `lace check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles | não |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) | não |
-| Yosys | síntese; lê as portas para o testbench-modelo do `lace add` | sim |
-| Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
-| surfer-aurora | visualizador de formas de onda | sim |
-| Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`lace learn`, e a vista Exercícios do Studio); precisa do Icarus | não |
-| RTL viewer | o esquemático interativo do netlist da síntese, no navegador (`lace synth --open`); precisa do Yosys | sim |
+| **SAPHO** (recomendado) | quem constrói processadores SAPHO e os programa em C± | nada |
+| **Verilog** | quem projeta em Verilog sem processadores SAPHO | YANC |
+| **Custom** (avançada) | uso avançado, para quem sabe de quais componentes precisa | o que não for marcado |
+
+| Componente | O que é |
+|---|---|
+| Lace Studio | o ambiente gráfico; no Linux precisa do webkit2gtk 4.1 do sistema |
+| YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO |
+| Icarus Verilog | simulador Verilog, o padrão do `lace sim`, e a verificação do `lace check` |
+| Verilator | simulador compilado e o `lace check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) |
+| Yosys | síntese; lê as portas para o testbench-modelo do `lace add` |
+| Graphviz (dot) | desenho do esquemático; precisa do Yosys |
+| surfer-aurora | visualizador de formas de onda |
+| openFPGALoader | grava as placas FPGA pelo cabo USB delas |
+| Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`lace learn`, e a vista Exercícios do Studio); precisa do Icarus |
+| RTL viewer | o esquemático interativo do netlist da síntese, no navegador (`lace synth --open`); precisa do Yosys |
 
 Para instalar um aplicativo do bundle depois, sem reinstalar o Lace:
 `lace install`, que abre a lista no terminal, ou `lace install verilator`.

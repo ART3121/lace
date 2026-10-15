@@ -1,5 +1,6 @@
 //! O índice do payload (`payload/index.json`).
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use anyhow::{Context, bail};
@@ -33,10 +34,48 @@ pub struct Index {
     pub bundle: String,
     /// Plataforma (`linux-x64`, `darwin-arm64`).
     pub platform: String,
+    /// Os perfis de instalação, na ordem de exibição; o primeiro é o
+    /// padrão. Vazio num índice anterior aos perfis: aí vale
+    /// [`Index::profiles`], que monta um com os recomendados.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub profiles: Vec<ProfileInfo>,
     /// Os componentes que o usuário pode escolher, na ordem de exibição.
     pub components: Vec<ComponentInfo>,
     /// Os pedaços do payload.
     pub chunks: Vec<Chunk>,
+}
+
+/// Um perfil de instalação: um conjunto de componentes com nome, que os
+/// instaladores oferecem antes da lista (a instalação Custom).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProfileInfo {
+    /// Identificador (`sapho`, `verilog`), o do `--profile`.
+    pub name: String,
+    /// Nome para mostrar.
+    pub label: String,
+    /// Uma linha sobre o que ele traz.
+    pub description: String,
+    /// Para quem ele serve. Vazio só no perfil que [`Index::profiles`]
+    /// monta para um índice anterior aos perfis.
+    #[serde(default)]
+    pub audience: String,
+    /// Os componentes, já com o que cada um exige.
+    pub components: Vec<String>,
+    /// O nome, a descrição e o público em outros idiomas, por código
+    /// (`pt`).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub translations: BTreeMap<String, ProfileText>,
+}
+
+/// Os textos de um perfil num idioma.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProfileText {
+    /// Nome para mostrar.
+    pub label: String,
+    /// Uma linha sobre o que ele traz.
+    pub description: String,
+    /// Para quem ele serve.
+    pub audience: String,
 }
 
 /// Um componente do bundle, como o instalador o mostra.
@@ -48,7 +87,9 @@ pub struct ComponentInfo {
     pub label: String,
     /// Uma linha sobre o que ele faz.
     pub description: String,
-    /// Faz parte do perfil recomendado?
+    /// Faz parte do perfil padrão? Vem do primeiro perfil; o Lace anterior
+    /// aos perfis lê o índice da release nova no `lace update` e exige o
+    /// campo.
     pub recommended: bool,
     /// Componentes sem os quais este não funciona.
     #[serde(default)]
@@ -101,6 +142,32 @@ impl Index {
             );
         }
         Ok(index)
+    }
+
+    /// Os perfis, o padrão primeiro. Num índice sem perfis (anterior a
+    /// eles), um só, `recommended`, com os componentes recomendados.
+    pub fn profiles(&self) -> Vec<ProfileInfo> {
+        if !self.profiles.is_empty() {
+            return self.profiles.clone();
+        }
+        vec![ProfileInfo {
+            name: "recommended".into(),
+            label: "Recommended".into(),
+            description: "The recommended apps".into(),
+            audience: String::new(),
+            translations: Default::default(),
+            components: self
+                .components
+                .iter()
+                .filter(|c| c.recommended)
+                .map(|c| c.name.clone())
+                .collect(),
+        }]
+    }
+
+    /// O perfil pelo nome.
+    pub fn profile(&self, name: &str) -> Option<ProfileInfo> {
+        self.profiles().into_iter().find(|p| p.name == name)
     }
 
     /// O componente pelo nome.

@@ -18,8 +18,8 @@ cobrir tudo o que a AURORA fazia está em
 
 ## Requisitos
 
-- O Studio vem no instalador do Lace, como o componente `studio`, marcado na
-  instalação Recommended ([instalação](../README.md#instalar)); numa
+- O Studio vem no instalador do Lace, como o componente `studio`, marcado em
+  todos os perfis ([instalação](../README.md#instalar)); numa
   instalação sem ele, `lace install studio`. Instalado assim, ele fica no
   bundle (`toolchain/studio/`) e usa o bundle em que está. Fora do bundle
   (o `npm run tauri dev`), acha a instalação do Lace sozinho

@@ -76,45 +76,55 @@ execução) e apaga o que baixou no fim.
 | O quê | Linux, macOS | Windows |
 |---|---|---|
 | versão fixa | `... \| LACE_VERSION=0.7.0 sh` | `$env:LACE_VERSION = "0.7.0"` antes do `irm` |
-| sem perguntas | `... \| sh -s -- --yes` | `$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"` antes do `irm` |
-| outras opções do instalador | `... \| sh -s -- --components yanc,icarus --prefix /opt/lace` | os parâmetros do Inno Setup em `LACE_SETUP_ARGS` |
+| sem perguntas | `... \| sh -s -- --yes` | `$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"` antes do `irm` |
+| outras opções do instalador | `... \| sh -s -- --yes --profile verilog --prefix /opt/lace` | os parâmetros do Inno Setup em `LACE_SETUP_ARGS` |
 | para todos os usuários | `... \| sudo sh` (vai para `/opt/lace`) | o assistente pergunta |
 
-## Tipos de instalação e componentes
+## Idioma, perfis e componentes
 
-Os dois instaladores oferecem os mesmos tipos:
+O assistente do Windows começa perguntando o idioma, English ou Português
+(Brasil), com o do Windows já escolhido. Depois vem o perfil: um conjunto de
+aplicativos para um tipo de trabalho. A página do perfil mostra a lista
+inteira dos aplicativos, com os que ele instala marcados, e diz para quem
+ele serve.
 
-- **Recommended** (o padrão): o Lace Studio, YANC, Icarus Verilog, Yosys,
-  Graphviz, o RTL viewer e surfer-aurora. É o que a AURORA usa no dia a dia, com o
-  ambiente gráfico.
-- **Advanced**: a lista de componentes, para marcar exatamente o que
-  instalar.
-
-| Componente | O que é | Na instalação Recommended |
+| Perfil | Para quem | Aplicativos |
 |---|---|---|
-| Lace | a linha de comando; sempre instalada, porque é ela que instala, atualiza e desinstala (`lace install`, `lace update`, `lace uninstall`) | sim |
-| Lace Studio | o ambiente gráfico: editor, compilação, simulação, ondas; atalho no menu de aplicativos | sim |
-| YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim |
-| Icarus Verilog | simulador Verilog, o padrão da AURORA | sim |
-| Verilator | simulador compilado; no Linux e no macOS precisa de compilador C++, `make` e Perl do sistema, no Windows vem com eles | não |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) | não |
-| Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim |
-| Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim |
-| RTL viewer | o esquemático interativo do netlist da síntese no navegador (`lace synth --open`); precisa do Yosys | sim |
-| surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim |
-| openFPGALoader | grava as placas FPGA pelo cabo USB delas ([FPGA.md](FPGA.md)); no Linux, o acesso ao cabo pede uma regra do udev | não |
-| Lace Learn | os exercícios de Verilog do `lace learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | não |
+| **SAPHO** (recomendado, o padrão) | quem constrói processadores SAPHO e os programa em C±, com as ferramentas de Verilog em volta | todos |
+| **Verilog** | quem projeta em Verilog sem processadores SAPHO: módulos, testbenches em Verilog ou cocotb, simulação no Icarus ou no Verilator, síntese e placas FPGA | todos menos o YANC |
+| **Custom** (avançada; no assistente em português, Personalizada) | uso avançado, para quem sabe de quais componentes precisa | os marcados |
 
-O Verilator fica fora da instalação Recommended porque, no Linux e no macOS, só
-funciona com o compilador do sistema instalado (ver [BUNDLE.md](BUNDLE.md),
-seção 4). No Windows ele já traz o g++, o `make` e o Perl, e fica fora da
-Recommended do mesmo jeito. O cocotb fica fora porque só serve a quem
-escreve testbench em Python e acrescenta 115 MiB no Linux (42 MiB com o
-Verilator, que traz o mesmo Python). O Lace Learn fica fora porque só serve
-a quem vai fazer os exercícios, e o openFPGALoader, porque só serve a quem
-grava placa.
+Com um perfil, a lista fica travada: ela só mostra o que vai ser instalado.
+Só o Custom deixa marcar e desmarcar. O Lace (CLI & Core), a linha de
+comando e o Core, vem sempre marcado e travado, em qualquer perfil. Na
+instalação guiada do Linux e do macOS, o perfil sob o cursor mostra cada
+aplicativo com `[x]` ou `[ ]`, e o Custom abre a lista para marcar.
+
+| Componente | O que é | SAPHO | Verilog |
+|---|---|---|---|
+| Lace (CLI & Core) | a linha de comando e o Core; sempre instalado, porque é ele que instala, atualiza e desinstala (`lace install`, `lace update`, `lace uninstall`) | sim | sim |
+| Lace Studio | o ambiente gráfico: editor, compilação, simulação, ondas; atalho no menu de aplicativos | sim | sim |
+| YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim | não |
+| Icarus Verilog | simulador Verilog, o padrão da AURORA | sim | sim |
+| Verilator | simulador compilado; no Linux e no macOS precisa de compilador C++, `make` e Perl do sistema, no Windows vem com eles | sim | sim |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) | sim | sim |
+| Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim | sim |
+| Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim | sim |
+| RTL viewer | o esquemático interativo do netlist da síntese no navegador (`lace synth --open`); precisa do Yosys | sim | sim |
+| surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim | sim |
+| openFPGALoader | grava as placas FPGA pelo cabo USB delas ([FPGA.md](FPGA.md)); no Linux, o acesso ao cabo pede uma regra do udev | sim | sim |
+| Lace Learn | os exercícios de Verilog do `lace learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | sim | sim |
+
+O Verilator, no Linux e no macOS, só funciona com o compilador do sistema
+instalado (ver [BUNDLE.md](BUNDLE.md), seção 4); no Windows ele traz o g++,
+o `make` e o Perl, uns 630 MiB. Quem não quer o Verilator usa o Custom.
 Marcar o Graphviz ou o RTL viewer marca o Yosys; desmarcar o Yosys desmarca
 os dois. Do mesmo jeito, marcar o cocotb ou o Lace Learn marca o Icarus.
+
+Os perfis ficam em `bundle/components.json` (`profiles`), com o nome, o
+texto de cada um e os componentes; o primeiro é o padrão e o recomendado. Os
+textos em português ficam em `translations`, ao lado. Um perfil traz o
+que cada componente dele exige, e o `bundle.py` recusa um que não traga.
 
 O Lace Studio fica no bundle, em `toolchain/studio/`, e usa o bundle em que
 está. O atalho
@@ -131,12 +141,12 @@ Error: Component verilator is not installed (run the Lace installer again and se
 
 `lace tools` mostra o que está instalado e o que não está.
 
-Tamanho instalado no Linux, de referência (0.2.0): 378 MiB com tudo, 242 MiB
-na Recommended, dos quais 16 MiB são do Lace Studio; o instalador
+Tamanho instalado no Linux, de referência (0.2.0, com menos componentes que
+hoje): 378 MiB com tudo, dos quais 16 MiB são do Lace Studio; o instalador
 (`.tar.gz`) tem 106 MB. Icarus, Verilator, Yosys e Graphviz dividem bibliotecas
 do OSS CAD Suite, então a soma dos tamanhos de cada um é maior que o total.
-`./install --list` e a página de componentes do assistente mostram os
-números da plataforma.
+`./install --list` mostra o tamanho de cada perfil e de cada componente na
+plataforma, e a página de componentes do assistente, o da seleção.
 
 ## Windows
 
@@ -152,9 +162,11 @@ números da plataforma.
 2. Escolha instalar só para você (padrão, sem administrador, em
    `%LOCALAPPDATA%\Programs\Lace`) ou para todos os usuários (pede
    administrador, em `C:\Lace`).
-3. Na página de componentes, fique na **Recommended** ou troque para
-   **Advanced** e marque os componentes.
-4. Deixe marcada a tarefa **Add Lace to PATH** para usar `lace` em
+3. Escolha o idioma do assistente.
+4. Na página **Choose a profile** (Escolha um perfil), escolha o perfil na
+   caixa: a lista embaixo mostra, travada, os aplicativos que ele instala.
+   Para escolher à mão, use o **Custom** (Personalizada), para uso avançado.
+5. Deixe marcada a tarefa **Add Lace to PATH** para usar `lace` em
    qualquer terminal novo. Com o Studio, o assistente põe o atalho no menu
    Iniciar e oferece um na área de trabalho.
 
@@ -165,9 +177,8 @@ computador, ele avisa antes de instalar.
 
 Numa pasta que já tem o Lace, a primeira página diz de que versão para qual
 ele atualiza, e os aplicativos que a pasta tem vêm marcados, inclusive os
-que o `lace install` acrescentou: com um a mais que a Recommended, o tipo
-passa a Advanced, com a lista. O mesmo vale numa instalação silenciosa sem
-`/COMPONENTS`.
+que o `lace install` acrescentou: uma seleção que não é a de nenhum perfil
+fica no Custom. O mesmo vale numa instalação silenciosa sem `/COMPONENTS`.
 
 O assistente web baixa do GitHub; `/MIRROR=<url>` o faz baixar de um
 espelho do laboratório, com uma pasta `v<versão>/` por release, como o
@@ -229,11 +240,16 @@ perguntar.
 **Sem interação** (scripts, laboratórios):
 
 ```
-lace-0.7.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path
-lace-0.7.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
+lace-0.8.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
+lace-0.8.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
+lace-0.8.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
 ```
 
-Nos parâmetros do Inno Setup, os nomes são `lace`, `yanc`, `icarus`,
+O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
+(`/TYPE=`) são os perfis, `sapho` e `verilog`, e
+`avancada`, o Custom, que guarda o nome da instalação Advanced de antes dos
+perfis. O `/TYPE=recomendada` de antes cai no perfil padrão.
+Nos parâmetros do Inno Setup, os nomes dos componentes são `lace`, `yanc`, `icarus`,
 `icarus\cocotb`, `icarus\lace_learn`, `verilator`, `yosys`,
 `yosys\graphviz`, `surfer_aurora`, `openfpgaloader` e `studio`; as
 tarefas, `path` e
@@ -254,8 +270,10 @@ tar xzf lace-0.7.0-linux-x64.tar.gz && ./lace-0.7.0-linux-x64/install
 A instalação guiada no terminal tem estas telas:
 
 1. boas-vindas (avisa se já há uma instalação na pasta padrão);
-2. tipo de instalação: **Recommended** ou **Advanced**;
-3. componentes, só na instalação Advanced: `Space` marca e desmarca; o Verilator mostra
+2. perfil: **SAPHO** (recomendado), **Verilog** ou **Custom** (avançada); o perfil
+   sob o cursor mostra para quem é e todos os aplicativos, com `[x]` nos
+   que ele instala;
+3. componentes, só no Custom: `Space` marca e desmarca; o Verilator mostra
    se o compilador do sistema foi encontrado;
 4. pasta da instalação e atalho;
 5. resumo;
@@ -283,9 +301,10 @@ falha no meio não estraga o que já estava instalado.
 **Sem interação:**
 
 ```
-./install --list                                   # componentes e tamanhos
-./install --yes                                    # Recommended
-./install --yes --components yanc,icarus,verilator # Advanced
+./install --list                                   # perfis, componentes e tamanhos
+./install --yes                                    # o perfil padrão (SAPHO)
+./install --yes --profile verilog                  # outro perfil
+./install --yes --components yanc,icarus,verilator # Custom
 ./install --yes --prefix /opt/lace --no-link
 ```
 
@@ -325,9 +344,9 @@ divide o OSS CAD Suite por ferramenta, então cada versão nova passa pelo
 `bundle.py` e pelo CI e chega numa release nova do Lace.
 
 **Mudar os componentes:** rode o instalador de novo na mesma pasta; a
-instalação é trocada pela nova seleção. Com o tipo Recommended (e com
+instalação é trocada pela nova seleção. Com um perfil (e com
 `./install --yes` sem `--components`), os aplicativos que a instalação já
-tem ficam, junto dos recomendados; para tirar algum, use o Advanced.
+tem ficam, junto dos do perfil; para tirar algum, use o Custom.
 
 **Remover:** `lace uninstall` (pergunta antes; `--yes` não pergunta) ou
 `<pasta>/uninstall.sh`. Sai o Lace, o bundle inteiro (`toolchain/`), o

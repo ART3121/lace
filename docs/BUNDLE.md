@@ -38,7 +38,9 @@ Bundle `2026.10.13`. Os pacotes, com as versões fixadas em
 | rtl-viewer | a versão do Lace | o modelo do HTML do RTL viewer (`rtl-viewer.html`), que o `lace synth --open` preenche com o netlist: o viewer, o React e o worker do layout num arquivo só | gerado de `packages/rtl-viewer/` deste repositório pelo empacotamento (`npm ci`, `npm run build`) |
 
 Os componentes, que o instalador deixa escolher, estão em
-`bundle/components.json`:
+`bundle/components.json`, junto dos perfis de instalação (`profiles`), que
+juntam componentes por tipo de trabalho ([INSTALL.md](INSTALL.md), "Perfis
+e componentes"):
 
 | Componente | Pacote | Diretório |
 |---|---|---|

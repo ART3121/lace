@@ -10,35 +10,66 @@ use crate::payload::Index;
 pub type Selection = BTreeSet<String>;
 
 /// Como o usuário escolhe os componentes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Profile {
-    /// O perfil padrão: os componentes marcados como recomendados.
-    Recommended,
-    /// O usuário marca exatamente o que quer.
-    Advanced,
+    /// Um perfil do índice, pelo nome ([`Index::profiles`]).
+    Preset(String),
+    /// A instalação Custom: o usuário marca exatamente o que quer.
+    Custom,
 }
 
-/// Os componentes do perfil recomendado.
-pub fn recommended(index: &Index) -> Selection {
-    index
+/// Os componentes do perfil `name`, com o que eles exigem (o índice já os
+/// traz juntos; a resolução protege de um índice escrito à mão). Só os que
+/// o índice conhece. Perfil que não existe é erro, com os que existem.
+pub fn profile(index: &Index, name: &str) -> anyhow::Result<Selection> {
+    let Some(profile) = index.profile(name) else {
+        let known: Vec<String> = index.profiles().into_iter().map(|p| p.name).collect();
+        bail!(
+            "Unknown profile: {name} (this installer has: {})",
+            known.join(", ")
+        );
+    };
+    let mut selection = Selection::new();
+    for c in profile
         .components
         .iter()
-        .filter(|c| c.recommended)
-        .map(|c| c.name.clone())
-        .collect()
+        .filter(|c| index.component(c).is_some())
+    {
+        add_with_requirements(index, &mut selection, c);
+    }
+    Ok(selection)
 }
 
-/// O perfil recomendado numa pasta que já tem uma instalação: o recomendado
-/// mais o que ela tem (o que este índice conhece), com o que eles exigem.
+/// O nome do perfil padrão, o primeiro do índice.
+pub fn default_profile(index: &Index) -> String {
+    index
+        .profiles()
+        .into_iter()
+        .next()
+        .map(|p| p.name)
+        .unwrap_or_default()
+}
+
+/// Os componentes do perfil padrão.
+pub fn default_selection(index: &Index) -> Selection {
+    profile(index, &default_profile(index)).unwrap_or_default()
+}
+
+/// O perfil `name` numa pasta que já tem uma instalação: o perfil mais o
+/// que ela tem (o que este índice conhece), com o que eles exigem.
 /// Reinstalar não tira um aplicativo que o usuário pôs.
-pub fn recommended_keeping(index: &Index, installed: &[String]) -> Selection {
-    let mut selection = recommended(index);
-    for name in installed {
-        if index.component(name).is_some() {
-            add_with_requirements(index, &mut selection, name);
+pub fn profile_keeping(
+    index: &Index,
+    name: &str,
+    installed: &[String],
+) -> anyhow::Result<Selection> {
+    let mut selection = profile(index, name)?;
+    for c in installed {
+        if index.component(c).is_some() {
+            add_with_requirements(index, &mut selection, c);
         }
     }
-    selection
+    Ok(selection)
 }
 
 /// Marca ou desmarca `name`, mantendo as dependências: marcar um componente
@@ -136,7 +167,7 @@ pub fn adding(
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::payload::{Chunk, ComponentInfo, INDEX_SCHEMA};
+    use crate::payload::{Chunk, ComponentInfo, INDEX_SCHEMA, ProfileInfo};
 
     pub(crate) fn index() -> Index {
         let c = |name: &str, recommended: bool, requires: &[&str]| ComponentInfo {
@@ -154,11 +185,27 @@ pub(crate) mod tests {
             entries: 1,
             download: size / 2,
         };
+        let profile = |name: &str, components: &[&str]| ProfileInfo {
+            name: name.into(),
+            label: name.to_uppercase(),
+            description: format!("o perfil {name}"),
+            audience: format!("quem usa {name}"),
+            translations: Default::default(),
+            components: components.iter().map(|s| s.to_string()).collect(),
+        };
         Index {
             schema: INDEX_SCHEMA,
             lace_version: "0.1.0".into(),
             bundle: "teste".into(),
             platform: "linux-x64".into(),
+            profiles: vec![
+                profile(
+                    "sapho",
+                    &["yanc", "icarus", "verilator", "yosys", "graphviz"],
+                ),
+                // Escrito à mão sem o Yosys que o Graphviz exige.
+                profile("verilog", &["icarus", "graphviz"]),
+            ],
             components: vec![
                 c("yanc", true, &[]),
                 c("icarus", true, &[]),
@@ -187,24 +234,56 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn recommended_profile_and_sizes() {
+    fn profiles_and_sizes() {
         let index = index();
-        let rec = recommended(&index);
-        assert_eq!(rec, set(&["graphviz", "icarus", "yanc", "yosys"]));
+        assert_eq!(default_profile(&index), "sapho");
+        let sapho = default_selection(&index);
+        assert_eq!(
+            sapho,
+            set(&["graphviz", "icarus", "verilator", "yanc", "yosys"])
+        );
+        // O que um componente exige entra mesmo faltando no perfil.
+        assert_eq!(
+            profile(&index, "verilog").unwrap(),
+            set(&["graphviz", "icarus", "yosys"])
+        );
+        let err = profile(&index, "asic").unwrap_err().to_string();
+        assert!(
+            err.contains("asic") && err.contains("sapho, verilog"),
+            "{err}"
+        );
         // As bibliotecas em comum contam uma vez só.
+        let rec = set(&["graphviz", "icarus", "yanc", "yosys"]);
         assert_eq!(index.size_of(&rec), 10 + 100 + 20 + 40 + 5 + 1);
         assert_eq!(index.size_of(&Selection::new()), 10);
         assert_eq!(index.component_size("icarus"), 120);
     }
 
     #[test]
-    fn recommended_keeps_what_is_installed_with_its_requirements() {
+    fn an_index_without_profiles_has_the_recommended_one() {
+        let mut index = index();
+        index.profiles.clear();
+        assert_eq!(default_profile(&index), "recommended");
+        assert_eq!(
+            default_selection(&index),
+            set(&["graphviz", "icarus", "yanc", "yosys"])
+        );
+    }
+
+    #[test]
+    fn a_profile_keeps_what_is_installed_with_its_requirements() {
         let index = index();
-        let installed = vec!["verilator".to_owned(), "nao_existe".to_owned()];
-        let mut expected = recommended(&index);
-        expected.insert("verilator".into());
-        assert_eq!(recommended_keeping(&index, &installed), expected);
-        assert_eq!(recommended_keeping(&index, &[]), recommended(&index));
+        let installed = vec!["yanc".to_owned(), "nao_existe".to_owned()];
+        let mut expected = profile(&index, "verilog").unwrap();
+        expected.insert("yanc".into());
+        assert_eq!(
+            profile_keeping(&index, "verilog", &installed).unwrap(),
+            expected
+        );
+        assert_eq!(
+            profile_keeping(&index, "verilog", &[]).unwrap(),
+            profile(&index, "verilog").unwrap()
+        );
     }
 
     #[test]

@@ -643,6 +643,86 @@ def size_of(path):
     return 0 if path.is_symlink() else path.stat().st_size
 
 
+def check_profiles(catalog):
+    """Confere os perfis de components.json: nomes únicos, componentes que
+    existem e, em cada perfil, o que cada componente exige (requires)."""
+    profiles = catalog.get("profiles", [])
+    if not profiles:
+        sys.exit("components.json: sem perfis (profiles)")
+    known = {c["name"]: c for c in catalog["components"]}
+    seen = set()
+    for prof in profiles:
+        name = prof.get("name", "")
+        if not name or name in seen:
+            sys.exit(f"components.json: perfil sem nome ou repetido: {name!r}")
+        seen.add(name)
+        for key in ("label", "description", "audience", "components"):
+            if not prof.get(key):
+                sys.exit(f"components.json: o perfil {name} não tem {key}")
+        members = set(prof["components"])
+        unknown = members - known.keys()
+        if unknown:
+            sys.exit(f"components.json: o perfil {name} tem componentes desconhecidos: {', '.join(sorted(unknown))}")
+        for member in sorted(members):
+            missing = set(known[member].get("requires", [])) - members
+            if missing:
+                sys.exit(f"components.json: no perfil {name}, {member} exige {', '.join(sorted(missing))}, que falta")
+
+
+def check_translations(catalog):
+    """Confere as traduções de components.json: cada idioma traduz a
+    descrição de todos os componentes e o nome, a descrição e o público de
+    todos os perfis, e nada que não existe."""
+    components = {c["name"] for c in catalog["components"]}
+    profiles = {p["name"] for p in catalog["profiles"]}
+    for lang, texts in catalog.get("translations", {}).items():
+        got = set(texts.get("components", {}))
+        if got != components:
+            sys.exit(
+                f"components.json: a tradução {lang} dos componentes não bate: "
+                f"faltam {sorted(components - got)}, sobram {sorted(got - components)}"
+            )
+        got = set(texts.get("profiles", {}))
+        if got != profiles:
+            sys.exit(
+                f"components.json: a tradução {lang} dos perfis não bate: "
+                f"faltam {sorted(profiles - got)}, sobram {sorted(got - profiles)}"
+            )
+        for name, prof in texts["profiles"].items():
+            for key in ("label", "description", "audience"):
+                if not prof.get(key):
+                    sys.exit(f"components.json: a tradução {lang} do perfil {name} não tem {key}")
+
+
+def component_translations(catalog, name, plat):
+    """As traduções de um componente na plataforma: {idioma: {description}}."""
+    return {
+        lang: {"description": for_platform(texts["components"][name], plat)}
+        for lang, texts in catalog.get("translations", {}).items()
+    }
+
+
+def platform_profiles(catalog, names):
+    """Os perfis com só os componentes de `names` (os do bundle desta
+    plataforma), na ordem do catálogo; um perfil que fica vazio sai."""
+    out = []
+    for prof in catalog["profiles"]:
+        members = [n for n in prof["components"] if n in names]
+        if members:
+            out.append({
+                "name": prof["name"],
+                "label": prof["label"],
+                "description": prof["description"],
+                "audience": prof["audience"],
+                "translations": {
+                    lang: texts["profiles"][prof["name"]]
+                    for lang, texts in catalog.get("translations", {}).items()
+                },
+                "components": members,
+            })
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--out", type=Path, help="diretório do bundle (criado; precisa estar vazio)")
@@ -659,14 +739,18 @@ def main():
     args = parser.parse_args()
     plat = args.platform or current_platform()
 
-    pins = json.loads(args.versions.read_text())
+    pins = json.loads(args.versions.read_text(encoding="utf-8"))
     cache = Path(os.environ.get("LACE_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
     if args.surfer_prebuilt:
         surfer_prebuilt(pins, plat, args.surfer_prebuilt.resolve(), cache)
         return
     if args.out is None:
         parser.error("--out é obrigatório (ou --surfer-prebuilt)")
-    catalog = json.loads(args.components.read_text())
+    # UTF-8 explícito: no Windows, o padrão do Python é a página do sistema
+    # (cp1252), e os textos têm acentos.
+    catalog = json.loads(args.components.read_text(encoding="utf-8"))
+    check_profiles(catalog)
+    check_translations(catalog)
     components = [c for c in catalog["components"] if for_platform(c["package"], plat) in pins["packages"]]
     components = [
         c for c in components
@@ -698,6 +782,11 @@ def main():
         json.dumps({"schema": SCHEMA, "bundle": pins["bundle"], "platform": plat}, indent=2) + "\n"
     )
     (out / "components").mkdir()
+    profiles = platform_profiles(catalog, {c["name"] for c in components})
+    # O primeiro perfil é o padrão. O campo `recommended` dos componentes é
+    # o pertencer a ele, para o Lace anterior aos perfis, que lê o índice da
+    # release nova no `lace update` e exige o campo.
+    default = set(profiles[0]["components"]) if profiles else set()
     contents = []
     for c in components:
         pkg_name = for_platform(c["package"], plat)
@@ -715,7 +804,9 @@ def main():
             "files": {f"{pkg_name}/{r}": sha256_file(out / pkg_name / r) for r in run_list},
         }
         manifest_rel = f"components/{c['name']}.json"
-        (out / manifest_rel).write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+        (out / manifest_rel).write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
         paths = sorted(f"{pkg_name}/{r}" for r in files) + [manifest_rel]
         size = sum(size_of(out / p) for p in paths)
         log(f"{c['name']}: {len(paths)} arquivos, {size / 2**20:.0f} MiB")
@@ -723,8 +814,9 @@ def main():
             "name": c["name"],
             "label": c["label"],
             "description": for_platform(c["description"], plat),
-            "recommended": c.get("recommended", False),
+            "recommended": c["name"] in default,
             "requires": c.get("requires", []),
+            "translations": component_translations(catalog, c["name"], plat),
             "version": spec["version"],
             "files": paths,
         })
@@ -734,10 +826,13 @@ def main():
         "bundle": pins["bundle"],
         "platform": plat,
         "common": ["bundle.json"],
+        "profiles": profiles,
         "components": contents,
     }
     contents_path = out.parent / f"{out.name}.contents.json"
-    contents_path.write_text(json.dumps(index, indent=1, ensure_ascii=False) + "\n")
+    contents_path.write_text(
+        json.dumps(index, indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     total = sum(size_of(p) for p in out.rglob("*") if p.is_file() or p.is_symlink())
     log(f"bundle {pins['bundle']} para {plat} em {out}: {total / 2**20:.0f} MiB; índice em {contents_path}")
 

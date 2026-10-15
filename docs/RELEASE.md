@@ -130,6 +130,16 @@ O `lace-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
   payload da TUI, ou uma entrada `[Files]` do Inno Setup com
   `Components: a or b`.
 - A TUI (`install`) e o assistente só extraem os grupos que a seleção usa.
+- Os perfis de instalação vêm de `profiles` em `bundle/components.json`: o
+  `bundle.py` confere cada um (componentes que existem, com o que cada um
+  exige) e os grava no `contents.json`; o `lace-pack` os põe no
+  `index.json` da TUI e gera, no `components.iss`, um `[Types]` por perfil,
+  o Custom (`avancada`) e a função `ProfileDetail`, com o texto de cada um.
+- A cara do assistente: o ícone do Lace Studio e as imagens de
+  `installer/windows/art/`, geradas da marca (`studio/public/brand`) por
+  `python scripts/installer_art.py`, só com a biblioteca padrão. Mudou a
+  marca, ou o `WizardSizePercent` do `lace.iss`, gere de novo (a proporção
+  da faixa da esquerda segue o `SIZE_PERCENT` do script).
 
 | Ferramenta | Versão fixada | Onde |
 |---|---|---|

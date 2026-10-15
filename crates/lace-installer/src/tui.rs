@@ -1,8 +1,7 @@
 //! A instalação guiada no terminal.
 //!
-//! Telas, nesta ordem: boas-vindas, tipo de instalação (Recomendada ou
-//! Avançada), componentes (só na Avançada), destino, resumo, progresso e
-//! fim. `Esc` volta uma tela; `Ctrl+C` sai (menos durante a extração).
+//! Telas, nesta ordem: boas-vindas, perfil (um dos do índice, ou Custom),
+//! componentes (só na Custom), destino, resumo, progresso e fim. `Esc` volta uma tela; `Ctrl+C` sai (menos durante a extração).
 //!
 //! Para acrescentar aplicativos do bundle a uma instalação
 //! ([`App::for_adding`], o que `lace install` abre), a TUI começa na lista,
@@ -28,6 +27,7 @@ use ratatui::widgets::{Block, BorderType, Gauge, Paragraph, Wrap};
 use ratatui::{DefaultTerminal, Frame};
 
 use crate::add::{self, AddReport, ChunkSource};
+use crate::brand;
 use crate::install::{self, Event, LinkOutcome, Receipt, Report, Target};
 use crate::payload::Index;
 use crate::plan::{self, Profile, Selection};
@@ -37,9 +37,9 @@ use crate::plan::{self, Profile, Selection};
 pub enum Screen {
     /// Boas-vindas.
     Welcome,
-    /// Recomendada ou Avançada.
+    /// Um perfil, ou Custom.
     Profile,
-    /// A lista de componentes (instalação avançada).
+    /// A lista de componentes (instalação Custom).
     Components,
     /// Pasta e atalho.
     Destination,
@@ -128,12 +128,13 @@ impl App {
         compiler: Option<SystemCompiler>,
     ) -> App {
         let existing = Receipt::load(&target.prefix);
-        let selection = plan::recommended(&index);
+        let selection = plan::default_selection(&index);
+        let profile = Profile::Preset(plan::default_profile(&index));
         App {
             screen: Screen::Welcome,
             index,
             payload_dir,
-            profile: Profile::Recommended,
+            profile,
             profile_cursor: 0,
             selection,
             component_cursor: 0,
@@ -170,7 +171,7 @@ impl App {
         let mut app = App::new(index, PathBuf::new(), target, compiler);
         app.existing = None;
         app.screen = Screen::Components;
-        app.profile = Profile::Advanced;
+        app.profile = Profile::Custom;
         app.selection = installed.clone();
         app.adding = Some(installed);
         app.source = Some(source);
@@ -218,36 +219,47 @@ impl App {
                 KeyCode::Esc | KeyCode::Char('q') => return Command::Quit,
                 _ => {}
             },
-            Screen::Profile => match key.code {
-                KeyCode::Up | KeyCode::Char('k') => self.profile_cursor = 0,
-                KeyCode::Down | KeyCode::Char('j') => self.profile_cursor = 1,
-                KeyCode::Enter => {
-                    if self.profile_cursor == 0 {
-                        self.profile = Profile::Recommended;
-                        // Numa instalação que já existe, o que ela tem fica.
-                        self.selection = match &self.existing {
-                            Some(r) => plan::recommended_keeping(&self.index, &r.components),
-                            None => plan::recommended(&self.index),
-                        };
-                        self.screen = Screen::Destination;
-                    } else {
-                        self.profile = Profile::Advanced;
-                        // Parte do que já está instalado, se houver.
-                        if let Some(r) = &self.existing {
-                            self.selection = r
-                                .components
-                                .iter()
-                                .filter(|c| self.index.component(c).is_some())
-                                .cloned()
-                                .collect();
-                        }
-                        self.screen = Screen::Components;
+            Screen::Profile => {
+                let profiles = self.index.profiles();
+                // Os perfis e, por último, o Custom.
+                match key.code {
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        self.profile_cursor = self.profile_cursor.saturating_sub(1)
                     }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        self.profile_cursor = (self.profile_cursor + 1).min(profiles.len())
+                    }
+                    KeyCode::Enter => match profiles.get(self.profile_cursor) {
+                        Some(p) => {
+                            self.profile = Profile::Preset(p.name.clone());
+                            // Numa instalação que já existe, o que ela tem fica.
+                            let installed = self
+                                .existing
+                                .as_ref()
+                                .map_or(&[][..], |r| r.components.as_slice());
+                            self.selection = plan::profile_keeping(&self.index, &p.name, installed)
+                                .unwrap_or_default();
+                            self.screen = Screen::Destination;
+                        }
+                        None => {
+                            self.profile = Profile::Custom;
+                            // Parte do que já está instalado, se houver.
+                            if let Some(r) = &self.existing {
+                                self.selection = r
+                                    .components
+                                    .iter()
+                                    .filter(|c| self.index.component(c).is_some())
+                                    .cloned()
+                                    .collect();
+                            }
+                            self.screen = Screen::Components;
+                        }
+                    },
+                    KeyCode::Esc => self.screen = Screen::Welcome,
+                    KeyCode::Char('q') => return Command::Quit,
+                    _ => {}
                 }
-                KeyCode::Esc => self.screen = Screen::Welcome,
-                KeyCode::Char('q') => return Command::Quit,
-                _ => {}
-            },
+            }
             Screen::Components => {
                 let count = self.index.components.len();
                 match key.code {
@@ -313,8 +325,8 @@ impl App {
                 }
                 KeyCode::Esc => {
                     self.screen = match self.profile {
-                        Profile::Advanced => Screen::Components,
-                        Profile::Recommended => Screen::Profile,
+                        Profile::Custom => Screen::Components,
+                        Profile::Preset(_) => Screen::Profile,
                     }
                 }
                 _ => {}
@@ -422,6 +434,17 @@ impl App {
         }
     }
 
+    /// O nome do perfil escolhido, para o resumo.
+    fn profile_label(&self) -> String {
+        match &self.profile {
+            Profile::Custom => "Custom".to_owned(),
+            Profile::Preset(name) => self
+                .index
+                .profile(name)
+                .map_or_else(|| name.clone(), |p| p.label),
+        }
+    }
+
     fn label(&self, name: &str) -> String {
         self.index
             .component(name)
@@ -463,7 +486,7 @@ impl App {
         };
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
-            .title(Span::styled(title, bold().fg(Color::Cyan)));
+            .title(Span::styled(title, bold().fg(brand::accent())));
         let inner = block.inner(area);
         frame.render_widget(block, area);
         let [body, message, keys] = Layout::vertical([
@@ -521,7 +544,28 @@ impl App {
             [one] => (*one).to_owned(),
             [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
         };
-        let mut lines = vec![
+        // A marca, com o nome ao lado, na altura dos fios.
+        let mark = brand::mark(MARK_COLS);
+        let beside = [
+            Span::raw(""),
+            Span::styled("Lace", bold().fg(brand::cream())),
+            Span::styled("NIPS-CERN · UFJF", dim()),
+        ];
+        let mut lines: Vec<Line> = mark
+            .iter()
+            .enumerate()
+            .map(|(i, row)| {
+                let pad = MARK_COLS.saturating_sub(row.chars().count());
+                let mut spans = vec![Span::styled(
+                    format!("{row}{}   ", " ".repeat(pad)),
+                    Style::default().fg(brand::accent()),
+                )];
+                spans.extend(beside.get(i).cloned());
+                Line::from(spans)
+            })
+            .collect();
+        lines.extend([
+            Line::from(""),
             Line::from(Span::styled("Welcome to the Lace installer", bold())),
             Line::from(""),
             Line::from(format!(
@@ -535,14 +579,14 @@ impl App {
                 self.index.bundle
             )),
             Line::from(""),
-            Line::from("Next: choose the installation type and folder, then confirm."),
-        ];
+            Line::from("Next: choose a profile and the folder, then confirm."),
+        ]);
         if let Some(r) = &self.existing {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 format!(
                     "There is already a Lace {} installation in {} ({}). It will be replaced \
-                     by Lace {}; with the Recommended type, the apps it has stay.",
+                     by Lace {}; with a profile, the apps it has stay.",
                     r.lace_version,
                     self.prefix,
                     r.components.join(", "),
@@ -555,63 +599,126 @@ impl App {
     }
 
     fn draw_profile(&self, frame: &mut Frame, area: Rect) {
-        let rec = plan::recommended(&self.index);
-        let rec_labels: Vec<&str> = self
-            .index
-            .components
-            .iter()
-            .filter(|c| c.recommended)
-            .map(|c| c.label.as_str())
-            .collect();
-        let options = [
-            (
-                "Recommended",
-                format!(
-                    "{} ({})",
-                    rec_labels.join(", "),
-                    crate::mib(self.index.size_of(&rec))
-                ),
-            ),
-            (
-                "Advanced",
-                "Choose exactly which components to install".to_owned(),
-            ),
-        ];
+        let profiles = self.index.profiles();
         let mut lines = vec![
-            Line::from(Span::styled("Installation type", bold())),
+            Line::from(Span::styled("Installation profile", bold())),
             Line::from(""),
         ];
-        for (i, (name, detail)) in options.iter().enumerate() {
+        // A lista: um perfil por linha, com o tamanho, e o Custom.
+        for i in 0..=profiles.len() {
             let selected = i == self.profile_cursor;
             let marker = if selected { "› " } else { "  " };
             let style = if selected {
-                bold().fg(Color::Cyan)
+                bold().fg(brand::accent())
             } else {
                 Style::default()
             };
+            let (name, detail) = match profiles.get(i) {
+                Some(p) => {
+                    let selection = plan::profile(&self.index, &p.name).unwrap_or_default();
+                    // O padrão é o recomendado, e diz isso no nome.
+                    let name = if i == 0 {
+                        format!("{} (Recommended)", p.label)
+                    } else {
+                        p.label.clone()
+                    };
+                    (
+                        name,
+                        format!(
+                            "{} ({})",
+                            p.description,
+                            crate::mib(self.index.size_of(&selection))
+                        ),
+                    )
+                }
+                None => (
+                    "Custom (advanced)".to_owned(),
+                    "For users who know which components they need".to_owned(),
+                ),
+            };
             lines.push(Line::from(vec![
-                Span::styled(format!("{marker}{name:<12}"), style),
-                Span::styled(detail.clone(), dim()),
+                Span::styled(format!("{marker}{name:<22}"), style),
+                Span::styled(detail, dim()),
             ]));
-            lines.push(Line::from(""));
         }
-        let not_rec: Vec<&str> = self
+        lines.push(Line::from(""));
+        // O perfil sob o cursor: para quem é, e todos os aplicativos, os que
+        // ele instala marcados e os que deixa de fora, não.
+        match profiles.get(self.profile_cursor) {
+            Some(p) => {
+                let selection = plan::profile(&self.index, &p.name).unwrap_or_default();
+                if !p.audience.is_empty() {
+                    let text = format!("For {}.", crate::lowercase_first(&p.audience));
+                    lines.extend(
+                        crate::wrap(&text, area.width as usize)
+                            .into_iter()
+                            .map(Line::from),
+                    );
+                    lines.push(Line::from(""));
+                }
+                lines.push(Line::from(Span::styled(
+                    format!(
+                        "{} installs {LACE_LABEL} and {} of the {} apps:",
+                        p.label,
+                        selection.len(),
+                        self.index.components.len()
+                    ),
+                    bold(),
+                )));
+                lines.extend(self.app_lines(&selection, area.width));
+            }
+            None => {
+                let text = format!(
+                    "The Custom installation is for advanced use, for users who know which \
+                     components they need. The next screen lists every app; Space marks and \
+                     unmarks. {LACE_LABEL} is always installed."
+                );
+                lines.extend(
+                    crate::wrap(&text, area.width as usize)
+                        .into_iter()
+                        .map(|l| Line::from(Span::styled(l, dim()))),
+                );
+            }
+        }
+        // Sem quebrar as linhas da lista: cada aplicativo numa linha só.
+        frame.render_widget(Paragraph::new(lines), area);
+    }
+
+    /// Todos os aplicativos, um por linha, marcados se estão em `selection`;
+    /// a descrição é cortada para caber em `width`.
+    fn app_lines(&self, selection: &Selection, width: u16) -> Vec<Line<'static>> {
+        let label_width = self
             .index
             .components
             .iter()
-            .filter(|c| !c.recommended)
-            .map(|c| c.label.as_str())
-            .collect();
-        if !not_rec.is_empty() {
-            lines.push(Line::from(Span::styled(
-                format!(
-                    "Not in Recommended: {}. To install them, choose Advanced.",
-                    not_rec.join(", ")
-                ),
-                dim(),
-            )));
-        }
-        frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: true }), area);
+            .map(|c| c.label.chars().count())
+            .max()
+            .unwrap_or(0)
+            .max(LACE_LABEL.len());
+        let room = (width as usize).saturating_sub(label_width + 8);
+        let row = |on: bool, label: &str, description: &str| {
+            let mark = if on { "[x]" } else { "[ ]" };
+            let description: String = if description.chars().count() > room {
+                let mut cut: String = description.chars().take(room.saturating_sub(1)).collect();
+                cut.push('…');
+                cut
+            } else {
+                description.to_owned()
+            };
+            let style = if on { Style::default() } else { dim() };
+            Line::from(vec![
+                Span::styled(format!("  {mark} {label:<label_width$}  "), style),
+                Span::styled(description, dim()),
+            ])
+        };
+        std::iter::once(row(true, LACE_LABEL, "Always installed"))
+            .chain(
+                self.index
+                    .components
+                    .iter()
+                    .map(|c| row(selection.contains(&c.name), &c.label, &c.description)),
+            )
+            .collect()
     }
 
     fn draw_components(&self, frame: &mut Frame, area: Rect) {
@@ -628,8 +735,8 @@ impl App {
                 Line::from(Span::styled("Components", bold())),
                 Line::from(""),
                 Line::from(vec![
-                    Span::styled("[x] Lace", dim()),
-                    Span::styled("  Command-line tool, always installed", dim()),
+                    Span::styled(format!("[x] {LACE_LABEL}"), dim()),
+                    Span::styled("  Always installed, with any profile", dim()),
                 ]),
             ],
         };
@@ -638,7 +745,7 @@ impl App {
             let installed = self.adding.as_ref().is_some_and(|s| s.contains(&c.name));
             let cursor = i == self.component_cursor;
             let style = if cursor {
-                bold().fg(Color::Cyan)
+                bold().fg(brand::accent())
             } else {
                 Style::default()
             };
@@ -712,7 +819,7 @@ impl App {
         let input_style = if self.focus_link {
             dim()
         } else {
-            Style::default().fg(Color::Cyan)
+            Style::default().fg(brand::accent())
         };
         let cursor = if self.focus_link { "" } else { "▏" };
         frame.render_widget(
@@ -725,7 +832,7 @@ impl App {
         );
         if let Some(path) = &self.link_path {
             let style = if self.focus_link {
-                bold().fg(Color::Cyan)
+                bold().fg(brand::accent())
             } else {
                 Style::default()
             };
@@ -782,14 +889,11 @@ impl App {
         let mut lines = vec![
             Line::from(Span::styled("Ready to install", bold())),
             Line::from(""),
+            kv("Profile", &self.profile_label()),
             kv(
-                "Type",
-                match self.profile {
-                    Profile::Recommended => "Recommended",
-                    Profile::Advanced => "Advanced",
-                },
+                "Components",
+                &format!("{LACE_LABEL}, {}", self.selection_labels()),
             ),
-            kv("Components", &format!("Lace, {}", self.selection_labels())),
             kv("Folder", &target.prefix.to_string_lossy()),
             kv(
                 "Link",
@@ -833,7 +937,7 @@ impl App {
         frame.render_widget(
             Gauge::default()
                 .block(Block::bordered().border_type(BorderType::Rounded))
-                .gauge_style(Style::default().fg(Color::Cyan))
+                .gauge_style(Style::default().fg(brand::accent()))
                 .ratio(ratio)
                 .label(format!(
                     "{} of {}",
@@ -1006,6 +1110,13 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
     lines
 }
 
+/// O nome do Lace nas listas de aplicativos: sempre instalado, em qualquer
+/// perfil.
+const LACE_LABEL: &str = "Lace (CLI & Core)";
+
+/// A largura da marca na tela de boas-vindas, em colunas.
+const MARK_COLS: usize = 20;
+
 fn kv(key: &str, value: &str) -> Line<'static> {
     Line::from(vec![
         Span::styled(format!("{key:<13}"), dim()),
@@ -1108,54 +1219,101 @@ mod tests {
     }
 
     #[test]
-    fn recommended_path_skips_the_component_list() {
+    fn a_profile_skips_the_component_list() {
         let mut app = app();
-        assert!(screen_text(&app).contains("Welcome"));
+        let text = screen_text(&app);
+        assert!(text.contains("Welcome"), "{text}");
+        assert!(
+            text.chars().any(|c| ('\u{2801}'..='\u{28ff}').contains(&c)),
+            "a marca em braille:\n{text}"
+        );
         app.handle(key(KeyCode::Enter));
         assert_eq!(app.screen, Screen::Profile);
+        // Os perfis do índice e o Custom; o do cursor mostra o público e os
+        // aplicativos.
         let text = screen_text(&app);
         assert!(
-            text.contains("Recommended") && text.contains("Advanced"),
+            text.contains("SAPHO") && text.contains("VERILOG") && text.contains("Custom"),
             "{text}"
         );
-        assert!(text.contains("Not in Recommended: VERILATOR"), "{text}");
+        assert!(text.contains("SAPHO (Recommended)"), "{text}");
+        assert!(text.contains("Custom (advanced)"), "{text}");
+        assert!(text.contains("For quem usa sapho."), "{text}");
+        // Todos os aplicativos, um por linha, marcados pelo perfil.
+        assert!(
+            text.contains("SAPHO installs Lace (CLI & Core) and 5 of the 5 apps:"),
+            "{text}"
+        );
+        assert!(text.contains("[x] Lace (CLI & Core)"), "{text}");
+        assert!(
+            text.contains("[x] YANC ") && text.contains("[x] VERILATOR "),
+            "{text}"
+        );
+        app.handle(key(KeyCode::Down));
+        let text = screen_text(&app);
+        assert!(text.contains("For quem usa verilog."), "{text}");
+        assert!(
+            text.contains("VERILOG installs Lace (CLI & Core) and 3 of the 5 apps:"),
+            "{text}"
+        );
+        assert!(
+            text.contains("[ ] YANC ") && text.contains("[ ] VERILATOR "),
+            "{text}"
+        );
+        assert!(
+            text.contains("[x] ICARUS ") && text.contains("[x] YOSYS "),
+            "{text}"
+        );
         app.handle(key(KeyCode::Enter));
         assert_eq!(app.screen, Screen::Destination);
-        assert_eq!(app.profile, Profile::Recommended);
-        assert_eq!(app.selection, crate::plan::recommended(&app.index));
+        assert_eq!(app.profile, Profile::Preset("verilog".into()));
+        assert_eq!(
+            app.selection,
+            crate::plan::profile(&app.index, "verilog").unwrap()
+        );
         assert_eq!(app.handle(key(KeyCode::Enter)), Command::None);
         assert_eq!(app.screen, Screen::Summary);
-        assert!(screen_text(&app).contains("Recommended"));
+        assert!(screen_text(&app).contains("VERILOG"));
         assert_eq!(app.handle(key(KeyCode::Enter)), Command::Install);
     }
 
     #[test]
-    fn recommended_over_an_installation_keeps_its_apps() {
+    fn a_profile_over_an_installation_keeps_its_apps() {
         let mut app = app();
         app.existing = Some(Receipt {
             lace_version: "0.1.0".into(),
             bundle: "teste".into(),
             platform: "linux-x64".into(),
-            components: vec!["verilator".into(), "saiu".into()],
+            components: vec!["yanc".into(), "saiu".into()],
             link: None,
         });
         let text = screen_text(&app);
         assert!(text.contains("the apps it has stay"), "{text}");
         app.handle(key(KeyCode::Enter));
+        app.handle(key(KeyCode::Down));
         app.handle(key(KeyCode::Enter));
-        assert_eq!(app.profile, Profile::Recommended);
-        let mut expected = crate::plan::recommended(&app.index);
-        expected.insert("verilator".into());
+        assert_eq!(app.profile, Profile::Preset("verilog".into()));
+        let mut expected = crate::plan::profile(&app.index, "verilog").unwrap();
+        expected.insert("yanc".into());
         assert_eq!(app.selection, expected);
     }
 
     #[test]
-    fn advanced_path_toggles_components_with_their_requirements() {
+    fn custom_toggles_components_with_their_requirements() {
         let mut app = app();
         app.handle(key(KeyCode::Enter));
-        app.handle(key(KeyCode::Down));
+        // O Custom vem depois dos dois perfis; o cursor não passa dele.
+        for _ in 0..5 {
+            app.handle(key(KeyCode::Down));
+        }
+        let text = screen_text(&app);
+        assert!(
+            text.contains("lists every app") && text.contains("advanced use"),
+            "{text}"
+        );
         app.handle(key(KeyCode::Enter));
         assert_eq!(app.screen, Screen::Components);
+        assert_eq!(app.profile, Profile::Custom);
         assert!(screen_text(&app).contains("System compiler not found"));
         // Cursor no Yosys (4º): desmarcar leva o Graphviz junto.
         for _ in 0..3 {
@@ -1163,13 +1321,13 @@ mod tests {
         }
         app.handle(key(KeyCode::Char(' ')));
         assert!(!app.selection.contains("yosys") && !app.selection.contains("graphviz"));
-        // Verilator (3º) entra.
+        // O Verilator (3º), que o perfil padrão trazia, sai.
         app.handle(key(KeyCode::Up));
         app.handle(key(KeyCode::Char(' ')));
-        assert!(app.selection.contains("verilator"));
+        assert!(!app.selection.contains("verilator"));
         let text = screen_text(&app);
         assert!(
-            text.contains("[x] VERILATOR") && text.contains("[ ] YOSYS"),
+            text.contains("[ ] VERILATOR") && text.contains("[ ] YOSYS"),
             "{text}"
         );
         app.handle(key(KeyCode::Enter));
@@ -1178,7 +1336,7 @@ mod tests {
         assert_eq!(
             app.screen,
             Screen::Components,
-            "Esc volta para a lista na avançada"
+            "Esc volta para a lista no Custom"
         );
     }
 

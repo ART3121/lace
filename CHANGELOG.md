@@ -2,6 +2,34 @@
 
 ## Não publicada
 
+- A instalação começa por um perfil, no lugar de Recommended e Advanced:
+  **SAPHO** (o recomendado e padrão, todos os aplicativos), **Verilog**
+  (todos menos o YANC) e **Custom** (uso avançado, para quem sabe de quais
+  componentes precisa). Cada perfil diz para quem serve e mostra a lista
+  inteira dos aplicativos, com os que ele instala marcados e travados; só o
+  Custom deixa marcar. O Lace (CLI & Core) vem sempre marcado. Na
+  instalação guiada do Linux e do macOS, o perfil sob o cursor mostra cada
+  aplicativo com `[x]` ou `[ ]`. O padrão muda: o SAPHO traz também o
+  Verilator, o cocotb, o openFPGALoader e o Lace Learn, que a Recommended
+  deixava de fora. Os perfis ficam em `bundle/components.json`
+  (`profiles`), que o `bundle.py` confere; o campo `recommended` dos
+  componentes saiu, e o índice da release continua a gravá-lo (o do perfil
+  padrão) para o `lace update` das versões anteriores.
+- O assistente do Windows começa perguntando o idioma: inglês ou português
+  do Brasil, com o do Windows já escolhido (`/LANG=en` ou `/LANG=pt`). As
+  descrições dos aplicativos e dos perfis em português ficam em
+  `bundle/components.json` (`translations`), que o `bundle.py` confere.
+- `./install --yes --profile <perfil>` instala um perfil sem perguntar, e
+  `./install --list` mostra cada perfil com o tamanho, o público e os
+  aplicativos. No assistente do Windows, `/TYPE=` recebe o perfil (`sapho`,
+  `verilog`) ou `avancada`, o Custom; o `/TYPE=recomendada` de
+  antes cai no perfil padrão.
+- O instalador com a cara do Lace. O assistente do Windows usa o ícone do
+  Lace Studio, segue o modo claro ou escuro do Windows, traz na página de
+  boas-vindas a marca e o nome sobre o azul do Lace e é mais alto, para a
+  lista de aplicativos caber sem rolar; as imagens saem da marca por
+  `scripts/installer_art.py`. A instalação guiada do Linux e do macOS abre
+  com a marca desenhada em braille e usa as cores dela.
 - `lace proc remove <nome>` tira um processador do projeto: a entrada no
   `.spf`, o Verilog e o testbench gerados das listas de arquivos (com a
   escolha de topo e de testbench que apontava para eles) e a pasta

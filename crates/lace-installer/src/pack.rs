@@ -15,7 +15,9 @@ use anyhow::{Context, bail};
 use serde::Deserialize;
 
 use crate::files::{self, FILES_FILE, FILES_SCHEMA, FileGroup, FilesManifest};
-use crate::payload::{Chunk, ComponentInfo, INDEX_FILE, INDEX_SCHEMA, Index, PAYLOAD_DIR};
+use crate::payload::{
+    Chunk, ComponentInfo, INDEX_FILE, INDEX_SCHEMA, Index, PAYLOAD_DIR, ProfileInfo,
+};
 
 /// O índice `<bundle>.contents.json` do `bundle.py`.
 #[derive(Debug, Clone, Deserialize)]
@@ -28,6 +30,10 @@ pub struct Contents {
     pub platform: String,
     /// Arquivos que vão com qualquer seleção (o `bundle.json`).
     pub common: Vec<String>,
+    /// Os perfis de instalação, o padrão primeiro; vazio num índice
+    /// anterior a eles ([`Contents::profiles`]).
+    #[serde(default)]
+    pub profiles: Vec<ProfileInfo>,
     /// Os componentes, com os arquivos de cada um.
     pub components: Vec<ContentsComponent>,
 }
@@ -41,16 +47,27 @@ pub struct ContentsComponent {
     pub label: String,
     /// O que ele faz.
     pub description: String,
-    /// Faz parte do perfil recomendado?
+    /// Faz parte do perfil padrão? O `bundle.py` grava; o Lace anterior aos
+    /// perfis precisa dele no índice.
     pub recommended: bool,
     /// Dependências.
     #[serde(default)]
     pub requires: Vec<String>,
+    /// A descrição em outros idiomas, por código (`pt`).
+    #[serde(default)]
+    pub translations: BTreeMap<String, ComponentText>,
     /// Versão.
     pub version: String,
     /// Todos os arquivos que ele usa, relativos ao bundle, inclusive os que
     /// divide com outros.
     pub files: Vec<String>,
+}
+
+/// A descrição de um componente num idioma.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ComponentText {
+    /// O que ele faz.
+    pub description: String,
 }
 
 impl Contents {
@@ -64,6 +81,24 @@ impl Contents {
             bail!("{}: unknown format {}", path.display(), contents.schema);
         }
         Ok(contents)
+    }
+
+    /// Os perfis, como [`Index::profiles`]: os do índice, ou um,
+    /// `recommended`, num índice anterior a eles.
+    pub fn profiles(&self) -> Vec<ProfileInfo> {
+        self.index_without_chunks().profiles()
+    }
+
+    fn index_without_chunks(&self) -> Index {
+        Index {
+            schema: INDEX_SCHEMA,
+            lace_version: crate::LACE_VERSION.to_owned(),
+            bundle: self.bundle.clone(),
+            platform: self.platform.clone(),
+            profiles: self.profiles.clone(),
+            components: self.infos(),
+            chunks: Vec::new(),
+        }
     }
 
     fn infos(&self) -> Vec<ComponentInfo> {
@@ -264,10 +299,11 @@ fn write_chunk(out: &Path, entries: &[Entry], level: i32) -> anyhow::Result<()> 
 const README: &str = "\
 Lace {version} installer ({platform}), tool bundle {bundle}
 
-  ./install              Guided installation in the terminal
-  ./install --yes        Recommended profile, no questions
-  ./install --list       The components and the size of each
-  ./install --help       All options
+  ./install                      Guided installation in the terminal
+  ./install --yes                The default profile, no questions
+  ./install --yes --profile NAME Another profile (see --list)
+  ./install --list               The profiles, the components and the size of each
+  ./install --help               All options
 
 Default: ~/.local/share/lace, with the link ~/.local/bin/lace.
 To remove it, with the bundle: lace uninstall (or <installation folder>/uninstall.sh)
@@ -339,12 +375,8 @@ pub fn tui(
     }
 
     let index = Index {
-        schema: INDEX_SCHEMA,
-        lace_version: crate::LACE_VERSION.to_owned(),
-        bundle: contents.bundle.clone(),
-        platform: contents.platform.clone(),
-        components: contents.infos(),
         chunks,
+        ..contents.index_without_chunks()
     };
     fs::write(
         payload.join(INDEX_FILE),
@@ -458,13 +490,138 @@ pub fn inno_component_names<'a>(
         .collect())
 }
 
-/// "a, b e c".
-fn human_list(items: &[&str]) -> String {
-    match items {
-        [] => "no components".into(),
-        [one] => (*one).into(),
-        [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+/// O tipo de instalação Custom no Inno Setup. Por dentro é `avancada`, o
+/// nome da instalação Advanced de antes dos perfis, que o `lace update` das
+/// versões anteriores passa ao assistente novo em `/TYPE=`.
+pub const CUSTOM_TYPE: &str = "avancada";
+
+/// Os idiomas do assistente do Windows: o código das traduções de
+/// `bundle/components.json` e o nome do idioma no `[Languages]` do
+/// `installer/windows/lace.iss`, que são o mesmo. O inglês é o texto base.
+pub const INNO_LANGUAGES: [&str; 2] = ["en", "pt"];
+
+/// O nome do Lace na lista de componentes, sempre marcado.
+const LACE_LABEL: &str = "Lace (CLI & Core)";
+
+/// Os textos fixos do `components.iss` em cada idioma.
+struct InnoTexts {
+    recommended: &'static str,
+    custom_type: &'static str,
+    /// O perfil escolhido: o nome, quantos aplicativos marca e de quantos.
+    profile: fn(&str, usize, usize) -> String,
+    /// Para quem ele é, depois do [`profile`](Self::profile).
+    audience: fn(&str) -> String,
+    /// O Custom, com o total de aplicativos.
+    custom: fn(usize) -> String,
+}
+
+fn inno_texts(lang: &str) -> InnoTexts {
+    match lang {
+        "pt" => InnoTexts {
+            recommended: "Recomendado",
+            custom_type: "Personalizada (avançada): você escolhe os componentes",
+            profile: |label, marked, total| {
+                format!(
+                    "O {label} instala o {LACE_LABEL} e os {marked} aplicativos marcados \
+                     abaixo, de {total}."
+                )
+            },
+            audience: |audience| format!(" Para {}.", crate::lowercase_first(audience)),
+            custom: |total| {
+                format!(
+                    "A instalação personalizada é para uso avançado, para quem sabe de quais \
+                     componentes precisa: marque abaixo os aplicativos a instalar, de {total}. \
+                     O {LACE_LABEL} é sempre instalado."
+                )
+            },
+        },
+        _ => InnoTexts {
+            recommended: "Recommended",
+            custom_type: "Custom (advanced): choose the components yourself",
+            profile: |label, marked, total| {
+                format!(
+                    "{label} installs {LACE_LABEL} and the {marked} apps marked below, of {total}."
+                )
+            },
+            audience: |audience| format!(" For {}.", crate::lowercase_first(audience)),
+            custom: |total| {
+                format!(
+                    "The Custom installation is for advanced use, for users who know which \
+                     components they need: mark below the apps to install, of the {total}. \
+                     {LACE_LABEL} is always installed."
+                )
+            },
+        },
     }
+}
+
+/// A seção `[CustomMessages]` do `components.iss`, com os textos dos tipos,
+/// dos componentes e do perfil em cada idioma de [`INNO_LANGUAGES`] (o que
+/// não tem tradução fica em inglês), e a função `ProfileDetail`: para o
+/// nome de um tipo de instalação, a linha que a página de componentes
+/// mostra entre a caixa dos perfis e a lista.
+fn inno_messages(profiles: &[ProfileInfo], contents: &Contents) -> String {
+    // Uma mensagem vai até o fim da linha; o `%` abre um argumento.
+    let one_line = |text: &str| text.replace(['\r', '\n'], " ").replace('%', "%%");
+    let total = contents.components.len();
+    let mut msgs = String::from("\n[CustomMessages]\n");
+    for lang in INNO_LANGUAGES {
+        let texts = inno_texts(lang);
+        let mut put = |key: &str, value: &str| {
+            msgs.push_str(&format!("{lang}.{key}={}\n", one_line(value)));
+        };
+        for (i, p) in profiles.iter().enumerate() {
+            let (label, description, audience) = match p.translations.get(lang) {
+                Some(t) => (&t.label, &t.description, &t.audience),
+                None => (&p.label, &p.description, &p.audience),
+            };
+            let shown = if i == 0 {
+                format!("{label} ({})", texts.recommended)
+            } else {
+                label.clone()
+            };
+            put(
+                &format!("Type_{}", inno_name(&p.name)),
+                &format!("{shown}: {}", crate::lowercase_first(description)),
+            );
+            let marked = contents
+                .components
+                .iter()
+                .filter(|c| p.components.contains(&c.name))
+                .count();
+            let mut detail = (texts.profile)(&shown, marked, total);
+            if !audience.is_empty() {
+                detail.push_str(&(texts.audience)(audience));
+            }
+            put(&format!("Detail_{}", inno_name(&p.name)), &detail);
+        }
+        put("Type_Custom", texts.custom_type);
+        put("Detail_Custom", &(texts.custom)(total));
+        put("Comp_lace", LACE_LABEL);
+        for c in &contents.components {
+            let description = c
+                .translations
+                .get(lang)
+                .map_or(&c.description, |t| &t.description);
+            put(
+                &format!("Comp_{}", inno_name(&c.name)),
+                &format!("{}: {description}", c.label),
+            );
+        }
+    }
+    msgs.push_str(
+        "\n[Code]\n{ O texto da página de componentes para o tipo escolhido. }\n\
+         function ProfileDetail(const TypeName: String): String;\nbegin\n  \
+         Result := CustomMessage('Detail_Custom');\n",
+    );
+    for p in profiles {
+        let name = inno_name(&p.name);
+        msgs.push_str(&format!(
+            "  if TypeName = '{name}' then\n    Result := CustomMessage('Detail_{name}');\n"
+        ));
+    }
+    msgs.push_str("end;\n");
+    msgs
 }
 
 fn inno_quote(text: &str) -> String {
@@ -496,19 +653,31 @@ pub fn inno(
     let parent = inno_parents(&pairs)?;
     let full = |name: &str| inno_full_name(&parent, name);
 
-    let recommended: Vec<&str> = contents
-        .components
-        .iter()
-        .filter(|c| c.recommended)
-        .map(|c| c.label.as_str())
-        .collect();
+    // Os tipos de instalação: um por perfil, o padrão primeiro, e o Custom,
+    // de marcar à mão.
+    let profiles = contents.profiles();
     let mut iss = format!(
-        "; Gerado por lace-pack a partir do índice do bundle. Não editar.\n\n#define Recommended \"{}\"\n\n[Components]\n",
-        inno_quote(&human_list(&recommended))
+        "; Gerado por lace-pack a partir do índice do bundle. Não editar.\n\n#define DefaultProfile \"{}\"\n\n[Types]\n",
+        inno_quote(&profiles.first().map_or(String::new(), |p| p.label.clone()))
     );
-    iss.push_str(
-        "Name: \"lace\"; Description: \"Lace (command line)\"; Types: recomendada avancada; Flags: fixed\n",
-    );
+    for p in &profiles {
+        let name = inno_name(&p.name);
+        iss.push_str(&format!(
+            "Name: \"{name}\"; Description: \"{{cm:Type_{name}}}\"\n"
+        ));
+    }
+    iss.push_str(&format!(
+        "Name: \"{CUSTOM_TYPE}\"; Description: \"{{cm:Type_Custom}}\"; Flags: iscustom\n\n[Components]\n"
+    ));
+    let all_types: Vec<String> = profiles
+        .iter()
+        .map(|p| inno_name(&p.name))
+        .chain([CUSTOM_TYPE.to_owned()])
+        .collect();
+    iss.push_str(&format!(
+        "Name: \"lace\"; Description: \"{{cm:Comp_lace}}\"; Types: {}; Flags: fixed\n",
+        all_types.join(" ")
+    ));
     let mut ordered: Vec<&ContentsComponent> = Vec::new();
     for c in contents
         .components
@@ -525,13 +694,17 @@ pub fn inno(
     }
     for c in &ordered {
         let mut line = format!(
-            "Name: \"{}\"; Description: \"{}: {}\"",
+            "Name: \"{}\"; Description: \"{{cm:Comp_{}}}\"",
             full(&c.name),
-            inno_quote(&c.label),
-            inno_quote(&c.description)
+            inno_name(&c.name)
         );
-        if c.recommended {
-            line.push_str("; Types: recomendada");
+        let types: Vec<String> = profiles
+            .iter()
+            .filter(|p| p.components.contains(&c.name))
+            .map(|p| inno_name(&p.name))
+            .collect();
+        if !types.is_empty() {
+            line.push_str(&format!("; Types: {}", types.join(" ")));
         }
         if parent.values().any(|p| *p == c.name) {
             line.push_str("; Flags: checkablealone");
@@ -558,6 +731,7 @@ pub fn inno(
         ));
     }
     iss.push_str("end;\n");
+    iss.push_str(&inno_messages(&profiles, contents));
 
     iss.push_str("\n[Files]\nSource: \"{#Stage}\\bin\\lace.exe\"; DestDir: \"{app}\\bin\"; Components: lace; Flags: ignoreversion\n");
     // No assistente que baixa os aplicativos, o bundle não vai dentro dele.
@@ -617,9 +791,8 @@ fn write_iss(path: &Path, text: &str) -> anyhow::Result<()> {
 fn web_script(installer: &Path, full: &dyn Fn(&str) -> String) -> anyhow::Result<String> {
     let payload = installer.join(PAYLOAD_DIR);
     let index = Index::load(&payload)?;
-    let asset = |file: &str| {
-        crate::payload::release_asset(&index.lace_version, &index.platform, file)
-    };
+    let asset =
+        |file: &str| crate::payload::release_asset(&index.lace_version, &index.platform, file);
     let mut iss = String::from(
         "; Gerado por lace-pack a partir do payload da release. Não editar.\n\n[Code]\n\
          { O índice, o pedaço sempre instalado e os dos componentes marcados. }\n\
@@ -673,6 +846,18 @@ mod tests {
             description: format!("o \"{name}\""),
             recommended: name != "verilator",
             requires: requires.iter().map(|s| s.to_string()).collect(),
+            // Só o Yosys tem tradução: os outros ficam em inglês no `pt`.
+            translations: if name == "yosys" {
+                [(
+                    "pt".to_owned(),
+                    ComponentText {
+                        description: "a síntese".into(),
+                    },
+                )]
+                .into()
+            } else {
+                BTreeMap::new()
+            },
             version: "1".into(),
             files: files.iter().map(|s| s.to_string()).collect(),
         };
@@ -681,6 +866,34 @@ mod tests {
             bundle: "teste".into(),
             platform: "linux-x64".into(),
             common: vec!["bundle.json".into()],
+            profiles: vec![
+                ProfileInfo {
+                    name: "tudo".into(),
+                    label: "Tudo".into(),
+                    description: "todos os \"apps\"".into(),
+                    audience: "quem usa o SAPHO".into(),
+                    translations: [(
+                        "pt".to_owned(),
+                        crate::payload::ProfileText {
+                            label: "Tudo".into(),
+                            description: "todos os apps".into(),
+                            audience: "quem usa o SAPHO, em português".into(),
+                        },
+                    )]
+                    .into(),
+                    components: ["icarus", "verilator", "yosys", "graphviz", "surfer-aurora"]
+                        .map(String::from)
+                        .to_vec(),
+                },
+                ProfileInfo {
+                    name: "sim".into(),
+                    label: "Sim".into(),
+                    description: "só simular".into(),
+                    audience: "quem só simula, na aula d'O Lace".into(),
+                    translations: Default::default(),
+                    components: ["icarus", "surfer-aurora"].map(String::from).to_vec(),
+                },
+            ],
             components: vec![
                 c(
                     "icarus",
@@ -780,20 +993,58 @@ mod tests {
         let iss = fs::read_to_string(out.join("components.iss")).unwrap();
         assert!(iss.starts_with('\u{feff}'));
         let iss = iss.replace("\r\n", "\n");
-        assert!(iss.contains("Name: \"yosys\"; Description: \"YOSYS: o \"\"yosys\"\"\"; Types: recomendada; Flags: checkablealone"), "{iss}");
-        assert!(iss.contains("Name: \"yosys\\graphviz\""), "{iss}");
+        // Um tipo por perfil, o padrão primeiro, e o Custom; os textos vêm
+        // das mensagens de cada idioma.
         assert!(
-            iss.contains("#define Recommended \"ICARUS, YOSYS, GRAPHVIZ and SURFER-AURORA\""),
+            iss.contains(
+                "#define DefaultProfile \"Tudo\"\n\n[Types]\n\
+                 Name: \"tudo\"; Description: \"{cm:Type_tudo}\"\n\
+                 Name: \"sim\"; Description: \"{cm:Type_sim}\"\n\
+                 Name: \"avancada\"; Description: \"{cm:Type_Custom}\"; Flags: iscustom\n"
+            ),
             "{iss}"
         );
-        assert!(iss.contains("Name: \"surfer_aurora\""), "{iss}");
+        assert!(
+            iss.contains("Name: \"lace\"; Description: \"{cm:Comp_lace}\"; Types: tudo sim avancada; Flags: fixed"),
+            "{iss}"
+        );
+        assert!(
+            iss.contains("Name: \"yosys\"; Description: \"{cm:Comp_yosys}\"; Types: tudo; Flags: checkablealone"),
+            "{iss}"
+        );
+        assert!(iss.contains("Name: \"yosys\\graphviz\""), "{iss}");
+        assert!(
+            iss.contains("Name: \"surfer_aurora\"; Description: \"{cm:Comp_surfer_aurora}\"; Types: tudo sim\n"),
+            "{iss}"
+        );
         assert!(
             iss.contains("Components: icarus or verilator or yosys or yosys\\graphviz;"),
             "{iss}"
         );
+        // O padrão é o recomendado; o perfil diz quantos aplicativos marca e
+        // para quem é; o Custom é o uso avançado.
+        for line in [
+            "en.Type_tudo=Tudo (Recommended): todos os \"apps\"",
+            "pt.Type_tudo=Tudo (Recomendado): todos os apps",
+            "en.Type_sim=Sim: só simular",
+            "en.Detail_sim=Sim installs Lace (CLI & Core) and the 2 apps marked below, of 5. For quem só simula, na aula d'O Lace.",
+            "pt.Detail_tudo=O Tudo (Recomendado) instala o Lace (CLI & Core) e os 5 aplicativos marcados abaixo, de 5. Para quem usa o SAPHO, em português.",
+            "en.Type_Custom=Custom (advanced): choose the components yourself",
+            "pt.Type_Custom=Personalizada (avançada): você escolhe os componentes",
+            "en.Comp_lace=Lace (CLI & Core)",
+            "en.Comp_yosys=YOSYS: o \"yosys\"",
+            "pt.Comp_yosys=YOSYS: a síntese",
+            "pt.Comp_icarus=ICARUS: o \"icarus\"",
+        ] {
+            assert!(iss.contains(&format!("{line}\n")), "{line}\n{iss}");
+        }
         assert!(
-            !iss.contains(
-                "Name: \"verilator\"; Description: \"VERILATOR: o \"\"verilator\"\"\"; Types"
+            iss.contains("en.Detail_Custom=The Custom installation is for advanced use"),
+            "{iss}"
+        );
+        assert!(
+            iss.contains(
+                "  if TypeName = 'sim' then\n    Result := CustomMessage('Detail_sim');\n"
             ),
             "{iss}"
         );

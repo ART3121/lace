@@ -12,17 +12,70 @@
     "Chaves de plataforma: linux-x64, darwin-arm64, windows-x64; 'unix' vale para as duas primeiras.",
     "common: arquivos de um pacote que vão com qualquer componente dele (no macOS, o realpath que os lançadores usam).",
     "msys: no pacote msys (o bloco de Windows do lace-toolchain), os pacotes do MSYS2 que o componente leva; as dependências deles e os arquivos de cada um saem do manifesto da release. Nome curto (iverilog, gcc) para os do UCRT64; o nome exato vale primeiro (make, bash: os da camada MSYS).",
-    "description: texto, ou um por plataforma, como as outras chaves."
+    "description: texto, ou um por plataforma, como as outras chaves.",
+    "profiles: os perfis de instalação, na ordem em que os instaladores os mostram; o primeiro é o padrão. description diz o que ele traz e audience, para quem ele serve; components lista os componentes do perfil, que tem de trazer o que cada um exige (requires); numa plataforma, valem os que existem nela. A instalação Custom, de marcar à mão, não é perfil: os instaladores a oferecem sempre.",
+    "translations: os textos em outros idiomas, por código (pt), para os instaladores: a descrição de cada componente (texto, ou um por plataforma) e o nome, a descrição e o público de cada perfil. Um idioma traduz todos os componentes e perfis; o nome dos componentes não se traduz."
   ],
   "common": {
     "oss-cad-suite": ["VERSION", "README", "license/**", "libexec/realpath"]
+  },
+  "profiles": [
+    {
+      "name": "sapho",
+      "label": "SAPHO",
+      "description": "Every Lace app",
+      "audience": "People who build SAPHO processors and program them in C±, with the Verilog tools around them: simulation, synthesis, waves, FPGA boards and the exercises",
+      "components": ["yanc", "icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "lace-learn", "rtl-viewer"]
+    },
+    {
+      "name": "verilog",
+      "label": "Verilog",
+      "description": "Every app except YANC",
+      "audience": "People who design in Verilog without SAPHO processors: modules, testbenches in Verilog or cocotb, simulation in Icarus or Verilator, synthesis and FPGA boards",
+      "components": ["icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "lace-learn", "rtl-viewer"]
+    }
+  ],
+  "translations": {
+    "pt": {
+      "components": {
+        "yanc": "Compiladores C± e C do SAPHO e a biblioteca SAPHO",
+        "icarus": "Simulador Verilog, o padrão da AURORA",
+        "verilator": {
+          "windows-x64": "Simulador compilado, com o g++, o make e o Perl que ele usa",
+          "*": "Simulador compilado; precisa do compilador C++, do make e do Perl do sistema"
+        },
+        "cocotb": "Testbenches em Python, com o Python que os roda; simula no Icarus ou no Verilator",
+        "yosys": "Síntese, esquemático e a lista de portas dos testbenches gerados",
+        "graphviz": "Desenha o esquemático a partir do grafo do Yosys",
+        "surfer-aurora": "Visualizador de formas de onda (o fork do Surfer da AURORA)",
+        "openfpgaloader": "Grava placas FPGA pelo cabo USB delas, como o USB-Blaster da DE2-115 e da DE10-Nano",
+        "studio": {
+          "linux-x64": "O ambiente gráfico (editor, compilação, simulação, ondas); precisa do webkit2gtk 4.1 do sistema",
+          "windows-x64": "O ambiente gráfico (editor, compilação, simulação, ondas); precisa do WebView2, que vem com o Windows 10 e 11",
+          "*": "O ambiente gráfico (editor, compilação, simulação, ondas)"
+        },
+        "lace-learn": "Exercícios de Verilog no estilo do rustlings: o lace learn e a vista Exercícios do Studio",
+        "rtl-viewer": "O esquemático interativo do netlist da síntese, no navegador: lace synth --open"
+      },
+      "profiles": {
+        "sapho": {
+          "label": "SAPHO",
+          "description": "Todos os aplicativos do Lace",
+          "audience": "Quem constrói processadores SAPHO e os programa em C±, com as ferramentas de Verilog em volta: simulação, síntese, ondas, placas FPGA e os exercícios"
+        },
+        "verilog": {
+          "label": "Verilog",
+          "description": "Todos os aplicativos menos o YANC",
+          "audience": "Quem projeta em Verilog sem processadores SAPHO: módulos, testbenches em Verilog ou cocotb, simulação no Icarus ou no Verilator, síntese e placas FPGA"
+        }
+      }
+    }
   },
   "components": [
     {
       "name": "yanc",
       "label": "YANC",
       "description": "SAPHO C± and C compilers and the SAPHO library",
-      "recommended": true,
       "package": "yanc",
       "closure": false,
       "select": { "*": ["bin/cmmcomp*", "bin/asmcomp*", "bin/cppcomp*", "SAPHO/**", "Macros/**", "Header/**", "README.md"] },
@@ -35,7 +88,6 @@
       "name": "icarus",
       "label": "Icarus Verilog",
       "description": "Verilog simulator, the AURORA default",
-      "recommended": true,
       "package": { "windows-x64": "msys", "*": "oss-cad-suite" },
       "select": {
         "unix": ["bin/iverilog", "bin/vvp", "libexec/iverilog", "libexec/vvp", "libexec/ivl", "libexec/ivlpp", "lib/ivl/**"]
@@ -53,7 +105,6 @@
         "windows-x64": "Compiled simulator, with the g++, make and Perl it uses",
         "*": "Compiled simulator; needs a system C++ compiler, make and Perl"
       },
-      "recommended": false,
       "package": { "windows-x64": "msys", "*": "oss-cad-suite" },
       "select": {
         "unix": ["bin/verilator", "bin/verilator_bin", "libexec/verilator_bin", "bin/tabbypy3", "libexec/python3.11"]
@@ -85,7 +136,6 @@
       "name": "cocotb",
       "label": "cocotb",
       "description": "Python testbenches, with the Python that runs them; simulates with Icarus or Verilator",
-      "recommended": false,
       "requires": ["icarus"],
       "package": { "windows-x64": "msys", "unix": "oss-cad-suite" },
       "select": {
@@ -132,7 +182,6 @@
       "name": "yosys",
       "label": "Yosys",
       "description": "Synthesis, schematic and the port list for generated testbenches",
-      "recommended": true,
       "package": "oss-cad-suite",
       "select": {
         "unix": ["bin/yosys", "libexec/yosys", "bin/yosys-abc", "libexec/yosys-abc"],
@@ -149,7 +198,6 @@
       "name": "graphviz",
       "label": "Graphviz (dot)",
       "description": "Draws the schematic from the Yosys graph",
-      "recommended": true,
       "requires": ["yosys"],
       "package": { "windows-x64": "graphviz", "*": "oss-cad-suite" },
       "select": {
@@ -166,7 +214,6 @@
       "name": "surfer-aurora",
       "label": "surfer-aurora",
       "description": "Waveform viewer (the AURORA fork of Surfer)",
-      "recommended": true,
       "package": "surfer-aurora",
       "closure": false,
       "select": { "*": ["**"] },
@@ -179,7 +226,6 @@
       "name": "openfpgaloader",
       "label": "openFPGALoader",
       "description": "Programs FPGA boards through their USB cable, such as the USB-Blaster of the DE2-115 and the DE10-Nano",
-      "recommended": false,
       "package": "oss-cad-suite",
       "select": {
         "unix": ["bin/openFPGALoader", "libexec/openFPGALoader"],
@@ -198,7 +244,6 @@
         "windows-x64": "The graphical environment (editor, build, simulation, waves); needs the WebView2 runtime that comes with Windows 10 and 11",
         "*": "The graphical environment (editor, build, simulation, waves)"
       },
-      "recommended": true,
       "package": "studio",
       "closure": false,
       "select": { "*": ["**"] },
@@ -212,7 +257,6 @@
       "name": "lace-learn",
       "label": "Lace Learn",
       "description": "Verilog exercises in the style of rustlings: lace learn and the Exercises view of the Studio",
-      "recommended": false,
       "requires": ["icarus"],
       "package": "lace-learn",
       "closure": false,
@@ -223,7 +267,6 @@
       "name": "rtl-viewer",
       "label": "RTL viewer",
       "description": "The interactive schematic of the synthesis netlist, in the browser: lace synth --open",
-      "recommended": true,
       "requires": ["yosys"],
       "package": "rtl-viewer",
       "closure": false,

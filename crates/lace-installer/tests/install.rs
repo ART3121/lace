@@ -128,7 +128,7 @@ fn installs_the_selection_and_replaces_it_later() {
         link: Some(f.root.join("bin/lace")),
     };
     let mut events = Vec::new();
-    let selection = plan::recommended(&index);
+    let selection = plan::default_selection(&index);
     let report = install::install(&payload_dir, &index, &selection, &target, |e| {
         events.push(e)
     })
@@ -221,7 +221,7 @@ fn refuses_folders_that_are_not_lace_installations() {
     let err = install::install(
         &payload_dir,
         &index,
-        &plan::recommended(&index),
+        &plan::default_selection(&index),
         &target,
         |_| {},
     )
@@ -243,7 +243,7 @@ fn a_corrupt_payload_leaves_the_previous_installation_alone() {
     install::install(
         &payload_dir,
         &index,
-        &plan::recommended(&index),
+        &plan::default_selection(&index),
         &target,
         |_| {},
     )
@@ -260,7 +260,7 @@ fn a_corrupt_payload_leaves_the_previous_installation_alone() {
     let err = install::install(
         &payload_dir,
         &index,
-        &plan::recommended(&index),
+        &plan::default_selection(&index),
         &target,
         |_| {},
     );

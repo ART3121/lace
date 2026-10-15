@@ -6,7 +6,7 @@
 # SHA256SUMS da release e o abre. Desde a 0.7.0, o assistente é o web, que
 # baixa só os aplicativos escolhidos. Variáveis opcionais:
 #   $env:LACE_VERSION = "0.2.0"            versão fixa, em vez da última
-#   $env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=recomendada /TASKS=path"
+#   $env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"
 #                                          instalação sem perguntas
 #   $env:LACE_FULL_SETUP = "1"             o assistente completo, com o bundle
 #                                          inteiro dentro (para instalar sem rede depois)

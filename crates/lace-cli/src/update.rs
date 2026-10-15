@@ -1080,7 +1080,7 @@ fn windows(
     let selected = match wizard_components(version, installed, &work) {
         Ok(components) => {
             command
-                .arg("/TYPE=avancada")
+                .arg(format!("/TYPE={}", lace_installer::pack::CUSTOM_TYPE))
                 .arg(format!("/COMPONENTS={}", components.join(",")));
             true
         }
@@ -1638,6 +1638,7 @@ mod tests {
             lace_version: "0.3.0".into(),
             bundle: "2026.10.01".into(),
             platform: "windows-x64".into(),
+            profiles: Vec::new(),
             components: vec![
                 component("yanc", &[]),
                 component("icarus", &[]),

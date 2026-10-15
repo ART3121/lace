@@ -66,7 +66,7 @@ $env:LACE_TEST_BUNDLE = "$env:LOCALAPPDATA\Programs\Lace\toolchain"     # Window
 
 Confira com `lace tools` que o identificador do bundle instalado é o mesmo
 do campo `bundle` de `bundle/versions.json`; se não for, os testes rodam
-contra outras versões. A instalação Recommended não traz o Verilator, e os
+contra outras versões. Sem o Verilator (numa instalação Custom sem ele), os
 testes dele são pulados.
 
 **Montar o bundle.** Precisa de Python 3.9 ou mais novo, `git`, e do que

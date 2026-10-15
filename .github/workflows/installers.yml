@@ -141,9 +141,21 @@ jobs:
       - name: Inno Setup
         if: runner.os == 'Windows'
         shell: pwsh
+        # O runner já traz um Inno Setup, de versão que muda com a imagem; o
+        # lace.iss usa o modo escuro e as imagens PNG da 6.6 em diante. Com
+        # outra versão que a fixada, instala a fixada por cima.
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { choco install innosetup --version=$env:INNO_VERSION -y --no-progress }
+          $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1'
+          $have = (Get-ItemProperty $key -ErrorAction SilentlyContinue).DisplayVersion
+          "Inno Setup no runner: $have (fixado: $env:INNO_VERSION)"
+          if ($have -ne $env:INNO_VERSION -or -not (Test-Path $iscc)) {
+            choco install innosetup --version=$env:INNO_VERSION -y --no-progress --force
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $have = (Get-ItemProperty $key -ErrorAction SilentlyContinue).DisplayVersion
+            "Inno Setup instalado: $have"
+            if ($have -ne $env:INNO_VERSION) { throw "Inno Setup $env:INNO_VERSION não ficou instalado ($have)" }
+          }
           & $iscc /? | Select-Object -First 1
           "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 

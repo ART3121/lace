@@ -1,8 +1,8 @@
 //! `install`: o instalador do Lace para Linux e macOS.
 //!
 //! Sem opções, abre a instalação guiada no terminal. Com `--yes`, instala sem
-//! perguntar: o perfil recomendado, ou os componentes de `--components`
-//! (instalação avançada).
+//! perguntar: o perfil padrão, o de `--profile`, ou os componentes de
+//! `--components` (instalação Custom).
 //!
 //! Para acrescentar aplicativos do bundle a uma instalação que já existe, sem
 //! reinstalar o Lace, o caminho é `lace install`.
@@ -22,16 +22,21 @@ use lace_installer::tui::{self, App};
 #[command(
     name = "install",
     version = lace_installer::LACE_VERSION,
-    after_help = "Without --yes, opens the guided installation in the terminal: Recommended, or Advanced \
+    after_help = "Without --yes, opens the guided installation in the terminal: a profile, or Custom \
                   to choose the components.\n\nExamples:\n  ./install\n  ./install --yes\n  \
+                  ./install --yes --profile verilog\n  \
                   ./install --yes --components yanc,icarus,verilator\n  sudo ./install --yes --prefix /opt/lace"
 )]
 struct Args {
-    /// Install without asking: the recommended profile, or the components in --components
+    /// Install without asking: the default profile, the one in --profile, or the components in --components
     #[arg(short, long)]
     yes: bool,
 
-    /// Comma-separated components (advanced installation); see --list
+    /// Installation profile; see --list [default: the first one]
+    #[arg(long, value_name = "NAME", conflicts_with = "components")]
+    profile: Option<String>,
+
+    /// Comma-separated components (Custom installation); see --list
     #[arg(long, value_delimiter = ',', value_name = "LIST")]
     components: Option<Vec<String>>,
 
@@ -47,7 +52,7 @@ struct Args {
     #[arg(long)]
     no_link: bool,
 
-    /// List the components, the size of each and the recommended profile
+    /// List the profiles, the components and the size of each
     #[arg(long)]
     list: bool,
 
@@ -98,10 +103,14 @@ fn run(args: Args) -> anyhow::Result<()> {
         target.link = None;
     }
 
-    if args.yes || args.components.is_some() {
+    if args.yes || args.components.is_some() || args.profile.is_some() {
         if !args.yes {
-            bail!("--components installs without asking: add --yes");
+            bail!("--profile and --components install without asking: add --yes");
         }
+        let profile = match &args.profile {
+            Some(name) => name.clone(),
+            None => plan::default_profile(&index),
+        };
         let selection = match &args.components {
             Some(names) => {
                 let (selection, added) = plan::from_names(&index, names)?;
@@ -113,7 +122,7 @@ fn run(args: Args) -> anyhow::Result<()> {
             // Numa pasta com uma instalação, o que ela tem fica.
             None => match install::check_prefix(&target.prefix) {
                 Ok(Some(existing)) => {
-                    let selection = plan::recommended_keeping(&index, &existing.components);
+                    let selection = plan::profile_keeping(&index, &profile, &existing.components)?;
                     let kept: Vec<&str> = existing
                         .components
                         .iter()
@@ -125,14 +134,16 @@ fn run(args: Args) -> anyhow::Result<()> {
                     }
                     selection
                 }
-                _ => plan::recommended(&index),
+                _ => plan::profile(&index, &profile)?,
             },
         };
         return unattended(&payload, &index, &selection, &target);
     }
 
     if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
-        bail!("No terminal for the guided installation: use --yes (and --components to choose)");
+        bail!(
+            "No terminal for the guided installation: use --yes (with --profile or --components to choose)"
+        );
     }
     let app = App::new(
         index.clone(),
@@ -159,11 +170,44 @@ fn list(index: &Index) {
         "Lace {} ({}), bundle {}\n",
         index.lace_version, index.platform, index.bundle
     );
+    println!("Profiles (--profile):\n");
+    let default = plan::default_profile(index);
+    for p in index.profiles() {
+        let selection = plan::profile(index, &p.name).unwrap_or_default();
+        let labels: Vec<&str> = index
+            .components
+            .iter()
+            .filter(|c| selection.contains(&c.name))
+            .map(|c| c.label.as_str())
+            .collect();
+        let label = if p.name == default {
+            format!("{} (Recommended)", p.label)
+        } else {
+            p.label.clone()
+        };
+        println!(
+            "  {:<14} {:>9}  {label}: {}",
+            p.name,
+            lace_installer::mib(index.size_of(&selection)),
+            p.description
+        );
+        if !p.audience.is_empty() {
+            println!("  {:<25}  For: {}", "", p.audience);
+        }
+        println!(
+            "  {:<25}  Installs: Lace (CLI & Core), {}\n",
+            "",
+            labels.join(", ")
+        );
+    }
+    println!(
+        "Custom installation (--components), for advanced use: for users who know which \
+         components they need.\n"
+    );
     for c in &index.components {
         println!(
-            "  {:<14} {:<3} {:>9}  {}{}",
+            "  {:<14} {:>9}  {}{}",
             c.name,
-            if c.recommended { "rec" } else { "" },
             lace_installer::mib(index.component_size(&c.name)),
             c.description,
             if c.requires.is_empty() {
@@ -173,18 +217,6 @@ fn list(index: &Index) {
             }
         );
     }
-    let rec = plan::recommended(index);
-    let names: Vec<&str> = index
-        .components
-        .iter()
-        .filter(|c| rec.contains(&c.name))
-        .map(|c| c.name.as_str())
-        .collect();
-    println!(
-        "\nRecommended ({}): {}",
-        lace_installer::mib(index.size_of(&rec)),
-        names.join(", ")
-    );
 }
 
 fn unattended(
