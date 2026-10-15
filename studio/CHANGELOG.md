@@ -65,6 +65,19 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - Dois layouts prontos, **Executar na barra de título** e **Executar no
   editor**. O segundo também põe o Navegador de fluxo na barra lateral
   direita.
+- O tour pela interface: na primeira vez que o Studio abre, a janela
+  escurece e uma parte de cada vez fica acesa, com um cartão que diz o que
+  ela faz. A parte acesa continua funcionando, e alguns passos pedem uma
+  tarefa (abrir o menu Fluxo, trocar de vista, esconder e mostrar o painel,
+  abrir a paleta) e seguem sozinhos quando ela é feita. O tour volta por
+  Ajuda > Tour pela interface e pela tela inicial. Um `settings.json` de
+  versão anterior conta como tour já visto.
+- O splash: enquanto o Studio abre, uma janela pequena mostra o logo do
+  Lace sendo desenhado traço a traço, com um sinal que corre pelos fios, e o
+  que está carregando. A janela principal só aparece pronta, com o Lace
+  achado e o último projeto reaberto (no máximo 8 segundos), e o splash
+  fecha; ele fica pelo menos 3,2 segundos, o tempo do desenho e de uma volta
+  do sinal. Ele nasce nas cores e no idioma da abertura anterior.
 
 ### Mudado
 

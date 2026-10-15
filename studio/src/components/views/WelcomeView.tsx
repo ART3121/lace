@@ -1,6 +1,6 @@
 // A tela inicial: começar, recentes e o estado da instalação do Lace.
 
-import { Cpu, FileCode, FolderOpen, FolderPlus, Wrench, X } from 'lucide-react';
+import { Compass, Cpu, FileCode, FolderOpen, FolderPlus, Wrench, X } from 'lucide-react';
 
 import { openProjectDialog } from '../../actions';
 import { useT } from '../../i18n';
@@ -8,6 +8,7 @@ import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';
 import { useProject } from '../../state/project';
+import { useTour } from '../../state/tour';
 import { guarded } from '../../state/toasts';
 import { api } from '../../ipc/api';
 import { dirName } from '../../util/paths';
@@ -52,6 +53,11 @@ export function WelcomeView() {
             <li>
               <button type="button" className="link" onClick={() => useEditor.getState().openView('toolchain')}>
                 <Wrench size={15} /> {t('action.toolchain')}
+              </button>
+            </li>
+            <li>
+              <button type="button" className="link" onClick={() => useTour.getState().start()}>
+                <Compass size={15} /> {t('welcome.tour')}
               </button>
             </li>
           </ul>

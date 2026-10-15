@@ -165,3 +165,11 @@ pub fn dev_smoke_script() -> Option<String> {
 pub fn app_exit(app: AppHandle, restart: bool) {
     crate::exit(&app, restart);
 }
+
+/// Fecha o splash (`public/splash.html`), a janela pequena com o logo que
+/// aparece enquanto a principal abre escondida. A interface chama logo
+/// depois de mostrar a janela principal (`reveal`, em `src/App.tsx`).
+#[tauri::command]
+pub fn splash_close(app: AppHandle) {
+    crate::close_splash(&app);
+}

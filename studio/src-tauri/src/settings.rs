@@ -76,8 +76,20 @@ pub struct Settings {
     pub zen: ZenSettings,
     /// Os layouts da janela.
     pub layouts: LayoutSettings,
+    /// O tour pela interface já apareceu (`src/state/tour.ts`). Sem
+    /// `settings.json` (o Studio recém-instalado), começa com `false`, e o
+    /// tour abre sozinho; um arquivo de uma versão anterior, sem o campo, é de
+    /// quem já usa o Studio, e vale `true`. O tour volta por Ajuda > Tour
+    /// pela interface.
+    #[serde(default = "already_toured")]
+    pub tour_done: bool,
     /// Projetos abertos recentemente, do mais novo para o mais antigo.
     pub recent_projects: Vec<RecentProject>,
+}
+
+/// O `tour_done` de um `settings.json` gravado antes de o campo existir.
+fn already_toured() -> bool {
+    true
 }
 
 impl Settings {
@@ -113,6 +125,7 @@ impl Default for Settings {
             editor: EditorSettings::default(),
             zen: ZenSettings::default(),
             layouts: LayoutSettings::default(),
+            tour_done: false,
             recent_projects: Vec::new(),
         }
     }
@@ -317,6 +330,17 @@ mod tests {
         assert!(!settings.zen.show_tabs);
         assert_eq!(settings.layouts.active, "default");
         assert!(settings.layouts.saved.is_empty());
+    }
+
+    /// O tour só abre sozinho num Studio sem `settings.json`: um arquivo de
+    /// uma versão anterior, sem o campo, é de quem já usa o Studio.
+    #[test]
+    fn tour_opens_only_on_a_fresh_install() {
+        assert!(!Settings::default().tour_done);
+        let older: Settings = serde_json::from_str(r#"{ "theme": "dracula" }"#).unwrap();
+        assert!(older.tour_done);
+        let pending: Settings = serde_json::from_str(r#"{ "tour_done": false }"#).unwrap();
+        assert!(!pending.tour_done);
     }
 
     /// Um campo que esta versão não conhece (que saiu, ou de uma versão mais

@@ -62,10 +62,11 @@ use crate::state::AppState;
 /// fechar o Studio.
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(3);
 
-/// A janela nasce escondida e a interface a mostra quando está desenhada
-/// (`reveal`, em `src/App.tsx`). Se isso não acontecer (o servidor do Vite
-/// fora do ar, um módulo que não carregou), ela aparece mesmo assim depois
-/// deste tempo, com o fundo escuro, em vez de o Studio ficar invisível.
+/// A janela nasce escondida, com o splash na frente, e a interface a mostra
+/// quando está pronta (`reveal`, em `src/App.tsx`). Se isso não acontecer
+/// (o servidor do Vite fora do ar, um módulo que não carregou), ela aparece
+/// mesmo assim depois deste tempo, com o fundo escuro, e o splash fecha, em
+/// vez de o Studio ficar só no splash.
 const REVEAL_FALLBACK: Duration = Duration::from_secs(10);
 
 /// O executável com que o Studio abriu. Fica guardado antes de tudo porque
@@ -75,6 +76,13 @@ static STARTING_EXE: OnceLock<PathBuf> = OnceLock::new();
 
 /// O Studio abre de novo depois de sair ([`exit`]).
 static RESTART: AtomicBool = AtomicBool::new(false);
+
+/// Fecha o splash, se ele ainda está aberto.
+pub fn close_splash(app: &AppHandle) {
+    if let Some(splash) = app.get_webview_window("splash") {
+        let _ = splash.close();
+    }
+}
 
 /// Sai do Studio do jeito de sempre (a operação rodando é cancelada e os
 /// terminais fecham, em `shutdown`) e, com `restart`, abre de novo o
@@ -115,6 +123,7 @@ pub fn run() {
                     tracing::warn!("The interface did not show the window in time; showing it");
                     let _ = window.show();
                 }
+                close_splash(&handle);
             });
             Ok(())
         })
@@ -128,6 +137,7 @@ pub fn run() {
             commands::app::log_frontend,
             commands::app::dev_smoke_script,
             commands::app::app_exit,
+            commands::app::splash_close,
             commands::project::project_default_parent,
             commands::project::project_open,
             commands::project::project_create,

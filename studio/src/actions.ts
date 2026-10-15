@@ -59,6 +59,7 @@ import { convertLayout, useProject } from './state/project';
 import { resetLayout, restoreLayout, saveLayout, saveLayoutAs } from './state/savedLayouts';
 import { useSettingsPage } from './state/settingsPage';
 import { guarded, showError, useToasts } from './state/toasts';
+import { useTour } from './state/tour';
 import { openWaveTab, waveInTab } from './state/waves';
 import { toggledTheme } from './themes';
 import { baseName, extension, isInside, joinPath, relativeTo, resolveFrom } from './util/paths';
@@ -856,6 +857,7 @@ export const ACTIONS: Action[] = [
   // Ajuda
   { id: 'laceDocs', label: 'action.laceDocs', category: 'help', run: () => openUrl(LACE_CLI_DOCS).catch(showError) },
   { id: 'saphoManual', label: 'action.saphoManual', category: 'help', run: () => openUrl(SAPHO_MANUAL).catch(showError) },
+  { id: 'startTour', label: 'action.startTour', category: 'help', run: () => useTour.getState().start() },
   { id: 'shortcuts', label: 'action.shortcuts', category: 'help', run: () => openDialog({ kind: 'shortcuts' }) },
   { id: 'about', label: 'action.about', category: 'help', run: () => useEditor.getState().openView('about') },
 ];

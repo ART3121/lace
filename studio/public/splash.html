@@ -1,0 +1,205 @@
+<!doctype html>
+<!--
+  O splash do Lace Studio: a janela pequena, sem moldura, que aparece logo ao
+  abrir (janela `splash` do tauri.conf.json) enquanto a principal carrega
+  escondida por trás. O logo é desenhado traço a traço, e depois um sinal
+  corre pelos fios (splash.js). As cores padrão são as do tema Atlas; o
+  splash.js troca pelas do último tema usado.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lace Studio</title>
+    <style>
+      :root {
+        --bg: #12171d;
+        --fg: #e6edf3;
+        --muted: #8693a0;
+        --strand: #f4efe6;
+        --pulse: #54a6d5;
+        --track: #252e38;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+        cursor: default;
+        user-select: none;
+      }
+
+      .splash {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        box-sizing: border-box;
+        padding-bottom: 18px;
+      }
+
+      .mark {
+        width: 104px;
+        height: 104px;
+        overflow: visible;
+      }
+
+      .mark path {
+        fill: none;
+        stroke-width: 6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .strand {
+        stroke: var(--strand);
+      }
+
+      /* O brilho é o filtro SVG #glow: o drop-shadow do CSS não vale para
+         elementos dentro do SVG no WebKit (macOS e Linux). */
+      .pulse {
+        stroke: var(--pulse);
+        filter: url(#glow);
+      }
+
+      /* O nome: o wordmark do Lace, pintado na cor do texto pela máscara, e
+         "Studio" ao lado. Aparece quando o desenho do logo termina. */
+      .name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 18px;
+        opacity: 0;
+        animation: rise 600ms ease-out 1050ms forwards;
+      }
+
+      .wordmark {
+        width: 63px;
+        height: 32px;
+        background: var(--fg);
+        -webkit-mask: url('brand/lace-wordmark.svg') no-repeat center / contain;
+        mask: url('brand/lace-wordmark.svg') no-repeat center / contain;
+      }
+
+      .studio {
+        color: var(--muted);
+        font-size: 25px;
+        font-weight: 300;
+        letter-spacing: 0.01em;
+      }
+
+      .status {
+        min-height: 16px;
+        margin-top: 22px;
+        color: var(--muted);
+        font-size: 12px;
+        opacity: 0;
+        animation: rise 500ms ease-out 1350ms forwards;
+      }
+
+      /* A barra sem fim: um trecho que corre enquanto o Studio abre. */
+      .bar {
+        position: relative;
+        width: 168px;
+        height: 2px;
+        margin-top: 10px;
+        overflow: hidden;
+        border-radius: 1px;
+        background: var(--track);
+        opacity: 0;
+        animation: rise 500ms ease-out 1350ms forwards;
+      }
+
+      .bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -40%;
+        width: 40%;
+        border-radius: inherit;
+        background: var(--pulse);
+        animation: run 1.3s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      }
+
+      .version {
+        position: absolute;
+        right: 14px;
+        bottom: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        opacity: 0.8;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @keyframes run {
+        to {
+          left: 100%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .name,
+        .status,
+        .bar {
+          opacity: 1;
+          animation: none;
+        }
+
+        .bar::after {
+          animation: none;
+          left: 30%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="splash">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <!-- A região cobre o desenho todo: com a da caixa de cada trecho, o
+               traço de um trecho quase reto sairia cortado. -->
+          <filter id="glow" filterUnits="userSpaceOnUse" x="-8" y="-8" width="80" height="80">
+            <feGaussianBlur stdDeviation="1.2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <!-- Os dois fios do laço, cada um em dois trechos (o vão é onde o
+             outro fio passa por cima): a1 e a2, b1 e b2, na ordem em que o
+             fio corre, da esquerda para a direita. -->
+        <path class="strand" data-strand="a" d="M4 19 L12.6 19.06 L13.5 19.36 L14.4 19.91 L15.3 20.71 L16.2 21.73 L17.1 22.95 L18 24.36 L18.9 25.92 L19.8 27.6 L20.7 29.36 L21.6 31.18 L22.5 33.02 L23.4 34.84 L24.3 36.6 L25.2 38.26 L26.1 39.81 L27 41.19 L27.9 42.4 L28.8 43.39 L29.7 44.16 L30.6 44.69 L31.5 44.96 L32.4 44.97 L33.3 44.73 L34.2 44.23 L35.1 43.49 L36 42.52 L36.9 41.34 L37.2 40.9" />
+        <path class="strand" data-strand="a" d="M46.8 23.1 L47.7 21.85 L48.6 20.81 L49.5 19.99 L50.4 19.41 L51.3 19.08 L52 19 L60 19" />
+        <path class="strand" data-strand="b" d="M4 45 L12.6 44.94 L13.5 44.64 L14.4 44.09 L15.3 43.29 L16.2 42.27 L17.1 41.05 L17.1 41.05" />
+        <path class="strand" data-strand="b" d="M26.7 23.25 L27.6 21.98 L28.5 20.92 L29.4 20.07 L30.3 19.46 L31.2 19.1 L32.1 19 L33 19.16 L33.9 19.57 L34.8 20.24 L35.7 21.13 L36.6 22.25 L37.5 23.56 L38.4 25.03 L39.3 26.65 L40.2 28.37 L41.1 30.17 L42 32 L42.9 33.83 L43.8 35.63 L44.7 37.35 L45.6 38.97 L46.5 40.44 L47.4 41.75 L48.3 42.87 L49.2 43.76 L50.1 44.43 L51 44.84 L51.9 45 L60 45" />
+      </svg>
+      <div class="name" aria-label="Lace Studio">
+        <span class="wordmark" aria-hidden="true"></span>
+        <span class="studio" aria-hidden="true">Studio</span>
+      </div>
+      <div class="status" id="status" role="status"></div>
+      <div class="bar" aria-hidden="true"></div>
+      <div class="version" id="version"></div>
+    </main>
+    <script src="splash.js"></script>
+  </body>
+</html>

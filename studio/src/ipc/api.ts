@@ -87,6 +87,8 @@ export const api = {
     /** Fecha o Studio e, com `restart`, abre ele de novo (depois do `lace
      * update`). Quem chama grava os arquivos antes. */
     exit: (restart: boolean) => call<void>('app_exit', { restart }),
+    /** Fecha o splash, depois de a janela principal aparecer. */
+    closeSplash: () => call<void>('splash_close'),
   },
 
   /** A onda numa aba (`wave_tab.rs`). */

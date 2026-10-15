@@ -33,6 +33,23 @@ Os projetos são os `.spf` da AURORA: um projeto da AURORA abre no Studio, e
 o que o Studio grava continua legível pela AURORA. Os temporários ficam em
 `.lace/` (a AURORA usava `.aurora/`).
 
+**Abertura.** Enquanto o Studio abre, uma janela pequena mostra o logo do
+Lace sendo desenhado, com um sinal que corre pelos fios, e o que está
+carregando. Ela fica pelo menos uns 3 segundos, o tempo da animação, e a
+janela principal aparece quando o Lace foi achado e o último projeto
+reabriu, ou depois de 8 segundos, o que vier antes; aí a pequena fecha.
+
+**Tour pela interface.** Na primeira vez que o Studio abre num computador,
+com o tema Atlas, o idioma do sistema e o layout Padrão, ele começa um tour
+pela janela: tudo escurece, e uma parte de cada vez fica acesa, com um
+cartão que diz o que ela faz. A parte acesa continua funcionando: dá para
+clicar nela, e alguns passos pedem uma tarefa (abrir o menu Fluxo, trocar
+de vista pela barra de atividades, esconder o painel e trazê-lo de volta
+com Ctrl+J, abrir a paleta) e seguem sozinhos quando ela é feita. Pular
+passa uma tarefa, as setas do teclado avançam e voltam, e Esc sai. O tour
+volta em Ajuda > Tour pela interface e na tela inicial. Um Studio atualizado
+de uma versão anterior não abre o tour sozinho.
+
 ## 2. A janela
 
 ```

@@ -28,6 +28,21 @@
           "x": 12,
           "y": 15
         }
+      },
+      {
+        "label": "splash",
+        "title": "Lace Studio",
+        "url": "splash.html",
+        "width": 440,
+        "height": 300,
+        "center": true,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
+        "decorations": false,
+        "shadow": false,
+        "focus": true,
+        "backgroundColor": "#12171D"
       }
     ],
     "security": {

@@ -19,10 +19,11 @@ import { Workbench } from './components/layout/Workbench';
 import { watchZen, ZenHud, zenWidth } from './components/layout/Zen';
 import { externalDrop, externalLeave, externalOver } from './components/sidebar/dnd';
 import { Toasts } from './components/Toasts';
+import { Tour } from './components/tour/Tour';
 import { setConsoleTheme, setLinkHandler } from './console/consoles';
 import { setShellTheme } from './console/shell';
 import { bindEditorChord } from './editor/monaco';
-import { t } from './i18n';
+import { t, useLang } from './i18n';
 import { api } from './ipc/api';
 import { useApp } from './state/app';
 import { confirm } from './state/dialogs';
@@ -33,29 +34,56 @@ import { takeFreshStart, useLayout } from './state/layout';
 import { useLearn } from './state/learn';
 import { useProject } from './state/project';
 import { activeLayout } from './state/savedLayouts';
+import { rememberSplashLook, splashRemaining, splashStatus } from './state/splash';
 import { applyTitleBar, useTitleBar, watchWindow } from './state/titleBar';
 import { showError } from './state/toasts';
+import { useTour } from './state/tour';
 import { startUpdateChecks } from './state/updates';
 import { watchWideTabs } from './state/wideTabs';
 import type { Theme } from './themes';
 import { extension, resolveFrom } from './util/paths';
 
 /**
- * Mostra a janela, uma vez. Ela nasce escondida (`visible: false` em
- * tauri.conf.json) e só aparece com a interface desenhada, no tema e no zoom
- * das preferências: sem isso, ela abriria em branco enquanto o JavaScript
- * carrega (1,5 s a 4 s no desenvolvimento, com o Vite servindo os módulos um
- * a um). Se a interface não chegar aqui, o backend mostra a janela sozinho
- * depois de um tempo (`REVEAL_FALLBACK`, em lib.rs).
+ * Mostra a janela, uma vez, e fecha o splash. Ela nasce escondida
+ * (`visible: false` em tauri.conf.json), com o splash na frente (a janela
+ * `splash`, public/splash.html), e só aparece com o Studio pronto: a
+ * interface desenhada no tema e no zoom das preferências, o Lace achado e o
+ * último projeto reaberto, ou depois de REVEAL_WAIT_MS, o que vier antes. O
+ * splash fica pelo menos SPLASH_MIN_MS na tela, contados de quando ele
+ * aparece: o desenho do logo e uma volta inteira do sinal pelos fios. Se a
+ * interface não chegar aqui, o backend mostra a janela e fecha o splash
+ * sozinho depois de um tempo (`REVEAL_FALLBACK`, em lib.rs).
  */
 let revealed = false;
-const REVEAL_WAIT_MS = 1500;
+const REVEAL_WAIT_MS = 8000;
+const SPLASH_MIN_MS = 3200;
+/** Quanto a abertura espera o Lace ser achado (a tela inicial e a barra de
+ * status já nascem com o bundle). */
+const TOOLCHAIN_WAIT_MS = 4000;
 function reveal() {
   if (revealed) return;
   revealed = true;
-  void getCurrentWindow()
-    .show()
-    .catch(() => undefined);
+  splashStatus(t('splash.ready'));
+  // A janela principal aparece antes de o splash fechar: não há um instante
+  // sem janela nenhuma.
+  window.setTimeout(
+    () =>
+      void getCurrentWindow()
+        .show()
+        .catch(() => undefined)
+        .then(() => api.app.closeSplash())
+        .catch(() => undefined),
+    splashRemaining(SPLASH_MIN_MS),
+  );
+}
+
+/** Espera `ready` ficar verdadeiro, no máximo `ms`. */
+function waitFor(ready: () => boolean, ms: number): Promise<void> {
+  const started = Date.now();
+  return new Promise((resolve) => {
+    const check = () => (ready() || Date.now() - started >= ms ? resolve() : void window.setTimeout(check, 50));
+    check();
+  });
 }
 
 /** O que roda uma vez, ao abrir a janela. */
@@ -84,9 +112,12 @@ async function start(): Promise<() => void> {
   const applyTheme = (theme: Theme) => {
     setConsoleTheme(theme);
     setShellTheme(theme);
+    rememberSplashLook(theme, useApp.getState().info?.version);
   };
   applyTheme(useApp.getState().theme);
   cleanups.push(useApp.subscribe((s, prev) => s.theme !== prev.theme && applyTheme(s.theme)));
+  // O splash da próxima abertura fala o idioma de agora.
+  cleanups.push(useLang.subscribe(() => rememberSplashLook(useApp.getState().theme, useApp.getState().info?.version)));
 
   // Os atalhos de duas etapas (Ctrl+K Z) também valem com o foco no editor.
   for (const a of chordActions()) bindEditorChord(a.keys!, () => runAction(a.id));
@@ -96,11 +127,14 @@ async function start(): Promise<() => void> {
   await getCurrentWebview()
     .setZoom(useLayout.getState().zoom)
     .catch(() => undefined);
-  // Tema e zoom aplicados. A janela espera o último projeto reabrir, para o
-  // primeiro quadro já ser o de trabalho, mas no máximo REVEAL_WAIT_MS: um
-  // projeto grande não segura a abertura.
+  // Tema e zoom aplicados. A janela espera o Lace ser achado e o último
+  // projeto reabrir, para o primeiro quadro já ser o de trabalho, mas no
+  // máximo REVEAL_WAIT_MS: um projeto grande não segura a abertura (o
+  // splash cobre a espera).
   const revealTimer = window.setTimeout(reveal, REVEAL_WAIT_MS);
   cleanups.push(() => window.clearTimeout(revealTimer));
+  splashStatus(t('splash.toolchain'));
+  await waitFor(() => useApp.getState().toolchain !== null, TOOLCHAIN_WAIT_MS);
 
   // A pasta de exercícios do lace learn, se houver uma lembrada: a vista
   // Exercícios e a aba do enunciado a usam mesmo sem a vista à mostra.
@@ -178,10 +212,14 @@ async function start(): Promise<() => void> {
   // o começo (WelcomeView.tsx).
   const last = useApp.getState().recent[0] ?? (await api.app.recent().catch(() => []))[0];
   if (settings?.restore_last_project && last?.exists) {
+    splashStatus(t('splash.project', { name: last.name }));
     await useProject.getState().open(last.spf);
   }
   // Um quadro para o React desenhar o projeto antes de a janela aparecer.
   window.setTimeout(reveal, 0);
+  // Studio recém-instalado: o tour pela interface, com o tema, o idioma e o
+  // layout padrão (state/tour.ts).
+  if (settings && !settings.tour_done) useTour.getState().start();
 
   // Lace mais novo publicado: procura logo depois de abrir e a cada 12
   // horas, e oferece a atualização (state/updates.ts).
@@ -249,6 +287,7 @@ export function App() {
       <Workbench />
       {hud ? <ZenHud /> : <StatusBar />}
       <Dialogs />
+      <Tour />
       <ContextMenuHost />
       <Toasts />
     </div>

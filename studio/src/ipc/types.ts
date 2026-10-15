@@ -91,6 +91,9 @@ export interface Settings {
   editor: EditorSettings;
   zen: ZenSettings;
   layouts: LayoutSettings;
+  /** O tour pela interface já apareceu (state/tour.ts). Sem `settings.json`,
+   * começa `false`, e o tour abre sozinho. */
+  tour_done: boolean;
   recent_projects: RecentProject[];
 }
 
