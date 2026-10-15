@@ -907,7 +907,7 @@ dependencies = [
 
 [[package]]
 name = "lace-cli"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "anstream",
  "anstyle",
@@ -939,7 +939,7 @@ dependencies = [
 
 [[package]]
 name = "lace-core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "camino",
  "dunce",
@@ -959,7 +959,7 @@ dependencies = [
 
 [[package]]
 name = "lace-installer"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "camino",
@@ -977,7 +977,7 @@ dependencies = [
 
 [[package]]
 name = "lace-learn"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "camino",
  "dunce",

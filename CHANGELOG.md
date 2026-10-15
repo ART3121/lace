@@ -1,6 +1,6 @@
 # Mudanças
 
-## Não publicada
+## 0.8.0 (2026-10-15)
 
 - A instalação começa por um perfil, no lugar de Recommended e Advanced:
   **SAPHO** (o recomendado e padrão, todos os aplicativos), **Verilog**
