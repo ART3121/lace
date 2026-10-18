@@ -2173,7 +2173,8 @@ Garantias:
   a do Verilator no Linux e no macOS (compilador, `make` e Perl do sistema,
   em locais fixos); no Windows os três vêm no bundle.
 - **Ambiente explícito.** Todo filho parte de um ambiente vazio. No Windows
-  recebe `SystemRoot`, `windir`, `ComSpec`, `TEMP`, `TMP`; as ferramentas do OSS CAD
+  recebe `SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `ProgramData`, `TEMP`,
+  `TMP`; as ferramentas do OSS CAD
   Suite recebem `PATH` com `bin;lib` do pacote, e as do `msys/`, com
   `ucrt64/bin`. No Linux e no macOS, os lançadores do pacote recebem
   `PATH=/usr/bin:/bin`. O Verilator recebe o diretório do script e os do
@@ -2247,7 +2248,7 @@ O que muda por sistema, e como o Lace trata:
 | limite de caminho | 259 caracteres no Windows (MAX_PATH dos `.exe` do YANC), 1000 nos outros (buffers do YANC); conferido por arquivo antes de compilar |
 | nomes reservados | `CON`, `PRN`, `AUX`, `NUL`, `COM0-9`, `LPT0-9` recusados em todo sistema |
 | maiúsculas | processadores que diferem só na caixa são recusados (Windows e macOS não distinguem) |
-| ambiente do filho | Windows: `SystemRoot`, `windir`, `ComSpec`, `TEMP`, `TMP`. Surfer: `HOME`, `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_*`, `TMPDIR` (Unix) ou `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` (Windows) |
+| ambiente do filho | Windows: `SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `ProgramData`, `TEMP`, `TMP`. Surfer: `HOME`, `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_*`, `TMPDIR` (Unix) ou `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` (Windows) |
 | término de processo | sinal no Unix (`Signaled`), NTSTATUS no Windows (`Exception`) |
 | encerrar um passo (cancelamento, prazo) | Unix: grupo de processos próprio por passo, SIGTERM ao grupo e SIGKILL depois de 1 s. Windows: Job Object por passo (`KILL_ON_JOB_CLOSE`), que encerra a árvore também quando o Lace morre; `taskkill /T /F` do `System32` se o sistema recusar o job |
 | janela de console | Windows: nenhuma (`hide_console`); com console o filho divide o do Lace, sem console leva `CREATE_NO_WINDOW` |

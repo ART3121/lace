@@ -58,10 +58,21 @@ const OUTPUT_KEPT: usize = 2 * 1024 * 1024;
 /// Variáveis repassadas do ambiente do Lace ao filho. No Windows, sem
 /// `SystemRoot` vários programas nem inicializam, e sem `ComSpec` o
 /// `system()` da biblioteca C não acha o `cmd.exe` (o `iverilog` roda o
-/// `ivlpp` e o `ivl` por ele); fora dele, os compiladores YANC não leem
-/// variável nenhuma.
+/// `ivlpp` e o `ivl` por ele). Sem `SystemDrive`, um caminho do registro
+/// como `%SystemDrive%\ProgramData` não expande: o `dot` criava uma pasta
+/// chamada `%SystemDrive%` dentro do projeto, com um cache do Windows, e
+/// demorava 5 s no primeiro desenho. Fora do Windows, os compiladores YANC
+/// não leem variável nenhuma.
 #[cfg(windows)]
-const INHERITED_ENV: &[&str] = &["SystemRoot", "windir", "ComSpec", "TEMP", "TMP"];
+const INHERITED_ENV: &[&str] = &[
+    "SystemRoot",
+    "SystemDrive",
+    "windir",
+    "ComSpec",
+    "ProgramData",
+    "TEMP",
+    "TMP",
+];
 #[cfg(not(windows))]
 const INHERITED_ENV: &[&str] = &[];
 
@@ -1441,9 +1452,11 @@ mod windows_tests {
         assert!(std::env::var_os("USERNAME").is_some() || std::env::var_os("USER").is_some());
         let out = run(&cmd("echo [%USERNAME%]")).unwrap();
         assert!(out.stdout.contains("[%USERNAME%]"), "{}", out.stdout);
-        // Só o que o Windows exige passa.
-        let out = run(&cmd("echo [%SystemRoot%]")).unwrap();
-        assert!(!out.stdout.contains("%SystemRoot%"), "{}", out.stdout);
+        // Só o que o Windows exige passa, com o drive do sistema: sem ele,
+        // `%SystemDrive%\ProgramData` não expande.
+        let out = run(&cmd("echo [%SystemRoot%][%SystemDrive%][%ProgramData%]")).unwrap();
+        assert!(!out.stdout.contains("%System"), "{}", out.stdout);
+        assert!(!out.stdout.contains("%ProgramData%"), "{}", out.stdout);
     }
 
     #[test]
