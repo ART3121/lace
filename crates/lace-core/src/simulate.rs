@@ -775,7 +775,22 @@ pub fn simulate_project(
     let choice = if options.fast {
         None
     } else {
-        crate::wave_signals::dump_choice(toolchain, project, &testbench, &top, control)?
+        match crate::wave_signals::read_selection(project, &top) {
+            // Uma escolha que não se lê (um marcador de conflito do git, o
+            // formato de outra versão) não impede a simulação: a onda grava
+            // todos os sinais, com o aviso, e o arquivo fica como está.
+            Err(LaceError::InvalidProject { path, reason }) => {
+                notes.push(note(
+                    crate::diagnostics::Severity::Warning,
+                    format!(
+                        "{reason}; the waveform records every signal until the choice is fixed or made again"
+                    ),
+                    Some(path),
+                ));
+                None
+            }
+            _ => crate::wave_signals::dump_choice(toolchain, project, &testbench, &top, control)?,
+        }
     };
     if let Some(choice) = &choice {
         notes.extend(choice.notes.iter().cloned());
