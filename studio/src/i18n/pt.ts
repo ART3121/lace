@@ -448,6 +448,7 @@ export const pt = {
   'console.runProblems': 'erros: {errors}, avisos: {warnings}',
   'console.programOutput': 'saída do testbench',
   'console.cancelRequested': 'Cancelamento pedido. Encerrando as ferramentas...',
+  'console.outputOmitted': '[{count} linhas de saída omitidas: a ferramenta escreveu mais rápido do que o console mostra]',
   'console.noProcessors': 'Projeto sem processadores: não há o que compilar. Crie um em Projeto > Novo processador SAPHO.',
   'console.installDone': 'Instalação terminada com código {code}',
   'console.updateDone': 'Lace atualizado para {version}',

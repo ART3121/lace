@@ -12,14 +12,21 @@
 //! interface. Uma simulação que escreve milhares de linhas por segundo vira
 //! algumas dezenas de mensagens por segundo.
 //!
+//! As linhas de saída têm teto ([`Throttle`]): o Tauri guarda cada mensagem
+//! até a interface buscá-la, e um testbench que imprime sem parar mandava
+//! mais do que ela dá conta de mostrar. A memória do Studio crescia (de 53 MB
+//! a 193 MB em 30 s), e o Parar levava 10 s para aparecer, atrás da fila. O
+//! que passa do teto fica de fora, e a interface recebe quantas linhas foram.
+//!
 //! Só uma operação roda por vez (erro `busy`): duas no mesmo projeto
 //! dividiriam o `.lace/Temp`.
 
 use std::panic::AssertUnwindSafe;
+use std::sync::Mutex;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant};
 
-use lace_core::{BuildResult, CancelToken, Control, Event};
+use lace_core::{BuildResult, CancelToken, Control, Event, Step, Tool};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::ipc::Channel;
@@ -37,6 +44,19 @@ const MAX_BATCH: usize = 500;
 /// interface já recebeu cada linha pelos eventos; o resultado leva o fim,
 /// para o resumo, sem mandar megabytes de uma vez.
 const MAX_STEP_OUTPUT: usize = 256 * 1024;
+/// Quantas linhas de saída passam de uma vez para a interface, numa rajada:
+/// as que cada console guarda (`LOG_LINES`, em `console/consoles.ts`). Uma
+/// listagem de memória que termina logo chega inteira.
+const OUTPUT_BURST: f64 = 20_000.0;
+/// Quantas linhas por segundo passam depois da rajada.
+const OUTPUT_RATE: f64 = 5_000.0;
+/// Depois de começar a cortar, as linhas só voltam a passar com estas fichas
+/// no balde (meio segundo delas): em vez de um aviso a cada linha que passa,
+/// um bloco de linhas e um aviso a cada meio segundo.
+const OUTPUT_RESUME: f64 = OUTPUT_RATE / 2.0;
+/// Cada tantos bytes de uma linha contam como mais uma linha: uma linha
+/// longa (até 64 KiB, as de quem escreve sem `\n`) pesa o que ocupa.
+const OUTPUT_LINE_BYTES: usize = 1024;
 
 /// O que a interface recebe pelo canal de uma operação, em ordem.
 #[derive(Debug, Clone, Serialize)]
@@ -58,6 +78,16 @@ pub enum JobMessage {
     Events {
         /// Os eventos (`step_started`, `output`, `step_finished`).
         events: Vec<Event>,
+    },
+    /// Linhas de saída que ficaram de fora ([`Throttle`]), no lugar onde
+    /// estariam: antes da próxima linha que passou ou do fim do passo.
+    OutputOmitted {
+        /// O passo que as escreveu.
+        step: Step,
+        /// A ferramenta.
+        tool: Tool,
+        /// Quantas.
+        lines: u64,
     },
     /// Um processador terminou de compilar.
     Build {
@@ -88,6 +118,68 @@ pub enum JobMessage {
 enum Msg {
     Event(Event),
     Message(JobMessage),
+}
+
+/// O teto das linhas de saída que vão para a interface, um balde de fichas:
+/// começa com [`OUTPUT_BURST`] fichas, ganha [`OUTPUT_RATE`] por segundo até
+/// esse teto, e cada linha gasta uma (mais uma a cada [`OUTPUT_LINE_BYTES`]).
+/// Sem ficha, a linha fica de fora e é contada, até o balde ter
+/// [`OUTPUT_RESUME`] fichas de novo. Os outros eventos (começo e fim de
+/// passo) sempre passam.
+struct Throttle {
+    tokens: f64,
+    refilled: Instant,
+    /// As linhas de fora desde a última que passou, e de onde vieram.
+    omitted: Option<(Step, Tool, u64)>,
+}
+
+impl Throttle {
+    fn new(now: Instant) -> Self {
+        Throttle {
+            tokens: OUTPUT_BURST,
+            refilled: now,
+            omitted: None,
+        }
+    }
+
+    /// O que mandar à interface por `event`: nada, se ele ficou de fora; e,
+    /// antes dele, quantas linhas ficaram de fora desde a última que passou.
+    fn admit(&mut self, event: &Event, now: Instant) -> (Option<JobMessage>, bool) {
+        if let Event::Output {
+            step, tool, line, ..
+        } = event
+        {
+            let elapsed = now.saturating_duration_since(self.refilled).as_secs_f64();
+            self.tokens = (self.tokens + elapsed * OUTPUT_RATE).min(OUTPUT_BURST);
+            self.refilled = now;
+            let cost = 1.0 + (line.len() / OUTPUT_LINE_BYTES) as f64;
+            let needed = if self.omitted.is_some() {
+                cost.max(OUTPUT_RESUME)
+            } else {
+                cost
+            };
+            if self.tokens < needed {
+                match &mut self.omitted {
+                    Some((s, t, lines)) if s == step && t == tool => *lines += 1,
+                    _ => {
+                        // Outro passo: o que ficou de fora do anterior sai antes.
+                        let before = self.take_omitted();
+                        self.omitted = Some((*step, *tool, 1));
+                        return (before, false);
+                    }
+                }
+                return (None, false);
+            }
+            self.tokens -= cost;
+        }
+        (self.take_omitted(), true)
+    }
+
+    fn take_omitted(&mut self) -> Option<JobMessage> {
+        self.omitted
+            .take()
+            .map(|(step, tool, lines)| JobMessage::OutputOmitted { step, tool, lines })
+    }
 }
 
 /// Reserva a vaga da operação. Erro `busy` se já houver uma rodando.
@@ -191,8 +283,18 @@ pub async fn flow_start(
         .name(format!("flow-{id}"))
         .spawn(move || {
             let events = tx.clone();
+            let throttle = Mutex::new(Throttle::new(Instant::now()));
             let control = Control::new().with_cancel(cancel).on_event(move |event| {
-                let _ = events.send(Msg::Event(event.clone()));
+                let (omitted, admitted) = throttle
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .admit(event, Instant::now());
+                if let Some(message) = omitted {
+                    let _ = events.send(Msg::Message(message));
+                }
+                if admitted {
+                    let _ = events.send(Msg::Event(event.clone()));
+                }
             });
             let progress_tx = tx.clone();
             let progress = move |p: Progress| {
@@ -335,6 +437,88 @@ mod tests {
         assert!(stdout.starts_with("[... 13 bytes omitted"));
         assert!(stdout.ends_with("fim"));
         assert_eq!(value["builds"][0]["steps"][0]["stderr"], "curto");
+    }
+
+    fn output(step: Step, line: &str) -> Event {
+        Event::Output {
+            step,
+            tool: Tool::Vvp,
+            stream: lace_core::Stream::Stdout,
+            line: line.to_owned(),
+            diagnostic: false,
+        }
+    }
+
+    fn finished(step: Step) -> Event {
+        Event::StepFinished {
+            step,
+            tool: Tool::Vvp,
+            termination: lace_core::Termination::Cancelled,
+            duration_ms: 1,
+        }
+    }
+
+    fn omitted(message: Option<JobMessage>) -> Option<u64> {
+        match message {
+            Some(JobMessage::OutputOmitted { lines, .. }) => Some(lines),
+            Some(_) => panic!("outra mensagem"),
+            None => None,
+        }
+    }
+
+    #[test]
+    fn output_beyond_the_burst_is_counted_and_reported_in_place() {
+        let start = Instant::now();
+        let mut throttle = Throttle::new(start);
+        let burst = OUTPUT_BURST as u64;
+        // A rajada passa inteira, no mesmo instante.
+        for _ in 0..burst {
+            let (message, admitted) = throttle.admit(&output(Step::Simulate, "x"), start);
+            assert!(message.is_none() && admitted);
+        }
+        // O resto fica de fora, contado.
+        for _ in 0..1000 {
+            let (message, admitted) = throttle.admit(&output(Step::Simulate, "x"), start);
+            assert!(message.is_none() && !admitted);
+        }
+        // Uma ficha que volta não basta: o corte vai até a reserva.
+        let soon = start + Duration::from_millis(10);
+        assert!(!throttle.admit(&output(Step::Simulate, "x"), soon).1);
+        // Com ela, voltam a passar, depois do aviso de quantas ficaram.
+        let later = start + Duration::from_millis(600);
+        let (message, admitted) = throttle.admit(&output(Step::Simulate, "x"), later);
+        assert_eq!(omitted(message), Some(1001));
+        assert!(admitted);
+        // O fim do passo sempre passa, e traz o que ficou de fora antes dele.
+        let mut throttle = Throttle::new(start);
+        throttle.tokens = 0.0;
+        throttle.admit(&output(Step::Simulate, "x"), start);
+        let (message, admitted) = throttle.admit(&finished(Step::Simulate), start);
+        assert_eq!(omitted(message), Some(1));
+        assert!(admitted);
+    }
+
+    #[test]
+    fn a_sustained_flood_passes_at_the_rate() {
+        let start = Instant::now();
+        let mut throttle = Throttle::new(start);
+        throttle.tokens = 0.0;
+        // Um milhão de linhas em dez segundos: passam umas 5 000 por segundo,
+        // em blocos, com um aviso a cada meio segundo, e não a cada linha.
+        let (mut passed, mut notices) = (0, 0);
+        for i in 0..1_000_000u64 {
+            let now = start + Duration::from_micros(i * 10);
+            let (message, admitted) = throttle.admit(&output(Step::Simulate, "linha"), now);
+            passed += u64::from(admitted);
+            notices += u64::from(message.is_some());
+        }
+        assert!((45_000..=50_500).contains(&passed), "{passed}");
+        assert!((15..=25).contains(&notices), "{notices}");
+        // Uma linha longa pesa o que ocupa.
+        let mut throttle = Throttle::new(start);
+        throttle.tokens = 10.0;
+        let long = "x".repeat(64 * 1024);
+        assert!(!throttle.admit(&output(Step::Simulate, &long), start).1);
     }
 
     #[test]

@@ -29,6 +29,7 @@ import type {
   SchematicResult,
   SimulationResult,
   Simulator,
+  Step,
   SynthesisResult,
   SystemCompiler,
   WaveProcessor,
@@ -399,6 +400,7 @@ export type JobMessage =
   | { type: 'started'; job: number; command: string }
   | { type: 'phase'; phase: Phase }
   | { type: 'events'; events: Event[] }
+  | { type: 'output_omitted'; step: Step; tool: string; lines: number }
   | { type: 'build'; result: BuildResult }
   | { type: 'cli_output'; stream: 'stdout' | 'stderr'; line: string }
   | { type: 'finished'; outcome: FlowOutcome | CliOutcome }

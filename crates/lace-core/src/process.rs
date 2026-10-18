@@ -45,6 +45,9 @@ const DRAIN_LIMIT: Duration = Duration::from_secs(2);
 const BATCH_QUEUE: usize = 16;
 /// Até quanto uma leitura do pipe traz de uma vez.
 const READ_CHUNK: usize = 64 * 1024;
+/// Até quanto de uma linha sem fim de linha espera o resto dela. Passado
+/// isso, o que chegou vai como uma linha, e o resto vem em outra.
+const LINE_LIMIT: usize = 64 * 1024;
 /// Quanto do começo e quanto do fim da saída de cada pipe o Lace guarda. Um
 /// testbench que imprime sem parar (`always #1 $display`) escrevia 33 MB em
 /// 5 s, e tudo ficava na memória até o fim; agora o meio sai, e o resultado
@@ -603,8 +606,8 @@ impl Capture {
 /// mensagem por linha: num testbench que imprime sem parar, passar cada
 /// linha pelo canal custava mais que o simulador escrevê-la. Quem escreve
 /// devagar continua chegando linha a linha, porque a leitura volta com o que
-/// já está no pipe. Uma linha pela metade espera a próxima leitura; a última,
-/// sem fim de linha, vai quando o pipe fecha.
+/// já está no pipe. Uma linha pela metade espera a próxima leitura, até
+/// [`LINE_LIMIT`] bytes; a última, sem fim de linha, vai quando o pipe fecha.
 fn read_lines(
     mut pipe: impl Read + Send + 'static,
     stream: Stream,
@@ -622,6 +625,20 @@ fn read_lines(
             };
             let Some(end) = read.iter().rposition(|&b| b == b'\n') else {
                 pending.extend_from_slice(read);
+                // Quem escreve sem `\n` (um `$write` em laço, uma barra de
+                // progresso) acumulava tudo aqui até o pipe fechar, e só aí
+                // a saída aparecia, de uma vez: vai em pedaços, que quem
+                // recebe trata como linhas.
+                if pending.len() >= LINE_LIMIT {
+                    let cut = utf8_prefix(&pending);
+                    let rest = pending.split_off(cut);
+                    if lines
+                        .send((stream, std::mem::replace(&mut pending, rest)))
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
                 continue;
             };
             let mut batch = std::mem::take(&mut pending);
@@ -635,6 +652,28 @@ fn read_lines(
             let _ = lines.send((stream, pending));
         }
     })
+}
+
+/// Até onde `bytes` pode ser cortado sem partir um caractere UTF-8: o
+/// tamanho todo, menos o começo de um caractere que ainda não chegou
+/// inteiro. Um byte que não é UTF-8 não segura nada.
+fn utf8_prefix(bytes: &[u8]) -> usize {
+    for back in 1..=bytes.len().min(3) {
+        let at = bytes.len() - back;
+        let byte = bytes[at];
+        if byte & 0xC0 == 0x80 {
+            // Continuação: o começo do caractere está mais atrás.
+            continue;
+        }
+        let width = match byte {
+            0xC0..=0xDF => 2,
+            0xE0..=0xEF => 3,
+            0xF0..=0xF7 => 4,
+            _ => 1,
+        };
+        return if back < width { at } else { bytes.len() };
+    }
+    bytes.len()
 }
 
 fn trim_line_end(line: &str) -> &str {
@@ -1050,6 +1089,46 @@ fn termination(status: std::process::ExitStatus) -> Termination {
         }
     }
     Termination::Unknown
+}
+
+#[cfg(test)]
+mod reader_tests {
+    use super::*;
+
+    fn batches(input: Vec<u8>) -> Vec<Vec<u8>> {
+        let (tx, rx) = mpsc::sync_channel(BATCH_QUEUE);
+        let reader = read_lines(std::io::Cursor::new(input), Stream::Stdout, tx);
+        let out: Vec<_> = rx.iter().map(|(_, batch)| batch).collect();
+        reader.join().unwrap();
+        out
+    }
+
+    #[test]
+    fn a_line_without_end_arrives_in_pieces() {
+        // 200 KiB sem `\n`, com um `ç` (dois bytes) em cada fronteira de
+        // 64 KiB possível.
+        let mut input = Vec::new();
+        while input.len() < 200 * 1024 {
+            input.extend_from_slice("abcdefgç".as_bytes());
+        }
+        let pieces = batches(input.clone());
+        assert!(pieces.len() >= 3, "{} pedaços", pieces.len());
+        assert!(pieces.iter().all(|p| p.len() <= LINE_LIMIT + READ_CHUNK));
+        assert!(pieces.iter().all(|p| std::str::from_utf8(p).is_ok()));
+        assert_eq!(pieces.concat(), input);
+    }
+
+    #[test]
+    fn cuts_never_split_a_character() {
+        assert_eq!(utf8_prefix(b"abc"), 3);
+        assert_eq!(utf8_prefix("aç".as_bytes()), 3);
+        assert_eq!(utf8_prefix(&"aç".as_bytes()[..2]), 1);
+        assert_eq!(utf8_prefix(&"a€".as_bytes()[..3]), 1);
+        assert_eq!(utf8_prefix(&"a😀".as_bytes()[..4]), 1);
+        assert_eq!(utf8_prefix("a😀".as_bytes()), 5);
+        // Byte que não é UTF-8 não segura o corte.
+        assert_eq!(utf8_prefix(&[b'a', 0xFF]), 2);
+    }
 }
 
 #[cfg(all(test, unix))]
