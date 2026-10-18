@@ -159,7 +159,9 @@ fn should_check(state: &State, now: u64) -> bool {
 /// A versão a avisar, se há: a publicada é mais nova que a instalada, e o
 /// aviso dela ainda não saiu, ou saiu há mais de um dia.
 fn to_notify<'a>(state: &'a State, installed: &str, now: u64) -> Option<&'a str> {
-    let latest = state.latest.as_deref()?;
+    // O estado é um arquivo que outro `lace` gravou: só uma versão vai para o
+    // terminal ([`release::is_version`]).
+    let latest = state.latest.as_deref().filter(|v| release::is_version(v))?;
     if !update::is_newer(latest, installed) {
         return None;
     }
@@ -269,6 +271,11 @@ mod tests {
         assert_eq!(to_notify(&state, "0.7.0", NOW), Some("0.8.1"));
 
         assert_eq!(to_notify(&State::default(), "0.7.0", NOW), None);
+
+        // Um estado gravado com algo que não é versão (um espelho que mandou
+        // uma sequência de escape) não vai para o terminal.
+        state.latest = Some("9.9.9\x1b]0;x\x07".into());
+        assert_eq!(to_notify(&state, "0.7.0", NOW), None);
     }
 
     #[test]

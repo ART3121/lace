@@ -208,7 +208,9 @@ instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
-mais nova, que o `lace update` lê no lugar do GitHub. O bundle de lá
+mais nova, que o `lace update` lê no lugar do GitHub. O espelho é
+`https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
+os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
 precisa ser o instalado; outro bundle é atualizar (`lace update`).
 
 No Windows, o Studio instalado pelo `lace install studio` não ganha atalho
@@ -331,7 +333,9 @@ instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
-mais nova, que o `lace update` lê no lugar do GitHub. O bundle de lá
+mais nova, que o `lace update` lê no lugar do GitHub. O espelho é
+`https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
+os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
 precisa ser o instalado; outro bundle é atualizar (`lace update`).
 
 **Atualizar:** o Lace Studio procura versão nova ao abrir, oferece a

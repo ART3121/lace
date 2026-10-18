@@ -1042,7 +1042,7 @@ fn unix(out: &Output, prefix: &Utf8Path, version: &str) -> anyhow::Result<Update
         Utf8Path::from_path(work.path()).context("Temporary folder path is not UTF-8")?;
     let file = format!("lace-{version}-{}.tar.gz", receipt.platform);
     if out.is_text() {
-        eprintln!("Downloading {}", release::asset_url(version, &file));
+        eprintln!("Downloading {}", release::asset_url(version, &file)?);
     }
     let archive = release::download_checked(version, &file, work_path, out.is_text())?;
     let installer = extract(&archive, work_path)?;
@@ -1096,7 +1096,7 @@ fn windows(
         .map_err(|p| anyhow::anyhow!("Temporary folder path is not UTF-8: {}", p.display()))?;
     let file = format!("lace-{version}-windows-x64-setup.exe");
     if out.is_text() {
-        eprintln!("Downloading {}", release::asset_url(version, &file));
+        eprintln!("Downloading {}", release::asset_url(version, &file)?);
     }
     let setup = release::download_checked(version, &file, &work, out.is_text())?;
     let mut command = std::process::Command::new(setup.as_std_path());
