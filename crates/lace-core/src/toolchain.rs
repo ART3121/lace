@@ -25,7 +25,8 @@
 //!
 //! O Verilator compila o modelo com um compilador C++, chamado pelo `make`,
 //! e o script dele roda pelo Perl ([`SystemCompiler`]). No Windows os três
-//! vêm no bundle, com o Verilator. No Linux e no macOS vêm do sistema, a
+//! vêm no bundle, com o Verilator, e o Lace roda o `verilator_bin` sem o
+//! script ([`Toolchain::invocation`]). No Linux e no macOS vêm do sistema, a
 //! única exceção à regra do bundle, procurados em locais padrão fixos, nunca
 //! no `PATH`.
 //!
@@ -53,7 +54,7 @@ use sha2::{Digest, Sha256};
 
 use crate::error::{LaceError, Result};
 use crate::paths;
-use crate::process::{GUI_ENV, Invocation};
+use crate::process::{GUI_ENV, Invocation, make_path};
 
 /// Versão do formato do manifesto que este Lace entende.
 pub const BUNDLE_SCHEMA: u32 = 2;
@@ -919,8 +920,10 @@ impl Toolchain {
     ///   diretório dos programas e das DLLs do pacote (`ucrt64/bin` no
     ///   `msys/`; `bin;lib` no OSS CAD Suite, como o `environment.bat` faz) e
     ///   `%SystemRoot%\System32` no fim, para o `cmd.exe` do `system()`.
-    /// - Verilator: script Perl, rodado pelo Perl do [`SystemCompiler`], com
-    ///   o `PATH` do `make` e do compilador depois do diretório do script.
+    /// - Verilator: no Linux e no macOS, o script Perl, rodado pelo Perl do
+    ///   [`SystemCompiler`]; no Windows, o `verilator_bin.exe` que o script
+    ///   rodaria, direto. Nos dois, com o `PATH` do `make` e do compilador
+    ///   depois do diretório do Verilator.
     pub(crate) fn invocation(&self, tool: Tool, cwd: impl Into<Utf8PathBuf>) -> Result<Invocation> {
         let program = self.tool(tool)?;
         let windows = self.platform == Platform::WindowsX64;
@@ -928,10 +931,8 @@ impl Toolchain {
             Tool::Verilator => {
                 let system = self.compiler()?;
                 let dir = self.component_dir(component::VERILATOR)?;
-                // O diretório do script primeiro (o `verilator_bin` que ele
-                // chama), depois o make e o compilador. O VERILATOR_ROOT fica
-                // sem definir: o script o deduz do próprio caminho e reclama
-                // se ele vier diferente.
+                // O diretório do Verilator primeiro (o `verilator_bin`),
+                // depois o make e o compilador.
                 let mut path = program_dirs(&dir, tool, self.platform);
                 path.extend(system.path.iter().cloned());
                 path.extend(base_path(self.platform));
@@ -942,26 +943,34 @@ impl Toolchain {
                 if windows && system.bundled {
                     let _ = std::fs::create_dir_all(dir.join("tmp"));
                 }
-                let invocation = Invocation::new(system.perl.clone(), cwd).path_arg(&program);
-                // No Windows, duas correções do script:
-                // - ele tenta `ulimit -s unlimited 2>/dev/null` pelo `cmd.exe`
-                //   a cada chamada, que não tem `ulimit` nem `/dev/null` e
-                //   escreve "o sistema não pode encontrar o caminho
-                //   especificado" no stderr; o `ulimit` só vale num shell Unix;
-                // - ele chama o `verilator_bin` sem o `.exe`, e esse é o nome
-                //   que o Verilator anota entre as entradas do modelo
-                //   (`__verFiles.dat`): sem arquivo com esse nome, o
-                //   `--skip-identical` nunca reconhece um modelo em dia, e
-                //   cada simulação gerava o C++ de novo e recompilava tudo, a
-                //   biblioteca do Verilator junto (medido em 2026-10-07: 9 s,
-                //   contra 0,4 s com o nome inteiro, num contador).
                 let invocation = if windows {
-                    invocation.arg("--no-unlimited-stack").env(
-                        "VERILATOR_BIN",
-                        format!("verilator_bin{}", self.platform.exe()),
-                    )
+                    // O script roda o `verilator_bin` por `system()`, que no
+                    // Windows passa pelo `cmd.exe`: o escape de shell Unix
+                    // que ele põe em cada argumento (`\ ` no espaço, `\ç`)
+                    // chega inteiro ao `verilator_bin`, e um fonte numa pasta
+                    // com espaço ou acento vira outro caminho ("Cannot find
+                    // file containing module: 'espaco\sp\a.v'"). Direto, os
+                    // argumentos chegam como o Lace os montou. O resto do que
+                    // o script faz não vale no Windows ou o Lace já faz: o
+                    // `ulimit -s` só existe num shell Unix, e o
+                    // VERILATOR_ROOT, que ele deduz do próprio caminho, vai
+                    // aqui no ambiente, pelo nome que o `make` aceita
+                    // ([`make_path`]). E o `verilator_bin` anota o próprio
+                    // nome, com o `.exe`, entre as entradas do modelo
+                    // (`__verFiles.dat`), e o `--skip-identical` reconhece um
+                    // modelo em dia: chamado pelo script sem o `.exe`, cada
+                    // simulação gerava o C++ de novo e recompilava tudo
+                    // (medido em 2026-10-07: 9 s, contra 0,4 s, num contador).
+                    let bin =
+                        program.with_file_name(format!("verilator_bin{}", self.platform.exe()));
+                    let root = program
+                        .parent()
+                        .and_then(Utf8Path::parent)
+                        .map(|prefix| prefix.join("share/verilator"))
+                        .unwrap_or_else(|| dir.join("ucrt64/share/verilator"));
+                    Invocation::new(bin, cwd).env("VERILATOR_ROOT", make_path(&root))
                 } else {
-                    invocation
+                    Invocation::new(system.perl.clone(), cwd).path_arg(&program)
                 };
                 invocation.env("LC_ALL", "C").search_path(&path)
             }
@@ -1351,6 +1360,46 @@ mod tests {
         )
         .unwrap();
         assert_eq!(tc.tool(Tool::Verilator).unwrap(), script);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn on_windows_verilator_bin_runs_without_the_perl_script() {
+        let (_guard, root) = bundle(&[("verilator", "msys")], current());
+        for file in [
+            "ucrt64/bin/verilator",
+            "ucrt64/bin/verilator_bin.exe",
+            "ucrt64/bin/g++.exe",
+            "ucrt64/bin/perl.exe",
+            "usr/bin/make.exe",
+        ] {
+            let path = root.join("msys").join(file);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, "").unwrap();
+        }
+        let tc = Toolchain::open(&root).unwrap();
+        let invocation = tc.invocation(Tool::Verilator, &root).unwrap();
+        assert_eq!(
+            invocation.program,
+            root.join("msys/ucrt64/bin/verilator_bin.exe")
+        );
+        // Nada do script: nem o próprio script, nem o `--no-unlimited-stack`.
+        assert!(invocation.args.is_empty(), "{:?}", invocation.args);
+        let env = |key: &str| {
+            invocation
+                .env
+                .iter()
+                .find(|(k, _)| k == key)
+                .map(|(_, v)| v.clone())
+        };
+        let verilator_root = env("VERILATOR_ROOT").expect("VERILATOR_ROOT");
+        assert!(
+            verilator_root.ends_with("/msys/ucrt64/share/verilator")
+                && !verilator_root.contains('\\'),
+            "{verilator_root}"
+        );
+        assert_eq!(env("LC_ALL").as_deref(), Some("C"));
+        assert_eq!(env("VERILATOR_BIN"), None);
     }
 
     #[test]

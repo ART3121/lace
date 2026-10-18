@@ -232,6 +232,80 @@ pub(crate) fn icarus_path(path: &Utf8Path) -> String {
     }
 }
 
+/// Um caminho que o Verilator escreve nos makefiles do modelo, ou que vai na
+/// linha de comando do `make` dele. No Windows, com `/`: o `make` repassa o
+/// caminho ao `sh` do MSYS2, para o qual `\` é escape (`D:\a\b` vira `D:ab`),
+/// e o MSYS2 aceita `/` num caminho do Windows. E pelo nome curto
+/// ([`short_path`]) quando tem espaço ou caractere fora do ASCII: o `make`
+/// separa as palavras no espaço, e o Verilator grava nos makefiles o caminho
+/// no código de página do Windows (o `ç` como o byte `E7`), que o `make` do
+/// MSYS2 lê como UTF-8 e não acha (conferido em 2026-10-18 com o
+/// `VERILATOR_ROOT`). Sem nome curto, vai o caminho inteiro, e quem reclama
+/// é o `make`.
+pub(crate) fn make_path(path: &Utf8Path) -> String {
+    if !cfg!(windows) {
+        return path.as_str().to_owned();
+    }
+    let native = dunce::simplified(path.as_std_path())
+        .to_string_lossy()
+        .into_owned();
+    let usable = if make_safe(&native) {
+        native
+    } else {
+        short_path(path).map_or(native, Utf8PathBuf::into_string)
+    };
+    usable.replace('\\', "/")
+}
+
+/// O `make` aceita `path` como está: só ASCII, sem espaço.
+pub(crate) fn make_safe(path: &str) -> bool {
+    path.is_ascii() && !path.contains(char::is_whitespace)
+}
+
+/// O nome curto (8.3) de `path` no Windows, como `C:\Users\ALUNO~1\SOESPA~1`,
+/// se ele existe e não tem espaço nem caractere fora do ASCII. `None` se o
+/// caminho não existe, se algum nome do caminho não tem forma curta (o NTFS
+/// pode deixar de criá-las, e outros sistemas de arquivos não as têm), ou se
+/// o `cmd.exe` falhou. Fora do Windows, sempre `None`.
+///
+/// Quem dá o nome curto é o `%~sI` de um `for` do `cmd.exe`: o
+/// `GetShortPathNameW` direto pediria código `unsafe`. O caminho vai pelo
+/// ambiente, e não pela linha de comando, e é lido com a expansão adiada
+/// (`/v:on`), que não interpreta `&`, `^`, `%` nem `)` do valor.
+#[cfg(windows)]
+pub(crate) fn short_path(path: &Utf8Path) -> Option<Utf8PathBuf> {
+    use std::os::windows::process::CommandExt;
+    if path.as_str().is_empty() || !path.exists() {
+        return None;
+    }
+    let system_root = std::env::var_os("SystemRoot")?;
+    let system32 = std::path::Path::new(&system_root).join("System32");
+    let shell = std::env::var_os("ComSpec")
+        .map_or_else(|| system32.join("cmd.exe"), std::path::PathBuf::from);
+    let mut command = Command::new(shell);
+    command
+        .raw_arg(r#"/d /v:on /c "for %I in ("!LACE_SHORT_PATH!") do @echo %~sI""#)
+        .current_dir(&system32)
+        .env_clear()
+        .env("SystemRoot", &system_root)
+        .env("LACE_SHORT_PATH", dunce::simplified(path.as_std_path()))
+        .stdin(Stdio::null())
+        .stderr(Stdio::null());
+    hide_console(&mut command);
+    let output = command.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let short = std::str::from_utf8(&output.stdout).ok()?.trim();
+    let short = Utf8PathBuf::from(short);
+    (!short.as_str().is_empty() && make_safe(short.as_str()) && short.exists()).then_some(short)
+}
+
+#[cfg(not(windows))]
+pub(crate) fn short_path(_path: &Utf8Path) -> Option<Utf8PathBuf> {
+    None
+}
+
 fn quote_if_needed(s: &str) -> String {
     if !s.is_empty() && !s.contains([' ', '\t', '"', '\'']) {
         s.to_owned()
@@ -1612,5 +1686,30 @@ mod windows_tests {
             attached.contains(&lace),
             "a ferramenta não divide o console do Lace: {attached:?}"
         );
+    }
+
+    #[test]
+    fn short_path_is_a_name_make_accepts_for_the_same_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = crate::paths::canonicalize(Utf8Path::from_path(dir.path()).unwrap()).unwrap();
+        // Espaço, acento e o que o cmd.exe interpretaria fora da expansão
+        // adiada.
+        let odd = base.join("com espaço & 100%PATH%^!y!(z)");
+        std::fs::create_dir_all(&odd).unwrap();
+        // Um volume sem nomes curtos (o NTFS deixa desligá-los) dá `None`, e
+        // o caminho segue inteiro.
+        if let Some(short) = short_path(&odd) {
+            assert!(make_safe(short.as_str()), "{short}");
+            assert_eq!(
+                std::fs::canonicalize(&short).unwrap(),
+                std::fs::canonicalize(&odd).unwrap()
+            );
+            assert_eq!(make_path(&odd), short.as_str().replace('\\', "/"));
+        }
+        assert_eq!(short_path(&base.join("não existe")), None);
+        // Um caminho que o make aceita fica como está, só com `/`.
+        let plain = base.join("simples");
+        std::fs::create_dir_all(&plain).unwrap();
+        assert_eq!(make_path(&plain), plain.as_str().replace('\\', "/"));
     }
 }

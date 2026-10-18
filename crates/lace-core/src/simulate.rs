@@ -60,6 +60,7 @@ use crate::pipeline::{
     Artifact, ArtifactKind, ArtifactTracker, PlannedStep, Runner, Status, Step, StepReport,
     final_status,
 };
+use crate::process::make_path;
 use crate::project::{Processor, Project};
 use crate::source::strip_comments;
 use crate::toolchain::{Tool, Toolchain};
@@ -1090,11 +1091,12 @@ fn execute(
             // A simulação rápida compila sem `--trace`, num `obj_dir` à parte:
             // alternar entre ela e a simulação com onda não recompila o
             // modelo inteiro a cada vez.
-            let obj_dir = plan.work.join(if plan.fast {
+            let obj_dir_name = if plan.fast {
                 format!("obj_dir_fast_{top}")
             } else {
                 format!("obj_dir_{top}")
-            });
+            };
+            let obj_dir = plan.work.join(&obj_dir_name);
             let model = obj_dir.join(format!("V{top}{}", std::env::consts::EXE_SUFFIX));
             tracker.expect(ArtifactKind::VerilatedModel, &model, true);
             if let Some(wave) = &plan.wave {
@@ -1151,7 +1153,23 @@ fn execute(
                 .arg(format!(
                     "PYTHON3={}",
                     make_path(&toolchain.bundled_python()?)
-                ))
+                ));
+            // O `verilated.mk` recusa compilar numa pasta com espaço
+            // (`$(words $(CURDIR))`): o `make` não separa um caminho com
+            // espaço numa regra. O Lace passa ao `make` só caminhos relativos
+            // à pasta do modelo e os da toolchain pelo nome curto
+            // ([`make_path`]), e no Windows a pasta do modelo vai pelo nome
+            // curto dela, que é a mesma pasta. Sem nome curto, fica a recusa
+            // do Verilator, que diz o motivo.
+            if cfg!(windows)
+                && !crate::process::make_safe(plan.work.as_str())
+                && let Some(work) = crate::process::short_path(&plan.work)
+            {
+                verilate = verilate
+                    .arg("-MAKEFLAGS")
+                    .arg(format!("CURDIR={}", make_path(&work.join(&obj_dir_name))));
+            }
+            let mut verilate = verilate
                 .arg("-Wno-fatal")
                 .arg("-Wno-TIMESCALEMOD")
                 .arg("-Wno-DECLFILENAME")
@@ -1174,24 +1192,28 @@ fn execute(
             for &flag in verilator_cflags() {
                 verilate = verilate.arg("-CFLAGS").arg(flag);
             }
+            // A pasta do modelo relativa à pasta de trabalho, o CWD do
+            // Verilator: ele a passa ao `make` (`make -C <pasta>`) sem aspas.
             verilate = verilate
                 .arg("--top-module")
                 .arg(top)
                 .arg("-Mdir")
-                .path_arg(&obj_dir);
+                .arg(&obj_dir_name);
             if let Some(hdl) = &hdl {
                 verilate = verilate.arg("-y").path_arg(hdl);
             }
+            // O `main` do cocotb é um fonte C++, e a pasta dele vai para o
+            // makefile do modelo (`VM_USER_DIR`).
             if let Some(main) = plan.cocotb.as_ref().and_then(|c| c.main.as_ref()) {
-                verilate = verilate.path_arg(main);
+                verilate = verilate.arg(make_path(main));
             }
             for file in &plan.files {
                 verilate = verilate.path_arg(file);
             }
             // O PATH (make e compilador; do sistema no Linux e no macOS, do
-            // bundle no Windows) e o LC_ALL=C vêm de Toolchain::invocation; o
-            // VERILATOR_ROOT fica sem definir, e o script o deduz do próprio
-            // caminho.
+            // bundle no Windows), o LC_ALL=C e, no Windows, o VERILATOR_ROOT
+            // vêm de Toolchain::invocation; no Linux e no macOS o script do
+            // Verilator deduz o VERILATOR_ROOT do próprio caminho.
             let verilated =
                 runner.run(PlannedStep::new(Step::Verilate, Tool::Verilator, verilate))?;
             quiet_runtime_warnings(&mut runner.diagnostics, toolchain.root());
@@ -1318,6 +1340,16 @@ fn cocotb_link_flags(cocotb: &crate::cocotb::CocotbRun) -> Vec<String> {
 /// projeto, nem tem como ser corrigido por quem simula.
 fn quiet_runtime_warnings(diagnostics: &mut [Diagnostic], bundle: &Utf8Path) {
     use crate::diagnostics::Severity;
+    // Um bundle numa pasta com espaço ou acento chega ao `make` pelo nome
+    // curto ([`make_path`]), e o g++ cita os arquivos dele assim.
+    let short = if crate::process::make_safe(bundle.as_str()) {
+        None
+    } else {
+        crate::process::short_path(bundle)
+    };
+    let bundled = |file: &Utf8Path| {
+        file.starts_with(bundle) || short.as_ref().is_some_and(|s| file.starts_with(s))
+    };
     // `In file included from <arquivo>:<linha>,` e `from <arquivo>:<linha>:`.
     let included = |message: &str| {
         let place = message
@@ -1330,8 +1362,8 @@ fn quiet_runtime_warnings(diagnostics: &mut [Diagnostic], bundle: &Utf8Path) {
     };
     for d in diagnostics.iter_mut().filter(|d| d.tool == Tool::Verilator) {
         let in_bundle = match d.severity {
-            Severity::Warning => d.file.as_deref().is_some_and(|f| f.starts_with(bundle)),
-            Severity::Unknown => included(&d.message).is_some_and(|f| f.starts_with(bundle)),
+            Severity::Warning => d.file.as_deref().is_some_and(bundled),
+            Severity::Unknown => included(&d.message).is_some_and(|f| bundled(&f)),
             _ => false,
         };
         if in_bundle {
@@ -1382,17 +1414,6 @@ fn string_calls<'a>(code: &'a str, name: &str) -> Vec<(&'a str, &'a str)> {
             Some((&rest[..end], &rest[end + 1..]))
         })
         .collect()
-}
-
-/// Um caminho que o `make` do Verilator repassa ao `/bin/sh`. No Windows
-/// esse `sh` é o do MSYS2, para o qual `\` é escape (`D:\a\b` vira `D:ab`):
-/// o caminho vai com `/`, que o MSYS2 aceita num caminho do Windows.
-fn make_path(path: &Utf8Path) -> String {
-    if cfg!(windows) {
-        path.as_str().replace('\\', "/")
-    } else {
-        path.as_str().to_owned()
-    }
 }
 
 /// A onda com a extensão do formato que o simulador grava
