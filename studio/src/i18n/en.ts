@@ -1133,4 +1133,6 @@ export const en: Record<Key, string> = {
   'error.no_learn_workspace': 'This folder is not a lace learn exercise folder.',
   'error.learn_workspace_exists': 'The folder already exists and is not empty.',
   'error.terminal': 'The terminal did not open.',
+  'error.unsafe_path': 'The project path has a control character, which the shell would read as a key.',
+  'panel.terminalCdRefused': 'The terminal stayed in the previous folder: the project path has a control character, which the shell would read as a key and not as text.',
 };

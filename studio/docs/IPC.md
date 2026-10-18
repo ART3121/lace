@@ -422,5 +422,6 @@ desligada; a interface relê os recursos e tira a placa da janela).
 | `bundle_not_found` | nenhuma instalação do Lace foi achada (mensagem com onde procurou) |
 | `cli` | a CLI `lace` não foi achada, falhou ou não escreveu JSON |
 | `terminal` | o pseudoterminal não abriu, ou o shell já terminou |
+| `unsafe_path` | `terminal_cd` com um caminho que tem caractere de controle: o shell o leria como tecla, e o `cd` não é digitado |
 | `io` | leitura ou escrita do próprio Studio falhou |
 | `internal` | uma thread caiu, ou JSON inválido |
