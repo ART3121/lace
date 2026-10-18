@@ -241,6 +241,43 @@ begin
     Result := ExpandConstant('{localappdata}\Programs\Lace');
 end;
 
+{ O icacls do Windows em Dir, com Params; uma falha fica no log. }
+procedure Icacls(Dir, Params: String);
+var
+  ResultCode: Integer;
+begin
+  if not Exec(ExpandConstant('{sys}\icacls.exe'), '"' + Dir + '" ' + Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+    Log(Format('icacls %s %s exited with %d', [Dir, Params, ResultCode]));
+end;
+
+{ No modo de administrador, a pasta da instalação (C:\Lace) herdaria de
+  C:\ o Modify de "Usuários autenticados": qualquer usuário da máquina
+  trocaria o lace.exe, que fica no PATH do sistema, ou plantaria uma DLL ao
+  lado dele, e o próximo administrador a rodaria. A pasta fica só com as
+  permissões dela, para tudo que ela tem e vier a ter: controle total para
+  os administradores e o sistema, e leitura e execução para os usuários.
+  Antes, os administradores viram donos de tudo (um dono pode devolver a si
+  mesmo o que a ACL tira), e a ACL de cada arquivo volta a ser só a herdada,
+  sem as permissões que alguém pôs à mão (quem criou a pasta antes da
+  instalação, por exemplo). Pelos SIDs, porque os nomes dos grupos mudam com
+  o idioma do Windows. Na instalação só do usuário, a pasta é dele e fica
+  como está. }
+procedure SecureAdminFolder;
+var
+  Dir: String;
+begin
+  if not IsAdminInstallMode then
+    exit;
+  Dir := ExpandConstant('{app}');
+  if not ForceDirectories(Dir) then begin
+    Log('Could not create ' + Dir + ' to set its permissions');
+    exit;
+  end;
+  Icacls(Dir, '/setowner *S-1-5-32-544 /T /C /Q');
+  Icacls(Dir, '/reset /T /C /Q');
+  Icacls(Dir, '/inheritance:r /grant:r *S-1-5-32-544:(OI)(CI)F *S-1-5-18:(OI)(CI)F *S-1-5-32-545:(OI)(CI)RX /C /Q');
+end;
+
 function EnvRoot: Integer;
 begin
   if IsAdminInstallMode then
@@ -399,6 +436,8 @@ var
   ResultCode: Integer;
 begin
   Result := '';
+  { Antes do `lace setup`, que já grava o toolchain\ na pasta. }
+  SecureAdminFolder;
   ExtractTemporaryFile('lace.exe');
   Params := 'setup --payload "' + ExpandConstant('{tmp}') + '" --prefix "' + WizardDirValue + '"';
   Apps := SelectedApps;
@@ -514,6 +553,9 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  { Antes de copiar os arquivos, que herdam as permissões da pasta. }
+  if CurStep = ssInstall then
+    SecureAdminFolder;
   if (CurStep = ssPostInstall) and WizardIsTaskSelected('path') then
     AddToPath(ExpandConstant('{app}\bin'));
 end;

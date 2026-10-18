@@ -161,7 +161,11 @@ plataforma, e a página de componentes do assistente, o da seleção.
      `$env:LACE_FULL_SETUP = "1"`).
 2. Escolha instalar só para você (padrão, sem administrador, em
    `%LOCALAPPDATA%\Programs\Lace`) ou para todos os usuários (pede
-   administrador, em `C:\Lace`).
+   administrador, em `C:\Lace`). Para todos os usuários, a pasta fica com
+   permissões próprias: os administradores e o sistema escrevem nela, os
+   outros usuários só leem e executam. Sem isso, ela herdaria de `C:\` a
+   escrita de qualquer usuário, e o `lace.exe`, no PATH do sistema, poderia
+   ser trocado por qualquer um.
 3. Escolha o idioma do assistente.
 4. Na página **Choose a profile** (Escolha um perfil), escolha o perfil na
    caixa: a lista embaixo mostra, travada, os aplicativos que ele instala.
