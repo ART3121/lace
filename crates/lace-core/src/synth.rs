@@ -482,6 +482,7 @@ pub fn check(
         raw: String::new(),
     }));
     diagnostics.extend(runner.diagnostics);
+    crate::diagnostics::tidy(&mut diagnostics, toolchain.root());
     Ok(CheckResult {
         targets,
         status: runner.status,

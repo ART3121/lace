@@ -41,7 +41,7 @@ use crate::toolchain::Tool;
 /// Unknown`) serve para ordenar do mais grave ao menos grave.
 ///
 /// Em JSON: `"error"`, `"warning"`, `"info"`, `"unknown"`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum Severity {
@@ -93,6 +93,39 @@ pub struct Diagnostic {
     /// O texto exatamente como a ferramenta o escreveu (várias linhas quando
     /// a ferramenta continua a mensagem em linhas indentadas).
     pub raw: String,
+}
+
+/// Arruma os diagnósticos de uma operação para quem os lê. Os avisos sobre
+/// arquivos do bundle (`bundle`, a raiz dele), que o usuário não escreve nem
+/// conserta, como os da biblioteca SAPHO, viram informação, que a CLI e o
+/// Problemas do Studio só mostram quando pedidos. E as repetições saem: cada
+/// elaboração (o design e cada testbench) repete os mesmos avisos. Num
+/// projeto com um contador e dois processadores, o `check` dava 218
+/// diagnósticos, 106 deles avisos `timescale for ... inherited from another
+/// file` da biblioteca, e os do usuário sumiam no meio.
+///
+/// O Verilog que o YANC gera no projeto continua com os avisos: o testbench
+/// gerado é também onde a simulação de um processador avisa que o programa
+/// leu mais valores do que a entrada tem.
+pub(crate) fn tidy(diagnostics: &mut Vec<Diagnostic>, bundle: &Utf8Path) {
+    for d in diagnostics.iter_mut() {
+        if d.severity == Severity::Warning
+            && d.file.as_deref().is_some_and(|f| f.starts_with(bundle))
+        {
+            d.severity = Severity::Info;
+        }
+    }
+    let mut seen = std::collections::HashSet::new();
+    diagnostics.retain(|d| {
+        seen.insert((
+            d.tool,
+            d.severity,
+            d.file.clone(),
+            d.line,
+            d.column,
+            d.message.clone(),
+        ))
+    });
 }
 
 /// Interpreta a saída de uma execução.
@@ -694,6 +727,36 @@ mod tests {
         let mut d = parse(tool, "", line, Some(Utf8Path::new("/p/Software/prog.cmm")));
         assert_eq!(d.len(), 1);
         d.remove(0)
+    }
+
+    #[test]
+    fn bundle_warnings_are_quieted_and_repetitions_go() {
+        let stderr = "\
+/b/yanc/SAPHO/processor.v:23: warning: timescale for pc inherited from another file.
+/p/contador.v:1: ...: The inherited timescale is here.
+/p/top.v:4: warning: Port 2 (b) of x expects 8 bits, got 1.
+/b/yanc/SAPHO/processor.v:23: warning: timescale for pc inherited from another file.
+/p/contador.v:1: ...: The inherited timescale is here.
+/p/top.v:4: warning: Port 2 (b) of x expects 8 bits, got 1.
+";
+        let mut d = parse(Tool::Iverilog, "", stderr, None);
+        assert_eq!(d.len(), 6);
+        tidy(&mut d, Utf8Path::new("/b"));
+        let summary: Vec<(Severity, String)> = d
+            .iter()
+            .map(|d| (d.severity, d.file.clone().unwrap().into_string()))
+            .collect();
+        let path = |p: &str| crate::paths::native_separators(p).into_string();
+        assert_eq!(
+            summary,
+            [
+                // A biblioteca do bundle não é do usuário.
+                (Severity::Info, path("/b/yanc/SAPHO/processor.v")),
+                (d[1].severity, path("/p/contador.v")),
+                // O do usuário continua aviso.
+                (Severity::Warning, path("/p/top.v")),
+            ]
+        );
     }
 
     #[test]

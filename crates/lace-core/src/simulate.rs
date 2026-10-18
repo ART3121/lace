@@ -1308,6 +1308,7 @@ fn execute(
             }
         }
     }
+    crate::diagnostics::tidy(&mut diagnostics, toolchain.root());
     Ok(SimulationResult {
         top: top.clone(),
         simulator: plan.simulator,
