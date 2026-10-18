@@ -14,7 +14,7 @@ use crate::output::Output;
 use crate::report::WaveChoiceReport;
 use crate::{Cli, WaveCommand};
 
-pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<()> {
+pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<bool> {
     let project = Project::discover(&cli.project)?;
     let toolchain = cli.toolchain.resolve()?;
     let control = Control::default();
@@ -25,10 +25,13 @@ pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<()>
                 print_tree(&tree, out);
             }
             out.json(&tree)?;
-            if tree.status != Status::Succeeded {
-                bail!("The project testbench did not elaborate: fix the errors above");
+            // Com a elaboração quebrada, o resultado já diz (o status e os
+            // diagnósticos): um erro a mais seria um segundo objeto no
+            // --json. Sai com 1, a operação que rodou e falhou.
+            if tree.status != Status::Succeeded && out.is_text() {
+                anstream::eprintln!("The project testbench did not elaborate: fix the errors above");
             }
-            Ok(())
+            Ok(tree.status == Status::Succeeded)
         }
         WaveCommand::Select { paths, all } => {
             let module = lace_core::wave_testbench(&project)?;
@@ -46,7 +49,8 @@ pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<()>
                 selection.extend(paths.iter().cloned());
                 selection
             };
-            write(&project, &module, &selection, out)
+            write(&project, &module, &selection, out)?;
+            Ok(true)
         }
         WaveCommand::Unselect { paths } => {
             let module = lace_core::wave_testbench(&project)?;
@@ -63,7 +67,8 @@ pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<()>
                     None => bail!("{path} is not in the signal choice of {module}"),
                 };
             }
-            write(&project, &module, &selection, out)
+            write(&project, &module, &selection, out)?;
+            Ok(true)
         }
     }
 }

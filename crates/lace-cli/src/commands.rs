@@ -95,7 +95,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Check(args) => return check(cli, args, out, control),
         Command::Hierarchy(args) => return hierarchy(cli, args, out, control),
         Command::Sim(args) => return sim(cli, args, out, control),
-        Command::Wave(args) => wave(cli, args, out)?,
+        Command::Wave(args) => return wave(cli, args, out),
         Command::Synth(args) => return synth(cli, args, out, control),
         Command::Report(args) => report(cli, args, out)?,
         Command::Learn(args) => return crate::learn::run(cli, args, out, control),
@@ -734,7 +734,7 @@ fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValu
         .collect()
 }
 
-fn wave(cli: &Cli, args: &WaveArgs, out: &Output) -> anyhow::Result<()> {
+fn wave(cli: &Cli, args: &WaveArgs, out: &Output) -> anyhow::Result<bool> {
     if let Some(command) = &args.command {
         return crate::wave_choice::run(cli, command, out);
     }
@@ -786,7 +786,8 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output) -> anyhow::Result<()> {
         }),
         processors: layout.map(|l| l.layout.processors).unwrap_or_default(),
         waveform,
-    })
+    })?;
+    Ok(true)
 }
 
 /// Abre a onda no Surfer, com o layout dos processadores SAPHO quando
