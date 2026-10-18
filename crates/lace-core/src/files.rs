@@ -1299,6 +1299,55 @@ impl Project {
         Ok(MovedPath { from, to, files })
     }
 
+    /// Por que o que está em `target` não pode sair para dar lugar a `from`
+    /// num [`move_path`](Self::move_path) que encontrou o destino ocupado
+    /// ([`LaceError::PathExists`]), ou `None` se pode. É a pergunta de quem
+    /// oferece substituir o destino (o Studio, que o manda para a lixeira):
+    /// o Core nunca sobrescreve, e protege o que fica no lugar só como origem.
+    ///
+    /// Não sai a pasta do projeto, o que fica no lugar (o `.spf`, a pasta
+    /// `.lace`, a pasta, a pasta de saída e o fonte de um processador), nem
+    /// uma pasta que contém algum deles ou a própria origem.
+    ///
+    /// ```
+    /// use lace_core::Project;
+    /// # let tmp = tempfile::tempdir()?;
+    /// # let dir = camino::Utf8Path::from_path(tmp.path()).unwrap();
+    ///
+    /// let project = Project::create(dir, "p")?;
+    /// std::fs::write(dir.join("p/a.v"), "")?;
+    /// assert!(project.replace_refusal("a.v", "p.spf").is_some());
+    /// std::fs::write(dir.join("p/b.v"), "")?;
+    /// assert_eq!(project.replace_refusal("a.v", "b.v"), None);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn replace_refusal(
+        &self,
+        from: impl AsRef<Utf8Path>,
+        target: impl AsRef<Utf8Path>,
+    ) -> Option<&'static str> {
+        let from = self.absolute(from.as_ref());
+        let target = self.absolute_parent(target.as_ref());
+        if target == self.root || self.root.starts_with(&target) {
+            return Some("It is the project folder");
+        }
+        if let Some(reason) = self.fixed_place(&target) {
+            return Some(reason);
+        }
+        if from.starts_with(&target) {
+            return Some("It holds what is being moved");
+        }
+        let held = [self.spf_path().to_owned(), self.root.join(".lace")]
+            .into_iter()
+            .chain(
+                self.processors()
+                    .iter()
+                    .flat_map(|p| [p.dir.clone(), p.output_dir.clone(), p.source.clone()]),
+            )
+            .any(|kept| kept.starts_with(&target));
+        held.then_some("It holds what stays in place: the project file, .lace or a processor")
+    }
+
     /// Por que `path` não sai do lugar, ou `None` se pode sair.
     fn fixed_place(&self, path: &Utf8Path) -> Option<&'static str> {
         if path == self.spf_path() {
@@ -2058,6 +2107,36 @@ mod tests {
             ),
             ["alu.v", "defs.v", "top.v"]
         );
+    }
+
+    #[test]
+    fn what_stays_in_place_is_never_replaced() {
+        let (_guard, mut project) = project();
+        let root = project.root().to_owned();
+        let soma = project
+            .add_processor(&NewProcessor::new("soma", Language::Cmm))
+            .unwrap()
+            .clone();
+        std::fs::create_dir_all(root.join("rtl/sub")).unwrap();
+        std::fs::write(root.join("rtl/sub/a.v"), "").unwrap();
+        std::fs::write(root.join("b.v"), "").unwrap();
+        std::fs::create_dir_all(root.join("docs")).unwrap();
+        for (target, why) in [
+            (project.spf_path().as_str(), "o .spf"),
+            (root.join(".lace").as_str(), "a .lace"),
+            (soma.dir.as_str(), "a pasta do processador"),
+            (soma.source.as_str(), "o fonte dele"),
+            (root.as_str(), "a pasta do projeto"),
+            (root.join("rtl").as_str(), "uma pasta com a origem"),
+        ] {
+            assert!(
+                project.replace_refusal("rtl/sub/a.v", target).is_some(),
+                "{why}"
+            );
+        }
+        // O resto pode sair.
+        assert_eq!(project.replace_refusal("rtl/sub/a.v", "b.v"), None);
+        assert_eq!(project.replace_refusal("b.v", "docs"), None);
     }
 
     #[cfg(unix)]

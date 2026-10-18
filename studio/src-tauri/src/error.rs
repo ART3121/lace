@@ -36,6 +36,10 @@ pub mod codes {
     /// O caminho tem um caractere de controle, que o shell leria como tecla:
     /// o `cd` automático do terminal não o digita.
     pub const UNSAFE_PATH: &str = "unsafe_path";
+    /// O "Substituir" de um movimento encontrou no destino o que fica no
+    /// lugar (o `.spf`, a pasta de um processador, uma pasta com a origem):
+    /// nada foi para a lixeira.
+    pub const CANNOT_REPLACE: &str = "cannot_replace";
     /// Erro de leitura ou escrita do próprio Studio.
     pub const IO: &str = "io";
     /// O bundle não traz o cliente web do Surfer (a onda abre em janela).

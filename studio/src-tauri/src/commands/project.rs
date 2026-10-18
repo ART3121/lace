@@ -552,7 +552,9 @@ pub fn verilog_modules(text: String) -> Vec<String> {
 /// que está fora do projeto (`outside_project`) e o destino que existe
 /// (`path_exists`). Com `overwrite`, o que está no destino vai para a
 /// lixeira e o movimento é tentado de novo: substituir é do Studio, o Core
-/// nunca sobrescreve.
+/// nunca sobrescreve. Menos o que o Core mantém no lugar, a pasta do projeto
+/// e uma pasta que contém a origem (`Project::replace_refusal`): aí o erro é
+/// `cannot_replace`, e nada vai para a lixeira.
 #[tauri::command]
 pub async fn project_move(
     app: AppHandle,
@@ -564,6 +566,12 @@ pub async fn project_move(
         let mut project = state.project()?;
         match project.move_path(&from, &to) {
             Err(LaceError::PathExists(target)) if overwrite => {
+                if let Some(reason) = project.replace_refusal(&from, &target) {
+                    return Err(IpcError::new(
+                        codes::CANNOT_REPLACE,
+                        format!("{target} is not replaced: {reason}"),
+                    ));
+                }
                 trash::delete(&target)
                     .map_err(|e| IpcError::new(codes::IO, format!("{target}: {e}")))?;
                 Ok(project.move_path(&from, &to)?)

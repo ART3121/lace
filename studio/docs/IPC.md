@@ -424,5 +424,6 @@ desligada; a interface relê os recursos e tira a placa da janela).
 | `cli` | a CLI `lace` não foi achada, falhou ou não escreveu JSON |
 | `terminal` | o pseudoterminal não abriu, ou o shell já terminou |
 | `unsafe_path` | `terminal_cd` com um caminho que tem caractere de controle: o shell o leria como tecla, e o `cd` não é digitado |
+| `cannot_replace` | `project_move` com `overwrite` e, no destino, o que o Core mantém no lugar (o `.spf`, a pasta `.lace`, a pasta, a pasta de saída ou o fonte de um processador), a pasta do projeto ou uma pasta que contém a origem: nada vai para a lixeira |
 | `io` | leitura ou escrita do próprio Studio falhou |
 | `internal` | uma thread caiu, ou JSON inválido |

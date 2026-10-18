@@ -1105,6 +1105,7 @@ export const pt = {
   'error.cli': 'A CLI lace falhou.',
   'error.terminal': 'O terminal não abriu.',
   'error.unsafe_path': 'O caminho do projeto tem um caractere de controle, que o shell leria como tecla.',
+  'error.cannot_replace': 'O que está no destino não pode ser substituído: o Lace o mantém no lugar.',
   'panel.terminalCdRefused': 'O terminal ficou na pasta anterior: o caminho do projeto tem um caractere de controle, que o shell leria como tecla e não como texto.',
 
   // Exercícios (lace learn)
