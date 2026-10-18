@@ -179,6 +179,10 @@ Verilator não aceita espaços, e `C:\Program Files` tem um. O assistente avisa
 se a pasta escolhida tiver. Com o Studio marcado e sem o WebView2 no
 computador, ele avisa antes de instalar.
 
+O assistente recusa uma pasta que já tem uma `toolchain` que não é de uma
+instalação do Lace (sem `toolchain\bundle.json` nem `bin\lace.exe`):
+instalar trocaria essa pasta inteira, sem passar pela lixeira.
+
 Numa pasta que já tem o Lace, a primeira página diz de que versão para qual
 ele atualiza, e os aplicativos que a pasta tem vêm marcados, inclusive os
 que o `lace install` acrescentou: uma seleção que não é a de nenhum perfil

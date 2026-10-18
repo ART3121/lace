@@ -394,6 +394,16 @@ pub fn install_bundle(
             current.unwrap_or("an unsupported platform")
         );
     }
+    let dest = prefix.join("toolchain");
+    // A pasta escolhida no assistente pode ter uma `toolchain` de outra
+    // ferramenta, e ela iria inteira embora no fim, sem passar pela lixeira.
+    if fs::symlink_metadata(&dest).is_ok() && !is_lace_installation(prefix) {
+        bail!(
+            "{} already exists and is not the bundle of a Lace installation; \
+             choose another folder, or move it away first",
+            dest.display()
+        );
+    }
     fs::create_dir_all(prefix).with_context(|| format!("Creating {}", prefix.display()))?;
     let _lock = prepare(prefix)?;
     let pid = std::process::id();
@@ -407,7 +417,6 @@ pub fn install_bundle(
             return Err(e);
         }
     };
-    let dest = prefix.join("toolchain");
     let old = prefix.join(format!(".antigo-{pid}"));
     let aside = old.join("toolchain");
     if fs::symlink_metadata(&dest).is_ok() {
@@ -426,6 +435,17 @@ pub fn install_bundle(
     let _ = fs::remove_dir_all(&staging);
     crate::update::forget_journal(prefix);
     Ok(verified)
+}
+
+/// `prefix` tem uma instalação do Lace: o cabeçalho do bundle
+/// (`toolchain/bundle.json`) ou o `lace` em `bin/`.
+pub fn is_lace_installation(prefix: &Path) -> bool {
+    let lace = format!("bin/lace{}", std::env::consts::EXE_SUFFIX);
+    prefix
+        .join("toolchain")
+        .join(lace_core::MANIFEST_FILE)
+        .is_file()
+        || prefix.join(lace).is_file()
 }
 
 /// Antes de trocar a instalação em `prefix`: desfaz a troca que uma

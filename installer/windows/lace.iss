@@ -166,6 +166,8 @@ en.WebView2Missing=Lace Studio uses the Microsoft Edge WebView2 Runtime, which i
 pt.WebView2Missing=O Lace Studio usa o Microsoft Edge WebView2 Runtime, que não está instalado neste computador. O Lace Studio só abre depois que você o instalar de https://developer.microsoft.com/microsoft-edge/webview2/ (Evergreen Runtime); o resto do Lace funciona sem ele.
 en.InstallNowAnyway=Install Lace now anyway?
 pt.InstallNowAnyway=Instalar o Lace agora mesmo assim?
+en.ForeignToolchain=The folder %1 already exists and is not from a Lace installation, and installing would replace it. Choose another folder, or move it away first.
+pt.ForeignToolchain=A pasta %1 já existe e não é de uma instalação do Lace, e instalar a substituiria. Escolha outra pasta, ou tire-a de lá antes.
 
 [Tasks]
 Name: "path"; Description: "{cm:TaskPath}"
@@ -276,6 +278,12 @@ begin
   Icacls(Dir, '/setowner *S-1-5-32-544 /T /C /Q');
   Icacls(Dir, '/reset /T /C /Q');
   Icacls(Dir, '/inheritance:r /grant:r *S-1-5-32-544:(OI)(CI)F *S-1-5-18:(OI)(CI)F *S-1-5-32-545:(OI)(CI)RX /C /Q');
+end;
+
+{ A pasta tem uma instalação do Lace: o cabeçalho do bundle ou o lace.exe. }
+function IsLaceFolder(Dir: String): Boolean;
+begin
+  Result := FileExists(AddBackslash(Dir) + 'toolchain\bundle.json') or FileExists(AddBackslash(Dir) + 'bin\lace.exe');
 end;
 
 function EnvRoot: Integer;
@@ -530,6 +538,17 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
+  { Uma toolchain\ de outra ferramenta na pasta escolhida iria embora
+    inteira, sem passar pela lixeira: o assistente completo a troca
+    ([InstallDelete]), e o que baixa os aplicativos também (o `lace
+    setup`, que recusa e pararia só no fim). }
+  if (CurPageID = wpSelectDir) and DirExists(AddBackslash(WizardDirValue) + 'toolchain') and not IsLaceFolder(WizardDirValue) then begin
+    Log('Error: ' + AddBackslash(WizardDirValue) + 'toolchain exists and is not from a Lace installation.');
+    if not WizardSilent then
+      MsgBox(FmtMessage(CustomMessage('ForeignToolchain'), [AddBackslash(WizardDirValue) + 'toolchain']), mbError, MB_OK);
+    Result := False;
+    exit;
+  end;
   if (CurPageID = wpSelectDir) and (Pos(' ', WizardDirValue) > 0) then begin
     Log('Warning: The folder path has a space, and the make used by Verilator does not accept spaces.');
     if not WizardSilent then
