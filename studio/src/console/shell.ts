@@ -133,12 +133,19 @@ export async function restartShell(): Promise<void> {
 // Outro projeto aberto: o shell que já roda vai para a pasta dele, com um
 // `cd` digitado, como o "abrir o terminal aqui" da AURORA; o histórico e o
 // que está na tela ficam. Um shell que ainda não abriu nasce na pasta nova, e
-// um que terminou reabre nela.
+// um que terminou reabre nela. Um caminho com caractere de controle não é
+// digitado (o backend recusa com `unsafe_path`), e o terminal avisa que ficou
+// onde estava.
 useProject.subscribe((state, previous) => {
   const root = state.snapshot?.root ?? null;
   if (!root || root === (previous.snapshot?.root ?? null)) return;
   if (!shell || shell.id === null || shell.exited) return;
-  void api.terminal.cd(shell.id, root).catch(() => undefined);
+  const target = shell;
+  void api.terminal.cd(shell.id, root).catch((error: unknown) => {
+    if ((error as { code?: string }).code === 'unsafe_path') {
+      target.term.writeln(`\r\n\x1b[33m${t('panel.terminalCdRefused')}\x1b[0m`);
+    }
+  });
 });
 
 export function setShellTheme(next: Theme): void {

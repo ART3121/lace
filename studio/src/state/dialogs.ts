@@ -28,6 +28,9 @@ export interface ConfirmOptions {
   title: string;
   message: string;
   buttons: ConfirmButton[];
+  /** O `value` do botão que começa com o foco, e que o Enter escolhe; sem
+   * ele, o principal. */
+  focus?: string;
   /** O diálogo largo, para botões de texto longo. */
   wide?: boolean;
 }

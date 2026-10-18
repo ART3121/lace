@@ -712,6 +712,12 @@ export const useJobs = create<JobsState>((set, get) => ({
           case 'events':
             message.events.forEach(handleEvent);
             break;
+          case 'output_omitted':
+            write(
+              channelOf(message.step, message.tool),
+              fmt.note(t('console.outputOmitted', { count: message.lines.toLocaleString() })),
+            );
+            break;
           case 'build':
             writeBuild(message.result);
             break;

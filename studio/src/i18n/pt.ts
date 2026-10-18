@@ -448,6 +448,7 @@ export const pt = {
   'console.runProblems': 'erros: {errors}, avisos: {warnings}',
   'console.programOutput': 'saída do testbench',
   'console.cancelRequested': 'Cancelamento pedido. Encerrando as ferramentas...',
+  'console.outputOmitted': '[{count} linhas de saída omitidas: a ferramenta escreveu mais rápido do que o console mostra]',
   'console.noProcessors': 'Projeto sem processadores: não há o que compilar. Crie um em Projeto > Novo processador SAPHO.',
   'console.installDone': 'Instalação terminada com código {code}',
   'console.updateDone': 'Lace atualizado para {version}',
@@ -633,6 +634,9 @@ export const pt = {
   'dialog.update.title': 'Lace {version} disponível',
   'dialog.update.confirm': 'Atualizar e reiniciar',
   'dialog.update.later': 'Depois',
+  'dialog.busyClose.title': 'Espere a operação terminar',
+  'dialog.busyClose.update': 'A atualização do Lace está trocando os arquivos da instalação, e fechar o Studio agora a interromperia no meio. Quando ela terminar, o Studio reinicia sozinho na versão nova.',
+  'dialog.busyClose.install': 'O Lace está instalando aplicativos do bundle, e fechar o Studio agora interromperia a instalação no meio. Espere ela terminar para fechar o Studio.',
   'dialog.convertLayout.title': 'Converter para a estrutura de pastas do YANC 7.1?',
   'dialog.convertLayout.message': 'Desde o YANC 7.1, o fonte do processador e os arquivos dele (dados de arrays, input_N.txt) ficam em <processador>/, e tudo o que o YANC gera em <processador>/<processador>/. {processors} ainda usam Software/, Hardware/ e Simulation/ e não compilam assim.\n\nConverter move cada arquivo para o lugar novo e aponta o arquivo do projeto para lá; nada é apagado nem sobrescrito. A linha #PRNAME, que o YANC 7.1 recusa, sai do fonte. Depois disso o projeto também abre na AURORA 7.1.',
   'dialog.convertLayout.convert': 'Converter',
@@ -1100,6 +1104,9 @@ export const pt = {
   'error.io': 'Não foi possível ler ou gravar o arquivo.',
   'error.cli': 'A CLI lace falhou.',
   'error.terminal': 'O terminal não abriu.',
+  'error.unsafe_path': 'O caminho do projeto tem um caractere de controle, que o shell leria como tecla.',
+  'error.cannot_replace': 'O que está no destino não pode ser substituído: o Lace o mantém no lugar.',
+  'panel.terminalCdRefused': 'O terminal ficou na pasta anterior: o caminho do projeto tem um caractere de controle, que o shell leria como tecla e não como texto.',
 
   // Exercícios (lace learn)
   'settings.learnDir': 'Pasta das trilhas de exercícios',

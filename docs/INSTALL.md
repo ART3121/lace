@@ -161,7 +161,11 @@ plataforma, e a página de componentes do assistente, o da seleção.
      `$env:LACE_FULL_SETUP = "1"`).
 2. Escolha instalar só para você (padrão, sem administrador, em
    `%LOCALAPPDATA%\Programs\Lace`) ou para todos os usuários (pede
-   administrador, em `C:\Lace`).
+   administrador, em `C:\Lace`). Para todos os usuários, a pasta fica com
+   permissões próprias: os administradores e o sistema escrevem nela, os
+   outros usuários só leem e executam. Sem isso, ela herdaria de `C:\` a
+   escrita de qualquer usuário, e o `lace.exe`, no PATH do sistema, poderia
+   ser trocado por qualquer um.
 3. Escolha o idioma do assistente.
 4. Na página **Choose a profile** (Escolha um perfil), escolha o perfil na
    caixa: a lista embaixo mostra, travada, os aplicativos que ele instala.
@@ -174,6 +178,10 @@ A pasta padrão não tem espaço no caminho de propósito: o `make` usado pelo
 Verilator não aceita espaços, e `C:\Program Files` tem um. O assistente avisa
 se a pasta escolhida tiver. Com o Studio marcado e sem o WebView2 no
 computador, ele avisa antes de instalar.
+
+O assistente recusa uma pasta que já tem uma `toolchain` que não é de uma
+instalação do Lace (sem `toolchain\bundle.json` nem `bin\lace.exe`):
+instalar trocaria essa pasta inteira, sem passar pela lixeira.
 
 Numa pasta que já tem o Lace, a primeira página diz de que versão para qual
 ele atualiza, e os aplicativos que a pasta tem vêm marcados, inclusive os
@@ -204,7 +212,9 @@ instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
-mais nova, que o `lace update` lê no lugar do GitHub. O bundle de lá
+mais nova, que o `lace update` lê no lugar do GitHub. O espelho é
+`https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
+os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
 precisa ser o instalado; outro bundle é atualizar (`lace update`).
 
 No Windows, o Studio instalado pelo `lace install studio` não ganha atalho
@@ -327,7 +337,9 @@ instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
-mais nova, que o `lace update` lê no lugar do GitHub. O bundle de lá
+mais nova, que o `lace update` lê no lugar do GitHub. O espelho é
+`https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
+os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
 precisa ser o instalado; outro bundle é atualizar (`lace update`).
 
 **Atualizar:** o Lace Studio procura versão nova ao abrir, oferece a
@@ -404,6 +416,15 @@ para `.antigo-<pid>`, os que a versão nova não tem saem, e o Lace confere
 os executáveis do bundle. Uma falha em qualquer passo devolve os arquivos
 antigos, e a instalação fica como estava; aí o `lace update` passa para o
 instalador inteiro.
+
+Antes de trocar, o Lace grava o que vai fazer num diário
+(`.atualizando.json`, na pasta da instalação). Se o processo morre no meio
+da troca (o terminal fechado, falta de energia), o próximo `lace update` ou
+`lace install` desfaz o que ficou feito com o diário: os arquivos antigos
+voltam, os novos saem, e ele avisa e pede para rodar o `lace update` de
+novo. Uma trava (`.instalacao.lock`) impede duas instalações ou
+atualizações ao mesmo tempo na mesma pasta. O Lace Studio não fecha
+enquanto uma atualização ou instalação dele está rodando.
 
 O próprio `lace` é um dos arquivos trocados. No Windows, um executável em
 uso pode ser renomeado, mas não apagado: o `lace.exe` antigo fica na pasta

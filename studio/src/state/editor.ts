@@ -19,12 +19,12 @@
 
 import { create } from 'zustand';
 
-import { disposeModel, ensureModel, getModel } from '../editor/monaco';
+import { disposeModel, ensureModel, getModel, uriFor } from '../editor/monaco';
 import { t } from '../i18n';
 import { api } from '../ipc/api';
 import type { Feature } from '../ipc/lace-types';
 import type { IpcError } from '../ipc/types';
-import { baseName } from '../util/paths';
+import { baseName, isInside, systemPath } from '../util/paths';
 import { confirm } from './dialogs';
 import { featureOn, useExperimental } from './experimental';
 import { showError } from './toasts';
@@ -291,7 +291,10 @@ export const useEditor = create<EditorState>((set, get) => {
       removed = settled.removed;
       return { ...extra, ...settled.patch };
     });
-    for (const tab of removed) if (tab.path) disposeModel(tab.path);
+    // O modelo do Monaco é um por URI, e a URI não distingue `/` de `\`: só
+    // sai quando nenhuma aba que ficou aberta o usa.
+    const inUse = new Set(get().tabs.flatMap((tab) => (tab.path ? [uriFor(tab.path).toString()] : [])));
+    for (const tab of removed) if (tab.path && !inUse.has(uriFor(tab.path).toString())) disposeModel(tab.path);
     return removed;
   };
 
@@ -306,7 +309,10 @@ export const useEditor = create<EditorState>((set, get) => {
     cursor: null,
     languageId: null,
 
-    openFile: async (path, options = {}) => {
+    openFile: async (requested, options = {}) => {
+      // Um arquivo, uma aba: o mesmo caminho escrito com outro separador
+      // (o link do INFO usa `/`) acha a aba que já existe.
+      const path = systemPath(requested);
       const id = fileTabId(path);
       let doc: DocInfo | null = null;
       if (!get().tabs.some((tab) => tab.id === id)) {
@@ -518,7 +524,13 @@ export const useEditor = create<EditorState>((set, get) => {
       const path = tab.path;
       const doc = get().docs[path];
       const model = getModel(path);
-      if (!doc || !model || doc.binary || doc.tooLarge) return true;
+      if (!doc || doc.binary || doc.tooLarge) return true;
+      // Sem modelo não há texto para gravar: dizer que gravou fecharia a
+      // aba e perderia o que estava nela.
+      if (!model) {
+        showError({ code: 'internal', message: `No editor model for ${path}: the file was not saved` });
+        return false;
+      }
       const write = async (expected: number | null) => {
         const modifiedMs = await api.fs.writeText(path, model.getValue(), expected);
         const savedVersion = model.getAlternativeVersionId();
@@ -595,7 +607,8 @@ export const useEditor = create<EditorState>((set, get) => {
     },
 
     renamed: (from, to) => {
-      const affected = get().tabs.filter((t) => t.path && (t.path === from || t.path.startsWith(`${from}/`)));
+      // `isInside` aceita os dois separadores: no Windows os caminhos vêm com `\`.
+      const affected = get().tabs.filter((t) => t.path && isInside(t.path, from));
       for (const tab of affected) {
         const newPath = to + tab.path!.slice(from.length);
         const model = getModel(tab.path!);

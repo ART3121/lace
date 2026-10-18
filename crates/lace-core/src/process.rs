@@ -45,6 +45,9 @@ const DRAIN_LIMIT: Duration = Duration::from_secs(2);
 const BATCH_QUEUE: usize = 16;
 /// Até quanto uma leitura do pipe traz de uma vez.
 const READ_CHUNK: usize = 64 * 1024;
+/// Até quanto de uma linha sem fim de linha espera o resto dela. Passado
+/// isso, o que chegou vai como uma linha, e o resto vem em outra.
+const LINE_LIMIT: usize = 64 * 1024;
 /// Quanto do começo e quanto do fim da saída de cada pipe o Lace guarda. Um
 /// testbench que imprime sem parar (`always #1 $display`) escrevia 33 MB em
 /// 5 s, e tudo ficava na memória até o fim; agora o meio sai, e o resultado
@@ -230,6 +233,80 @@ pub(crate) fn icarus_path(path: &Utf8Path) -> String {
     } else {
         native
     }
+}
+
+/// Um caminho que o Verilator escreve nos makefiles do modelo, ou que vai na
+/// linha de comando do `make` dele. No Windows, com `/`: o `make` repassa o
+/// caminho ao `sh` do MSYS2, para o qual `\` é escape (`D:\a\b` vira `D:ab`),
+/// e o MSYS2 aceita `/` num caminho do Windows. E pelo nome curto
+/// ([`short_path`]) quando tem espaço ou caractere fora do ASCII: o `make`
+/// separa as palavras no espaço, e o Verilator grava nos makefiles o caminho
+/// no código de página do Windows (o `ç` como o byte `E7`), que o `make` do
+/// MSYS2 lê como UTF-8 e não acha (conferido em 2026-10-18 com o
+/// `VERILATOR_ROOT`). Sem nome curto, vai o caminho inteiro, e quem reclama
+/// é o `make`.
+pub(crate) fn make_path(path: &Utf8Path) -> String {
+    if !cfg!(windows) {
+        return path.as_str().to_owned();
+    }
+    let native = dunce::simplified(path.as_std_path())
+        .to_string_lossy()
+        .into_owned();
+    let usable = if make_safe(&native) {
+        native
+    } else {
+        short_path(path).map_or(native, Utf8PathBuf::into_string)
+    };
+    usable.replace('\\', "/")
+}
+
+/// O `make` aceita `path` como está: só ASCII, sem espaço.
+pub(crate) fn make_safe(path: &str) -> bool {
+    path.is_ascii() && !path.contains(char::is_whitespace)
+}
+
+/// O nome curto (8.3) de `path` no Windows, como `C:\Users\ALUNO~1\SOESPA~1`,
+/// se ele existe e não tem espaço nem caractere fora do ASCII. `None` se o
+/// caminho não existe, se algum nome do caminho não tem forma curta (o NTFS
+/// pode deixar de criá-las, e outros sistemas de arquivos não as têm), ou se
+/// o `cmd.exe` falhou. Fora do Windows, sempre `None`.
+///
+/// Quem dá o nome curto é o `%~sI` de um `for` do `cmd.exe`: o
+/// `GetShortPathNameW` direto pediria código `unsafe`. O caminho vai pelo
+/// ambiente, e não pela linha de comando, e é lido com a expansão adiada
+/// (`/v:on`), que não interpreta `&`, `^`, `%` nem `)` do valor.
+#[cfg(windows)]
+pub(crate) fn short_path(path: &Utf8Path) -> Option<Utf8PathBuf> {
+    use std::os::windows::process::CommandExt;
+    if path.as_str().is_empty() || !path.exists() {
+        return None;
+    }
+    let system_root = std::env::var_os("SystemRoot")?;
+    let system32 = std::path::Path::new(&system_root).join("System32");
+    let shell = std::env::var_os("ComSpec")
+        .map_or_else(|| system32.join("cmd.exe"), std::path::PathBuf::from);
+    let mut command = Command::new(shell);
+    command
+        .raw_arg(r#"/d /v:on /c "for %I in ("!LACE_SHORT_PATH!") do @echo %~sI""#)
+        .current_dir(&system32)
+        .env_clear()
+        .env("SystemRoot", &system_root)
+        .env("LACE_SHORT_PATH", dunce::simplified(path.as_std_path()))
+        .stdin(Stdio::null())
+        .stderr(Stdio::null());
+    hide_console(&mut command);
+    let output = command.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let short = std::str::from_utf8(&output.stdout).ok()?.trim();
+    let short = Utf8PathBuf::from(short);
+    (!short.as_str().is_empty() && make_safe(short.as_str()) && short.exists()).then_some(short)
+}
+
+#[cfg(not(windows))]
+pub(crate) fn short_path(_path: &Utf8Path) -> Option<Utf8PathBuf> {
+    None
 }
 
 fn quote_if_needed(s: &str) -> String {
@@ -529,8 +606,8 @@ impl Capture {
 /// mensagem por linha: num testbench que imprime sem parar, passar cada
 /// linha pelo canal custava mais que o simulador escrevê-la. Quem escreve
 /// devagar continua chegando linha a linha, porque a leitura volta com o que
-/// já está no pipe. Uma linha pela metade espera a próxima leitura; a última,
-/// sem fim de linha, vai quando o pipe fecha.
+/// já está no pipe. Uma linha pela metade espera a próxima leitura, até
+/// [`LINE_LIMIT`] bytes; a última, sem fim de linha, vai quando o pipe fecha.
 fn read_lines(
     mut pipe: impl Read + Send + 'static,
     stream: Stream,
@@ -548,6 +625,20 @@ fn read_lines(
             };
             let Some(end) = read.iter().rposition(|&b| b == b'\n') else {
                 pending.extend_from_slice(read);
+                // Quem escreve sem `\n` (um `$write` em laço, uma barra de
+                // progresso) acumulava tudo aqui até o pipe fechar, e só aí
+                // a saída aparecia, de uma vez: vai em pedaços, que quem
+                // recebe trata como linhas.
+                if pending.len() >= LINE_LIMIT {
+                    let cut = utf8_prefix(&pending);
+                    let rest = pending.split_off(cut);
+                    if lines
+                        .send((stream, std::mem::replace(&mut pending, rest)))
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
                 continue;
             };
             let mut batch = std::mem::take(&mut pending);
@@ -561,6 +652,28 @@ fn read_lines(
             let _ = lines.send((stream, pending));
         }
     })
+}
+
+/// Até onde `bytes` pode ser cortado sem partir um caractere UTF-8: o
+/// tamanho todo, menos o começo de um caractere que ainda não chegou
+/// inteiro. Um byte que não é UTF-8 não segura nada.
+fn utf8_prefix(bytes: &[u8]) -> usize {
+    for back in 1..=bytes.len().min(3) {
+        let at = bytes.len() - back;
+        let byte = bytes[at];
+        if byte & 0xC0 == 0x80 {
+            // Continuação: o começo do caractere está mais atrás.
+            continue;
+        }
+        let width = match byte {
+            0xC0..=0xDF => 2,
+            0xE0..=0xEF => 3,
+            0xF0..=0xF7 => 4,
+            _ => 1,
+        };
+        return if back < width { at } else { bytes.len() };
+    }
+    bytes.len()
 }
 
 fn trim_line_end(line: &str) -> &str {
@@ -976,6 +1089,46 @@ fn termination(status: std::process::ExitStatus) -> Termination {
         }
     }
     Termination::Unknown
+}
+
+#[cfg(test)]
+mod reader_tests {
+    use super::*;
+
+    fn batches(input: Vec<u8>) -> Vec<Vec<u8>> {
+        let (tx, rx) = mpsc::sync_channel(BATCH_QUEUE);
+        let reader = read_lines(std::io::Cursor::new(input), Stream::Stdout, tx);
+        let out: Vec<_> = rx.iter().map(|(_, batch)| batch).collect();
+        reader.join().unwrap();
+        out
+    }
+
+    #[test]
+    fn a_line_without_end_arrives_in_pieces() {
+        // 200 KiB sem `\n`, com um `ç` (dois bytes) em cada fronteira de
+        // 64 KiB possível.
+        let mut input = Vec::new();
+        while input.len() < 200 * 1024 {
+            input.extend_from_slice("abcdefgç".as_bytes());
+        }
+        let pieces = batches(input.clone());
+        assert!(pieces.len() >= 3, "{} pedaços", pieces.len());
+        assert!(pieces.iter().all(|p| p.len() <= LINE_LIMIT + READ_CHUNK));
+        assert!(pieces.iter().all(|p| std::str::from_utf8(p).is_ok()));
+        assert_eq!(pieces.concat(), input);
+    }
+
+    #[test]
+    fn cuts_never_split_a_character() {
+        assert_eq!(utf8_prefix(b"abc"), 3);
+        assert_eq!(utf8_prefix("aç".as_bytes()), 3);
+        assert_eq!(utf8_prefix(&"aç".as_bytes()[..2]), 1);
+        assert_eq!(utf8_prefix(&"a€".as_bytes()[..3]), 1);
+        assert_eq!(utf8_prefix(&"a😀".as_bytes()[..4]), 1);
+        assert_eq!(utf8_prefix("a😀".as_bytes()), 5);
+        // Byte que não é UTF-8 não segura o corte.
+        assert_eq!(utf8_prefix(&[b'a', 0xFF]), 2);
+    }
 }
 
 #[cfg(all(test, unix))]
@@ -1612,5 +1765,30 @@ mod windows_tests {
             attached.contains(&lace),
             "a ferramenta não divide o console do Lace: {attached:?}"
         );
+    }
+
+    #[test]
+    fn short_path_is_a_name_make_accepts_for_the_same_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = crate::paths::canonicalize(Utf8Path::from_path(dir.path()).unwrap()).unwrap();
+        // Espaço, acento e o que o cmd.exe interpretaria fora da expansão
+        // adiada.
+        let odd = base.join("com espaço & 100%PATH%^!y!(z)");
+        std::fs::create_dir_all(&odd).unwrap();
+        // Um volume sem nomes curtos (o NTFS deixa desligá-los) dá `None`, e
+        // o caminho segue inteiro.
+        if let Some(short) = short_path(&odd) {
+            assert!(make_safe(short.as_str()), "{short}");
+            assert_eq!(
+                std::fs::canonicalize(&short).unwrap(),
+                std::fs::canonicalize(&odd).unwrap()
+            );
+            assert_eq!(make_path(&odd), short.as_str().replace('\\', "/"));
+        }
+        assert_eq!(short_path(&base.join("não existe")), None);
+        // Um caminho que o make aceita fica como está, só com `/`.
+        let plain = base.join("simples");
+        std::fs::create_dir_all(&plain).unwrap();
+        assert_eq!(make_path(&plain), plain.as_str().replace('\\', "/"));
     }
 }

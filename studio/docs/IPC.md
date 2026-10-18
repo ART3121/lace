@@ -211,6 +211,7 @@ As mensagens chegam pelo `channel`, nesta ordem, com o tipo no campo `type`:
 | `started` | `job`, `command` | logo depois de `flow_start` |
 | `phase` | `phase`: `build`, `check`, `simulate`, `synthesize`, `schematic`, `wave`, `learn`, `fpga`, `program` | uma fase começou |
 | `events` | `events: Event[]` | lotes de eventos do Core (`step_started`, `output`, `step_finished`; API.md do Lace, 5.8), no máximo a cada 30 ms ou 500 eventos |
+| `output_omitted` | `step`, `tool`, `lines` | linhas de `output` que ficaram de fora, no lugar delas: passam 20 000 de uma vez e depois 5 000 por segundo, em blocos, com um aviso a cada meio segundo (uma linha longa conta uma a mais a cada 1 KiB); o resultado final ainda traz o começo e o fim da saída de cada passo |
 | `build` | `result: BuildResult` | um processador terminou de compilar |
 | `cli_output` | `stream`, `line` | uma linha da CLI (só em `lace_install` e `lace_update`) |
 | `finished` | `outcome` | fim: um `FlowOutcome` (ou o resultado da CLI) |
@@ -422,5 +423,7 @@ desligada; a interface relê os recursos e tira a placa da janela).
 | `bundle_not_found` | nenhuma instalação do Lace foi achada (mensagem com onde procurou) |
 | `cli` | a CLI `lace` não foi achada, falhou ou não escreveu JSON |
 | `terminal` | o pseudoterminal não abriu, ou o shell já terminou |
+| `unsafe_path` | `terminal_cd` com um caminho que tem caractere de controle: o shell o leria como tecla, e o `cd` não é digitado |
+| `cannot_replace` | `project_move` com `overwrite` e, no destino, o que o Core mantém no lugar (o `.spf`, a pasta `.lace`, a pasta, a pasta de saída ou o fonte de um processador), a pasta do projeto ou uma pasta que contém a origem: nada vai para a lixeira |
 | `io` | leitura ou escrita do próprio Studio falhou |
 | `internal` | uma thread caiu, ou JSON inválido |

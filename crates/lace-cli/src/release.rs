@@ -20,23 +20,76 @@ pub fn repo() -> String {
     std::env::var("LACE_REPO").unwrap_or_else(|_| DEFAULT_REPO.to_owned())
 }
 
-/// A URL de um arquivo da release `v<version>`. `LACE_RELEASE_URL` troca a
-/// base (um espelho do laboratório, com uma pasta `v<versão>/` por release).
-pub fn asset_url(version: &str, file: &str) -> String {
-    match std::env::var("LACE_RELEASE_URL") {
-        Ok(base) if !base.is_empty() => {
-            format!("{}/v{version}/{file}", base.trim_end_matches('/'))
-        }
-        _ => format!(
-            "https://github.com/{}/releases/download/v{version}/{file}",
-            repo()
+/// A base de `LACE_RELEASE_URL` (um espelho do laboratório), se definida. Só
+/// `https://`, ou `file://` para um espelho no disco: o `SHA256SUMS` que
+/// confere os downloads vem do mesmo lugar, e por `http://` quem estivesse
+/// na rede trocaria os dois juntos, e com eles o `lace` do próximo
+/// `lace update`.
+fn mirror() -> anyhow::Result<Option<String>> {
+    mirror_from(std::env::var("LACE_RELEASE_URL").ok().as_deref())
+}
+
+/// [`mirror`] com o valor de `LACE_RELEASE_URL`.
+fn mirror_from(base: Option<&str>) -> anyhow::Result<Option<String>> {
+    let Some(base) = base.filter(|b| !b.is_empty()) else {
+        return Ok(None);
+    };
+    let scheme = base.split_once("://").map(|(s, _)| s.to_ascii_lowercase());
+    match scheme.as_deref() {
+        Some("https" | "file") => Ok(Some(base.trim_end_matches('/').to_owned())),
+        _ => bail!(
+            "LACE_RELEASE_URL must start with https:// (or file:// for a mirror on disk), and it \
+             is {base}: the SHA256SUMS that checks each download comes from there too"
         ),
     }
 }
 
+/// Uma versão como as do Lace: começa por dígito e tem só letras, dígitos,
+/// `.`, `-` e `+` (`0.9.0`, `0.9.0-rc.1`). É o que vai no caminho das URLs e
+/// no nome dos arquivos baixados, e o que o terminal mostra: uma resposta do
+/// espelho com `/`, `..` ou uma sequência de escape não passa.
+pub(crate) fn is_version(text: &str) -> bool {
+    text.len() <= 64
+        && text.starts_with(|c: char| c.is_ascii_digit())
+        && text
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+'))
+}
+
+/// Um nome de arquivo de uma release (o índice de um espelho também os
+/// lista): sem pasta e sem começar por `.`, com os caracteres de
+/// [`is_version`] e `_`.
+fn is_asset_name(text: &str) -> bool {
+    !text.is_empty()
+        && text.len() <= 255
+        && !text.starts_with('.')
+        && text
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+' | '_'))
+}
+
+/// A URL de um arquivo da release `v<version>`. `LACE_RELEASE_URL` troca a
+/// base (um espelho do laboratório, com uma pasta `v<versão>/` por release).
+pub fn asset_url(version: &str, file: &str) -> anyhow::Result<String> {
+    if !is_version(version) {
+        bail!("Not a Lace version: {}", version.escape_debug());
+    }
+    if !is_asset_name(file) {
+        bail!("Not a file name of a release: {}", file.escape_debug());
+    }
+    Ok(match mirror()? {
+        Some(base) => format!("{base}/v{version}/{file}"),
+        None => format!(
+            "https://github.com/{}/releases/download/v{version}/{file}",
+            repo()
+        ),
+    })
+}
+
 /// A tag da última release de um repositório do GitHub, sem passar pela API
 /// (que limita as consultas): `/releases/latest` redireciona para
-/// `/releases/tag/<tag>`.
+/// `/releases/tag/<tag>`. Uma tag fora dos caracteres de um nome de arquivo
+/// de release ([`is_asset_name`]) é recusada.
 pub fn latest_github_tag(repo: &str) -> anyhow::Result<String> {
     let url = format!("https://github.com/{repo}/releases/latest");
     let output = curl()
@@ -47,7 +100,9 @@ pub fn latest_github_tag(repo: &str) -> anyhow::Result<String> {
         .map_err(curl_missing)?;
     let effective = String::from_utf8_lossy(&output.stdout);
     match effective.rsplit_once("/releases/tag/") {
-        Some((_, tag)) if output.status.success() && !tag.is_empty() => Ok(tag.trim().to_owned()),
+        Some((_, tag)) if output.status.success() && is_asset_name(tag.trim()) => {
+            Ok(tag.trim().to_owned())
+        }
         _ => bail!("Could not look up the latest release at {url}"),
     }
 }
@@ -56,19 +111,28 @@ pub fn latest_github_tag(repo: &str) -> anyhow::Result<String> {
 /// (`LACE_RELEASE_URL`), o arquivo `latest` dele, com a versão numa linha,
 /// se houver; sem ele, a do GitHub.
 pub fn latest_lace_version() -> anyhow::Result<String> {
-    if let Ok(base) = std::env::var("LACE_RELEASE_URL")
-        && !base.is_empty()
-    {
-        let url = format!("{}/latest", base.trim_end_matches('/'));
+    if let Some(base) = mirror()? {
+        let url = format!("{base}/latest");
         match fetch_text(&url) {
             Ok(text) if !text.trim().is_empty() => {
-                return Ok(text.trim().trim_start_matches('v').to_owned());
+                let version = text.trim().trim_start_matches('v');
+                if !is_version(version) {
+                    bail!("{url} does not hold a Lace version");
+                }
+                return Ok(version.to_owned());
             }
             _ => tracing::info!("No {url}: the latest version comes from GitHub"),
         }
     }
     let tag = latest_github_tag(&repo())?;
-    Ok(tag.trim_start_matches('v').to_owned())
+    let version = tag.trim_start_matches('v');
+    if !is_version(version) {
+        bail!(
+            "The latest release of {} is not tagged with a Lace version",
+            repo()
+        );
+    }
+    Ok(version.to_owned())
 }
 
 /// O conteúdo de `url`, como texto.
@@ -112,10 +176,11 @@ pub fn download_checked(
 ) -> anyhow::Result<camino::Utf8PathBuf> {
     let sums = dir.join("SHA256SUMS");
     if !sums.is_file() {
-        download_to(&asset_url(version, "SHA256SUMS"), &sums, false)?;
+        download_to(&asset_url(version, "SHA256SUMS")?, &sums, false)?;
     }
+    let url = asset_url(version, file)?;
     let dest = dir.join(file);
-    download_to(&asset_url(version, file), &dest, progress)?;
+    download_to(&url, &dest, progress)?;
     let sums = std::fs::read_to_string(&sums).with_context(|| format!("Reading {sums}"))?;
     let expected = expected_sha256(&sums, file)
         .with_context(|| format!("The SHA256SUMS of release v{version} does not list {file}"))?;
@@ -135,10 +200,10 @@ pub fn download_checked_quiet(
 ) -> anyhow::Result<camino::Utf8PathBuf> {
     let sums = dir.join("SHA256SUMS");
     if !sums.is_file() {
-        download_to(&asset_url(version, "SHA256SUMS"), &sums, false)?;
+        download_to(&asset_url(version, "SHA256SUMS")?, &sums, false)?;
     }
+    let url = asset_url(version, file)?;
     let dest = dir.join(file);
-    let url = asset_url(version, file);
     let mut child = curl()
         .args(["-fsSL", "-o"])
         .arg(dest.as_std_path())
@@ -222,10 +287,19 @@ pub fn work_dir() -> anyhow::Result<tempfile::TempDir> {
 
 /// O `curl`, com prazo para conectar: uma rede que pendura em vez de recusar
 /// não trava o comando. O download em si não tem prazo, porque um pedaço
-/// grande numa rede lenta leva o tempo que leva.
+/// grande numa rede lenta leva o tempo que leva. Só por `https` (e `file`,
+/// o espelho no disco de [`mirror`]), também nos redirecionamentos: um
+/// redirecionamento para `http` não troca o que o Lace baixa no caminho.
 fn curl() -> std::process::Command {
     let mut command = std::process::Command::new(curl_program());
-    command.args(["--connect-timeout", "20"]);
+    command.args([
+        "--connect-timeout",
+        "20",
+        "--proto",
+        "=https,file",
+        "--proto-redir",
+        "=https",
+    ]);
     command
 }
 
@@ -273,6 +347,57 @@ bbbb *lace-0.2.0-windows-x64-setup.exe
             expected_sha256(sums, "lace-0.2.0-darwin-arm64.tar.gz"),
             None
         );
+    }
+
+    #[test]
+    fn versions_and_file_names_cannot_leave_the_release() {
+        for ok in ["0.8.0", "0.9.0-rc.1", "1.0.0+build.5", "2026.10.13"] {
+            assert!(is_version(ok), "{ok}");
+        }
+        for bad in [
+            "",
+            "v0.8.0",
+            "0.8.0/../../x",
+            "0.8\x1b[2J",
+            "0.8.0 x",
+            "..",
+            "0.8.0\n",
+        ] {
+            assert!(!is_version(bad), "{bad:?}");
+        }
+        for ok in [
+            "SHA256SUMS",
+            "lace-0.8.0-windows-x64-index.json",
+            "lace-0.8.0_x.tar.gz",
+        ] {
+            assert!(is_asset_name(ok), "{ok}");
+        }
+        for bad in ["", "../x", "a/b", "a\\b", ".hidden", "x\x1b]0;t\x07"] {
+            assert!(!is_asset_name(bad), "{bad:?}");
+        }
+        assert!(asset_url("0.8.0/../..", "SHA256SUMS").is_err());
+        assert!(asset_url("0.8.0", "../lace.exe").is_err());
+    }
+
+    #[test]
+    fn a_mirror_is_https_or_on_disk() {
+        assert_eq!(mirror_from(None).unwrap(), None);
+        assert_eq!(mirror_from(Some("")).unwrap(), None);
+        assert_eq!(
+            mirror_from(Some("https://lab.example/lace/"))
+                .unwrap()
+                .as_deref(),
+            Some("https://lab.example/lace")
+        );
+        assert!(mirror_from(Some("HTTPS://lab.example")).unwrap().is_some());
+        assert!(mirror_from(Some("file:///srv/lace")).unwrap().is_some());
+        for bad in [
+            "http://lab.example/lace",
+            "ftp://lab.example",
+            "lab.example/lace",
+        ] {
+            assert!(mirror_from(Some(bad)).is_err(), "{bad}");
+        }
     }
 
     #[test]

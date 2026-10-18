@@ -64,13 +64,25 @@ impl ShellKind {
         }
     }
 
-    /// A linha que leva o shell para `path`, com o Enter.
-    fn cd_line(self, path: &str) -> String {
-        match self {
-            // Aspas simples: nada é interpretado dentro, e a aspa simples se
-            // escreve dobrada. `-LiteralPath` não trata `[` como curinga.
+    /// A linha que leva o shell para `path`, com o Enter, ou `None` quando o
+    /// caminho tem um caractere de controle.
+    ///
+    /// A linha vai para o editor de linha do shell como se fosse digitada, e
+    /// ali um caractere de controle é tecla, não texto, mesmo entre aspas:
+    /// um Enter (CR, LF) executa o que veio antes, um Ctrl+U apaga a linha,
+    /// um Ctrl+C a abandona. Um nome de pasta pode trazer esses caracteres no
+    /// Linux e no macOS, e o que viesse depois deles rodaria como comando.
+    fn cd_line(self, path: &str) -> Option<String> {
+        if path.chars().any(char::is_control) {
+            return None;
+        }
+        Some(match self {
+            // Aspas simples: nada é interpretado dentro. O PowerShell fecha
+            // a string também com as aspas tipográficas, e cada uma das
+            // cinco se escreve dobrada. `-LiteralPath` não trata `[` como
+            // curinga.
             ShellKind::PowerShell => {
-                format!("Set-Location -LiteralPath '{}'\r", path.replace('\'', "''"))
+                format!("Set-Location -LiteralPath '{}'\r", powershell_literal(path))
             }
             // Um caminho do Windows não tem aspas duplas; o `/d` troca o disco.
             ShellKind::Cmd => format!("cd /d \"{path}\"\r"),
@@ -79,8 +91,26 @@ impl ShellKind {
                 "cd -- '{}'\r",
                 path.replace('\\', r"\\").replace('\'', r"\'")
             ),
-        }
+        })
     }
+}
+
+/// Os caracteres que abrem e fecham uma string de aspas simples no
+/// PowerShell: a aspa ASCII e as tipográficas U+2018, U+2019, U+201A e U+201B.
+/// Dentro da string, qualquer um deles a fecha, e dois seguidos valem um.
+const POWERSHELL_QUOTES: [char; 5] = ['\'', '\u{2018}', '\u{2019}', '\u{201A}', '\u{201B}'];
+
+/// `text` para ir entre aspas simples do PowerShell: cada aspa dobrada, para
+/// valer como texto e não fechar a string.
+fn powershell_literal(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 2);
+    for c in text.chars() {
+        if POWERSHELL_QUOTES.contains(&c) {
+            out.push(c);
+        }
+        out.push(c);
+    }
+    out
 }
 
 /// O que a interface recebe de um terminal.
@@ -252,7 +282,8 @@ pub fn terminal_write(app: AppHandle, id: u32, data: String) -> IpcResult<()> {
 }
 
 /// Leva o shell do terminal para `path`, digitando o `cd` do shell dele.
-/// Um terminal que já terminou fica como está.
+/// Um terminal que já terminou fica como está. Um caminho com caractere de
+/// controle não é digitado ([`codes::UNSAFE_PATH`]): o shell fica onde está.
 #[tauri::command]
 pub fn terminal_cd(app: AppHandle, id: u32, path: String) -> IpcResult<()> {
     let state = app.state::<AppState>();
@@ -260,7 +291,12 @@ pub fn terminal_cd(app: AppHandle, id: u32, path: String) -> IpcResult<()> {
     let Some(terminal) = terminals.get_mut(&id) else {
         return Ok(());
     };
-    let line = terminal.shell.cd_line(&path);
+    let line = terminal.shell.cd_line(&path).ok_or_else(|| {
+        IpcError::new(
+            codes::UNSAFE_PATH,
+            "The project path has a control character, which the shell would read as a key: the terminal stays in the previous folder",
+        )
+    })?;
     terminal
         .writer
         .write_all(line.as_bytes())
@@ -320,21 +356,44 @@ mod tests {
     fn cd_quotes_the_path_for_each_shell() {
         let path = r"C:\Users\Ana's [x]\proj";
         assert_eq!(
-            ShellKind::PowerShell.cd_line(path),
-            "Set-Location -LiteralPath 'C:\\Users\\Ana''s [x]\\proj'\r"
+            ShellKind::PowerShell.cd_line(path).as_deref(),
+            Some("Set-Location -LiteralPath 'C:\\Users\\Ana''s [x]\\proj'\r")
         );
         assert_eq!(
-            ShellKind::Cmd.cd_line(path),
-            "cd /d \"C:\\Users\\Ana's [x]\\proj\"\r"
+            ShellKind::Cmd.cd_line(path).as_deref(),
+            Some("cd /d \"C:\\Users\\Ana's [x]\\proj\"\r")
         );
         assert_eq!(
-            ShellKind::Posix.cd_line("/home/ana/o'projeto"),
-            "cd -- '/home/ana/o'\\''projeto'\r"
+            ShellKind::Posix.cd_line("/home/ana/o'projeto").as_deref(),
+            Some("cd -- '/home/ana/o'\\''projeto'\r")
         );
         assert_eq!(
-            ShellKind::Fish.cd_line(r"/home/ana/o'pro\jeto"),
-            "cd -- '/home/ana/o\\'pro\\\\jeto'\r"
+            ShellKind::Fish.cd_line(r"/home/ana/o'pro\jeto").as_deref(),
+            Some("cd -- '/home/ana/o\\'pro\\\\jeto'\r")
         );
+    }
+
+    #[test]
+    fn powershell_doubles_every_quote_it_accepts() {
+        // As quatro aspas tipográficas fecham a string do PowerShell como a
+        // ASCII: dobradas, ficam dentro dela.
+        let path = "C:\\p\u{2018}a\u{2019}b\u{201A}c\u{201B}d'e";
+        assert_eq!(
+            ShellKind::PowerShell.cd_line(path).as_deref(),
+            Some(
+                "Set-Location -LiteralPath \
+                 'C:\\p\u{2018}\u{2018}a\u{2019}\u{2019}b\u{201A}\u{201A}c\u{201B}\u{201B}d''e'\r"
+            )
+        );
+    }
+
+    #[test]
+    fn a_path_with_a_control_character_is_not_typed() {
+        for shell in [ShellKind::PowerShell, ShellKind::Cmd, ShellKind::Posix, ShellKind::Fish] {
+            for path in ["/home/x\ry", "/home/x\ny", "/home/x\u{15}y", "/home/x\u{3}y", "/home/x\u{1b}y", "/home/x\u{7f}y", "/home/x\u{85}y"] {
+                assert_eq!(shell.cd_line(path), None, "{shell:?} {path:?}");
+            }
+        }
     }
 
     #[test]

@@ -81,7 +81,7 @@ export const useUpdates = create<UpdatesState>((set, get) => ({
     set(report ? { checking: false, report } : { checking: false });
     if (auto && canUpdate(report) && !offered.has(report.lace.latest)) {
       offered.add(report.lace.latest);
-      if (!useDialogs.getState().dialog && !useJobs.getState().running) void offerUpdate();
+      if (!useDialogs.getState().dialog && !useJobs.getState().running) void offerUpdate(true);
       else useToasts.getState().push({ kind: 'info', title: t('update.availableToast', { version: report.lace.latest }) }, 10000);
     }
     return report;
@@ -89,8 +89,10 @@ export const useUpdates = create<UpdatesState>((set, get) => ({
 }));
 
 /** Oferece a atualização do último `lace update --check` e, com o sim,
- * atualiza e reinicia. */
-export async function offerUpdate(): Promise<void> {
+ * atualiza e reinicia. A oferta automática (`auto`) aparece sem ninguém ter
+ * pedido, no meio do que a pessoa está digitando: começa com o foco em
+ * "Depois", e um Enter que vinha para o editor não reinicia o Studio. */
+export async function offerUpdate(auto = false): Promise<void> {
   const report = useUpdates.getState().report;
   if (!canUpdate(report)) return;
   const windows = useApp.getState().info?.os.startsWith('windows') ?? false;
@@ -105,6 +107,7 @@ export async function offerUpdate(): Promise<void> {
       { label: t('dialog.update.confirm'), value: 'update', primary: true },
       { label: t('dialog.update.later'), value: 'later' },
     ],
+    focus: auto ? 'later' : undefined,
   });
   if (answer !== 'update') return;
   const result = await useJobs.getState().update();
