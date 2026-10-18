@@ -71,3 +71,15 @@ export function resolveFrom(root: string, path: string): string {
   if (/^([A-Za-z]:[\\/]|\/|\\\\)/.test(path)) return path;
   return joinPath(root, path);
 }
+
+/** O caminho na forma que o backend devolve, a que identifica a aba de um
+ * arquivo. Um caminho do Windows (com letra de unidade, ou UNC) fica só com
+ * `\` e a letra em maiúscula: o link `C:/proj/src/a.v:7` do INFO e o
+ * `C:\proj\src\a.v` do explorador são o mesmo arquivo e a mesma aba. Fora
+ * do Windows o caminho fica como está, porque lá `\` é um caractere válido
+ * de nome. */
+export function systemPath(path: string): string {
+  if (!/^([A-Za-z]:[\\/]|\\\\)/.test(path)) return path;
+  const backslashed = path.replace(/\//g, '\\');
+  return backslashed[0].toUpperCase() + backslashed.slice(1);
+}
