@@ -222,6 +222,9 @@ pub struct Options<'a> {
 }
 
 pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> anyhow::Result<()> {
+    if let Ok(prefix) = installation::prefix() {
+        recover_interrupted(&prefix, options.check)?;
+    }
     if let Some(path) = options.from {
         return from_disk(out, toolchain, &options, path);
     }
@@ -305,6 +308,28 @@ pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> any
         unix(out, &prefix, &report.lace.latest)?
     };
     out.json(&report)
+}
+
+/// Desfaz a atualização que morreu no meio da troca dos arquivos (o Studio
+/// fechado, um Ctrl+C duplo, falta de energia), antes de comparar versões
+/// ([`by_parts::recover`]). A instalação volta a ser a que era, mas quem roda
+/// agora pode ser o `lace` novo, que a troca já tinha posto no lugar: a
+/// operação para aí, pedindo para rodar de novo, com o `lace` que voltou.
+/// Na busca (`check`), uma troca que não pôde ser desfeita (sem permissão na
+/// pasta, por exemplo) só avisa.
+pub(crate) fn recover_interrupted(prefix: &Utf8Path, check: bool) -> anyhow::Result<()> {
+    match by_parts::recover(prefix.as_std_path()) {
+        Ok(Some(to)) => bail!(
+            "An update to Lace {to} stopped in the middle, and its changes were undone: the \
+             installation in {prefix} is back to the version it had. Run lace update again"
+        ),
+        Ok(None) => Ok(()),
+        Err(error) if check => {
+            eprintln!("{error:#}");
+            Ok(())
+        }
+        Err(error) => Err(error),
+    }
 }
 
 /// De onde vêm as versões: a rede em [`Network`], um substituto nos testes.

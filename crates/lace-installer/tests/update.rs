@@ -245,8 +245,10 @@ fn the_installation_keeps_the_manifest_of_its_version() {
     let i = install_v1();
     let manifest = FilesManifest::load(&i.prefix.join(files::INSTALLED)).unwrap();
     // Cada arquivo instalado (menos o próprio manifesto e os do instalador)
-    // está no manifesto, com o hash certo.
-    let installed = snapshot(&i.prefix);
+    // está no manifesto, com o hash certo. A trava não é instalada: é de quem
+    // instala.
+    let mut installed = snapshot(&i.prefix);
+    installed.remove(update::LOCK_FILE);
     let selection: plan::Selection = ["icarus".into(), "yosys".into()].into();
     let listed = manifest.files_for(&selection);
     for (rel, data) in &installed {
@@ -323,7 +325,7 @@ fn only_the_chunks_with_changed_files_are_downloaded() {
     let leftovers: Vec<String> = fs::read_dir(&i.prefix)
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
-        .filter(|n| n.starts_with('.'))
+        .filter(|n| n.starts_with('.') && n != update::LOCK_FILE)
         .collect();
     assert!(leftovers.is_empty(), "{leftovers:?}");
     assert_eq!(Receipt::load(&i.prefix).unwrap().bundle, "v2");

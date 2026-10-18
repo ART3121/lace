@@ -911,13 +911,14 @@ function CleanReportsDialog() {
 
 function ConfirmDialog({ options, resolve }: { options: ConfirmOptions; resolve: (v: string | null) => void }) {
   const primary = options.buttons.find((b) => b.primary) ?? options.buttons[0];
+  const initial = options.buttons.find((b) => b.value === options.focus) ?? primary;
   return (
     <Dialog
       title={options.title}
       wide={options.wide}
-      onSubmit={() => resolve(primary.value)}
+      onSubmit={() => resolve(initial.value)}
       footer={options.buttons.map((b) => (
-        <Button key={b.value} variant={b.danger ? 'danger' : b.primary ? 'primary' : 'default'} autoFocus={b === primary} onClick={() => resolve(b.value)}>
+        <Button key={b.value} variant={b.danger ? 'danger' : b.primary ? 'primary' : 'default'} autoFocus={b === initial} onClick={() => resolve(b.value)}>
           {b.label}
         </Button>
       ))}

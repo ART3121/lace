@@ -405,6 +405,15 @@ os executáveis do bundle. Uma falha em qualquer passo devolve os arquivos
 antigos, e a instalação fica como estava; aí o `lace update` passa para o
 instalador inteiro.
 
+Antes de trocar, o Lace grava o que vai fazer num diário
+(`.atualizando.json`, na pasta da instalação). Se o processo morre no meio
+da troca (o terminal fechado, falta de energia), o próximo `lace update` ou
+`lace install` desfaz o que ficou feito com o diário: os arquivos antigos
+voltam, os novos saem, e ele avisa e pede para rodar o `lace update` de
+novo. Uma trava (`.instalacao.lock`) impede duas instalações ou
+atualizações ao mesmo tempo na mesma pasta. O Lace Studio não fecha
+enquanto uma atualização ou instalação dele está rodando.
+
 O próprio `lace` é um dos arquivos trocados. No Windows, um executável em
 uso pode ser renomeado, mas não apagado: o `lace.exe` antigo fica na pasta
 `.antigo-<pid>` até o próximo `lace install` ou `lace update`. Se o Lace

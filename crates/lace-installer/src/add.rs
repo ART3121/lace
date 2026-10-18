@@ -94,6 +94,7 @@ pub fn add(
     new: &Selection,
     mut on: impl FnMut(Event),
 ) -> anyhow::Result<AddReport> {
+    let _lock = crate::update::lock(prefix)?;
     let toolchain = prefix.join("toolchain");
     let before = installed(index, &toolchain)?;
     if let Some(c) = new.iter().find(|c| before.contains(*c)) {

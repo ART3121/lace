@@ -139,6 +139,8 @@ fn installs_the_selection_and_replaces_it_later() {
     assert_eq!(
         files_under(&prefix),
         [
+            // A trava das instalações e atualizações fica.
+            lace_installer::update::LOCK_FILE,
             pack::lace_entry(platform()),
             "install.json",
             "toolchain/bundle.json",
@@ -372,11 +374,10 @@ fn adds_bundle_apps_without_reinstalling_lace() {
         ["graphviz", "icarus", "yosys"]
     );
     assert!(
-        !fs::read_dir(&prefix).unwrap().any(|e| e
-            .unwrap()
-            .file_name()
-            .to_string_lossy()
-            .starts_with('.')),
+        !fs::read_dir(&prefix).unwrap().any(|e| {
+            let name = e.unwrap().file_name().to_string_lossy().into_owned();
+            name.starts_with('.') && name != lace_installer::update::LOCK_FILE
+        }),
         "sobrou a pasta provisória"
     );
 

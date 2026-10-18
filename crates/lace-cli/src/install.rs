@@ -53,6 +53,7 @@ pub fn run(out: &Output, components: &[String], from: Option<&Utf8Path>) -> anyh
         bail!("With --json, name the apps to install: lace install <app>");
     }
     let prefix = installation::prefix()?;
+    crate::update::recover_interrupted(&prefix, false)?;
     lace_installer::update::clean_leftovers(prefix.as_std_path());
     let work = release::work_dir()?;
     let work_dir = Utf8Path::from_path(work.path())

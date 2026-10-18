@@ -27,6 +27,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::payload::Index;
 use crate::plan::Selection;
+use crate::update::{JOURNAL_FILE, LOCK_FILE};
 
 /// O recibo da instalação, no prefixo.
 pub const RECEIPT_FILE: &str = "install.json";
@@ -241,6 +242,7 @@ pub fn install(
     let prefix = &target.prefix;
     let replaced = check_prefix(prefix)?;
     fs::create_dir_all(prefix).with_context(|| format!("Creating {}", prefix.display()))?;
+    let _lock = prepare(prefix)?;
 
     let pid = std::process::id();
     let staging = prefix.join(format!(".instalando-{pid}"));
@@ -271,6 +273,7 @@ pub fn install(
     }
     let _ = fs::remove_dir_all(&old);
     let _ = fs::remove_dir_all(&staging);
+    crate::update::forget_journal(prefix);
 
     let lace = prefix.join(lace_entry);
     // Um atalho de uma instalação anterior, em outro lugar, sai.
@@ -392,6 +395,7 @@ pub fn install_bundle(
         );
     }
     fs::create_dir_all(prefix).with_context(|| format!("Creating {}", prefix.display()))?;
+    let _lock = prepare(prefix)?;
     let pid = std::process::id();
     let staging = prefix.join(format!(".instalando-{pid}"));
     let _ = fs::remove_dir_all(&staging);
@@ -420,7 +424,20 @@ pub fn install_bundle(
     }
     let _ = fs::remove_dir_all(&old);
     let _ = fs::remove_dir_all(&staging);
+    crate::update::forget_journal(prefix);
     Ok(verified)
+}
+
+/// Antes de trocar a instalação em `prefix`: desfaz a troca que uma
+/// atualização interrompida deixou pela metade ([`crate::update::recover`]),
+/// para a troca inteira partir de uma instalação coerente, e trava a pasta
+/// ([`crate::update::lock`]). Uma troca que não pôde ser desfeita não impede
+/// a instalação, que troca tudo, e o diário dela sai no fim.
+fn prepare(prefix: &Path) -> anyhow::Result<crate::update::InstallLock> {
+    if let Err(error) = crate::update::recover(prefix) {
+        eprintln!("{error:#}");
+    }
+    crate::update::lock(prefix)
 }
 
 /// Extrai um pedaço (`.tar.zst`) em `dest`, avisando o tamanho de cada
@@ -544,8 +561,10 @@ fn write_uninstaller(prefix: &Path, link: Option<&Path>) -> anyhow::Result<()> {
          {link_part}\
          {shortcut_part}\
          rm -rf \"$prefix/toolchain\" \"$prefix/bin/lace\" \"$prefix/{RECEIPT_FILE}\"\n\
-         # Sobras de uma instalação interrompida (`install`, acima).\n\
+         # Sobras de uma instalação interrompida (`install`, acima), o diário\n\
+         # de uma atualização e a trava delas (`update`).\n\
          rm -rf \"$prefix\"/.instalando-* \"$prefix\"/.antigo-*\n\
+         rm -f \"$prefix/{JOURNAL_FILE}\" \"$prefix/{JOURNAL_FILE}.tmp\" \"$prefix/{LOCK_FILE}\"\n\
          rmdir \"$prefix/bin\" 2>/dev/null || true\n\
          rm -f \"$prefix/{UNINSTALL_SCRIPT}\"\n\
          rmdir \"$prefix\" 2>/dev/null || true\n\

@@ -30,6 +30,7 @@ import { confirm } from './state/dialogs';
 import { useEditor } from './state/editor';
 import { useExperimental } from './state/experimental';
 import { useHierarchy } from './state/hierarchy';
+import { useJobs } from './state/jobs';
 import { takeFreshStart, useLayout } from './state/layout';
 import { useLearn } from './state/learn';
 import { useProject } from './state/project';
@@ -186,9 +187,21 @@ async function start(): Promise<() => void> {
   });
   cleanups.push(unlistenDrop);
 
-  // Fechar a janela com arquivos não salvos pergunta antes.
+  // Fechar a janela com arquivos não salvos pergunta antes. Durante uma
+  // atualização ou instalação do Lace, não fecha: o `lace` que troca os
+  // arquivos morreria junto, com a instalação pela metade.
   const window_ = getCurrentWindow();
   const unlistenClose = await window_.onCloseRequested(async (event) => {
+    const running = useJobs.getState().running;
+    if (running?.flow === 'update' || running?.flow === 'install') {
+      event.preventDefault();
+      await confirm({
+        title: t('dialog.busyClose.title'),
+        message: t(running.flow === 'update' ? 'dialog.busyClose.update' : 'dialog.busyClose.install'),
+        buttons: [{ label: t('common.ok'), value: 'ok', primary: true }],
+      });
+      return;
+    }
     const snapshot = useProject.getState().snapshot;
     if (snapshot) useEditor.getState().persistSession(snapshot.spf);
     const dirty = useEditor.getState().tabs.filter((tab) => tab.dirty);

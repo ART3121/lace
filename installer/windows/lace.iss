@@ -192,13 +192,21 @@ Type: filesandordirs; Name: "{app}\toolchain"
 #endif
 ; As pastas .antigo-* e .instalando-* são sobras do lace update por
 ; componentes (o lace.exe que rodava a atualização fica numa .antigo-*).
+; O diário de uma atualização que parou no meio também sai: o assistente
+; troca tudo, e ele não vale mais (crates/lace-installer/src/update.rs).
 Type: filesandordirs; Name: "{app}\.antigo-*"
 Type: filesandordirs; Name: "{app}\.instalando-*"
+Type: files; Name: "{app}\.atualizando.json"
+Type: files; Name: "{app}\.atualizando.json.tmp"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\toolchain"
 Type: filesandordirs; Name: "{app}\.antigo-*"
 Type: filesandordirs; Name: "{app}\.instalando-*"
+Type: files; Name: "{app}\.atualizando.json"
+Type: files; Name: "{app}\.atualizando.json.tmp"
+; A trava das instalações e atualizações do lace.
+Type: files; Name: "{app}\.instalacao.lock"
 
 [Code]
 const

@@ -18,6 +18,14 @@
 //! deixa renomear um executável em uso, mas não apagá-lo: lá, a pasta
 //! `.antigo-<pid>` fica para trás com ele e sai na próxima vez
 //! ([`clean_leftovers`]).
+//!
+//! Um processo que morre no meio da troca (o Studio fechado, um Ctrl+C
+//! duplo, falta de energia) não chega a desfazê-la. Antes de trocar, o
+//! [`apply`] grava o que vai fazer num diário (`.atualizando.json`), e a
+//! próxima atualização ou instalação desfaz o que ficou feito ([`recover`]),
+//! com o diário e as pastas provisórias que ele cita. Uma trava
+//! (`.instalacao.lock`, [`lock`]) impede duas operações na mesma instalação ao
+//! mesmo tempo, e que uma desfaça a troca de outra que ainda está rodando.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -25,6 +33,7 @@ use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, bail};
 use lace_core::{Platform, Toolchain};
+use serde::{Deserialize, Serialize};
 
 use crate::add::ChunkSource;
 use crate::files::{self, FilesManifest};
@@ -35,6 +44,170 @@ use crate::plan::Selection;
 /// O nome que [`Plan::changed`] dá aos arquivos sempre instalados: o `lace`
 /// e o cabeçalho do bundle.
 pub const LACE: &str = "lace";
+
+/// O diário da troca em andamento, na raiz da instalação.
+pub const JOURNAL_FILE: &str = ".atualizando.json";
+/// A trava das instalações e atualizações, na raiz da instalação.
+pub const LOCK_FILE: &str = ".instalacao.lock";
+
+/// O que [`apply`] grava antes de trocar os arquivos, para [`recover`]
+/// desfazer a troca se o processo morrer no meio dela.
+#[derive(Debug, Serialize, Deserialize)]
+struct SavedJournal {
+    /// A versão para a qual a troca ia.
+    to: String,
+    /// A pasta dos arquivos novos (`.instalando-<pid>`), na raiz.
+    staging: String,
+    /// A pasta dos antigos (`.antigo-<pid>`), na raiz.
+    backup: String,
+    /// Os arquivos que entram, na ordem da troca.
+    put: Vec<String>,
+    /// Os que saem, depois deles.
+    take: Vec<String>,
+}
+
+/// A trava de uma instalação ou atualização, solta quando sai de escopo (e
+/// pelo sistema, se o processo morrer).
+#[derive(Debug)]
+pub struct InstallLock(#[allow(dead_code)] fs::File);
+
+/// Trava a instalação em `prefix` para instalar ou atualizar, sem esperar:
+/// com outra operação rodando nela (outro `lace`, o Studio), um erro que diz
+/// isso.
+pub fn lock(prefix: &Path) -> anyhow::Result<InstallLock> {
+    try_lock(prefix)?.with_context(|| {
+        format!(
+            "Another installation or update of Lace is running in {}; wait for it to finish",
+            prefix.display()
+        )
+    })
+}
+
+/// A trava, ou `None` se outra operação a segura.
+fn try_lock(prefix: &Path) -> anyhow::Result<Option<InstallLock>> {
+    let path = prefix.join(LOCK_FILE);
+    let file = fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(&path)
+        .with_context(|| format!("Creating {}", path.display()))?;
+    match file.try_lock() {
+        Ok(()) => Ok(Some(InstallLock(file))),
+        Err(fs::TryLockError::WouldBlock) => Ok(None),
+        Err(fs::TryLockError::Error(e)) => {
+            Err(e).with_context(|| format!("Locking {}", path.display()))
+        }
+    }
+}
+
+/// Grava o diário da troca de `plan`, por inteiro ou nada: um arquivo
+/// provisório, que só ganha o nome do diário depois de gravado no disco.
+fn save_journal(prefix: &Path, saved: &SavedJournal) -> anyhow::Result<()> {
+    use std::io::Write;
+    let path = prefix.join(JOURNAL_FILE);
+    let temporary = prefix.join(format!("{JOURNAL_FILE}.tmp"));
+    let write = || -> std::io::Result<()> {
+        let mut file = fs::File::create(&temporary)?;
+        file.write_all(serde_json::to_string(saved)?.as_bytes())?;
+        file.sync_all()?;
+        drop(file);
+        fs::rename(&temporary, &path)
+    };
+    write().with_context(|| format!("Writing {}", path.display()))
+}
+
+/// Tira o diário: a troca terminou, ou foi desfeita, ou a instalação inteira
+/// foi trocada depois dela.
+pub fn forget_journal(prefix: &Path) {
+    let _ = fs::remove_file(prefix.join(JOURNAL_FILE));
+    let _ = fs::remove_file(prefix.join(format!("{JOURNAL_FILE}.tmp")));
+}
+
+/// Desfaz a troca que um processo morto deixou pela metade em `prefix`, se
+/// o diário dela ([`JOURNAL_FILE`]) está lá: cada arquivo antigo volta para o
+/// lugar, e os novos saem, como numa falha do [`apply`]. Devolve a versão
+/// para a qual a troca ia, ou `None` se não havia o que desfazer.
+///
+/// Não mexe em nada com outra operação rodando na instalação ([`lock`]): a
+/// troca dela não foi interrompida. Nem sem a pasta dos arquivos novos, que
+/// diz quais já entraram: sem ela (um assistente de instalação que rodou
+/// depois a apaga, e troca a instalação inteira), o diário não vale mais, e
+/// só ele sai.
+///
+/// # Erros
+///
+/// Um diário ilegível, ou arquivos que não voltaram para o lugar. Nos dois
+/// casos o diário fica, para a próxima vez.
+pub fn recover(prefix: &Path) -> anyhow::Result<Option<String>> {
+    let path = prefix.join(JOURNAL_FILE);
+    let Ok(text) = fs::read_to_string(&path) else {
+        return Ok(None);
+    };
+    let Some(_lock) = try_lock(prefix)? else {
+        return Ok(None);
+    };
+    let saved: SavedJournal =
+        serde_json::from_str(&text).with_context(|| format!("Reading {}", path.display()))?;
+    let own_dir = |name: &str, start: &str| {
+        name.starts_with(start) && !name.contains(['/', '\\']) && !name.contains("..")
+    };
+    if !own_dir(&saved.staging, ".instalando-") || !own_dir(&saved.backup, ".antigo-") {
+        bail!("{} names folders that are not its own", path.display());
+    }
+    for rel in saved.put.iter().chain(&saved.take) {
+        check_path(rel)?;
+    }
+    let staging = prefix.join(&saved.staging);
+    if !staging.is_dir() {
+        forget_journal(prefix);
+        return Ok(None);
+    }
+    let backup = prefix.join(&saved.backup);
+    // Os novos saem para cá, e não para o nada: no Windows um executável em
+    // uso (o `lace` novo, que pode ser este) só pode ser renomeado.
+    let discarded = backup.join(".desfeitos");
+    let put: BTreeSet<&str> = saved.put.iter().map(String::as_str).collect();
+    let exists = |p: &Path| fs::symlink_metadata(p).is_ok();
+    let mut failed = Vec::new();
+    for rel in saved.put.iter().chain(&saved.take).rev() {
+        let current = prefix.join(rel);
+        let old = backup.join(rel);
+        let restore = exists(&old);
+        // Um arquivo que entrou sem antigo no lugar: não está mais na pasta
+        // dos novos.
+        let placed = !restore && put.contains(rel.as_str()) && !exists(&staging.join(rel));
+        if (restore || placed) && exists(&current) {
+            let aside = discarded.join(rel);
+            let moved = fs::create_dir_all(aside.parent().expect("tem pai"))
+                .and_then(|()| fs::rename(&current, &aside));
+            if let Err(e) = moved {
+                failed.push(format!("{rel}: {e}"));
+                continue;
+            }
+        }
+        if restore {
+            let moved = fs::create_dir_all(current.parent().expect("tem pai"))
+                .and_then(|()| fs::rename(&old, &current));
+            if let Err(e) = moved {
+                failed.push(format!("{rel}: {e}"));
+            }
+        }
+    }
+    if let Some(first) = failed.first() {
+        bail!(
+            "An update to Lace {} was interrupted, and {} of its files could not be put back \
+             (the first: {first}); the next lace update tries again",
+            saved.to,
+            failed.len()
+        );
+    }
+    remove_empty_dirs(prefix, &saved.put);
+    let _ = fs::remove_dir_all(&staging);
+    remove_what_can_be_removed(&backup);
+    forget_journal(prefix);
+    Ok(Some(saved.to))
+}
 
 /// Um pedaço que a atualização baixa, com os arquivos que entram dele.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -139,14 +312,13 @@ pub fn plan(
         );
     }
     let toolchain = prefix.join("toolchain");
-    let tc = Toolchain::open(toolchain.to_str().context("Path is not UTF-8")?).with_context(
-        || {
+    let tc =
+        Toolchain::open(toolchain.to_str().context("Path is not UTF-8")?).with_context(|| {
             format!(
                 "Could not open the bundle installed in {}",
                 toolchain.display()
             )
-        },
-    )?;
+        })?;
     let before: Selection = tc
         .manifest()
         .components
@@ -256,25 +428,54 @@ pub fn apply(
     prefix: &Path,
     mut on: impl FnMut(Event),
 ) -> anyhow::Result<Applied> {
+    let _lock = lock(prefix)?;
     let pid = std::process::id();
-    let staging = prefix.join(format!(".instalando-{pid}"));
-    let backup = prefix.join(format!(".antigo-{pid}"));
+    let staging_name = format!(".instalando-{pid}");
+    let backup_name = format!(".antigo-{pid}");
+    let staging = prefix.join(&staging_name);
+    let backup = prefix.join(&backup_name);
     for dir in [&staging, &backup] {
         let _ = fs::remove_dir_all(dir);
     }
     fs::create_dir_all(&staging).with_context(|| format!("Creating {}", staging.display()))?;
+    let mut left_to_recover = false;
     let result = stage(source, plan, new, &staging, &mut on).and_then(|()| {
+        let mut put: Vec<String> = plan
+            .chunks
+            .iter()
+            .flat_map(|c| c.files.keys().cloned())
+            .collect();
+        put.push(files::INSTALLED.to_owned());
+        save_journal(
+            prefix,
+            &SavedJournal {
+                to: plan.to.clone(),
+                staging: staging_name,
+                backup: backup_name,
+                put,
+                take: plan.stale.clone(),
+            },
+        )?;
         let mut journal = Journal {
             prefix,
             backup: &backup,
             steps: Vec::new(),
         };
         let result = swap(&mut journal, plan, &staging, &mut on);
-        if result.is_err() {
-            journal.undo();
+        if result.is_err() && !journal.undo() {
+            // Sem desfazer tudo, ficam o diário e as duas pastas: a próxima
+            // atualização termina de desfazer ([`recover`]).
+            left_to_recover = true;
+            return result.context(
+                "Some files could not be put back; the next lace update finishes undoing it",
+            );
         }
+        forget_journal(prefix);
         result
     });
+    if left_to_recover {
+        return Err(result.expect_err("the swap failed"));
+    }
     let _ = fs::remove_dir_all(&staging);
     let verified = match result {
         Ok(verified) => verified,
@@ -448,21 +649,24 @@ impl Journal<'_> {
         Ok(())
     }
 
-    /// Desfaz tudo, do último passo ao primeiro.
-    fn undo(&mut self) {
+    /// Desfaz tudo, do último passo ao primeiro. Diz se todo arquivo antigo
+    /// voltou para o lugar e todo novo saiu (uma pasta que ficou não conta).
+    fn undo(&mut self) -> bool {
+        let mut complete = true;
         while let Some(step) = self.steps.pop() {
             match step {
                 Step::Placed(path) => {
-                    let _ = fs::remove_file(&path);
+                    complete &= fs::remove_file(&path).is_ok();
                 }
                 Step::MovedAside { from, to } => {
-                    let _ = fs::rename(&to, &from);
+                    complete &= fs::rename(&to, &from).is_ok();
                 }
                 Step::CreatedDir(dir) => {
                     let _ = fs::remove_dir(&dir);
                 }
             }
         }
+        complete
     }
 }
 
@@ -501,18 +705,28 @@ fn remove_what_can_be_removed(dir: &Path) {
     let _ = fs::remove_dir(dir);
 }
 
-/// Apaga as pastas `.antigo-<pid>` que uma atualização anterior deixou em
-/// `prefix` (no Windows, com o `lace.exe` que estava rodando). A desta
-/// execução fica.
+/// Apaga as pastas `.antigo-<pid>` e `.instalando-<pid>` que uma operação
+/// anterior deixou em `prefix` (no Windows, a `.antigo-<pid>` fica com o
+/// `lace.exe` que estava rodando). As desta execução ficam. Com outra
+/// operação rodando, ou com uma troca a desfazer ([`recover`]), nada sai: as
+/// pastas são dela.
 pub fn clean_leftovers(prefix: &Path) {
-    let own = format!(".antigo-{}", std::process::id());
+    if prefix.join(JOURNAL_FILE).exists() {
+        return;
+    }
+    let Ok(Some(_lock)) = try_lock(prefix) else {
+        return;
+    };
+    let pid = std::process::id();
+    let own = [format!(".antigo-{pid}"), format!(".instalando-{pid}")];
     let Ok(entries) = fs::read_dir(prefix) else {
         return;
     };
     for entry in entries.flatten() {
         let name = entry.file_name();
         let name = name.to_string_lossy();
-        if name.starts_with(".antigo-") && name != own {
+        let leftover = name.starts_with(".antigo-") || name.starts_with(".instalando-");
+        if leftover && !own.iter().any(|o| *o == name) {
             let _ = fs::remove_dir_all(entry.path());
         }
     }
@@ -532,5 +746,109 @@ mod tests {
         }
         #[cfg(windows)]
         assert!(check_path("C:/Windows/x").is_err());
+    }
+
+    fn write(path: &Path, text: &str) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text).unwrap();
+    }
+
+    fn read(path: &Path) -> Option<String> {
+        fs::read_to_string(path).ok()
+    }
+
+    /// Uma troca que morreu no meio: o `lace` já trocado, o `a` tirado sem o
+    /// novo no lugar, o `novo` (sem antigo) já posto, e o resto por fazer.
+    fn interrupted(prefix: &Path) {
+        let staging = prefix.join(".instalando-1");
+        let backup = prefix.join(".antigo-1");
+        write(&backup.join("bin/lace"), "lace velho");
+        write(&prefix.join("bin/lace"), "lace novo");
+        write(&backup.join("toolchain/a"), "a velho");
+        write(&staging.join("toolchain/a"), "a novo");
+        write(&prefix.join("toolchain/sub/novo"), "novo");
+        write(&staging.join("toolchain/depois"), "depois");
+        write(&prefix.join("toolchain/files.json"), "manifesto velho");
+        write(&staging.join("toolchain/files.json"), "manifesto novo");
+        write(&prefix.join("toolchain/sai"), "sai");
+        let put = ["bin/lace", "toolchain/a", "toolchain/sub/novo", "toolchain/depois"];
+        save_journal(
+            prefix,
+            &SavedJournal {
+                to: "9.9.9".into(),
+                staging: ".instalando-1".into(),
+                backup: ".antigo-1".into(),
+                put: put
+                    .iter()
+                    .map(|s| (*s).to_owned())
+                    .chain([files::INSTALLED.to_owned()])
+                    .collect(),
+                take: vec!["toolchain/sai".into()],
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn an_interrupted_swap_is_undone_on_the_next_run() {
+        let dir = tempfile::tempdir().unwrap();
+        let prefix = dir.path();
+        interrupted(prefix);
+        assert_eq!(recover(prefix).unwrap().as_deref(), Some("9.9.9"));
+        assert_eq!(read(&prefix.join("bin/lace")).as_deref(), Some("lace velho"));
+        assert_eq!(read(&prefix.join("toolchain/a")).as_deref(), Some("a velho"));
+        assert_eq!(
+            read(&prefix.join("toolchain/files.json")).as_deref(),
+            Some("manifesto velho")
+        );
+        assert_eq!(read(&prefix.join("toolchain/sai")).as_deref(), Some("sai"));
+        // O que entrou sem antigo sai, com a pasta que a troca criou.
+        assert!(!prefix.join("toolchain/sub").exists());
+        assert!(!prefix.join("toolchain/depois").exists());
+        for gone in [JOURNAL_FILE, ".instalando-1", ".antigo-1"] {
+            assert!(!prefix.join(gone).exists(), "{gone}");
+        }
+        // Sem diário, nada a desfazer.
+        assert_eq!(recover(prefix).unwrap(), None);
+    }
+
+    #[test]
+    fn a_journal_without_its_staging_folder_only_goes_away() {
+        // Um assistente de instalação rodou depois e apagou as pastas: a
+        // instalação é a dele, e nada volta.
+        let dir = tempfile::tempdir().unwrap();
+        let prefix = dir.path();
+        interrupted(prefix);
+        fs::remove_dir_all(prefix.join(".instalando-1")).unwrap();
+        assert_eq!(recover(prefix).unwrap(), None);
+        assert_eq!(read(&prefix.join("bin/lace")).as_deref(), Some("lace novo"));
+        assert!(!prefix.join(JOURNAL_FILE).exists());
+    }
+
+    #[test]
+    fn a_swap_that_is_still_running_is_left_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let prefix = dir.path();
+        interrupted(prefix);
+        let running = lock(prefix).unwrap();
+        assert_eq!(recover(prefix).unwrap(), None);
+        assert!(lock(prefix).is_err(), "a trava é de uma operação só");
+        // As pastas dela ficam também.
+        clean_leftovers(prefix);
+        assert!(prefix.join(".antigo-1").exists());
+        drop(running);
+        assert_eq!(recover(prefix).unwrap().as_deref(), Some("9.9.9"));
+    }
+
+    #[test]
+    fn a_journal_cannot_point_outside_the_installation() {
+        let dir = tempfile::tempdir().unwrap();
+        let prefix = dir.path();
+        interrupted(prefix);
+        let path = prefix.join(JOURNAL_FILE);
+        let text = read(&path).unwrap().replace(".antigo-1", "../fora");
+        fs::write(&path, text).unwrap();
+        assert!(recover(prefix).is_err());
+        assert_eq!(read(&prefix.join("bin/lace")).as_deref(), Some("lace novo"));
     }
 }
