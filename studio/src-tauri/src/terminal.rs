@@ -245,7 +245,8 @@ pub async fn terminal_spawn(
         },
     );
 
-    let reader_app = app.clone();
+    let output = channel.clone();
+    let (read_all, reader_done) = mpsc::channel::<()>();
     std::thread::Builder::new()
         .name(format!("terminal-{id}"))
         .spawn(move || {
@@ -257,24 +258,55 @@ pub async fn terminal_spawn(
                 }
                 pending.extend_from_slice(&buffer[..read]);
                 let text = take_utf8(&mut pending);
-                if !text.is_empty() && channel.send(TerminalMessage::Data { data: text }).is_err() {
+                if !text.is_empty() && output.send(TerminalMessage::Data { data: text }).is_err() {
                     break;
                 }
             }
-            let terminal = reader_app
-                .state::<AppState>()
-                .terminals
-                .lock()
-                .expect("terminals lock")
-                .remove(&id);
-            let code = terminal
-                .and_then(|mut t| t.child.wait().ok())
-                .map(|status| status.exit_code());
+            let _ = read_all.send(());
+        })
+        .map_err(terminal_error)?;
+
+    // Quem percebe o fim do shell é esta thread, e não a de leitura: no
+    // Windows, a leitura do ConPTY só termina quando o pseudoterminal fecha,
+    // e ele fechava só quando a leitura terminava. Depois de um `exit`, o
+    // terminal ficava mudo, com o `conhost.exe` vivo.
+    let waiter_app = app.clone();
+    std::thread::Builder::new()
+        .name(format!("terminal-{id}-exit"))
+        .spawn(move || {
+            let code = loop {
+                std::thread::sleep(EXIT_POLL);
+                let state = waiter_app.state::<AppState>();
+                let mut terminals = state.terminals.lock().expect("terminals lock");
+                let Some(terminal) = terminals.get_mut(&id) else {
+                    // Encerrado pela interface (terminal_kill, kill_all).
+                    break None;
+                };
+                let status = match terminal.child.try_wait() {
+                    Ok(None) => continue,
+                    Ok(Some(status)) => Some(status.exit_code()),
+                    Err(_) => None,
+                };
+                // Fora da lista, o pseudoterminal fecha (depois de soltar a
+                // trava: fechar o ConPTY pode esperar a saída ser lida), e a
+                // leitura termina.
+                let finished = terminals.remove(&id);
+                drop(terminals);
+                drop(finished);
+                break status;
+            };
+            // O que o shell escreveu antes de sair chega antes do aviso.
+            let _ = reader_done.recv_timeout(READER_DRAIN);
             let _ = channel.send(TerminalMessage::Exit { code });
         })
         .map_err(terminal_error)?;
     Ok(id)
 }
+
+/// De quanto em quanto tempo a thread de fim confere se o shell saiu.
+const EXIT_POLL: std::time::Duration = std::time::Duration::from_millis(150);
+/// Quanto esperar a leitura entregar o que o shell escreveu antes de sair.
+const READER_DRAIN: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Tira de `pending` o maior começo que é UTF-8 válido. Bytes inválidos no
 /// meio viram `U+FFFD`; um caractere cortado no fim fica para depois.
