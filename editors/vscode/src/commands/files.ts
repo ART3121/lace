@@ -6,13 +6,14 @@
 // do projeto (`lace remove`).
 
 import { existsSync } from 'node:fs';
-import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { basename, extname, isAbsolute, join, relative, resolve } from 'node:path';
 
 import * as vscode from 'vscode';
 
 import type { ListPosition, LaceRun } from '../lace/client';
 import type { MoveReport, OrderReport, RemoveReport, StatusReport } from '../lace/lace-types';
 import { FEATURES } from '../lace/version';
+import { insidePart, isInside, pathKey, samePath } from '../paths';
 import type { LaceProject } from '../projects';
 import { isSourceNode } from '../sources/provider';
 import { chooseProject, clientFor, showLaceError, showProcessError, targetPaths, type CommandDeps } from './common';
@@ -22,19 +23,15 @@ export function registeredPaths(status: StatusReport | undefined): string[] {
   return status ? [...status.synthesizable, ...status.testbench].map((f) => f.path) : [];
 }
 
-/** `path` é `dir` ou está dentro dele. */
-export function isInside(path: string, dir: string): boolean {
-  return path === dir || path.startsWith(dir.endsWith(sep) ? dir : dir + sep);
-}
-
 /** "Tirar do projeto": `lace remove` dos registrados da seleção. O arquivo fica no disco. */
 export async function removeFromProject(
   deps: CommandDeps,
   first: unknown,
   all: unknown,
 ): Promise<LaceRun<RemoveReport> | undefined> {
-  const registered = new Set(registeredPaths(deps.status.report));
-  const paths = targetPaths(first, all).filter((path) => registered.has(path));
+  // O caminho da seleção (do VS Code) no nome que o Lace registrou.
+  const registered = new Map(registeredPaths(deps.status.report).map((path) => [pathKey(path), path]));
+  const paths = targetPaths(first, all).flatMap((path) => registered.get(pathKey(path)) ?? []);
   if (paths.length === 0) {
     void vscode.window.showWarningMessage('Lace: escolha um ou mais arquivos do projeto.');
     return undefined;
@@ -185,10 +182,10 @@ function validateDestination(project: LaceProject, from: string, value: string):
     return 'Dê o caminho novo.';
   }
   const to = isAbsolute(value) ? value : resolve(project.root, value);
-  if (!isInside(to, project.root) || to === project.root) {
+  if (!isInside(to, project.root) || samePath(to, project.root)) {
     return 'O caminho tem que ficar dentro da pasta do projeto.';
   }
-  if (to === from) {
+  if (samePath(to, from)) {
     return 'É o caminho de agora.';
   }
   if (existsSync(to)) {
@@ -209,7 +206,7 @@ export async function followInEditors(from: string, to: string): Promise<void> {
         return [];
       }
       const path = tab.input.uri.fsPath;
-      return isInside(path, from) ? [{ tab, group, moved: path === from ? to : join(to, path.slice(from.length + 1)) }] : [];
+      return isInside(path, from) ? [{ tab, group, moved: samePath(path, from) ? to : join(to, insidePart(path, from)) }] : [];
     }),
   );
   const dirty: string[] = [];
@@ -288,7 +285,7 @@ export class ExplorerFollower implements vscode.Disposable {
         continue;
       }
       const processor = status.processors.find(
-        (p) => isInside(p.dir, from) || p.source === from || p.output_dir === from,
+        (p) => isInside(p.dir, from) || samePath(p.source, from) || samePath(p.output_dir, from),
       );
       if (processor) {
         void vscode.window.showWarningMessage(
@@ -350,7 +347,7 @@ export class ExplorerFollower implements vscode.Disposable {
   private current(): { project?: LaceProject; status?: StatusReport } {
     const project = this.deps.projects.active;
     const status = this.deps.status.report;
-    return project && status?.spf === project.spf ? { project, status } : {};
+    return project && status && samePath(status.spf, project.spf) ? { project, status } : {};
   }
 
   /** Sem aviso: o explorador não pediu nada ao Lace. */
