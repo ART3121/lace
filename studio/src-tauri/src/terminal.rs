@@ -14,8 +14,14 @@
 //! UTF-8. Uma leitura pode cortar um caractere de vários bytes ao meio: os
 //! bytes do fim que ainda não formam um caractere ficam para a leitura
 //! seguinte.
+//!
+//! O que vai para o shell (o que se digita, o `cd`) entra numa fila, e uma
+//! thread por terminal o escreve: quem chama não espera o shell ler. Com um
+//! programa que não lê a entrada, colar um bloco grande travava a janela, porque
+//! a escrita rodava na thread principal, com a trava de todos os terminais.
 
 use std::io::{Read, Write};
+use std::sync::mpsc;
 
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use serde::Serialize;
@@ -29,9 +35,21 @@ use crate::toolchain;
 /// Um terminal aberto.
 pub struct Terminal {
     master: Box<dyn MasterPty + Send>,
-    writer: Box<dyn Write + Send>,
+    /// A fila do que vai para o shell, na ordem; a thread de escrita do
+    /// terminal termina quando a fila sai (o terminal foi encerrado).
+    input: mpsc::Sender<Vec<u8>>,
     child: Box<dyn Child + Send + Sync>,
     shell: ShellKind,
+}
+
+impl Terminal {
+    /// Põe `bytes` na fila do shell. Erro só se a escrita já parou (o shell
+    /// terminou e fechou a entrada).
+    fn send(&self, bytes: Vec<u8>) -> IpcResult<()> {
+        self.input
+            .send(bytes)
+            .map_err(|_| IpcError::new(codes::TERMINAL, "The terminal has exited"))
+    }
 }
 
 /// O shell de um terminal, pelo jeito de escrever um `cd` nele.
@@ -200,13 +218,28 @@ pub async fn terminal_spawn(
     let child = pair.slave.spawn_command(command).map_err(terminal_error)?;
     drop(pair.slave);
     let mut reader = pair.master.try_clone_reader().map_err(terminal_error)?;
-    let writer = pair.master.take_writer().map_err(terminal_error)?;
+    let mut writer = pair.master.take_writer().map_err(terminal_error)?;
     let id = state.next_id();
+    let (input, queued) = mpsc::channel::<Vec<u8>>();
+    std::thread::Builder::new()
+        .name(format!("terminal-{id}-input"))
+        .spawn(move || {
+            for bytes in queued {
+                if writer
+                    .write_all(&bytes)
+                    .and_then(|()| writer.flush())
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        })
+        .map_err(terminal_error)?;
     state.terminals.lock().expect("terminals lock").insert(
         id,
         Terminal {
             master: pair.master,
-            writer,
+            input,
             child,
             shell,
         },
@@ -266,19 +299,15 @@ fn take_utf8(pending: &mut Vec<u8>) -> String {
     }
 }
 
-/// Manda o que o usuário digitou para o shell.
+/// Manda o que o usuário digitou para o shell, sem esperar ele ler.
 #[tauri::command]
 pub fn terminal_write(app: AppHandle, id: u32, data: String) -> IpcResult<()> {
     let state = app.state::<AppState>();
-    let mut terminals = state.terminals.lock().expect("terminals lock");
-    let terminal = terminals
-        .get_mut(&id)
-        .ok_or_else(|| IpcError::new(codes::TERMINAL, "The terminal has exited"))?;
-    terminal
-        .writer
-        .write_all(data.as_bytes())
-        .and_then(|()| terminal.writer.flush())
-        .map_err(terminal_error)
+    let terminals = state.terminals.lock().expect("terminals lock");
+    terminals
+        .get(&id)
+        .ok_or_else(|| IpcError::new(codes::TERMINAL, "The terminal has exited"))?
+        .send(data.into_bytes())
 }
 
 /// Leva o shell do terminal para `path`, digitando o `cd` do shell dele.
@@ -287,8 +316,8 @@ pub fn terminal_write(app: AppHandle, id: u32, data: String) -> IpcResult<()> {
 #[tauri::command]
 pub fn terminal_cd(app: AppHandle, id: u32, path: String) -> IpcResult<()> {
     let state = app.state::<AppState>();
-    let mut terminals = state.terminals.lock().expect("terminals lock");
-    let Some(terminal) = terminals.get_mut(&id) else {
+    let terminals = state.terminals.lock().expect("terminals lock");
+    let Some(terminal) = terminals.get(&id) else {
         return Ok(());
     };
     let line = terminal.shell.cd_line(&path).ok_or_else(|| {
@@ -297,11 +326,7 @@ pub fn terminal_cd(app: AppHandle, id: u32, path: String) -> IpcResult<()> {
             "The project path has a control character, which the shell would read as a key: the terminal stays in the previous folder",
         )
     })?;
-    terminal
-        .writer
-        .write_all(line.as_bytes())
-        .and_then(|()| terminal.writer.flush())
-        .map_err(terminal_error)
+    terminal.send(line.into_bytes())
 }
 
 /// Avisa o shell do novo tamanho da janela.
@@ -389,8 +414,21 @@ mod tests {
 
     #[test]
     fn a_path_with_a_control_character_is_not_typed() {
-        for shell in [ShellKind::PowerShell, ShellKind::Cmd, ShellKind::Posix, ShellKind::Fish] {
-            for path in ["/home/x\ry", "/home/x\ny", "/home/x\u{15}y", "/home/x\u{3}y", "/home/x\u{1b}y", "/home/x\u{7f}y", "/home/x\u{85}y"] {
+        for shell in [
+            ShellKind::PowerShell,
+            ShellKind::Cmd,
+            ShellKind::Posix,
+            ShellKind::Fish,
+        ] {
+            for path in [
+                "/home/x\ry",
+                "/home/x\ny",
+                "/home/x\u{15}y",
+                "/home/x\u{3}y",
+                "/home/x\u{1b}y",
+                "/home/x\u{7f}y",
+                "/home/x\u{85}y",
+            ] {
                 assert_eq!(shell.cd_line(path), None, "{shell:?} {path:?}");
             }
         }
