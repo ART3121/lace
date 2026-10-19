@@ -711,6 +711,11 @@ gravação contra uma solução de referência
   não traz o INFO para a frente: o resultado aparece na aba do enunciado. Abrir
   outro projeto ou fechar a pasta de exercícios encerra a sessão, e o painel
   volta como estava.
+- Sair da vista Exercícios (o Explorador, a Busca ou outra vista na frente
+  dela) e fechar a pasta de exercícios fecham o projeto do exercício, com as
+  abas dele. Com o arquivo alterado e não gravado, o Studio pergunta antes;
+  **Cancelar** mantém o exercício e volta à vista Exercícios. Recolher a
+  barra lateral não fecha nada.
 - A aba do enunciado mostra a correção: resolvido, não compila, ou em
   quantas amostras cada saída errou e o instante do primeiro erro. Os
   erros de compilação levam à linha e também vão para Problemas e para o

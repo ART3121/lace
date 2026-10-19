@@ -14,6 +14,10 @@
 // escondido até o aluno chamá-lo, e a correção não revela console nenhum
 // (jobs.ts). Ao sair da sessão (outro projeto, a pasta fechada), o painel
 // volta como estava.
+//
+// Sair da vista Exercícios (outra vista na frente, na região dela) e fechar
+// a pasta de exercícios fecham o projeto do exercício: fora dos exercícios,
+// o Studio não fica com o último aberto.
 
 import { create } from 'zustand';
 
@@ -26,6 +30,7 @@ import { confirm } from './dialogs';
 import { fileTabId, useEditor, viewTabId } from './editor';
 import { useJobs } from './jobs';
 import { useLayout } from './layout';
+import { type LayoutBody, regionOf } from './layoutModel';
 import { learnSession } from './learnSession';
 import { useProject } from './project';
 import { guarded, showError, useToasts } from './toasts';
@@ -74,8 +79,8 @@ interface LearnState {
   openRoot: (root: string) => Promise<boolean>;
   /** Cria a pasta de exercícios em `dir` e abre o primeiro exercício. */
   create: (dir: string) => Promise<boolean>;
-  /** Fecha a pasta (o projeto aberto continua). */
-  forget: () => void;
+  /** Fecha a pasta e, se o projeto aberto é um exercício dela, o projeto. */
+  forget: () => Promise<void>;
   /** Torna atual, abre e corrige. */
   select: (name: string) => Promise<void>;
   /** Corrige o exercício (o atual, sem nome). */
@@ -191,7 +196,8 @@ export const useLearn = create<LearnState>((set, get) => ({
     }
   },
 
-  forget: () => {
+  forget: async () => {
+    if (!(await closeExercise())) return;
     get().leaveSession();
     store(ROOT_KEY, null);
     set({ root: null, snapshot: null, error: null, grades: {}, hints: {} });
@@ -355,4 +361,26 @@ useProject.subscribe((state, previous) => {
   if (state.snapshot?.spf === previous.snapshot?.spf) return;
   if (inLearnSession()) useLearn.getState().enterSession();
   else useLearn.getState().leaveSession();
+});
+
+/** A vista Exercícios está na frente na região dela. A região escondida (a
+ * barra recolhida, o zen, a aba larga) não tira a vista da frente. */
+function learnViewInFront(live: LayoutBody): boolean {
+  return !live.hidden.views.includes('learn') && live.regions[regionOf(live, 'learn')].active === 'learn';
+}
+
+/** Fecha o projeto aberto, se for um exercício da pasta. Com algo por gravar
+ * e o aluno cancelando, o projeto fica, e a vista Exercícios volta para a
+ * frente. Diz se o exercício saiu (ou se nenhum estava aberto). */
+async function closeExercise(): Promise<boolean> {
+  if (!inLearnSession()) return true;
+  if (await useProject.getState().close()) return true;
+  useLayout.getState().revealView('learn', { explicit: true });
+  return false;
+}
+
+// Outra vista na frente da vista Exercícios (o Explorer, a Busca), ou a vista
+// escondida, é sair dos exercícios: o projeto do exercício fecha.
+useLayout.subscribe((state, previous) => {
+  if (learnViewInFront(previous.live) && !learnViewInFront(state.live)) void closeExercise();
 });
