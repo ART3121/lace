@@ -24,6 +24,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Group, Panel, Separator, usePanelRef, type PanelImperativeHandle } from 'react-resizable-panels';
 
+import { useEditor } from '../../state/editor';
 import { useLayout } from '../../state/layout';
 import type { LayoutSizes } from '../../state/layoutModel';
 import { snapshotSize } from '../../state/savedLayouts';
@@ -157,6 +158,18 @@ export function Workbench() {
   // ele aceita `resize`.
   useEffect(() => enforce.current(), [epoch, show.left, show.right, show.panel, bottom, maximized, width]);
 
+  // Uma aba aberta ou trazida para a frente no editor tira a maximização do
+  // painel: a aba aparece, em vez de ficar atrás dele até ele voltar.
+  useEffect(
+    () =>
+      useEditor.subscribe((state, previous) => {
+        if (state.activeId && state.activeId !== previous.activeId && useLayout.getState().panelMaximized) {
+          useLayout.getState().setPanelMaximized(false);
+        }
+      }),
+    [],
+  );
+
   // O duplo clique numa divisão volta a região ao tamanho da foto do layout
   // em uso. O da biblioteca voltaria ao `defaultSize`, que aqui já é o
   // tamanho de agora.
@@ -185,12 +198,17 @@ export function Workbench() {
           </>
         )}
         <Panel id="center" minSize={fit.center}>
-          <Group orientation={bottom ? 'vertical' : 'horizontal'} className="workbench__center" onLayoutChanged={capture}>
-            {!(show.panel && maximized) && (
-              <Panel id="editor" minSize={bottom ? 120 : fit.editorRight}>
-                <EditorArea />
-              </Panel>
-            )}
+          <Group
+            orientation={bottom ? 'vertical' : 'horizontal'}
+            className={`workbench__center${show.panel && maximized ? ' workbench__center--maximized' : ''}`}
+            onLayoutChanged={capture}
+          >
+            {/* Com o painel maximizado, o editor continua aqui, escondido
+             * (app.css): tirá-lo da árvore recarregava a onda numa aba, que
+             * perdia zoom, cursor e sinais. */}
+            <Panel id="editor" minSize={bottom ? 120 : fit.editorRight}>
+              <EditorArea />
+            </Panel>
             {zen && zenShell && (
               <>
                 <Separator className="resize-handle resize-handle--horizontal resize-handle--zen" />
@@ -216,9 +234,7 @@ export function Workbench() {
                   panelRef={panelRef}
                   defaultSize={bottom ? sizes.panelBottom : sizes.panelRight}
                   minSize={bottom ? 90 : fit.panelRight}
-                  // Maximizado, o painel é o único do grupo, e a biblioteca
-                  // exige um painel que acompanhe o tamanho do grupo.
-                  groupResizeBehavior={maximized ? 'preserve-relative-size' : 'preserve-pixel-size'}
+                  groupResizeBehavior="preserve-pixel-size"
                 >
                   <Region region="panel" mode="tabs" />
                 </Panel>

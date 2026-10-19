@@ -154,6 +154,14 @@ a {
   min-width: 0;
 }
 
+/* Com o painel maximizado, o editor sai da tela sem sair da árvore: a onda
+ * numa aba não recarrega, e o foco que estava nele vai embora. O
+ * `!important` passa por cima do `display: flex` que a biblioteca põe no
+ * estilo do painel. */
+.workbench__center--maximized > [data-panel][id='editor'] {
+  display: none !important;
+}
+
 .resize-handle {
   position: relative;
   background: var(--border);

@@ -178,7 +178,8 @@ pub use process::{
 pub use project::{
     DEFAULT_CLOCKS, DEFAULT_FREQUENCY_MHZ, IssueKind, Language, MAX_CLOCKS, MAX_FREQUENCY_MHZ,
     MAX_PORTS, MAX_PROCESSOR_NAME, MAX_PROJECT_NAME, NewProcessor, Processor, ProcessorConfig,
-    Project, ProjectIssue, RemovedProcessor, validate_processor_name, validate_project_name,
+    Project, ProjectIssue, RemovedProcessor, validate_new_processor_name, validate_processor_name,
+    validate_project_name,
 };
 pub use simulate::{
     SimulationOptions, SimulationResult, Simulator, Waveform, WaveformFormat, missing_inputs,

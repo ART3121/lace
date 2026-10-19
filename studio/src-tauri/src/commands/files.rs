@@ -153,11 +153,87 @@ pub async fn fs_write_text(
                 format!("{path} changed on disk since it was opened"),
             ));
         }
-        std::fs::write(&path, content).map_err(|e| IpcError::io(&path, e))?;
+        write_atomically(&path, &content).map_err(|e| IpcError::io(&path, e))?;
         let meta = std::fs::metadata(&path).map_err(|e| IpcError::io(&path, e))?;
         Ok(modified_ms(&meta))
     })
     .await
+}
+
+/// Grava `content` em `path` sem deixar o arquivo pela metade: num
+/// temporário ao lado, gravado até o disco e trocado pelo original. Com a
+/// gravação direta, um travamento, uma queda de energia ou um antivírus no
+/// meio deixavam o fonte vazio ou cortado. Um link simbólico continua link:
+/// grava no arquivo que ele aponta, e o temporário fica ao lado desse. Sem a
+/// troca (outro programa segura o arquivo sem deixar renomear, a pasta não
+/// deixa criar arquivo), grava direto, como antes.
+fn write_atomically(path: &Utf8Path, content: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+    let target = match std::fs::symlink_metadata(path) {
+        Ok(meta) if meta.file_type().is_symlink() => std::fs::canonicalize(path)?,
+        _ => path.as_std_path().to_owned(),
+    };
+    let original = std::fs::metadata(&target).ok();
+    // Somente leitura continua recusando: a troca passaria por cima.
+    if original
+        .as_ref()
+        .is_some_and(|m| m.permissions().readonly())
+    {
+        return std::fs::write(&target, content);
+    }
+    let (Some(dir), Some(name)) = (target.parent(), target.file_name()) else {
+        return std::fs::write(&target, content);
+    };
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let tmp = dir.join(format!(
+        ".{}.{}-{n}.lace-tmp",
+        name.to_string_lossy(),
+        std::process::id()
+    ));
+    let swapped = (|| {
+        // `create_new`: nada que já esteja nesse nome (um link) é seguido.
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp)?;
+        file.write_all(content.as_bytes())?;
+        file.sync_all()?;
+        drop(file);
+        // O modo do original (um script executável continua executável).
+        #[cfg(unix)]
+        if let Some(meta) = &original {
+            std::fs::set_permissions(&tmp, meta.permissions())?;
+        }
+        rename_retrying(&tmp, &target)
+    })();
+    if swapped.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+        return std::fs::write(&target, content);
+    }
+    Ok(())
+}
+
+/// O `rename` por cima do original. No Windows, a troca esbarra por alguns
+/// milissegundos num leitor que abriu o arquivo sem deixar renomear (um
+/// antivírus olhando o temporário recém-criado): tenta de novo.
+fn rename_retrying(from: &Path, to: &Path) -> std::io::Result<()> {
+    let mut attempt = 0;
+    loop {
+        match std::fs::rename(from, to) {
+            Err(e)
+                if cfg!(windows)
+                    && attempt < 20
+                    && e.kind() == std::io::ErrorKind::PermissionDenied =>
+            {
+                attempt += 1;
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            result => return result,
+        }
+    }
 }
 
 /// Situação de um caminho no disco.
@@ -521,6 +597,59 @@ mod tests {
 
     fn utf8(path: &Path) -> &Utf8Path {
         Utf8Path::from_path(path).expect("caminho UTF-8")
+    }
+
+    #[test]
+    fn writing_replaces_the_file_whole_and_leaves_nothing_behind() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = utf8(dir.path()).join("m.v");
+        std::fs::write(&path, "module velho; endmodule\n").unwrap();
+        write_atomically(&path, "module novo; endmodule\n").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "module novo; endmodule\n"
+        );
+        // Um arquivo que ainda não existe também.
+        write_atomically(&utf8(dir.path()).join("n.v"), "x").unwrap();
+        let mut names: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        assert_eq!(names, ["m.v", "n.v"], "nenhum temporário fica");
+    }
+
+    #[test]
+    fn a_read_only_file_still_refuses_the_write() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = utf8(dir.path()).join("m.v");
+        std::fs::write(&path, "antes").unwrap();
+        let mut permissions = std::fs::metadata(&path).unwrap().permissions();
+        permissions.set_readonly(true);
+        std::fs::set_permissions(&path, permissions.clone()).unwrap();
+        assert!(write_atomically(&path, "depois").is_err());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "antes");
+        #[allow(clippy::permissions_set_readonly_false)]
+        permissions.set_readonly(false);
+        std::fs::set_permissions(&path, permissions).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlink_stays_a_link() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = utf8(dir.path()).join("real.v");
+        std::fs::write(&real, "a").unwrap();
+        let link = utf8(dir.path()).join("link.v");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        write_atomically(&link, "b").unwrap();
+        assert!(
+            std::fs::symlink_metadata(&link)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+        assert_eq!(std::fs::read_to_string(&real).unwrap(), "b");
     }
 
     #[test]

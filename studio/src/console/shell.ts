@@ -19,6 +19,10 @@ interface Shell {
   id: number | null;
   exited: boolean;
   opened: boolean;
+  /** Quantas vezes o shell foi aberto neste terminal: a mensagem de um
+   * aberto antes (o `Exit` do que o "Novo terminal" encerrou chega depois
+   * de o novo abrir) não é do shell de agora. */
+  generation: number;
 }
 
 let shell: Shell | null = null;
@@ -48,7 +52,7 @@ function create(): Shell {
   term.loadAddon(fit);
   const host = document.createElement('div');
   host.className = 'console-host shell-terminal';
-  const created: Shell = { term, host, fit, id: null, exited: false, opened: false };
+  const created: Shell = { term, host, fit, id: null, exited: false, opened: false, generation: 0 };
   term.onData((data) => {
     if (created.id !== null && !created.exited) void api.terminal.write(created.id, data).catch(() => undefined);
   });
@@ -75,8 +79,13 @@ async function spawn(target: Shell): Promise<void> {
     void api.terminal.ack(id, written).catch(() => undefined);
     written = 0;
   };
+  // O `Exit` do shell encerrado pelo "Novo terminal" chegava depois de o
+  // novo abrir e o marcava como encerrado: metade dos reinícios deixava o
+  // terminal mudo, e o reinício seguinte nem encerrava o shell vivo.
+  const generation = ++target.generation;
   try {
     id = await api.terminal.spawn(cwd, target.term.cols, target.term.rows, (message) => {
+      if (target.generation !== generation) return;
       if (message.type === 'data') {
         const units = message.data.length;
         target.term.write(message.data, () => {
@@ -145,7 +154,9 @@ export function fitShell(): void {
 /** Encerra o shell atual e abre outro, na pasta do projeto. */
 export async function restartShell(): Promise<void> {
   if (!shell) return;
-  if (shell.id !== null && !shell.exited) await api.terminal.kill(shell.id).catch(() => undefined);
+  // Também o marcado como encerrado: encerrar um que já saiu não faz nada.
+  if (shell.id !== null) await api.terminal.kill(shell.id).catch(() => undefined);
+  shell.id = null;
   shell.term.reset();
   shell.exited = false;
   await spawn(shell);

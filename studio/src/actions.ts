@@ -971,6 +971,21 @@ const EDITOR_KEYS = new Set(['Ctrl+Z', 'Ctrl+Y', 'Ctrl+F', 'Ctrl+H', 'Ctrl+G', '
  * lateral e de abrir arquivo. */
 const VIM_KEYS = new Set(['Ctrl+B', 'Ctrl+O']);
 
+/** Teclas que um campo de texto resolve sozinho: no campo da Busca, o Ctrl+Z
+ * desfazia a última digitação do editor e levava o foco para lá. */
+const FIELD_KEYS = new Set(['Ctrl+Z', 'Ctrl+Y']);
+
+const NOT_TEXT_INPUTS = new Set(['button', 'checkbox', 'color', 'file', 'image', 'radio', 'range', 'reset', 'submit']);
+
+/** O foco está num campo de texto da interface (fora do editor e do
+ * terminal, que têm as regras deles). */
+function inTextField(target: Element | null): boolean {
+  if (!target || target.closest('.monaco-editor, .shell-terminal')) return false;
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLInputElement) return !NOT_TEXT_INPUTS.has(target.type);
+  return target instanceof HTMLElement && target.isContentEditable;
+}
+
 /**
  * O tratador global, na fase de captura: roda antes do Monaco e do xterm.
  * No terminal de shell, só as teclas de função e Ctrl+Shift saem dele, para
@@ -1018,6 +1033,7 @@ export function handleShortcut(event: KeyboardEvent): void {
   if (!a) return;
   const vimFind = combo === 'Ctrl+F' && vimActive();
   if (inEditor && !vimFind && (EDITOR_KEYS.has(combo) || (VIM_KEYS.has(combo) && vimActive()))) return;
+  if (FIELD_KEYS.has(combo) && inTextField(target)) return;
   // No RTLViewer, o Ctrl+F é a busca dele (SchematicView).
   if (combo === 'Ctrl+F' && target?.closest('.rtlViewer')) return;
   if (inShell && !/^(Shift\+)?F\d+$/.test(combo) && !combo.startsWith('Ctrl+Shift+') && combo !== 'Ctrl+`') return;
