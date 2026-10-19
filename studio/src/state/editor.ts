@@ -532,11 +532,18 @@ export const useEditor = create<EditorState>((set, get) => {
         return false;
       }
       const write = async (expected: number | null) => {
-        const modifiedMs = await api.fs.writeText(path, model.getValue(), expected);
+        // O texto e a versão do mesmo instante: o que se digita enquanto o
+        // arquivo grava continua por gravar, e a aba continua alterada. A
+        // versão lida depois da gravação marcava como gravada uma tecla
+        // que não chegou ao disco.
+        const text = model.getValue();
         const savedVersion = model.getAlternativeVersionId();
+        const modifiedMs = await api.fs.writeText(path, text, expected);
         set((state) => ({
           docs: { ...state.docs, [path]: { ...state.docs[path], modifiedMs, savedVersion, deleted: false } },
-          tabs: state.tabs.map((t) => (t.path === path ? { ...t, dirty: false, preview: false } : t)),
+          tabs: state.tabs.map((t) =>
+            t.path === path ? { ...t, dirty: model.getAlternativeVersionId() !== savedVersion, preview: false } : t,
+          ),
         }));
       };
       try {
