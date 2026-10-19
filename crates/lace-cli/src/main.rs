@@ -10,6 +10,7 @@ mod install;
 mod installation;
 mod learn;
 mod learn_tui;
+mod mcp;
 mod meter;
 mod output;
 mod progress;
@@ -186,6 +187,8 @@ enum Command {
     Experimental(ExperimentalArgs),
     /// Serve the Lace API to another program over stdin and stdout (JSON-RPC 2.0, one message per line)
     Serve(serve::ServeArgs),
+    /// Serve the Lace API to an AI agent as an MCP server over stdin and stdout
+    Mcp(mcp::McpArgs),
     /// Show the bundled tools and their versions
     Tools {
         /// Verify each executable against the manifest SHA-256
@@ -604,7 +607,7 @@ fn main() -> ExitCode {
     let out = output::Output::new(mode, cli.verbose > 0);
     // O `lace serve` encerra do jeito dele no primeiro sinal (cancela,
     // espera, sai); sair na hora no segundo deixaria o que roda órfão.
-    let cancel = cancel_on_signals(!matches!(cli.command, Command::Serve(_)));
+    let cancel = cancel_on_signals(!matches!(cli.command, Command::Serve(_) | Command::Mcp(_)));
     cancel::set(cancel.clone());
     let control = out.control(cancel.clone());
     // A consulta da última versão roda enquanto o comando roda.
@@ -637,6 +640,7 @@ impl Command {
                 | Command::Uninstall { .. }
                 | Command::Setup { .. }
                 | Command::Serve(_)
+                | Command::Mcp(_)
                 | Command::Completions { .. }
         )
     }

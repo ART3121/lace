@@ -134,12 +134,21 @@ struct Incoming {
 /// O escritor único do stdout: uma thread, uma linha por mensagem, `flush`
 /// a cada uma. Quem manda só espera a fila, nunca o cliente.
 #[derive(Clone)]
-struct Writer {
+pub(crate) struct Writer {
     tx: SyncSender<String>,
+    /// Sem notificações: o `lace mcp` usa o despacho do servidor, mas o
+    /// stdout dele é do MCP, que não entende as notificações do Lace.
+    quiet: bool,
 }
 
 impl Writer {
-    fn stdout() -> Self {
+    /// Um escritor que não escreve nada: para quem só usa [`Server::handle`].
+    pub(crate) fn silent() -> Self {
+        let (tx, _rx) = mpsc::sync_channel::<String>(1);
+        Writer { tx, quiet: true }
+    }
+
+    pub(crate) fn stdout() -> Self {
         let (tx, rx) = mpsc::sync_channel::<String>(1024);
         thread::Builder::new()
             .name("lace-serve-stdout".into())
@@ -157,7 +166,7 @@ impl Writer {
                 }
             })
             .expect("spawn the stdout thread");
-        Writer { tx }
+        Writer { tx, quiet: false }
     }
 
     fn send(&self, value: &Value) {
@@ -180,6 +189,9 @@ impl Writer {
     }
 
     fn notify(&self, method: &str, params: Value) {
+        if self.quiet {
+            return;
+        }
         self.send(&json!({ "jsonrpc": "2.0", "method": method, "params": params }));
     }
 
@@ -212,7 +224,7 @@ type Job = Box<dyn FnOnce() + Send>;
 
 /// Por que um pedido não deu certo: um erro do core (que ganha a dica da
 /// CLI ao sair) ou um já em forma de [`ErrorInfo`].
-enum Failure {
+pub(crate) enum Failure {
     Lace(Box<LaceError>),
     Info(Box<ErrorInfo>),
 }
@@ -236,7 +248,7 @@ impl From<lace_installer::Error> for Failure {
 }
 
 impl Failure {
-    fn into_info(self) -> ErrorInfo {
+    pub(crate) fn into_info(self) -> ErrorInfo {
         match self {
             Failure::Lace(error) => crate::output::error_info(&error),
             Failure::Info(info) => *info,
@@ -244,10 +256,10 @@ impl Failure {
     }
 }
 
-type Handled = Result<Response, Failure>;
+pub(crate) type Handled = Result<Response, Failure>;
 
 /// O servidor: o estado da sessão e as filas.
-struct Server {
+pub(crate) struct Server {
     toolchain: ToolchainArgs,
     writer: Writer,
     initialized: AtomicBool,
@@ -264,7 +276,7 @@ struct Server {
 }
 
 impl Server {
-    fn new(toolchain: ToolchainArgs, writer: Writer) -> Self {
+    pub(crate) fn new(toolchain: ToolchainArgs, writer: Writer) -> Self {
         Server {
             toolchain,
             writer,
@@ -546,7 +558,7 @@ impl Server {
     }
 
     /// Atende um pedido. `Err` é o Lace não conseguir rodar.
-    fn handle(&self, id: &Value, request: Request, cancel: CancelToken) -> Handled {
+    pub(crate) fn handle(&self, id: &Value, request: Request, cancel: CancelToken) -> Handled {
         Ok(match request {
             Request::Initialize { .. } | Request::Shutdown => Response::Nothing(()),
             Request::ProjectCreate { parent, name } => {
@@ -1010,18 +1022,33 @@ fn cli_error(error: anyhow::Error) -> Failure {
     Failure::Info(Box::new(to_info(&error)))
 }
 
-/// O [`Request`] de um método e seus parâmetros. Sem `params`, um método
-/// cujos parâmetros têm todos padrão (`initialize`) aceita `{}`.
-fn parse_request(method: &str, params: Option<Value>) -> Result<Request, serde_json::Error> {
-    let mut envelope = json!({ "method": method });
-    let retry = params.is_none();
-    if let Some(params) = params {
-        envelope["params"] = params;
-    }
-    match serde_json::from_value(envelope) {
+/// O [`Request`] de um método e seus parâmetros. Um método sem parâmetros
+/// aceita `params` ausente ou `{}` (um cliente MCP manda `{}`), e um cujos
+/// parâmetros têm todos padrão (`initialize`) aceita `params` ausente.
+pub(crate) fn parse_request(
+    method: &str,
+    params: Option<Value>,
+) -> Result<Request, serde_json::Error> {
+    let envelope = |params: Option<Value>| {
+        let mut envelope = json!({ "method": method });
+        if let Some(params) = params {
+            envelope["params"] = params;
+        }
+        envelope
+    };
+    let empty = params
+        .as_ref()
+        .is_none_or(|p| p.as_object().is_some_and(|o| o.is_empty()));
+    match serde_json::from_value(envelope(params.clone())) {
         Ok(request) => Ok(request),
-        Err(error) if retry => {
-            serde_json::from_value(json!({ "method": method, "params": {} })).map_err(|_| error)
+        Err(error) if empty => {
+            // A outra forma de "sem parâmetros".
+            let other = if params.is_none() {
+                Some(json!({}))
+            } else {
+                None
+            };
+            serde_json::from_value(envelope(other)).map_err(|_| error)
         }
         Err(error) => Err(error),
     }
@@ -1120,7 +1147,7 @@ mod tests {
 
     fn capture() -> (Writer, mpsc::Receiver<String>) {
         let (tx, rx) = mpsc::sync_channel::<String>(1024);
-        (Writer { tx }, rx)
+        (Writer { tx, quiet: false }, rx)
     }
 
     fn server() -> (Arc<Server>, mpsc::Receiver<String>) {
@@ -1279,6 +1306,15 @@ mod tests {
         assert!(matches!(
             parse_request("fpga.boards", None),
             Ok(Request::FpgaBoards { board: None })
+        ));
+        // Um cliente MCP manda `{}` para uma ferramenta sem parâmetros.
+        assert!(matches!(
+            parse_request("toolchain.info", Some(json!({}))),
+            Ok(Request::ToolchainInfo)
+        ));
+        assert!(matches!(
+            parse_request("initialize", Some(json!({}))),
+            Ok(Request::Initialize { client: None })
         ));
         assert!(parse_request("project.status", None).is_err());
         assert!(parse_request("nothing.here", None).is_err());
