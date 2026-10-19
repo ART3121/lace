@@ -783,7 +783,8 @@ contrato ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busc
 | Comando | Faz |
 |---|---|
 | `lace serve [--schema]` | atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
-| `lace mcp [--allow-update]` | o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`. Uma ferramenta por método (`project_status`, `build`, `check`, `sim`, `synth`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
+| `lace mcp [--allow-update]` | o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/cancelled`. Uma ferramenta por método (`project_status`, `build`, `check`, `sim`, `synth`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo, mais `project_find`. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
+| `lace mcp setup <claude-code\|claude-desktop\|print> [--scope local\|user\|project] [--allow-update] [--default-project PATH]` | registra o servidor no cliente, com o caminho deste `lace` e, se o bundle não é o instalado ao lado dele, a variável `LACE_TOOLCHAIN`. `claude-code` roda `claude mcp add` (ou grava o `.mcp.json` da pasta com `--scope project`; sem o `claude` no `PATH`, imprime o comando); `claude-desktop` mescla a entrada no `claude_desktop_config.json`, mantendo o resto do arquivo; `print` só imprime o trecho JSON |
 
 Os dois são processos filhos que o cliente abre quando precisa e fecha
 quando termina, como um editor faz com um servidor de linguagem: sem
@@ -870,6 +871,43 @@ lace.stdin.close()
 A extensão do VS Code usa o `serve` quando o Lace instalado é a 0.9.0 ou
 mais nova (`lace.transport`); com um Lace mais antigo continua chamando um
 processo por comando (`--json` e `--events`), que seguem como estão.
+
+O `lace mcp`, para um agente:
+
+- **O projeto.** As ferramentas de projeto aceitam `project` (o `.spf` ou
+  a pasta, absoluto ou relativo à pasta atual) e, sem ele, usam o projeto
+  padrão do servidor: o da pasta em que ele foi aberto, ou o do `-C`
+  global (`lace -C <projeto> mcp`). Sem padrão e sem o campo, a ferramenta
+  responde um erro que diz isso; `project_find` lista os `.spf` abaixo de
+  uma pasta (3 níveis por padrão, fora `.lace`, `.git`, `node_modules`,
+  `target`). O `initialize` diz qual é o padrão.
+- **O resultado.** `content` traz um resumo em texto para o agente: o
+  fluxo e o status, cada processador compilado, os erros como
+  `arquivo:linha: mensagem`, a simulação (topo, simulador, onda, saídas,
+  testes), a síntese (netlist, células), o relatório gravado; o retrato do
+  projeto; a lista de relatórios; o bundle. `structuredContent` traz o JSON
+  inteiro do resultado, com o `stdout` e o `stderr` de cada passo cortados
+  aos últimos 2 KiB. Um erro do Lace vem com `isError`, a mensagem, o
+  código e a dica.
+- **Progresso e cancelamento.** As chamadas rodam uma de cada vez, fora da
+  thread que lê a entrada: `ping` responde durante uma simulação longa.
+  Uma chamada com `_meta.progressToken` recebe `notifications/progress`
+  (`phase: build`, `build soma: succeeded`, os pedaços de uma instalação);
+  `notifications/cancelled` com o `requestId` cancela a chamada, que
+  devolve o resultado com `status: "cancelled"` (ou o erro `-32800`, se
+  ainda não tinha começado).
+
+Registrar no Claude Code, para esta pasta:
+
+```bash
+lace mcp setup claude-code
+```
+
+No Claude Desktop (reiniciar depois):
+
+```bash
+lace mcp setup claude-desktop
+```
 
 ## Saída
 

@@ -142,6 +142,13 @@ pub(crate) struct Writer {
 }
 
 impl Writer {
+    /// Um escritor cujas linhas vão para um canal: os testes leem dali.
+    #[cfg(test)]
+    pub(crate) fn channel() -> (Self, mpsc::Receiver<String>) {
+        let (tx, rx) = mpsc::sync_channel::<String>(1024);
+        (Writer { tx, quiet: false }, rx)
+    }
+
     /// Um escritor que não escreve nada: para quem só usa [`Server::handle`].
     pub(crate) fn silent() -> Self {
         let (tx, _rx) = mpsc::sync_channel::<String>(1);
@@ -169,7 +176,7 @@ impl Writer {
         Writer { tx, quiet: false }
     }
 
-    fn send(&self, value: &Value) {
+    pub(crate) fn send(&self, value: &Value) {
         if let Ok(line) = serde_json::to_string(value) {
             let _ = self.tx.send(line);
         }
@@ -257,6 +264,10 @@ impl Failure {
 }
 
 pub(crate) type Handled = Result<Response, Failure>;
+
+/// Para onde vão as notificações de um pedido enquanto ele roda: no `serve`,
+/// o stdout com o `id` do pedido; no `lace mcp`, o progresso do MCP.
+pub(crate) type Emit = Arc<dyn Fn(Notification) + Send + Sync>;
 
 /// O servidor: o estado da sessão e as filas.
 pub(crate) struct Server {
@@ -559,6 +570,26 @@ impl Server {
 
     /// Atende um pedido. `Err` é o Lace não conseguir rodar.
     pub(crate) fn handle(&self, id: &Value, request: Request, cancel: CancelToken) -> Handled {
+        self.handle_with(id, request, cancel, None)
+    }
+
+    /// [`Server::handle`] com as notificações do pedido indo para `sink` em
+    /// vez do stdout (o `lace mcp`).
+    pub(crate) fn handle_with(
+        &self,
+        id: &Value,
+        request: Request,
+        cancel: CancelToken,
+        sink: Option<Emit>,
+    ) -> Handled {
+        let emit: Emit = match sink {
+            Some(sink) => sink,
+            None => {
+                let writer = self.writer.clone();
+                let id = id.clone();
+                Arc::new(move |notification| writer.notify_for(&id, &notification))
+            }
+        };
         Ok(match request {
             Request::Initialize { .. } | Request::Shutdown => Response::Nothing(()),
             Request::ProjectCreate { parent, name } => {
@@ -709,11 +740,9 @@ impl Server {
                 let mut project = Project::open(&project)?;
                 let options =
                     options.unwrap_or_else(|| FlowOptions::new(request.command_line("lace")));
-                let writer = self.writer.clone();
-                let id = id.clone();
-                let dispatcher = Dispatcher::start(Limits::default(), move |notification| {
-                    writer.notify_for(&id, &notification);
-                });
+                let deliver = Arc::clone(&emit);
+                let dispatcher =
+                    Dispatcher::start(Limits::default(), move |notification| deliver(notification));
                 let control = if output {
                     dispatcher.control(cancel)
                 } else {
@@ -865,9 +894,10 @@ impl Server {
                 let toolchain = self.toolchain()?;
                 Response::Cables(fpga::cables(&toolchain)?)
             }
-            Request::UpdateCheck => Response::Other(self.update(id, false, None, &cancel)?),
+            Request::UpdateCheck => Response::Other(self.update(id, &emit, false, None, &cancel)?),
             Request::UpdateApply { full, from } => {
-                let result = self.update(id, full, from.as_deref().map(|f| (f, true)), &cancel)?;
+                let result =
+                    self.update(id, &emit, full, from.as_deref().map(|f| (f, true)), &cancel)?;
                 let _ = full;
                 Response::Other(result)
             }
@@ -886,13 +916,11 @@ impl Server {
                     },
                     &cancel,
                 )?;
-                let writer = self.writer.clone();
-                let id = id.clone();
                 let report = installer_add::add_components(
                     &prepared,
                     &prefix,
                     &components,
-                    &mut |event| notify_install(&writer, &id, &event),
+                    &mut |event| emit(install_notification(&event)),
                     &cancel,
                 )?;
                 Response::Other(serde_json::to_value(report).unwrap_or(Value::Null))
@@ -955,6 +983,7 @@ impl Server {
     fn update(
         &self,
         id: &Value,
+        emit: &Emit,
         full: bool,
         from: Option<(&Utf8Path, bool)>,
         cancel: &CancelToken,
@@ -973,8 +1002,6 @@ impl Server {
             child_output: ChildOutput::Capture,
             reg: reg.as_deref(),
         };
-        let writer = self.writer.clone();
-        let id = id.clone();
         let report = lace_installer::update::run(
             &remote,
             env!("CARGO_PKG_VERSION"),
@@ -982,7 +1009,7 @@ impl Server {
             crate::installation::prefix_result(),
             &options,
             &mut Silent,
-            &mut |event| notify_install(&writer, &id, &event),
+            &mut |event| emit(install_notification(&event)),
             cancel,
         )?;
         if matches!(
@@ -1008,12 +1035,11 @@ impl Server {
     }
 }
 
-/// Uma notificação `install` com o evento do instalador.
-fn notify_install(writer: &Writer, id: &Value, event: &InstallEvent) {
-    writer.notify(
-        "install",
-        json!({ "id": id, "event": serde_json::to_value(event).unwrap_or(Value::Null) }),
-    );
+/// A notificação `install` com o evento do instalador.
+fn install_notification(event: &InstallEvent) -> Notification {
+    Notification::Install {
+        event: serde_json::to_value(event).unwrap_or(Value::Null),
+    }
 }
 
 /// Um erro da CLI (`anyhow`) como [`Failure`], com o código da biblioteca

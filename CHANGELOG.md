@@ -23,7 +23,13 @@
 - `lace mcp`: o mesmo contrato como servidor MCP para um agente, uma
   ferramenta por método (`build`, `check`, `sim`, `synth`,
   `project_status`, `history_show`, ...), com o `inputSchema` tirado do
-  schema do protocolo. `update_apply` e `install_add` só com
+  schema do protocolo. Cada ferramenta devolve um resumo em texto (o
+  status, os erros com arquivo e linha, o relatório) e o JSON inteiro com
+  a saída dos passos cortada; o projeto é opcional, com o padrão da pasta
+  atual (ou do `-C`), e `project_find` acha os `.spf`; as
+  chamadas rodam fora da thread de leitura, com `notifications/progress` e
+  `notifications/cancelled`. `lace mcp setup claude-code|claude-desktop|print`
+  registra o servidor no cliente. `update_apply` e `install_add` só com
   `--allow-update`.
 - O `lace update`, o `lace install` e o `lace uninstall` viraram
   biblioteca (`lace-installer`: `update::run`, `add`, `uninstall`, com os

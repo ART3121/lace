@@ -108,7 +108,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
             return crate::serve::run(&cli.toolchain, args, control.cancel_token());
         }
         Command::Mcp(args) => {
-            return crate::mcp::run(&cli.toolchain, args, control.cancel_token());
+            return crate::mcp::run(&cli.project, &cli.toolchain, args, control.cancel_token());
         }
         Command::Install(args) => {
             let from = args.from.as_deref().map(settings::absolute).transpose()?;
