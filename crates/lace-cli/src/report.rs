@@ -42,6 +42,10 @@ macro_rules! reports {
             vec![
                 $(($name, schema_of::<$type>()),)*
                 ("events", schema_of::<EventLine>()),
+                // O protocolo do lace serve, nas duas vistas: os pedidos (campos
+                // opcionais onde o core tem um valor fixo) e as respostas.
+                ("protocol-request", lace_core::protocol::request_schema()),
+                ("protocol-response", lace_core::protocol::response_schema()),
             ]
         }
     };
@@ -489,18 +493,9 @@ pub struct ErrorReport {
     pub error: ErrorInfo,
 }
 
-/// Um erro do Lace.
-#[derive(Serialize, JsonSchema)]
-pub struct ErrorInfo {
-    /// Código estável, em `snake_case` (`no_testbench`, `component_missing`),
-    /// ou `cli` para um erro da própria linha de comando.
-    pub code: String,
-    /// A mensagem, em inglês.
-    pub message: String,
-    /// O comando que resolve, quando há um.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub hint: Option<String>,
-}
+/// Um erro do Lace: o ErrorInfo do core, com code, message, hint (o comando
+/// que resolve) e, quando existem, os campos da variante (data).
+pub use lace_core::ErrorInfo;
 
 /// `lace learn init`: a pasta de exercícios criada.
 #[derive(Serialize, JsonSchema)]

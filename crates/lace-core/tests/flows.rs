@@ -186,7 +186,7 @@ fn simulating_a_processor_builds_it_reads_the_outputs_and_records() {
     // O Verilog gerado entrou no .spf, e o processador é visto como compilado.
     let project = Project::open(&root).unwrap();
     assert!(project.require_processor("soma").unwrap().is_built());
-    assert_eq!(project.status().processors[0].built, true);
+    assert!(project.status().processors[0].built);
 }
 
 #[test]

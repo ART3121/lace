@@ -174,6 +174,17 @@ impl Throttle {
         self.omit(step, tool)
     }
 
+    /// Devolve ao balde a conta de um aviso que não pôde ser entregue, para
+    /// sair com o próximo. Se a conta de agora é de outro passo, a antiga se
+    /// perde: um aviso raro atrás de um cliente parado por completo.
+    pub fn restore(&mut self, step: Step, tool: Tool, lines: u64) {
+        match &mut self.omitted {
+            Some((s, t, n)) if *s == step && *t == tool => *n += lines,
+            Some(_) => {}
+            None => self.omitted = Some((step, tool, lines)),
+        }
+    }
+
     fn omit(&mut self, step: Step, tool: Tool) -> Option<Notification> {
         match &mut self.omitted {
             Some((s, t, lines)) if *s == step && *t == tool => {
@@ -233,6 +244,9 @@ pub struct Dispatcher {
     tx: SyncSender<Msg>,
     limits: Limits,
     thread: Option<JoinHandle<()>>,
+    /// Os baldes dos `Control` criados: ao encerrar, o que ficou de fora e
+    /// ainda não foi avisado sai.
+    throttles: Mutex<Vec<Arc<Mutex<Throttle>>>>,
 }
 
 impl Dispatcher {
@@ -248,6 +262,7 @@ impl Dispatcher {
             tx,
             limits,
             thread: Some(thread),
+            throttles: Mutex::new(Vec::new()),
         }
     }
 
@@ -257,6 +272,10 @@ impl Dispatcher {
         let tx = self.tx.clone();
         let limits = self.limits;
         let throttle = Arc::new(Mutex::new(Throttle::new(&limits, Instant::now())));
+        self.throttles
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(throttle.clone());
         Control::new().with_cancel(cancel).on_event(move |event| {
             let now = Instant::now();
             let (omitted, admitted) = throttle
@@ -264,9 +283,16 @@ impl Dispatcher {
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .admit(event, now);
             if let Some(message) = omitted {
-                // O aviso é raro: espera mais por ele; num cliente parado por
-                // completo, perde-se só a contagem.
-                let _ = push(&tx, Msg::Message(message), now + limits.send_timeout * 10);
+                // O aviso é raro: espera mais por ele e, se nem assim couber,
+                // a conta volta ao balde para sair com o próximo.
+                if let Some(Msg::Message(Notification::OutputOmitted { step, tool, lines })) =
+                    push(&tx, Msg::Message(message), now + limits.send_timeout * 10)
+                {
+                    throttle
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .restore(step, tool, lines);
+                }
             }
             if !admitted {
                 return;
@@ -313,6 +339,23 @@ impl Dispatcher {
     }
 
     fn stop(&mut self) {
+        // O que ficou de fora depois da última linha que passou ainda não
+        // foi avisado: sai antes do fim.
+        let throttles = std::mem::take(
+            &mut *self
+                .throttles
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner),
+        );
+        for throttle in throttles {
+            let omitted = throttle
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .take_omitted();
+            if let Some(message) = omitted {
+                let _ = self.tx.send(Msg::Message(message));
+            }
+        }
         let _ = self.tx.send(Msg::Stop);
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();

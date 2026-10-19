@@ -162,6 +162,7 @@ impl Output {
                     code,
                     message: chain_text(error),
                     hint,
+                    data: info.and_then(|i| i.data.clone()),
                 },
             };
             if self.events {
@@ -1973,11 +1974,9 @@ fn processors_text(project: &Project, here: Option<&Processor>) {
 
 /// Um erro do Core como aparece dentro de outro JSON.
 fn error_info(error: &LaceError) -> ErrorInfo {
-    ErrorInfo {
-        code: error.code().to_owned(),
-        message: error.to_string(),
-        hint: hint(error),
-    }
+    let mut info = ErrorInfo::from(error);
+    info.hint = hint(error);
+    info
 }
 
 struct Summary<'a> {

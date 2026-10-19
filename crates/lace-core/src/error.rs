@@ -806,6 +806,11 @@ pub struct ErrorInfo {
     pub code: String,
     /// O texto do erro, em inglês, pronto para mostrar.
     pub message: String,
+    /// O que fazer, quando quem mostra sabe: o comando `lace` que resolve,
+    /// na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no
+    /// JSON quando não há.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
     /// Os campos estruturados da variante, quando ela os tem
     /// ([`LaceError::data`]): `available`, `files`, `name`, `value`,
     /// `reason`, `path`, `component`. Omitido no JSON quando não há.
@@ -820,8 +825,15 @@ impl ErrorInfo {
         ErrorInfo {
             code: code.into(),
             message: message.into(),
+            hint: None,
             data: None,
         }
+    }
+
+    /// O mesmo erro com a dica de quem mostra.
+    pub fn with_hint(mut self, hint: impl Into<String>) -> Self {
+        self.hint = Some(hint.into());
+        self
     }
 }
 
@@ -838,6 +850,7 @@ impl From<&LaceError> for ErrorInfo {
         ErrorInfo {
             code: error.code().to_owned(),
             message: error.to_string(),
+            hint: None,
             data: error.data(),
         }
     }
@@ -886,6 +899,11 @@ mod tests {
         let back: ErrorInfo =
             serde_json::from_str(r#"{"code":"busy","message":"x"}"#).expect("data é opcional");
         assert_eq!(back.data, None);
+        assert_eq!(back.hint, None);
+        let hinted = plain.with_hint("Try again");
+        let value = serde_json::to_value(&hinted).unwrap();
+        assert_eq!(value["hint"], "Try again");
+        assert!(value.get("data").is_none());
     }
 
     #[test]

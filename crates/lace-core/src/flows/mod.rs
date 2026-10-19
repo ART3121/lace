@@ -280,7 +280,7 @@ pub(crate) fn quoted(text: &str) -> String {
 }
 
 /// O que é da interface, não do fluxo.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct FlowOptions {
     /// O texto do comando para o histórico e para o console (`lace sim -p
     /// soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um

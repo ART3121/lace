@@ -152,6 +152,7 @@ mod paths;
 mod pipeline;
 mod process;
 mod project;
+pub mod protocol;
 pub mod rtl_viewer;
 mod simulate;
 mod source;
