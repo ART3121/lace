@@ -535,7 +535,12 @@ fn rank(status: Status) -> u8 {
 }
 
 /// Os valores de uma porta de saída de um processador simulado.
+///
+/// No schema chama-se `FlowPortValues`: o `PortValues` do relatório `sim`
+/// da CLI tem o erro em texto, e os dois convivem no mesmo conjunto de
+/// tipos gerados.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[schemars(rename = "FlowPortValues")]
 pub struct PortValues {
     /// O número da porta.
     pub port: u32,

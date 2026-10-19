@@ -716,7 +716,6 @@ export type Response =
   | Board[]
   | (FpgaConfig | null)
   | Prepared
-  | ModuleInterface[]
   | BitstreamState
   | null
   | {
@@ -812,13 +811,6 @@ export type SynthesisMetric =
  */
 export type Change =
   'unchanged' | 'increased' | 'decreased' | 'added' | 'removed' | 'not_comparable';
-/**
- * Direção de uma porta.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "PortDirection2".
- */
-export type PortDirection2 = 'input' | 'output' | 'inout';
 /**
  * O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.
  * Os nomes são os que o Lace Studio manda à interface dele.
@@ -3628,7 +3620,7 @@ export interface FlowOutcome {
    * Os valores de cada porta de saída do processador simulado (só com
    * processador e sucesso).
    */
-  outputs: PortValues[];
+  outputs: FlowPortValues[];
   /**
    * O resultado da síntese.
    */
@@ -3873,10 +3865,14 @@ export interface TestCase {
 /**
  * Os valores de uma porta de saída de um processador simulado.
  *
+ * No schema chama-se `FlowPortValues`: o `PortValues` do relatório `sim`
+ * da CLI tem o erro em texto, e os dois convivem no mesmo conjunto de
+ * tipos gerados.
+ *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "PortValues".
+ * via the `definition` "FlowPortValues".
  */
-export interface PortValues {
+export interface FlowPortValues {
   /**
    * O número da porta.
    */
@@ -5350,50 +5346,6 @@ export interface Resolved1 {
   notes: string[];
 }
 /**
- * Um módulo e as portas dele, na ordem da declaração.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "ModuleInterface".
- */
-export interface ModuleInterface {
-  /**
-   * Nome do módulo.
-   */
-  name: string;
-  /**
-   * O arquivo que o declara.
-   */
-  file: string;
-  /**
-   * As portas.
-   */
-  ports: Port[];
-}
-/**
- * Uma porta de um módulo.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "Port".
- */
-export interface Port {
-  /**
-   * Nome.
-   */
-  name: string;
-  /**
-   * Direção.
-   */
-  direction: 'input' | 'output' | 'inout';
-  /**
-   * Largura em bits, com os parâmetros nos valores padrão.
-   */
-  width: number;
-  /**
-   * `signed`.
-   */
-  signed: boolean;
-}
-/**
  * `fpga.status`.
  */
 export interface BitstreamState {
@@ -5778,7 +5730,7 @@ export interface FlowOutcome1 {
    * Os valores de cada porta de saída do processador simulado (só com
    * processador e sucesso).
    */
-  outputs: PortValues[];
+  outputs: FlowPortValues[];
   /**
    * O resultado da síntese.
    */
@@ -6328,6 +6280,32 @@ export interface BuildResult1 {
    * Quanto o build levou, do começo ao fim, em milissegundos.
    */
   duration_ms: number;
+}
+/**
+ * O que a simulação de um processador escreveu numa porta de saída.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "PortValues".
+ */
+export interface PortValues {
+  /**
+   * O número da porta.
+   */
+  port: number;
+  /**
+   * `<proc>/<proc>/output_<porta>.txt`, na pasta de saída.
+   */
+  path: string;
+  /**
+   * Os valores, na ordem em que saíram. Vazio quando a porta não pôde ser
+   * lida.
+   */
+  values: number[];
+  /**
+   * Por que a porta não pôde ser lida: uma linha que não é inteiro, como o
+   * `x` que o simulador escreve numa divisão por zero. `null` quando leu.
+   */
+  error: string | null;
 }
 /**
  * Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a

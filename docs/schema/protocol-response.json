@@ -1151,7 +1151,7 @@
           "description": "Os valores de cada porta de saída do processador simulado (só com\nprocessador e sucesso).",
           "type": "array",
           "items": {
-            "$ref": "#/$defs/PortValues"
+            "$ref": "#/$defs/FlowPortValues"
           }
         },
         "synthesis": {
@@ -2504,8 +2504,8 @@
         }
       ]
     },
-    "PortValues": {
-      "description": "Os valores de uma porta de saída de um processador simulado.",
+    "FlowPortValues": {
+      "description": "Os valores de uma porta de saída de um processador simulado.\n\nNo schema chama-se `FlowPortValues`: o `PortValues` do relatório `sim`\nda CLI tem o erro em texto, e os dois convivem no mesmo conjunto de\ntipos gerados.",
       "type": "object",
       "properties": {
         "port": {
