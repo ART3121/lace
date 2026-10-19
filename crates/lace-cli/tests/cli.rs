@@ -1346,9 +1346,11 @@ fn processor_simulation_names_missing_inputs() {
         .env("LACE_TOOLCHAIN", &tc)
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "Create eco/input_0.txt with one value per line",
-        ));
+        // O caminho vem com o separador do sistema.
+        .stdout(predicate::str::contains(format!(
+            "Create {} with one value per line",
+            std::path::Path::new("eco").join("input_0.txt").display()
+        )));
 
     std::fs::write(root.join("eco/input_0.txt"), "4\n").unwrap();
     let report = json(

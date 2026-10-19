@@ -1570,20 +1570,24 @@ mod windows_tests {
 
     #[test]
     fn cancel_stops_the_process() {
+        // O cancelamento vem quando a linha chega, e não depois de um tempo
+        // fixo: com a máquina carregada, o `cmd` demorava mais que ele para
+        // escrever. O prazo só segura o teste se a linha não vier.
         let token = CancelToken::new();
-        let from_ui = token.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(300));
-            from_ui.cancel();
-        });
+        let on_line = |_: Stream, line: &str| {
+            if line == "iniciou" {
+                token.cancel();
+            }
+        };
         let watch = Watch {
             cancel: Some(&token),
-            ..Watch::default()
+            timeout: Some(Duration::from_secs(60)),
+            on_line: Some(&on_line),
         };
         let started = Instant::now();
-        let out = super::run(&cmd("echo iniciou & for /L %i in (0,0,1) do @rem"), &watch).unwrap();
-        assert_eq!(out.termination, Termination::Cancelled);
-        assert!(started.elapsed() < Duration::from_secs(10));
+        let out = super::run(&cmd("echo iniciou& for /L %i in (0,0,1) do @rem"), &watch).unwrap();
+        assert_eq!(out.termination, Termination::Cancelled, "{}", out.stdout);
+        assert!(started.elapsed() < Duration::from_secs(30));
         assert!(out.stdout.contains("iniciou"), "{}", out.stdout);
     }
 
