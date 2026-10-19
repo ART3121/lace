@@ -571,9 +571,12 @@ impl Project {
     pub fn processor_at(&self, path: impl AsRef<Utf8Path>) -> Option<&Processor> {
         let path = path.as_ref();
         let path = paths::canonicalize(path).unwrap_or_else(|_| path.to_owned());
-        self.processors
-            .iter()
-            .find(|p| path.starts_with(&p.dir) || path.starts_with(&p.temp_dir))
+        // Pelo caminho real também: a pasta do processador pode ser um link.
+        self.processors.iter().find(|p| {
+            [&p.dir, &p.temp_dir]
+                .into_iter()
+                .any(|dir| path.starts_with(dir) || path.starts_with(paths::real_path(dir)))
+        })
     }
 
     /// O que está estranho no `.spf` mas não impede de abrir: um caminho de
@@ -931,9 +934,9 @@ impl Project {
     /// ou o testbench (`<nome>/<nome>/<nome>_tb.v`). Um desses registrado e
     /// ausente quer dizer processador ainda não compilado.
     pub(crate) fn generated_by(&self, path: &Utf8Path) -> Option<&Processor> {
-        self.processors
-            .iter()
-            .find(|p| path == p.verilog_path() || path == p.testbench_path())
+        self.processors.iter().find(|p| {
+            paths::same_file(path, &p.verilog_path()) || paths::same_file(path, &p.testbench_path())
+        })
     }
 
     /// O processador com esse nome, se houver.
@@ -1079,10 +1082,15 @@ impl Project {
         };
         let processor = self.processors[index].clone();
 
+        // O `.spf` guarda o caminho real: com a pasta sendo um link, os
+        // arquivos dela estão registrados pelo destino dele.
+        let real_dir = paths::real_path(&processor.dir);
         let unregistered: Vec<ProjectFile> = [FileRole::Synthesizable, FileRole::Testbench]
             .into_iter()
             .flat_map(|role| self.files(role))
-            .filter(|file| file.path.starts_with(&processor.dir))
+            .filter(|file| {
+                file.path.starts_with(&processor.dir) || file.path.starts_with(&real_dir)
+            })
             .collect();
         for file in &unregistered {
             self.unlist(file.role, &file.path);
@@ -2529,5 +2537,57 @@ mod tests {
                 .unregistered_verilog()
                 .is_empty()
         );
+    }
+
+    /// `link` passa a abrir `target`: um link simbólico no Unix, uma junção
+    /// no Windows (que não pede administrador).
+    fn link_dir(target: &Utf8Path, link: &Utf8Path) {
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(target, link).unwrap();
+        #[cfg(windows)]
+        {
+            let status = std::process::Command::new("cmd")
+                .args(["/C", "mklink", "/J", link.as_str(), target.as_str()])
+                .stdout(std::process::Stdio::null())
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+    }
+
+    #[test]
+    fn a_processor_folder_that_is_a_link_keeps_one_record_of_its_verilog() {
+        let (_guard, dir) = tmp();
+        let mut project = Project::create(&dir, "p").unwrap();
+        let soma = project
+            .add_processor(&NewProcessor::new("soma", Language::Cmm))
+            .unwrap()
+            .clone();
+        // A pasta do processador mora fora, e o projeto a vê por um link.
+        let real = dir.join("fora").join("soma");
+        std::fs::create_dir_all(real.parent().unwrap()).unwrap();
+        std::fs::rename(&soma.dir, &real).unwrap();
+        link_dir(&real, &soma.dir);
+        std::fs::create_dir_all(&soma.output_dir).unwrap();
+        std::fs::write(soma.verilog_path(), "module soma; endmodule\n").unwrap();
+        // Como o build registra: pelo caminho real.
+        let registered = project
+            .add_file(FileRole::Synthesizable, soma.verilog_path(), None)
+            .unwrap();
+        assert!(registered.starts_with(&real), "{registered}");
+
+        let sources = crate::synth::project_sources(&project).unwrap();
+        assert_eq!(sources, std::slice::from_ref(&registered), "um registro só");
+        assert_eq!(
+            project.generated_by(&registered).map(|p| &p.name),
+            Some(&soma.name)
+        );
+        assert_eq!(
+            project.processor_at(&registered).map(|p| &p.name),
+            Some(&soma.name)
+        );
+        let removed = project.remove_processor("soma").unwrap();
+        assert_eq!(removed.unregistered.len(), 1);
+        assert!(project.files(FileRole::Synthesizable).is_empty());
     }
 }

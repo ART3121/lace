@@ -240,7 +240,11 @@ pub fn hierarchy(
                 let Ok(verilog) = processor_verilog(project, &processor.name) else {
                     continue;
                 };
-                if testbench.is_file() && !registered.contains(&testbench) {
+                if testbench.is_file()
+                    && !registered
+                        .iter()
+                        .any(|r| crate::paths::same_file(r, &testbench))
+                {
                     targets.push(Target::processor(&processor.name, &verilog, testbench)?);
                 }
             }

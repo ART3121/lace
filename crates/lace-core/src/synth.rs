@@ -863,14 +863,15 @@ fn is_test_file(path: &Utf8Path) -> bool {
     name.contains("_tb") || name.contains("test")
 }
 
+/// Sem repetir, pelo caminho real: com a pasta de um processador sendo um
+/// link, o Verilog dele vem do `.spf` pelo caminho real e do processador pelo
+/// do link, e o Icarus e o Yosys recusariam o módulo duas vezes.
 fn dedup(files: Vec<Utf8PathBuf>) -> Vec<Utf8PathBuf> {
-    let mut out: Vec<Utf8PathBuf> = Vec::with_capacity(files.len());
-    for file in files {
-        if !out.contains(&file) {
-            out.push(file);
-        }
-    }
-    out
+    let mut seen = std::collections::HashSet::new();
+    files
+        .into_iter()
+        .filter(|file| seen.insert(crate::paths::real_path(file)))
+        .collect()
 }
 
 /// Um caminho entre aspas para um script do Yosys.

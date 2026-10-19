@@ -41,6 +41,37 @@ pub(crate) fn canonicalize(path: &Utf8Path) -> Result<Utf8PathBuf> {
     to_utf8(canonical)
 }
 
+/// O caminho real de `path`, com os links simbólicos e as junções
+/// resolvidos, mesmo que ele ainda não exista: o maior começo que existe é
+/// resolvido, e o resto vai como está.
+pub(crate) fn real_path(path: &Utf8Path) -> Utf8PathBuf {
+    let mut rest = Vec::new();
+    let mut current = path;
+    loop {
+        if let Ok(mut real) = canonicalize(current) {
+            for part in rest.iter().rev() {
+                real.push(part);
+            }
+            return real;
+        }
+        match (current.parent(), current.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name);
+                current = parent;
+            }
+            _ => return path.to_owned(),
+        }
+    }
+}
+
+/// `a` e `b` são o mesmo arquivo, talvez por caminhos diferentes. O `.spf`
+/// guarda o caminho real (ver `Project::absolute`), e o Lace monta o dos
+/// arquivos de um processador pela pasta dele, que pode ser um link ou uma
+/// junção.
+pub(crate) fn same_file(a: &Utf8Path, b: &Utf8Path) -> bool {
+    a == b || real_path(a) == real_path(b)
+}
+
 pub(crate) fn to_utf8(path: impl AsRef<Path>) -> Result<Utf8PathBuf> {
     let path = path.as_ref();
     Utf8PathBuf::from_path_buf(path.to_owned())

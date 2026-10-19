@@ -225,7 +225,7 @@ fn project_run_dir(project: &Project, testbench: &Utf8Path) -> Utf8PathBuf {
     project
         .processors()
         .iter()
-        .find(|p| p.testbench_path() == testbench)
+        .find(|p| crate::paths::same_file(&p.testbench_path(), testbench))
         .map_or_else(|| project.root().to_owned(), |p| p.output_dir.clone())
 }
 
@@ -686,9 +686,12 @@ pub fn simulate_project(
 
     // Arquivos: sintetizáveis na ordem do .spf, o Verilog de cada processador
     // compilado que ainda não esteja na lista, e o testbench por último.
+    // Sem repetir, pelo caminho real: a pasta de um processador pode ser um
+    // link, e o `.spf` guarda o Verilog dele pelo caminho real.
     let mut files: Vec<Utf8PathBuf> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
     let mut push = |path: Utf8PathBuf| {
-        if !files.contains(&path) {
+        if seen.insert(crate::paths::real_path(&path)) {
             files.push(path);
         }
     };
