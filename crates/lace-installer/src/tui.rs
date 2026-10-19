@@ -426,6 +426,8 @@ impl App {
                 Msg::Progress(Event::Verifying) => {
                     self.progress.label = "Verifying the executables".into()
                 }
+                // Os eventos do `lace update` não passam por aqui.
+                Msg::Progress(_) => {}
                 Msg::Finished(result) => {
                     self.outcome = Some(*result);
                     self.screen = Screen::Done;

@@ -25,6 +25,10 @@
 //! dele é outro): cancela o que está rodando, espera até 3 s e sai, com a
 //! notificação `shutdown` antes.
 //!
+//! `update.*` e `install.add` rodam a biblioteca do instalador em processo,
+//! como a CLI e o Studio; o progresso sai como notificação `install`, com o
+//! evento do instalador em `params.event`.
+//!
 //! Códigos JSON-RPC: `-32700` JSON inválido, `-32600` pedido malformado,
 //! `-32601` método desconhecido, `-32602` parâmetros inválidos, `-32000` um
 //! erro do Lace (o `ErrorInfo` em `error.data`, com `code` e `hint`),
@@ -32,8 +36,7 @@
 //! `-32003` servidor encerrando.
 
 use std::collections::{BTreeMap, HashMap};
-use std::io::{BufRead, Read, Write};
-use std::process::Stdio;
+use std::io::{BufRead, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender, SyncSender};
 use std::sync::{Arc, Mutex};
@@ -51,6 +54,10 @@ use lace_core::protocol::{
     RemoveOutcome, ReportView, Request, Response, ServerInfo, ShutdownReason, TopOutcome,
 };
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, Project, Toolchain};
+use lace_installer::add::{self as installer_add, Payload};
+use lace_installer::install::Event as InstallEvent;
+use lace_installer::release::{Bar, Remote};
+use lace_installer::update::{ChildOutput, RunOptions, Silent, UpdateAction};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -197,6 +204,8 @@ struct Pending {
     /// Já começou a rodar: cancelar é pelo token; antes disso, o worker o
     /// pula e responde `-32001`.
     started: Arc<AtomicBool>,
+    /// É um `update.check`, que só consulta.
+    check_only: bool,
 }
 
 type Job = Box<dyn FnOnce() + Send>;
@@ -217,6 +226,12 @@ impl From<LaceError> for Failure {
 impl From<ErrorInfo> for Failure {
     fn from(info: ErrorInfo) -> Self {
         Failure::Info(Box::new(info))
+    }
+}
+
+impl From<lace_installer::Error> for Failure {
+    fn from(error: lace_installer::Error) -> Self {
+        Failure::Info(Box::new(ErrorInfo::new(error.code(), error.to_string())))
     }
 }
 
@@ -391,6 +406,7 @@ impl Server {
                 Pending {
                     cancel: cancel.clone(),
                     started: Arc::clone(&started),
+                    check_only: matches!(request, Request::UpdateCheck),
                 },
             );
         let lane = lane_of(&request);
@@ -837,35 +853,37 @@ impl Server {
                 let toolchain = self.toolchain()?;
                 Response::Cables(fpga::cables(&toolchain)?)
             }
-            Request::UpdateCheck => {
-                Response::Other(self.run_cli(id, &["update", "--check", "--json"], &cancel)?)
-            }
+            Request::UpdateCheck => Response::Other(self.update(id, false, None, &cancel)?),
             Request::UpdateApply { full, from } => {
-                let mut args = vec!["update".to_owned(), "--yes".to_owned(), "--json".to_owned()];
-                if full {
-                    args.push("--full".to_owned());
-                }
-                if let Some(from) = from {
-                    args.push("--from".to_owned());
-                    args.push(from.to_string());
-                }
-                let args: Vec<&str> = args.iter().map(String::as_str).collect();
-                let result = self.run_cli(id, &args, &cancel)?;
-                let action = result.get("action").and_then(Value::as_str).unwrap_or("");
-                if matches!(action, "updated" | "wizard_opened") {
-                    // O binário deste servidor foi (ou vai ser) trocado: a
-                    // sessão termina depois desta resposta.
-                    self.shutting_down.store(true, Ordering::SeqCst);
-                    self.exit_when_done.store(true, Ordering::SeqCst);
-                }
+                let result = self.update(id, full, from.as_deref().map(|f| (f, true)), &cancel)?;
+                let _ = full;
                 Response::Other(result)
             }
             Request::InstallAdd { components } => {
-                let mut args = vec!["install".to_owned()];
-                args.extend(components);
-                args.push("--json".to_owned());
-                let args: Vec<&str> = args.iter().map(String::as_str).collect();
-                Response::Other(self.run_cli(id, &args, &cancel)?)
+                let network = crate::update::network().map_err(cli_error)?;
+                let remote = std::sync::Arc::new(Remote(network.clone()));
+                let prefix = crate::installation::prefix_result()?;
+                lace_installer::update::recover_interrupted(&prefix)?;
+                lace_installer::update::clean_leftovers(prefix.as_std_path());
+                let prepared = installer_add::prepare(
+                    remote,
+                    &network,
+                    &prefix,
+                    Payload::Release {
+                        version: env!("CARGO_PKG_VERSION"),
+                    },
+                    &cancel,
+                )?;
+                let writer = self.writer.clone();
+                let id = id.clone();
+                let report = installer_add::add_components(
+                    &prepared,
+                    &prefix,
+                    &components,
+                    &mut |event| notify_install(&writer, &id, &event),
+                    &cancel,
+                )?;
+                Response::Other(serde_json::to_value(report).unwrap_or(Value::Null))
             }
             Request::LearnCheck {
                 root,
@@ -918,88 +936,78 @@ impl Server {
         })
     }
 
-    /// Roda o próprio `lace` com `args` (instalar, atualizar), repassando
-    /// cada linha do stderr dele como notificação `install` e devolvendo o
-    /// JSON que ele escreveu. Cancelar encerra o processo e o que ele
-    /// iniciou; o instalador do Windows, que sai do job de propósito,
-    /// continua, e o diário dele desfaz o que ficou pela metade.
-    fn run_cli(&self, id: &Value, args: &[&str], cancel: &CancelToken) -> Result<Value, Failure> {
-        let exe = std::env::current_exe().map_err(|e| {
-            ErrorInfo::new("cli", format!("Could not find the lace executable: {e}"))
-        })?;
-        let mut command = std::process::Command::new(&exe);
-        command
-            .args(args)
-            .env("NO_COLOR", "1")
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        if let Some(dir) = &self.toolchain.toolchain {
-            command.env("LACE_TOOLCHAIN", dir);
-        }
-        lace_core::hide_console(&mut command);
-        let mut job = lace_core::ProcessJob::new(true);
-        let mut child = command
-            .spawn()
-            .map_err(|e| ErrorInfo::new("cli", format!("Could not run {}: {e}", exe.display())))?;
-        job.adopt(&child);
-        let stderr = child.stderr.take().expect("piped stderr");
-        let writer = self.writer.clone();
-        let id_for_lines = id.clone();
-        let lines = thread::spawn(move || {
-            let reader = std::io::BufReader::new(stderr);
-            for line in reader.lines().map_while(Result::ok) {
-                writer.notify(
-                    "install",
-                    json!({
-                        "id": id_for_lines,
-                        "event": { "event": "cli_output", "stream": "stderr", "line": line },
-                    }),
-                );
-            }
-        });
-        let mut stdout = child.stdout.take().expect("piped stdout");
-        let reader = thread::spawn(move || {
-            let mut all = String::new();
-            let _ = stdout.read_to_string(&mut all);
-            all
-        });
-        let mut cancelled = false;
-        let status = loop {
-            if let Ok(Some(status)) = child.try_wait() {
-                break Some(status);
-            }
-            if cancel.is_cancelled() {
-                cancelled = true;
-                let _ = child.kill();
-                job.kill();
-                break child.wait().ok();
-            }
-            thread::sleep(Duration::from_millis(50));
+    /// `update.check` e `update.apply` pela biblioteca do instalador, com o
+    /// progresso como notificação `install`. Depois de uma atualização que
+    /// trocou os arquivos, o servidor encerra assim que responder: o binário
+    /// dele é outro.
+    fn update(
+        &self,
+        id: &Value,
+        full: bool,
+        from: Option<(&Utf8Path, bool)>,
+        cancel: &CancelToken,
+    ) -> Result<Value, Failure> {
+        let check = from.is_none() && !full && self.check_only(id);
+        let network = crate::update::network().map_err(cli_error)?;
+        let remote = std::sync::Arc::new(Remote(network));
+        let toolchain = self.toolchain.resolve().ok();
+        let reg = crate::update::reg_exe();
+        let options = RunOptions {
+            check,
+            full,
+            from: from.map(|(path, _)| path),
+            reopen: None,
+            bar: Bar::Quiet,
+            child_output: ChildOutput::Capture,
+            reg: reg.as_deref(),
         };
-        job.kill();
-        let _ = lines.join();
-        let stdout = reader.join().unwrap_or_default();
-        if cancelled {
-            return Err(ErrorInfo::new("cancelled", "Cancelled").into());
+        let writer = self.writer.clone();
+        let id = id.clone();
+        let report = lace_installer::update::run(
+            &remote,
+            env!("CARGO_PKG_VERSION"),
+            toolchain.as_ref().map(Toolchain::manifest),
+            crate::installation::prefix_result(),
+            &options,
+            &mut Silent,
+            &mut |event| notify_install(&writer, &id, &event),
+            cancel,
+        )?;
+        if matches!(
+            report.action,
+            UpdateAction::Updated | UpdateAction::WizardOpened
+        ) {
+            // O binário deste servidor foi (ou vai ser) trocado: a sessão
+            // termina depois desta resposta.
+            self.shutting_down.store(true, Ordering::SeqCst);
+            self.exit_when_done.store(true, Ordering::SeqCst);
         }
-        let value: Value = serde_json::from_str(stdout.trim()).map_err(|_| {
-            ErrorInfo::new(
-                "cli",
-                format!(
-                    "lace {} exited with {:?} without JSON",
-                    args.join(" "),
-                    status.and_then(|s| s.code())
-                ),
-            )
-        })?;
-        if let Some(error) = value.get("error") {
-            let info: ErrorInfo = serde_json::from_value(error.clone())
-                .unwrap_or_else(|_| ErrorInfo::new("cli", error.to_string()));
-            return Err(info.into());
-        }
-        Ok(value)
+        Ok(serde_json::to_value(report).unwrap_or(Value::Null))
     }
+
+    /// O pedido em andamento com `id` é um `update.check` (e não um
+    /// `update.apply`): a distinção vem do método, guardado ao despachar.
+    fn check_only(&self, id: &Value) -> bool {
+        self.pending
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(&id.to_string())
+            .is_some_and(|p| p.check_only)
+    }
+}
+
+/// Uma notificação `install` com o evento do instalador.
+fn notify_install(writer: &Writer, id: &Value, event: &InstallEvent) {
+    writer.notify(
+        "install",
+        json!({ "id": id, "event": serde_json::to_value(event).unwrap_or(Value::Null) }),
+    );
+}
+
+/// Um erro da CLI (`anyhow`) como [`Failure`], com o código da biblioteca
+/// do instalador quando é dela.
+fn cli_error(error: anyhow::Error) -> Failure {
+    Failure::Info(Box::new(to_info(&error)))
 }
 
 /// O [`Request`] de um método e seus parâmetros. Sem `params`, um método
@@ -1079,6 +1087,15 @@ fn experimental_info() -> ExperimentalInfo {
 fn to_info(error: &anyhow::Error) -> ErrorInfo {
     if let Some(lace) = error.chain().find_map(|e| e.downcast_ref::<LaceError>()) {
         return crate::output::error_info(lace);
+    }
+    if let Some(installer) = error
+        .chain()
+        .find_map(|e| e.downcast_ref::<lace_installer::Error>())
+    {
+        return ErrorInfo::new(installer.code(), installer.to_string());
+    }
+    if error.chain().any(|e| e.is::<crate::cancel::Cancelled>()) {
+        return ErrorInfo::new("cancelled", error.to_string());
     }
     if let Some(learn) = error
         .chain()

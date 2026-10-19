@@ -12,6 +12,13 @@ path = "src/lib.rs"
 [[bin]]
 name = "lace-installer"
 path = "src/main.rs"
+required-features = ["tui"]
+
+[features]
+default = ["tui"]
+# A interface de terminal do instalador e do `lace install` sem nomes. O
+# Studio, que só usa a biblioteca, fica sem ela (e sem o ratatui).
+tui = ["dep:ratatui"]
 
 [[bin]]
 name = "lace-pack"
@@ -22,13 +29,16 @@ lace-core.workspace = true
 anyhow.workspace = true
 camino.workspace = true
 clap.workspace = true
+dunce.workspace = true
+schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-ratatui.workspace = true
+ratatui = { workspace = true, optional = true }
+# As pastas de trabalho dos downloads (`lace-install.*`).
+tempfile.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
 zstd.workspace = true
 tar.workspace = true
 sha2.workspace = true
 flate2.workspace = true
-
-[dev-dependencies]
-tempfile.workspace = true

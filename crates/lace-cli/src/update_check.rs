@@ -2,7 +2,7 @@
 //! instalador, rodando num terminal, procura uma vez por dia se há Lace mais
 //! novo publicado e, se há, avisa no fim do comando, no stderr.
 //!
-//! A consulta é a mesma do `lace update` (`release::latest_lace_version`: a
+//! A consulta é a mesma do `lace update` (`Sources::latest_lace` da biblioteca do instalador: a
 //! última release no GitHub, ou o `latest` do espelho de `LACE_RELEASE_URL`)
 //! e roda numa thread enquanto o comando roda. No fim, o comando espera por
 //! ela no máximo [`WAIT`]; se ela não voltou a tempo, o aviso fica para a
@@ -24,8 +24,11 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
+use lace_core::CancelToken;
+use lace_installer::release::{Remote, Sources, is_newer, is_version};
+
+use crate::installation;
 use crate::output::{BOLD, paint};
-use crate::{installation, release, update};
 
 /// De quanto em quanto tempo procurar, e repetir o aviso de uma versão.
 const INTERVAL: u64 = 24 * 60 * 60;
@@ -87,7 +90,12 @@ pub fn start(wanted: bool) -> Option<Pending> {
         save(&path, &state);
         let (send, receive) = mpsc::channel();
         std::thread::spawn(move || {
-            let latest = release::latest_lace_version()
+            let latest = crate::update::network()
+                .and_then(|network| {
+                    Remote(network)
+                        .latest_lace(&CancelToken::new())
+                        .map_err(anyhow::Error::new)
+                })
                 .inspect_err(|error| tracing::info!("Update check: {error:#}"))
                 .ok();
             let _ = send.send(latest);
@@ -160,9 +168,9 @@ fn should_check(state: &State, now: u64) -> bool {
 /// aviso dela ainda não saiu, ou saiu há mais de um dia.
 fn to_notify<'a>(state: &'a State, installed: &str, now: u64) -> Option<&'a str> {
     // O estado é um arquivo que outro `lace` gravou: só uma versão vai para o
-    // terminal ([`release::is_version`]).
-    let latest = state.latest.as_deref().filter(|v| release::is_version(v))?;
-    if !update::is_newer(latest, installed) {
+    // terminal ([`is_version`]).
+    let latest = state.latest.as_deref().filter(|v| is_version(v))?;
+    if !is_newer(latest, installed) {
         return None;
     }
     let again = state.notified.as_deref() != Some(latest)
@@ -180,7 +188,7 @@ fn now() -> u64 {
 
 /// `update-check.json` na pasta de cache do Lace: `%LOCALAPPDATA%\lace` no
 /// Windows; nos outros, `$XDG_CACHE_HOME/lace` ou `~/.cache/lace`, como a
-/// pasta dos downloads do `lace update` (`release::work_dir`).
+/// pasta dos downloads do `lace update` (`Network::work_dir`).
 fn state_path() -> Option<PathBuf> {
     let base = if cfg!(windows) {
         std::env::var_os("LOCALAPPDATA")

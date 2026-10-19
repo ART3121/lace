@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "UninstallReport",
-  "description": "`lace uninstall`.",
+  "description": "`lace uninstall` (`docs/schema/uninstall.json`).",
   "type": "object",
   "properties": {
     "prefix": {
@@ -9,7 +9,7 @@
       "type": "string"
     },
     "removed": {
-      "description": "`true`: a pasta e o atalho já saíram (Linux, macOS). `false`: o\ndesinstalador do Windows foi aberto e termina depois que o `lace` sai.",
+      "description": "`true`: a pasta e o atalho já saíram (Linux, macOS). `false`: o\ndesinstalador do Windows foi aberto e termina depois que quem chamou\nsai.",
       "type": "boolean"
     }
   },

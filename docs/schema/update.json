@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "UpdateReport",
-  "description": "`lace update`.",
+  "description": "O relatório do `lace update` (`docs/schema/update.json`).",
   "type": "object",
   "properties": {
     "lace": {
@@ -181,12 +181,12 @@
           "const": "up_to_date"
         },
         {
-          "description": "O instalador da versão nova trocou o Lace e o bundle (Linux, macOS).",
+          "description": "A instalação foi trocada (por componentes, ou pelo instalador no\nLinux e no macOS). O `lace` em uso é o antigo: quem chamou termina e\nreinicia.",
           "type": "string",
           "const": "updated"
         },
         {
-          "description": "O assistente de instalação do Windows foi aberto e termina depois que\no `lace` sai.",
+          "description": "O assistente de instalação do Windows foi aberto e termina depois que\nquem chamou sai.",
           "type": "string",
           "const": "wizard_opened"
         }

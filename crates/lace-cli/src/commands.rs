@@ -109,7 +109,12 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         }
         Command::Install(args) => {
             let from = args.from.as_deref().map(settings::absolute).transpose()?;
-            crate::install::run(out, &args.components, from.as_deref())?;
+            crate::install::run(
+                out,
+                &args.components,
+                from.as_deref(),
+                control.cancel_token(),
+            )?;
         }
         Command::Update {
             check,
@@ -129,6 +134,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
                     from: from.as_deref(),
                     reopen_studio: *reopen_studio,
                 },
+                control.cancel_token(),
             )?
         }
         Command::Setup {

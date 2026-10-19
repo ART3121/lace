@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, bail};
 use lace_core::{Platform, Toolchain};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::payload::Index;
@@ -140,10 +141,15 @@ pub fn check_prefix(prefix: &Path) -> anyhow::Result<Option<Receipt>> {
     }
 }
 
-/// O que a instalação vai fazendo, para a barra de progresso.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// O que a instalação, o `lace install` e o `lace update` vão fazendo, para
+/// a barra de progresso e para o console de quem chamou. Em JSON, etiquetado
+/// por `event` (`{"event": "chunk", ...}`): é a notificação `install` do
+/// `lace serve` e do Studio.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[serde(tag = "event", rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum Event {
-    /// Começou: `total` bytes a extrair.
+    /// Começou: `total` bytes a extrair (ou a baixar, no `lace update`).
     Start {
         /// Bytes a extrair.
         total: u64,
@@ -164,9 +170,10 @@ pub enum Event {
         /// Bytes extraídos.
         done: u64,
     },
-    /// Baixando o pedaço atual: `bytes` já baixados.
+    /// Baixando o pedaço atual (ou o instalador inteiro): `bytes` já
+    /// baixados.
     Downloading {
-        /// Bytes baixados do pedaço.
+        /// Bytes baixados.
         bytes: u64,
     },
     /// Trocando `files` arquivos da instalação pelos da versão nova (o
@@ -177,6 +184,39 @@ pub enum Event {
     },
     /// Conferindo os hashes dos executáveis.
     Verifying,
+    /// A atualização por componentes não deu, e o instalador inteiro da
+    /// versão nova vai no lugar: por quê.
+    Fallback {
+        /// A frase, pronta para mostrar.
+        reason: String,
+    },
+    /// Baixando o instalador inteiro da release.
+    FallbackDownload {
+        /// O arquivo.
+        file: String,
+        /// De onde.
+        url: String,
+    },
+    /// O assistente do Windows foi aberto com os componentes instalados
+    /// marcados (`selected`), ou sem a lista, com um aviso.
+    WizardSelection {
+        /// A lista foi passada ao assistente.
+        selected: bool,
+        /// Por que não, quando não.
+        warning: Option<String>,
+    },
+    /// Uma linha que o instalador inteiro escreveu (Linux, macOS), quando
+    /// quem chamou pediu a saída capturada.
+    InstallerOutput {
+        /// A linha.
+        line: String,
+    },
+    /// Um aviso que não impede a operação (uma troca interrompida que não
+    /// pôde ser desfeita, na busca).
+    Warning {
+        /// A frase, pronta para mostrar.
+        message: String,
+    },
 }
 
 /// O atalho `lace`.
@@ -455,7 +495,7 @@ pub fn is_lace_installation(prefix: &Path) -> bool {
 /// a instalação, que troca tudo, e o diário dela sai no fim.
 fn prepare(prefix: &Path) -> anyhow::Result<crate::update::InstallLock> {
     if let Err(error) = crate::update::recover(prefix) {
-        eprintln!("{error:#}");
+        tracing::warn!("{error:#}");
     }
     crate::update::lock(prefix)
 }

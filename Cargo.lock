@@ -964,14 +964,18 @@ dependencies = [
  "anyhow",
  "camino",
  "clap",
+ "dunce",
  "flate2",
  "lace-core",
  "ratatui",
+ "schemars",
  "serde",
  "serde_json",
  "sha2",
  "tar",
  "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
  "zstd",
 ]
 

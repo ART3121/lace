@@ -85,9 +85,9 @@ reports! {
     "report-clean" => ReportCleanReport,
     "report-compare" => RunComparison,
     "tools" => ToolsReport,
-    "install" => InstallReport,
-    "uninstall" => UninstallReport,
-    "update" => crate::update::UpdateReport,
+    "install" => lace_installer::add::InstallReport,
+    "uninstall" => lace_installer::uninstall::UninstallReport,
+    "update" => lace_installer::update::UpdateReport,
     "learn-init" => LearnInitReport,
     "learn-check" => LearnCheckReport,
     "learn-list" => LearnListReport,
@@ -461,29 +461,6 @@ pub enum ToolEntry {
         /// Por quê.
         error: ErrorInfo,
     },
-}
-
-/// `lace install`.
-#[derive(Serialize, JsonSchema)]
-pub struct InstallReport {
-    /// A pasta da instalação.
-    #[schemars(with = "String")]
-    pub prefix: Utf8PathBuf,
-    /// Os aplicativos do bundle instalados agora.
-    pub components: Vec<String>,
-    /// Os que entraram nesta chamada (com os que eles exigem).
-    pub added: Vec<String>,
-}
-
-/// `lace uninstall`.
-#[derive(Serialize, JsonSchema)]
-pub struct UninstallReport {
-    /// A pasta da instalação.
-    #[schemars(with = "String")]
-    pub prefix: Utf8PathBuf,
-    /// `true`: a pasta e o atalho já saíram (Linux, macOS). `false`: o
-    /// desinstalador do Windows foi aberto e termina depois que o `lace` sai.
-    pub removed: bool,
 }
 
 /// Qualquer comando que não conseguiu rodar (código de saída 2).

@@ -145,7 +145,13 @@ impl Output {
         let info = error
             .chain()
             .find_map(|e| e.downcast_ref::<lace_core::ErrorInfo>());
-        let cancelled = crate::cancel::is(error);
+        // Instalar, atualizar e desinstalar: o erro da biblioteca do
+        // instalador, com o código dele.
+        let installer = error
+            .chain()
+            .find_map(|e| e.downcast_ref::<lace_installer::Error>());
+        let cancelled =
+            crate::cancel::is(error) || installer.is_some_and(lace_installer::Error::is_cancelled);
         let (code, hint): (String, Option<String>) = match (lace, learn, info) {
             (Some(lace), _, _) => (lace.code().to_owned(), hint(lace)),
             (None, Some(learn), _) => {
@@ -154,7 +160,10 @@ impl Output {
             }
             (None, None, Some(info)) => (info.code.clone(), hint_for_info(info)),
             (None, None, None) if cancelled => ("cancelled".to_owned(), None),
-            (None, None, None) => ("cli".to_owned(), None),
+            (None, None, None) => (
+                installer.map_or_else(|| "cli".to_owned(), |e| e.code().to_owned()),
+                None,
+            ),
         };
         if self.json {
             let report = ErrorReport {

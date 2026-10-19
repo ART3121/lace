@@ -13,7 +13,6 @@ mod learn_tui;
 mod meter;
 mod output;
 mod progress;
-mod release;
 mod report;
 mod serve;
 mod settings;
