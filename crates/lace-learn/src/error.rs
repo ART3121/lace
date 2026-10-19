@@ -68,6 +68,17 @@ pub enum LearnError {
     /// A trilha não tem exercício com esse nome.
     #[error("No exercise named '{0}'")]
     UnknownExercise(String),
+
+    /// O exercício ainda não foi corrigido: não há onda para abrir. O texto
+    /// não diz como corrigir; cada interface tem o seu caminho (`lace learn
+    /// check`, o botão do Studio).
+    #[error("Exercise {exercise} has no waveform yet; check it first")]
+    NoWaveform {
+        /// O exercício.
+        exercise: String,
+        /// Onde a onda ficaria.
+        path: Utf8PathBuf,
+    },
 }
 
 impl LearnError {
@@ -84,6 +95,7 @@ impl LearnError {
             LearnError::WorkspaceExists(_) => "learn_workspace_exists",
             LearnError::InvalidState { .. } => "invalid_learn_state",
             LearnError::UnknownExercise(_) => "unknown_exercise",
+            LearnError::NoWaveform { .. } => "no_waveform",
         }
     }
 
