@@ -1750,6 +1750,40 @@ fn check_restricted_to_one_file() {
     assert_eq!(result.targets, ["and_gate_tb"]);
 }
 
+/// O Icarus devolve o caminho na página de código do Windows: o arquivo do
+/// diagnóstico, numa pasta com acento, é o do disco, e não um com U+FFFD.
+#[cfg(windows)]
+#[test]
+fn a_diagnostic_in_a_folder_with_an_accent_points_to_the_file() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog]) else {
+        return;
+    };
+    let (_guard, dir) = common::tempdir();
+    let dir = dir.join("Área de Trabalho");
+    std::fs::create_dir(&dir).unwrap();
+    let mut project = Project::create(&dir, "p").unwrap();
+    let broken = write(
+        project.root().join("m.v"),
+        "module m(input a, output y);\n  assign y = a &;\nendmodule\n",
+    );
+    project
+        .add_verilog(Some(&toolchain), &broken, false)
+        .unwrap();
+    let result = check(
+        &toolchain,
+        &project,
+        &CheckOptions::default(),
+        &Control::default(),
+    )
+    .unwrap();
+    let error = result
+        .diagnostics
+        .iter()
+        .find(|d| d.severity == Severity::Error)
+        .expect("a syntax error");
+    assert_eq!(error.file.as_deref(), Some(broken.as_path()), "{error:#?}");
+}
+
 #[test]
 fn check_reports_testbench_syntax_error() {
     let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog]) else {

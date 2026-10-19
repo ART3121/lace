@@ -287,12 +287,13 @@ fn write(path: &Utf8Path, text: &str) -> Result<()> {
     std::fs::write(path, text).map_err(LaceError::io("Writing", path))
 }
 
-/// Um relatório do Quartus como texto; um byte fora do UTF-8 (um caminho
-/// em outra página de código) não perde o resto.
+/// Um relatório do Quartus como texto; um caminho na página de código do
+/// Windows sai certo ([`crate::process::decode_text`]), e um byte fora dela
+/// não perde o resto.
 fn read_lossy(path: &Utf8Path) -> Option<String> {
     std::fs::read(path)
         .ok()
-        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+        .map(|bytes| crate::process::decode_text(&bytes))
 }
 
 /// O `.sof` da compilação na pasta da placa `dir` ([`build_dir`]):
