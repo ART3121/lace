@@ -798,8 +798,11 @@ fn read_record(dir: &Utf8Path, id: &str) -> Result<RunRecord> {
 
 // ----------------------------------------------------------------- apagar
 
-/// Quais relatórios [`plan_cleanup`] escolhe para apagar.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Quais relatórios [`plan_cleanup`] escolhe para apagar. Em JSON:
+/// `{"kind": "all"}`, `{"kind": "keep_latest", "value": 5}`,
+/// `{"kind": "reports", "value": ["run-000042", "7"]}`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "value")]
 #[non_exhaustive]
 pub enum Cleanup {
     /// Todos.

@@ -32,9 +32,15 @@
 //! ```
 //!
 //! Para registrar ou serializar sem depender do enum, use
-//! [`LaceError::code`], que devolve um identificador estável por variante.
+//! [`LaceError::code`], que devolve um identificador estável por variante, ou
+//! [`ErrorInfo`], que leva o código, o texto e os campos da variante em JSON.
+
+use std::fmt;
 
 use camino::Utf8PathBuf;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 
 /// Atalho para `Result<T, LaceError>`, usado em toda a API.
 pub type Result<T, E = LaceError> = std::result::Result<T, E>;
@@ -282,6 +288,52 @@ pub enum LaceError {
     /// [`Project::add_verilog`](crate::Project::add_verilog).
     #[error("Project {0} has no testbench")]
     NoTestbench(Utf8PathBuf),
+
+    /// A onda que se quer abrir ainda não existe no disco: a simulação do
+    /// projeto, ou a do processador, não rodou (ou não chegou ao fim). Vem
+    /// de [`flows::open_wave`](crate::flows) com uma onda do projeto. O texto
+    /// não diz como simular: cada interface tem o seu caminho (`lace sim
+    /// [-p X]`, o botão Simular do Studio).
+    #[error("Waveform {path} does not exist yet{}; simulate first", processor.as_deref().map(|p| format!(" (processor {p})")).unwrap_or_default())]
+    NoWaveform {
+        /// Onde a onda ficaria.
+        path: Utf8PathBuf,
+        /// O processador, quando a onda é a da simulação dele; `None` na do
+        /// projeto.
+        processor: Option<String>,
+    },
+
+    /// A escolha de sinais da onda ([`flows::choose_signals`](crate::flows))
+    /// recebeu um caminho que a árvore do testbench elaborado não tem.
+    #[error("{path} is not a signal or scope of {root}{}", if similar.is_empty() { String::new() } else { format!("; did you mean {}?", similar.join(", ")) })]
+    SignalNotFound {
+        /// O caminho pedido (`tb.dut.q`).
+        path: String,
+        /// A raiz da árvore (o módulo do testbench).
+        root: String,
+        /// Caminhos da árvore com o mesmo nome final, até cinco, para a
+        /// interface sugerir.
+        similar: Vec<String>,
+    },
+
+    /// A escolha de sinais recebeu, para tirar, um caminho que não está na
+    /// escolha gravada do testbench nem no design.
+    #[error("{path} is not in the signal choice of {testbench}")]
+    SignalNotChosen {
+        /// O caminho pedido.
+        path: String,
+        /// O módulo do testbench cuja escolha é essa.
+        testbench: String,
+    },
+
+    /// A escolha de sinais precisa da árvore do testbench, e a elaboração
+    /// dele pelo Icarus falhou. `reason` é a primeira mensagem de erro da
+    /// elaboração, ou vazio se ela não disse nada.
+    #[error("The project testbench did not elaborate{}", if reason.is_empty() { String::new() } else { format!(": {reason}") })]
+    TestbenchNotElaborated {
+        /// O primeiro erro da elaboração, ou vazio.
+        reason: String,
+    },
 
     /// O testbench cocotb (`.py`) não diz qual módulo testa (a linha
     /// `# aurora-toplevel: <módulo>`) e o projeto não tem módulo de topo
@@ -576,6 +628,10 @@ impl LaceError {
             LaceError::YancTooOld { .. } => "yanc_too_old",
             LaceError::NotBuilt { .. } => "not_built",
             LaceError::NoTestbench(_) => "no_testbench",
+            LaceError::NoWaveform { .. } => "no_waveform",
+            LaceError::SignalNotFound { .. } => "signal_not_found",
+            LaceError::SignalNotChosen { .. } => "signal_not_chosen",
+            LaceError::TestbenchNotElaborated { .. } => "testbench_not_elaborated",
             LaceError::NoCocotbToplevel(_) => "no_cocotb_toplevel",
             LaceError::CocotbUnavailable { .. } => "cocotb_unavailable",
             LaceError::NoTopLevel(_) => "no_top_level",
@@ -616,6 +672,261 @@ impl LaceError {
             context,
             path,
             source,
+        }
+    }
+
+    /// Os campos estruturados da variante, como objeto JSON, para
+    /// [`ErrorInfo::data`]: o que uma interface usa além do texto (a lista
+    /// `available` para sugerir, o `path` para abrir, o `name` e o `reason`
+    /// de um parâmetro). `None` nas variantes sem campo que valha a pena
+    /// (um `io::Error` fica só no texto).
+    pub fn data(&self) -> Option<Value> {
+        let data = match self {
+            LaceError::BundleNotFound { searched } => json!({ "searched": searched }),
+            LaceError::InvalidBundle { path, reason } => json!({ "path": path, "reason": reason }),
+            LaceError::UnsupportedPlatform { os, arch } => json!({ "os": os, "arch": arch }),
+            LaceError::ComponentMissing(component) => json!({ "component": component }),
+            LaceError::ToolchainIncomplete { what, path } => json!({ "what": what, "path": path }),
+            LaceError::SystemCompilerMissing | LaceError::QuartusMissing | LaceError::NoCable => {
+                return None;
+            }
+            LaceError::NoBitstream(path) => json!({ "path": path }),
+            LaceError::StaleBitstream { reasons } => json!({ "reasons": reasons }),
+            LaceError::InvalidProject { path, reason } => json!({ "path": path, "reason": reason }),
+            LaceError::ProjectExists(path)
+            | LaceError::OutsideProject(path)
+            | LaceError::PathExists(path)
+            | LaceError::NoTestbench(path)
+            | LaceError::NoCocotbToplevel(path)
+            | LaceError::NoTopLevel(path)
+            | LaceError::EmptyProject(path)
+            | LaceError::ProjectNotFound(path)
+            | LaceError::NoReports(path)
+            | LaceError::NoFpgaConfig(path) => json!({ "path": path }),
+            LaceError::CannotMove { path, reason } => json!({ "path": path, "reason": reason }),
+            LaceError::ProcessorExists(name) | LaceError::OperationInProgress { name } => {
+                json!({ "name": name })
+            }
+            LaceError::ProcessorNotFound { name, available }
+            | LaceError::ModuleNotFound { name, available }
+            | LaceError::BoardNotFound { name, available } => {
+                json!({ "name": name, "available": available })
+            }
+            LaceError::InvalidName { name, reason } => json!({ "name": name, "reason": reason }),
+            LaceError::InvalidProjectFile { path, reason }
+            | LaceError::InvalidSource { path, reason }
+            | LaceError::InvalidNetlist { path, reason }
+            | LaceError::InvalidReport { path, reason }
+            | LaceError::InvalidFpgaConfig { path, reason } => {
+                json!({ "path": path, "reason": reason })
+            }
+            LaceError::LegacyLayout { processor, dir } => {
+                json!({ "processor": processor, "dir": dir })
+            }
+            LaceError::YancTooOld { found, minimum } => {
+                json!({ "found": found, "minimum": minimum })
+            }
+            LaceError::NotBuilt { processor, missing } => {
+                json!({ "processor": processor, "missing": missing })
+            }
+            LaceError::NoWaveform { path, processor } => {
+                json!({ "path": path, "processor": processor })
+            }
+            LaceError::SignalNotFound {
+                path,
+                root,
+                similar,
+            } => json!({ "path": path, "root": root, "similar": similar }),
+            LaceError::SignalNotChosen { path, testbench } => {
+                json!({ "path": path, "testbench": testbench })
+            }
+            LaceError::TestbenchNotElaborated { reason } => json!({ "reason": reason }),
+            LaceError::CocotbUnavailable { python, reason } => {
+                json!({ "python": python, "reason": reason })
+            }
+            LaceError::AmbiguousModule { name, files } => json!({ "name": name, "files": files }),
+            LaceError::InvalidParameter {
+                name,
+                value,
+                reason,
+            } => json!({ "name": name, "value": value, "reason": reason }),
+            LaceError::InvalidDataFile { path, line, reason } => {
+                json!({ "path": path, "line": line, "reason": reason })
+            }
+            LaceError::ReportNotFound(report) => json!({ "report": report }),
+            LaceError::NotComparable(_) => return None,
+            LaceError::InvalidBoard { id, reason } => json!({ "id": id, "reason": reason }),
+            LaceError::NonUtf8Path(path) => json!({ "path": path }),
+            LaceError::NonAsciiPath { path } => json!({ "path": path }),
+            LaceError::PathTooLong { path, len, limit } => {
+                json!({ "path": path, "len": len, "limit": limit })
+            }
+            LaceError::Spawn { program, .. } => json!({ "program": program }),
+            LaceError::ProcessExitedEarly {
+                program,
+                termination,
+                log,
+                tail,
+            } => {
+                json!({ "program": program, "termination": termination, "log": log, "tail": tail })
+            }
+            LaceError::ExperimentalDisabled { feature } => json!({ "feature": feature }),
+            LaceError::Io { context, path, .. } => json!({ "context": context, "path": path }),
+        };
+        Some(data)
+    }
+}
+
+/// Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a
+/// mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+/// o código, o texto e os campos da variante viram quando o enum não vai.
+///
+/// ```json
+/// { "code": "processor_not_found",
+///   "message": "No processor 'x' in the project (available: soma, filtro)",
+///   "data": { "name": "x", "available": ["soma", "filtro"] } }
+/// ```
+///
+/// A dica de cada interface (o comando `lace` que resolve, o botão do
+/// Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
+/// pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
+/// CLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.
+///
+/// ```
+/// use lace_core::{ErrorInfo, LaceError};
+///
+/// let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+/// assert_eq!(info.code, "processor_exists");
+/// assert_eq!(info.data.unwrap()["name"], "soma");
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ErrorInfo {
+    /// O identificador estável: [`LaceError::code`], ou um código de quem
+    /// chamou (`busy`, `cli`), sempre em `snake_case`.
+    pub code: String,
+    /// O texto do erro, em inglês, pronto para mostrar.
+    pub message: String,
+    /// Os campos estruturados da variante, quando ela os tem
+    /// ([`LaceError::data`]): `available`, `files`, `name`, `value`,
+    /// `reason`, `path`, `component`. Omitido no JSON quando não há.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<Value>,
+}
+
+impl ErrorInfo {
+    /// Um erro com código e mensagem, sem dados: para o que não é um
+    /// [`LaceError`].
+    pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+        ErrorInfo {
+            code: code.into(),
+            message: message.into(),
+            data: None,
+        }
+    }
+}
+
+impl fmt::Display for ErrorInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for ErrorInfo {}
+
+impl From<&LaceError> for ErrorInfo {
+    fn from(error: &LaceError) -> Self {
+        ErrorInfo {
+            code: error.code().to_owned(),
+            message: error.to_string(),
+            data: error.data(),
+        }
+    }
+}
+
+impl From<LaceError> for ErrorInfo {
+    fn from(error: LaceError) -> Self {
+        ErrorInfo::from(&error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn error_info_carries_code_text_and_the_structured_fields() {
+        let error = LaceError::ProcessorNotFound {
+            name: "x".into(),
+            available: vec!["soma".into(), "filtro".into()],
+        };
+        let info = ErrorInfo::from(&error);
+        assert_eq!(info.code, "processor_not_found");
+        assert_eq!(info.message, error.to_string());
+        let data = info.data.clone().expect("os campos da variante");
+        assert_eq!(data["name"], "x");
+        assert_eq!(data["available"], json!(["soma", "filtro"]));
+        // O JSON tem a forma que a CLI e o Studio já mandam, mais o data.
+        let value = serde_json::to_value(&info).unwrap();
+        assert_eq!(value["code"], "processor_not_found");
+        assert!(value["data"]["available"].is_array());
+        // E volta do JSON igual.
+        let back: ErrorInfo = serde_json::from_value(value).unwrap();
+        assert_eq!(back, info);
+    }
+
+    #[test]
+    fn error_info_without_fields_omits_data() {
+        let info = ErrorInfo::from(LaceError::SystemCompilerMissing);
+        assert_eq!(info.code, "system_compiler_missing");
+        assert_eq!(info.data, None);
+        let value = serde_json::to_value(&info).unwrap();
+        assert!(value.get("data").is_none(), "{value}");
+        let plain = ErrorInfo::new("busy", "Another operation is running");
+        assert_eq!(plain.to_string(), "Another operation is running");
+        let back: ErrorInfo =
+            serde_json::from_str(r#"{"code":"busy","message":"x"}"#).expect("data é opcional");
+        assert_eq!(back.data, None);
+    }
+
+    #[test]
+    fn the_new_variants_have_codes_and_neutral_messages() {
+        let wave = LaceError::NoWaveform {
+            path: "/p/soma/soma/soma_tb.fst".into(),
+            processor: Some("soma".into()),
+        };
+        assert_eq!(wave.code(), "no_waveform");
+        assert_eq!(
+            wave.to_string(),
+            "Waveform /p/soma/soma/soma_tb.fst does not exist yet (processor soma); simulate first"
+        );
+        assert_eq!(ErrorInfo::from(&wave).data.unwrap()["processor"], "soma");
+
+        let signal = LaceError::SignalNotFound {
+            path: "tb.q".into(),
+            root: "tb".into(),
+            similar: vec!["tb.dut.q".into()],
+        };
+        assert_eq!(signal.code(), "signal_not_found");
+        assert_eq!(
+            signal.to_string(),
+            "tb.q is not a signal or scope of tb; did you mean tb.dut.q?"
+        );
+        let chosen = LaceError::SignalNotChosen {
+            path: "tb.q".into(),
+            testbench: "tb".into(),
+        };
+        assert_eq!(chosen.code(), "signal_not_chosen");
+        let elaborated = LaceError::TestbenchNotElaborated {
+            reason: String::new(),
+        };
+        assert_eq!(elaborated.code(), "testbench_not_elaborated");
+        assert_eq!(
+            elaborated.to_string(),
+            "The project testbench did not elaborate"
+        );
+        // Nenhuma mensagem cita um comando da CLI: a dica é de cada interface.
+        for error in [&wave, &signal, &chosen, &elaborated] {
+            assert!(!error.to_string().contains("lace "), "{error}");
         }
     }
 }

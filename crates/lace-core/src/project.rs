@@ -264,7 +264,12 @@ impl Processor {
 /// Os padrões são os da AURORA (`js/project/processor_defaults.ts`): o float
 /// estreito do SAPHO, 23 = 16 + 6 + 1 bits. No fluxo C só as portas vão para
 /// o fonte; o resto fica com o que o `cppcomp` foi compilado para assumir.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// Em JSON, só `name` e `language` são obrigatórios: um campo ausente fica
+/// com o padrão de [`NewProcessor::new`], e, sem `nubits`, com `nbmant` ou
+/// `nbexpo` dados, `nubits` vira `nbmant + nbexpo + 1`
+/// ([`NewProcessor::nubits_for`]), a única largura que o `asmcomp` aceita.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
 pub struct NewProcessor {
     /// Nome do processador: letras, dígitos e `_`, começando por letra ou `_`.
@@ -272,27 +277,112 @@ pub struct NewProcessor {
     /// Linguagem do fonte-modelo.
     pub language: Language,
     /// `#NUBITS`: largura da palavra de dados, em bits. Só C±.
+    #[schemars(default = "default_nubits")]
     pub nubits: u32,
     /// `#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE
     /// 754). Só C±.
+    #[schemars(default = "default_nbmant")]
     pub nbmant: u32,
     /// `#NBEXPO`: bits de expoente do ponto flutuante. Só C±.
+    #[schemars(default = "default_nbexpo")]
     pub nbexpo: u32,
     /// `#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o
     /// `cmmcomp` recusa (um divisor genérico viraria o caminho crítico da
     /// ULA). Só C±; o fonte só traz a diretiva quando difere de 128, o
     /// padrão do YANC.
+    #[schemars(default = "default_nugain")]
     pub nugain: u32,
     /// `#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão:
     /// sem a diretiva, e o `asmcomp` calcula a profundidade pelo programa.
+    #[schemars(default)]
     pub ndstac: Option<u32>,
     /// `#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±.
     /// `None`, o padrão: sem a diretiva, calculada pelo programa.
+    #[schemars(default)]
     pub sdepth: Option<u32>,
     /// `#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada.
+    #[schemars(default = "default_port")]
     pub input_ports: u32,
     /// `#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída.
+    #[schemars(default = "default_port")]
     pub output_ports: u32,
+}
+
+fn default_nubits() -> u32 {
+    23
+}
+fn default_nbmant() -> u32 {
+    16
+}
+fn default_nbexpo() -> u32 {
+    6
+}
+fn default_nugain() -> u32 {
+    DEFAULT_NUGAIN
+}
+fn default_port() -> u32 {
+    1
+}
+
+/// Os campos de um [`NewProcessor`] como chegam em JSON: só o nome e a
+/// linguagem são obrigatórios.
+#[derive(Deserialize)]
+struct NewProcessorFields {
+    name: String,
+    language: Language,
+    #[serde(default)]
+    nubits: Option<u32>,
+    #[serde(default)]
+    nbmant: Option<u32>,
+    #[serde(default)]
+    nbexpo: Option<u32>,
+    #[serde(default)]
+    nugain: Option<u32>,
+    #[serde(default)]
+    ndstac: Option<u32>,
+    #[serde(default)]
+    sdepth: Option<u32>,
+    #[serde(default)]
+    input_ports: Option<u32>,
+    #[serde(default)]
+    output_ports: Option<u32>,
+}
+
+impl From<NewProcessorFields> for NewProcessor {
+    fn from(fields: NewProcessorFields) -> Self {
+        let mut spec = NewProcessor::new(fields.name, fields.language);
+        if let Some(n) = fields.nbmant {
+            spec.nbmant = n;
+        }
+        if let Some(n) = fields.nbexpo {
+            spec.nbexpo = n;
+        }
+        spec.nubits = match fields.nubits {
+            Some(n) => n,
+            None if fields.nbmant.is_some() || fields.nbexpo.is_some() => {
+                NewProcessor::nubits_for(spec.nbmant, spec.nbexpo)
+            }
+            None => spec.nubits,
+        };
+        if let Some(n) = fields.nugain {
+            spec.nugain = n;
+        }
+        spec.ndstac = fields.ndstac;
+        spec.sdepth = fields.sdepth;
+        if let Some(n) = fields.input_ports {
+            spec.input_ports = n;
+        }
+        if let Some(n) = fields.output_ports {
+            spec.output_ports = n;
+        }
+        spec
+    }
+}
+
+impl<'de> Deserialize<'de> for NewProcessor {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        NewProcessorFields::deserialize(deserializer).map(NewProcessor::from)
+    }
 }
 
 impl NewProcessor {
@@ -311,15 +401,27 @@ impl NewProcessor {
         NewProcessor {
             name: name.into(),
             language,
-            nubits: 23,
-            nbmant: 16,
-            nbexpo: 6,
-            nugain: DEFAULT_NUGAIN,
+            nubits: default_nubits(),
+            nbmant: default_nbmant(),
+            nbexpo: default_nbexpo(),
+            nugain: default_nugain(),
             ndstac: None,
             sdepth: None,
-            input_ports: 1,
-            output_ports: 1,
+            input_ports: default_port(),
+            output_ports: default_port(),
         }
+    }
+
+    /// A largura da palavra que o `asmcomp` aceita para uma mantissa e um
+    /// expoente: `nbmant + nbexpo + 1` (o bit de sinal), saturando. É o que
+    /// uma interface usa quando o usuário dá a mantissa ou o expoente sem
+    /// dar a largura.
+    ///
+    /// ```
+    /// assert_eq!(lace_core::NewProcessor::nubits_for(16, 6), 23);
+    /// ```
+    pub fn nubits_for(nbmant: u32, nbexpo: u32) -> u32 {
+        nbmant.saturating_add(nbexpo).saturating_add(1)
     }
 
     /// Confere os parâmetros contra o que o YANC compila, a regra de
@@ -1139,7 +1241,7 @@ pub struct RemovedProcessor {
 /// Parâmetros de simulação de um processador, para
 /// [`Project::configure_processor`]. `None` em um campo mantém o valor
 /// atual.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[non_exhaustive]
 pub struct ProcessorConfig {
     /// Frequência de operação em MHz (`clk` no `.spf`).
@@ -2659,5 +2761,39 @@ mod tests {
         let removed = project.remove_processor("soma").unwrap();
         assert_eq!(removed.unregistered.len(), 1);
         assert!(project.files(FileRole::Synthesizable).is_empty());
+    }
+}
+
+#[cfg(test)]
+mod new_processor_json {
+    use super::*;
+
+    #[test]
+    fn missing_fields_take_the_defaults_and_nubits_follows_mantissa_and_exponent() {
+        let spec: NewProcessor =
+            serde_json::from_str(r#"{"name":"soma","language":"cmm"}"#).unwrap();
+        assert_eq!(spec, NewProcessor::new("soma", Language::Cmm));
+
+        let spec: NewProcessor =
+            serde_json::from_str(r#"{"name":"f","language":"cmm","nbmant":20}"#).unwrap();
+        assert_eq!((spec.nbmant, spec.nbexpo, spec.nubits), (20, 6, 27));
+
+        let spec: NewProcessor =
+            serde_json::from_str(r#"{"name":"f","language":"cmm","nbexpo":8,"nubits":30}"#)
+                .unwrap();
+        assert_eq!((spec.nbexpo, spec.nubits), (8, 30), "nubits dado vale");
+
+        let spec: NewProcessor = serde_json::from_str(
+            r#"{"name":"f","language":"cpp","input_ports":2,"output_ports":0,"ndstac":4}"#,
+        )
+        .unwrap();
+        assert_eq!((spec.input_ports, spec.output_ports, spec.ndstac), (2, 0, Some(4)));
+        assert!(spec.sdepth.is_none());
+
+        // O JSON de saída continua completo, e volta igual.
+        let json = serde_json::to_string(&spec).unwrap();
+        let back: NewProcessor = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, spec);
+        assert!(serde_json::from_str::<NewProcessor>(r#"{"name":"f"}"#).is_err());
     }
 }

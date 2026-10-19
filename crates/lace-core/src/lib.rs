@@ -137,14 +137,17 @@
 mod build;
 pub mod cocotb;
 mod control;
+pub mod delivery;
 mod diagnostics;
 mod error;
 pub mod experimental;
 mod files;
+pub mod flows;
 pub mod fpga;
 mod hierarchy;
 pub mod history;
 mod layout;
+pub mod locate;
 mod paths;
 mod pipeline;
 mod process;
@@ -154,6 +157,7 @@ mod simulate;
 mod source;
 mod spf;
 mod stats;
+mod status;
 mod synth;
 mod toolchain;
 pub mod verilog;
@@ -166,7 +170,7 @@ pub use build::{BuildOptions, BuildResult, OnFailure, build, build_processors, b
 pub use cocotb::{TestCase, TestReport, TestStatus};
 pub use control::{CancelToken, Control, Event, Stream};
 pub use diagnostics::{Diagnostic, Severity};
-pub use error::{LaceError, Result};
+pub use error::{ErrorInfo, LaceError, Result};
 pub use files::{AddedFile, FileRole, ListPosition, MovedPath, ProjectFile, read_data_file};
 pub use hierarchy::{Elaboration, HierarchyOptions, HierarchyResult, ModuleInstance, hierarchy};
 pub use layout::{ConvertedPath, LayoutConversion, RemovedNameLine, SkippedPath};
@@ -186,6 +190,7 @@ pub use simulate::{
     simulate, simulate_project, waveform_path,
 };
 pub use stats::{CellUsage, SynthesisMetric, SynthesisStatistics};
+pub use status::{GeneratedFiles, PortFile, ProcessorStatus, ProjectStatus};
 pub use synth::{
     CheckOptions, CheckResult, DesignTarget, SCHEMATIC_TIMEOUT, SchematicOptions, SchematicResult,
     SynthesisResult, check, render_schematic, synthesize,
