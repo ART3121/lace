@@ -268,6 +268,33 @@ fn the_layout_translates_complexes_from_an_fst_wave() {
         "{}",
         complex.content
     );
+
+    // Cortada em qualquer ponto (a simulação morreu gravando), a onda é um
+    // erro, e não um pânico do fst-reader nem um processo abortado.
+    let bytes = std::fs::read(&wave.path).unwrap();
+    let (_cuts, cuts) = common::tempdir();
+    let cut = cuts.join("cx_tb.fst");
+    for length in 1..bytes.len() {
+        std::fs::write(&cut, &bytes[..length]).unwrap();
+        assert!(!matches!(wave_layout(&cut), Ok(Some(_))), "cut at {length}");
+    }
+    // A geometria estragada diz ter mais sinais do que cabe na memória.
+    let geometry = fst_block(&bytes, 3);
+    let mut damaged = bytes.clone();
+    damaged[geometry + 17..geometry + 25].fill(0xFF);
+    std::fs::write(&cut, &damaged).unwrap();
+    assert!(wave_layout(&cut).is_err());
+}
+
+/// Onde começa o primeiro bloco do tipo `kind` de uma onda FST: cada bloco é
+/// o tipo (um byte) e o tamanho (u64, contando a si mesmo).
+fn fst_block(bytes: &[u8], kind: u8) -> usize {
+    let mut offset = 0;
+    while bytes[offset] != kind {
+        let length = u64::from_be_bytes(bytes[offset + 1..offset + 9].try_into().unwrap());
+        offset += 1 + usize::try_from(length).unwrap();
+    }
+    offset
 }
 
 #[test]
