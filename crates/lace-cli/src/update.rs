@@ -254,23 +254,26 @@ pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> any
     let prefix = installation?;
     by_parts::clean_leftovers(prefix.as_std_path());
     let version = report.lace.latest.clone();
-    let mut asked = false;
     if !options.full {
-        let prepared = remote_plan(&version, &prefix).unwrap_or_else(|error| {
-            // No stderr também com `--json`: o Studio mostra.
-            eprintln!(
-                "Could not prepare the update by components ({error:#}); \
-                 updating with the installer of Lace {version}"
-            );
-            None
-        });
+        let prepared = match remote_plan(&version, &prefix) {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                // Um download que o Ctrl+C interrompeu não leva ao instalador.
+                crate::cancel::check()?;
+                // No stderr também com `--json`: o Studio mostra.
+                eprintln!(
+                    "Could not prepare the update by components ({error:#}); \
+                     updating with the installer of Lace {version}"
+                );
+                None
+            }
+        };
         if let Some(prepared) = prepared {
             if out.is_text() {
                 print_plan(&prepared.plan, &prepared.index, false);
             }
             if !options.yes {
                 confirm_plan(&prepared.plan, &prefix)?;
-                asked = true;
             }
             match by_components(out, &prefix, &prepared) {
                 Ok(changes) => {
@@ -280,18 +283,22 @@ pub fn run(out: &Output, toolchain: Option<&Toolchain>, options: Options) -> any
                     return out.json(&report);
                 }
                 Err(error) => {
+                    crate::cancel::check()?;
                     eprintln!(
                         "Could not update by components ({error:#}); the installation was \
-                         left as it was. Updating with the installer of Lace {version}"
+                         left as it was. The installer of Lace {version} can update instead"
                     );
                 }
             }
         }
     }
 
-    if !options.yes && !asked {
+    // O instalador inteiro pergunta antes, também quando a pessoa já tinha
+    // aceitado a atualização por partes, que falhou: é outra operação, maior.
+    if !options.yes {
         confirm(&report.lace, &prefix)?;
     }
+    crate::cancel::check()?;
     report.method = Some(UpdateMethod::Installer);
     report.action = if cfg!(windows) {
         let installed: Vec<String> = toolchain
@@ -689,6 +696,7 @@ fn confirm_plan(plan: &Plan, prefix: &Utf8Path) -> anyhow::Result<()> {
     std::io::stderr().flush()?;
     let mut answer = String::new();
     std::io::stdin().lock().read_line(&mut answer)?;
+    crate::cancel::check()?;
     if matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
         Ok(())
     } else {
@@ -1015,6 +1023,7 @@ fn confirm(lace: &LaceVersions, prefix: &Utf8Path) -> anyhow::Result<()> {
     std::io::stderr().flush()?;
     let mut answer = String::new();
     std::io::stdin().lock().read_line(&mut answer)?;
+    crate::cancel::check()?;
     if matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
         Ok(())
     } else {

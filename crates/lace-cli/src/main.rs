@@ -2,6 +2,7 @@
 //! parseia argumentos, chama o Core e formata a saída. Nenhuma regra de
 //! negócio mora aqui.
 
+mod cancel;
 mod commands;
 mod experimental;
 mod fpga;
@@ -600,6 +601,7 @@ fn main() -> ExitCode {
     };
     let out = output::Output::new(mode, cli.verbose > 0);
     let cancel = cancel_on_signals();
+    cancel::set(cancel.clone());
     let control = out.control(cancel.clone());
     // A consulta da última versão roda enquanto o comando roda.
     let update_check = update_check::start(out.is_text() && cli.command.checks_for_updates());

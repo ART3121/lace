@@ -103,7 +103,9 @@ pub fn latest_github_tag(repo: &str) -> anyhow::Result<String> {
         Some((_, tag)) if output.status.success() && is_asset_name(tag.trim()) => {
             Ok(tag.trim().to_owned())
         }
-        _ => bail!("Could not look up the latest release at {url}"),
+        _ => Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not look up the latest release at {url}"
+        ))),
     }
 }
 
@@ -143,7 +145,9 @@ pub fn fetch_text(url: &str) -> anyhow::Result<String> {
         .output()
         .map_err(curl_missing)?;
     if !output.status.success() {
-        bail!("Could not download {url}");
+        return Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not download {url}"
+        )));
     }
     String::from_utf8(output.stdout).with_context(|| format!("{url} is not UTF-8 text"))
 }
@@ -161,7 +165,9 @@ pub fn download_to(url: &str, dest: &Utf8Path, progress: bool) -> anyhow::Result
         .status()
         .map_err(curl_missing)?;
     if !status.success() {
-        bail!("Could not download {url}");
+        return Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not download {url}"
+        )));
     }
     Ok(())
 }
@@ -216,13 +222,21 @@ pub fn download_checked_quiet(
         if let Some(status) = child.try_wait().context("Waiting for curl")? {
             break status;
         }
+        // O Ctrl+C também chega ao `curl`; se ele não sair, sai aqui.
+        if crate::cancel::requested() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(crate::cancel::Cancelled.into());
+        }
         if let Ok(meta) = std::fs::metadata(&dest) {
             downloaded(meta.len());
         }
         std::thread::sleep(std::time::Duration::from_millis(100));
     };
     if !status.success() {
-        bail!("Could not download {url}");
+        return Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not download {url}"
+        )));
     }
     let sums = std::fs::read_to_string(&sums).with_context(|| format!("Reading {sums}"))?;
     let expected = expected_sha256(&sums, file)

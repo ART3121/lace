@@ -31,6 +31,8 @@ pub fn run(out: &Output, yes: bool) -> anyhow::Result<()> {
     if !yes {
         confirm(&prefix)?;
     }
+    // Um Ctrl+C na pergunta não deixa a remoção começar.
+    crate::cancel::check()?;
     let removed = remove(&prefix, yes, out.is_text())?;
     remove_legacy_config();
     out.json(&UninstallReport {
@@ -53,6 +55,7 @@ fn confirm(prefix: &Utf8Path) -> anyhow::Result<()> {
     std::io::stderr().flush()?;
     let mut answer = String::new();
     std::io::stdin().lock().read_line(&mut answer)?;
+    crate::cancel::check()?;
     if matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
         Ok(())
     } else {

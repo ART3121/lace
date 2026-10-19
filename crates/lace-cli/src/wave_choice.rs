@@ -14,13 +14,17 @@ use crate::output::Output;
 use crate::report::WaveChoiceReport;
 use crate::{Cli, WaveCommand};
 
-pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<bool> {
+pub fn run(
+    cli: &Cli,
+    command: &WaveCommand,
+    out: &Output,
+    control: &Control,
+) -> anyhow::Result<bool> {
     let project = Project::discover(&cli.project)?;
     let toolchain = cli.toolchain.resolve()?;
-    let control = Control::default();
     match command {
         WaveCommand::Signals => {
-            let tree = lace_core::wave_signals(&toolchain, &project, &control)?;
+            let tree = lace_core::wave_signals(&toolchain, &project, control)?;
             if out.is_text() {
                 print_tree(&tree, out);
             }
@@ -28,8 +32,14 @@ pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<boo
             // Com a elaboração quebrada, o resultado já diz (o status e os
             // diagnósticos): um erro a mais seria um segundo objeto no
             // --json. Sai com 1, a operação que rodou e falhou.
-            if tree.status != Status::Succeeded && out.is_text() {
-                anstream::eprintln!("The project testbench did not elaborate: fix the errors above");
+            if out.is_text() {
+                match tree.status {
+                    Status::Succeeded => {}
+                    Status::Cancelled => anstream::eprintln!("Cancelled with Ctrl+C"),
+                    _ => anstream::eprintln!(
+                        "The project testbench did not elaborate: fix the errors above"
+                    ),
+                }
             }
             Ok(tree.status == Status::Succeeded)
         }
@@ -38,7 +48,7 @@ pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<boo
             let selection = if *all {
                 Vec::new()
             } else {
-                let tree = elaborated(&toolchain, &project, &control)?;
+                let tree = elaborated(&toolchain, &project, control)?;
                 let root = tree.root.as_ref().expect("conferido em elaborated");
                 for path in paths {
                     if !root.contains(path) {
@@ -54,7 +64,7 @@ pub fn run(cli: &Cli, command: &WaveCommand, out: &Output) -> anyhow::Result<boo
         }
         WaveCommand::Unselect { paths } => {
             let module = lace_core::wave_testbench(&project)?;
-            let tree = elaborated(&toolchain, &project, &control)?;
+            let tree = elaborated(&toolchain, &project, control)?;
             let root = tree.root.as_ref().expect("conferido em elaborated");
             let mut selection = tree.selection.clone();
             for path in paths {
