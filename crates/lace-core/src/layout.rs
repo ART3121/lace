@@ -467,7 +467,9 @@ mod tests {
         let guard = tempfile::tempdir().unwrap();
         let (mut project, soma) = project_with_soma(Utf8Path::from_path(guard.path()).unwrap());
         make_legacy(&mut project, &soma);
+        // Antes da conversão, o build é tentado (e diz que falta convertê-la).
         assert!(soma.needs_conversion());
+        assert_eq!(project.buildable_processors().len(), 1);
         // Um arquivo da pessoa cujo destino já existe fica em `Software/`.
         std::fs::write(soma.dir.join("Software/coef.txt"), "1\n").unwrap();
         std::fs::write(soma.dir.join("coef.txt"), "2\n").unwrap();

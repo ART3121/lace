@@ -247,7 +247,7 @@ pasta do processador) e `output_path(n)` (na de saída).
 | `project.issues()` | O que está estranho no `.spf` sem impedir de abrir (`Vec<ProjectIssue>`, abaixo). Só lê. |
 | `processor.is_built()` | O `<nome>.v` e o testbench existem na pasta de saída. Não diz se estão atualizados em relação ao fonte. |
 | `project.legacy_processors()`, `project.convert_layout()` | Os processadores na estrutura do YANC 6.x, e a conversão deles (3.6). |
-| `project.buildable_processors()` | Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o botão Wave da AURORA compila antes de simular o projeto. |
+| `project.buildable_processors()` | Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o botão Wave da AURORA compila antes de simular o projeto. Um na estrutura do YANC 6.x entra, e o build dele recusa com `LegacyLayout`, em vez de a simulação usar o Verilog velho de `Hardware/`. |
 
 Todo método que altera o projeto grava o `.spf` na hora (gravação atômica:
 arquivo temporário e `rename`). Não existe "salvar". Um `Project` aberto não

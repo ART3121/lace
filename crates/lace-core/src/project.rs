@@ -916,11 +916,14 @@ impl Project {
 
     /// Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o
     /// botão Wave da AURORA compila antes de simular o projeto. Um processador
-    /// registrado sem fonte fica de fora em vez de fazer o build falhar.
+    /// registrado sem fonte fica de fora em vez de fazer o build falhar. Um
+    /// na estrutura antiga entra ([`Processor::needs_conversion`]): o build
+    /// dele diz que falta a conversão ([`LaceError::LegacyLayout`]), em vez de
+    /// a simulação seguir com o Verilog velho de `Hardware/`.
     pub fn buildable_processors(&self) -> Vec<&Processor> {
         self.processors
             .iter()
-            .filter(|p| p.source.is_file())
+            .filter(|p| p.source.is_file() || p.needs_conversion())
             .collect()
     }
 
