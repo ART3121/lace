@@ -3450,7 +3450,8 @@ export interface ConvertReport {
    */
   invalid_names: string[];
   /**
-   * As subpastas antigas que ficaram, por não estarem vazias.
+   * As subpastas antigas que ficaram com algo que não foi movido (o que o
+   * sistema deixa sozinho numa pasta, como o `.DS_Store`, não conta).
    */
   remaining_dirs: string[];
 }
