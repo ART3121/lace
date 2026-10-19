@@ -2,9 +2,14 @@
 //! para a placa pelo Quartus. É um recurso experimental, desligado até o
 //! usuário ligar com `lace experimental enable fpga`.
 
+use std::time::SystemTime;
+
+use lace_core::Control;
 use lace_core::experimental::{self, Feature};
+use lace_core::flows::FlowRequest;
 use lace_core::fpga::{self, Cable, FpgaConfig, SignalDirection};
-use lace_core::{BuildResult, Control, LaceError};
+
+use crate::commands::{Printer, run_flow};
 
 use crate::output::{BOLD, DIM, OK, Output, WARNING, paint};
 use crate::report::{FpgaBoardsReport, FpgaBuildReport, FpgaCablesReport, FpgaCheckReport};
@@ -53,58 +58,56 @@ fn program(
     out: &Output,
     control: &Control,
 ) -> anyhow::Result<bool> {
-    let project = lace_core::Project::discover(&cli.project)?;
+    let started = SystemTime::now();
+    let mut project = lace_core::Project::discover(&cli.project)?;
     let toolchain = cli.toolchain.resolve()?;
-    let result = fpga::program(&toolchain, &project, cable, control)?;
-    out.fpga_program(&result, project.root());
-    let ok = result.succeeded();
-    out.json(&result)?;
-    Ok(ok)
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
+    let request = FlowRequest::FpgaProgram {
+        cable: cable.map(str::to_owned),
+    };
+    let outcome = run_flow(
+        &toolchain,
+        &mut project,
+        &request,
+        started,
+        &printer,
+        control,
+    )?;
+    out.json(&outcome.fpga_program.expect("a gravação rodou"))?;
+    Ok(outcome.succeeded)
 }
 
 /// `lace fpga build`: os processadores e depois o projeto para a placa,
 /// pelo Quartus. O `fpga.json`, a placa e o Quartus são conferidos antes:
 /// faltar um deles não deve custar o build dos processadores.
 fn build(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
+    let started = SystemTime::now();
     let mut project = lace_core::Project::discover(&cli.project)?;
     let toolchain = cli.toolchain.resolve()?;
-    let config = FpgaConfig::read(project.root())?;
-    let board = fpga::board(&config.board)?;
-    if toolchain.quartus().is_none() {
-        return Err(LaceError::QuartusMissing.into());
-    }
-    let builds = crate::commands::build_first(
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
+    let outcome = run_flow(
         &toolchain,
-        &project,
-        project.buildable_processors(),
-        out,
+        &mut project,
+        &FlowRequest::FpgaBuild,
+        started,
+        &printer,
         control,
     )?;
-    let registered = crate::commands::register_generated(&mut project, &builds, out);
-    if !builds.iter().all(BuildResult::succeeded) {
-        out.not_run("FPGA build", &builds);
-        out.json(&FpgaBuildReport {
-            builds,
-            registered,
-            fpga: None,
-        })?;
-        return Ok(false);
-    }
-    let result = fpga::build(&toolchain, &project, control)?;
-    out.fpga_build(&result, project.root());
-    if result.bitstream.is_some() {
+    if outcome.fpga.as_ref().is_some_and(|f| f.bitstream.is_some()) {
+        let board = fpga::board(&FpgaConfig::read(project.root())?.board)?;
         out.next(&format!(
             "Program the {} with: lace fpga program",
             board.name
         ));
     }
-    let ok = result.succeeded();
     out.json(&FpgaBuildReport {
-        builds,
-        registered,
-        fpga: Some(result),
+        builds: outcome.builds,
+        registered: outcome.registered,
+        fpga: outcome.fpga,
     })?;
-    Ok(ok)
+    Ok(outcome.succeeded)
 }
 
 /// `lace fpga boards [<placa>]`: a lista, ou os sinais e pinos de uma.

@@ -113,6 +113,10 @@ pub fn open_wave(
             .filter(|p| p.outdated)
             .map(|p| p.processor.clone())
             .collect(),
+        selection: prepared
+            .as_ref()
+            .map(|p| p.layout.selection.clone())
+            .unwrap_or_default(),
         processors,
         layout_error,
         reset_deleted,

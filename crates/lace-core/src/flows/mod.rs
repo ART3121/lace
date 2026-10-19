@@ -570,6 +570,9 @@ pub struct WaveOpened {
     pub saved_layout: Option<SavedLayoutInfo>,
     /// Os processadores do layout gerado.
     pub processors: Vec<WaveProcessor>,
+    /// A escolha de sinais que o layout gerado seguiu (`wave/<testbench>.json`);
+    /// vazia sem escolha ou sem layout gerado.
+    pub selection: Vec<String>,
     /// Os processadores compilados de novo depois desta simulação: o PC e a
     /// linha aparecem como números.
     pub outdated: Vec<String>,

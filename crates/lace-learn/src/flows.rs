@@ -46,7 +46,7 @@ impl LearnCheckOutcome {
 ///
 /// # Erros
 ///
-/// Os de [`grade`] (ferramenta que falta, projeto que não abre) e de
+/// Os de [`grade()`] (ferramenta que falta, projeto que não abre) e de
 /// [`Workspace::record`]. Código errado do aluno não é erro: é o [`Grade`].
 pub fn check(
     toolchain: &Toolchain,
