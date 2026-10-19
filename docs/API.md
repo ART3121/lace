@@ -212,9 +212,14 @@ projeto pode mudar de pasta sem compilar de novo.
 Até o YANC 6.x cada processador tinha `Software/` (o fonte e o `.asm`),
 `Hardware/` (o Verilog e as memórias) e `Simulation/` (o testbench e as
 entradas e saídas), que não compilam mais. `processor.legacy_dirs()` diz
-quais dessas pastas um processador ainda tem, `project.legacy_processors()`
-quais processadores, `issues()` avisa (`legacy_layout`), o `build` recusa
-(`LegacyLayout`), e `project.convert_layout()` converte (3.6).
+quais dessas pastas um processador ainda tem com algo dentro (pelo nome
+exato, com as maiúsculas, e sem contar `.DS_Store`, `Thumbs.db`,
+`desktop.ini`, `.gitkeep` e `._*`), `project.legacy_processors()` quais
+processadores, `issues()` avisa (`legacy_layout`), e
+`project.convert_layout()` converte (3.6). O `build` recusa
+(`LegacyLayout`) enquanto o fonte não está no lugar novo
+(`processor.needs_conversion()`); o que a conversão deixou numa pasta
+antiga, porque o destino já existia, não impede o build.
 
 A raiz é sempre o diretório do `.spf`. O `basePath` gravado dentro do arquivo
 é ignorado na leitura, para que um projeto copiado de outra máquina funcione.
@@ -267,7 +272,7 @@ parâmetro (`#NUBITS`), o valor e a regra. Em C, só as portas contam.
 | `selection_not_registered` | `topLevelFile` ou `testbenchFile` aponta para um arquivo fora da lista do papel; é ignorado | o campo |
 | `testbench_as_top` | `topLevelFile` tem nome de testbench (3.4); é ignorado | o campo |
 | `invalid_processor_name` | um processador do `.spf` com nome que o YANC não compila (`x-y`, `void`); o `build` dele recusa com `InvalidName` | o nome |
-| `legacy_layout` | um processador ainda tem `Software/`, `Hardware/` ou `Simulation/`; o `build` dele recusa com `LegacyLayout` até `convert_layout` (3.6) | o nome |
+| `legacy_layout` | um processador ainda tem `Software/`, `Hardware/` ou `Simulation/` com algo dentro; o `build` dele recusa com `LegacyLayout` até `convert_layout` (3.6), a menos que o fonte já esteja no lugar novo | o nome |
 | `duplicate_file` | um arquivo repetido numa lista (também por outro caminho, `rtl/../rtl/a.v`, `rtl\a.v`) ou nas duas; conta uma vez (4.1), e a próxima gravação tira as entradas que sobram | a lista |
 | `nested_project` | uma pasta acima da raiz tem `.spf`: o projeto está dentro de outro; o `path` é o `.spf` de fora | nenhum |
 
@@ -396,7 +401,8 @@ o projeto convertido abra igual nas duas:
   mão em `Hardware/`, uma subpasta), vai para a pasta do processador;
 - nada é apagado nem sobrescrito: um destino que já existe deixa o arquivo
   onde estava (`skipped`, com o motivo), e a subpasta antiga só sai vazia
-  (`remaining_dirs`, as que ficaram);
+  (`remaining_dirs`, as que ficaram com algo além do `.DS_Store` e
+  parecidos, que não são movidos);
 - a linha `#PRNAME` (ou `#pragma yanc prname`) sai do fonte (`name_lines`,
   com o nome que ela dava ao módulo Verilog: se difere do processador, quem
   instanciava o módulo pelo nome antigo precisa do novo);
@@ -693,8 +699,9 @@ Antes de executar qualquer coisa:
 
 1. o YANC do bundle precisa ser o 7.1 ou mais novo (`YancTooOld`): até a
    6.x a linha de comando e as pastas eram outras;
-2. o processador precisa estar na estrutura do YANC 7.1, sem `Software/`,
-   `Hardware/` nem `Simulation/` (`LegacyLayout`; ver 3.6);
+2. o processador precisa estar na estrutura do YANC 7.1: com o fonte fora
+   do lugar novo e `Software/`, `Hardware/` ou `Simulation/` com algo
+   dentro, `LegacyLayout` (ver 3.6);
 3. o fonte precisa existir e se chamar `<processador>.<ext>`: o YANC dá ao
    processador o nome do arquivo (`InvalidSource`);
 4. nenhum caminho pode passar de `YANC_PATH_LIMIT` (259 no Windows, 1000

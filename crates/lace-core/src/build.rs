@@ -153,7 +153,8 @@ impl BuildResult {
 ///
 /// - [`LaceError::YancTooOld`]: o bundle tem um YANC até a 6.x;
 /// - [`LaceError::LegacyLayout`]: o processador está na estrutura de antes
-///   do YANC 7.1;
+///   do YANC 7.1, com o fonte fora do lugar novo
+///   ([`Processor::needs_conversion`](crate::Processor::needs_conversion));
 /// - [`LaceError::InvalidName`]: processador do `.spf` com nome que o YANC
 ///   não compila (ver [`validate_processor_name`](crate::validate_processor_name));
 /// - [`LaceError::InvalidSource`]: fonte ausente ou com o nome errado;
@@ -322,7 +323,7 @@ impl<'a> Plan<'a> {
         options: &BuildOptions,
     ) -> Result<Self> {
         yanc::require(toolchain)?;
-        if !processor.legacy_dirs().is_empty() {
+        if processor.needs_conversion() {
             return Err(LaceError::LegacyLayout {
                 processor: processor.name.clone(),
                 dir: processor.dir.clone(),

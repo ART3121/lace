@@ -38,6 +38,19 @@ use crate::project::{Language, Processor, Project, validate_processor_name};
 /// As subpastas que cada processador tinha antes do YANC 7.1.
 pub(crate) const LEGACY_DIRS: [&str; 3] = ["Software", "Hardware", "Simulation"];
 
+/// O que o sistema ou o git deixam sozinhos numa pasta: não é da pessoa nem
+/// do YANC. A conversão não o move, e uma pasta antiga só com ele já não
+/// conta como estrutura antiga.
+pub(crate) fn is_system_file(name: &str) -> bool {
+    matches!(name, ".DS_Store" | "Thumbs.db" | "desktop.ini" | ".gitkeep") || name.starts_with("._")
+}
+
+/// A pasta tem algo além do que [`is_system_file`] aceita.
+pub(crate) fn has_content(dir: &Utf8Path) -> bool {
+    dir.read_dir_utf8()
+        .is_ok_and(|entries| entries.flatten().any(|e| !is_system_file(e.file_name())))
+}
+
 /// O que [`Project::convert_layout`] fez.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
@@ -54,7 +67,8 @@ pub struct LayoutConversion {
     /// Os processadores cujo nome não serve mais: na 7.1 ele vira o módulo
     /// Verilog, e o YANC recusa um fonte com esse nome.
     pub invalid_names: Vec<String>,
-    /// As subpastas antigas que ficaram, por não estarem vazias.
+    /// As subpastas antigas que ficaram com algo que não foi movido (o que o
+    /// sistema deixa sozinho numa pasta, como o `.DS_Store`, não conta).
     #[schemars(with = "Vec<String>")]
     pub remaining_dirs: Vec<Utf8PathBuf>,
 }
@@ -171,12 +185,14 @@ impl Project {
                 return Err(LaceError::io("Creating directory", &p.output_dir)(error));
             }
             let bases = file_bases(p);
-            for sub in LEGACY_DIRS {
-                let dir = p.dir.join(sub);
+            for dir in p.legacy_dirs() {
                 let Ok(entries) = dir.read_dir_utf8() else {
                     continue;
                 };
-                let mut entries: Vec<_> = entries.flatten().collect();
+                let mut entries: Vec<_> = entries
+                    .flatten()
+                    .filter(|e| !is_system_file(e.file_name()))
+                    .collect();
                 entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
                 for entry in entries {
                     let from = entry.path().to_owned();
@@ -213,8 +229,13 @@ impl Project {
                         generated,
                     });
                 }
+                // Vazia, a pasta sai; com o que o sistema deixou, fica, sem
+                // contar como antiga.
                 let empty = dir.read_dir().is_ok_and(|mut d| d.next().is_none());
-                if !(empty && std::fs::remove_dir(&dir).is_ok()) {
+                if empty {
+                    let _ = std::fs::remove_dir(&dir);
+                }
+                if has_content(&dir) {
                     report.remaining_dirs.push(dir);
                 }
             }
@@ -389,6 +410,83 @@ fn name_line(line: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{FileRole, IssueKind, NewProcessor};
+
+    /// Um projeto com o processador `soma` na estrutura da 7.1.
+    fn project_with_soma(dir: &Utf8Path) -> (Project, Processor) {
+        let mut project = Project::create(dir, "p").unwrap();
+        let soma = project
+            .add_processor(&NewProcessor::new("soma", Language::Cmm))
+            .unwrap()
+            .clone();
+        (project, soma)
+    }
+
+    /// `soma` como a 6.x deixava: o fonte, com `#PRNAME`, em `Software/`, e
+    /// o Verilog de um build antigo em `Hardware/`, registrado no `.spf`.
+    fn make_legacy(project: &mut Project, soma: &Processor) {
+        std::fs::create_dir_all(soma.dir.join("Software")).unwrap();
+        std::fs::write(
+            soma.dir.join("Software/soma.cmm"),
+            "#PRNAME soma\n#NUBITS 23\n",
+        )
+        .unwrap();
+        std::fs::remove_file(&soma.source).unwrap();
+        std::fs::create_dir_all(soma.dir.join("Hardware")).unwrap();
+        let old = soma.dir.join("Hardware/soma.v");
+        std::fs::write(&old, "module soma; endmodule\n").unwrap();
+        project
+            .add_file(FileRole::Synthesizable, &old, None)
+            .unwrap();
+    }
+
+    #[test]
+    fn what_the_system_leaves_and_a_folder_of_the_person_are_not_the_old_layout() {
+        let guard = tempfile::tempdir().unwrap();
+        let (project, soma) = project_with_soma(Utf8Path::from_path(guard.path()).unwrap());
+        std::fs::create_dir_all(soma.dir.join("Software")).unwrap();
+        std::fs::write(soma.dir.join("Software/.DS_Store"), "x").unwrap();
+        std::fs::write(soma.dir.join("Software/._soma.cmm"), "x").unwrap();
+        std::fs::create_dir_all(soma.dir.join("Hardware")).unwrap();
+        std::fs::write(soma.dir.join("Hardware/.gitkeep"), "").unwrap();
+        // No Windows e no macOS, `Simulation/` abriria esta pasta.
+        std::fs::create_dir_all(soma.dir.join("simulation")).unwrap();
+        std::fs::write(soma.dir.join("simulation/estimulos.txt"), "1\n").unwrap();
+        assert!(soma.legacy_dirs().is_empty(), "{:?}", soma.legacy_dirs());
+        assert!(project.legacy_processors().is_empty());
+        assert!(
+            !project
+                .issues()
+                .iter()
+                .any(|i| i.kind == IssueKind::LegacyLayout)
+        );
+    }
+
+    #[test]
+    fn what_the_conversion_could_not_move_does_not_block_the_build() {
+        let guard = tempfile::tempdir().unwrap();
+        let (mut project, soma) = project_with_soma(Utf8Path::from_path(guard.path()).unwrap());
+        make_legacy(&mut project, &soma);
+        assert!(soma.needs_conversion());
+        // Um arquivo da pessoa cujo destino já existe fica em `Software/`.
+        std::fs::write(soma.dir.join("Software/coef.txt"), "1\n").unwrap();
+        std::fs::write(soma.dir.join("coef.txt"), "2\n").unwrap();
+        let report = project.convert_layout().unwrap();
+        assert_eq!(report.skipped.len(), 1, "{report:#?}");
+        assert_eq!(report.remaining_dirs, [soma.dir.join("Software")]);
+        assert!(!soma.needs_conversion());
+        assert_eq!(soma.legacy_dirs(), [soma.dir.join("Software")]);
+        let issue = project
+            .issues()
+            .into_iter()
+            .find(|i| i.kind == IssueKind::LegacyLayout)
+            .unwrap();
+        assert!(
+            issue.message.contains("builds from soma.cmm"),
+            "{}",
+            issue.message
+        );
+    }
 
     #[test]
     fn generated_files_follow_the_aurora_rule() {
