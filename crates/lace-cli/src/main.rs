@@ -3,6 +3,7 @@
 //! negócio mora aqui.
 
 mod cancel;
+mod chat;
 mod commands;
 mod experimental;
 mod fpga;
@@ -189,6 +190,8 @@ enum Command {
     Serve(serve::ServeArgs),
     /// Serve the Lace API to an AI agent as an MCP server over stdin and stdout
     Mcp(mcp::McpArgs),
+    /// Chat with the Lace assistant (Claude Code with the Lace tools) in the terminal
+    Chat(chat::ChatArgs),
     /// Show the bundled tools and their versions
     Tools {
         /// Verify each executable against the manifest SHA-256
@@ -607,7 +610,10 @@ fn main() -> ExitCode {
     let out = output::Output::new(mode, cli.verbose > 0);
     // O `lace serve` encerra do jeito dele no primeiro sinal (cancela,
     // espera, sai); sair na hora no segundo deixaria o que roda órfão.
-    let cancel = cancel_on_signals(!matches!(cli.command, Command::Serve(_) | Command::Mcp(_)));
+    let cancel = cancel_on_signals(!matches!(
+        cli.command,
+        Command::Serve(_) | Command::Mcp(_) | Command::Chat(_)
+    ));
     cancel::set(cancel.clone());
     let control = out.control(cancel.clone());
     // A consulta da última versão roda enquanto o comando roda.
@@ -641,6 +647,7 @@ impl Command {
                 | Command::Setup { .. }
                 | Command::Serve(_)
                 | Command::Mcp(_)
+                | Command::Chat(_)
                 | Command::Completions { .. }
         )
     }

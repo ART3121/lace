@@ -31,6 +31,15 @@
   `notifications/cancelled`. `lace mcp setup claude-code|claude-desktop|print`
   registra o servidor no cliente. `update_apply` e `install_add` só com
   `--allow-update`.
+- `lace chat`: o assistente do Lace no terminal, e a vista Assistente no
+  Studio, na barra lateral da direita ou numa aba. Quem responde é o
+  Claude Code instalado na máquina (a conta ou a chave dele; o Lace não
+  guarda chave), aberto como processo filho com o `lace mcp` como
+  ferramentas: o assistente compila, verifica, simula, sintetiza e lê os
+  relatórios do projeto aberto, e mostra cada ferramenta que chamou. Por
+  padrão só usa as ferramentas do Lace e lê arquivos; `--allow-edits` (ou
+  a preferência do Studio) deixa editar os arquivos do projeto. O motor é
+  o crate novo `lace-agent`.
 - O `lace update`, o `lace install` e o `lace uninstall` viraram
   biblioteca (`lace-installer`: `update::run`, `add`, `uninstall`, com os
   erros com código `network`, `no_installation`, `install_in_progress`,

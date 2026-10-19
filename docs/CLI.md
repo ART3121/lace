@@ -785,6 +785,7 @@ contrato ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busc
 | `lace serve [--schema]` | atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
 | `lace mcp [--allow-update]` | o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/cancelled`. Uma ferramenta por método (`project_status`, `build`, `check`, `sim`, `synth`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo, mais `project_find`. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
 | `lace mcp setup <claude-code\|claude-desktop\|print> [--scope local\|user\|project] [--allow-update] [--default-project PATH]` | registra o servidor no cliente, com o caminho deste `lace` e, se o bundle não é o instalado ao lado dele, a variável `LACE_TOOLCHAIN`. `claude-code` roda `claude mcp add` (ou grava o `.mcp.json` da pasta com `--scope project`; sem o `claude` no `PATH`, imprime o comando); `claude-desktop` mescla a entrada no `claude_desktop_config.json`, mantendo o resto do arquivo; `print` só imprime o trecho JSON |
+| `lace chat [--model M] [--resume ID] [--allow-edits] [--allow-update] [--claude PATH]` | o assistente do Lace no terminal: uma tela com a conversa, o que o assistente faz (cada ferramenta chamada, com o resultado) e o campo de texto. Quem responde é o Claude Code instalado na máquina, aberto como processo filho com o `lace mcp` desta pasta (ou do `-C`) como ferramentas; quem autentica é ele (a conta, ou `ANTHROPIC_API_KEY`), e o Lace não guarda chave. Sem o Claude Code, diz como instalar. `--allow-edits` deixa o assistente editar e criar arquivos na pasta do projeto, além de usar as ferramentas do Lace e ler; `--allow-update` expõe `update_apply` e `install_add`. No fim imprime o `session_id`, que `--resume` retoma. Enter envia, Esc interrompe a resposta, PgUp e PgDn rolam, Ctrl+Q sai |
 
 Os dois são processos filhos que o cliente abre quando precisa e fecha
 quando termina, como um editor faz com um servidor de linguagem: sem
@@ -908,6 +909,16 @@ No Claude Desktop (reiniciar depois):
 ```bash
 lace mcp setup claude-desktop
 ```
+
+O `lace chat` e a vista Assistente do Studio usam o mesmo motor
+(`crates/lace-agent`): o Claude Code em modo `--print`, com entrada e saída
+em JSON por linha, o `lace mcp` configurado como servidor de ferramentas e
+as instruções do Lace no prompt do sistema. Só as ferramentas do Lace e a
+leitura de arquivos são permitidas por padrão; a edição, só com
+`--allow-edits` (ou a preferência do Studio). O Claude Code só inicia a
+sessão quando recebe a primeira mensagem, e o Lace a manda em seguida; a
+sessão fica aberta entre as mensagens e fecha ao sair, com o que o Claude
+Code tiver iniciado.
 
 ## Saída
 

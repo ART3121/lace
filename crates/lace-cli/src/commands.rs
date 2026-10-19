@@ -107,6 +107,9 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Serve(args) => {
             return crate::serve::run(&cli.toolchain, args, control.cancel_token());
         }
+        Command::Chat(args) => {
+            return crate::chat::run(&cli.project, &cli.toolchain, args, control.cancel_token());
+        }
         Command::Mcp(args) => {
             return crate::mcp::run(&cli.project, &cli.toolchain, args, control.cancel_token());
         }
