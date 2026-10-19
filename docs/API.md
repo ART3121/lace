@@ -241,7 +241,7 @@ pasta do processador) e `output_path(n)` (na de saída).
 | `Project::discover(caminho)` | Acha o projeto que contém o caminho: o `.spf` dele ou da primeira pasta acima que tenha um, com a regra de `open` em cada pasta. É o que a CLI usa, para os comandos funcionarem de qualquer pasta do projeto. Sem nenhum até a raiz do sistema, `ProjectNotFound`. |
 | `project.processor_at(caminho)` | O processador cuja pasta (ou a temporária dele) contém o caminho; `None` fora delas. A CLI usa para `sim` e `wave` sem `-p`. |
 | `Project::create(pai, nome)` | Cria `<pai>/<nome>/<nome>.spf` vazio, no formato da AURORA. Recusa se já existir. |
-| `project.add_processor(&NewProcessor)` | Cria a pasta do processador, o fonte-modelo dentro dela (3.5) e a entrada no `.spf`; a pasta de saída nasce no primeiro `build`. Recusa nome repetido, nome que não passa em `validate_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
+| `project.add_processor(&NewProcessor)` | Cria a pasta do processador, o fonte-modelo dentro dela (3.5) e a entrada no `.spf`; a pasta de saída nasce no primeiro `build`. Recusa nome repetido, nome que não passa em `validate_new_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
 | `project.configure_processor(nome, &ProcessorConfig)` | Grava `clk`, `numClocks` e `showArrays` no `.spf` (campos `None` ficam como estão). Uma entrada no formato antigo (só o nome) vira objeto. Valem a partir do próximo `build`. Frequência de 1 a `MAX_FREQUENCY_MHZ` (500000) e clocks de 1 a `MAX_CLOCKS` (2147483647); fora disso, `InvalidParameter`, e nada é gravado. |
 | `project.remove_processor(nome)` | Tira o processador do projeto e grava o `.spf`: a entrada em `structure.processors` (no formato antigo ou de objeto), os arquivos registrados de dentro da pasta dele (o Verilog e o testbench gerados), com a escolha de topo ou de testbench que apontava para eles, e a pasta temporária `.lace/Temp/<nome>`. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer em `unregistered_verilog`. Devolve `RemovedProcessor`: `name`, `dir` (para quem quiser apagar a pasta; a CLI e o Studio a mandam para a lixeira, se pedido) e `unregistered` (os `ProjectFile` que saíram, com o papel e a marca de topo). Nome que não existe: `ProcessorNotFound`, e nada muda. |
 | `project.issues()` | O que está estranho no `.spf` sem impedir de abrir (`Vec<ProjectIssue>`, abaixo). Só lê. |
@@ -337,7 +337,13 @@ num projeto da estrutura do YANC 6.x, em `Software/`; `.cmm` antes de
 A AURORA de antes da 7.1 aceitava `-` em nome de processador; o YANC 7.1
 recusa o arquivo, e o Lace também.
 `validate_processor_name(nome)` é pública, como a
-de projeto, para avisar enquanto o usuário digita.
+de projeto, para avisar enquanto o usuário digita. Para um processador
+novo, `validate_new_processor_name(nome)` recusa também, sem diferença de
+maiúsculas, os nomes das pastas do Lace (`synth`, `hierarchy`, `lint`,
+`wave`, `surfer`, `cocotb`): o processador dividiria a pasta com uma
+operação do Lace (`.lace/Temp/<nome>`, ou `wave/`, a das escolhas de
+sinais). Um processador que já existe com um desses nomes continua abrindo
+e compilando.
 
 A regra de projeto só vale para criar (`Project::create`): um projeto que
 já existe com outro nome, como os da AURORA, abre normalmente.

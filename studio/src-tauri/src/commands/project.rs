@@ -305,11 +305,11 @@ pub async fn project_create(
 }
 
 /// Confere um nome de processador novo enquanto o usuário digita, com a
-/// regra do Core (`validate_processor_name`): `None` se ele serve, ou o erro
-/// `invalid_name` com o motivo.
+/// regra do Core (`validate_new_processor_name`): `None` se ele serve, ou o
+/// erro `invalid_name` com o motivo.
 #[tauri::command]
 pub fn processor_check_name(name: String) -> Option<IpcError> {
-    lace_core::validate_processor_name(&name)
+    lace_core::validate_new_processor_name(&name)
         .err()
         .map(IpcError::from)
 }

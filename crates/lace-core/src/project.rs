@@ -772,10 +772,10 @@ impl Project {
     /// # Erros
     ///
     /// - [`LaceError::InvalidName`] se o nome não passar em
-    ///   [`validate_processor_name`]: não é um identificador (a AURORA aceita
-    ///   `-`, mas o lexer do `cmmcomp` não), passa de
-    ///   [`MAX_PROCESSOR_NAME`] caracteres, ou é palavra do C± ou do
-    ///   Verilog, ou módulo da biblioteca SAPHO;
+    ///   [`validate_new_processor_name`]: não é um identificador (a AURORA
+    ///   aceita `-`, mas o lexer do `cmmcomp` não), passa de
+    ///   [`MAX_PROCESSOR_NAME`] caracteres, é palavra do C± ou do Verilog,
+    ///   módulo da biblioteca SAPHO, ou nome de uma pasta do Lace;
     /// - [`LaceError::InvalidParameter`] se um parâmetro não passar em
     ///   [`NewProcessor::validate`];
     /// - [`LaceError::ProcessorExists`] se o nome já estiver no projeto,
@@ -785,7 +785,7 @@ impl Project {
     ///   Lace nunca sobrescreve código do usuário.
     pub fn add_processor(&mut self, spec: &NewProcessor) -> Result<&Processor> {
         self.begin_write()?;
-        validate_processor_name(&spec.name)?;
+        validate_new_processor_name(&spec.name)?;
         spec.validate()?;
         // Windows e macOS não distinguem maiúsculas em nome de pasta: `Soma`
         // e `soma` iriam para o mesmo diretório.
@@ -1419,6 +1419,47 @@ pub fn validate_processor_name(name: &str) -> Result<()> {
             "It is a module of the SAPHO library, and the processor would instantiate itself"
                 .into(),
         ));
+    }
+    Ok(())
+}
+
+/// As pastas do próprio Lace com nome que um processador poderia ter:
+/// `.lace/Temp/<nome>` (o lint, a síntese, a hierarquia, a árvore de sinais,
+/// os layouts do Surfer, o cocotb) e `wave/` na raiz, com as escolhas de
+/// sinais. Um processador assim dividiria a pasta com uma operação do Lace:
+/// a hierarquia apaga `.lace/Temp/hierarchy`, que seria a pasta temporária
+/// do processador `hierarchy`, com a onda dele; remover o processador
+/// `synth` apagava a síntese do projeto; e a pasta do processador `wave` é a
+/// das escolhas de sinais, que remover o processador com a pasta mandaria
+/// para a lixeira.
+const LACE_FOLDERS: [&str; 6] = ["synth", "hierarchy", "lint", "wave", "surfer", "cocotb"];
+
+/// Confere o nome de um processador novo: a regra do YANC
+/// ([`validate_processor_name`]) e, sem diferença de maiúsculas (no Windows
+/// e no macOS a pasta é a mesma), fora os nomes das pastas do Lace (`synth`,
+/// `hierarchy`, `lint`, `wave`, `surfer`, `cocotb`). Um processador que já
+/// existe com um desses nomes continua abrindo e compilando.
+///
+/// Uma interface pode chamar enquanto o usuário digita.
+///
+/// ```
+/// use lace_core::{validate_new_processor_name, validate_processor_name};
+///
+/// assert!(validate_new_processor_name("filtro_fir").is_ok());
+/// assert!(validate_new_processor_name("Wave").is_err());
+/// assert!(validate_processor_name("wave").is_ok());
+/// ```
+///
+/// # Erros
+///
+/// [`LaceError::InvalidName`], com o motivo em `reason`.
+pub fn validate_new_processor_name(name: &str) -> Result<()> {
+    validate_processor_name(name)?;
+    if LACE_FOLDERS.iter().any(|f| f.eq_ignore_ascii_case(name)) {
+        return Err(LaceError::InvalidName {
+            name: name.to_owned(),
+            reason: "Lace keeps a folder with this name for its own work (.lace/Temp/<name>, or wave/ for the signal choices), and the processor would share it".into(),
+        });
     }
     Ok(())
 }
@@ -2536,6 +2577,35 @@ mod tests {
                 .unwrap()
                 .unregistered_verilog()
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn a_new_processor_cannot_take_the_name_of_a_lace_folder() {
+        let (_guard, dir) = tmp();
+        let mut project = Project::create(&dir, "p").unwrap();
+        for name in ["wave", "Synth", "hierarchy", "lint", "surfer", "cocotb"] {
+            let error = project
+                .add_processor(&NewProcessor::new(name, Language::Cmm))
+                .unwrap_err();
+            assert_eq!(error.code(), "invalid_name", "{name}");
+        }
+        assert!(project.processors().is_empty());
+        // Um que já está no `.spf` continua no projeto, sem aviso de nome.
+        let root = dir.join("antigo");
+        std::fs::create_dir_all(root.join("wave")).unwrap();
+        std::fs::write(root.join("wave/wave.cmm"), "void main() {}\n").unwrap();
+        std::fs::write(
+            root.join("antigo.spf"),
+            r#"{"structure": {"processors": [{"name": "wave"}]}}"#,
+        )
+        .unwrap();
+        let old = Project::open(root.join("antigo.spf")).unwrap();
+        assert_eq!(old.processors()[0].name, "wave");
+        assert!(
+            !old.issues()
+                .iter()
+                .any(|i| i.kind == IssueKind::InvalidProcessorName)
         );
     }
 
