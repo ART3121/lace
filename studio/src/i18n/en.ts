@@ -1140,4 +1140,6 @@ export const en: Record<Key, string> = {
   'error.unsafe_path': 'The project path has a control character, which the shell would read as a key.',
   'error.cannot_replace': 'What is at the destination cannot be replaced: Lace keeps it in place.',
   'panel.terminalCdRefused': 'The terminal stayed in the previous folder: the project path has a control character, which the shell would read as a key and not as text.',
+  'error.terminal_busy': 'A program is running in the terminal.',
+  'panel.terminalCdBusy': 'The terminal stayed in the previous folder: a program is running in it, and the cd to the new project would go to the program.',
 };

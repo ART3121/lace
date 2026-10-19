@@ -50,6 +50,23 @@ impl Terminal {
             .send(bytes)
             .map_err(|_| IpcError::new(codes::TERMINAL, "The terminal has exited"))
     }
+
+    /// Um programa (vim, python, um comando que ainda roda) está em primeiro
+    /// plano no terminal, no lugar do shell: o grupo de processos em primeiro
+    /// plano do pseudoterminal não é o do shell, que o abriu como líder de
+    /// sessão. No Windows o ConPTY não informa, e a resposta é sempre não.
+    #[cfg(unix)]
+    fn has_foreground_program(&self) -> bool {
+        match (self.master.process_group_leader(), self.child.process_id()) {
+            (Some(group), Some(shell)) => u32::try_from(group).is_ok_and(|group| group != shell),
+            _ => false,
+        }
+    }
+
+    #[cfg(not(unix))]
+    fn has_foreground_program(&self) -> bool {
+        false
+    }
 }
 
 /// O shell de um terminal, pelo jeito de escrever um `cd` nele.
@@ -90,11 +107,15 @@ impl ShellKind {
     /// um Enter (CR, LF) executa o que veio antes, um Ctrl+U apaga a linha,
     /// um Ctrl+C a abandona. Um nome de pasta pode trazer esses caracteres no
     /// Linux e no macOS, e o que viesse depois deles rodaria como comando.
+    ///
+    /// Antes do `cd` vão as teclas que limpam a linha ([`ShellKind::clear_line`]):
+    /// o que o usuário digitou e ainda não executou não vira começo do `cd`
+    /// (um `rm -rf ` pela metade viraria `rm -rf cd -- '/home/u/proj2'`).
     fn cd_line(self, path: &str) -> Option<String> {
         if path.chars().any(char::is_control) {
             return None;
         }
-        Some(match self {
+        let cd = match self {
             // Aspas simples: nada é interpretado dentro. O PowerShell fecha
             // a string também com as aspas tipográficas, e cada uma das
             // cinco se escreve dobrada. `-LiteralPath` não trata `[` como
@@ -109,7 +130,25 @@ impl ShellKind {
                 "cd -- '{}'\r",
                 path.replace('\\', r"\\").replace('\'', r"\'")
             ),
-        })
+        };
+        Some(format!("{}{cd}", self.clear_line()))
+    }
+
+    /// As teclas que apagam a linha do shell, de onde estiver o cursor.
+    ///
+    /// No PowerShell e no Prompt de Comando, Ctrl+End (apaga até o fim) e
+    /// Ctrl+Home (apaga até o começo), nas sequências do xterm, que o ConPTY
+    /// traduz para as teclas. O Esc também limparia, mas um Esc seguido de
+    /// texto chega ao Windows como Alt mais a letra seguinte.
+    ///
+    /// No bash, no zsh e no fish, Ctrl+E (fim da linha) e Ctrl+U (apaga até
+    /// o começo). No modo vi, o Ctrl+U de inserção apaga o que veio antes do
+    /// cursor.
+    fn clear_line(self) -> &'static str {
+        match self {
+            ShellKind::PowerShell | ShellKind::Cmd => "\u{1b}[1;5F\u{1b}[1;5H",
+            ShellKind::Posix | ShellKind::Fish => "\u{5}\u{15}",
+        }
     }
 }
 
@@ -345,6 +384,8 @@ pub fn terminal_write(app: AppHandle, id: u32, data: String) -> IpcResult<()> {
 /// Leva o shell do terminal para `path`, digitando o `cd` do shell dele.
 /// Um terminal que já terminou fica como está. Um caminho com caractere de
 /// controle não é digitado ([`codes::UNSAFE_PATH`]): o shell fica onde está.
+/// Com um programa em primeiro plano, no Linux e no macOS, também não
+/// ([`codes::TERMINAL_BUSY`]): a linha iria para o programa.
 #[tauri::command]
 pub fn terminal_cd(app: AppHandle, id: u32, path: String) -> IpcResult<()> {
     let state = app.state::<AppState>();
@@ -352,6 +393,12 @@ pub fn terminal_cd(app: AppHandle, id: u32, path: String) -> IpcResult<()> {
     let Some(terminal) = terminals.get(&id) else {
         return Ok(());
     };
+    if terminal.has_foreground_program() {
+        return Err(IpcError::new(
+            codes::TERMINAL_BUSY,
+            "A program is running in the terminal and would receive the cd: the terminal stays in the previous folder",
+        ));
+    }
     let line = terminal.shell.cd_line(&path).ok_or_else(|| {
         IpcError::new(
             codes::UNSAFE_PATH,
@@ -414,19 +461,19 @@ mod tests {
         let path = r"C:\Users\Ana's [x]\proj";
         assert_eq!(
             ShellKind::PowerShell.cd_line(path).as_deref(),
-            Some("Set-Location -LiteralPath 'C:\\Users\\Ana''s [x]\\proj'\r")
+            Some("\u{1b}[1;5F\u{1b}[1;5HSet-Location -LiteralPath 'C:\\Users\\Ana''s [x]\\proj'\r")
         );
         assert_eq!(
             ShellKind::Cmd.cd_line(path).as_deref(),
-            Some("cd /d \"C:\\Users\\Ana's [x]\\proj\"\r")
+            Some("\u{1b}[1;5F\u{1b}[1;5Hcd /d \"C:\\Users\\Ana's [x]\\proj\"\r")
         );
         assert_eq!(
             ShellKind::Posix.cd_line("/home/ana/o'projeto").as_deref(),
-            Some("cd -- '/home/ana/o'\\''projeto'\r")
+            Some("\u{5}\u{15}cd -- '/home/ana/o'\\''projeto'\r")
         );
         assert_eq!(
             ShellKind::Fish.cd_line(r"/home/ana/o'pro\jeto").as_deref(),
-            Some("cd -- '/home/ana/o\\'pro\\\\jeto'\r")
+            Some("\u{5}\u{15}cd -- '/home/ana/o\\'pro\\\\jeto'\r")
         );
     }
 
@@ -438,7 +485,7 @@ mod tests {
         assert_eq!(
             ShellKind::PowerShell.cd_line(path).as_deref(),
             Some(
-                "Set-Location -LiteralPath \
+                "\u{1b}[1;5F\u{1b}[1;5HSet-Location -LiteralPath \
                  'C:\\p\u{2018}\u{2018}a\u{2019}\u{2019}b\u{201A}\u{201A}c\u{201B}\u{201B}d''e'\r"
             )
         );

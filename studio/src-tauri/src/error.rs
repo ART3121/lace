@@ -36,6 +36,9 @@ pub mod codes {
     /// O caminho tem um caractere de controle, que o shell leria como tecla:
     /// o `cd` automático do terminal não o digita.
     pub const UNSAFE_PATH: &str = "unsafe_path";
+    /// Um programa está em primeiro plano no terminal (no Linux e no macOS):
+    /// o `cd` automático iria para ele e não é digitado.
+    pub const TERMINAL_BUSY: &str = "terminal_busy";
     /// O "Substituir" de um movimento encontrou no destino o que fica no
     /// lugar (o `.spf`, a pasta de um processador, uma pasta com a origem):
     /// nada foi para a lixeira.

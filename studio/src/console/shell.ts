@@ -133,18 +133,21 @@ export async function restartShell(): Promise<void> {
 // Outro projeto aberto: o shell que já roda vai para a pasta dele, com um
 // `cd` digitado, como o "abrir o terminal aqui" da AURORA; o histórico e o
 // que está na tela ficam. Um shell que ainda não abriu nasce na pasta nova, e
-// um que terminou reabre nela. Um caminho com caractere de controle não é
-// digitado (o backend recusa com `unsafe_path`), e o terminal avisa que ficou
-// onde estava.
+// um que terminou reabre nela. O backend apaga antes o que estiver na linha
+// do shell. Um caminho com caractere de controle não é digitado (o backend
+// recusa com `unsafe_path`), nem o `cd` com um programa rodando no terminal
+// (`terminal_busy`, no Linux e no macOS), e o terminal avisa que ficou onde
+// estava.
 useProject.subscribe((state, previous) => {
   const root = state.snapshot?.root ?? null;
   if (!root || root === (previous.snapshot?.root ?? null)) return;
   if (!shell || shell.id === null || shell.exited) return;
   const target = shell;
   void api.terminal.cd(shell.id, root).catch((error: unknown) => {
-    if ((error as { code?: string }).code === 'unsafe_path') {
-      target.term.writeln(`\r\n\x1b[33m${t('panel.terminalCdRefused')}\x1b[0m`);
-    }
+    const code = (error as { code?: string }).code;
+    const notice =
+      code === 'unsafe_path' ? 'panel.terminalCdRefused' : code === 'terminal_busy' ? 'panel.terminalCdBusy' : null;
+    if (notice) target.term.writeln(`\r\n\x1b[33m${t(notice)}\x1b[0m`);
   });
 });
 

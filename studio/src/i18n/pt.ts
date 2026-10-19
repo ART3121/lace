@@ -1107,6 +1107,8 @@ export const pt = {
   'error.unsafe_path': 'O caminho do projeto tem um caractere de controle, que o shell leria como tecla.',
   'error.cannot_replace': 'O que está no destino não pode ser substituído: o Lace o mantém no lugar.',
   'panel.terminalCdRefused': 'O terminal ficou na pasta anterior: o caminho do projeto tem um caractere de controle, que o shell leria como tecla e não como texto.',
+  'error.terminal_busy': 'Um programa está rodando no terminal.',
+  'panel.terminalCdBusy': 'O terminal ficou na pasta anterior: um programa está rodando nele, e o cd para o projeto novo iria para o programa.',
 
   // Exercícios (lace learn)
   'settings.learnDir': 'Pasta das trilhas de exercícios',
