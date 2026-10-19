@@ -45,6 +45,11 @@ export const FEATURES = {
   simFast: '0.4.0',
   /** Sintetizar: `lace synth`, com o esquemático (`--svg`). */
   synth: '0.3.0',
+  /**
+   * O `lace serve`: a API do Lace por JSON-RPC em um processo só, em vez de
+   * um processo por comando. Com um Lace sem ele a extensão usa a CLI.
+   */
+  serve: '0.9.0',
 } as const;
 
 export type Feature = keyof typeof FEATURES;
@@ -81,4 +86,12 @@ export function supportedFeatures(version: string): FeatureSet {
     set[feature] = compareVersions(version, since) >= 0;
   }
   return set;
+}
+
+/**
+ * O que a extensão exige para funcionar: algum recurso dos comandos. O
+ * `serve` é transporte, não recurso: um Lace que só o tivesse não serviria.
+ */
+export function usable(features: FeatureSet): boolean {
+  return (Object.keys(features) as Feature[]).some((feature) => feature !== 'serve' && features[feature]);
 }

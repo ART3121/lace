@@ -49,6 +49,17 @@
           "scope": "machine",
           "markdownDescription": "O executável `lace`. Vazio: o primeiro `lace` do `PATH`."
         },
+        "lace.transport": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "serve",
+            "cli"
+          ],
+          "default": "auto",
+          "scope": "machine",
+          "markdownDescription": "Como a extensão fala com o lace. `auto`: um `lace serve` em segundo plano quando a versão instalada o tem (0.9.0 ou mais nova), senão um processo por comando. `cli`: sempre um processo por comando (`lace --json` e `--events`). `serve`: só o `lace serve`; com um Lace mais antigo a extensão fica indisponível."
+        },
         "lace.check.lint": {
           "type": "boolean",
           "default": false,

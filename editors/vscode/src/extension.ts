@@ -56,11 +56,15 @@ export interface LaceExtensionApi {
 /** Quanto esperar depois de gravar antes do check (lace.check.onSave): junta um "gravar tudo". */
 const CHECK_ON_SAVE_DELAY_MS = 300;
 
+/** A conexão desta ativação, para o `deactivate` encerrar o `lace serve`. */
+let activeConnection: LaceConnection | undefined;
+
 export async function activate(context: vscode.ExtensionContext): Promise<LaceExtensionApi> {
   registerSaphoAssembly(context);
   const log = vscode.window.createOutputChannel('Lace', { log: true });
   const tools = vscode.window.createOutputChannel('Lace: ferramentas');
-  const connection = new LaceConnection(log);
+  const connection = new LaceConnection(log, String(context.extension.packageJSON.version ?? '0.0.0'));
+  activeConnection = connection;
   const projects = new Projects(context.workspaceState);
   const status = new ProjectStatus(connection, projects, log);
   const runs = new Runs(tools);
@@ -254,4 +258,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
   };
 }
 
-export function deactivate(): void {}
+/**
+ * Encerra o `lace serve`, se a conexão o abriu. Roda depois dos `dispose`
+ * de `context.subscriptions`, então o cancelamento das operações (`Runs`)
+ * já chegou ao servidor antes do `shutdown`.
+ */
+export function deactivate(): Promise<void> | undefined {
+  const connection = activeConnection;
+  activeConnection = undefined;
+  return connection?.shutdown();
+}

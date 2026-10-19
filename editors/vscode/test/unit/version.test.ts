@@ -1,6 +1,14 @@
 import * as assert from 'node:assert/strict';
 
-import { compareVersions, FEATURES, MIN_VERSION, parseVersionLine, supportedFeatures } from '../../src/lace/version';
+import {
+  compareVersions,
+  FEATURES,
+  MIN_VERSION,
+  parseVersionLine,
+  supportedFeatures,
+  usable,
+  type FeatureSet,
+} from '../../src/lace/version';
 
 describe('versão do Lace', () => {
   it('lê a linha do lace --version', () => {
@@ -32,8 +40,9 @@ describe('versão do Lace', () => {
       sim: true,
       simFast: true,
       synth: true,
+      serve: true,
     };
-    const none = Object.fromEntries(Object.keys(all).map((k) => [k, false]));
+    const none = Object.fromEntries(Object.keys(all).map((k) => [k, false])) as FeatureSet;
     assert.deepEqual(supportedFeatures('0.1.0'), none);
     // Na 0.2.0 o check, o sim e o synth ainda escreviam outro JSON; o --fast é da 0.4.0.
     assert.deepEqual(supportedFeatures('0.2.0'), {
@@ -43,12 +52,18 @@ describe('versão do Lace', () => {
       sim: false,
       simFast: false,
       synth: false,
+      serve: false,
     });
-    assert.deepEqual(supportedFeatures('0.3.0'), { ...all, moveAfter: false, simFast: false });
-    assert.deepEqual(supportedFeatures('0.4.0'), { ...all, moveAfter: false });
+    assert.deepEqual(supportedFeatures('0.3.0'), { ...all, moveAfter: false, simFast: false, serve: false });
+    assert.deepEqual(supportedFeatures('0.4.0'), { ...all, moveAfter: false, serve: false });
     // O move --after é da versão depois da 0.6.0.
-    assert.deepEqual(supportedFeatures('0.6.0'), { ...all, moveAfter: false });
-    assert.deepEqual(supportedFeatures('0.7.0'), all);
+    assert.deepEqual(supportedFeatures('0.6.0'), { ...all, moveAfter: false, serve: false });
+    // O lace serve é da 0.9.0: com a 0.7.0 e a 0.8.0 a extensão usa a CLI.
+    assert.deepEqual(supportedFeatures('0.7.0'), { ...all, serve: false });
+    assert.deepEqual(supportedFeatures('0.9.0'), all);
+    assert.ok(usable(supportedFeatures('0.7.0')));
+    assert.ok(!usable(none));
+    assert.ok(!usable({ ...none, serve: true }));
   });
 
   it('MIN_VERSION é a do recurso mais antigo', () => {
