@@ -5,11 +5,11 @@
 //! retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns campos a
 //! mais que a interface usa para habilitar botões.
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use lace_core::{
-    AddedFile, Control, FileRole, HierarchyOptions, HierarchyResult, LaceError, Language,
-    LayoutConversion, ListPosition, MovedPath, NewProcessor, Processor, ProcessorConfig, Project,
-    ProjectFile, ProjectIssue, RemovedProcessor,
+    AddedFile, Control, HierarchyOptions, HierarchyResult, LaceError, Language, LayoutConversion,
+    ListPosition, MovedPath, NewProcessor, Processor, ProcessorConfig, Project, ProjectFile,
+    RemovedProcessor,
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
@@ -19,233 +19,14 @@ use crate::state::{AppState, blocking};
 use crate::toolchain;
 use crate::watcher;
 
-/// O projeto inteiro, como a interface o mostra.
-#[derive(Debug, Clone, Serialize)]
-pub struct ProjectSnapshot {
-    /// O nome do projeto.
-    pub name: String,
-    /// O `.spf`.
-    pub spf: Utf8PathBuf,
-    /// A pasta do projeto.
-    pub root: Utf8PathBuf,
-    /// Os módulos registrados (sintetizáveis).
-    pub synthesizable: Vec<ProjectFile>,
-    /// Os testbenches registrados.
-    pub testbenches: Vec<ProjectFile>,
-    /// O arquivo de topo.
-    pub top_level: Option<Utf8PathBuf>,
-    /// O módulo de topo, quando dá para saber.
-    pub top_module: Option<String>,
-    /// Por que o módulo de topo não dá para saber (arquivo com vários
-    /// módulos, nenhum com o nome dele).
-    pub top_module_error: Option<IpcError>,
-    /// O testbench que a simulação do projeto roda.
-    pub selected_testbench: Option<Utf8PathBuf>,
-    /// O módulo desse testbench.
-    pub testbench_module: Option<String>,
-    /// A escolha de sinais da onda desse testbench (`wave/<testbench>.json`):
-    /// vazia, a onda grava todos os sinais.
-    pub wave_selection: Vec<String>,
-    /// Os `.v` e `.sv` da pasta que não estão registrados.
-    pub unregistered: Vec<Utf8PathBuf>,
-    /// Os processadores SAPHO.
-    pub processors: Vec<ProcessorStatus>,
-    /// A onda da simulação do projeto, se já existe no disco.
-    pub waveform: Option<Utf8PathBuf>,
-    /// Os Verilog conhecidos que podem ser o topo: os registrados, os de
-    /// fora do `.spf` e o gerado de cada processador, menos os com nome de
-    /// testbench (a regra de `Project::set_top_level` do Core).
-    pub top_candidates: Vec<Utf8PathBuf>,
-    /// O que está estranho no `.spf` sem impedir de abrir
-    /// (`Project::issues`): vai para o painel de problemas.
-    pub issues: Vec<ProjectIssue>,
-}
-
-/// Um processador, com o que a interface precisa saber dele.
-#[derive(Debug, Clone, Serialize)]
-pub struct ProcessorStatus {
-    /// Os campos do `Processor` do Core (nome, linguagem, caminhos,
-    /// frequência, clocks, arrays).
-    #[serde(flatten)]
-    pub processor: Processor,
-    /// O Verilog e o testbench gerados existem.
-    pub built: bool,
-    /// Os arquivos de entrada (`<proc>/input_<n>.txt`, ao lado do fonte)
-    /// que existem.
-    pub inputs: Vec<PortFile>,
-    /// Os arquivos de saída (`<proc>/<proc>/output_<n>.txt`, na pasta de
-    /// saída) que existem.
-    pub outputs: Vec<PortFile>,
-    /// Entradas que o testbench lê e que não existem (só depois do build).
-    pub missing_inputs: Vec<Utf8PathBuf>,
-    /// A onda da simulação do processador, se já existe.
-    pub waveform: Option<Utf8PathBuf>,
-    /// O que o build gerou e existe no disco.
-    pub generated: GeneratedFiles,
-}
-
-/// Os arquivos que o build de um processador gera, separados pelo papel.
-/// Só entram os que existem.
-#[derive(Debug, Clone, Default, Serialize)]
-pub struct GeneratedFiles {
-    /// `<nome>.v`: o processador em Verilog, um módulo do design.
-    pub verilog: Option<Utf8PathBuf>,
-    /// `<nome>_tb.v`: o testbench que o `asmcomp` gera.
-    pub testbench: Option<Utf8PathBuf>,
-    /// `<nome>.asm`: o assembly que o compilador gera.
-    pub assembly: Option<Utf8PathBuf>,
-    /// `*.mif`: as memórias de dados e de instruções.
-    pub memories: Vec<Utf8PathBuf>,
-    /// As tabelas e os logs do YANC (`prog_log.txt`, `src_lines.txt`,
-    /// `trad_opcode.txt`, `app_log.txt`, `pc_<nome>_mem.txt`).
-    pub intermediates: Vec<Utf8PathBuf>,
-}
-
-impl GeneratedFiles {
-    fn of(processor: &Processor) -> Self {
-        let existing = |path: Utf8PathBuf| path.is_file().then_some(path);
-        let out = &processor.output_dir;
-        Self {
-            verilog: existing(processor.verilog_path()),
-            testbench: existing(processor.testbench_path()),
-            assembly: existing(processor.assembly_path()),
-            memories: files_with(out, &["mif"]),
-            // As saídas da simulação são das portas, e não do build.
-            intermediates: files_with(out, &["txt", "log"])
-                .into_iter()
-                .filter(|p| {
-                    p.file_name()
-                        .is_some_and(|n| !n.starts_with("output_") && !n.starts_with("toma_"))
-                })
-                .collect(),
-        }
-    }
-}
-
-/// Os arquivos de uma pasta com uma das extensões, em ordem.
-fn files_with(dir: &Utf8Path, extensions: &[&str]) -> Vec<Utf8PathBuf> {
-    let Ok(entries) = dir.read_dir_utf8() else {
-        return Vec::new();
-    };
-    let mut files: Vec<Utf8PathBuf> = entries
-        .filter_map(Result::ok)
-        .map(|e| e.into_path())
-        .filter(|p| p.is_file() && p.extension().is_some_and(|e| extensions.contains(&e)))
-        .collect();
-    files.sort();
-    files
-}
-
-/// Um arquivo de porta de entrada ou de saída.
-#[derive(Debug, Clone, Serialize)]
-pub struct PortFile {
-    /// A porta (`n` de `in(n)` e `out(n)`).
-    pub port: u32,
-    /// O arquivo.
-    pub path: Utf8PathBuf,
-}
+/// O projeto inteiro, como a interface o mostra: o retrato do core
+/// (`Project::status`), que é o `lace status --json` com os campos a mais
+/// que a interface usa para habilitar botões.
+pub type ProjectSnapshot = lace_core::ProjectStatus;
 
 /// Monta o retrato do projeto.
 pub fn snapshot(project: &Project) -> ProjectSnapshot {
-    let (top_module, top_module_error) = match project.top_module() {
-        Ok(module) => (module, None),
-        Err(error) => (None, Some(IpcError::from(error))),
-    };
-    let processors: Vec<ProcessorStatus> = project
-        .processors()
-        .iter()
-        .map(|p| {
-            let built = p.is_built();
-            ProcessorStatus {
-                processor: p.clone(),
-                built,
-                inputs: port_files(&p.dir, "input_"),
-                outputs: port_files(&p.output_dir, "output_"),
-                missing_inputs: if built {
-                    lace_core::missing_inputs(p).unwrap_or_default()
-                } else {
-                    Vec::new()
-                },
-                waveform: lace_core::waveform_path(project, Some(p))
-                    .ok()
-                    .filter(|w| w.is_file()),
-                generated: GeneratedFiles::of(p),
-            }
-        })
-        .collect();
-    ProjectSnapshot {
-        name: project.name().to_owned(),
-        spf: project.spf_path().to_owned(),
-        root: project.root().to_owned(),
-        synthesizable: project.files(FileRole::Synthesizable),
-        testbenches: project.files(FileRole::Testbench),
-        top_level: project.top_level(),
-        top_module,
-        top_module_error,
-        selected_testbench: project.testbench(),
-        testbench_module: project.testbench_module().ok().flatten(),
-        wave_selection: lace_core::wave_testbench(project)
-            .and_then(|module| lace_core::read_selection(project, &module))
-            .unwrap_or_default(),
-        top_candidates: top_candidates(project, &processors),
-        unregistered: project.unregistered_verilog(),
-        processors,
-        waveform: lace_core::waveform_path(project, None)
-            .ok()
-            .filter(|w| w.is_file()),
-        issues: project.issues(),
-    }
-}
-
-/// Os candidatos a topo, na ordem: registrados (módulos e testbenches), o
-/// Verilog gerado dos processadores e os de fora do `.spf`. Um testbench
-/// cocotb (`.py`) nunca é topo.
-fn top_candidates(project: &Project, processors: &[ProcessorStatus]) -> Vec<Utf8PathBuf> {
-    let mut candidates: Vec<Utf8PathBuf> = Vec::new();
-    let registered = [FileRole::Synthesizable, FileRole::Testbench]
-        .into_iter()
-        .flat_map(|role| project.files(role))
-        .map(|f| f.path);
-    let generated = processors
-        .iter()
-        .filter_map(|p| p.generated.verilog.clone());
-    for path in registered
-        .chain(generated)
-        .chain(project.unregistered_verilog())
-    {
-        let name = path.file_name().unwrap_or_default();
-        if !lace_core::verilog::is_testbench_name(name)
-            && !lace_core::cocotb::is_testbench(&path)
-            && !candidates.contains(&path)
-        {
-            candidates.push(path);
-        }
-    }
-    candidates
-}
-
-/// Os `<prefixo><n>.txt` de uma pasta, por porta.
-fn port_files(dir: &Utf8Path, prefix: &str) -> Vec<PortFile> {
-    let Ok(entries) = dir.read_dir_utf8() else {
-        return Vec::new();
-    };
-    let mut files: Vec<PortFile> = entries
-        .filter_map(Result::ok)
-        .filter_map(|entry| {
-            let port = entry
-                .file_name()
-                .strip_prefix(prefix)?
-                .strip_suffix(".txt")?
-                .parse()
-                .ok()?;
-            Some(PortFile {
-                port,
-                path: entry.path().to_owned(),
-            })
-        })
-        .collect();
-    files.sort_by_key(|f| f.port);
-    files
+    project.status()
 }
 
 /// Torna `project` o projeto aberto: guarda o `.spf`, põe nos recentes e

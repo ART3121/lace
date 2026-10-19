@@ -6,7 +6,9 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
 use crate::error::{IpcError, IpcResult};
-use crate::flows::{self, WaveOpened};
+use lace_core::flows::WaveOpened;
+
+use crate::flows;
 use crate::settings::{RecentProject, Settings};
 use crate::state::{AppState, blocking};
 use crate::toolchain;

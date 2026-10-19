@@ -120,7 +120,7 @@ pub fn run(
         control,
         started: options.started.unwrap_or_else(SystemTime::now),
     };
-    let mut outcome = FlowOutcome::new(request, &options.command);
+    let mut outcome = FlowOutcome::new(request.name(), &options.command);
     match request {
         FlowRequest::Build { processors } => build(&flow, project, processors, &mut outcome)?,
         FlowRequest::Check {

@@ -75,7 +75,7 @@ fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
 }
 
 fn run(request: FlowRequest, settings: &Settings, spf: &Utf8Path) -> FlowOutcome {
-    let progress = |_: Progress| {};
+    let progress = |_: Progress<'_>| {};
     flows::run(&request, settings, spf, &Control::default(), &progress).expect("o fluxo rodou")
 }
 
@@ -100,7 +100,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
     assert!(
         check.succeeded,
         "check: {:?}",
-        check.check.map(|c| c.diagnostics)
+        check.check.as_ref().map(|c| &c.diagnostics)
     );
     assert!(check.report.is_some(), "o check grava relatório");
 
@@ -116,7 +116,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
         &settings,
         &spf,
     );
-    let simulation = sim.simulation.expect("simulou");
+    let simulation = sim.core.simulation.clone().expect("simulou");
     assert_eq!(
         simulation.status,
         Status::Succeeded,
@@ -147,7 +147,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
             &spf,
         );
         assert_eq!(fast.command, "lace-studio sim --fast --timeout 300");
-        let simulation = fast.simulation.expect("simulou");
+        let simulation = fast.core.simulation.clone().expect("simulou");
         assert_eq!(
             simulation.status,
             Status::Succeeded,
@@ -165,6 +165,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
             processor: None,
             schematic: true,
             module: None,
+            open_viewer: false,
         },
         &settings,
         &spf,
@@ -172,9 +173,9 @@ fn verilog_project_checks_simulates_and_synthesizes() {
     assert!(
         synth.succeeded,
         "{:?}",
-        synth.synthesis.map(|s| s.diagnostics)
+        synth.core.synthesis.map(|s| s.diagnostics)
     );
-    let schematic = synth.schematic.expect("desenhou");
+    let schematic = synth.core.schematic.clone().expect("desenhou");
     assert!(schematic.svg.as_ref().is_some_and(|svg| svg.is_file()));
     assert!(
         synth
@@ -186,7 +187,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
     );
 
     // Desenhar outro módulo do mesmo netlist, sem sintetizar de novo.
-    let netlist = synth.synthesis.unwrap().netlist.unwrap();
+    let netlist = synth.core.synthesis.unwrap().netlist.unwrap();
     let again = run(
         FlowRequest::Schematic {
             netlist,
@@ -235,7 +236,11 @@ fn processor_builds_and_simulates_with_port_values() {
         &settings,
         &spf,
     );
-    assert!(sim.succeeded, "{:?}", sim.simulation.map(|s| s.diagnostics));
+    assert!(
+        sim.succeeded,
+        "{:?}",
+        sim.simulation.as_ref().map(|s| &s.diagnostics)
+    );
     // soma.cmm escreve 1 + 2 + ... + 10 na porta 0.
     let port0 = sim.outputs.iter().find(|p| p.port == 0).expect("porta 0");
     assert_eq!(port0.values.last(), Some(&55));
@@ -257,7 +262,7 @@ fn processor_builds_and_simulates_with_port_values() {
         assert!(
             fast.succeeded,
             "{:?}",
-            fast.simulation.map(|s| s.diagnostics)
+            fast.simulation.as_ref().map(|s| &s.diagnostics)
         );
         let port0 = fast.outputs.iter().find(|p| p.port == 0).expect("porta 0");
         assert_eq!(port0.values.last(), Some(&55));
@@ -275,7 +280,11 @@ fn processor_builds_and_simulates_with_port_values() {
         &settings,
         &spf,
     );
-    assert!(check.succeeded, "{:?}", check.check.map(|c| c.diagnostics));
+    assert!(
+        check.succeeded,
+        "{:?}",
+        check.check.as_ref().map(|c| &c.diagnostics)
+    );
     assert!(check.builds.is_empty(), "o F7 não compila");
     assert_eq!(check.command, "lace-studio check -p soma");
     let targets = &check.check.as_ref().unwrap().targets;
@@ -390,7 +399,7 @@ fn learn_flow_checks_an_exercise_and_records_it() {
     // O arquivo inicial não atribui a saída.
     let wrong = run(request.clone(), &settings, &spf);
     assert!(!wrong.succeeded);
-    let grade = wrong.learn.expect("a correção");
+    let grade = wrong.learn.clone().expect("a correção");
     assert_eq!(grade.verdict, lace_learn::Verdict::Mismatch);
     assert!(wrong.report.is_none(), "a correção não grava relatório");
 
@@ -432,7 +441,15 @@ fn fpga_build_refuses_before_building() {
     let empty = tempfile::tempdir().unwrap();
     settings.quartus_dir = Some(empty.path().to_string_lossy().into_owned());
     let (_dir, spf) = example("soma");
-    let progress = |_: Progress| {};
+    let progress = |_: Progress<'_>| {};
+    // Com a placa desligada nesta máquina, o fluxo recusa antes de olhar o
+    // projeto (o core confere o recurso experimental, como a CLI).
+    if !lace_core::experimental::is_enabled(lace_core::experimental::Feature::Fpga) {
+        let error =
+            flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
+        assert_eq!(error.code, "experimental_disabled");
+        return;
+    }
     let error = flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
     assert_eq!(error.code, "no_fpga_config");
 

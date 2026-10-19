@@ -399,6 +399,8 @@ export const pt = {
   'console.phase.fpga': 'Compilando para a placa (Quartus)',
   'console.phase.schematic': 'Desenhando o esquemático (Yosys + Graphviz)',
   'console.phase.wave': 'Abrindo a onda no surfer-aurora',
+  'console.phase.hierarchy': 'Elaborando a hierarquia (Icarus)',
+  'console.phase.rtl_viewer': 'Gravando o RTL viewer',
   'console.status.succeeded': 'terminou',
   'console.status.failed': 'falhou',
   'console.status.crashed': 'a ferramenta caiu',

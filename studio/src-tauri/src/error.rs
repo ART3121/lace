@@ -97,6 +97,15 @@ impl From<lace_core::LaceError> for IpcError {
     }
 }
 
+impl From<lace_core::ErrorInfo> for IpcError {
+    fn from(error: lace_core::ErrorInfo) -> Self {
+        IpcError {
+            code: error.code,
+            message: error.message,
+        }
+    }
+}
+
 impl From<lace_learn::LearnError> for IpcError {
     fn from(error: lace_learn::LearnError) -> Self {
         IpcError {

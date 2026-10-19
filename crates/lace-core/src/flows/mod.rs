@@ -483,9 +483,12 @@ pub struct FlowOutcome {
 }
 
 impl FlowOutcome {
-    pub(crate) fn new(request: &FlowRequest, command: &str) -> Self {
+    /// Um resultado vazio, bem-sucedido, do fluxo `flow` com o comando
+    /// `command`: o ponto de partida de [`run`], e de um cliente que compõe
+    /// um fluxo próprio sobre este (o `learn` do Studio).
+    pub fn new(flow: &'static str, command: &str) -> Self {
         FlowOutcome {
-            flow: request.name(),
+            flow,
             command: command.to_owned(),
             status: Status::Succeeded,
             succeeded: true,
@@ -513,8 +516,8 @@ impl FlowOutcome {
 
     /// Rebaixa o status para `status` se ele for pior que o atual
     /// (`Succeeded` < `Failed`, `Crashed`, `Incomplete` < `TimedOut` <
-    /// `Cancelled`).
-    pub(crate) fn worsen(&mut self, status: Status) {
+    /// `Cancelled`), e acerta `succeeded`.
+    pub fn worsen(&mut self, status: Status) {
         if rank(status) > rank(self.status) {
             self.status = status;
         }
@@ -763,7 +766,7 @@ mod tests {
     #[test]
     fn the_outcome_status_only_gets_worse() {
         let request = FlowRequest::Build { processors: vec![] };
-        let mut outcome = FlowOutcome::new(&request, "lace build");
+        let mut outcome = FlowOutcome::new(request.name(), "lace build");
         assert!(outcome.succeeded);
         outcome.worsen(Status::Failed);
         assert_eq!(outcome.status, Status::Failed);

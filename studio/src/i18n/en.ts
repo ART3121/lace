@@ -383,6 +383,8 @@ export const en: Record<Key, string> = {
   'console.phase.fpga': 'Building for the board (Quartus)',
   'console.phase.schematic': 'Drawing the schematic (Yosys + Graphviz)',
   'console.phase.wave': 'Opening the waveform in surfer-aurora',
+  'console.phase.hierarchy': 'Elaborating the hierarchy (Icarus)',
+  'console.phase.rtl_viewer': 'Writing the RTL viewer',
   'console.status.succeeded': 'finished',
   'console.status.failed': 'failed',
   'console.status.crashed': 'the tool crashed',
