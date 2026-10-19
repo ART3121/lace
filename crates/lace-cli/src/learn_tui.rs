@@ -38,6 +38,9 @@ const NOTE_FOR: Duration = Duration::from_secs(5);
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 /// A partir desta largura, o enunciado e o resultado ficam lado a lado.
 const SIDE_BY_SIDE: u16 = 110;
+/// Quanto esperar, ao sair, as correções que rodam encerrarem a ferramenta
+/// (o Core a encerra em pouco mais de um segundo depois do cancelamento).
+const STOP_WAIT: Duration = Duration::from_secs(3);
 
 /// Roda a tela até o aluno sair.
 pub fn run(toolchain: Toolchain, workspace: Workspace, cancel: CancelToken) -> anyhow::Result<()> {
@@ -274,6 +277,11 @@ pub struct App {
     tick: usize,
     quit: bool,
     pal: Palette,
+    /// As threads que corrigem, com o cancelamento de cada uma, também as de
+    /// uma correção trocada por outra: ao sair, o Lace espera elas
+    /// encerrarem a ferramenta. No Unix, um `vvp` deixado para trás rodaria
+    /// sozinho, no grupo de processos dele.
+    workers: Vec<(CancelToken, std::thread::JoinHandle<()>)>,
 }
 
 impl App {
@@ -298,6 +306,7 @@ impl App {
             tick: 0,
             quit: false,
             pal,
+            workers: Vec::new(),
         };
         app.load_exercise();
         app
@@ -330,13 +339,21 @@ impl App {
         });
     }
 
-    /// Para o que roda numa thread (ao sair).
+    /// Para o que roda numa thread (ao sair) e espera, até [`STOP_WAIT`], a
+    /// ferramenta de cada correção ser encerrada.
     fn stop(&mut self) {
         if let Check::Running { cancel, .. } = &self.check {
             cancel.cancel();
         }
         if let Overlay::CheckAll(all) = &self.overlay {
             all.cancel.cancel();
+        }
+        for (cancel, _) in &self.workers {
+            cancel.cancel();
+        }
+        let deadline = Instant::now() + STOP_WAIT;
+        while self.workers.iter().any(|(_, w)| !w.is_finished()) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(20));
         }
     }
 
@@ -347,6 +364,7 @@ impl App {
         if self.cancel.is_cancelled() {
             self.quit = true;
         }
+        self.workers.retain(|(_, worker)| !worker.is_finished());
         if self
             .note
             .as_ref()
@@ -447,11 +465,12 @@ impl App {
         let control = Control::new().with_cancel(cancel.clone());
         let workspace = self.workspace.clone();
         let exercise = self.exercise.clone();
-        std::thread::spawn(move || {
+        let worker = std::thread::spawn(move || {
             let result = lace_learn::grade(&toolchain, &workspace, &exercise, &control)
                 .map_err(|e| e.to_string());
             let _ = tx.send(result);
         });
+        self.workers.push((cancel.clone(), worker));
         self.check = Check::Running {
             rx,
             cancel,
@@ -477,7 +496,7 @@ impl App {
         let cancel = CancelToken::new();
         let control = Control::new().with_cancel(cancel.clone());
         let workspace = self.workspace.clone();
-        std::thread::spawn(move || {
+        let worker = std::thread::spawn(move || {
             for exercise in exercises {
                 if control.is_cancelled() {
                     break;
@@ -493,6 +512,7 @@ impl App {
             }
             let _ = tx.send(AllMessage::Finished);
         });
+        self.workers.push((cancel.clone(), worker));
         self.overlay = Overlay::CheckAll(CheckAll {
             rx,
             cancel,
@@ -1701,6 +1721,24 @@ mod tests {
             text.push('\n');
         }
         text
+    }
+
+    #[test]
+    fn quitting_waits_for_the_checks_to_stop_their_tool() {
+        let (_tmp, mut app) = app();
+        // Uma correção que só termina um pouco depois do cancelamento, como
+        // o Core encerrando o `vvp`.
+        let cancel = CancelToken::new();
+        let seen = cancel.clone();
+        let worker = std::thread::spawn(move || {
+            while !seen.is_cancelled() {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            std::thread::sleep(Duration::from_millis(300));
+        });
+        app.workers.push((cancel, worker));
+        app.stop();
+        assert!(app.workers.iter().all(|(_, worker)| worker.is_finished()));
     }
 
     /// A tela inteira, com uma dica à mostra: o registro do layout.
