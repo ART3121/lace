@@ -768,7 +768,14 @@ fn interfaces_by_text(text: &str, file: &Utf8Path) -> Vec<ModuleInterface> {
         let mut header = String::new();
         if chars.get(i) == Some(&'(') {
             let close = skip_parens(&chars, i);
-            header = chars[i + 1..close.saturating_sub(1)].iter().collect();
+            // Sem o `)` (o arquivo cortado no meio do cabeçalho, como num
+            // `module m2 (` ainda sendo escrito), o cabeçalho vai até o fim.
+            let end = if close > i + 1 && chars[close - 1] == ')' {
+                close - 1
+            } else {
+                close
+            };
+            header = chars[i + 1..end].iter().collect();
             i = close;
         }
         let rest: String = chars[i..].iter().collect();
@@ -1025,6 +1032,24 @@ mod tests {
             assert!(tb.contains(line), "falta {line:?} em:\n{tb}");
         }
         assert_eq!(classify(&tb, "counter_tb.v"), FileRole::Testbench);
+    }
+
+    #[test]
+    fn a_module_cut_in_the_header_does_not_panic() {
+        // O arquivo ainda sendo escrito: o cabeçalho sem o `)`.
+        for cut in [
+            "module m2 (",
+            "module m2 (\n  input a,\n  output",
+            "module m2 #(",
+            "module m2 #(parameter W = 1) (",
+        ] {
+            let found = interfaces_by_text(cut, "m2.v".into());
+            assert_eq!(found.len(), 1, "{cut:?}");
+            assert_eq!(found[0].name, "m2");
+        }
+        let partial = interfaces_by_text("module m2 (\n  input a,\n  output y", "m2.v".into());
+        let names: Vec<&str> = partial[0].ports.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(names, ["a", "y"]);
     }
 
     #[test]

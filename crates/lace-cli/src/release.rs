@@ -103,7 +103,9 @@ pub fn latest_github_tag(repo: &str) -> anyhow::Result<String> {
         Some((_, tag)) if output.status.success() && is_asset_name(tag.trim()) => {
             Ok(tag.trim().to_owned())
         }
-        _ => bail!("Could not look up the latest release at {url}"),
+        _ => Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not look up the latest release at {url}"
+        ))),
     }
 }
 
@@ -143,7 +145,9 @@ pub fn fetch_text(url: &str) -> anyhow::Result<String> {
         .output()
         .map_err(curl_missing)?;
     if !output.status.success() {
-        bail!("Could not download {url}");
+        return Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not download {url}"
+        )));
     }
     String::from_utf8(output.stdout).with_context(|| format!("{url} is not UTF-8 text"))
 }
@@ -151,17 +155,20 @@ pub fn fetch_text(url: &str) -> anyhow::Result<String> {
 /// Baixa `url` para `dest`. Com `progress`, a barra do `curl` vai para o
 /// stderr.
 pub fn download_to(url: &str, dest: &Utf8Path, progress: bool) -> anyhow::Result<()> {
-    let status = curl()
+    let child = curl()
         .arg("-fL")
         .arg(if progress { "--progress-bar" } else { "-sS" })
         .arg("-o")
         .arg(dest.as_std_path())
         .arg(url)
         .stdout(Stdio::null())
-        .status()
+        .spawn()
         .map_err(curl_missing)?;
+    let status = wait_curl(child, &mut || {})?;
     if !status.success() {
-        bail!("Could not download {url}");
+        return Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not download {url}"
+        )));
     }
     Ok(())
 }
@@ -204,7 +211,7 @@ pub fn download_checked_quiet(
     }
     let url = asset_url(version, file)?;
     let dest = dir.join(file);
-    let mut child = curl()
+    let child = curl()
         .args(["-fsSL", "-o"])
         .arg(dest.as_std_path())
         .arg(&url)
@@ -212,17 +219,15 @@ pub fn download_checked_quiet(
         .stderr(Stdio::null())
         .spawn()
         .map_err(curl_missing)?;
-    let status = loop {
-        if let Some(status) = child.try_wait().context("Waiting for curl")? {
-            break status;
-        }
+    let status = wait_curl(child, &mut || {
         if let Ok(meta) = std::fs::metadata(&dest) {
             downloaded(meta.len());
         }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    };
+    })?;
     if !status.success() {
-        bail!("Could not download {url}");
+        return Err(crate::cancel::or_cancelled(anyhow::anyhow!(
+            "Could not download {url}"
+        )));
     }
     let sums = std::fs::read_to_string(&sums).with_context(|| format!("Reading {sums}"))?;
     let expected = expected_sha256(&sums, file)
@@ -231,6 +236,28 @@ pub fn download_checked_quiet(
         bail!("The SHA-256 of {file} does not match the SHA256SUMS of release v{version}");
     }
     Ok(dest)
+}
+
+/// Espera o `curl` terminar, chamando `tick` a cada volta. Com o pedido de
+/// cancelamento, encerra-o: o Ctrl+C do terminal chega a ele também, mas o
+/// SIGTERM mandado só ao `lace` (o Studio que cancela) não, e ele ficava
+/// baixando sozinho, na pasta de trabalho que ninguém mais apagava.
+fn wait_curl(
+    mut child: std::process::Child,
+    tick: &mut dyn FnMut(),
+) -> anyhow::Result<std::process::ExitStatus> {
+    loop {
+        if let Some(status) = child.try_wait().context("Waiting for curl")? {
+            return Ok(status);
+        }
+        if crate::cancel::requested() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(crate::cancel::Cancelled.into());
+        }
+        tick();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 }
 
 /// O hash de `file` num `SHA256SUMS` (`<hash>  <arquivo>`, com `*` antes do
@@ -279,10 +306,42 @@ pub fn work_dir() -> anyhow::Result<tempfile::TempDir> {
             .unwrap_or_else(std::env::temp_dir)
     };
     std::fs::create_dir_all(&base).with_context(|| format!("Creating {}", base.display()))?;
+    clean_old_work_dirs(&base, WORK_DIR_LEFTOVER);
     tempfile::Builder::new()
-        .prefix("lace-install.")
+        .prefix(WORK_PREFIX)
         .tempdir_in(&base)
         .with_context(|| format!("Creating a temporary folder in {}", base.display()))
+}
+
+/// O começo do nome de cada pasta de [`work_dir`].
+const WORK_PREFIX: &str = "lace-install.";
+
+/// Uma pasta de trabalho mais velha que isso é sobra: o instalador completo
+/// que o `lace update` deixa para o assistente do Windows rodar depois que
+/// ele sai, ou a de um `lace` encerrado no meio de um download. Uma de outra
+/// operação que ainda roda é nova.
+const WORK_DIR_LEFTOVER: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+
+/// Apaga as pastas de trabalho de `base` mais velhas que `older_than`
+/// ([`WORK_DIR_LEFTOVER`]). Um arquivo em uso (o assistente aberto) fica.
+fn clean_old_work_dirs(base: &std::path::Path, older_than: std::time::Duration) {
+    let Ok(entries) = std::fs::read_dir(base) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let old = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|modified| modified.elapsed().ok())
+            .is_some_and(|age| age > older_than);
+        if old
+            && entry.file_name().to_string_lossy().starts_with(WORK_PREFIX)
+            && entry.file_type().is_ok_and(|t| t.is_dir())
+        {
+            let _ = std::fs::remove_dir_all(entry.path());
+        }
+    }
 }
 
 /// O `curl`, com prazo para conectar: uma rede que pendura em vez de recusar
@@ -328,6 +387,26 @@ fn curl_missing(error: std::io::Error) -> anyhow::Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_old_work_folders_go() {
+        let base = tempfile::tempdir().unwrap();
+        let base = base.path();
+        for dir in ["lace-install.a", "lace-install.b", "outra"] {
+            std::fs::create_dir(base.join(dir)).unwrap();
+        }
+        std::fs::write(base.join("lace-install.c"), "um arquivo").unwrap();
+        // Nenhuma tem um dia.
+        clean_old_work_dirs(base, WORK_DIR_LEFTOVER);
+        assert!(base.join("lace-install.a").is_dir());
+        // Todas são velhas: só as pastas de trabalho saem.
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        clean_old_work_dirs(base, std::time::Duration::ZERO);
+        assert!(!base.join("lace-install.a").exists());
+        assert!(!base.join("lace-install.b").exists());
+        assert!(base.join("outra").is_dir());
+        assert!(base.join("lace-install.c").is_file());
+    }
 
     #[test]
     fn sha256sums_lines_are_read_in_both_modes() {

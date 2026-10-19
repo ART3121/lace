@@ -359,7 +359,7 @@ pub enum LaceError {
     /// [`simulate`](crate::simulate) e
     /// [`simulate_project`](crate::simulate_project); nada foi alterado.
     #[error(
-        "Another Lace operation is using {name} (a build or a simulation); try again when it finishes"
+        "Another Lace operation (a build, a simulation, a synthesis, maybe in another window) is using the files of {name}; try again when it finishes"
     )]
     OperationInProgress {
         /// O processador ou o projeto.

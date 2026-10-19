@@ -207,14 +207,35 @@ impl Processor {
     }
 
     /// As pastas da estrutura de antes do YANC 7.1 (`Software/`,
-    /// `Hardware/`, `Simulation/`) que este processador ainda tem. Vazio na
-    /// estrutura atual. Ver [`Project::convert_layout`].
+    /// `Hardware/`, `Simulation/`) que este processador ainda tem, com algo
+    /// que a conversão moveria. Vazio na estrutura atual. O nome é o da 6.x,
+    /// com as maiúsculas: no Windows e no macOS, uma `simulation/` da pessoa
+    /// também abriria como `Simulation/`. O que o sistema deixa sozinho numa
+    /// pasta (um `.DS_Store`) não conta. Ver [`Project::convert_layout`].
     pub fn legacy_dirs(&self) -> Vec<Utf8PathBuf> {
+        let Ok(entries) = self.dir.read_dir_utf8() else {
+            return Vec::new();
+        };
+        let dirs: Vec<String> = entries
+            .flatten()
+            .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+            .map(|e| e.file_name().to_owned())
+            .collect();
         crate::layout::LEGACY_DIRS
             .iter()
+            .filter(|d| dirs.iter().any(|name| name == *d))
             .map(|d| self.dir.join(d))
-            .filter(|d| d.is_dir())
+            .filter(|d| crate::layout::has_content(d))
             .collect()
+    }
+
+    /// O processador só compila depois da conversão: uma pasta antiga tem o
+    /// que mover ([`legacy_dirs`](Self::legacy_dirs)), e o fonte não está no
+    /// lugar da 7.1. Com o fonte no lugar, o que sobrou numa pasta antiga (um
+    /// arquivo que a conversão deixou porque o destino já existia) não impede
+    /// o build.
+    pub fn needs_conversion(&self) -> bool {
+        !self.source.is_file() && !self.legacy_dirs().is_empty()
     }
 
     /// Cria a pasta do processador, a de saída e a temporária, se faltarem.
@@ -550,9 +571,12 @@ impl Project {
     pub fn processor_at(&self, path: impl AsRef<Utf8Path>) -> Option<&Processor> {
         let path = path.as_ref();
         let path = paths::canonicalize(path).unwrap_or_else(|_| path.to_owned());
-        self.processors
-            .iter()
-            .find(|p| path.starts_with(&p.dir) || path.starts_with(&p.temp_dir))
+        // Pelo caminho real também: a pasta do processador pode ser um link.
+        self.processors.iter().find(|p| {
+            [&p.dir, &p.temp_dir]
+                .into_iter()
+                .any(|dir| path.starts_with(dir) || path.starts_with(paths::real_path(dir)))
+        })
     }
 
     /// O que está estranho no `.spf` mas não impede de abrir: um caminho de
@@ -567,15 +591,27 @@ impl Project {
     pub fn issues(&self) -> Vec<ProjectIssue> {
         let mut issues = self.file_issues();
         for processor in &self.processors {
-            if !processor.legacy_dirs().is_empty() {
+            let legacy = processor.legacy_dirs();
+            if !legacy.is_empty() {
+                let message = if processor.needs_conversion() {
+                    format!(
+                        "Processor '{}' still has the folder layout of YANC 6.x (Software/, Hardware/, Simulation/) and does not build until the project is converted",
+                        processor.name
+                    )
+                } else {
+                    let names: Vec<&str> = legacy.iter().filter_map(|d| d.file_name()).collect();
+                    format!(
+                        "Processor '{}' still has files in folders of the YANC 6.x layout ({}); it builds from {}, and converting the project moves what can still be moved",
+                        processor.name,
+                        names.join(", "),
+                        processor.source.file_name().unwrap_or_default()
+                    )
+                };
                 issues.push(ProjectIssue::new(
                     IssueKind::LegacyLayout,
                     Some(processor.dir.clone()),
                     Some(processor.name.clone()),
-                    format!(
-                        "Processor '{}' still has the folder layout of YANC 6.x (Software/, Hardware/, Simulation/) and does not build until the project is converted",
-                        processor.name
-                    ),
+                    message,
                 ));
             }
             if let Err(LaceError::InvalidName { reason, .. }) =
@@ -883,11 +919,14 @@ impl Project {
 
     /// Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o
     /// botão Wave da AURORA compila antes de simular o projeto. Um processador
-    /// registrado sem fonte fica de fora em vez de fazer o build falhar.
+    /// registrado sem fonte fica de fora em vez de fazer o build falhar. Um
+    /// na estrutura antiga entra ([`Processor::needs_conversion`]): o build
+    /// dele diz que falta a conversão ([`LaceError::LegacyLayout`]), em vez de
+    /// a simulação seguir com o Verilog velho de `Hardware/`.
     pub fn buildable_processors(&self) -> Vec<&Processor> {
         self.processors
             .iter()
-            .filter(|p| p.source.is_file())
+            .filter(|p| p.source.is_file() || p.needs_conversion())
             .collect()
     }
 
@@ -895,9 +934,9 @@ impl Project {
     /// ou o testbench (`<nome>/<nome>/<nome>_tb.v`). Um desses registrado e
     /// ausente quer dizer processador ainda não compilado.
     pub(crate) fn generated_by(&self, path: &Utf8Path) -> Option<&Processor> {
-        self.processors
-            .iter()
-            .find(|p| path == p.verilog_path() || path == p.testbench_path())
+        self.processors.iter().find(|p| {
+            paths::same_file(path, &p.verilog_path()) || paths::same_file(path, &p.testbench_path())
+        })
     }
 
     /// O processador com esse nome, se houver.
@@ -1043,10 +1082,15 @@ impl Project {
         };
         let processor = self.processors[index].clone();
 
+        // O `.spf` guarda o caminho real: com a pasta sendo um link, os
+        // arquivos dela estão registrados pelo destino dele.
+        let real_dir = paths::real_path(&processor.dir);
         let unregistered: Vec<ProjectFile> = [FileRole::Synthesizable, FileRole::Testbench]
             .into_iter()
             .flat_map(|role| self.files(role))
-            .filter(|file| file.path.starts_with(&processor.dir))
+            .filter(|file| {
+                file.path.starts_with(&processor.dir) || file.path.starts_with(&real_dir)
+            })
             .collect();
         for file in &unregistered {
             self.unlist(file.role, &file.path);
@@ -2493,5 +2537,57 @@ mod tests {
                 .unregistered_verilog()
                 .is_empty()
         );
+    }
+
+    /// `link` passa a abrir `target`: um link simbólico no Unix, uma junção
+    /// no Windows (que não pede administrador).
+    fn link_dir(target: &Utf8Path, link: &Utf8Path) {
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(target, link).unwrap();
+        #[cfg(windows)]
+        {
+            let status = std::process::Command::new("cmd")
+                .args(["/C", "mklink", "/J", link.as_str(), target.as_str()])
+                .stdout(std::process::Stdio::null())
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+    }
+
+    #[test]
+    fn a_processor_folder_that_is_a_link_keeps_one_record_of_its_verilog() {
+        let (_guard, dir) = tmp();
+        let mut project = Project::create(&dir, "p").unwrap();
+        let soma = project
+            .add_processor(&NewProcessor::new("soma", Language::Cmm))
+            .unwrap()
+            .clone();
+        // A pasta do processador mora fora, e o projeto a vê por um link.
+        let real = dir.join("fora").join("soma");
+        std::fs::create_dir_all(real.parent().unwrap()).unwrap();
+        std::fs::rename(&soma.dir, &real).unwrap();
+        link_dir(&real, &soma.dir);
+        std::fs::create_dir_all(&soma.output_dir).unwrap();
+        std::fs::write(soma.verilog_path(), "module soma; endmodule\n").unwrap();
+        // Como o build registra: pelo caminho real.
+        let registered = project
+            .add_file(FileRole::Synthesizable, soma.verilog_path(), None)
+            .unwrap();
+        assert!(registered.starts_with(&real), "{registered}");
+
+        let sources = crate::synth::project_sources(&project).unwrap();
+        assert_eq!(sources, std::slice::from_ref(&registered), "um registro só");
+        assert_eq!(
+            project.generated_by(&registered).map(|p| &p.name),
+            Some(&soma.name)
+        );
+        assert_eq!(
+            project.processor_at(&registered).map(|p| &p.name),
+            Some(&soma.name)
+        );
+        let removed = project.remove_processor("soma").unwrap();
+        assert_eq!(removed.unregistered.len(), 1);
+        assert!(project.files(FileRole::Synthesizable).is_empty());
     }
 }

@@ -28,7 +28,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write as _;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use fst_reader::{
@@ -58,6 +58,17 @@ const MAX_HEADER: u64 = 64 * 1024 * 1024;
 /// clock passa disso, e os valores seguintes aparecem em binário (API.md,
 /// 5.7.1).
 const MAX_COMPLEX_VALUES: usize = 16384;
+
+/// O maior complexo do SAPHO: 16 bits de formato e duas palavras de
+/// `1 + 32 + 52` bits ([`decode_complex`]). Um sinal mais largo com nome de
+/// complexo não é traduzido: a largura vem do arquivo, e [`fit_bits`] aloca
+/// por ela (um `$var wire 4000000000` estragado pedia 4 GB).
+const MAX_COMPLEX_BITS: u32 = 16 + 2 * (1 + 32 + 52);
+
+/// Teto de uma linha do corpo do VCD lida atrás dos complexos, que cabem nela
+/// com folga. Uma linha maior (o valor de um vetor largo) é pulada sem ir
+/// inteira para a memória.
+const MAX_VALUE_LINE: u64 = 4096;
 
 /// O layout de uma onda, em memória.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -439,8 +450,18 @@ impl Wave {
     fn open(waveform: &Utf8Path) -> Result<Wave> {
         let file = File::open(waveform).map_err(LaceError::io("Reading", waveform))?;
         let mut reader = BufReader::new(file);
-        if fst_reader::is_fst_file(&mut reader) {
-            let fst = FstReader::open(reader).map_err(|e| fst_error(waveform, e))?;
+        if is_fst(&mut reader).map_err(LaceError::io("Reading", waveform))? {
+            check_fst(&mut reader).map_err(|why| {
+                fst_error(
+                    waveform,
+                    format!("the FST waveform is cut or damaged ({why})"),
+                )
+            })?;
+            reader
+                .seek(SeekFrom::Start(0))
+                .map_err(LaceError::io("Reading", waveform))?;
+            let fst = fst_call(waveform, || FstReader::open(reader))?
+                .map_err(|e| fst_error(waveform, e))?;
             return Ok(Wave::Fst(Box::new(fst)));
         }
         Ok(Wave::Vcd(reader))
@@ -474,32 +495,246 @@ fn fst_error(waveform: &Utf8Path, error: impl std::fmt::Display) -> LaceError {
     LaceError::io("Reading", waveform)(std::io::Error::other(error.to_string()))
 }
 
+/// Uma chamada ao `fst-reader`, com o pânico dele (um `assert!` diante de
+/// uma onda estragada que [`check_fst`] deixou passar) como erro de leitura.
+fn fst_call<T>(waveform: &Utf8Path, call: impl FnOnce() -> T) -> Result<T> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(call))
+        .map_err(|_| fst_error(waveform, "the FST waveform is damaged"))
+}
+
+// Conferência do FST ---------------------------------------------------------
+
+/// Os tipos de bloco do FST, o byte antes do tamanho de cada um.
+const FST_HEADER: u8 = 0;
+const FST_VALUES: u8 = 1;
+const FST_BLACKOUT: u8 = 2;
+const FST_GEOMETRY: u8 = 3;
+const FST_HIERARCHY: u8 = 4;
+const FST_VALUES_ALIAS: u8 = 5;
+const FST_HIERARCHY_LZ4: u8 = 6;
+const FST_HIERARCHY_LZ4_DUO: u8 = 7;
+const FST_VALUES_ALIAS2: u8 = 8;
+const FST_GZIP_WRAPPER: u8 = 254;
+const FST_SKIP: u8 = 255;
+
+/// O tamanho do bloco de cabeçalho, contando os 8 bytes do próprio tamanho.
+const FST_HEADER_LENGTH: u64 = 329;
+
+/// Quanto um bloco comprimido cresce no máximo ao descomprimir: o deflate (o
+/// zlib e o gzip) não passa de 1032 para 1, o LZ4 de 255 para 1.
+const DEFLATE_RATIO: u64 = 1032;
+const LZ4_RATIO: u64 = 255;
+
+/// Uma onda FST começa pelo bloco de cabeçalho, ou é inteira comprimida
+/// (gzip). O `is_fst_file` do `fst-reader` procura o cabeçalho em qualquer
+/// lugar, e num trecho de zeros (o fim de um arquivo depois de uma queda de
+/// energia) anda um byte por vez.
+fn is_fst(input: &mut (impl Read + Seek)) -> std::io::Result<bool> {
+    let mut start = [0u8; 9];
+    let full = input.read_exact(&mut start).is_ok();
+    input.seek(SeekFrom::Start(0))?;
+    let length = u64::from_be_bytes(start[1..].try_into().expect("8 bytes"));
+    Ok(full
+        && (start[0] == FST_GZIP_WRAPPER
+            || (start[0] == FST_HEADER && length == FST_HEADER_LENGTH)))
+}
+
+/// `unpacked` bytes podem sair de `packed` comprimidos, ou guardados como
+/// estão (os dois iguais).
+fn fits_unpacked(unpacked: u64, packed: u64, ratio: u64) -> bool {
+    unpacked == packed || unpacked <= packed.saturating_mul(ratio).saturating_add(64)
+}
+
+fn read_byte(input: &mut impl Read) -> std::io::Result<u8> {
+    let mut byte = [0u8; 1];
+    input.read_exact(&mut byte)?;
+    Ok(byte[0])
+}
+
+fn read_u64_be(input: &mut impl Read) -> std::io::Result<u64> {
+    let mut bytes = [0u8; 8];
+    input.read_exact(&mut bytes)?;
+    Ok(u64::from_be_bytes(bytes))
+}
+
+/// Um inteiro LEB128 sem sinal (o "variant" do FST) e quantos bytes ocupa.
+fn read_leb128(input: &mut impl Read) -> std::io::Result<(u64, u64)> {
+    let mut value = 0u64;
+    for i in 0..10 {
+        let byte = read_byte(input)?;
+        value |= u64::from(byte & 0x7f) << (7 * i);
+        if byte & 0x80 == 0 {
+            return Ok((value, i + 1));
+        }
+    }
+    Err(std::io::Error::other("an integer longer than 64 bits"))
+}
+
+/// Confere uma onda FST antes de entregá-la ao `fst-reader`, que confia nos
+/// tamanhos que o arquivo declara: numa onda cortada no meio (a simulação
+/// morreu gravando), ele cai num `assert!`; com um tamanho estragado, pede a
+/// memória que o tamanho diz, e o processo aborta. Aqui, cada bloco tem que
+/// caber no arquivo, e os tamanhos que o `fst-reader` usa para alocar, caber
+/// no bloco. O que estiver estragado dentro dos dados comprimidos escapa; um
+/// pânico do `fst-reader` vira erro em [`fst_call`].
+fn check_fst(input: &mut (impl Read + Seek)) -> std::result::Result<(), String> {
+    let cut = |_: std::io::Error| "the file ends in the middle of a block".to_owned();
+    let size = input.seek(SeekFrom::End(0)).map_err(cut)?;
+    // Os handles da geometria e os que cada bloco de valores declara.
+    let mut handles = None;
+    let mut value_handles = Vec::new();
+    let mut offset = 0u64;
+    while offset < size {
+        input.seek(SeekFrom::Start(offset)).map_err(cut)?;
+        let kind = read_byte(input).map_err(cut)?;
+        let length = read_u64_be(input).map_err(cut)?;
+        if kind == FST_SKIP && length == 0 {
+            // O `fst-reader` para de ler aqui.
+            break;
+        }
+        // O tamanho conta os 8 bytes dele; `start` é onde ele está.
+        let start = offset + 1;
+        let damaged = || format!("the block at byte {offset} is damaged");
+        if length < 8 || length > size - start {
+            return Err(format!(
+                "the block at byte {offset} goes past the end of the file"
+            ));
+        }
+        match kind {
+            FST_HEADER if length != FST_HEADER_LENGTH => return Err(damaged()),
+            FST_GEOMETRY => {
+                if length < 24 {
+                    return Err(damaged());
+                }
+                let unpacked = read_u64_be(input).map_err(cut)?;
+                let count = read_u64_be(input).map_err(cut)?;
+                // Cada handle ocupa ao menos um byte da geometria.
+                if !fits_unpacked(unpacked, length - 24, DEFLATE_RATIO) || count > unpacked {
+                    return Err(damaged());
+                }
+                handles = Some(count);
+            }
+            FST_HIERARCHY | FST_HIERARCHY_LZ4 | FST_HIERARCHY_LZ4_DUO => {
+                if length < 16 {
+                    return Err(damaged());
+                }
+                let unpacked = read_u64_be(input).map_err(cut)?;
+                let packed = length - 16;
+                let fits = match kind {
+                    FST_HIERARCHY => fits_unpacked(unpacked, packed, DEFLATE_RATIO),
+                    FST_HIERARCHY_LZ4 => fits_unpacked(unpacked, packed, LZ4_RATIO),
+                    // Duas passadas de LZ4, com o tamanho da primeira antes.
+                    _ => {
+                        let (first, skip) = read_leb128(input).map_err(cut)?;
+                        skip <= packed
+                            && fits_unpacked(first, packed - skip, LZ4_RATIO)
+                            && fits_unpacked(unpacked, first, LZ4_RATIO)
+                    }
+                };
+                if !fits {
+                    return Err(damaged());
+                }
+            }
+            FST_VALUES | FST_VALUES_ALIAS | FST_VALUES_ALIAS2 => {
+                // Depois do tamanho: o início, o fim e a memória (três u64),
+                // o quadro inicial, as mudanças, o tamanho da cadeia (u64) e
+                // a tabela de tempos, que termina em três u64.
+                if length < 32 + 8 + 24 {
+                    return Err(damaged());
+                }
+                input
+                    .seek(SeekFrom::Start(start + length - 24))
+                    .map_err(cut)?;
+                let times_unpacked = read_u64_be(input).map_err(cut)?;
+                let times_packed = read_u64_be(input).map_err(cut)?;
+                let times = read_u64_be(input).map_err(cut)?;
+                // Cada tempo ocupa ao menos um byte da tabela.
+                if times_packed > length - (32 + 8 + 24)
+                    || !fits_unpacked(times_unpacked, times_packed, DEFLATE_RATIO)
+                    || times > times_unpacked
+                {
+                    return Err(damaged());
+                }
+                let chain_at = length - times_packed - 24 - 8;
+                input.seek(SeekFrom::Start(start + 32)).map_err(cut)?;
+                let (frame_unpacked, a) = read_leb128(input).map_err(cut)?;
+                let (frame_packed, b) = read_leb128(input).map_err(cut)?;
+                let (frame_handles, c) = read_leb128(input).map_err(cut)?;
+                let frame_end = (32 + a + b + c).saturating_add(frame_packed);
+                if frame_end > chain_at
+                    || !fits_unpacked(frame_unpacked, frame_packed, DEFLATE_RATIO)
+                {
+                    return Err(damaged());
+                }
+                input
+                    .seek(SeekFrom::Start(start + frame_end))
+                    .map_err(cut)?;
+                let (change_handles, d) = read_leb128(input).map_err(cut)?;
+                let changes_at = frame_end + d;
+                input.seek(SeekFrom::Start(start + chain_at)).map_err(cut)?;
+                let chain = read_u64_be(input).map_err(cut)?;
+                if changes_at > chain_at || chain > chain_at - changes_at {
+                    return Err(damaged());
+                }
+                value_handles.extend([frame_handles, change_handles]);
+            }
+            FST_BLACKOUT => {
+                // Cada pausa ocupa ao menos dois bytes.
+                let (count, _) = read_leb128(input).map_err(cut)?;
+                if count > length {
+                    return Err(damaged());
+                }
+            }
+            FST_GZIP_WRAPPER => {
+                // A onda inteira comprimida: os blocos de dentro não se veem
+                // sem descomprimir.
+                let unpacked = read_u64_be(input).map_err(cut)?;
+                if length < 16 || !fits_unpacked(unpacked, length - 16, DEFLATE_RATIO) {
+                    return Err(damaged());
+                }
+                return Ok(());
+            }
+            _ => {}
+        }
+        offset = start + length;
+    }
+    // O `fst-reader` aloca pelos handles de cada bloco de valores.
+    if let Some(handles) = handles
+        && value_handles.iter().any(|&declared| declared > handles)
+    {
+        return Err("a value block declares more signals than the waveform has".to_owned());
+    }
+    Ok(())
+}
+
 /// O cabeçalho de uma onda FST escrito como o de um VCD, para o resto do
 /// layout ler os dois formatos do mesmo jeito. O id de cada sinal é o índice
 /// do handle dele no FST.
 fn fst_header(fst: &mut FstReader<BufReader<File>>, waveform: &Utf8Path) -> Result<String> {
     let mut header = String::new();
-    fst.read_hierarchy(|entry| match entry {
-        FstHierarchyEntry::Scope { name, .. } => {
-            let _ = writeln!(header, "$scope module {name} $end");
-        }
-        FstHierarchyEntry::UpScope => header.push_str("$upscope $end\n"),
-        FstHierarchyEntry::Var {
-            tpe,
-            name,
-            length,
-            handle,
-            ..
-        } => {
-            let kind = if tpe.is_real() { "real" } else { "wire" };
-            let _ = writeln!(
-                header,
-                "$var {kind} {length} {} {name} $end",
-                handle.get_index()
-            );
-        }
-        _ => {}
-    })
+    fst_call(waveform, || {
+        fst.read_hierarchy(|entry| match entry {
+            FstHierarchyEntry::Scope { name, .. } => {
+                let _ = writeln!(header, "$scope module {name} $end");
+            }
+            FstHierarchyEntry::UpScope => header.push_str("$upscope $end\n"),
+            FstHierarchyEntry::Var {
+                tpe,
+                name,
+                length,
+                handle,
+                ..
+            } => {
+                let kind = if tpe.is_real() { "real" } else { "wire" };
+                let _ = writeln!(
+                    header,
+                    "$var {kind} {length} {} {name} $end",
+                    handle.get_index()
+                );
+            }
+            _ => {}
+        })
+    })?
     .map_err(|e| fst_error(waveform, e))?;
     header.push_str("$enddefinitions $end\n");
     Ok(header)
@@ -540,10 +775,15 @@ fn read_header(reader: &mut impl BufRead, waveform: &Utf8Path) -> Result<Option<
     let mut line = Vec::new();
     loop {
         line.clear();
+        // A linha não passa do que falta do teto: um arquivo sem quebra de
+        // linha não vai inteiro para a memória.
+        let budget = MAX_HEADER - header.len() as u64 + 1;
         let read = reader
+            .by_ref()
+            .take(budget)
             .read_until(b'\n', &mut line)
             .map_err(LaceError::io("Reading", waveform))?;
-        if read == 0 {
+        if read == 0 || (header.len() + line.len()) as u64 > MAX_HEADER {
             return Ok(None);
         }
         let Ok(text) = std::str::from_utf8(&line) else {
@@ -555,9 +795,6 @@ fn read_header(reader: &mut impl BufRead, waveform: &Utf8Path) -> Result<Option<
         header.push_str(text);
         if text.contains("$enddefinitions") {
             return Ok(Some(header));
-        }
-        if header.len() as u64 > MAX_HEADER {
-            return Ok(None);
         }
     }
 }
@@ -846,7 +1083,7 @@ fn complex_ids(scopes: &[Scope]) -> HashMap<String, u32> {
     scopes
         .iter()
         .flat_map(|s| &s.signals)
-        .filter(|s| is_complex(&s.name))
+        .filter(|s| is_complex(&s.name) && s.width <= MAX_COMPLEX_BITS)
         .map(|s| (s.id.clone(), s.width))
         .collect()
 }
@@ -891,10 +1128,16 @@ fn vcd_complex_values(
     loop {
         line.clear();
         let read = reader
+            .by_ref()
+            .take(MAX_VALUE_LINE)
             .read_until(b'\n', &mut line)
             .map_err(LaceError::io("Reading", waveform))?;
         if read == 0 || values.len() >= MAX_COMPLEX_VALUES {
             break;
+        }
+        if read as u64 == MAX_VALUE_LINE && line.last() != Some(&b'\n') {
+            skip_line(reader).map_err(LaceError::io("Reading", waveform))?;
+            continue;
         }
         if !matches!(line.first(), Some(b'b' | b'B')) {
             continue;
@@ -915,6 +1158,22 @@ fn vcd_complex_values(
     Ok(values)
 }
 
+/// Pula o resto da linha, sem guardar.
+fn skip_line(reader: &mut impl BufRead) -> std::io::Result<()> {
+    loop {
+        let buffer = reader.fill_buf()?;
+        if buffer.is_empty() {
+            return Ok(());
+        }
+        if let Some(end) = buffer.iter().position(|&b| b == b'\n') {
+            reader.consume(end + 1);
+            return Ok(());
+        }
+        let all = buffer.len();
+        reader.consume(all);
+    }
+}
+
 /// Os valores dos complexos numa onda FST: só os blocos desses sinais são
 /// lidos, e a leitura para no teto.
 fn fst_complex_values(
@@ -933,19 +1192,21 @@ fn fst_complex_values(
             .collect(),
     );
     let mut values = BTreeSet::new();
-    let read = fst.read_signals(&filter, |_time, handle, value| {
-        if values.len() >= MAX_COMPLEX_VALUES {
-            return Err(());
-        }
-        if let FstSignalValue::String(bits) = value
-            && let Some(&width) = widths.get(&handle.get_index())
-            && bits.iter().all(|&b| b == b'0' || b == b'1')
-        {
-            let bits = std::str::from_utf8(bits).expect("0 and 1 are ASCII");
-            values.insert(fit_bits(bits, width));
-        }
-        Ok(())
-    });
+    let read = fst_call(waveform, || {
+        fst.read_signals(&filter, |_time, handle, value| {
+            if values.len() >= MAX_COMPLEX_VALUES {
+                return Err(());
+            }
+            if let FstSignalValue::String(bits) = value
+                && let Some(&width) = widths.get(&handle.get_index())
+                && bits.iter().all(|&b| b == b'0' || b == b'1')
+            {
+                let bits = std::str::from_utf8(bits).expect("0 and 1 are ASCII");
+                values.insert(fit_bits(bits, width));
+            }
+            Ok(())
+        })
+    })?;
     match read {
         Ok(()) | Err(ReadSignalsError::CallbackError(())) => Ok(values),
         Err(error) => Err(fst_error(waveform, error)),
@@ -2051,5 +2312,52 @@ $upscope $end $upscope $end $enddefinitions $end";
         assert_eq!(written, ["lace_asm_soma", "lace_complex", "lace_src_soma"]);
         let options = crate::ViewerOptions::with_layout(&prepared);
         assert_eq!(options.working_dir.as_deref(), Some(prepared.dir.as_path()));
+    }
+
+    #[test]
+    fn a_complex_wider_than_any_sapho_complex_is_not_translated() {
+        // Uma largura estragada no cabeçalho pedia 4 GB para cada valor.
+        let guard = tempfile::tempdir().unwrap();
+        let dir = Utf8Path::from_path(guard.path()).unwrap();
+        let wave = dir.join("x_tb.vcd");
+        std::fs::write(
+            &wave,
+            "$scope module x_tb $end $var wire 1 ! clk $end \
+             $var wire 4000000000 # comp_me3_f_main_v_z_e_ $end \
+             $upscope $end $enddefinitions $end\n#0\nb101 #\nb1 !\n",
+        )
+        .unwrap();
+        let layout = wave_layout(&wave).unwrap().unwrap();
+        assert!(layout.mappings.is_empty(), "{:?}", layout.mappings);
+    }
+
+    /// Uma linha que não acaba: `x` para sempre.
+    struct Endless;
+
+    impl Read for Endless {
+        fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+            buffer.fill(b'x');
+            Ok(buffer.len())
+        }
+    }
+
+    #[test]
+    fn a_header_line_without_end_stops_at_the_ceiling() {
+        let mut reader = BufReader::new(std::io::Cursor::new("$comment ").chain(Endless));
+        let header = read_header(&mut reader, Utf8Path::new("x.vcd")).unwrap();
+        assert_eq!(header, None);
+    }
+
+    #[test]
+    fn a_long_value_line_is_skipped_and_the_next_one_read() {
+        let body = format!("b{} +\nb{COMPLEX} +\n", "1".repeat(1 << 20));
+        let ids = HashMap::from([("+".to_owned(), 32)]);
+        let values = vcd_complex_values(
+            &mut std::io::Cursor::new(body),
+            &ids,
+            Utf8Path::new("x.vcd"),
+        )
+        .unwrap();
+        assert_eq!(values, BTreeSet::from([COMPLEX.to_owned()]));
     }
 }

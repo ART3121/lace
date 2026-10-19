@@ -270,6 +270,9 @@ export const api = {
       return call<number>('terminal_spawn', { cwd, cols, rows, channel });
     },
     write: (id: number, data: string) => call<void>('terminal_write', { id, data }),
+    /** O xterm escreveu `units` (o `length` das strings) do que o terminal
+     * mandou: sem as confirmações, o backend para de ler o shell. */
+    ack: (id: number, units: number) => call<void>('terminal_ack', { id, units }),
     /** Digita no shell o `cd` para `path`, na sintaxe do shell dele. */
     cd: (id: number, path: string) => call<void>('terminal_cd', { id, path }),
     resize: (id: number, cols: number, rows: number) =>

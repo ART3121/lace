@@ -922,7 +922,9 @@ O que o schema não mostra:
 `error.code` é o `LaceError::code()` do Core (tabela em
 [API.md, seção 8](API.md#8-erros)), ou `"cli"` para erros da própria linha de
 comando (`--compiler` sem os três programas, `remove` sem nenhum arquivo
-registrado, `proc set` sem nada para mudar).
+registrado, `proc set` sem nada para mudar), ou `"cancelled"` para um
+`install`, `update`, `uninstall` ou `setup` interrompido pelo Ctrl+C antes
+de mudar a instalação.
 
 A exceção são os erros de argumento (opção desconhecida, valor inválido): o
 `clap` os detecta antes de o comando começar e escreve a mensagem no stderr,
@@ -973,6 +975,13 @@ o que ela iniciou, não começa os passos seguintes e mostra o que chegou a
 rodar, com o título `Cancelled, <tool> stopped`. O código
 de saída é 130. Com `--json` e `--events`, o objeto do resultado sai do
 mesmo jeito. Um segundo sinal sai na hora, também com 130.
+
+`install`, `update`, `uninstall` e `setup` param no primeiro sinal antes de
+mudar a instalação (entre um download e outro, ou depois da pergunta),
+com `Cancelled with Ctrl+C; nothing was changed` e código 130; o download
+que o sinal interrompeu não leva o `update` ao instalador inteiro. Sem
+`--yes`, o `update` pergunta de novo antes de passar ao instalador inteiro
+quando a atualização por partes falha.
 
 ```
   | comecou

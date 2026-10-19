@@ -225,7 +225,7 @@ fn project_run_dir(project: &Project, testbench: &Utf8Path) -> Utf8PathBuf {
     project
         .processors()
         .iter()
-        .find(|p| p.testbench_path() == testbench)
+        .find(|p| crate::paths::same_file(&p.testbench_path(), testbench))
         .map_or_else(|| project.root().to_owned(), |p| p.output_dir.clone())
 }
 
@@ -675,18 +675,9 @@ pub fn simulate_project(
     let run_dir = project_run_dir(project, &testbench);
     let work = project.temp_dir();
     // A simulação do projeto lê o que o build de cada processador grava e
-    // copia arquivos para a raiz: nada disso pode correr junto com outra.
-    let _locks = std::iter::once(crate::paths::run_lock(
-        &work.join(".project"),
-        project.name(),
-    ))
-    .chain(
-        project
-            .processors()
-            .iter()
-            .map(|p| crate::paths::run_lock(&p.temp_dir, &p.name)),
-    )
-    .collect::<Result<Vec<_>>>()?;
+    // copia arquivos para a raiz, como a síntese: não corre com outra delas
+    // nem com um build.
+    let _locks = staging_locks(project, &work.join(".project"), project.name())?;
     // O simulador recebe o caminho completo do Verilog de cada processador.
     if !project.processors().is_empty() {
         crate::paths::check_simulator_path(&root)?;
@@ -695,9 +686,12 @@ pub fn simulate_project(
 
     // Arquivos: sintetizáveis na ordem do .spf, o Verilog de cada processador
     // compilado que ainda não esteja na lista, e o testbench por último.
+    // Sem repetir, pelo caminho real: a pasta de um processador pode ser um
+    // link, e o `.spf` guarda o Verilog dele pelo caminho real.
     let mut files: Vec<Utf8PathBuf> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
     let mut push = |path: Utf8PathBuf| {
-        if !files.contains(&path) {
+        if seen.insert(crate::paths::real_path(&path)) {
             files.push(path);
         }
     };
@@ -775,7 +769,22 @@ pub fn simulate_project(
     let choice = if options.fast {
         None
     } else {
-        crate::wave_signals::dump_choice(toolchain, project, &testbench, &top, control)?
+        match crate::wave_signals::read_selection(project, &top) {
+            // Uma escolha que não se lê (um marcador de conflito do git, o
+            // formato de outra versão) não impede a simulação: a onda grava
+            // todos os sinais, com o aviso, e o arquivo fica como está.
+            Err(LaceError::InvalidProject { path, reason }) => {
+                notes.push(note(
+                    crate::diagnostics::Severity::Warning,
+                    format!(
+                        "{reason}; the waveform records every signal until the choice is fixed or made again"
+                    ),
+                    Some(path),
+                ));
+                None
+            }
+            _ => crate::wave_signals::dump_choice(toolchain, project, &testbench, &top, control)?,
+        }
     };
     if let Some(choice) = &choice {
         notes.extend(choice.notes.iter().cloned());
@@ -1293,6 +1302,7 @@ fn execute(
             }
         }
     }
+    crate::diagnostics::tidy(&mut diagnostics, toolchain.root());
     Ok(SimulationResult {
         top: top.clone(),
         simulator: plan.simulator,
@@ -1869,11 +1879,31 @@ pub fn missing_inputs(processor: &Processor) -> Result<Vec<Utf8PathBuf>> {
         .collect())
 }
 
+/// As travas de quem copia para uma pasta (`work` é a base da trava dela) os
+/// arquivos que o build de cada processador gera ([`stage_processor_files`])
+/// e roda ali: a pasta só para si, e cada processador dividido com as outras
+/// operações que só leem dele. Nenhuma corre com o build de um processador,
+/// que regrava as memórias no meio da cópia.
+pub(crate) fn staging_locks(
+    project: &Project,
+    work: &Utf8Path,
+    name: &str,
+) -> Result<Vec<crate::paths::RunLock>> {
+    std::iter::once(crate::paths::run_lock(work, name))
+        .chain(
+            project
+                .processors()
+                .iter()
+                .map(|p| crate::paths::run_lock_shared(&p.temp_dir, &p.name)),
+        )
+        .collect()
+}
+
 /// Copia para `dest`, o diretório de uma simulação ou síntese que não roda
 /// na pasta de saída de cada processador, os arquivos que o Verilog gerado
 /// lê pelo nome ([`Processor::files_read_by_verilog`]), como a AURORA faz
 /// (`stageProcessorMemoryFiles`). Um processador ainda não compilado fica de
-/// fora: o Verilog dele também não entra.
+/// fora: o Verilog dele também não entra. Com as travas de [`staging_locks`].
 pub(crate) fn stage_processor_files(project: &Project, dest: &Utf8Path) -> Result<()> {
     std::fs::create_dir_all(dest).map_err(LaceError::io("Creating directory", dest))?;
     for processor in project.processors() {

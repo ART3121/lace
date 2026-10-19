@@ -427,7 +427,9 @@ pub fn wave_testbench(project: &Project) -> Result<String> {
 /// - [`LaceError::InvalidProject`]: o testbench é cocotb, ou um arquivo
 ///   registrado não existe, ou a escolha gravada é inválida;
 /// - [`LaceError::ComponentMissing`] sem o Icarus, ou sem o YANC num projeto
-///   com processadores (a biblioteca SAPHO vem dele).
+///   com processadores (a biblioteca SAPHO vem dele);
+/// - [`LaceError::OperationInProgress`]: outra árvore de sinais do projeto
+///   está sendo elaborada.
 pub fn wave_signals(
     toolchain: &Toolchain,
     project: &Project,
@@ -437,8 +439,11 @@ pub fn wave_signals(
     let started = Instant::now();
     let (testbench, module) = project_testbench(project)?;
     let selection = read_selection(project, &module)?;
+    // A imagem é sempre a mesma: duas árvores ao mesmo tempo (o Studio e o
+    // terminal) não a dividem. A da simulação é outra ([`dump_choice`]).
+    let _lock = crate::paths::run_lock(&project.temp_dir().join("wave"), project.name())?;
     let (status, steps, diagnostics, root) =
-        elaborate_tree(toolchain, project, &testbench, &module, control)?;
+        elaborate_tree(toolchain, project, &testbench, &module, "signals", control)?;
     let unknown = match &root {
         Some(root) => split_known(root, &selection).1,
         None => Vec::new(),
@@ -464,12 +469,14 @@ type Elaborated = (
     Option<SignalScope>,
 );
 
-/// Elabora `testbench` com o design e lê a árvore a partir de `module`.
+/// Elabora `testbench` com o design e lê a árvore a partir de `module`, com
+/// a imagem do Icarus em `.lace/Temp/wave/<image>.vvp`.
 fn elaborate_tree(
     toolchain: &Toolchain,
     project: &Project,
     testbench: &Utf8Path,
     module: &str,
+    image: &str,
     control: &Control,
 ) -> Result<Elaborated> {
     let mut files = crate::synth::project_sources(project)?;
@@ -479,7 +486,7 @@ fn elaborate_tree(
     let library = toolchain.sapho_library(!project.processors().is_empty())?;
     let work = project.temp_dir().join("wave");
     std::fs::create_dir_all(&work).map_err(LaceError::io("Creating directory", &work))?;
-    let image = work.join("signals.vvp");
+    let image = work.join(format!("{image}.vvp"));
     let (runner, text) = crate::hierarchy::elaborate(
         toolchain,
         project,
@@ -683,7 +690,8 @@ pub(crate) fn dump_choice(
         return Ok(None);
     }
     let file = selection_file(project, module);
-    let (_, _, _, root) = elaborate_tree(toolchain, project, testbench, module, control)?;
+    // Dentro da simulação do projeto, que tem a trava dele.
+    let (_, _, _, root) = elaborate_tree(toolchain, project, testbench, module, "dump", control)?;
     Ok(root.map(|root| choice_for(&root, &selection, &file)))
 }
 

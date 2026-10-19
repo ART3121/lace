@@ -180,7 +180,9 @@ pub struct ModuleInstance {
 /// - [`LaceError::ProcessorNotFound`] / [`LaceError::NotBuilt`]: com
 ///   `processor`, processador inexistente ou não compilado;
 /// - [`LaceError::ComponentMissing`] sem o Icarus, ou sem o YANC num
-///   projeto com processadores (a biblioteca SAPHO vem dele).
+///   projeto com processadores (a biblioteca SAPHO vem dele);
+/// - [`LaceError::OperationInProgress`]: outra elaboração da hierarquia do
+///   projeto está rodando.
 pub fn hierarchy(
     toolchain: &Toolchain,
     project: &Project,
@@ -238,7 +240,11 @@ pub fn hierarchy(
                 let Ok(verilog) = processor_verilog(project, &processor.name) else {
                     continue;
                 };
-                if testbench.is_file() && !registered.contains(&testbench) {
+                if testbench.is_file()
+                    && !registered
+                        .iter()
+                        .any(|r| crate::paths::same_file(r, &testbench))
+                {
                     targets.push(Target::processor(&processor.name, &verilog, testbench)?);
                 }
             }
@@ -274,6 +280,9 @@ pub fn hierarchy(
 
     let library = toolchain.sapho_library(!project.processors().is_empty())?;
     let work = project.temp_dir().join("hierarchy");
+    // A pasta é apagada a cada elaboração: duas ao mesmo tempo (o Studio e o
+    // terminal) não dividem a mesma.
+    let _lock = crate::paths::run_lock(&work, project.name())?;
     let _ = std::fs::remove_dir_all(&work);
     std::fs::create_dir_all(&work).map_err(LaceError::io("Creating directory", &work))?;
 

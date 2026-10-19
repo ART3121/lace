@@ -1052,7 +1052,7 @@ export const en: Record<Key, string> = {
   'error.non_ascii_path': 'The project path has accents or other special characters, and the simulator cannot open the processor files there. Move the project to a folder without accents.',
   'error.ambiguous_module': 'The module is declared in more than one registered file. Choose the top by file.',
   'error.invalid_parameter': 'Processor parameter outside what YANC compiles. The reason is in the details.',
-  'error.operation_in_progress': 'Another Lace operation (a build or a simulation, maybe in the terminal) is using this processor. Try again when it finishes.',
+  'error.operation_in_progress': 'Another Lace operation (a build, a simulation, a synthesis, maybe in the terminal) is using the files of this project. Try again when it finishes.',
   'error.invalid_bundle': 'The Lace bundle folder is not valid.',
   'error.invalid_data_file': 'The data file has a line that is not an integer.',
   'error.invalid_netlist': 'The synthesis netlist could not be read.',
@@ -1140,4 +1140,6 @@ export const en: Record<Key, string> = {
   'error.unsafe_path': 'The project path has a control character, which the shell would read as a key.',
   'error.cannot_replace': 'What is at the destination cannot be replaced: Lace keeps it in place.',
   'panel.terminalCdRefused': 'The terminal stayed in the previous folder: the project path has a control character, which the shell would read as a key and not as text.',
+  'error.terminal_busy': 'A program is running in the terminal.',
+  'panel.terminalCdBusy': 'The terminal stayed in the previous folder: a program is running in it, and the cd to the new project would go to the program.',
 };

@@ -167,6 +167,41 @@ fn the_choice_limits_what_the_simulation_records_and_the_layout_shows() {
 }
 
 #[test]
+fn an_unreadable_choice_does_not_stop_the_simulation() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog, Tool::Vvp]) else {
+        return;
+    };
+    let (_guard, dir) = common::tempdir();
+    let project = project(&dir);
+    let root = project.root().to_owned();
+    // Um merge do git que deixou os marcadores de conflito no arquivo.
+    let file = root.join("wave/mux2_tb.json");
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    let conflict = "<<<<<<< HEAD\n{\"schema\":1,\"signals\":[\"mux2_tb.sel\"]}\n=======\n";
+    std::fs::write(&file, conflict).unwrap();
+
+    let sim = simulate_project(
+        &toolchain,
+        &project,
+        &SimulationOptions::new(Simulator::Icarus),
+        &Control::default(),
+    )
+    .unwrap();
+    assert!(sim.succeeded(), "{sim:#?}");
+    // A onda grava todos os sinais, e o aviso diz por quê.
+    let all = dumped(&sim.waveform.unwrap().path);
+    assert!(all.contains("mux2_tb.dut.u1.t"), "{all:?}");
+    let warning = sim
+        .diagnostics
+        .iter()
+        .find(|d| d.file.as_deref() == Some(file.as_path()))
+        .expect("um aviso sobre a escolha");
+    assert!(warning.message.contains("records every signal"), "{warning:?}");
+    // O arquivo fica como estava.
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), conflict);
+}
+
+#[test]
 fn the_saved_layout_is_regenerated_until_the_user_saves_it() {
     let Some(toolchain) = common::toolchain_with(&[Tool::Iverilog, Tool::Vvp]) else {
         return;

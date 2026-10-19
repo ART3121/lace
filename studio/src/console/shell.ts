@@ -58,16 +58,38 @@ function create(): Shell {
   return created;
 }
 
+/** De quanto em quanto (o `length` das strings) a interface confirma ao
+ * backend o que o xterm escreveu. Menor que o atraso com que o backend volta
+ * a ler (`LOW_WATER`, 16 Ki, em `terminal.rs`). */
+const ACK_BATCH = 8 * 1024;
+
 async function spawn(target: Shell): Promise<void> {
   const cwd = useProject.getState().snapshot?.root ?? null;
+  // O terminal deste spawn, e o que o xterm já escreveu sem confirmar. A
+  // saída pode chegar antes do identificador; o que chegou fica para a
+  // primeira confirmação.
+  let id: number | null = null;
+  let written = 0;
+  const ack = () => {
+    if (id === null || written === 0) return;
+    void api.terminal.ack(id, written).catch(() => undefined);
+    written = 0;
+  };
   try {
-    target.id = await api.terminal.spawn(cwd, target.term.cols, target.term.rows, (message) => {
-      if (message.type === 'data') target.term.write(message.data);
-      else {
+    id = await api.terminal.spawn(cwd, target.term.cols, target.term.rows, (message) => {
+      if (message.type === 'data') {
+        const units = message.data.length;
+        target.term.write(message.data, () => {
+          written += units;
+          if (written >= ACK_BATCH) ack();
+        });
+      } else {
         target.exited = true;
         target.term.writeln(`\r\n\x1b[90m${t('panel.terminalExited', { code: message.code ?? '-' })}\x1b[0m`);
       }
     });
+    target.id = id;
+    ack();
     target.exited = false;
   } catch (error) {
     target.exited = true;
@@ -133,18 +155,21 @@ export async function restartShell(): Promise<void> {
 // Outro projeto aberto: o shell que já roda vai para a pasta dele, com um
 // `cd` digitado, como o "abrir o terminal aqui" da AURORA; o histórico e o
 // que está na tela ficam. Um shell que ainda não abriu nasce na pasta nova, e
-// um que terminou reabre nela. Um caminho com caractere de controle não é
-// digitado (o backend recusa com `unsafe_path`), e o terminal avisa que ficou
-// onde estava.
+// um que terminou reabre nela. O backend apaga antes o que estiver na linha
+// do shell. Um caminho com caractere de controle não é digitado (o backend
+// recusa com `unsafe_path`), nem o `cd` com um programa rodando no terminal
+// (`terminal_busy`, no Linux e no macOS), e o terminal avisa que ficou onde
+// estava.
 useProject.subscribe((state, previous) => {
   const root = state.snapshot?.root ?? null;
   if (!root || root === (previous.snapshot?.root ?? null)) return;
   if (!shell || shell.id === null || shell.exited) return;
   const target = shell;
   void api.terminal.cd(shell.id, root).catch((error: unknown) => {
-    if ((error as { code?: string }).code === 'unsafe_path') {
-      target.term.writeln(`\r\n\x1b[33m${t('panel.terminalCdRefused')}\x1b[0m`);
-    }
+    const code = (error as { code?: string }).code;
+    const notice =
+      code === 'unsafe_path' ? 'panel.terminalCdRefused' : code === 'terminal_busy' ? 'panel.terminalCdBusy' : null;
+    if (notice) target.term.writeln(`\r\n\x1b[33m${t(notice)}\x1b[0m`);
   });
 });
 

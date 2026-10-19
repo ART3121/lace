@@ -29,10 +29,10 @@ fn copy_case(case: &Utf8Path, processor: &Utf8Path) {
 
 #[test]
 fn cmm_positive_tests_match_golden_asm() {
-    let Some(toolchain) = common::toolchain() else {
+    let (Some(toolchain), Some(yanc)) = (common::toolchain(), common::yanc_source()) else {
         return;
     };
-    let tests = common::yanc_source().join("Compilers/CMMComp/Tests");
+    let tests = yanc.join("Compilers/CMMComp/Tests");
     let mut names: Vec<_> = tests
         .read_dir_utf8()
         .unwrap()
@@ -100,10 +100,10 @@ fn cmm_positive_tests_match_golden_asm() {
 
 #[test]
 fn cmm_negative_tests_are_rejected_with_expected_message() {
-    let Some(toolchain) = common::toolchain() else {
+    let (Some(toolchain), Some(yanc)) = (common::toolchain(), common::yanc_source()) else {
         return;
     };
-    let neg = common::yanc_source().join("Compilers/CMMComp/NegTests");
+    let neg = yanc.join("Compilers/CMMComp/NegTests");
     let manifest = std::fs::read_to_string(neg.join("manifest.txt")).unwrap();
 
     let mut checked = 0;

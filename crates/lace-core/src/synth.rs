@@ -16,7 +16,7 @@
 //!           setundef -zero
 //!           opt_clean -purge
 //!           write_json "<trabalho>/hierarchy.json"
-//! esquemático: yosys -q -s show.ys                                             cwd trabalho
+//! esquemático: yosys -q -s <módulo>.show.ys                                    cwd trabalho
 //!           read_json "<trabalho>/hierarchy.json"
 //!           show -format dot -prefix <módulo> [-width] <módulo>
 //!           dot -Tsvg <módulo>.dot -o <módulo>.svg                         cwd trabalho
@@ -236,7 +236,9 @@ impl SchematicResult {
 /// - [`LaceError::ProcessorNotFound`] / [`LaceError::NotBuilt`]: com
 ///   `processor`, processador inexistente ou não compilado;
 /// - ferramenta ausente ou que não executa, como nas demais operações (o
-///   `lint` precisa do Verilator e do compilador do sistema).
+///   `lint` precisa do Verilator e do compilador do sistema);
+/// - [`LaceError::OperationInProgress`]: com `lint`, outra verificação com
+///   lint do projeto está rodando.
 pub fn check(
     toolchain: &Toolchain,
     project: &Project,
@@ -449,6 +451,9 @@ pub fn check(
     };
     if verilator {
         let dir = project.temp_dir().join("lint");
+        // A pasta é apagada a cada lint: dois ao mesmo tempo (o Studio e o
+        // terminal) não dividem a mesma.
+        let _lock = crate::paths::run_lock(&dir, project.name())?;
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).map_err(LaceError::io("Creating directory", &dir))?;
         let mut invocation = toolchain
@@ -482,6 +487,7 @@ pub fn check(
         raw: String::new(),
     }));
     diagnostics.extend(runner.diagnostics);
+    crate::diagnostics::tidy(&mut diagnostics, toolchain.root());
     Ok(CheckResult {
         targets,
         status: runner.status,
@@ -541,7 +547,10 @@ pub(crate) fn design_roots(
 /// - [`LaceError::ProcessorNotFound`] / [`LaceError::NotBuilt`]: com
 ///   `DesignTarget::Processor`, processador inexistente ou não compilado;
 /// - [`LaceError::InvalidName`] também se um caminho tiver aspas ou quebra
-///   de linha, que não cabem no script do Yosys.
+///   de linha, que não cabem no script do Yosys;
+/// - [`LaceError::OperationInProgress`]: outra síntese ou uma simulação do
+///   projeto (as duas copiam memórias para a raiz), ou o build de um
+///   processador dele, está rodando.
 pub fn synthesize(
     toolchain: &Toolchain,
     project: &Project,
@@ -563,6 +572,13 @@ pub fn synthesize(
     let _span = tracing::info_span!("synthesize", %top).entered();
     let files = with_library(toolchain, project, files)?;
 
+    // A raiz é a da simulação do projeto: as duas não correm juntas, nem com
+    // o build de um processador.
+    let _locks = crate::simulate::staging_locks(
+        project,
+        &project.temp_dir().join(".project"),
+        project.name(),
+    )?;
     let work = project.temp_dir().join("synth").join(&top);
     std::fs::create_dir_all(&work).map_err(LaceError::io("Creating directory", &work))?;
     // O Yosys roda na raiz, e o Verilog de cada processador lê as memórias
@@ -648,9 +664,9 @@ pub fn synthesize(
 
 /// Desenha um módulo do netlist em SVG: o Yosys gera o grafo do módulo
 /// (`show -format dot`) e o `dot` do Graphviz o desenha. Os arquivos ficam ao
-/// lado do netlist: `show.ys`, `<módulo>.dot` e `<módulo>.svg` (no Linux,
-/// também o `fonts.conf` que aponta o `dot` para as fontes do bundle, e o
-/// cache dele).
+/// lado do netlist: `<módulo>.show.ys`, `<módulo>.dot` e `<módulo>.svg` (no
+/// Linux, também o `fonts.conf` que aponta o `dot` para as fontes do bundle,
+/// e o cache dele).
 ///
 /// Os nomes possíveis estão em [`SynthesisResult::modules`]. Submódulos
 /// aparecem como caixas no desenho do módulo pai; para abrir um, chame de
@@ -683,7 +699,9 @@ pub fn render_schematic(
     let stem = file_safe(module);
     let dot_file = dir.join(format!("{stem}.dot"));
     let svg = dir.join(format!("{stem}.svg"));
-    let script = dir.join("show.ys");
+    // Um script por módulo: dois desenhos ao mesmo tempo não gravam um no
+    // script do outro.
+    let script = dir.join(format!("{stem}.show.ys"));
     let width = if options.bus_widths { " -width" } else { "" };
     // O `-prefix` do `show` não aceita aspas: vai relativo ao CWD (a pasta
     // da síntese), com o nome já sem espaço nem caractere especial.
@@ -845,14 +863,15 @@ fn is_test_file(path: &Utf8Path) -> bool {
     name.contains("_tb") || name.contains("test")
 }
 
+/// Sem repetir, pelo caminho real: com a pasta de um processador sendo um
+/// link, o Verilog dele vem do `.spf` pelo caminho real e do processador pelo
+/// do link, e o Icarus e o Yosys recusariam o módulo duas vezes.
 fn dedup(files: Vec<Utf8PathBuf>) -> Vec<Utf8PathBuf> {
-    let mut out: Vec<Utf8PathBuf> = Vec::with_capacity(files.len());
-    for file in files {
-        if !out.contains(&file) {
-            out.push(file);
-        }
-    }
-    out
+    let mut seen = std::collections::HashSet::new();
+    files
+        .into_iter()
+        .filter(|file| seen.insert(crate::paths::real_path(file)))
+        .collect()
 }
 
 /// Um caminho entre aspas para um script do Yosys.

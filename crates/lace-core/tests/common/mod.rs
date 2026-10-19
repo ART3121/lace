@@ -24,10 +24,20 @@ pub fn toolchain() -> Option<Toolchain> {
     }
 }
 
-/// Fonte do YANC, para os casos de teste do próprio YANC.
-pub fn yanc_source() -> Utf8PathBuf {
-    std::env::var("LACE_TEST_YANC_SRC")
-        .map_or_else(|_| workspace().join("vendor/yanc"), Utf8PathBuf::from)
+/// Fonte do YANC, para os casos de teste do próprio YANC. Sem ela (o
+/// `vendor/yanc` não vem num clone), os testes avisam e passam, como sem o
+/// bundle; com `CI` definido, a ausência é falha.
+pub fn yanc_source() -> Option<Utf8PathBuf> {
+    let dir = std::env::var("LACE_TEST_YANC_SRC")
+        .map_or_else(|_| workspace().join("vendor/yanc"), Utf8PathBuf::from);
+    if dir.join("Compilers").is_dir() {
+        return Some(dir);
+    }
+    if std::env::var_os("CI").is_some() {
+        panic!("CI definido, mas a fonte do YANC não está em {dir}");
+    }
+    eprintln!("PULADO: sem a fonte do YANC em {dir} (defina LACE_TEST_YANC_SRC)");
+    None
 }
 
 pub fn workspace() -> Utf8PathBuf {

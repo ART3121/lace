@@ -140,9 +140,11 @@ impl Output {
                 Some(lace_learn::LearnError::Lace(e)) => Some(e),
                 _ => None,
             });
+        let cancelled = crate::cancel::is(error);
         let (code, hint) = match (lace, learn) {
             (Some(lace), _) => (lace.code(), hint(lace)),
             (None, Some(learn)) => crate::learn::error_info(learn),
+            (None, None) if cancelled => ("cancelled", None),
             (None, None) => ("cli", None),
         };
         if self.json {
@@ -158,6 +160,9 @@ impl Output {
             } else if let Ok(line) = serde_json::to_string(&report) {
                 println!("{line}");
             }
+        } else if cancelled {
+            // Pedido por quem roda, e não um erro.
+            anstream::eprintln!("{}", chain_text(error));
         } else {
             anstream::eprintln!("{}: {}", paint(ERROR, "Error"), chain_text(error));
             if let Some(hint) = hint {

@@ -283,6 +283,8 @@ impl ChunkSource for DiskPayload {
         chunk: &Chunk,
         downloaded: &mut dyn FnMut(u64),
     ) -> anyhow::Result<std::path::PathBuf> {
+        // Cada pedaço vem antes de a instalação mudar: o Ctrl+C para aqui.
+        crate::cancel::check()?;
         if self.prefix.is_empty() {
             return LocalPayload(self.dir.clone().into_std_path_buf()).fetch(chunk, downloaded);
         }
@@ -372,6 +374,8 @@ impl ChunkSource for ReleasePayload {
         chunk: &Chunk,
         downloaded: &mut dyn FnMut(u64),
     ) -> anyhow::Result<std::path::PathBuf> {
+        // Cada pedaço vem antes de a instalação mudar: o Ctrl+C para aqui.
+        crate::cancel::check()?;
         let file = payload::release_asset(&self.version, &self.platform, &chunk.file);
         let path = release::download_checked_quiet(&self.version, &file, &self.dir, downloaded)?;
         Ok(path.into_std_path_buf())

@@ -44,7 +44,7 @@
       }
     },
     "remaining_dirs": {
-      "description": "As subpastas antigas que ficaram, por não estarem vazias.",
+      "description": "As subpastas antigas que ficaram com algo que não foi movido (o que o\nsistema deixa sozinho numa pasta, como o `.DS_Store`, não conta).",
       "type": "array",
       "items": {
         "type": "string"

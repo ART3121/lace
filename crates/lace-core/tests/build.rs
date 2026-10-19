@@ -487,7 +487,12 @@ fn register_generated_adds_the_verilog_and_the_testbench() {
         .iter()
         .map(|f| {
             (
-                f.path.strip_prefix(&root).unwrap().to_string(),
+                // Com `/`, também no Windows.
+                f.path
+                    .strip_prefix(&root)
+                    .unwrap()
+                    .as_str()
+                    .replace('\\', "/"),
                 f.role,
                 f.selected,
             )

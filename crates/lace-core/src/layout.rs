@@ -38,6 +38,19 @@ use crate::project::{Language, Processor, Project, validate_processor_name};
 /// As subpastas que cada processador tinha antes do YANC 7.1.
 pub(crate) const LEGACY_DIRS: [&str; 3] = ["Software", "Hardware", "Simulation"];
 
+/// O que o sistema ou o git deixam sozinhos numa pasta: não é da pessoa nem
+/// do YANC. A conversão não o move, e uma pasta antiga só com ele já não
+/// conta como estrutura antiga.
+pub(crate) fn is_system_file(name: &str) -> bool {
+    matches!(name, ".DS_Store" | "Thumbs.db" | "desktop.ini" | ".gitkeep") || name.starts_with("._")
+}
+
+/// A pasta tem algo além do que [`is_system_file`] aceita.
+pub(crate) fn has_content(dir: &Utf8Path) -> bool {
+    dir.read_dir_utf8()
+        .is_ok_and(|entries| entries.flatten().any(|e| !is_system_file(e.file_name())))
+}
+
 /// O que [`Project::convert_layout`] fez.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
@@ -54,7 +67,8 @@ pub struct LayoutConversion {
     /// Os processadores cujo nome não serve mais: na 7.1 ele vira o módulo
     /// Verilog, e o YANC recusa um fonte com esse nome.
     pub invalid_names: Vec<String>,
-    /// As subpastas antigas que ficaram, por não estarem vazias.
+    /// As subpastas antigas que ficaram com algo que não foi movido (o que o
+    /// sistema deixa sozinho numa pasta, como o `.DS_Store`, não conta).
     #[schemars(with = "Vec<String>")]
     pub remaining_dirs: Vec<Utf8PathBuf>,
 }
@@ -151,7 +165,9 @@ impl Project {
     ///
     /// - [`LaceError::Io`] se a pasta de saída de um processador não puder
     ///   ser criada, ou o `.spf` não puder ser gravado. Um arquivo que não
-    ///   pôde ser movido não é erro: fica no relatório, em `skipped`.
+    ///   pôde ser movido não é erro: fica no relatório, em `skipped`. Sem o
+    ///   `.spf` gravado, o que foi movido volta para onde estava, com o texto
+    ///   de antes, e o processador continua na estrutura antiga.
     pub fn convert_layout(&mut self) -> Result<LayoutConversion> {
         self.begin_write()?;
         let legacy: Vec<Processor> = self.legacy_processors().into_iter().cloned().collect();
@@ -160,6 +176,11 @@ impl Project {
             self.release_write();
             return Ok(report);
         }
+        // Para desfazer, se o `.spf` não for gravado: o documento, o que foi
+        // movido e o texto dos fontes que perderam a linha do nome.
+        let document = self.document.clone();
+        let mut moves: Vec<(Utf8PathBuf, Utf8PathBuf)> = Vec::new();
+        let mut rewritten: Vec<(Utf8PathBuf, String)> = Vec::new();
         let mut changed = false;
         for p in &legacy {
             report.processors.push(p.name.clone());
@@ -171,12 +192,14 @@ impl Project {
                 return Err(LaceError::io("Creating directory", &p.output_dir)(error));
             }
             let bases = file_bases(p);
-            for sub in LEGACY_DIRS {
-                let dir = p.dir.join(sub);
+            for dir in p.legacy_dirs() {
                 let Ok(entries) = dir.read_dir_utf8() else {
                     continue;
                 };
-                let mut entries: Vec<_> = entries.flatten().collect();
+                let mut entries: Vec<_> = entries
+                    .flatten()
+                    .filter(|e| !is_system_file(e.file_name()))
+                    .collect();
                 entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
                 for entry in entries {
                     let from = entry.path().to_owned();
@@ -203,8 +226,12 @@ impl Project {
                         continue;
                     }
                     changed |= self.rewrite_moved(&from, &to);
-                    if !generated && is_source(name) {
-                        remove_name_line(p, &to, &mut report);
+                    moves.push((from.clone(), to.clone()));
+                    if !generated
+                        && is_source(name)
+                        && let Some(text) = remove_name_line(p, &to, &mut report)
+                    {
+                        rewritten.push((to.clone(), text));
                     }
                     report.moved.push(ConvertedPath {
                         processor: p.name.clone(),
@@ -213,17 +240,40 @@ impl Project {
                         generated,
                     });
                 }
+                // Vazia, a pasta sai; com o que o sistema deixou, fica, sem
+                // contar como antiga.
                 let empty = dir.read_dir().is_ok_and(|mut d| d.next().is_none());
-                if !(empty && std::fs::remove_dir(&dir).is_ok()) {
+                if empty {
+                    let _ = std::fs::remove_dir(&dir);
+                }
+                if has_content(&dir) {
                     report.remaining_dirs.push(dir);
                 }
             }
         }
         changed |= self.drop_legacy_entry_fields();
-        if changed {
-            self.save()?;
-        } else {
+        if !changed {
             self.release_write();
+        } else if let Err(error) = self.save() {
+            // O `.spf` continua apontando para os lugares antigos: o disco
+            // volta a bater com ele, e o processador continua antigo (dá
+            // para converter de novo).
+            for (file, text) in rewritten.iter().rev() {
+                if let Err(e) = std::fs::write(file, text) {
+                    tracing::warn!(%file, "Could not restore the name line: {e}");
+                }
+            }
+            for (from, to) in moves.iter().rev() {
+                let back = from
+                    .parent()
+                    .map_or(Ok(()), std::fs::create_dir_all)
+                    .and_then(|()| std::fs::rename(to, from));
+                if let Err(e) = back {
+                    tracing::warn!(%from, %to, "Could not move back: {e}");
+                }
+            }
+            self.document = document;
+            return Err(error);
         }
         tracing::info!(
             processors = report.processors.len(),
@@ -333,21 +383,23 @@ fn is_generated(name: &str, bases: &[String]) -> bool {
 }
 
 /// Tira do fonte a linha do nome e anota no relatório. Um fonte ilegível
-/// fica como está: o build vai dizer o que falta.
-fn remove_name_line(p: &Processor, file: &Utf8Path, report: &mut LayoutConversion) {
-    let Ok(text) = std::fs::read_to_string(file) else {
-        return;
-    };
-    let (text, old_name) = without_name_lines(&text);
-    if let Some(old_name) = old_name
-        && std::fs::write(file, text).is_ok()
-    {
-        report.name_lines.push(RemovedNameLine {
-            processor: p.name.clone(),
-            file: file.to_owned(),
-            old_name,
-        });
-    }
+/// fica como está: o build vai dizer o que falta. Devolve o texto de antes,
+/// quando regravou.
+fn remove_name_line(
+    p: &Processor,
+    file: &Utf8Path,
+    report: &mut LayoutConversion,
+) -> Option<String> {
+    let original = std::fs::read_to_string(file).ok()?;
+    let (text, old_name) = without_name_lines(&original);
+    let old_name = old_name?;
+    std::fs::write(file, text).ok()?;
+    report.name_lines.push(RemovedNameLine {
+        processor: p.name.clone(),
+        file: file.to_owned(),
+        old_name,
+    });
+    Some(original)
 }
 
 /// O texto sem as linhas `#PRNAME <nome>` e `#pragma yanc prname <nome>`, e
@@ -389,6 +441,123 @@ fn name_line(line: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{FileRole, IssueKind, NewProcessor};
+
+    /// Um projeto com o processador `soma` na estrutura da 7.1.
+    fn project_with_soma(dir: &Utf8Path) -> (Project, Processor) {
+        let mut project = Project::create(dir, "p").unwrap();
+        let soma = project
+            .add_processor(&NewProcessor::new("soma", Language::Cmm))
+            .unwrap()
+            .clone();
+        (project, soma)
+    }
+
+    /// `soma` como a 6.x deixava: o fonte, com `#PRNAME`, em `Software/`, e
+    /// o Verilog de um build antigo em `Hardware/`, registrado no `.spf`.
+    fn make_legacy(project: &mut Project, soma: &Processor) {
+        std::fs::create_dir_all(soma.dir.join("Software")).unwrap();
+        std::fs::write(
+            soma.dir.join("Software/soma.cmm"),
+            "#PRNAME soma\n#NUBITS 23\n",
+        )
+        .unwrap();
+        std::fs::remove_file(&soma.source).unwrap();
+        std::fs::create_dir_all(soma.dir.join("Hardware")).unwrap();
+        let old = soma.dir.join("Hardware/soma.v");
+        std::fs::write(&old, "module soma; endmodule\n").unwrap();
+        project
+            .add_file(FileRole::Synthesizable, &old, None)
+            .unwrap();
+    }
+
+    #[test]
+    fn what_the_system_leaves_and_a_folder_of_the_person_are_not_the_old_layout() {
+        let guard = tempfile::tempdir().unwrap();
+        let (project, soma) = project_with_soma(Utf8Path::from_path(guard.path()).unwrap());
+        std::fs::create_dir_all(soma.dir.join("Software")).unwrap();
+        std::fs::write(soma.dir.join("Software/.DS_Store"), "x").unwrap();
+        std::fs::write(soma.dir.join("Software/._soma.cmm"), "x").unwrap();
+        std::fs::create_dir_all(soma.dir.join("Hardware")).unwrap();
+        std::fs::write(soma.dir.join("Hardware/.gitkeep"), "").unwrap();
+        // No Windows e no macOS, `Simulation/` abriria esta pasta.
+        std::fs::create_dir_all(soma.dir.join("simulation")).unwrap();
+        std::fs::write(soma.dir.join("simulation/estimulos.txt"), "1\n").unwrap();
+        assert!(soma.legacy_dirs().is_empty(), "{:?}", soma.legacy_dirs());
+        assert!(project.legacy_processors().is_empty());
+        assert!(
+            !project
+                .issues()
+                .iter()
+                .any(|i| i.kind == IssueKind::LegacyLayout)
+        );
+    }
+
+    #[test]
+    fn what_the_conversion_could_not_move_does_not_block_the_build() {
+        let guard = tempfile::tempdir().unwrap();
+        let (mut project, soma) = project_with_soma(Utf8Path::from_path(guard.path()).unwrap());
+        make_legacy(&mut project, &soma);
+        // Antes da conversão, o build é tentado (e diz que falta convertê-la).
+        assert!(soma.needs_conversion());
+        assert_eq!(project.buildable_processors().len(), 1);
+        // Um arquivo da pessoa cujo destino já existe fica em `Software/`.
+        std::fs::write(soma.dir.join("Software/coef.txt"), "1\n").unwrap();
+        std::fs::write(soma.dir.join("coef.txt"), "2\n").unwrap();
+        let report = project.convert_layout().unwrap();
+        assert_eq!(report.skipped.len(), 1, "{report:#?}");
+        assert_eq!(report.remaining_dirs, [soma.dir.join("Software")]);
+        assert!(!soma.needs_conversion());
+        assert_eq!(soma.legacy_dirs(), [soma.dir.join("Software")]);
+        let issue = project
+            .issues()
+            .into_iter()
+            .find(|i| i.kind == IssueKind::LegacyLayout)
+            .unwrap();
+        assert!(
+            issue.message.contains("builds from soma.cmm"),
+            "{}",
+            issue.message
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_conversion_that_cannot_write_the_project_puts_everything_back() {
+        let guard = tempfile::tempdir().unwrap();
+        let (mut project, soma) = project_with_soma(Utf8Path::from_path(guard.path()).unwrap());
+        make_legacy(&mut project, &soma);
+        let spf = project.spf_path().to_owned();
+        let readonly = |on: bool| {
+            let mut permissions = std::fs::metadata(&spf).unwrap().permissions();
+            #[allow(clippy::permissions_set_readonly_false)]
+            permissions.set_readonly(on);
+            std::fs::set_permissions(&spf, permissions).unwrap();
+        };
+        // Somente leitura, o `.spf` não é trocado pelo novo.
+        readonly(true);
+        assert!(project.convert_layout().is_err());
+        readonly(false);
+        assert_eq!(
+            std::fs::read_to_string(soma.dir.join("Software/soma.cmm")).unwrap(),
+            "#PRNAME soma\n#NUBITS 23\n"
+        );
+        assert!(soma.dir.join("Hardware/soma.v").is_file());
+        assert!(!soma.source.exists());
+        assert!(!soma.output_dir.join("soma.v").exists());
+        assert!(soma.needs_conversion());
+        // O documento em memória também volta.
+        let listed: Vec<Utf8PathBuf> = project
+            .files(FileRole::Synthesizable)
+            .into_iter()
+            .map(|f| f.path)
+            .collect();
+        assert_eq!(listed, [soma.dir.join("Hardware/soma.v")]);
+        // Com o `.spf` gravável, a conversão vai até o fim.
+        let report = project.convert_layout().unwrap();
+        assert_eq!(report.moved.len(), 2, "{report:#?}");
+        assert!(soma.source.is_file());
+    }
 
     #[test]
     fn generated_files_follow_the_aurora_rule() {

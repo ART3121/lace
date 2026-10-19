@@ -386,12 +386,17 @@ inteira a `wave_selection_set`. O retrato do projeto traz a escolha em
 |---|---|---|
 | `terminal_spawn` | `cwd?` (padrão: a pasta do projeto), `cols`, `rows`, `channel: Channel<TerminalMessage>` | o identificador |
 | `terminal_write` | `id`, `data` | |
-| `terminal_cd` | `id`, `path` | digita no shell o `cd` para `path`, na sintaxe dele (PowerShell, `cmd`, POSIX ou fish); a interface chama ao abrir outro projeto |
+| `terminal_ack` | `id`, `units` | a interface escreveu no xterm `units` (o `length` das strings) do que o terminal mandou |
+| `terminal_cd` | `id`, `path` | digita no shell o `cd` para `path`, na sintaxe dele (PowerShell, `cmd`, POSIX ou fish), depois das teclas que apagam o que estiver na linha; a interface chama ao abrir outro projeto |
 | `terminal_resize` | `id`, `cols`, `rows` | |
 | `terminal_kill` | `id` | |
 
 `TerminalMessage`: `{ type: 'data', data }` com o que o shell escreveu (UTF-8),
-e `{ type: 'exit', code }` quando ele termina. O shell é o do usuário
+e `{ type: 'exit', code }` quando ele termina. A saída tem controle de fluxo:
+a interface confirma com `terminal_ack`, em lotes menores que 16 Ki unidades
+UTF-16, o que o xterm já escreveu, e o backend para de ler o shell quando a
+interface fica 128 Ki atrás, até o atraso cair para 16 Ki; o programa que
+escreve no terminal espera. O shell é o do usuário
 (`$SHELL`) no Linux e no macOS e o PowerShell no Windows, com a pasta `bin/`
 da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
 
@@ -424,6 +429,7 @@ desligada; a interface relê os recursos e tira a placa da janela).
 | `cli` | a CLI `lace` não foi achada, falhou ou não escreveu JSON |
 | `terminal` | o pseudoterminal não abriu, ou o shell já terminou |
 | `unsafe_path` | `terminal_cd` com um caminho que tem caractere de controle: o shell o leria como tecla, e o `cd` não é digitado |
+| `terminal_busy` | `terminal_cd` com um programa em primeiro plano no terminal (Linux e macOS): a linha iria para ele, e o `cd` não é digitado |
 | `cannot_replace` | `project_move` com `overwrite` e, no destino, o que o Core mantém no lugar (o `.spf`, a pasta `.lace`, a pasta, a pasta de saída ou o fonte de um processador), a pasta do projeto ou uma pasta que contém a origem: nada vai para a lixeira |
 | `io` | leitura ou escrita do próprio Studio falhou |
 | `internal` | uma thread caiu, ou JSON inválido |

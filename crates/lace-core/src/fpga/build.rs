@@ -114,7 +114,9 @@ impl FpgaBuildResult {
 ///   e [`LaceError::ToolchainIncomplete`] se falta um programa dele;
 /// - os de [`super::prepare`]: sem `fpga.json`, placa desconhecida,
 ///   ligações inválidas, topo inexistente;
-/// - [`LaceError::InvalidName`] se um caminho não cabe no `.qsf`.
+/// - [`LaceError::InvalidName`] se um caminho não cabe no `.qsf`;
+/// - [`LaceError::OperationInProgress`]: outra compilação para a mesma
+///   placa, ou o build de um processador do projeto, está rodando.
 pub fn build(
     toolchain: &Toolchain,
     project: &Project,
@@ -154,6 +156,9 @@ pub fn build(
         planned.push(PlannedStep::new(step, Tool::Quartus, invocation));
     }
 
+    // A pasta da placa só para esta compilação, e os processadores sem build
+    // no meio da cópia das memórias.
+    let _locks = crate::simulate::staging_locks(project, &dir.join(".build"), &resolved.board.id)?;
     std::fs::create_dir_all(&dir).map_err(LaceError::io("Creating directory", &dir))?;
     let top_file = dir.join(format!("{TOP_MODULE}.v"));
     let settings = dir.join(format!("{REVISION}.qsf"));
@@ -282,12 +287,13 @@ fn write(path: &Utf8Path, text: &str) -> Result<()> {
     std::fs::write(path, text).map_err(LaceError::io("Writing", path))
 }
 
-/// Um relatório do Quartus como texto; um byte fora do UTF-8 (um caminho
-/// em outra página de código) não perde o resto.
+/// Um relatório do Quartus como texto; um caminho na página de código do
+/// Windows sai certo ([`crate::process::decode_text`]), e um byte fora dela
+/// não perde o resto.
 fn read_lossy(path: &Utf8Path) -> Option<String> {
     std::fs::read(path)
         .ok()
-        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+        .map(|bytes| crate::process::decode_text(&bytes))
 }
 
 /// O `.sof` da compilação na pasta da placa `dir` ([`build_dir`]):

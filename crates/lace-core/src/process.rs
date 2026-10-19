@@ -58,10 +58,21 @@ const OUTPUT_KEPT: usize = 2 * 1024 * 1024;
 /// Variáveis repassadas do ambiente do Lace ao filho. No Windows, sem
 /// `SystemRoot` vários programas nem inicializam, e sem `ComSpec` o
 /// `system()` da biblioteca C não acha o `cmd.exe` (o `iverilog` roda o
-/// `ivlpp` e o `ivl` por ele); fora dele, os compiladores YANC não leem
-/// variável nenhuma.
+/// `ivlpp` e o `ivl` por ele). Sem `SystemDrive`, um caminho do registro
+/// como `%SystemDrive%\ProgramData` não expande: o `dot` criava uma pasta
+/// chamada `%SystemDrive%` dentro do projeto, com um cache do Windows, e
+/// demorava 5 s no primeiro desenho. Fora do Windows, os compiladores YANC
+/// não leem variável nenhuma.
 #[cfg(windows)]
-const INHERITED_ENV: &[&str] = &["SystemRoot", "windir", "ComSpec", "TEMP", "TMP"];
+const INHERITED_ENV: &[&str] = &[
+    "SystemRoot",
+    "SystemDrive",
+    "windir",
+    "ComSpec",
+    "ProgramData",
+    "TEMP",
+    "TMP",
+];
 #[cfg(not(windows))]
 const INHERITED_ENV: &[&str] = &[];
 
@@ -459,7 +470,7 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
                 Ok((stream, batch)) => {
                     if let Some(on_line) = watch.on_line {
                         for line in batch.split_inclusive(|&b| b == b'\n') {
-                            on_line(stream, trim_line_end(&String::from_utf8_lossy(line)));
+                            on_line(stream, trim_line_end(&decode_line(line)));
                         }
                     }
                     match stream {
@@ -584,7 +595,7 @@ impl Capture {
     /// quantos, e o fim começa numa linha inteira.
     fn into_text(self) -> String {
         let mut tail: Vec<u8> = self.tail.into();
-        let mut text = String::from_utf8_lossy(&self.head).into_owned();
+        let mut text = decode_text(&self.head);
         if self.dropped > 0 {
             let start = tail.iter().position(|&b| b == b'\n').map_or(0, |i| i + 1);
             let dropped = self.dropped + start as u64;
@@ -596,7 +607,7 @@ impl Capture {
                 "[Lace: {dropped} bytes of output left out here]\n"
             ));
         }
-        text.push_str(&String::from_utf8_lossy(&tail));
+        text.push_str(&decode_text(&tail));
         text
     }
 }
@@ -678,6 +689,49 @@ fn utf8_prefix(bytes: &[u8]) -> usize {
 
 fn trim_line_end(line: &str) -> &str {
     line.trim_end_matches(['\n', '\r'])
+}
+
+/// Uma linha que uma ferramenta escreveu, como texto. No Windows, as do
+/// MSYS2 (o Icarus, o Yosys) e o Quartus escrevem na página de código ANSI o
+/// que receberam pela linha de comando: num Windows em português, o `Á` de
+/// `Área de Trabalho` vira o byte 0xC1 da Windows-1252, que não é UTF-8, e o
+/// caminho do diagnóstico saía com U+FFFD, sem abrir. Uma linha que não é
+/// UTF-8 é lida como Windows-1252; um caractere cortado no fim (o teto da
+/// saída guardada) não muda a linha. Fora do Windows, o que não é UTF-8 vira
+/// U+FFFD.
+pub(crate) fn decode_line(line: &[u8]) -> std::borrow::Cow<'_, str> {
+    match std::str::from_utf8(line) {
+        Ok(text) => std::borrow::Cow::Borrowed(text),
+        Err(error) if cfg!(windows) && error.error_len().is_some() => {
+            std::borrow::Cow::Owned(line.iter().map(|&b| windows_1252(b)).collect())
+        }
+        Err(_) => String::from_utf8_lossy(line),
+    }
+}
+
+/// Como [`decode_line`], linha por linha.
+pub(crate) fn decode_text(bytes: &[u8]) -> String {
+    bytes
+        .split_inclusive(|&b| b == b'\n')
+        .map(decode_line)
+        .collect()
+}
+
+/// Um byte da Windows-1252. Os cinco sem caractere (0x81, 0x8D, 0x8F, 0x90 e
+/// 0x9D) ficam com o controle C1 de mesmo número, como no Windows; de 0xA0
+/// em diante, é o Latin-1.
+fn windows_1252(byte: u8) -> char {
+    const FROM_0X80: [char; 32] = [
+        '\u{20AC}', '\u{81}', '\u{201A}', '\u{192}', '\u{201E}', '\u{2026}', '\u{2020}',
+        '\u{2021}', '\u{2C6}', '\u{2030}', '\u{160}', '\u{2039}', '\u{152}', '\u{8D}', '\u{17D}',
+        '\u{8F}', '\u{90}', '\u{2018}', '\u{2019}', '\u{201C}', '\u{201D}', '\u{2022}', '\u{2013}',
+        '\u{2014}', '\u{2DC}', '\u{2122}', '\u{161}', '\u{203A}', '\u{153}', '\u{9D}', '\u{17E}',
+        '\u{178}',
+    ];
+    match byte {
+        0x80..=0x9F => FROM_0X80[usize::from(byte - 0x80)],
+        _ => char::from(byte),
+    }
 }
 
 /// Põe o filho num grupo de processos próprio, para encerrar depois tudo o
@@ -1095,6 +1149,30 @@ fn termination(status: std::process::ExitStatus) -> Termination {
 mod reader_tests {
     use super::*;
 
+    #[test]
+    fn a_line_that_is_not_utf8_is_read_in_the_windows_code_page() {
+        // `Área` na Windows-1252: o 0xC1 sozinho não é UTF-8.
+        let line = b"C:/p/\xC1rea/m.v:2: syntax error\r\n";
+        let expected = if cfg!(windows) {
+            "C:/p/Área/m.v:2: syntax error\r\n"
+        } else {
+            "C:/p/\u{FFFD}rea/m.v:2: syntax error\r\n"
+        };
+        assert_eq!(decode_line(line), expected);
+        assert_eq!(decode_line("C:/p/Área/m.v\n".as_bytes()), "C:/p/Área/m.v\n");
+        // Um caractere cortado no fim continua UTF-8.
+        assert_eq!(decode_line(&"ação".as_bytes()[..4]), "aç\u{FFFD}");
+        if cfg!(windows) {
+            assert_eq!(
+                decode_line(b"\x80 \x93x\x94 \x81 \xFF"),
+                "\u{20AC} \u{201C}x\u{201D} \u{81} \u{FF}"
+            );
+            // Cada linha com a sua leitura.
+            assert_eq!(decode_text("é\n\u{e9}".as_bytes()), "é\né");
+            assert_eq!(decode_text(b"\xC3\xA9\n\xE9\n"), "é\né\n");
+        }
+    }
+
     fn batches(input: Vec<u8>) -> Vec<Vec<u8>> {
         let (tx, rx) = mpsc::sync_channel(BATCH_QUEUE);
         let reader = read_lines(std::io::Cursor::new(input), Stream::Stdout, tx);
@@ -1441,9 +1519,11 @@ mod windows_tests {
         assert!(std::env::var_os("USERNAME").is_some() || std::env::var_os("USER").is_some());
         let out = run(&cmd("echo [%USERNAME%]")).unwrap();
         assert!(out.stdout.contains("[%USERNAME%]"), "{}", out.stdout);
-        // Só o que o Windows exige passa.
-        let out = run(&cmd("echo [%SystemRoot%]")).unwrap();
-        assert!(!out.stdout.contains("%SystemRoot%"), "{}", out.stdout);
+        // Só o que o Windows exige passa, com o drive do sistema: sem ele,
+        // `%SystemDrive%\ProgramData` não expande.
+        let out = run(&cmd("echo [%SystemRoot%][%SystemDrive%][%ProgramData%]")).unwrap();
+        assert!(!out.stdout.contains("%System"), "{}", out.stdout);
+        assert!(!out.stdout.contains("%ProgramData%"), "{}", out.stdout);
     }
 
     #[test]
@@ -1490,20 +1570,24 @@ mod windows_tests {
 
     #[test]
     fn cancel_stops_the_process() {
+        // O cancelamento vem quando a linha chega, e não depois de um tempo
+        // fixo: com a máquina carregada, o `cmd` demorava mais que ele para
+        // escrever. O prazo só segura o teste se a linha não vier.
         let token = CancelToken::new();
-        let from_ui = token.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(300));
-            from_ui.cancel();
-        });
+        let on_line = |_: Stream, line: &str| {
+            if line == "iniciou" {
+                token.cancel();
+            }
+        };
         let watch = Watch {
             cancel: Some(&token),
-            ..Watch::default()
+            timeout: Some(Duration::from_secs(60)),
+            on_line: Some(&on_line),
         };
         let started = Instant::now();
-        let out = super::run(&cmd("echo iniciou & for /L %i in (0,0,1) do @rem"), &watch).unwrap();
-        assert_eq!(out.termination, Termination::Cancelled);
-        assert!(started.elapsed() < Duration::from_secs(10));
+        let out = super::run(&cmd("echo iniciou& for /L %i in (0,0,1) do @rem"), &watch).unwrap();
+        assert_eq!(out.termination, Termination::Cancelled, "{}", out.stdout);
+        assert!(started.elapsed() < Duration::from_secs(30));
         assert!(out.stdout.contains("iniciou"), "{}", out.stdout);
     }
 
