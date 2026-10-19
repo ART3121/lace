@@ -3,6 +3,23 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.9.0] - não publicada
+
+### Alterado
+
+- Os fluxos (compilar, verificar, simular, sintetizar, esquemático, placa)
+  são os do Lace (`lace_core::flows`), e não mais uma cópia da CLI dentro
+  do Studio: a mesma regra nos dois, com o mesmo resultado. A entrega da
+  saída ao vivo em lotes e o teto de linhas também vêm do Lace. Nada muda
+  na tela; a fase `hierarchy` e a `rtl_viewer` aparecem no console como as
+  outras.
+- Instalar componentes e atualizar o Lace rodam a biblioteca do instalador
+  dentro do Studio, sem rodar o `lace` como processo filho. A busca de
+  atualização tem prazo por consulta; o console mostra o progresso como
+  antes, e as linhas de erro trazem o código do instalador.
+- A busca do bundle é a do Lace (`lace_core::locate`), com a ordem de
+  antes; a tela de ferramentas vem do mesmo lugar que o `lace tools`.
+
 ## [0.8.0] - 2026-10-15
 
 ### Acrescentado

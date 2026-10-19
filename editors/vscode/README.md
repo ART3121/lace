@@ -108,6 +108,7 @@ simulação rápida, da 0.4.0. Ao ativar, a extensão confere a versão
 | Configuração | Padrão | Efeito |
 |---|---|---|
 | `lace.path` | vazio | o executável `lace`; vazio, o primeiro do `PATH`. Vale só nas configurações do usuário: um workspace não escolhe o que a extensão executa |
+| `lace.transport` | `auto` | como a extensão fala com o lace: `auto` abre um `lace serve` em segundo plano quando o Lace instalado o tem (0.9.0 ou mais nova) e, senão, roda um processo por comando; `cli` sempre um processo por comando; `serve` só o `lace serve` (com um Lace mais antigo a extensão fica indisponível). Também só nas configurações do usuário |
 | `lace.check.lint` | `false` | toda verificação roda também o `verilator --lint-only` |
 | `lace.check.onSave` | `false` | verifica o projeto ao gravar um `.v` ou `.sv` dele, sem notificação |
 | `lace.sim.verilator` | `false` | simula no Verilator, com onda, em vez do Icarus |

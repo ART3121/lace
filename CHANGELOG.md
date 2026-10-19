@@ -1,5 +1,51 @@
 # Mudanças
 
+## 0.9.0 (não publicada)
+
+- O core passa a ser a API do orquestrador de fato. A composição dos
+  fluxos (compilar antes, registrar o que o YANC gerou, ler as portas de
+  saída, gravar o relatório, abrir a onda), que a CLI e o Studio mantinham
+  em cópia e que divergia em quatro pontos, mora em `lace_core::flows`
+  (`run`, `open_wave`, `choose_signals`), com um `FlowOutcome` de `status`
+  explícito; a entrega da saída ao vivo em lotes com teto de linhas, em
+  `lace_core::delivery`; a busca do bundle a partir de outro programa, em
+  `lace_core::locate`; o retrato do projeto, em `Project::status()`. A CLI
+  e o Studio viraram cascas sobre isso, com a mesma saída de antes
+  ([API.md, 5.11](docs/API.md)).
+- `lace serve`: a API do Lace para outro programa, por stdin e stdout, em
+  JSON-RPC 2.0 com uma mensagem por linha (`lace_core::protocol`, com o
+  schema em `docs/schema/protocol-request.json` e
+  `protocol-response.json`). Cada pedido traz o projeto; os do mesmo
+  projeto rodam na ordem, os que só leem em paralelo; `$/cancel` cancela;
+  as notificações (`phase`, `events`, `output_omitted`, `build`,
+  `install`) saem em lotes com o `id` do pedido. `lace serve --schema`
+  escreve o schema ([CLI.md](docs/CLI.md)).
+- `lace mcp`: o mesmo contrato como servidor MCP para um agente, uma
+  ferramenta por método (`build`, `check`, `sim`, `synth`,
+  `project_status`, `history_show`, ...), com o `inputSchema` tirado do
+  schema do protocolo. `update_apply` e `install_add` só com
+  `--allow-update`.
+- O `lace update`, o `lace install` e o `lace uninstall` viraram
+  biblioteca (`lace-installer`: `update::run`, `add`, `uninstall`, com os
+  erros com código `network`, `no_installation`, `install_in_progress`,
+  `checksum_mismatch`, `installer_failed`, `wizard_failed`, `cancelled`),
+  que a CLI, o Studio e o `lace serve` chamam em processo: a regra do que
+  é atualizar mora uma vez só. Os comandos, as flags e o JSON não mudam;
+  o `error.code` do `--json` desses comandos deixa de ser sempre `cli`.
+  Cancelar vale nas consultas de versão, nos downloads (mata o `curl`) e
+  entre os pedaços; a troca dos arquivos segue até o fim, coberta pelo
+  diário. O progresso tem eventos novos (`fallback`, `fallback_download`,
+  `wizard_selection`, `installer_output`, `warning`).
+- A extensão do VS Code fala com um `lace serve` em segundo plano quando o
+  Lace instalado é a 0.9.0 ou mais nova (`lace.transport`: `auto`, `serve`
+  ou `cli`), um processo só em vez de um por comando, e volta à CLI com um
+  Lace mais antigo.
+- Um `ErrorInfo` só, no core (`code`, `message`, `hint`, `data`): o
+  `error.json` da CLI ganha o campo opcional `data`, com os campos da
+  variante. Erros novos: `no_waveform`, `signal_not_found`,
+  `signal_not_chosen`, `testbench_not_elaborated`. `NewProcessor` em JSON
+  aceita só `name` e `language`, com os outros campos no padrão da CLI.
+
 ## 0.8.0 (2026-10-15)
 
 - A instalação começa por um perfil, no lugar de Recommended e Advanced:

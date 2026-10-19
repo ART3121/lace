@@ -74,15 +74,15 @@
       }
     },
     "studio": {
-      "version": "0.8.0",
+      "version": "0.9.0",
       "path": "studio"
     },
     "lace-learn": {
-      "version": "0.8.0",
+      "version": "0.9.0",
       "path": "lace-learn"
     },
     "rtl-viewer": {
-      "version": "0.8.0",
+      "version": "0.9.0",
       "path": "packages/rtl-viewer"
     }
   }

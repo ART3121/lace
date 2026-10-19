@@ -772,6 +772,105 @@ autocompletar. Ele não aparece na ajuda. Para instalar no bash:
 lace completions bash > ~/.local/share/bash-completion/completions/lace
 ```
 
+### A API para outros programas: `lace serve` e `lace mcp`
+
+Um programa que não é Rust (a extensão do VS Code, um agente, um script)
+fala com o Lace por um processo vivo em vez de um processo por comando. A
+CLI e o Studio não passam por aqui: linkam o core e chamam as mesmas
+funções (`lace_core::flows`); o `serve` é só outro transporte do mesmo
+contrato ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busca-do-bundle-e-o-contrato)).
+
+| Comando | Faz |
+|---|---|
+| `lace serve [--schema]` | atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
+| `lace mcp [--allow-update]` | o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`. Uma ferramenta por método (`project_status`, `build`, `check`, `sim`, `synth`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
+
+Os dois são processos filhos que o cliente abre quando precisa e fecha
+quando termina, como um editor faz com um servidor de linguagem: sem
+serviço do sistema, porta ou arquivo de pid. Só stdio. O stdout é só do
+protocolo; o log vai para o stderr, como nos outros comandos.
+
+Uma sessão do `serve`:
+
+```
+→ {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"client":"meu-script 1.0"}}
+← {"jsonrpc":"2.0","id":1,"result":{"lace":"0.9.0","protocol":1,"prefix":"/opt/lace","experimental":{"fpga":false},"methods":["initialize","shutdown","project.create",...]}}
+→ {"jsonrpc":"2.0","id":2,"method":"flow.run","params":{"project":"/home/eu/soma/soma.spf","request":{"flow":"simulate","simulator":"icarus"}}}
+← {"jsonrpc":"2.0","method":"phase","params":{"id":2,"phase":"build"}}
+← {"jsonrpc":"2.0","method":"events","params":{"id":2,"events":[{"event":"step_started",...},...]}}
+← {"jsonrpc":"2.0","method":"build","params":{"id":2,"result":{"processor":"soma","status":"succeeded",...}}}
+← {"jsonrpc":"2.0","method":"phase","params":{"id":2,"phase":"simulate"}}
+← {"jsonrpc":"2.0","id":2,"result":{"flow":"simulate","command":"lace sim","status":"succeeded","succeeded":true,"builds":[...],"simulation":{...},"report":"run-000003",...}}
+→ {"jsonrpc":"2.0","id":3,"method":"shutdown"}
+← {"jsonrpc":"2.0","id":3,"result":null}
+← {"jsonrpc":"2.0","method":"shutdown","params":{"reason":"requested"}}
+```
+
+- **Métodos.** Os de `lace_core::protocol`, com um grupo e um ponto:
+  `project.*` (`create`, `status`, `add`, `remove`, `top`, `testbench`,
+  `order`, `move`, `convert`, `check_name`), `processor.*` (`check_name`,
+  `add`, `set`, `remove`, `outputs`), `flow.run` (o fluxo em `request`:
+  `build`, `check`, `hierarchy`, `simulate`, `synthesize`, `schematic`,
+  `fpga_build`, `fpga_program`; o resultado é um `FlowOutcome` com
+  `status`), `wave.*` (`open`, `signals`, `choose`, `reset_layout`),
+  `history.*` (`list`, `show`, `compare`, `plan_cleanup`, `clean`),
+  `toolchain.*` (`info`, `verify`), `experimental.*` (`list`, `set`),
+  `fpga.*`, `update.check`, `update.apply`, `install.add`, `learn.check`,
+  `initialize` e `shutdown`. O `initialize` lista os que o servidor atende.
+  Os schemas: `docs/schema/protocol-request.json` (os pedidos, com os
+  campos com padrão opcionais) e `protocol-response.json` (as respostas,
+  as notificações, o `ErrorInfo`).
+- **Notificações**, enquanto um pedido roda, com o `id` dele em
+  `params.id`: `phase` (a fase que começou), `events` (os eventos do Core
+  em lotes, no máximo a cada 30 ms ou 500), `output_omitted` (linhas que
+  passaram do teto: 20 000 de uma vez e depois 5 000 por segundo), `build`
+  (um processador compilou) e `install` (o progresso de `update.*` e
+  `install.add`, o evento do instalador). Elas saem antes da resposta. Com
+  `"output": false` no `flow.run`, não há `events`, e o `vvp` roda com
+  buffer, que é mais rápido.
+- **Filas.** Os pedidos do mesmo projeto rodam um de cada vez, na ordem
+  (um worker por raiz canônica); os que só leem (`project.status`,
+  `history.*` de consulta, `toolchain.*`, `fpga.boards`, ...) rodam em
+  paralelo, numa thread própria, também durante um fluxo longo do mesmo
+  projeto; `update.*` e `install.add` rodam num worker só, com a trava da
+  instalação. Projetos diferentes rodam em paralelo.
+- **Cancelar.** A notificação `$/cancel` com `{"id": N}`. Um pedido que
+  ainda não começou responde o erro `-32001`; um fluxo em andamento para e
+  devolve o resultado com `status: "cancelled"`, como o Ctrl+C na CLI.
+- **Erros.** O `error.code` do JSON-RPC: `-32700` JSON inválido, `-32600`
+  pedido malformado, `-32601` método desconhecido, `-32602` parâmetros
+  inválidos, `-32000` um erro do Lace, com o `ErrorInfo` (`code`,
+  `message`, `hint`, `data`) em `error.data`, `-32001` cancelado antes de
+  começar, `-32002` sessão não inicializada, `-32003` servidor encerrando.
+- **Encerrar.** Fechar a entrada, `shutdown`, ou um sinal: o servidor
+  cancela o que roda, espera até 3 s e sai, com a notificação `shutdown`
+  antes (`reason`: `requested`, `signal` ou `updated`). Depois de um
+  `update.apply` que trocou os arquivos, ele responde e encerra sozinho,
+  porque o binário dele é outro: o cliente o abre de novo.
+
+Em Python, sem biblioteca:
+
+```python
+import json, subprocess
+lace = subprocess.Popen(["lace", "serve"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+def call(id, method, params=None):
+    lace.stdin.write(json.dumps({"jsonrpc": "2.0", "id": id, "method": method, "params": params}) + "\n")
+    lace.stdin.flush()
+    while True:
+        msg = json.loads(lace.stdout.readline())
+        if msg.get("id") == id:
+            return msg
+        # uma notificação (phase, events, ...) do pedido em andamento
+call(1, "initialize", {"client": "exemplo"})
+sim = call(2, "flow.run", {"project": "/home/eu/soma/soma.spf", "request": {"flow": "simulate", "simulator": "icarus"}, "output": False})
+print(sim["result"]["status"], sim["result"]["report"])
+lace.stdin.close()
+```
+
+A extensão do VS Code usa o `serve` quando o Lace instalado é a 0.9.0 ou
+mais nova (`lace.transport`); com um Lace mais antigo continua chamando um
+processo por comando (`--json` e `--events`), que seguem como estão.
+
 ## Saída
 
 ### Texto

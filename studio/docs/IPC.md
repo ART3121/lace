@@ -213,8 +213,9 @@ As mensagens chegam pelo `channel`, nesta ordem, com o tipo no campo `type`:
 | `events` | `events: Event[]` | lotes de eventos do Core (`step_started`, `output`, `step_finished`; API.md do Lace, 5.8), no máximo a cada 30 ms ou 500 eventos |
 | `output_omitted` | `step`, `tool`, `lines` | linhas de `output` que ficaram de fora, no lugar delas: passam 20 000 de uma vez e depois 5 000 por segundo, em blocos, com um aviso a cada meio segundo (uma linha longa conta uma a mais a cada 1 KiB); o resultado final ainda traz o começo e o fim da saída de cada passo |
 | `build` | `result: BuildResult` | um processador terminou de compilar |
-| `cli_output` | `stream`, `line` | uma linha da CLI (só em `lace_install` e `lace_update`) |
-| `finished` | `outcome` | fim: um `FlowOutcome` (ou o resultado da CLI) |
+| `install` | `event` | o progresso de `lace_install` e `lace_update`: um evento do instalador (`lace_installer::install::Event`, etiquetado por `event`: `start`, `chunk`, `downloading`, `progress`, `replacing`, `verifying`, `fallback`, `fallback_download`, `wizard_selection`, `installer_output`, `warning`) |
+| `cli_output` | `stream`, `line` | só em `lace_install` e `lace_update`: a linha que a CLI escreveria para o evento, para o console |
+| `finished` | `outcome` | fim: um `FlowOutcome` (ou o resultado de `lace_install` e `lace_update`) |
 | `failed` | `error: IpcError` | fim: o Lace não conseguiu rodar |
 
 Toda operação termina com exatamente um `finished` ou um `failed`.
@@ -307,7 +308,7 @@ não volta.
 |---|---|---|---|
 | `toolchain_info` | | `ToolchainInfo` (nunca falha: sem bundle, `found: false` e o erro) | `lace tools --json` |
 | `toolchain_verify` | | `FileMismatch[]` (vazio: tudo confere) | `lace tools --verify` |
-| `lace_update_check` | | o `UpdateReport` da CLI | `lace update --check --json` |
+| `lace_update_check` | | o `UpdateReport` (`docs/schema/update.json` do Lace), com `prefix` quando o bundle é o de uma instalação do instalador | `lace update --check --json` |
 | `lace_install` | `components: string[]`, `channel` | o identificador da operação | `lace install <componentes> --json` |
 | `lace_update` | `channel` | o identificador da operação | `lace update --yes --json` |
 
@@ -317,31 +318,40 @@ não volta.
 `system`, `error`), `system_compiler`, `compiler_error`, `lace_cli`,
 `surfer_web` (o cliente web do Surfer, `surfer-aurora/web/`, ou `null`).
 
-`lace_update_check`, `lace_install` e `lace_update` rodam o `lace` da
-instalação do bundle (`<instalação>/bin/lace`), e precisam de rede.
-`lace_install` e `lace_update` são operações como as do Core: ocupam a
-vaga e mandam `cli_output` e `finished` (`{ flow: 'install' | 'update',
-succeeded, cancelled, exit_code, result }`). `result` é o JSON que a CLI
-escreveu: o relatório do comando, ou `{ error: { code, message, hint? } }`
-quando ele não rodou.
+`lace_update_check`, `lace_install` e `lace_update` são a biblioteca do
+instalador (`lace_installer`, o crate do Lace), chamada em processo: a
+mesma regra do `lace update` e do `lace install` da CLI e do `lace serve`,
+sem rodar o `lace` como filho. Precisam de rede. `lace_install` e
+`lace_update` são operações como as do Core: ocupam a vaga e mandam
+`install` (cada evento do instalador), `cli_output` (a linha que a CLI
+escreveria para ele, para o console) e `finished` (`{ flow: 'install' |
+'update', succeeded, cancelled, exit_code, result }`). `result` é o
+relatório (`InstallReport`, `UpdateReport`), ou `{ error: { code, message,
+hint } }` quando a operação não rodou, com `exit_code` o que a CLI daria
+(0, 2 ou 130). O `code` é o da biblioteca (`network`, `no_installation`,
+`install_in_progress`, `checksum_mismatch`, `installer_failed`, ...).
 
-`lace_update` passa `--yes`: quem pergunta é a interface, antes de chamar,
+A pasta da instalação é a de cima do bundle (`toolchain/..`), conferida
+pela biblioteca (o Studio não está em `bin/`); com um bundle de
+desenvolvimento (`LACE_TOOLCHAIN`), `lace_update_check` responde com
+`prefix: null` e `lace_update` falha com `no_installation`.
+
+`lace_update` não pergunta: quem pergunta é a interface, antes de chamar,
 com a versão instalada, a nova e a pasta (o `UpdateReport` de
-`lace_update_check`). No Windows passa também `--reopen-studio`, que faz o
-assistente de instalação, quando a atualização cai nele, abrir o Studio de
-novo no fim. A interface chama `lace_update_check` sozinha ao abrir e a
-cada 12 horas (`check_updates` nas preferências), e depois de `updated`
-reinicia o Studio com `app_exit`. No `result`, `action` diz o que aconteceu:
+`lace_update_check`). No Windows pede ao assistente de instalação, quando a
+atualização cai nele, para abrir o Studio de novo no fim. A interface
+chama `lace_update_check` sozinha ao abrir e a cada 12 horas
+(`check_updates` nas preferências), e depois de `updated` reinicia o
+Studio com `app_exit`. No `result`, `action` diz o que aconteceu:
 `updated` (a atualização por componentes trocou os arquivos que mudaram,
 `method: "components"`, com o que mudou em `changes`; ou, no Linux e no
 macOS, o instalador da release trocou o `lace` e o bundle, `method:
 "installer"`), `wizard_opened` (Windows, quando a atualização por
-componentes não dá: o assistente abriu e termina depois que o `lace` sai)
-ou `up_to_date`. O progresso de cada pedaço chega no stderr da CLI, como
-`cli_output`. Ao contrário de `lace_install`, ela não pode
-ser cancelada: `flow_cancel` marca o pedido, mas ele não chega ao processo,
-porque matar o `lace` deixaria o instalador, filho dele, trocando o `bin/`
-e o `toolchain/` sozinho.
+componentes não dá: o assistente abriu e termina depois que o Studio sai)
+ou `up_to_date`. Cancelar (`flow_cancel`) vale até a troca dos arquivos:
+um download parado é `cancelled`, e nada muda; durante a troca o pedido é
+ignorado, e uma troca interrompida por fora é desfeita na próxima
+operação. A interface ainda não oferece o botão de cancelar o update.
 
 ## Onda numa aba (`wave_tab.rs`)
 
