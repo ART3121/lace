@@ -37,6 +37,7 @@ pub mod commands {
     pub mod toolchain;
     pub mod wave;
 }
+pub mod assistant;
 pub mod error;
 pub mod flows;
 pub mod jobs;
@@ -204,6 +205,11 @@ pub fn run() {
             terminal::terminal_cd,
             terminal::terminal_resize,
             terminal::terminal_kill,
+            assistant::assistant_info,
+            assistant::assistant_start,
+            assistant::assistant_send,
+            assistant::assistant_interrupt,
+            assistant::assistant_stop,
             wave_tab::wave_tab_open,
             wave_tab::wave_tab_close,
             commands::wave::wave_signals,
@@ -245,6 +251,7 @@ fn relaunch() {
 fn shutdown(app: &AppHandle) {
     jobs::cancel_and_wait(app, SHUTDOWN_WAIT);
     terminal::kill_all(app);
+    assistant::stop_all(app);
 }
 
 /// Log no stderr. `RUST_LOG` escolhe o nível (padrão: avisos, e `info` do

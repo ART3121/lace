@@ -5,6 +5,18 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [0.9.0] - não publicada
 
+### Acrescentado
+
+- **Assistente**: uma conversa com o Claude Code sobre o projeto aberto, na
+  barra lateral da direita (Exibir > Assistente) ou numa aba (Exibir >
+  Assistente em aba). O assistente usa as ferramentas do Lace (compilar,
+  verificar, simular, sintetizar, ler relatórios) e mostra cada uma que
+  chamou, com o resultado; a resposta chega enquanto é escrita, e Esc a
+  interrompe. Precisa do Claude Code instalado na máquina, com o login da
+  conta ou a chave dele: o Studio não guarda chave. Preferências >
+  Assistente: o executável do Claude Code, o modelo, se ele pode editar os
+  arquivos do projeto, e o `lace` das ferramentas.
+
 ### Alterado
 
 - Os fluxos (compilar, verificar, simular, sintetizar, esquemático, placa)

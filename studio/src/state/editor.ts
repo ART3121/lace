@@ -40,7 +40,8 @@ export type ViewKind =
   | 'processor'
   | 'about'
   | 'wave'
-  | 'learn';
+  | 'learn'
+  | 'assistant';
 
 export interface Tab {
   id: string;

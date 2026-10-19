@@ -16,6 +16,7 @@ import {
   Palette,
   SlidersHorizontal,
   type LucideIcon,
+  Bot,
 } from 'lucide-react';
 import { useEffect, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 
@@ -23,6 +24,7 @@ import { restartShell } from '../../console/shell';
 import { useT, type Key } from '../../i18n';
 import type { Settings } from '../../ipc/types';
 import { useApp } from '../../state/app';
+import { useAssistant } from '../../state/assistant';
 import { useExperimental, useFeature } from '../../state/experimental';
 import { SETTINGS_PAGES, useSettingsPage, type SettingsPage } from '../../state/settingsPage';
 import { DEFAULT_LIGHT_THEME, DEFAULT_THEME, SYSTEM_THEME, THEMES, themeById, type SyntaxColors, type Theme } from '../../themes';
@@ -37,6 +39,7 @@ const PAGES: Record<SettingsPage, { label: Key; icon: LucideIcon }> = {
   editor: { label: 'settings.editor', icon: FileCode },
   simulation: { label: 'settings.simulation', icon: Activity },
   toolchain: { label: 'settings.toolchain', icon: Package },
+  assistant: { label: 'settings.assistant', icon: Bot },
   experimental: { label: 'settings.experimental', icon: FlaskConical },
 };
 
@@ -114,6 +117,7 @@ export function SettingsView() {
         {page === 'editor' && <EditorPage settings={settings} />}
         {page === 'simulation' && <SimulationPage settings={settings} />}
         {page === 'toolchain' && <ToolchainPage settings={settings} />}
+        {page === 'assistant' && <AssistantPage settings={settings} />}
         {page === 'experimental' && <ExperimentalPage />}
       </div>
     </div>
@@ -377,6 +381,67 @@ function ToolchainPage({ settings }: { settings: Settings }) {
           <div className="input-group">
             <input id={id} className="input" value={settings.learn_dir ?? ''} onChange={(e) => set('learn_dir', e.target.value || null)} />
             <Button onClick={() => void browse('learn_dir')}>{t('common.browse')}</Button>
+          </div>
+        )}
+      </SettingRow>
+    </SettingsGroup>
+  );
+}
+
+/**
+ * O assistente: onde está o Claude Code, o `lace` das ferramentas, o modelo
+ * e o que ele pode fazer nos arquivos. O Lace não guarda chave: quem
+ * autentica é o Claude Code (o login da conta, ou ANTHROPIC_API_KEY).
+ */
+function AssistantPage({ settings }: { settings: Settings }) {
+  const t = useT();
+  const set = setter(useApp((s) => s.updateSettings));
+  const info = useAssistant((s) => s.info);
+  const browse = async (key: 'assistant_claude' | 'assistant_lace') => {
+    const picked = await open({ multiple: false });
+    if (typeof picked === 'string') {
+      set(key, picked);
+      void useAssistant.getState().refreshInfo();
+    }
+  };
+  return (
+    <SettingsGroup hint={t('settings.assistantHint')}>
+      <SettingRow label={t('settings.assistantClaude')} hint={t('settings.assistantClaudeHint')} stack>
+        {(id) => (
+          <>
+            <div className="input-group">
+              <input
+                id={id}
+                className="input"
+                value={settings.assistant_claude ?? ''}
+                placeholder={info?.claude ?? ''}
+                onChange={(e) => set('assistant_claude', e.target.value || null)}
+                onBlur={() => void useAssistant.getState().refreshInfo()}
+              />
+              <Button onClick={() => void browse('assistant_claude')}>{t('common.browse')}</Button>
+            </div>
+            {info && (info.claude ? <p className="muted">{t('assistant.found', { version: info.version ?? '' })}</p> : <p className="text-warn">{t('assistant.missing')}</p>)}
+          </>
+        )}
+      </SettingRow>
+      <SettingRow label={t('settings.assistantModel')} hint={t('settings.assistantModelHint')} stack>
+        {(id) => <input id={id} className="input" value={settings.assistant_model ?? ''} placeholder="sonnet" onChange={(e) => set('assistant_model', e.target.value || null)} />}
+      </SettingRow>
+      <SettingRow label={t('settings.assistantAllowEdits')} hint={t('settings.assistantAllowEditsHint')}>
+        {(id) => <Switch id={id} checked={settings.assistant_allow_edits} onChange={(v) => set('assistant_allow_edits', v)} />}
+      </SettingRow>
+      <SettingRow label={t('settings.assistantLace')} hint={t('settings.assistantLaceHint')} stack>
+        {(id) => (
+          <div className="input-group">
+            <input
+              id={id}
+              className="input"
+              value={settings.assistant_lace ?? ''}
+              placeholder={info?.lace ?? ''}
+              onChange={(e) => set('assistant_lace', e.target.value || null)}
+              onBlur={() => void useAssistant.getState().refreshInfo()}
+            />
+            <Button onClick={() => void browse('assistant_lace')}>{t('common.browse')}</Button>
           </div>
         )}
       </SettingRow>

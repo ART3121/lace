@@ -410,6 +410,35 @@ escreve no terminal espera. O shell é o do usuário
 (`$SHELL`) no Linux e no macOS e o PowerShell no Windows, com a pasta `bin/`
 da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
 
+## Assistente (`assistant.rs`)
+
+| Comando | Argumentos | Devolve |
+|---|---|---|
+| `assistant_info` | | `{ claude, version, lace, project }`: o Claude Code achado (ou `null`), a versão dele, o `lace` que vai servir as ferramentas e o `.spf` aberto |
+| `assistant_start` | `resume?` (um `session_id` para retomar), `channel: Channel<AgentEvent>` | o identificador da sessão |
+| `assistant_send` | `id`, `text` | |
+| `assistant_interrupt` | `id` | interrompe o turno em andamento |
+| `assistant_stop` | `id` | encerra a sessão (espera o Claude Code sair por até 3 s, depois mata) |
+
+A sessão é um processo filho do Claude Code (`crates/lace-agent`), aberto
+em modo `--print` com entrada e saída em JSON por linha, o `lace mcp` como
+servidor de ferramentas (o `lace` da instalação do bundle, ou a
+preferência `assistant_lace`), o `.spf` aberto como projeto padrão e a
+pasta do projeto como pasta de trabalho. O que ele pode fazer vem da
+preferência `assistant_allow_edits`: só as ferramentas do Lace e ler
+arquivos, ou também editar e criar na pasta do projeto. Quem autentica é o
+Claude Code; o Studio não guarda chave.
+
+`AgentEvent` (`lace_agent::AgentEvent`, etiquetado por `type`): `ready`
+(`session_id`, `model`, `tools`, `lace_connected`; só vem depois da primeira
+mensagem, porque o Claude Code não inicia nada antes dela), `text` (um
+pedaço da resposta), `tool_use` (`id`, `name`, `input`), `tool_result`
+(`id`, `content`, `is_error`), `done` (`is_error`, `text`, `cost_usd`,
+`duration_ms`, `turns`, `session_id`, tokens), `log` (uma linha do stderr
+dele) e `exited` (`code`), o último. A interface (`state/assistant.ts`)
+monta a transcrição a partir deles; ao trocar de projeto, fecha a sessão,
+e a próxima mensagem abre outra. Ao sair, o Studio encerra todas.
+
 ## Eventos
 
 | Evento | Carga | Quando |

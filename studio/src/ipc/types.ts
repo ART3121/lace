@@ -96,6 +96,15 @@ export interface Settings {
   /** O tour pela interface já apareceu (state/tour.ts). Sem `settings.json`,
    * começa `false`, e o tour abre sozinho. */
   tour_done: boolean;
+  /** O executável do Claude Code para o assistente (ou a pasta dele); null
+   * procura no PATH e nas pastas dos instaladores. */
+  assistant_claude: string | null;
+  /** O `lace` que serve as ferramentas ao assistente; null, o da instalação. */
+  assistant_lace: string | null;
+  /** O modelo do assistente (`--model` do Claude Code); null, o padrão. */
+  assistant_model: string | null;
+  /** O assistente pode editar e criar arquivos na pasta do projeto. */
+  assistant_allow_edits: boolean;
   recent_projects: RecentProject[];
 }
 
@@ -491,6 +500,35 @@ export interface WaveTab {
 
 /** `terminal.rs`: TerminalMessage. */
 export type TerminalMessage = { type: 'data'; data: string } | { type: 'exit'; code: number | null };
+
+/** `lace_agent::AgentEvent` (assistant.rs): o que acontece numa sessão do
+ * assistente, na ordem. */
+export type AgentEvent =
+  | { type: 'ready'; session_id: string; model: string | null; tools: string[]; lace_connected: boolean | null }
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; id: string; content: string; is_error: boolean }
+  | {
+      type: 'done';
+      is_error: boolean;
+      text: string | null;
+      cost_usd: number | null;
+      duration_ms: number | null;
+      turns: number | null;
+      session_id: string | null;
+      input_tokens: number | null;
+      output_tokens: number | null;
+    }
+  | { type: 'log'; line: string }
+  | { type: 'exited'; code: number | null };
+
+/** `assistant.rs`: AssistantInfo. */
+export interface AssistantInfo {
+  claude: string | null;
+  version: string | null;
+  lace: string | null;
+  project: string | null;
+}
 
 /** `watcher.rs`: o evento `studio://fs-changed`. */
 export interface FsChanged {

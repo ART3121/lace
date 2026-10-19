@@ -33,6 +33,8 @@ pub struct AppState {
     pub terminals: Mutex<HashMap<u32, Terminal>>,
     /// O vigia da pasta do projeto.
     pub watcher: Mutex<Option<RecommendedWatcher>>,
+    /// As sessões do assistente abertas.
+    assistants: crate::assistant::Assistants,
     next_id: AtomicU32,
 }
 
@@ -53,8 +55,14 @@ impl AppState {
             job: Mutex::new(None),
             terminals: Mutex::new(HashMap::new()),
             watcher: Mutex::new(None),
+            assistants: crate::assistant::Assistants::default(),
             next_id: AtomicU32::new(1),
         }
+    }
+
+    /// As sessões do assistente.
+    pub fn assistants(&self) -> &crate::assistant::Assistants {
+        &self.assistants
     }
 
     /// Um identificador novo, para operações e terminais.

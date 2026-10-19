@@ -32,7 +32,7 @@ export function isConsoleChannel(value: unknown): value is ConsoleChannel {
   return typeof value === 'string' && (CONSOLE_CHANNELS as readonly string[]).includes(value);
 }
 
-export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', 'learn', 'info', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
+export const VIEW_IDS = ['explorer', 'flow', 'search', 'reports', 'learn', 'assistant', 'info', ...CONSOLE_CHANNELS, 'problems', 'terminal'] as const;
 export type ViewId = (typeof VIEW_IDS)[number];
 
 export const REGION_IDS = ['left', 'right', 'panel'] as const;
@@ -57,6 +57,7 @@ export const VIEW_INFO: Record<ViewId, ViewInfo> = {
   search: { label: 'sidebar.search', region: 'left', action: 'findInFiles' },
   reports: { label: 'sidebar.reports', region: 'left', action: 'viewReports' },
   learn: { label: 'sidebar.learn', region: 'left', action: 'viewLearn' },
+  assistant: { label: 'sidebar.assistant', region: 'right', action: 'viewAssistant' },
   info: { label: 'panel.info', region: 'panel', action: 'viewConsoleInfo' },
   cmm: { label: 'panel.cmm', region: 'panel', action: 'viewConsoleCmm' },
   asm: { label: 'panel.asm', region: 'panel', action: 'viewConsoleAsm' },

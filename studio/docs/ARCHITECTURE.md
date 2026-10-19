@@ -30,6 +30,7 @@ Sumário:
 │  │ stores (zustand)       │             │ flows.rs    (casca)         │──▶ lace-core
 │  │ Monaco, xterm.js       │ ◀────────── │ jobs.rs     (thread)        │   (flows, delivery,
 │  └────────────────────────┘   Channel   │ terminal.rs (PTY)           │    locate)
+│              ▲                          │ assistant.rs                │──▶ lace-agent ──▶ claude
 │              ▲                 + emit   │ watcher.rs  (notify)        │──▶ lace-installer
 │              └───────────────────────── │ toolchain.rs, settings.rs   │   (update, add)
 │                                         └──────────────┬──────────────┘         │
@@ -81,6 +82,7 @@ lace-studio/
     src/flows.rs             a casca sobre lace_core::flows (mais o fluxo learn)
     src/jobs.rs              operações em thread; a entrega em lotes é lace_core::delivery
     src/terminal.rs          o terminal de shell (portable-pty)
+    src/assistant.rs         o assistente: sessões do Claude Code (lace-agent)
     src/watcher.rs           vigia da pasta do projeto (notify)
     src/wave_tab.rs          a onda numa aba: o servidor local do cliente web do Surfer
     src/toolchain.rs         onde está o bundle do Lace

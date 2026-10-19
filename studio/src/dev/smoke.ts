@@ -205,9 +205,12 @@ export async function runSmokeScript(): Promise<void> {
           break;
         case 'type': {
           const [selector, text] = arg.split('|');
-          const input = element(selector) as HTMLInputElement;
+          const input = element(selector) as HTMLInputElement | HTMLTextAreaElement;
           input.focus();
-          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text);
+          // O setter nativo do tipo certo: o do React fica por cima e não
+          // avisaria a mudança; o de um <input> num <textarea> é erro.
+          const proto = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+          Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(input, text);
           input.dispatchEvent(new Event('input', { bubbles: true }));
           break;
         }

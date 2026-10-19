@@ -2122,6 +2122,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "lace-agent"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "camino",
+ "dunce",
+ "lace-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
 name = "lace-core"
 version = "0.9.0"
 dependencies = [
@@ -2179,6 +2194,7 @@ name = "lace-studio"
 version = "0.9.0"
 dependencies = [
  "camino",
+ "lace-agent",
  "lace-core",
  "lace-installer",
  "lace-learn",

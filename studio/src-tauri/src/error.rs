@@ -51,6 +51,8 @@ pub mod codes {
     pub const WAVE_TOO_LARGE: &str = "wave_too_large";
     /// Falha interna (thread que morreu, JSON inválido).
     pub const INTERNAL: &str = "internal";
+    /// O assistente: o Claude Code não foi achado, ou a sessão terminou.
+    pub const ASSISTANT: &str = "assistant";
 }
 
 /// O erro de um comando, como a interface o recebe.
