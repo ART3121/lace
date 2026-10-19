@@ -1973,7 +1973,7 @@ fn processors_text(project: &Project, here: Option<&Processor>) {
 }
 
 /// Um erro do Core como aparece dentro de outro JSON.
-fn error_info(error: &LaceError) -> ErrorInfo {
+pub(crate) fn error_info(error: &LaceError) -> ErrorInfo {
     let mut info = ErrorInfo::from(error);
     info.hint = hint(error);
     info

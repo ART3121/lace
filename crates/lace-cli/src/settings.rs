@@ -66,29 +66,12 @@ impl ToolchainArgs {
     /// houver. Um compilador declarado que não está lá é erro, e não volta
     /// em silêncio aos locais padrão.
     pub fn resolve(&self) -> anyhow::Result<Toolchain> {
-        let exe = std::env::current_exe().context("Could not find the lace executable")?;
-        let exe = Utf8PathBuf::from_path_buf(exe)
-            .map_err(|p| anyhow::anyhow!("Path is not UTF-8: {}", p.display()))?;
-        let compiler = self.compiler.as_deref().map(absolute).transpose()?;
-        let quartus = self.quartus.as_deref().map(absolute).transpose()?;
-        let lookup = Lookup {
-            settings: self.toolchain.clone(),
-            exe: Some(exe),
-            compiler: compiler.clone(),
-            quartus: quartus.clone(),
-            quartus_rootdir: std::env::var_os(QUARTUS_ROOTDIR)
-                .filter(|d| !d.is_empty())
-                .and_then(|d| Utf8PathBuf::from_path_buf(d.into()).ok()),
-            home: std::env::var_os("HOME")
-                .filter(|h| !h.is_empty())
-                .and_then(|h| Utf8PathBuf::from_path_buf(h.into()).ok()),
-            ..Lookup::default()
-        };
+        let lookup = self.lookup()?;
         let found = locate::resolve(&lookup)?;
         // Na CLI, um compilador ou um Quartus declarado que não está lá é
         // erro, e não volta em silêncio aos locais padrão.
         if found.compiler_error.is_some() {
-            let dir = compiler.unwrap_or_default();
+            let dir = lookup.compiler.unwrap_or_default();
             anyhow::bail!(
                 "The compiler at {dir} (from --compiler or LACE_COMPILER) is missing perl, make or a C++ compiler{}",
                 if cfg!(windows) {
@@ -99,12 +82,36 @@ impl ToolchainArgs {
             );
         }
         if found.quartus_error.is_some() {
-            let dir = quartus.unwrap_or_default();
+            let dir = lookup.quartus.unwrap_or_default();
             anyhow::bail!(
                 "No Quartus Prime at {dir} (from --quartus or LACE_QUARTUS): quartus_sh is not there"
             );
         }
         Ok(found.toolchain)
+    }
+
+    /// Onde procurar, do jeito da CLI: o `--toolchain` (ou `LACE_TOOLCHAIN`),
+    /// senão o bundle ao lado do executável; o compilador e o Quartus das
+    /// opções, a `QUARTUS_ROOTDIR` e a `HOME` do ambiente.
+    pub fn lookup(&self) -> anyhow::Result<Lookup> {
+        let exe = std::env::current_exe().context("Could not find the lace executable")?;
+        let exe = Utf8PathBuf::from_path_buf(exe)
+            .map_err(|p| anyhow::anyhow!("Path is not UTF-8: {}", p.display()))?;
+        let compiler = self.compiler.as_deref().map(absolute).transpose()?;
+        let quartus = self.quartus.as_deref().map(absolute).transpose()?;
+        Ok(Lookup {
+            settings: self.toolchain.clone(),
+            exe: Some(exe),
+            compiler,
+            quartus,
+            quartus_rootdir: std::env::var_os(QUARTUS_ROOTDIR)
+                .filter(|d| !d.is_empty())
+                .and_then(|d| Utf8PathBuf::from_path_buf(d.into()).ok()),
+            home: std::env::var_os("HOME")
+                .filter(|h| !h.is_empty())
+                .and_then(|h| Utf8PathBuf::from_path_buf(h.into()).ok()),
+            ..Lookup::default()
+        })
     }
 }
 

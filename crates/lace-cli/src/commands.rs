@@ -104,6 +104,9 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Fpga(command) => return crate::fpga::run(cli, command, out, control),
         Command::Experimental(args) => crate::experimental::run(args, out)?,
         Command::Tools { verify } => return tools(cli, *verify, out),
+        Command::Serve(args) => {
+            return crate::serve::run(&cli.toolchain, args, control.cancel_token());
+        }
         Command::Install(args) => {
             let from = args.from.as_deref().map(settings::absolute).transpose()?;
             crate::install::run(out, &args.components, from.as_deref())?;

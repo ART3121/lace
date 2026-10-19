@@ -1057,7 +1057,7 @@
       ]
     },
     {
-      "description": "Os módulos do projeto que podem ir para a placa. Resposta:\n[`ModuleInterface`].",
+      "description": "Os módulos do projeto que podem ir para a placa. Resposta: os\nnomes, na ordem dos arquivos.",
       "type": "object",
       "properties": {
         "method": {

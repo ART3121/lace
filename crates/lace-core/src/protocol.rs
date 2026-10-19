@@ -27,7 +27,6 @@ use crate::flows::{
 use crate::fpga::{BitstreamState, Board, FpgaConfig, Prepared};
 use crate::history::{Cleanup, RunComparison, RunRecord, RunSummary};
 use crate::locate::ToolchainInfo;
-use crate::verilog::ModuleInterface;
 use crate::{
     AddedFile, ErrorInfo, FileMismatch, LayoutConversion, ListPosition, MovedPath, NewProcessor,
     Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemovedProcessor, WaveSignals,
@@ -42,6 +41,55 @@ pub const PROTOCOL_VERSION: u32 = 1;
 fn yes() -> bool {
     true
 }
+
+/// Os métodos do protocolo, como vão em JSON: o que um servidor anuncia em
+/// [`ServerInfo::methods`] e usa para distinguir um método desconhecido de
+/// um com parâmetros inválidos. Mais `$/cancel`, a notificação que não é
+/// pedido.
+pub const METHODS: &[&str] = &[
+    "initialize",
+    "shutdown",
+    "project.create",
+    "project.status",
+    "project.add",
+    "project.remove",
+    "project.top",
+    "project.testbench",
+    "project.order",
+    "project.move",
+    "project.convert",
+    "project.check_name",
+    "processor.check_name",
+    "processor.add",
+    "processor.set",
+    "processor.remove",
+    "processor.outputs",
+    "flow.run",
+    "wave.open",
+    "wave.signals",
+    "wave.choose",
+    "wave.reset_layout",
+    "history.list",
+    "history.show",
+    "history.compare",
+    "history.plan_cleanup",
+    "history.clean",
+    "toolchain.info",
+    "toolchain.verify",
+    "experimental.list",
+    "experimental.set",
+    "fpga.boards",
+    "fpga.config",
+    "fpga.config_set",
+    "fpga.check",
+    "fpga.modules",
+    "fpga.status",
+    "fpga.cables",
+    "update.check",
+    "update.apply",
+    "install.add",
+    "learn.check",
+];
 
 /// O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
 /// um método sem parâmetros vai sem `params`. Os caminhos são absolutos.
@@ -381,8 +429,8 @@ pub enum Request {
         #[schemars(with = "String")]
         project: Utf8PathBuf,
     },
-    /// Os módulos do projeto que podem ir para a placa. Resposta:
-    /// [`ModuleInterface`].
+    /// Os módulos do projeto que podem ir para a placa. Resposta: os
+    /// nomes, na ordem dos arquivos.
     #[serde(rename = "fpga.modules")]
     FpgaModules {
         /// O projeto.
@@ -583,7 +631,7 @@ pub enum Response {
     /// `fpga.check`.
     Prepared(Box<Prepared>),
     /// `fpga.modules`.
-    Modules(Vec<ModuleInterface>),
+    Modules(Vec<String>),
     /// `fpga.status`.
     Bitstream(BitstreamState),
     /// `fpga.cables`.
@@ -775,6 +823,28 @@ mod tests {
             }
             .is_installation()
         );
+    }
+
+    #[test]
+    fn the_method_list_matches_the_request_enum() {
+        // Cada nome da lista é um método que o enum aceita (com parâmetros
+        // vazios ou inválidos, o erro é de parâmetros, não de método), e
+        // cada variante do schema está na lista.
+        let schema = serde_json::to_value(request_schema()).unwrap();
+        let mut from_schema: Vec<String> = schema["oneOf"]
+            .as_array()
+            .expect("oneOf")
+            .iter()
+            .filter_map(|v| {
+                v["properties"]["method"]["const"]
+                    .as_str()
+                    .map(str::to_owned)
+            })
+            .collect();
+        from_schema.sort();
+        let mut listed: Vec<String> = METHODS.iter().map(|m| (*m).to_owned()).collect();
+        listed.sort();
+        assert_eq!(listed, from_schema);
     }
 
     #[test]

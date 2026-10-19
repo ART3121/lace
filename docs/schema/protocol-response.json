@@ -171,7 +171,7 @@
           "description": "`fpga.modules`.",
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ModuleInterface"
+            "type": "string"
           }
         },
         {
@@ -5278,82 +5278,6 @@
       "required": [
         "target",
         "source"
-      ]
-    },
-    "ModuleInterface": {
-      "description": "Um módulo e as portas dele, na ordem da declaração.",
-      "type": "object",
-      "properties": {
-        "name": {
-          "description": "Nome do módulo.",
-          "type": "string"
-        },
-        "file": {
-          "description": "O arquivo que o declara.",
-          "type": "string"
-        },
-        "ports": {
-          "description": "As portas.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Port"
-          }
-        }
-      },
-      "required": [
-        "name",
-        "file",
-        "ports"
-      ]
-    },
-    "Port": {
-      "description": "Uma porta de um módulo.",
-      "type": "object",
-      "properties": {
-        "name": {
-          "description": "Nome.",
-          "type": "string"
-        },
-        "direction": {
-          "description": "Direção.",
-          "$ref": "#/$defs/PortDirection2"
-        },
-        "width": {
-          "description": "Largura em bits, com os parâmetros nos valores padrão.",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
-        "signed": {
-          "description": "`signed`.",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "name",
-        "direction",
-        "width",
-        "signed"
-      ]
-    },
-    "PortDirection2": {
-      "description": "Direção de uma porta.",
-      "oneOf": [
-        {
-          "description": "`input`.",
-          "type": "string",
-          "const": "input"
-        },
-        {
-          "description": "`output`.",
-          "type": "string",
-          "const": "output"
-        },
-        {
-          "description": "`inout`.",
-          "type": "string",
-          "const": "inout"
-        }
       ]
     },
     "BitstreamState": {
