@@ -112,8 +112,18 @@
     $repo = if ($env:LACE_REPO) { $env:LACE_REPO } else { 'ART3121/lace' }
     $version = $env:LACE_VERSION
     if (-not $version) {
-        $release = Invoke-RestMethod -UseBasicParsing "https://api.github.com/repos/$repo/releases/latest"
-        $version = $release.tag_name.TrimStart('v')
+        # A página da última release redireciona para /releases/tag/<tag>,
+        # e é o que a CLI consulta: a API do GitHub limita a 60 consultas por
+        # hora por IP, e uma turma num laboratório atrás de um IP só passava
+        # disso no meio da aula. O endereço final vem no ResponseUri no
+        # PowerShell 5.1 e no RequestMessage no 7.
+        $latest = Invoke-WebRequest -UseBasicParsing -Method Head -Uri "https://github.com/$repo/releases/latest"
+        $final = if ($latest.BaseResponse.ResponseUri) { $latest.BaseResponse.ResponseUri } else { $latest.BaseResponse.RequestMessage.RequestUri }
+        $tag = ([string]$final.AbsoluteUri -split '/releases/tag/')[-1]
+        if ($tag -notmatch '^v?[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]*$') {
+            throw "Could not find the latest release of $repo ($final)"
+        }
+        $version = $tag.TrimStart('v')
     }
 
     $base = "https://github.com/$repo/releases/download/v$version"
