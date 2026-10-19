@@ -165,7 +165,9 @@ impl Project {
     ///
     /// - [`LaceError::Io`] se a pasta de saída de um processador não puder
     ///   ser criada, ou o `.spf` não puder ser gravado. Um arquivo que não
-    ///   pôde ser movido não é erro: fica no relatório, em `skipped`.
+    ///   pôde ser movido não é erro: fica no relatório, em `skipped`. Sem o
+    ///   `.spf` gravado, o que foi movido volta para onde estava, com o texto
+    ///   de antes, e o processador continua na estrutura antiga.
     pub fn convert_layout(&mut self) -> Result<LayoutConversion> {
         self.begin_write()?;
         let legacy: Vec<Processor> = self.legacy_processors().into_iter().cloned().collect();
@@ -174,6 +176,11 @@ impl Project {
             self.release_write();
             return Ok(report);
         }
+        // Para desfazer, se o `.spf` não for gravado: o documento, o que foi
+        // movido e o texto dos fontes que perderam a linha do nome.
+        let document = self.document.clone();
+        let mut moves: Vec<(Utf8PathBuf, Utf8PathBuf)> = Vec::new();
+        let mut rewritten: Vec<(Utf8PathBuf, String)> = Vec::new();
         let mut changed = false;
         for p in &legacy {
             report.processors.push(p.name.clone());
@@ -219,8 +226,12 @@ impl Project {
                         continue;
                     }
                     changed |= self.rewrite_moved(&from, &to);
-                    if !generated && is_source(name) {
-                        remove_name_line(p, &to, &mut report);
+                    moves.push((from.clone(), to.clone()));
+                    if !generated
+                        && is_source(name)
+                        && let Some(text) = remove_name_line(p, &to, &mut report)
+                    {
+                        rewritten.push((to.clone(), text));
                     }
                     report.moved.push(ConvertedPath {
                         processor: p.name.clone(),
@@ -241,10 +252,28 @@ impl Project {
             }
         }
         changed |= self.drop_legacy_entry_fields();
-        if changed {
-            self.save()?;
-        } else {
+        if !changed {
             self.release_write();
+        } else if let Err(error) = self.save() {
+            // O `.spf` continua apontando para os lugares antigos: o disco
+            // volta a bater com ele, e o processador continua antigo (dá
+            // para converter de novo).
+            for (file, text) in rewritten.iter().rev() {
+                if let Err(e) = std::fs::write(file, text) {
+                    tracing::warn!(%file, "Could not restore the name line: {e}");
+                }
+            }
+            for (from, to) in moves.iter().rev() {
+                let back = from
+                    .parent()
+                    .map_or(Ok(()), std::fs::create_dir_all)
+                    .and_then(|()| std::fs::rename(to, from));
+                if let Err(e) = back {
+                    tracing::warn!(%from, %to, "Could not move back: {e}");
+                }
+            }
+            self.document = document;
+            return Err(error);
         }
         tracing::info!(
             processors = report.processors.len(),
@@ -354,21 +383,23 @@ fn is_generated(name: &str, bases: &[String]) -> bool {
 }
 
 /// Tira do fonte a linha do nome e anota no relatório. Um fonte ilegível
-/// fica como está: o build vai dizer o que falta.
-fn remove_name_line(p: &Processor, file: &Utf8Path, report: &mut LayoutConversion) {
-    let Ok(text) = std::fs::read_to_string(file) else {
-        return;
-    };
-    let (text, old_name) = without_name_lines(&text);
-    if let Some(old_name) = old_name
-        && std::fs::write(file, text).is_ok()
-    {
-        report.name_lines.push(RemovedNameLine {
-            processor: p.name.clone(),
-            file: file.to_owned(),
-            old_name,
-        });
-    }
+/// fica como está: o build vai dizer o que falta. Devolve o texto de antes,
+/// quando regravou.
+fn remove_name_line(
+    p: &Processor,
+    file: &Utf8Path,
+    report: &mut LayoutConversion,
+) -> Option<String> {
+    let original = std::fs::read_to_string(file).ok()?;
+    let (text, old_name) = without_name_lines(&original);
+    let old_name = old_name?;
+    std::fs::write(file, text).ok()?;
+    report.name_lines.push(RemovedNameLine {
+        processor: p.name.clone(),
+        file: file.to_owned(),
+        old_name,
+    });
+    Some(original)
 }
 
 /// O texto sem as linhas `#PRNAME <nome>` e `#pragma yanc prname <nome>`, e
@@ -488,6 +519,44 @@ mod tests {
             "{}",
             issue.message
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_conversion_that_cannot_write_the_project_puts_everything_back() {
+        let guard = tempfile::tempdir().unwrap();
+        let (mut project, soma) = project_with_soma(Utf8Path::from_path(guard.path()).unwrap());
+        make_legacy(&mut project, &soma);
+        let spf = project.spf_path().to_owned();
+        let readonly = |on: bool| {
+            let mut permissions = std::fs::metadata(&spf).unwrap().permissions();
+            #[allow(clippy::permissions_set_readonly_false)]
+            permissions.set_readonly(on);
+            std::fs::set_permissions(&spf, permissions).unwrap();
+        };
+        // Somente leitura, o `.spf` não é trocado pelo novo.
+        readonly(true);
+        assert!(project.convert_layout().is_err());
+        readonly(false);
+        assert_eq!(
+            std::fs::read_to_string(soma.dir.join("Software/soma.cmm")).unwrap(),
+            "#PRNAME soma\n#NUBITS 23\n"
+        );
+        assert!(soma.dir.join("Hardware/soma.v").is_file());
+        assert!(!soma.source.exists());
+        assert!(!soma.output_dir.join("soma.v").exists());
+        assert!(soma.needs_conversion());
+        // O documento em memória também volta.
+        let listed: Vec<Utf8PathBuf> = project
+            .files(FileRole::Synthesizable)
+            .into_iter()
+            .map(|f| f.path)
+            .collect();
+        assert_eq!(listed, [soma.dir.join("Hardware/soma.v")]);
+        // Com o `.spf` gravável, a conversão vai até o fim.
+        let report = project.convert_layout().unwrap();
+        assert_eq!(report.moved.len(), 2, "{report:#?}");
+        assert!(soma.source.is_file());
     }
 
     #[test]

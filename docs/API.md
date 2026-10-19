@@ -403,6 +403,8 @@ o projeto convertido abra igual nas duas:
   onde estava (`skipped`, com o motivo), e a subpasta antiga só sai vazia
   (`remaining_dirs`, as que ficaram com algo além do `.DS_Store` e
   parecidos, que não são movidos);
+- sem o `.spf` gravado, o que foi movido volta para onde estava, com o
+  texto de antes, e a conversão devolve o erro;
 - a linha `#PRNAME` (ou `#pragma yanc prname`) sai do fonte (`name_lines`,
   com o nome que ela dava ao módulo Verilog: se difere do processador, quem
   instanciava o módulo pelo nome antigo precisa do novo);
