@@ -19,9 +19,15 @@
 //! thread por terminal o escreve: quem chama não espera o shell ler. Com um
 //! programa que não lê a entrada, colar um bloco grande travava a janela, porque
 //! a escrita rodava na thread principal, com a trava de todos os terminais.
+//!
+//! O que sai do shell tem controle de fluxo ([`Flow`]): a interface confirma
+//! ([`terminal_ack`]) o que o xterm já escreveu, e a leitura para quando ela
+//! fica para trás. Sem isso, um `cat` de um VCD grande ou um `vvp` sem
+//! `$finish` enchiam a memória da janela, e o Ctrl+C só aparecia depois de
+//! tudo o que já estava a caminho.
 
 use std::io::{Read, Write};
-use std::sync::mpsc;
+use std::sync::{Arc, Condvar, Mutex, mpsc};
 
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use serde::Serialize;
@@ -40,6 +46,70 @@ pub struct Terminal {
     input: mpsc::Sender<Vec<u8>>,
     child: Box<dyn Child + Send + Sync>,
     shell: ShellKind,
+    /// O controle de fluxo da saída, com a thread de leitura.
+    flow: Arc<Flow>,
+}
+
+/// Fora da lista (encerrado, ou o shell saiu), a leitura não espera mais a
+/// interface: lê o resto até o pseudoterminal fechar.
+impl Drop for Terminal {
+    fn drop(&mut self) {
+        self.flow.close();
+    }
+}
+
+/// O controle de fluxo da saída de um terminal. A thread de leitura conta o
+/// que manda à interface e para de ler quando a interface fica mais de
+/// [`HIGH_WATER`] atrás; volta quando as confirmações ([`terminal_ack`])
+/// deixam o atraso em [`LOW_WATER`]. Com a leitura parada, o pseudoterminal
+/// enche, e o programa que escreve nele espera.
+#[derive(Default)]
+struct Flow {
+    state: Mutex<FlowState>,
+    changed: Condvar,
+}
+
+#[derive(Default)]
+struct FlowState {
+    /// O que foi mandado e a interface não confirmou, em unidades UTF-16 (o
+    /// `length` de uma string do JavaScript, que é o que a interface conta).
+    pending: usize,
+    /// O terminal saiu da lista: ninguém mais confirma.
+    closed: bool,
+}
+
+/// O atraso da interface que para a leitura, em unidades UTF-16.
+const HIGH_WATER: usize = 128 * 1024;
+/// O atraso com que a leitura volta. A interface confirma em lotes menores
+/// que isso: o resto de um lote não deixa a leitura parada para sempre.
+const LOW_WATER: usize = 16 * 1024;
+
+impl Flow {
+    /// Conta `units` mandadas à interface e, se ela ficou para trás, espera.
+    fn sent(&self, units: usize) {
+        let mut state = self.state.lock().expect("flow lock");
+        state.pending += units;
+        if state.pending <= HIGH_WATER {
+            return;
+        }
+        while state.pending > LOW_WATER && !state.closed {
+            state = self.changed.wait(state).expect("flow lock");
+        }
+    }
+
+    /// A interface escreveu `units` do que recebeu.
+    fn ack(&self, units: usize) {
+        let mut state = self.state.lock().expect("flow lock");
+        state.pending = state.pending.saturating_sub(units);
+        if state.pending <= LOW_WATER {
+            self.changed.notify_all();
+        }
+    }
+
+    fn close(&self) {
+        self.state.lock().expect("flow lock").closed = true;
+        self.changed.notify_all();
+    }
 }
 
 impl Terminal {
@@ -274,6 +344,7 @@ pub async fn terminal_spawn(
             }
         })
         .map_err(terminal_error)?;
+    let flow = Arc::new(Flow::default());
     state.terminals.lock().expect("terminals lock").insert(
         id,
         Terminal {
@@ -281,6 +352,7 @@ pub async fn terminal_spawn(
             input,
             child,
             shell,
+            flow: Arc::clone(&flow),
         },
     );
 
@@ -297,9 +369,14 @@ pub async fn terminal_spawn(
                 }
                 pending.extend_from_slice(&buffer[..read]);
                 let text = take_utf8(&mut pending);
-                if !text.is_empty() && output.send(TerminalMessage::Data { data: text }).is_err() {
+                if text.is_empty() {
+                    continue;
+                }
+                let units = text.encode_utf16().count();
+                if output.send(TerminalMessage::Data { data: text }).is_err() {
                     break;
                 }
+                flow.sent(units);
             }
             let _ = read_all.send(());
         })
@@ -381,6 +458,16 @@ pub fn terminal_write(app: AppHandle, id: u32, data: String) -> IpcResult<()> {
         .send(data.into_bytes())
 }
 
+/// A interface escreveu no xterm `units` (unidades UTF-16) do que o terminal
+/// mandou. Um terminal que já terminou fica como está.
+#[tauri::command]
+pub fn terminal_ack(app: AppHandle, id: u32, units: usize) {
+    let state = app.state::<AppState>();
+    if let Some(terminal) = state.terminals.lock().expect("terminals lock").get(&id) {
+        terminal.flow.ack(units);
+    }
+}
+
 /// Leva o shell do terminal para `path`, digitando o `cd` do shell dele.
 /// Um terminal que já terminou fica como está. Um caminho com caractere de
 /// controle não é digitado ([`codes::UNSAFE_PATH`]): o shell fica onde está.
@@ -454,7 +541,46 @@ pub fn kill_all(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::{ShellKind, take_utf8};
+    use std::sync::{Arc, mpsc};
+    use std::time::Duration;
+
+    use super::{Flow, HIGH_WATER, LOW_WATER, ShellKind, take_utf8};
+
+    /// `flow.sent(units)` numa thread; o canal avisa quando volta.
+    fn send_in_thread(flow: &Arc<Flow>, units: usize) -> mpsc::Receiver<()> {
+        let (done, returned) = mpsc::channel();
+        let flow = Arc::clone(flow);
+        std::thread::spawn(move || {
+            flow.sent(units);
+            let _ = done.send(());
+        });
+        returned
+    }
+
+    #[test]
+    fn the_reader_waits_while_the_interface_is_behind() {
+        let flow = Arc::new(Flow::default());
+        // Até o limite, a leitura segue.
+        flow.sent(HIGH_WATER);
+        let returned = send_in_thread(&flow, 1);
+        assert!(returned.recv_timeout(Duration::from_millis(200)).is_err());
+        // Uma confirmação que deixa o atraso acima do retorno não basta.
+        flow.ack(HIGH_WATER - LOW_WATER);
+        assert!(returned.recv_timeout(Duration::from_millis(200)).is_err());
+        flow.ack(1);
+        assert!(returned.recv_timeout(Duration::from_secs(5)).is_ok());
+    }
+
+    #[test]
+    fn a_closed_terminal_does_not_keep_the_reader_waiting() {
+        let flow = Arc::new(Flow::default());
+        let returned = send_in_thread(&flow, HIGH_WATER + 1);
+        assert!(returned.recv_timeout(Duration::from_millis(200)).is_err());
+        flow.close();
+        assert!(returned.recv_timeout(Duration::from_secs(5)).is_ok());
+        // Depois de fechado, não espera mais.
+        flow.sent(10 * HIGH_WATER);
+    }
 
     #[test]
     fn cd_quotes_the_path_for_each_shell() {

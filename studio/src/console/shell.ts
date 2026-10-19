@@ -58,16 +58,38 @@ function create(): Shell {
   return created;
 }
 
+/** De quanto em quanto (o `length` das strings) a interface confirma ao
+ * backend o que o xterm escreveu. Menor que o atraso com que o backend volta
+ * a ler (`LOW_WATER`, 16 Ki, em `terminal.rs`). */
+const ACK_BATCH = 8 * 1024;
+
 async function spawn(target: Shell): Promise<void> {
   const cwd = useProject.getState().snapshot?.root ?? null;
+  // O terminal deste spawn, e o que o xterm já escreveu sem confirmar. A
+  // saída pode chegar antes do identificador; o que chegou fica para a
+  // primeira confirmação.
+  let id: number | null = null;
+  let written = 0;
+  const ack = () => {
+    if (id === null || written === 0) return;
+    void api.terminal.ack(id, written).catch(() => undefined);
+    written = 0;
+  };
   try {
-    target.id = await api.terminal.spawn(cwd, target.term.cols, target.term.rows, (message) => {
-      if (message.type === 'data') target.term.write(message.data);
-      else {
+    id = await api.terminal.spawn(cwd, target.term.cols, target.term.rows, (message) => {
+      if (message.type === 'data') {
+        const units = message.data.length;
+        target.term.write(message.data, () => {
+          written += units;
+          if (written >= ACK_BATCH) ack();
+        });
+      } else {
         target.exited = true;
         target.term.writeln(`\r\n\x1b[90m${t('panel.terminalExited', { code: message.code ?? '-' })}\x1b[0m`);
       }
     });
+    target.id = id;
+    ack();
     target.exited = false;
   } catch (error) {
     target.exited = true;

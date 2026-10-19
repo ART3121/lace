@@ -386,12 +386,17 @@ inteira a `wave_selection_set`. O retrato do projeto traz a escolha em
 |---|---|---|
 | `terminal_spawn` | `cwd?` (padrão: a pasta do projeto), `cols`, `rows`, `channel: Channel<TerminalMessage>` | o identificador |
 | `terminal_write` | `id`, `data` | |
+| `terminal_ack` | `id`, `units` | a interface escreveu no xterm `units` (o `length` das strings) do que o terminal mandou |
 | `terminal_cd` | `id`, `path` | digita no shell o `cd` para `path`, na sintaxe dele (PowerShell, `cmd`, POSIX ou fish), depois das teclas que apagam o que estiver na linha; a interface chama ao abrir outro projeto |
 | `terminal_resize` | `id`, `cols`, `rows` | |
 | `terminal_kill` | `id` | |
 
 `TerminalMessage`: `{ type: 'data', data }` com o que o shell escreveu (UTF-8),
-e `{ type: 'exit', code }` quando ele termina. O shell é o do usuário
+e `{ type: 'exit', code }` quando ele termina. A saída tem controle de fluxo:
+a interface confirma com `terminal_ack`, em lotes menores que 16 Ki unidades
+UTF-16, o que o xterm já escreveu, e o backend para de ler o shell quando a
+interface fica 128 Ki atrás, até o atraso cair para 16 Ki; o programa que
+escreve no terminal espera. O shell é o do usuário
 (`$SHELL`) no Linux e no macOS e o PowerShell no Windows, com a pasta `bin/`
 da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
 
