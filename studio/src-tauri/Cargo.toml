@@ -25,6 +25,9 @@ tauri-build = { version = "2", features = [] }
 lace-core = { path = "../../crates/lace-core" }
 # Os exercícios do `lace learn` (a vista Exercícios e o fluxo `learn`).
 lace-learn = { path = "../../crates/lace-learn" }
+# Instalar componentes e atualizar o Lace, em processo (sem a interface de
+# terminal do instalador).
+lace-installer = { path = "../../crates/lace-installer", default-features = false }
 
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

@@ -115,6 +115,12 @@ impl From<lace_learn::LearnError> for IpcError {
     }
 }
 
+impl From<lace_installer::Error> for IpcError {
+    fn from(error: lace_installer::Error) -> Self {
+        IpcError::new(error.code(), error.to_string())
+    }
+}
+
 impl From<std::io::Error> for IpcError {
     fn from(error: std::io::Error) -> Self {
         IpcError::new(codes::IO, error.to_string())
