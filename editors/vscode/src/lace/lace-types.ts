@@ -6792,7 +6792,7 @@ export interface Resolved2 {
   notes: string[];
 }
 /**
- * `lace install`.
+ * `lace install` (`docs/schema/install.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "InstallReport".
@@ -7491,7 +7491,7 @@ export interface TopReport {
   module_error: ErrorInfo | null;
 }
 /**
- * `lace uninstall`.
+ * `lace uninstall` (`docs/schema/uninstall.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UninstallReport".
@@ -7503,12 +7503,13 @@ export interface UninstallReport {
   prefix: string;
   /**
    * `true`: a pasta e o atalho já saíram (Linux, macOS). `false`: o
-   * desinstalador do Windows foi aberto e termina depois que o `lace` sai.
+   * desinstalador do Windows foi aberto e termina depois que quem chamou
+   * sai.
    */
   removed: boolean;
 }
 /**
- * `lace update`.
+ * O relatório do `lace update` (`docs/schema/update.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UpdateReport".
