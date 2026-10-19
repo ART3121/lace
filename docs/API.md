@@ -1304,7 +1304,7 @@ LUT, DSP, ocupação ou temporização. `None` quando a síntese falhou ou o
    não é sintetizado, e o erro é `ModuleNotFound`, com os módulos do
    netlist em `available` (antes, `InvalidNetlist`, como se o netlist
    estivesse quebrado).
-2. Passo `graph`: `yosys -q -s show.ys`, CWD `<dir>`, com o script
+2. Passo `graph`: `yosys -q -s <módulo>.show.ys`, CWD `<dir>`, com o script
    `read_json "<netlist>"` e `show -format dot -prefix <módulo> [-width] <módulo>`.
    Gera `<dir>/<módulo>.dot`.
 3. Passo `render`: `dot -Tsvg <módulo>.dot -o <módulo>.svg`, CWD `<dir>`. Uma
@@ -2131,7 +2131,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `ModuleNotFound` | `module_not_found` | `set_top` com um nome que nenhum sintetizável registrado declara; `top_module` ou `testbench_module` num arquivo sem um módulo que dê para usar; `render_schematic` de um módulo fora do netlist | ver `available` |
 | `AmbiguousModule` | `ambiguous_module` | `set_top` com um nome que mais de um sintetizável declara | escolher pelo arquivo (`files`) |
 | `InvalidParameter` | `invalid_parameter` | `add_processor` com parâmetro que o YANC não compila (`NewProcessor::validate`); `configure_processor` com frequência ou clocks fora da faixa | ver `name`, `value` e `reason` |
-| `OperationInProgress` | `operation_in_progress` | outro build ou outra simulação do mesmo processador, ou do projeto, está rodando (de outro processo ou do mesmo) | esperar a outra terminar |
+| `OperationInProgress` | `operation_in_progress` | outra operação do Lace usa os mesmos arquivos de trabalho, de outro processo ou do mesmo: o build ou a simulação do mesmo processador; a simulação do projeto, a síntese ou o build da placa com o build de um processador dele; duas simulações do projeto ou sínteses; duas verificações com lint, duas hierarquias, duas árvores de sinais ou dois builds da mesma placa | esperar a outra terminar |
 | `InvalidNetlist` | `invalid_netlist` | netlist ilegível | ver `modules` da síntese |
 | `InvalidDataFile` | `invalid_data_file` | linha de `input_<n>.txt`/`output_<n>.txt` que não é inteiro | corrigir a linha indicada |
 | `ProcessExitedEarly` | `process_exited_early` | o Surfer fechou logo ao abrir | ver o fim do log (`tail`) |

@@ -171,11 +171,23 @@ pub(crate) fn is_contained(path: &Utf8Path) -> bool {
 /// Uma trava de execução, solta quando sai de escopo.
 pub(crate) struct RunLock(#[allow(dead_code)] std::fs::File);
 
-/// Trava `<base>.lock` (a pasta temporária de um processador, ou a do
-/// projeto) para um build ou uma simulação. Sem esperar: se outra operação
-/// do Lace a segura, de outro processo ou desta mesma (o Studio e a CLI),
+/// Trava `<base>.lock` (a pasta temporária de um processador, a do projeto,
+/// uma pasta de trabalho) para quem grava no que ela protege: um build, uma
+/// simulação, uma síntese. Sem esperar: se outra operação do Lace a segura,
+/// de outro processo ou desta mesma (o Studio e a CLI),
 /// [`LaceError::OperationInProgress`] com `name`.
 pub(crate) fn run_lock(base: &Utf8Path, name: &str) -> Result<RunLock> {
+    lock_file(base, name, false)
+}
+
+/// Como [`run_lock`], dividida entre as operações que só leem o que ela
+/// protege (as saídas do build de um processador): elas correm juntas, e
+/// nenhuma corre com quem grava ali.
+pub(crate) fn run_lock_shared(base: &Utf8Path, name: &str) -> Result<RunLock> {
+    lock_file(base, name, true)
+}
+
+fn lock_file(base: &Utf8Path, name: &str, shared: bool) -> Result<RunLock> {
     let path = base.with_extension("lock");
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(LaceError::io("Creating directory", parent))?;
@@ -186,7 +198,12 @@ pub(crate) fn run_lock(base: &Utf8Path, name: &str) -> Result<RunLock> {
         .write(true)
         .open(&path)
         .map_err(LaceError::io("Locking", &path))?;
-    match file.try_lock() {
+    let locked = if shared {
+        file.try_lock_shared()
+    } else {
+        file.try_lock()
+    };
+    match locked {
         Ok(()) => Ok(RunLock(file)),
         Err(std::fs::TryLockError::WouldBlock) => Err(LaceError::OperationInProgress {
             name: name.to_owned(),
@@ -309,5 +326,29 @@ mod tests {
         assert!(check_simulator_path(Utf8Path::new("/home/u/projetos/soma")).is_ok());
         let err = check_simulator_path(Utf8Path::new("/home/u/Área de Trabalho/soma")).unwrap_err();
         assert_eq!(err.code(), "non_ascii_path");
+    }
+
+    #[test]
+    fn readers_share_the_lock_and_the_writer_runs_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = Utf8Path::from_path(dir.path()).unwrap().join("soma");
+        let busy = |lock: Result<RunLock>| match lock {
+            Err(LaceError::OperationInProgress { name }) => name == "soma",
+            _ => false,
+        };
+        // Duas leituras das saídas do build correm juntas; o build espera as
+        // duas.
+        let first = run_lock_shared(&base, "soma").unwrap();
+        let second = run_lock_shared(&base, "soma").unwrap();
+        assert!(busy(run_lock(&base, "soma")));
+        drop(first);
+        assert!(busy(run_lock(&base, "soma")));
+        drop(second);
+        // Com o build, nenhuma leitura.
+        let build = run_lock(&base, "soma").unwrap();
+        assert!(busy(run_lock_shared(&base, "soma")));
+        assert!(busy(run_lock(&base, "soma")));
+        drop(build);
+        assert!(run_lock_shared(&base, "soma").is_ok());
     }
 }

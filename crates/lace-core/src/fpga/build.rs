@@ -114,7 +114,9 @@ impl FpgaBuildResult {
 ///   e [`LaceError::ToolchainIncomplete`] se falta um programa dele;
 /// - os de [`super::prepare`]: sem `fpga.json`, placa desconhecida,
 ///   ligações inválidas, topo inexistente;
-/// - [`LaceError::InvalidName`] se um caminho não cabe no `.qsf`.
+/// - [`LaceError::InvalidName`] se um caminho não cabe no `.qsf`;
+/// - [`LaceError::OperationInProgress`]: outra compilação para a mesma
+///   placa, ou o build de um processador do projeto, está rodando.
 pub fn build(
     toolchain: &Toolchain,
     project: &Project,
@@ -154,6 +156,9 @@ pub fn build(
         planned.push(PlannedStep::new(step, Tool::Quartus, invocation));
     }
 
+    // A pasta da placa só para esta compilação, e os processadores sem build
+    // no meio da cópia das memórias.
+    let _locks = crate::simulate::staging_locks(project, &dir.join(".build"), &resolved.board.id)?;
     std::fs::create_dir_all(&dir).map_err(LaceError::io("Creating directory", &dir))?;
     let top_file = dir.join(format!("{TOP_MODULE}.v"));
     let settings = dir.join(format!("{REVISION}.qsf"));

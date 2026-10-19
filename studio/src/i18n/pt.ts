@@ -1088,7 +1088,7 @@ export const pt = {
   'error.non_ascii_path': 'O caminho do projeto tem acento ou outro caractere especial, e o simulador não abre os arquivos do processador nele. Mova o projeto para uma pasta sem acento.',
   'error.ambiguous_module': 'O módulo está declarado em mais de um arquivo registrado. Escolha o topo pelo arquivo.',
   'error.invalid_parameter': 'Parâmetro de processador fora do que o YANC compila. O motivo está no detalhe.',
-  'error.operation_in_progress': 'Outra operação do Lace (build ou simulação, talvez no terminal) está usando este processador. Tente de novo quando ela terminar.',
+  'error.operation_in_progress': 'Outra operação do Lace (build, simulação, síntese, talvez no terminal) está usando os arquivos deste projeto. Tente de novo quando ela terminar.',
   'error.invalid_bundle': 'A pasta do bundle do Lace não é válida.',
   'error.invalid_data_file': 'O arquivo de dados tem uma linha que não é número inteiro.',
   'error.invalid_netlist': 'O netlist da síntese não pôde ser lido.',
