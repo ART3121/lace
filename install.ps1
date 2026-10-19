@@ -135,27 +135,33 @@
     }
     $setup = Join-Path $dir $name
 
-    Write-Host "Downloading $what"
     try {
-        Get-WithProgress "$base/$name" $setup
-    } catch {
-        # Uma resposta de erro do servidor (404, 403) não muda numa segunda
-        # tentativa; uma conexão que caiu, sim. Ela vai pelo caminho de
-        # antes, sem progresso.
-        $failure = $_.Exception
-        while ($failure -and -not ($failure -is [Net.WebException])) { $failure = $failure.InnerException }
-        if ($failure -and $failure.Response) { throw }
-        Write-Host ''
-        Write-Host "The download failed ($($_.Exception.Message)); trying again without the progress line"
-        Invoke-WebRequest -UseBasicParsing -Uri "$base/$name" -OutFile $setup
-    }
+        Write-Host "Downloading $what"
+        try {
+            Get-WithProgress "$base/$name" $setup
+        } catch {
+            # Uma resposta de erro do servidor (404, 403) não muda numa segunda
+            # tentativa; uma conexão que caiu, sim. Ela vai pelo caminho de
+            # antes, sem progresso.
+            $failure = $_.Exception
+            while ($failure -and -not ($failure -is [Net.WebException])) { $failure = $failure.InnerException }
+            if ($failure -and $failure.Response) { throw }
+            Write-Host ''
+            Write-Host "The download failed ($($_.Exception.Message)); trying again without the progress line"
+            Invoke-WebRequest -UseBasicParsing -Uri "$base/$name" -OutFile $setup
+        }
 
-    Write-Host 'Checking the SHA-256'
-    $line = & $listedAs $name
-    if (-not $line) { throw "The release SHA256SUMS does not list $name" }
-    $expected = ($line -split '\s+')[0].ToLower()
-    $actual = (Get-FileHash -Algorithm SHA256 -Path $setup).Hash.ToLower()
-    if ($actual -ne $expected) { throw "The SHA-256 of $name does not match the release SHA256SUMS" }
+        Write-Host 'Checking the SHA-256'
+        $line = & $listedAs $name
+        if (-not $line) { throw "The release SHA256SUMS does not list $name" }
+        $expected = ($line -split '\s+')[0].ToLower()
+        $actual = (Get-FileHash -Algorithm SHA256 -Path $setup).Hash.ToLower()
+        if ($actual -ne $expected) { throw "The SHA-256 of $name does not match the release SHA256SUMS" }
+    } catch {
+        # Um instalador pela metade ou com o SHA-256 errado não fica no TEMP.
+        Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
+        throw
+    }
 
     Write-Host 'Opening the installer'
     if ($env:LACE_SETUP_ARGS) {
