@@ -218,7 +218,7 @@ as ferramentas rodam. O formato de cada um está em
 | [docs/API.md](docs/API.md) | a API do `lace-core`, para a CLI e para interfaces futuras |
 | [docs/BUNDLE.md](docs/BUNDLE.md) | o que vem no bundle, como montá-lo e o que vem do sistema |
 | [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando |
-| [docs/RELEASE.md](docs/RELEASE.md) | como fazer uma release |
+| [docs/RELEASE.md](docs/RELEASE.md) | as releases: que número cada uma recebe, quando lançar e o passo a passo |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | como contribuir: preparar a máquina, onde mudar o quê, o que conferir |
 | [CHANGELOG.md](CHANGELOG.md) | mudanças por versão |
 
