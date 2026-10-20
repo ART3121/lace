@@ -27,17 +27,15 @@ Sumário:
 │  WebView (React)                          Rust (src-tauri)                      │
 │  ┌────────────────────────┐   invoke    ┌─────────────────────────────┐         │
 │  │ componentes            │ ──────────▶ │ commands/*  (casca fina)    │         │
-│  │ stores (zustand)       │             │ flows.rs    (composição)    │──▶ lace-core
-│  │ Monaco, xterm.js       │ ◀────────── │ jobs.rs     (thread, lotes) │   (biblioteca)
-│  └────────────────────────┘   Channel   │ terminal.rs (PTY)           │         │
-│              ▲                 + emit   │ watcher.rs  (notify)        │         │
-│              └───────────────────────── │ toolchain.rs, settings.rs   │         │
+│  │ stores (zustand)       │             │ flows.rs    (casca)         │──▶ lace-core
+│  │ Monaco, xterm.js       │ ◀────────── │ jobs.rs     (thread)        │   (flows, delivery,
+│  └────────────────────────┘   Channel   │ terminal.rs (PTY)           │    locate)
+│              ▲                          │ assistant.rs                │──▶ lace-agent ──▶ claude
+│              ▲                 + emit   │ watcher.rs  (notify)        │──▶ lace-installer
+│              └───────────────────────── │ toolchain.rs, settings.rs   │   (update, add)
 │                                         └──────────────┬──────────────┘         │
 └────────────────────────────────────────────────────────┼────────────────────────┘
-                                                         │ só para instalar e atualizar
                                                          ▼
-                                              lace install / lace update --json
-                                                         │
                                   bundle do Lace: YANC, Icarus, Verilator, Yosys, dot, surfer-aurora
 ```
 
@@ -81,9 +79,10 @@ lace-studio/
   src-tauri/                 o backend (Rust)
     src/lib.rs               registro dos plugins, do estado e dos comandos
     src/commands/            app, project, files, history, toolchain
-    src/flows.rs             a composição dos fluxos (espelho de lace-cli/src/commands.rs)
-    src/jobs.rs              operações em thread, cancelamento, eventos em lote
+    src/flows.rs             a casca sobre lace_core::flows (mais o fluxo learn)
+    src/jobs.rs              operações em thread; a entrega em lotes é lace_core::delivery
     src/terminal.rs          o terminal de shell (portable-pty)
+    src/assistant.rs         o assistente: sessões do Claude Code (lace-agent)
     src/watcher.rs           vigia da pasta do projeto (notify)
     src/wave_tab.rs          a onda numa aba: o servidor local do cliente web do Surfer
     src/toolchain.rs         onde está o bundle do Lace
@@ -124,7 +123,7 @@ interface.
 | `commands::project` | abrir, criar, fechar, retrato do projeto (`lace status`), `add`, `remove`, `top`, testbench, `proc add`, `proc set`, valores de saída |
 | `commands::files` | ler pasta, ler e gravar texto (com detecção de conflito), criar, renomear, lixeira, lista para o "abrir rápido", busca |
 | `commands::history` | `lace report list`, `show`, `compare` |
-| `commands::toolchain` | `lace tools [--verify]`, `lace update [--check]`, `lace install` |
+| `commands::toolchain` | `lace tools [--verify]`, `lace update [--check]`, `lace install` (a biblioteca do instalador, em processo) |
 | `jobs` | começar, cancelar e consultar a operação (build, check, sim, synth, esquemático) |
 | `terminal` | abrir, escrever, redimensionar e encerrar o terminal de shell |
 | `wave_tab` | a onda numa aba: registra a onda e o layout no servidor local que serve o cliente web do Surfer |
@@ -146,11 +145,13 @@ mantém:
 ### 3.4 Onde está o bundle
 
 A CLI acha o bundle ao lado do próprio executável. O Studio é outro
-programa, então procura a instalação do Lace (`toolchain.rs`), nesta ordem:
-a pasta das preferências, `LACE_TOOLCHAIN`, a pasta padrão do instalador, o
-`lace` do `PATH` (resolvendo o atalho até a instalação) e a pasta do próprio
-Studio. Uma pasta declarada e inválida é erro, sem cair para as outras, como
-o `--toolchain` da CLI. O `PATH` só serve para achar a instalação; as
+programa, então procura a instalação do Lace, com a busca que mora no Core
+(`lace_core::locate`; `toolchain.rs` só monta o `Lookup` com as
+preferências e o ambiente), nesta ordem: a pasta das preferências,
+`LACE_TOOLCHAIN`, a pasta do próprio Studio, as pastas padrão do
+instalador e o `lace` do `PATH` (resolvendo o atalho até a instalação).
+Uma pasta declarada e inválida é erro, sem cair para as outras, como o
+`--toolchain` da CLI. O `PATH` só serve para achar a instalação; as
 ferramentas continuam saindo do bundle.
 
 O compilador do Verilator segue o `--compiler` da CLI: preferência ou
@@ -213,9 +214,9 @@ terminais. Sem isso, no Linux e no macOS, as ferramentas, que o Lace roda
 num grupo de processos próprio, continuariam rodando depois que o Studio
 saísse (API.md do Lace, seção 9, "Limites"). No Windows, cada passo roda
 num Job Object do Core e termina junto com o Studio mesmo se ele for
-derrubado, e nenhuma ferramenta abre janela de console; a CLI chamada pelo
-`run_cli` (`lace install`, `lace update`) usa o mesmo `ProcessJob` e o mesmo
-`hide_console`.
+derrubado, e nenhuma ferramenta abre janela de console; o `curl` e o
+instalador que a biblioteca do instalador roda (`lace install`, `lace
+update`) também.
 
 ## 4. Interface
 
@@ -604,16 +605,17 @@ com `status: cancelled`, que chega pelo mesmo caminho.
 
 Coisas que o Studio faz por conta própria e que deveriam ir para o Core,
 onde mora a regra de negócio. Ficam isoladas para sair inteiras quando isso
-acontecer.
+acontecer. Hoje não há nenhuma: as quatro que estavam aqui foram para o
+Lace em 2026-10-19, e o Studio só as chama:
 
-| No Studio | Onde | Proposta para o Lace |
-|---|---|---|
-| A composição dos fluxos: compilar antes, parar no primeiro build que falhar, ler as portas de saída, gravar o relatório, abrir a onda | `src-tauri/src/flows.rs`, cópia de `lace-cli/src/commands.rs` | um módulo `lace_core::flows` com `check_flow`, `sim_flow`, `synth_flow`, que a CLI e o Studio chamem |
-| Achar a instalação do Lace a partir de outro programa | `src-tauri/src/toolchain.rs` | `Toolchain::discover()` no Core, com a mesma ordem |
-| Ler a porta de saída pelo nome do arquivo (`output_<n>.txt`) | `flows::port_values`, cópia da CLI | `Processor::output_ports()` no Core |
-| Instalar e atualizar pela CLI (`lace install`, `lace update --json`) | `commands/toolchain.rs` | uma API em `lace-installer` que o Studio chame direto |
+| Era do Studio | Foi para |
+|---|---|
+| A composição dos fluxos: compilar antes, parar no primeiro build que falhar, ler as portas de saída, gravar o relatório, abrir a onda (`src-tauri/src/flows.rs`, cópia de `lace-cli/src/commands.rs`) | `lace_core::flows` (`run`, `open_wave`, `choose_signals`), com a entrega em lotes e o teto de linhas em `lace_core::delivery`; `flows.rs` e `jobs.rs` viraram cascas |
+| Achar a instalação do Lace a partir de outro programa (`src-tauri/src/toolchain.rs`) | `lace_core::locate` (`Lookup`, `resolve`, `describe`) |
+| Ler a porta de saída pelo nome do arquivo (`flows::port_values`) | `Processor::output_ports`, e `Project::status()` para o retrato do projeto |
+| Instalar e atualizar pela CLI (`lace install`, `lace update --json`) | `lace_installer::update::run` e `lace_installer::add`, chamados em processo (`commands/toolchain.rs`) |
 
-Já foram para o Core (2026-10-04): a hierarquia elaborada
+Antes disso (2026-10-04) já tinham ido a hierarquia elaborada
 (`lace_core::hierarchy`, e `lace hierarchy` na CLI), mover e renomear com
 o `.spf` em dia (`Project::move_path`, e `lace move`) e a regra de nome de
-projeto (`validate_project_name`). O Studio só os chama.
+projeto (`validate_project_name`).

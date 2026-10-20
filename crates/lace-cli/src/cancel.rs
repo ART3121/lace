@@ -1,9 +1,9 @@
-//! O Ctrl+C nos comandos que não passam pelo Core: instalar, atualizar,
-//! desinstalar e o `setup` do assistente. O pedido de cancelamento de `main`
-//! fica guardado aqui, e esses comandos conferem entre um passo e outro,
-//! antes de mudar a instalação. O download que o Ctrl+C interrompe (o `curl`
-//! recebe o sinal junto) vira cancelamento, e não um erro que leva a outro
-//! caminho, como o instalador inteiro no lugar da atualização por partes.
+//! O Ctrl+C nas perguntas dos comandos que mexem na instalação (atualizar,
+//! desinstalar): o pedido de cancelamento de `main` fica guardado aqui, e
+//! as perguntas conferem antes de seguir. Dentro da biblioteca do
+//! instalador o mesmo token vai por parâmetro, e o cancelamento dela volta
+//! como [`Cancelled`] (`installation::lib_error`): a frase do Ctrl+C e a
+//! saída 130.
 
 use std::sync::OnceLock;
 
@@ -17,7 +17,7 @@ pub fn set(token: CancelToken) {
 }
 
 /// O Ctrl+C já veio.
-pub fn requested() -> bool {
+fn requested() -> bool {
     TOKEN.get().is_some_and(CancelToken::is_cancelled)
 }
 
@@ -40,12 +40,6 @@ pub fn check() -> anyhow::Result<()> {
     } else {
         Ok(())
     }
-}
-
-/// `error`, ou o cancelamento se o Ctrl+C veio antes: o que ele interrompeu
-/// falhou por causa dele.
-pub fn or_cancelled(error: anyhow::Error) -> anyhow::Error {
-    if requested() { Cancelled.into() } else { error }
 }
 
 /// O erro é o cancelamento.

@@ -22,8 +22,8 @@ use lace_core::history::{Availability, MetricComparison, RunComparison, RunMetad
 use lace_core::{
     AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
     Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, LayoutConversion,
-    ModuleInstance, MovedPath, Platform, PreparedLayout, Processor, Project, ProjectFile,
-    RemovedProcessor, RunningProcess, SchematicResult, Severity, SimulationResult, Simulator,
+    ModuleInstance, MovedPath, Platform, Processor, Project, ProjectFile,
+    RemovedProcessor, SchematicResult, Severity, SimulationResult, Simulator,
     Status, Step,
     StepReport, SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool, Toolchain,
     component,
@@ -140,19 +140,38 @@ impl Output {
                 Some(lace_learn::LearnError::Lace(e)) => Some(e),
                 _ => None,
             });
-        let cancelled = crate::cancel::is(error);
-        let (code, hint) = match (lace, learn) {
-            (Some(lace), _) => (lace.code(), hint(lace)),
-            (None, Some(learn)) => crate::learn::error_info(learn),
-            (None, None) if cancelled => ("cancelled", None),
-            (None, None) => ("cli", None),
+        // Um erro que já atravessou uma fronteira (o de um fluxo, que o core
+        // devolve pronto para o JSON) traz o código consigo.
+        let info = error
+            .chain()
+            .find_map(|e| e.downcast_ref::<lace_core::ErrorInfo>());
+        // Instalar, atualizar e desinstalar: o erro da biblioteca do
+        // instalador, com o código dele.
+        let installer = error
+            .chain()
+            .find_map(|e| e.downcast_ref::<lace_installer::Error>());
+        let cancelled =
+            crate::cancel::is(error) || installer.is_some_and(lace_installer::Error::is_cancelled);
+        let (code, hint): (String, Option<String>) = match (lace, learn, info) {
+            (Some(lace), _, _) => (lace.code().to_owned(), hint(lace)),
+            (None, Some(learn), _) => {
+                let (code, hint) = crate::learn::error_info(learn);
+                (code.to_owned(), hint)
+            }
+            (None, None, Some(info)) => (info.code.clone(), hint_for_info(info)),
+            (None, None, None) if cancelled => ("cancelled".to_owned(), None),
+            (None, None, None) => (
+                installer.map_or_else(|| "cli".to_owned(), |e| e.code().to_owned()),
+                None,
+            ),
         };
         if self.json {
             let report = ErrorReport {
                 error: ErrorInfo {
-                    code: code.to_owned(),
+                    code,
                     message: chain_text(error),
                     hint,
+                    data: info.and_then(|i| i.data.clone()),
                 },
             };
             if self.events {
@@ -1037,16 +1056,20 @@ impl Output {
         }
     }
 
-    pub fn opened(&self, surfer: &RunningProcess, layout: Option<&PreparedLayout>) {
+    pub fn opened(&self, opened: &lace_core::flows::WaveOpened) {
         if self.json {
             return;
         }
         println!(
             "surfer-aurora opened (pid {}), log at {}",
-            surfer.id(),
-            surfer.log_file()
+            opened.pid, opened.log
         );
-        if let Some(saved) = layout.and_then(|l| l.saved.as_ref()) {
+        if let Some(error) = &opened.layout_error {
+            self.warning(&format!(
+                "No processor layout for this waveform ({error}); opening it without one"
+            ));
+        }
+        if let Some(saved) = &opened.saved_layout {
             let path = crate::commands::from_shell(&saved.path);
             if saved.customized {
                 println!(
@@ -1056,15 +1079,13 @@ impl Output {
                 println!("Layout: {path}; save it in Surfer (Ctrl+S) to keep your changes");
             }
         }
-        if let Some(l) = layout
-            && !l.layout.selection.is_empty()
-        {
+        if !opened.selection.is_empty() {
             println!(
                 "Only the {} chosen signals and scopes (lace wave signals)",
-                l.layout.selection.len()
+                opened.selection.len()
             );
         }
-        for p in layout.map_or(&[][..], |l| l.layout.processors.as_slice()) {
+        for p in &opened.processors {
             let mut shown = vec![format!("{} variables", p.variables)];
             if p.assembly {
                 shown.push("assembly".to_owned());
@@ -1262,27 +1283,29 @@ impl Output {
         // erro aparece em `lace top` e em quem precisa do nome.
         let top_module = project.top_module().ok().flatten();
         if self.json {
+            // O retrato do Core, no formato que o `status.json` sempre teve.
+            let status = project.status();
             return self.json(&StatusReport {
-                name: project.name().to_owned(),
-                spf: project.spf_path().to_owned(),
-                root: project.root().to_owned(),
-                synthesizable: synth,
-                testbench: tbs,
-                top_level: project.top_level(),
-                top_module,
-                selected_testbench: project.testbench(),
-                testbench_module: project.testbench_module().ok().flatten(),
-                unregistered,
+                name: status.name,
+                spf: status.spf,
+                root: status.root,
+                synthesizable: status.synthesizable,
+                testbench: status.testbenches,
+                top_level: status.top_level,
+                top_module: status.top_module,
+                selected_testbench: status.selected_testbench,
+                testbench_module: status.testbench_module,
+                unregistered: status.unregistered,
                 here: here.map(|p| p.name.clone()),
-                processors: project
-                    .processors()
-                    .iter()
+                processors: status
+                    .processors
+                    .into_iter()
                     .map(|p| ProcessorStatus {
-                        processor: p.clone(),
-                        built: p.is_built(),
+                        processor: p.processor,
+                        built: p.built,
                     })
                     .collect(),
-                issues: project.issues(),
+                issues: status.issues,
             });
         }
         let root = project.root();
@@ -1609,6 +1632,35 @@ fn hint(error: &LaceError) -> Option<String> {
         LaceError::ExperimentalDisabled { feature } => format!(
             "Enable it with: lace experimental enable {feature} (in Lace Studio: Settings > Experimental)"
         ),
+        LaceError::NoWaveform { processor, .. } => match processor {
+            Some(p) => format!("Simulate first with: lace sim -p {p}"),
+            None => "Simulate first with: lace sim".into(),
+        },
+        LaceError::SignalNotFound { similar, .. } if similar.is_empty() => {
+            "List them with: lace wave signals".into()
+        }
+        LaceError::TestbenchNotElaborated { .. } => "See the errors with: lace check".into(),
+        _ => return None,
+    })
+}
+
+/// A dica de um erro que chegou como [`lace_core::ErrorInfo`] (o de um fluxo
+/// do core): pelo código e pelos campos em `data`, as mesmas de [`hint`].
+fn hint_for_info(info: &lace_core::ErrorInfo) -> Option<String> {
+    let data = info.data.as_ref();
+    let field = |name: &str| data.and_then(|d| d.get(name)).and_then(|v| v.as_str());
+    Some(match info.code.as_str() {
+        "component_missing" => format!("Install it with: lace install {}", field("component")?),
+        "module_not_found" => return None,
+        "process_exited_early" => format!("See the end of the log: {}", field("log")?),
+        "no_waveform" => match field("processor") {
+            Some(p) => format!("Simulate first with: lace sim -p {p}"),
+            None => "Simulate first with: lace sim".into(),
+        },
+        "experimental_disabled" => format!(
+            "Enable it with: lace experimental enable {} (in Lace Studio: Settings > Experimental)",
+            field("feature")?
+        ),
         _ => return None,
     })
 }
@@ -1930,12 +1982,10 @@ fn processors_text(project: &Project, here: Option<&Processor>) {
 }
 
 /// Um erro do Core como aparece dentro de outro JSON.
-fn error_info(error: &LaceError) -> ErrorInfo {
-    ErrorInfo {
-        code: error.code().to_owned(),
-        message: error.to_string(),
-        hint: hint(error),
-    }
+pub(crate) fn error_info(error: &LaceError) -> ErrorInfo {
+    let mut info = ErrorInfo::from(error);
+    info.hint = hint(error);
+    info
 }
 
 struct Summary<'a> {

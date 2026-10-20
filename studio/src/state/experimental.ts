@@ -5,13 +5,15 @@
 // libera o `lace fpga`, e um `lace experimental enable` dado num terminal
 // vale aqui quando a janela volta a ter o foco (App.tsx).
 //
-// Desligado, um recurso sai da janela: não fica cinza, some. Hoje há um, a
-// placa FPGA (`fpga`): a aba Placa FPGA, o botão Placa da barra de
+// Desligado, um recurso sai da janela: não fica cinza, some. Hoje há dois.
+// A placa FPGA (`fpga`): a aba Placa FPGA, o botão Placa da barra de
 // ferramentas, as ações dela (menu Fluxo, paleta, navegador de fluxo), o
-// console Placa e o Quartus nas Preferências e na tela do bundle. Cada
-// lugar sabe o recurso do que mostra: as ações em actions.ts, as vistas em
-// layoutModel.ts, as abas em editor.ts. O backend recusa os comandos e os
-// fluxos dele com `experimental_disabled`.
+// console Placa e o Quartus nas Preferências e na tela do bundle. O
+// assistente de IA (`assistant`): a vista Assistente, as ações dela (menu
+// Exibir, paleta) e a página Assistente das Preferências. Cada lugar sabe o
+// recurso do que mostra: as ações em actions.ts, as vistas em
+// layoutModel.ts, as abas em editor.ts, as páginas em SettingsView.tsx. O
+// backend recusa os comandos e os fluxos dele com `experimental_disabled`.
 
 import { create } from 'zustand';
 

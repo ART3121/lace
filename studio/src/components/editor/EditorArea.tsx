@@ -33,6 +33,7 @@ import { SettingsView } from '../views/SettingsView';
 import { BoardView } from '../views/BoardView';
 import { SynthesisView } from '../views/SynthesisView';
 import { ToolchainView } from '../views/ToolchainView';
+import { Chat } from '../assistant/Chat';
 import { LearnView } from '../views/LearnView';
 import { WaveView } from '../views/WaveView';
 import { WelcomeView } from '../views/WelcomeView';
@@ -66,6 +67,8 @@ export function tabTitle(tab: Tab): string {
       return baseName(tab.data?.path ?? '');
     case 'learn':
       return t('learn.tab');
+    case 'assistant':
+      return t('assistant.tab');
   }
 }
 
@@ -310,6 +313,8 @@ function ViewContent({ tab }: { tab: Tab }) {
       return <WaveView path={tab.data?.path ?? ''} />;
     case 'learn':
       return <LearnView />;
+    case 'assistant':
+      return <Chat mode="tab" />;
     default:
       return null;
   }

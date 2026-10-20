@@ -2,6 +2,7 @@
 
 import {
   AudioWaveform,
+  Bot,
   ChartColumn,
   CircuitBoard,
   Cpu,
@@ -72,5 +73,7 @@ export function tabIcon(tab: Tab): LucideIcon {
       return AudioWaveform;
     case 'learn':
       return GraduationCap;
+    case 'assistant':
+      return Bot;
   }
 }

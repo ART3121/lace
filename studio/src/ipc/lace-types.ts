@@ -362,12 +362,13 @@ export type Stream = 'stdout' | 'stderr';
  */
 export type ResultTag = 'result';
 /**
- * Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`).
+ * Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,
+ * `assistant`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "Feature".
  */
-export type Feature = 'fpga';
+export type Feature = 'fpga' | 'assistant';
 /**
  * O cabo de gravação embutido na placa.
  *
@@ -447,12 +448,346 @@ export type Finding =
 export type Verdict =
   'solved' | 'compile_error' | 'mismatch' | 'incomplete' | 'timed_out' | 'cancelled';
 /**
+ * Para onde [`Project::reorder_file`] leva um arquivo na lista dele. Em
+ * JSON: `{"kind": "first"}`, `{"kind": "before", "path": "rtl/b.v"}`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ListPosition".
+ */
+export type ListPosition =
+  | {
+      kind: 'first';
+    }
+  | {
+      kind: 'last';
+    }
+  | {
+      kind: 'before';
+      path: string;
+    }
+  | {
+      kind: 'after';
+      path: string;
+    };
+/**
+ * O que o cliente pede. Os alvos são sempre explícitos: a CLI resolve o
+ * processador da pasta atual antes de montar o pedido.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FlowRequest".
+ */
+export type FlowRequest =
+  | {
+      /**
+       * Os processadores; vazio é todos os do projeto.
+       */
+      processors?: string[];
+      flow: 'build';
+    }
+  | {
+      /**
+       * Só os módulos deste arquivo como raiz.
+       */
+      file?: string | null;
+      /**
+       * Só este processador: o Verilog dele e o testbench que o YANC
+       * gerou, no lugar do projeto.
+       */
+      processor?: string | null;
+      /**
+       * Acrescenta o `verilator --lint-only`.
+       */
+      lint?: boolean;
+      flow: 'check';
+    }
+  | {
+      /**
+       * Só este processador.
+       */
+      processor?: string | null;
+      flow: 'hierarchy';
+    }
+  | {
+      /**
+       * Simula este processador com o testbench do YANC; `None`, a
+       * simulação do projeto.
+       */
+      processor?: string | null;
+      /**
+       * Troca o testbench da simulação do projeto antes de simular
+       * (grava o `.spf`).
+       */
+      testbench?: string | null;
+      /**
+       * Icarus ou Verilator. Na simulação rápida, só vale para um
+       * testbench cocotb.
+       */
+      simulator: 'icarus' | 'verilator';
+      /**
+       * A simulação rápida: sem onda, com o testbench Verilog no
+       * Verilator.
+       */
+      fast?: boolean;
+      /**
+       * Prazo do passo `simulate`, em segundos.
+       */
+      timeout_s?: number | null;
+      /**
+       * Abrir a onda se a simulação a entregar, conforme
+       * [`FlowOptions::wave`]. A simulação rápida não tem onda.
+       */
+      open_wave?: boolean;
+      flow: 'simulate';
+    }
+  | {
+      /**
+       * Sintetiza só este processador; `None`, o topo do projeto.
+       */
+      processor?: string | null;
+      /**
+       * Desenha o esquemático (Yosys `show` e Graphviz) depois.
+       */
+      schematic?: boolean;
+      /**
+       * O módulo do esquemático; `None`, o topo da síntese.
+       */
+      module?: string | null;
+      /**
+       * Grava o HTML do RTL viewer ao lado do netlist e o abre conforme
+       * [`FlowOptions::viewer_opener`].
+       */
+      open_viewer?: boolean;
+      flow: 'synthesize';
+    }
+  | {
+      /**
+       * O `hierarchy.json` da síntese.
+       */
+      netlist: string;
+      /**
+       * O módulo.
+       */
+      module: string;
+      /**
+       * Escrever a largura dos barramentos nas arestas.
+       */
+      bus_widths?: boolean;
+      flow: 'schematic';
+    }
+  | {
+      flow: 'fpga_build';
+    }
+  | {
+      /**
+       * O cabo; `None`, o primeiro que o Quartus lista.
+       */
+      cable?: string | null;
+      flow: 'fpga_program';
+    };
+/**
  * Qual simulador usar. Em JSON: `"icarus"` ou `"verilator"`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "Simulator".
  */
 export type Simulator = 'icarus' | 'verilator';
+/**
+ * Como um fluxo abre a onda que a simulação entregou.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WavePolicy".
+ */
+export type WavePolicy = 'none' | 'window';
+/**
+ * Qual onda abrir.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveSource".
+ */
+export type WaveSource =
+  | {
+      /**
+       * O arquivo.
+       */
+      path: string;
+      kind: 'file';
+    }
+  | {
+      /**
+       * O processador; `None`, o projeto.
+       */
+      processor?: string | null;
+      kind: 'project';
+    };
+/**
+ * O que fazer com o layout dos processadores SAPHO ao abrir a onda.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LayoutPolicy".
+ */
+export type LayoutPolicy =
+  | {
+      kind: 'generated';
+    }
+  | {
+      kind: 'none';
+    }
+  | {
+      kind: 'reset';
+    }
+  | {
+      /**
+       * O arquivo (`.surf.ron` ou `.sucl`).
+       */
+      path: string;
+      kind: 'file';
+    };
+/**
+ * Uma mudança na escolha de sinais da onda do testbench do projeto
+ * ([`choose_signals`]).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveChoice".
+ */
+export type WaveChoice =
+  | {
+      kind: 'all';
+    }
+  | {
+      kind: 'add';
+      paths: string[];
+    }
+  | {
+      kind: 'remove';
+      paths: string[];
+    };
+/**
+ * Quais relatórios [`plan_cleanup`] escolhe para apagar. Em JSON:
+ * `{"kind": "all"}`, `{"kind": "keep_latest", "value": 5}`,
+ * `{"kind": "reports", "value": ["run-000042", "7"]}`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Cleanup".
+ */
+export type Cleanup =
+  | {
+      kind: 'all';
+    }
+  | {
+      kind: 'keep_latest';
+      value: number;
+    }
+  | {
+      kind: 'reports';
+      value: string[];
+    };
+/**
+ * O que volta de um pedido que deu certo. Serializa como o valor em si (o
+ * `result` do JSON-RPC), sem etiqueta: cada método diz qual é o dele.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Response".
+ */
+export type Response =
+  | ServerInfo
+  | ProjectStatus
+  | AddedFile[]
+  | RemoveOutcome
+  | TopOutcome
+  | ProjectFile[]
+  | MovedPath1
+  | LayoutConversion
+  | NameCheck
+  | Processor
+  | ProcessorRemoval
+  | number[]
+  | FlowOutcome
+  | WaveOpened1
+  | WaveSignals
+  | WaveChoiceOutcome
+  | boolean
+  | RunSummary[]
+  | ReportView
+  | RunComparison
+  | string[]
+  | CleanOutcome
+  | ToolchainInfo
+  | FileMismatch[]
+  | ExperimentalInfo
+  | Board[]
+  | (FpgaConfig | null)
+  | Prepared
+  | BitstreamState
+  | null
+  | {
+      [k: string]: unknown | undefined;
+    };
+/**
+ * A direção de uma porta. Em JSON, `"input"`, `"output"` ou `"inout"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "PortDirection".
+ */
+export type PortDirection = 'input' | 'output' | 'inout';
+/**
+ * Como o bundle foi achado.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Origin".
+ */
+export type Origin = 'settings' | 'environment' | 'bundled' | 'installation' | 'path' | 'beside';
+/**
+ * O tipo de um [`ProjectIssue`]. Em JSON, `snake_case`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "IssueKind".
+ */
+export type IssueKind =
+  | 'rescued_path'
+  | 'selection_not_registered'
+  | 'testbench_as_top'
+  | 'invalid_processor_name'
+  | 'duplicate_file'
+  | 'nested_project'
+  | 'legacy_layout';
+/**
+ * O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
+ * extensão é a do formato, menos quando o testbench nomeia a onda com uma
+ * expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
+ * testbench der.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveformFormat".
+ */
+export type WaveformFormat = 'vcd' | 'fst';
+/**
+ * Como um teste terminou. Em JSON: `"passed"`, `"failed"` ou `"skipped"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TestStatus".
+ */
+export type TestStatus = 'passed' | 'failed' | 'skipped';
+/**
+ * O tipo de um escopo. Em JSON, `"module"`, `"generate"` ou `"block"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ScopeKind".
+ */
+export type ScopeKind = 'module' | 'generate' | 'block';
+/**
+ * O tipo de um sinal. Em JSON, `"reg"`, `"wire"`, `"integer"` ou `"real"`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SignalKind".
+ */
+export type SignalKind = 'reg' | 'wire' | 'integer' | 'real';
+/**
+ * Quanto de uma parte um relatório tem.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Availability".
+ */
+export type Availability = 'available' | 'partial' | 'unavailable';
 /**
  * Uma contagem do resumo do projeto.
  *
@@ -478,43 +813,123 @@ export type SynthesisMetric =
 export type Change =
   'unchanged' | 'increased' | 'decreased' | 'added' | 'removed' | 'not_comparable';
 /**
- * Quanto de uma parte um relatório tem.
+ * O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.
+ * Os nomes são os que o Lace Studio manda à interface dele.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "Availability".
+ * via the `definition` "Notification".
  */
-export type Availability = 'available' | 'partial' | 'unavailable';
+export type Notification =
+  | {
+      /**
+       * Qual.
+       */
+      phase:
+        | 'build'
+        | 'check'
+        | 'hierarchy'
+        | 'simulate'
+        | 'synthesize'
+        | 'schematic'
+        | 'rtl_viewer'
+        | 'wave'
+        | 'learn'
+        | 'fpga'
+        | 'program';
+      type: 'phase';
+    }
+  | {
+      /**
+       * Os eventos (`step_started`, `output`, `step_finished`).
+       */
+      events: Event[];
+      type: 'events';
+    }
+  | {
+      /**
+       * Um passo de uma operação. Em JSON, em `snake_case` (`"pre_assemble"`).
+       */
+      step:
+        | 'preprocess'
+        | 'compile'
+        | 'pre_assemble'
+        | 'assemble'
+        | 'check_syntax'
+        | 'lint'
+        | 'elaborate'
+        | 'verilate'
+        | 'simulate'
+        | 'synthesize'
+        | 'graph'
+        | 'render'
+        | 'fit'
+        | 'bitstream'
+        | 'timing'
+        | 'program';
+      /**
+       * A ferramenta.
+       */
+      tool:
+        | 'cmmcomp'
+        | 'appcomp'
+        | 'asmcomp'
+        | 'cpppp'
+        | 'cppcomp'
+        | 'iverilog'
+        | 'vvp'
+        | 'verilator'
+        | 'yosys'
+        | 'dot'
+        | 'surfer'
+        | 'openfpgaloader'
+        | 'quartus'
+        | 'perl';
+      /**
+       * Quantas.
+       */
+      lines: number;
+      type: 'output_omitted';
+    }
+  | {
+      result: BuildResult1;
+      type: 'build';
+    }
+  | {
+      /**
+       * O evento, em JSON.
+       */
+      event: {
+        [k: string]: unknown | undefined;
+      };
+      type: 'install';
+    };
 /**
- * O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
- * extensão é a do formato, menos quando o testbench nomeia a onda com uma
- * expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
- * testbench der.
+ * A fase de um fluxo que começou. Os nomes são os que o Studio mostra;
+ * `Learn` é a correção de um exercício do lace-learn, que o Studio nomeia
+ * com o mesmo tipo.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "WaveformFormat".
+ * via the `definition` "Phase".
  */
-export type WaveformFormat = 'vcd' | 'fst';
+export type Phase =
+  | 'build'
+  | 'check'
+  | 'hierarchy'
+  | 'simulate'
+  | 'synthesize'
+  | 'schematic'
+  | 'rtl_viewer'
+  | 'wave'
+  | 'learn'
+  | 'fpga'
+  | 'program';
 /**
- * Como um teste terminou. Em JSON: `"passed"`, `"failed"` ou `"skipped"`.
+ * Como um pedido terminou, do ponto de vista de quem o atende.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "TestStatus".
+ * via the `definition` "ShutdownReason".
  */
-export type TestStatus = 'passed' | 'failed' | 'skipped';
-/**
- * O tipo de um [`ProjectIssue`]. Em JSON, `snake_case`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "IssueKind".
- */
-export type IssueKind =
-  | 'rescued_path'
-  | 'selection_not_registered'
-  | 'testbench_as_top'
-  | 'invalid_processor_name'
-  | 'duplicate_file'
-  | 'nested_project'
-  | 'legacy_layout';
+export type ShutdownReason = 'requested' | 'signal' | 'updated';
 /**
  * Uma ferramenta em `lace tools`: onde está, ou por que não está.
  *
@@ -551,26 +966,624 @@ export type UpdateAction = 'checked' | 'up_to_date' | 'updated' | 'wizard_opened
  */
 export type UpdateMethod = 'components' | 'installer';
 /**
- * A direção de uma porta. Em JSON, `"input"`, `"output"` ou `"inout"`.
+ * O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
+ * um método sem parâmetros vai sem `params`. Os caminhos são absolutos.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "PortDirection".
+ * via the `definition` "Request".
  */
-export type PortDirection = 'input' | 'output' | 'inout';
-/**
- * O tipo de um escopo. Em JSON, `"module"`, `"generate"` ou `"block"`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "ScopeKind".
- */
-export type ScopeKind = 'module' | 'generate' | 'block';
-/**
- * O tipo de um sinal. Em JSON, `"reg"`, `"wire"`, `"integer"` ou `"real"`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "SignalKind".
- */
-export type SignalKind = 'reg' | 'wire' | 'integer' | 'real';
+export type Request =
+  | {
+      method: 'initialize';
+      params: {
+        /**
+         * O cliente e a versão dele (`lace-vscode 0.1.0`).
+         */
+        client?: string | null;
+      };
+    }
+  | {
+      method: 'shutdown';
+    }
+  | {
+      method: 'project.create';
+      params: {
+        /**
+         * A pasta de cima, que precisa existir.
+         */
+        parent: string;
+        /**
+         * O nome do projeto.
+         */
+        name: string;
+      };
+    }
+  | {
+      method: 'project.status';
+      params: {
+        /**
+         * O `.spf` ou a pasta do projeto.
+         */
+        project: string;
+      };
+    }
+  | {
+      method: 'project.add';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * Os arquivos.
+         */
+        files: string[];
+        /**
+         * Registrar como testbench em vez de decidir pelo conteúdo.
+         */
+        testbench?: boolean;
+      };
+    }
+  | {
+      method: 'project.remove';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * Os arquivos.
+         */
+        files: string[];
+      };
+    }
+  | {
+      method: 'project.top';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O arquivo ou o módulo.
+         */
+        target?: string | null;
+      };
+    }
+  | {
+      method: 'project.testbench';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O testbench.
+         */
+        path: string;
+      };
+    }
+  | {
+      method: 'project.order';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O arquivo.
+         */
+        file: string;
+        /**
+         * Para onde.
+         */
+        position:
+          | {
+              kind: 'first';
+            }
+          | {
+              kind: 'last';
+            }
+          | {
+              kind: 'before';
+              path: string;
+            }
+          | {
+              kind: 'after';
+              path: string;
+            };
+      };
+    }
+  | {
+      method: 'project.move';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * De onde.
+         */
+        from: string;
+        /**
+         * Para onde (o caminho final).
+         */
+        to: string;
+        /**
+         * O movimento já aconteceu fora do Lace.
+         */
+        after?: boolean;
+      };
+    }
+  | {
+      method: 'project.convert';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+      };
+    }
+  | {
+      method: 'project.check_name';
+      params: {
+        /**
+         * O nome.
+         */
+        name: string;
+      };
+    }
+  | {
+      method: 'processor.check_name';
+      params: {
+        /**
+         * O nome.
+         */
+        name: string;
+      };
+    }
+  | {
+      method: 'processor.add';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        spec: NewProcessor1;
+      };
+    }
+  | {
+      method: 'processor.set';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O processador.
+         */
+        name: string;
+        config: ProcessorConfig1;
+      };
+    }
+  | {
+      method: 'processor.remove';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O processador.
+         */
+        name: string;
+        /**
+         * Mandar a pasta dele para a lixeira do sistema.
+         */
+        to_trash?: boolean;
+      };
+    }
+  | {
+      method: 'processor.outputs';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O processador.
+         */
+        processor: string;
+        /**
+         * A porta.
+         */
+        port: number;
+      };
+    }
+  | {
+      method: 'flow.run';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O fluxo.
+         */
+        request:
+          | {
+              /**
+               * Os processadores; vazio é todos os do projeto.
+               */
+              processors?: string[];
+              flow: 'build';
+            }
+          | {
+              /**
+               * Só os módulos deste arquivo como raiz.
+               */
+              file?: string | null;
+              /**
+               * Só este processador: o Verilog dele e o testbench que o YANC
+               * gerou, no lugar do projeto.
+               */
+              processor?: string | null;
+              /**
+               * Acrescenta o `verilator --lint-only`.
+               */
+              lint?: boolean;
+              flow: 'check';
+            }
+          | {
+              /**
+               * Só este processador.
+               */
+              processor?: string | null;
+              flow: 'hierarchy';
+            }
+          | {
+              /**
+               * Simula este processador com o testbench do YANC; `None`, a
+               * simulação do projeto.
+               */
+              processor?: string | null;
+              /**
+               * Troca o testbench da simulação do projeto antes de simular
+               * (grava o `.spf`).
+               */
+              testbench?: string | null;
+              /**
+               * Icarus ou Verilator. Na simulação rápida, só vale para um
+               * testbench cocotb.
+               */
+              simulator: 'icarus' | 'verilator';
+              /**
+               * A simulação rápida: sem onda, com o testbench Verilog no
+               * Verilator.
+               */
+              fast?: boolean;
+              /**
+               * Prazo do passo `simulate`, em segundos.
+               */
+              timeout_s?: number | null;
+              /**
+               * Abrir a onda se a simulação a entregar, conforme
+               * [`FlowOptions::wave`]. A simulação rápida não tem onda.
+               */
+              open_wave?: boolean;
+              flow: 'simulate';
+            }
+          | {
+              /**
+               * Sintetiza só este processador; `None`, o topo do projeto.
+               */
+              processor?: string | null;
+              /**
+               * Desenha o esquemático (Yosys `show` e Graphviz) depois.
+               */
+              schematic?: boolean;
+              /**
+               * O módulo do esquemático; `None`, o topo da síntese.
+               */
+              module?: string | null;
+              /**
+               * Grava o HTML do RTL viewer ao lado do netlist e o abre conforme
+               * [`FlowOptions::viewer_opener`].
+               */
+              open_viewer?: boolean;
+              flow: 'synthesize';
+            }
+          | {
+              /**
+               * O `hierarchy.json` da síntese.
+               */
+              netlist: string;
+              /**
+               * O módulo.
+               */
+              module: string;
+              /**
+               * Escrever a largura dos barramentos nas arestas.
+               */
+              bus_widths?: boolean;
+              flow: 'schematic';
+            }
+          | {
+              flow: 'fpga_build';
+            }
+          | {
+              /**
+               * O cabo; `None`, o primeiro que o Quartus lista.
+               */
+              cable?: string | null;
+              flow: 'fpga_program';
+            };
+        /**
+         * As opções da interface; sem elas, o comando é o da CLI
+         * equivalente, a onda abre em janela e o RTL viewer no navegador.
+         */
+        options?: FlowOptions | null;
+        /**
+         * Receber a saída das ferramentas ao vivo (`events`). Sem isso, o
+         * `vvp` roda com buffer, que é mais rápido.
+         */
+        output?: boolean;
+      };
+    }
+  | {
+      method: 'wave.open';
+      params: {
+        /**
+         * O projeto, para uma onda do projeto; `None` para um arquivo.
+         */
+        project?: string | null;
+        request: WaveRequest1;
+      };
+    }
+  | {
+      method: 'wave.signals';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+      };
+    }
+  | {
+      method: 'wave.choose';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * A mudança.
+         */
+        choice:
+          | {
+              kind: 'all';
+            }
+          | {
+              kind: 'add';
+              paths: string[];
+            }
+          | {
+              kind: 'remove';
+              paths: string[];
+            };
+      };
+    }
+  | {
+      method: 'wave.reset_layout';
+      params: {
+        /**
+         * A onda.
+         */
+        waveform: string;
+      };
+    }
+  | {
+      method: 'history.list';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * Quantos, no máximo.
+         */
+        limit?: number | null;
+      };
+    }
+  | {
+      method: 'history.show';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * `run-000042` ou `42`.
+         */
+        id?: string | null;
+      };
+    }
+  | {
+      method: 'history.compare';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O atual (o mais novo sem ele).
+         */
+        id?: string | null;
+        /**
+         * A referência (o anterior comparável sem ela).
+         */
+        against?: string | null;
+      };
+    }
+  | {
+      method: 'history.plan_cleanup';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * A regra.
+         */
+        cleanup:
+          | {
+              kind: 'all';
+            }
+          | {
+              kind: 'keep_latest';
+              value: number;
+            }
+          | {
+              kind: 'reports';
+              value: string[];
+            };
+      };
+    }
+  | {
+      method: 'history.clean';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * Os identificadores (do plano).
+         */
+        ids: string[];
+      };
+    }
+  | {
+      method: 'toolchain.info';
+    }
+  | {
+      method: 'toolchain.verify';
+    }
+  | {
+      method: 'experimental.list';
+    }
+  | {
+      method: 'experimental.set';
+      params: {
+        /**
+         * O recurso (`fpga`).
+         */
+        feature: string;
+        /**
+         * Ligado.
+         */
+        enabled: boolean;
+      };
+    }
+  | {
+      method: 'fpga.boards';
+      params: {
+        /**
+         * Uma placa; `None`, todas.
+         */
+        board?: string | null;
+      };
+    }
+  | {
+      method: 'fpga.config';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+      };
+    }
+  | {
+      method: 'fpga.config_set';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        config: FpgaConfig1;
+      };
+    }
+  | {
+      method: 'fpga.check';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+      };
+    }
+  | {
+      method: 'fpga.modules';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+      };
+    }
+  | {
+      method: 'fpga.status';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+      };
+    }
+  | {
+      method: 'fpga.cables';
+    }
+  | {
+      method: 'update.check';
+    }
+  | {
+      method: 'update.apply';
+      params: {
+        /**
+         * O instalador inteiro, sem tentar por componentes.
+         */
+        full?: boolean;
+        /**
+         * Um instalador no disco, sem rede.
+         */
+        from?: string | null;
+      };
+    }
+  | {
+      method: 'install.add';
+      params: {
+        /**
+         * Os componentes.
+         */
+        components: string[];
+      };
+    }
+  | {
+      method: 'learn.check';
+      params: {
+        /**
+         * A pasta de exercícios, ou uma pasta dentro dela.
+         */
+        root: string;
+        /**
+         * O exercício; `None`, o atual.
+         */
+        exercise?: string | null;
+        /**
+         * Todos os exercícios.
+         */
+        all?: boolean;
+      };
+    };
 
 /**
  * O que [`Project::add_verilog`] fez com um arquivo.
@@ -1061,25 +2074,56 @@ export interface RemovedNameLine {
   old_name: string;
 }
 /**
- * Um erro do Lace.
+ * Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a
+ * mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+ * o código, o texto e os campos da variante viram quando o enum não vai.
+ *
+ * ```json
+ * { "code": "processor_not_found",
+ *   "message": "No processor 'x' in the project (available: soma, filtro)",
+ *   "data": { "name": "x", "available": ["soma", "filtro"] } }
+ * ```
+ *
+ * A dica de cada interface (o comando `lace` que resolve, o botão do
+ * Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
+ * pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
+ * CLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.
+ *
+ * ```
+ * use lace_core::{ErrorInfo, LaceError};
+ *
+ * let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+ * assert_eq!(info.code, "processor_exists");
+ * assert_eq!(info.data.unwrap()["name"], "soma");
+ * ```
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ErrorInfo".
  */
 export interface ErrorInfo {
   /**
-   * Código estável, em `snake_case` (`no_testbench`, `component_missing`),
-   * ou `cli` para um erro da própria linha de comando.
+   * O identificador estável: [`LaceError::code`], ou um código de quem
+   * chamou (`busy`, `cli`), sempre em `snake_case`.
    */
   code: string;
   /**
-   * A mensagem, em inglês.
+   * O texto do erro, em inglês, pronto para mostrar.
    */
   message: string;
   /**
-   * O comando que resolve, quando há um.
+   * O que fazer, quando quem mostra sabe: o comando `lace` que resolve,
+   * na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no
+   * JSON quando não há.
    */
   hint?: string | null;
+  /**
+   * Os campos estruturados da variante, quando ela os tem
+   * ([`LaceError::data`]): `available`, `files`, `name`, `value`,
+   * `reason`, `path`, `component`. Omitido no JSON quando não há.
+   */
+  data?: {
+    [k: string]: unknown | undefined;
+  };
 }
 /**
  * O que vai ser executado.
@@ -1140,7 +2184,7 @@ export interface FeatureState {
   /**
    * O recurso.
    */
-  feature: 'fpga';
+  feature: 'fpga' | 'assistant';
   /**
    * Ligado.
    */
@@ -1914,10 +2958,1544 @@ export interface RemovedProcessor {
   unregistered: ProjectFile[];
 }
 /**
- * O contexto de uma operação guardada.
+ * Parâmetros do cabeçalho de um processador novo.
+ *
+ * Os padrões são os da AURORA (`js/project/processor_defaults.ts`): o float
+ * estreito do SAPHO, 23 = 16 + 6 + 1 bits. No fluxo C só as portas vão para
+ * o fonte; o resto fica com o que o `cppcomp` foi compilado para assumir.
+ *
+ * Em JSON, só `name` e `language` são obrigatórios: um campo ausente fica
+ * com o padrão de [`NewProcessor::new`], e, sem `nubits`, com `nbmant` ou
+ * `nbexpo` dados, `nubits` vira `nbmant + nbexpo + 1`
+ * ([`NewProcessor::nubits_for`]), a única largura que o `asmcomp` aceita.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "RunMetadata".
+ * via the `definition` "NewProcessor".
+ */
+export interface NewProcessor {
+  /**
+   * Nome do processador: letras, dígitos e `_`, começando por letra ou `_`.
+   */
+  name: string;
+  /**
+   * Linguagem do fonte-modelo.
+   */
+  language: 'cmm' | 'cpp';
+  /**
+   * `#NUBITS`: largura da palavra de dados, em bits. Só C±.
+   */
+  nubits?: number;
+  /**
+   * `#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE
+   * 754). Só C±.
+   */
+  nbmant?: number;
+  /**
+   * `#NBEXPO`: bits de expoente do ponto flutuante. Só C±.
+   */
+  nbexpo?: number;
+  /**
+   * `#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o
+   * `cmmcomp` recusa (um divisor genérico viraria o caminho crítico da
+   * ULA). Só C±; o fonte só traz a diretiva quando difere de 128, o
+   * padrão do YANC.
+   */
+  nugain?: number;
+  /**
+   * `#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão:
+   * sem a diretiva, e o `asmcomp` calcula a profundidade pelo programa.
+   */
+  ndstac?: number | null;
+  /**
+   * `#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±.
+   * `None`, o padrão: sem a diretiva, calculada pelo programa.
+   */
+  sdepth?: number | null;
+  /**
+   * `#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada.
+   */
+  input_ports?: number;
+  /**
+   * `#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída.
+   */
+  output_ports?: number;
+}
+/**
+ * Parâmetros de simulação de um processador, para
+ * [`Project::configure_processor`]. `None` em um campo mantém o valor
+ * atual.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ProcessorConfig".
+ */
+export interface ProcessorConfig {
+  /**
+   * Frequência de operação em MHz (`clk` no `.spf`).
+   */
+  frequency_mhz?: number | null;
+  /**
+   * Clocks que o testbench gerado simula (`numClocks` no `.spf`).
+   */
+  clocks?: number | null;
+  /**
+   * Exportar arrays para a simulação (`showArrays` no `.spf`).
+   */
+  show_arrays?: boolean | null;
+}
+/**
+ * O que é da interface, não do fluxo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FlowOptions".
+ */
+export interface FlowOptions {
+  /**
+   * O texto do comando para o histórico e para o console (`lace sim -p
+   * soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um
+   * cliente sem linha de comando monta com [`FlowRequest::command_line`].
+   */
+  command: string;
+  /**
+   * Como abrir a onda quando o pedido tem `open_wave`.
+   */
+  wave?: 'none' | 'window';
+  /**
+   * Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do
+   * sistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o
+   * `LACE_OPENER=vscode` do terminal da extensão do VS Code).
+   */
+  viewer_opener?: string | null;
+}
+/**
+ * O pedido de [`open_wave`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveRequest".
+ */
+export interface WaveRequest {
+  /**
+   * Qual onda.
+   */
+  source:
+    | {
+        /**
+         * O arquivo.
+         */
+        path: string;
+        kind: 'file';
+      }
+    | {
+        /**
+         * O processador; `None`, o projeto.
+         */
+        processor?: string | null;
+        kind: 'project';
+      };
+  /**
+   * O layout.
+   */
+  layout?:
+    | {
+        kind: 'generated';
+      }
+    | {
+        kind: 'none';
+      }
+    | {
+        kind: 'reset';
+      }
+    | {
+        /**
+         * O arquivo (`.surf.ron` ou `.sucl`).
+         */
+        path: string;
+        kind: 'file';
+      };
+}
+/**
+ * O que o `fpga.json` guarda.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaConfig".
+ */
+export interface FpgaConfig {
+  /**
+   * A placa ([`super::board()`]).
+   */
+  board: string;
+  /**
+   * O módulo que vai para a placa. Sem ele, o topo do projeto.
+   */
+  top?: string | null;
+  /**
+   * As ligações, na ordem do arquivo.
+   */
+  connect?: {
+    [k: string]: string | undefined;
+  };
+}
+/**
+ * `initialize`.
+ */
+export interface ServerInfo {
+  /**
+   * A versão do Lace.
+   */
+  lace: string;
+  /**
+   * A versão do protocolo ([`PROTOCOL_VERSION`]).
+   */
+  protocol: number;
+  /**
+   * A pasta da instalação do Lace, quando o servidor é o `lace`
+   * instalado.
+   */
+  prefix: string | null;
+  /**
+   * Cada recurso experimental e se está ligado.
+   */
+  experimental: {
+    [k: string]: boolean | undefined;
+  };
+  /**
+   * Os métodos que este servidor atende.
+   */
+  methods: string[];
+}
+/**
+ * `project.create`, `project.status`, `project.testbench`.
+ */
+export interface ProjectStatus {
+  /**
+   * O nome do projeto (o do `.spf`).
+   */
+  name: string;
+  /**
+   * O `.spf`.
+   */
+  spf: string;
+  /**
+   * A pasta do projeto.
+   */
+  root: string;
+  /**
+   * Os módulos registrados (sintetizáveis), na ordem do `.spf`.
+   */
+  synthesizable: ProjectFile[];
+  /**
+   * Os testbenches registrados, na ordem do `.spf`.
+   */
+  testbenches: ProjectFile[];
+  /**
+   * O arquivo de topo, se escolhido.
+   */
+  top_level: string | null;
+  /**
+   * O módulo de topo, quando dá para saber: o `topLevelModule` do `.spf`,
+   * o único módulo do arquivo de topo ou o que tem o nome dele.
+   */
+  top_module: string | null;
+  /**
+   * Por que o módulo de topo não dá para saber (arquivo com vários
+   * módulos, nenhum com o nome dele).
+   */
+  top_module_error: ErrorInfo | null;
+  /**
+   * O testbench que a simulação do projeto roda.
+   */
+  selected_testbench: string | null;
+  /**
+   * O módulo desse testbench.
+   */
+  testbench_module: string | null;
+  /**
+   * A escolha de sinais da onda desse testbench (`wave/<testbench>.json`);
+   * vazia, a onda grava todos os sinais.
+   */
+  wave_selection: string[];
+  /**
+   * Os `.v` e `.sv` da pasta que não estão registrados, e os `.py` com
+   * `@cocotb.test`.
+   */
+  unregistered: string[];
+  /**
+   * Os processadores SAPHO, na ordem do `.spf`.
+   */
+  processors: ProcessorStatus[];
+  /**
+   * A onda da simulação do projeto, se já existe no disco.
+   */
+  waveform: string | null;
+  /**
+   * Os Verilog conhecidos que podem ser o topo: os registrados, o gerado
+   * de cada processador e os de fora do `.spf`, menos os com nome de
+   * testbench e os testbenches cocotb (a regra de
+   * [`Project::set_top_level`]).
+   */
+  top_candidates: string[];
+  /**
+   * O que está estranho no `.spf` sem impedir de abrir
+   * ([`Project::issues`]).
+   */
+  issues: ProjectIssue[];
+}
+/**
+ * Um processador, com o que uma interface precisa saber dele além do
+ * [`Processor`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ProcessorStatus".
+ */
+export interface ProcessorStatus {
+  /**
+   * O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
+   * gerados.
+   */
+  name: string;
+  /**
+   * A linguagem do fonte.
+   */
+  language: 'cmm' | 'cpp';
+  /**
+   * `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
+   * inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
+   * do C).
+   */
+  dir: string;
+  /**
+   * O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
+   */
+  source: string;
+  /**
+   * `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
+   * as memórias, o testbench, as tabelas da onda e as saídas da
+   * simulação, que roda nela.
+   */
+  output_dir: string;
+  /**
+   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * Verilator, a cópia instrumentada do testbench, a trava de execução).
+   */
+  temp_dir: string;
+  /**
+   * Frequência de operação em MHz (`-f` do `asmcomp`).
+   */
+  frequency_mhz: number;
+  /**
+   * Clocks a simular (`-c` do `asmcomp`, vai para o testbench).
+   */
+  clocks: number;
+  /**
+   * Exporta cada elemento de array como um sinal da onda
+   * (`--wave-arrays` do `cmmcomp`).
+   */
+  show_arrays: boolean;
+  /**
+   * O Verilog e o testbench gerados existem ([`Processor::is_built`]).
+   */
+  built: boolean;
+  /**
+   * Os arquivos de entrada (`<proc>/input_<n>.txt`, ao lado do fonte) que
+   * existem, por porta.
+   */
+  inputs: PortFile[];
+  /**
+   * Os arquivos de saída (`<proc>/<proc>/output_<n>.txt`, na pasta de
+   * saída) que existem, por porta.
+   */
+  outputs: PortFile[];
+  /**
+   * As entradas que o testbench lê e que não existem; só depois do build,
+   * porque é o testbench gerado que diz quais são.
+   */
+  missing_inputs: string[];
+  /**
+   * A onda da simulação do processador, se já existe.
+   */
+  waveform: string | null;
+  generated: GeneratedFiles;
+}
+/**
+ * Um arquivo de porta de entrada ou de saída de um processador.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "PortFile".
+ */
+export interface PortFile {
+  /**
+   * A porta (o `n` de `in(n)` e `out(n)`).
+   */
+  port: number;
+  /**
+   * O arquivo.
+   */
+  path: string;
+}
+/**
+ * O que o build gerou e existe no disco.
+ */
+export interface GeneratedFiles {
+  /**
+   * `<nome>.v`: o processador em Verilog, um módulo do design.
+   */
+  verilog: string | null;
+  /**
+   * `<nome>_tb.v`: o testbench que o `asmcomp` gera.
+   */
+  testbench: string | null;
+  /**
+   * `<nome>.asm`: o assembly que o compilador gera.
+   */
+  assembly: string | null;
+  /**
+   * `*.mif`: as memórias de dados e de instruções.
+   */
+  memories: string[];
+  /**
+   * As tabelas e os logs do YANC (`prog_log.txt`, `src_lines.txt`,
+   * `trad_opcode.txt`, `app_log.txt`, `pc_<nome>_mem.txt`); as saídas da
+   * simulação (`output_<n>.txt`, `toma_<n>.txt`) ficam de fora.
+   */
+  intermediates: string[];
+}
+/**
+ * Um aviso de [`Project::issues`]: algo estranho no `.spf` que não impede
+ * de abrir.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ProjectIssue".
+ */
+export interface ProjectIssue {
+  /**
+   * O tipo, para a interface traduzir.
+   */
+  kind:
+    | 'rescued_path'
+    | 'selection_not_registered'
+    | 'testbench_as_top'
+    | 'invalid_processor_name'
+    | 'duplicate_file'
+    | 'nested_project'
+    | 'legacy_layout';
+  /**
+   * O arquivo ou a pasta envolvida, absoluta.
+   */
+  path: string | null;
+  /**
+   * O complemento do tipo: o caminho como estava gravado
+   * (`rescued_path`), o campo do `.spf` (`selection_not_registered`,
+   * `testbench_as_top`) ou o nome do processador
+   * (`invalid_processor_name`, `legacy_layout`).
+   */
+  detail: string | null;
+  /**
+   * O aviso inteiro, em inglês, pronto para mostrar.
+   */
+  message: string;
+}
+/**
+ * `project.remove`.
+ */
+export interface RemoveOutcome {
+  /**
+   * Tirados do projeto (continuam no disco).
+   */
+  removed: string[];
+  /**
+   * Pedidos, mas que não estavam no projeto.
+   */
+  not_registered: string[];
+}
+/**
+ * `project.top`.
+ */
+export interface TopOutcome {
+  /**
+   * O arquivo de topo, se escolhido.
+   */
+  top_level: string | null;
+  /**
+   * O módulo de topo.
+   */
+  module: string | null;
+  /**
+   * Por que não dá para saber o módulo de um arquivo de topo escolhido.
+   */
+  module_error: ErrorInfo | null;
+}
+/**
+ * `project.move`.
+ */
+export interface MovedPath1 {
+  /**
+   * Onde estava, absoluto.
+   */
+  from: string;
+  /**
+   * Onde ficou, absoluto.
+   */
+  to: string;
+  /**
+   * Os arquivos registrados no `.spf` que mudaram de lugar, já com o
+   * caminho novo: o próprio arquivo, ou os que estavam dentro da pasta.
+   * Continuam com o mesmo papel e a mesma marca de topo ou de testbench
+   * escolhido.
+   */
+  files: ProjectFile[];
+}
+/**
+ * `project.convert`.
+ */
+export interface LayoutConversion {
+  /**
+   * Os processadores que tinham a estrutura antiga, na ordem do `.spf`.
+   */
+  processors: string[];
+  /**
+   * O que mudou de lugar.
+   */
+  moved: ConvertedPath[];
+  /**
+   * O que ficou onde estava, com o motivo.
+   */
+  skipped: SkippedPath[];
+  /**
+   * Os fontes que perderam a linha do nome (`#PRNAME`, `#pragma yanc
+   * prname`).
+   */
+  name_lines: RemovedNameLine[];
+  /**
+   * Os processadores cujo nome não serve mais: na 7.1 ele vira o módulo
+   * Verilog, e o YANC recusa um fonte com esse nome.
+   */
+  invalid_names: string[];
+  /**
+   * As subpastas antigas que ficaram com algo que não foi movido (o que o
+   * sistema deixa sozinho numa pasta, como o `.DS_Store`, não conta).
+   */
+  remaining_dirs: string[];
+}
+/**
+ * `project.check_name`, `processor.check_name`.
+ */
+export interface NameCheck {
+  /**
+   * O nome serve.
+   */
+  ok: boolean;
+  /**
+   * Por que não serve (`invalid_name`).
+   */
+  error: ErrorInfo | null;
+}
+/**
+ * `processor.add`, `processor.set`.
+ */
+export interface Processor {
+  /**
+   * O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
+   * gerados.
+   */
+  name: string;
+  /**
+   * A linguagem do fonte.
+   */
+  language: 'cmm' | 'cpp';
+  /**
+   * `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
+   * inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
+   * do C).
+   */
+  dir: string;
+  /**
+   * O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
+   */
+  source: string;
+  /**
+   * `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
+   * as memórias, o testbench, as tabelas da onda e as saídas da
+   * simulação, que roda nela.
+   */
+  output_dir: string;
+  /**
+   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * Verilator, a cópia instrumentada do testbench, a trava de execução).
+   */
+  temp_dir: string;
+  /**
+   * Frequência de operação em MHz (`-f` do `asmcomp`).
+   */
+  frequency_mhz: number;
+  /**
+   * Clocks a simular (`-c` do `asmcomp`, vai para o testbench).
+   */
+  clocks: number;
+  /**
+   * Exporta cada elemento de array como um sinal da onda
+   * (`--wave-arrays` do `cmmcomp`).
+   */
+  show_arrays: boolean;
+}
+/**
+ * `processor.remove`.
+ */
+export interface ProcessorRemoval {
+  removed: RemovedProcessor1;
+  /**
+   * A pasta foi para a lixeira do sistema.
+   */
+  trashed: boolean;
+}
+/**
+ * O que saiu: o nome, a pasta e os arquivos que saíram das listas.
+ */
+export interface RemovedProcessor1 {
+  /**
+   * O nome do processador.
+   */
+  name: string;
+  /**
+   * A pasta dele (`<raiz>/<nome>`), que continua no disco.
+   */
+  dir: string;
+  /**
+   * Os arquivos de dentro da pasta que estavam registrados e saíram das
+   * listas: o papel de cada um e se era o topo ou o testbench escolhido.
+   */
+  unregistered: ProjectFile[];
+}
+/**
+ * `flow.run`.
+ */
+export interface FlowOutcome {
+  /**
+   * O fluxo ([`FlowRequest::name`]).
+   */
+  flow: string;
+  /**
+   * O comando equivalente ([`FlowOptions::command`]).
+   */
+  command: string;
+  /**
+   * Como terminou: o pior entre as fases que rodaram. `Cancelled` se o
+   * cancelamento foi pedido; `TimedOut` se a simulação estourou o prazo;
+   * `Failed` se alguma fase falhou (inclusive um build de `Build`, que
+   * compila todos); senão `Succeeded`.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * `status == Succeeded`.
+   */
+  succeeded: boolean;
+  /**
+   * Os builds feitos antes (ou o próprio build).
+   */
+  builds: BuildResult[];
+  /**
+   * O que esses builds geraram e entrou no `.spf` agora.
+   */
+  registered: AddedFile[];
+  /**
+   * O resultado da verificação.
+   */
+  check: CheckResult | null;
+  /**
+   * Com `lint`, o componente do Verilator que falta quando nenhum passo
+   * dele rodou: para a interface sugerir a instalação.
+   */
+  lint_missing: string | null;
+  /**
+   * A hierarquia.
+   */
+  hierarchy: HierarchyResult | null;
+  /**
+   * Na hierarquia sem processador: os processadores com fonte e sem
+   * build, que ficaram de fora.
+   */
+  not_built: string[];
+  /**
+   * O resultado da simulação.
+   */
+  simulation: SimulationResult | null;
+  /**
+   * Os valores de cada porta de saída do processador simulado (só com
+   * processador e sucesso).
+   */
+  outputs: FlowPortValues[];
+  /**
+   * O resultado da síntese.
+   */
+  synthesis: SynthesisResult | null;
+  /**
+   * O resultado do esquemático.
+   */
+  schematic: SchematicResult | null;
+  /**
+   * Por que o esquemático não foi desenhado depois da síntese (o módulo
+   * pedido não está no netlist, `module_not_found`); a síntese vale.
+   */
+  schematic_error: ErrorInfo | null;
+  /**
+   * O HTML do RTL viewer, gravado ao lado do netlist.
+   */
+  rtl_viewer: string | null;
+  /**
+   * Por que o RTL viewer não saiu (a síntese vale).
+   */
+  rtl_viewer_error: ErrorInfo | null;
+  /**
+   * A onda aberta no surfer-aurora.
+   */
+  wave: WaveOpened | null;
+  /**
+   * Por que a onda não abriu (a simulação vale).
+   */
+  wave_error: ErrorInfo | null;
+  /**
+   * O relatório gravado no histórico (`run-000042`).
+   */
+  report: string | null;
+  /**
+   * Por que o relatório não foi gravado (o fluxo não falha por isso).
+   */
+  report_error: string | null;
+  /**
+   * A compilação para a placa.
+   */
+  fpga: FpgaBuildResult | null;
+  /**
+   * A gravação na placa.
+   */
+  fpga_program: FpgaProgramResult | null;
+}
+/**
+ * O resultado de [`hierarchy`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "HierarchyResult".
+ */
+export interface HierarchyResult {
+  /**
+   * O design, sem testbench: os módulos que nenhum outro instancia (em
+   * geral o topo), com tudo o que eles instanciam. `None` num projeto sem
+   * Verilog de design.
+   */
+  design: Elaboration | null;
+  /**
+   * Cada testbench elaborado com o design: os registrados, na ordem do
+   * `.spf`, e depois o testbench gerado de cada processador compilado.
+   */
+  testbenches: Elaboration[];
+  /**
+   * `Succeeded` se todas as elaborações deram certo; senão, como terminou
+   * a primeira que não deu.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * `elaborate` quando uma elaboração falhou ou foi cancelada.
+   */
+  failed_step: Step | null;
+  /**
+   * Um `iverilog` para o design e um por testbench, na ordem.
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos de todas as elaborações, com arquivo e linha.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Os `.vvp` de cada elaboração.
+   */
+  artifacts: Artifact[];
+  /**
+   * Quanto as elaborações levaram juntas, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * O resultado de [`simulate`] e de [`simulate_project`].
+ *
+ * Uma simulação que roda até o `$finish` e termina com código 0 é
+ * `Succeeded`, mesmo que o circuito esteja errado: conferir o comportamento
+ * é olhar `outputs` e a onda. O stdout do testbench (`$display`) está no
+ * `stdout` do passo `simulate`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SimulationResult".
+ */
+export interface SimulationResult {
+  /**
+   * O módulo de topo simulado (o testbench).
+   */
+  top: string;
+  /**
+   * O simulador usado. Na simulação rápida de um testbench Verilog, o
+   * Verilator, qualquer que fosse o pedido.
+   */
+  simulator: 'icarus' | 'verilator';
+  /**
+   * A simulação rápida ([`SimulationOptions::fast`]): rodou sem gravar
+   * onda, e `waveform` é `null`.
+   */
+  fast: boolean;
+  /**
+   * Como a simulação terminou.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * O passo que falhou, quando for o caso: `elaborate` / `verilate`
+   * (Verilog que não compila) ou `simulate` (a simulação em si).
+   */
+  failed_step: Step | null;
+  /**
+   * Icarus: `elaborate` e `simulate`. Verilator: `verilate` e `simulate`.
+   */
+  steps: StepReport[];
+  /**
+   * Mensagens de todos os passos. No passo `simulate`, só as linhas que o
+   * parser reconhece: o resto do stdout é saída do testbench.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * O `.vvp` ou o executável do Verilator, a onda, e cada
+   * `output_<n>.txt` escrito.
+   */
+  artifacts: Artifact[];
+  /**
+   * A onda gerada, se a simulação chegou ao fim; nunca na simulação
+   * rápida.
+   */
+  waveform: Waveform | null;
+  /**
+   * `<proc>/<proc>/output_<n>.txt` escritos nesta simulação.
+   */
+  outputs: string[];
+  /**
+   * Arquivos que o testbench tenta ler e que não existem. Não impedem a
+   * simulação (o testbench gerado pelo `asmcomp` confere o `$fopen` antes
+   * de ler), mas a porta correspondente não recebe dado nenhum.
+   */
+  missing_inputs: string[];
+  /**
+   * Os testes de um testbench cocotb (`.py`), lidos do `results.xml`;
+   * `null` num testbench Verilog, ou se o cocotb não chegou a gravar o
+   * resultado.
+   */
+  tests: TestReport | null;
+  /**
+   * Quanto a simulação levou, do começo ao fim (preparar, compilar e
+   * rodar), em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * Uma onda gerada por simulação, pronta para
+ * [`open_waveform`](crate::open_waveform).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Waveform".
+ */
+export interface Waveform {
+  /**
+   * Caminho absoluto, com o nome que o `$dumpfile` do testbench deu.
+   */
+  path: string;
+  /**
+   * O formato do conteúdo.
+   */
+  format: 'vcd' | 'fst';
+}
+/**
+ * O resultado dos testes de um testbench cocotb, lido do `results.xml`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TestReport".
+ */
+export interface TestReport {
+  /**
+   * O `results.xml` que o cocotb gravou.
+   */
+  results: string;
+  /**
+   * Os testes, na ordem em que rodaram.
+   */
+  cases: TestCase[];
+  /**
+   * Quantos passaram.
+   */
+  passed: number;
+  /**
+   * Quantos falharam.
+   */
+  failed: number;
+  /**
+   * Quantos não rodaram (`@cocotb.test(skip=True)`).
+   */
+  skipped: number;
+}
+/**
+ * Um teste (`@cocotb.test()`).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TestCase".
+ */
+export interface TestCase {
+  /**
+   * `<módulo>.<teste>`, como o cocotb mostra (`test_somador.basic_test`).
+   */
+  name: string;
+  /**
+   * Como terminou.
+   */
+  status: 'passed' | 'failed' | 'skipped';
+  /**
+   * Por que falhou (a mensagem da exceção) ou não rodou; `null` quando
+   * passou.
+   */
+  message: string | null;
+  /**
+   * O `.py` do teste.
+   */
+  file: string | null;
+  /**
+   * Numa falha, a linha mais funda do traceback dentro do `.py`; senão, a
+   * linha do teste.
+   */
+  line: number | null;
+}
+/**
+ * Os valores de uma porta de saída de um processador simulado.
+ *
+ * No schema chama-se `FlowPortValues`: o `PortValues` do relatório `sim`
+ * da CLI tem o erro em texto, e os dois convivem no mesmo conjunto de
+ * tipos gerados.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FlowPortValues".
+ */
+export interface FlowPortValues {
+  /**
+   * O número da porta.
+   */
+  port: number;
+  /**
+   * `<proc>/<proc>/output_<porta>.txt`, na pasta de saída.
+   */
+  path: string;
+  /**
+   * Os valores, na ordem em que saíram. Vazio quando a porta não pôde
+   * ser lida.
+   */
+  values: number[];
+  /**
+   * Por que a porta não pôde ser lida: uma linha que não é inteiro, como
+   * o `x` que o simulador escreve numa divisão por zero. `None` quando
+   * leu.
+   */
+  error: ErrorInfo | null;
+}
+/**
+ * O resultado de [`synthesize`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SynthesisResult".
+ */
+export interface SynthesisResult {
+  /**
+   * O módulo de topo sintetizado.
+   */
+  top: string;
+  /**
+   * Como a síntese terminou.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * `synthesize` quando falhou.
+   */
+  failed_step: Step | null;
+  /**
+   * Um passo: o `yosys`. O log completo fica em `yosys.log`, ao lado do
+   * netlist.
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos do Yosys, com arquivo e linha quando ele informa.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * O netlist (`hierarchy.json`).
+   */
+  artifacts: Artifact[];
+  /**
+   * `hierarchy.json`, quando a síntese terminou.
+   */
+  netlist: string | null;
+  /**
+   * Os módulos do netlist, na ordem do JSON, para escolher o que desenhar.
+   */
+  modules: string[];
+  /**
+   * O que o `stat` do Yosys contou no netlist, quando a síntese terminou
+   * e o Yosys gravou o `stat.json`.
+   */
+  statistics: SynthesisStatistics | null;
+  /**
+   * Quanto a síntese levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * O que o `stat` do Yosys contou. Uma contagem que ele não informou fica
+ * `null`, e é diferente de zero.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SynthesisStatistics".
+ */
+export interface SynthesisStatistics {
+  /**
+   * O Yosys que contou, como ele se identifica (`Yosys 0.69+156 (...)`).
+   */
+  tool: string;
+  /**
+   * O módulo de topo.
+   */
+  top: string;
+  /**
+   * Módulos.
+   */
+  modules: number | null;
+  /**
+   * Fios.
+   */
+  wires: number | null;
+  /**
+   * Bits de fio.
+   */
+  wire_bits: number | null;
+  /**
+   * Fios com nome do usuário.
+   */
+  public_wires: number | null;
+  /**
+   * Bits de fio com nome do usuário.
+   */
+  public_wire_bits: number | null;
+  /**
+   * Memórias.
+   */
+  memories: number | null;
+  /**
+   * Bits de memória.
+   */
+  memory_bits: number | null;
+  /**
+   * Processos.
+   */
+  processes: number | null;
+  /**
+   * Células, sem as instâncias de submódulo.
+   */
+  cells: number | null;
+  /**
+   * As células por tipo, da mais usada para a menos usada e, no empate,
+   * pelo nome.
+   */
+  cell_types: CellUsage[];
+}
+/**
+ * Quantas células de um tipo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "CellUsage".
+ */
+export interface CellUsage {
+  /**
+   * O tipo, como o Yosys o nomeia (`$add`, `$dff`).
+   */
+  cell_type: string;
+  /**
+   * Quantas.
+   */
+  count: number;
+}
+/**
+ * O resultado de [`render_schematic`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SchematicResult".
+ */
+export interface SchematicResult {
+  /**
+   * O módulo desenhado.
+   */
+  module: string;
+  /**
+   * Como terminou. Uma mensagem de erro do `dot` conta como falha mesmo
+   * que ele saia com código 0.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * `graph` (Yosys) ou `render` (`dot`) quando falhou.
+   */
+  failed_step: Step | null;
+  /**
+   * Dois passos: `graph` (`yosys show`) e `render` (`dot`).
+   */
+  steps: StepReport[];
+  /**
+   * Mensagens do Yosys e do Graphviz.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * O grafo (`.dot`) e o SVG.
+   */
+  artifacts: Artifact[];
+  /**
+   * O SVG, quando foi gerado. Fica ao lado do netlist, com o nome do
+   * módulo (caracteres fora de `[A-Za-z0-9_.-]` viram `_`).
+   */
+  svg: string | null;
+  /**
+   * Quanto o desenho levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * A onda aberta no surfer-aurora, que continua aberto depois.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveOpened".
+ */
+export interface WaveOpened {
+  /**
+   * O arquivo da onda.
+   */
+  waveform: string;
+  /**
+   * O PID do surfer-aurora.
+   */
+  pid: number;
+  /**
+   * Onde vai o stdout e o stderr do surfer-aurora.
+   */
+  log: string;
+  /**
+   * O estado do Surfer com que a onda abriu (`.surf.ron` ou `.sucl`): o
+   * layout salvo no projeto, o gerado, ou o de um exercício; `None` sem
+   * layout.
+   */
+  layout: string | null;
+  /**
+   * O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
+   * Surfer salva (Ctrl+S); `None` numa onda fora de projeto ou sem layout
+   * gerado.
+   */
+  saved_layout: SavedLayoutInfo | null;
+  /**
+   * Os processadores do layout gerado.
+   */
+  processors: WaveProcessor[];
+  /**
+   * A escolha de sinais que o layout gerado seguiu (`wave/<testbench>.json`);
+   * vazia sem escolha ou sem layout gerado.
+   */
+  selection: string[];
+  /**
+   * Os processadores compilados de novo depois desta simulação: o PC e a
+   * linha aparecem como números.
+   */
+  outdated: string[];
+  /**
+   * O layout gerado falhou e a onda abriu sem ele: o motivo.
+   */
+  layout_error: string | null;
+  /**
+   * Com [`LayoutPolicy::Reset`]: o testbench cujo layout salvo foi
+   * apagado antes de abrir.
+   */
+  reset_deleted: string | null;
+}
+/**
+ * O layout salvo no projeto para a onda aberta.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SavedLayoutInfo".
+ */
+export interface SavedLayoutInfo {
+  /**
+   * O arquivo.
+   */
+  path: string;
+  /**
+   * O usuário salvou depois que o Lace o gerou: o Lace não o refaz.
+   */
+  customized: boolean;
+}
+/**
+ * Um processador SAPHO achado na onda.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveProcessor".
+ */
+export interface WaveProcessor {
+  /**
+   * O escopo da instância na onda (`soma_tb.proc`).
+   */
+  instance: string;
+  /**
+   * O processador (o nome da pasta no projeto e do fonte).
+   */
+  processor: string;
+  /**
+   * Quantas variáveis do programa estão na onda (cada elemento de array
+   * conta).
+   */
+  variables: number;
+  /**
+   * O PC aparece como instrução de assembly (havia `trad_opcode.txt`).
+   */
+  assembly: boolean;
+  /**
+   * A linha do fonte aparece como texto (havia `src_lines.txt`).
+   */
+  source: boolean;
+  /**
+   * As tabelas são mais novas que a onda: o processador foi compilado de
+   * novo depois da simulação, e o assembly e a linha do C± sairiam
+   * deslocados. O PC e a linha aparecem como números até simular de novo;
+   * as interfaces avisam.
+   */
+  outdated: boolean;
+}
+/**
+ * O resultado de [`program`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FpgaProgramResult".
+ */
+export interface FpgaProgramResult {
+  /**
+   * A placa (o `id`).
+   */
+  board: string;
+  /**
+   * O `.sof` gravado.
+   */
+  bitstream: string;
+  /**
+   * O cabo usado, como o `quartus_pgm -l` o escreve
+   * (`USB-Blaster [USB-0]`).
+   */
+  cable: string;
+  /**
+   * A posição da FPGA na cadeia JTAG (o `@n`).
+   */
+  position: number;
+  quartus: Quartus2;
+  /**
+   * Como a gravação terminou.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * `program` quando falhou.
+   */
+  failed_step: Step | null;
+  /**
+   * Um passo: `program` (`quartus_pgm`).
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos do Programmer.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Quanto a gravação levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * O Quartus que gravou.
+ */
+export interface Quartus2 {
+  /**
+   * A pasta `quartus` da instalação (`C:\intelFPGA_lite\22.1std\quartus`).
+   */
+  root: string;
+  /**
+   * A pasta dos programas: `bin64` no Windows, `bin` no Linux.
+   */
+  bin: string;
+  /**
+   * A versão, pelo nome da pasta da instalação (`22.1std`).
+   */
+  version?: string | null;
+}
+/**
+ * A onda aberta no surfer-aurora, que continua aberto depois.
+ */
+export interface WaveOpened1 {
+  /**
+   * O arquivo da onda.
+   */
+  waveform: string;
+  /**
+   * O PID do surfer-aurora.
+   */
+  pid: number;
+  /**
+   * Onde vai o stdout e o stderr do surfer-aurora.
+   */
+  log: string;
+  /**
+   * O estado do Surfer com que a onda abriu (`.surf.ron` ou `.sucl`): o
+   * layout salvo no projeto, o gerado, ou o de um exercício; `None` sem
+   * layout.
+   */
+  layout: string | null;
+  /**
+   * O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
+   * Surfer salva (Ctrl+S); `None` numa onda fora de projeto ou sem layout
+   * gerado.
+   */
+  saved_layout: SavedLayoutInfo | null;
+  /**
+   * Os processadores do layout gerado.
+   */
+  processors: WaveProcessor[];
+  /**
+   * A escolha de sinais que o layout gerado seguiu (`wave/<testbench>.json`);
+   * vazia sem escolha ou sem layout gerado.
+   */
+  selection: string[];
+  /**
+   * Os processadores compilados de novo depois desta simulação: o PC e a
+   * linha aparecem como números.
+   */
+  outdated: string[];
+  /**
+   * O layout gerado falhou e a onda abriu sem ele: o motivo.
+   */
+  layout_error: string | null;
+  /**
+   * Com [`LayoutPolicy::Reset`]: o testbench cujo layout salvo foi
+   * apagado antes de abrir.
+   */
+  reset_deleted: string | null;
+}
+/**
+ * `wave.signals`.
+ */
+export interface WaveSignals {
+  /**
+   * O testbench elaborado (o da simulação do projeto).
+   */
+  testbench: string;
+  /**
+   * O módulo do testbench: a raiz da árvore e o nome dos arquivos em
+   * `wave/`.
+   */
+  module: string;
+  /**
+   * A árvore, a partir do módulo do testbench. `None` quando a elaboração
+   * falhou (os erros em `diagnostics`).
+   */
+  root: SignalScope | null;
+  /**
+   * A escolha gravada; vazia: a simulação grava todos os sinais.
+   */
+  selection: string[];
+  /**
+   * Onde a escolha fica (`wave/<módulo>.json`), exista ou não.
+   */
+  selection_file: string;
+  /**
+   * Itens da escolha que a árvore não tem (um sinal renomeado, um módulo
+   * que saiu): a simulação os deixa de fora.
+   */
+  unknown: string[];
+  /**
+   * Como a elaboração terminou.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * A elaboração (`iverilog`).
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos da elaboração.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Quanto levou, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * Um escopo da árvore: uma instância de módulo, ou um bloco `generate` ou
+ * `begin` com nome.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SignalScope".
+ */
+export interface SignalScope {
+  /**
+   * O nome (`dut`, `g[0]`).
+   */
+  name: string;
+  /**
+   * O caminho na hierarquia (`tb.dut`), como vai na escolha.
+   */
+  path: string;
+  /**
+   * Instância de módulo, bloco `generate` ou bloco com nome.
+   */
+  kind: 'module' | 'generate' | 'block';
+  /**
+   * O módulo, numa instância.
+   */
+  module: string | null;
+  /**
+   * É um processador SAPHO (tem `valr2` e `linetabs`): os sinais dele vão
+   * para a onda com qualquer escolha.
+   */
+  processor: boolean;
+  /**
+   * Os sinais, na ordem do Icarus.
+   */
+  signals: WaveSignal[];
+  /**
+   * Os escopos de dentro.
+   */
+  scopes: SignalScope[];
+}
+/**
+ * Um sinal da árvore.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveSignal".
+ */
+export interface WaveSignal {
+  /**
+   * O nome.
+   */
+  name: string;
+  /**
+   * O caminho na hierarquia (`tb.dut.q`).
+   */
+  path: string;
+  /**
+   * Bits (64 num `real`).
+   */
+  width: number;
+  /**
+   * `reg`, `wire`, `integer` ou `real`.
+   */
+  kind: 'reg' | 'wire' | 'integer' | 'real';
+  /**
+   * A direção, quando o sinal é uma porta do módulo.
+   */
+  direction: PortDirection | null;
+}
+/**
+ * `wave.choose`.
+ */
+export interface WaveChoiceOutcome {
+  /**
+   * O módulo do testbench do projeto.
+   */
+  testbench: string;
+  /**
+   * O arquivo da escolha (`wave/<testbench>.json`); `None` quando ela
+   * ficou vazia e o arquivo saiu: a onda grava todos os sinais.
+   */
+  file: string | null;
+  /**
+   * A escolha; vazia, todos os sinais.
+   */
+  selection: string[];
+}
+/**
+ * Uma linha de [`list`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "RunSummary".
+ */
+export interface RunSummary {
+  /**
+   * O identificador.
+   */
+  id: string;
+  /**
+   * Quando terminou; `null` num relatório ilegível.
+   */
+  timestamp: string | null;
+  /**
+   * O comando.
+   */
+  command: string | null;
+  /**
+   * Como terminou.
+   */
+  status: Status | null;
+  /**
+   * O módulo de topo.
+   */
+  top: string | null;
+  /**
+   * Tem estatísticas de síntese.
+   */
+  synthesis: boolean;
+  /**
+   * Quanto dos tempos de simulação tem.
+   */
+  simulation: 'available' | 'partial' | 'unavailable';
+  /**
+   * O `record.json` pôde ser lido.
+   */
+  readable: boolean;
+}
+/**
+ * `history.show`.
+ */
+export interface ReportView {
+  /**
+   * O identificador (`run-000042`).
+   */
+  id: string;
+  /**
+   * O `report.txt`.
+   */
+  path: string;
+  record: RunRecord;
+  /**
+   * O `report.txt`, sem mudança.
+   */
+  text: string;
+}
+/**
+ * O que a comparação usa.
+ */
+export interface RunRecord {
+  /**
+   * O formato ([`RECORD_SCHEMA`]).
+   */
+  schema: number;
+  /**
+   * O identificador (`run-000042`).
+   */
+  id: string;
+  metadata: RunMetadata;
+  /**
+   * As estatísticas do Yosys, quando houve síntese e o Yosys as gravou.
+   */
+  synthesis: SynthesisStatistics | null;
+  /**
+   * Os tempos da simulação, quando houve simulação.
+   */
+  simulation: SimulationTimings | null;
+}
+/**
+ * O contexto da operação.
  */
 export interface RunMetadata {
   /**
@@ -1929,7 +4507,7 @@ export interface RunMetadata {
    */
   command: string;
   /**
-   * Como terminou.
+   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
    */
   status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
   /**
@@ -2068,51 +4646,176 @@ export interface Environment {
   fingerprint: string;
 }
 /**
- * A máquina onde a operação rodou. O que o sistema não informa sem rodar
- * outro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,
- * `/proc` e `/etc/os-release`) e o `uname`.
+ * Os tempos de uma simulação, em milissegundos de relógio. O tempo simulado
+ * é outra grandeza: o quanto o tempo andou dentro do modelo.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "Environment".
+ * via the `definition` "SimulationTimings".
  */
-export interface Environment1 {
+export interface SimulationTimings {
   /**
-   * O nome da máquina.
+   * A simulação terminou com sucesso.
    */
-  hostname: string | null;
+  succeeded: boolean;
   /**
-   * `linux`, `macos`, `windows`.
+   * O passo que compila o Verilog (`iverilog` ou `verilator --binary`).
    */
-  os: string;
+  compile_ms: number | null;
   /**
-   * O nome da distribuição (Linux).
+   * O passo que roda o testbench (`vvp` ou o modelo do Verilator).
    */
-  os_name: string | null;
+  execution_ms: number | null;
   /**
-   * A versão do kernel (Linux e macOS).
+   * A simulação inteira, medida à parte: com a preparação do Lace.
    */
-  kernel: string | null;
+  total_ms: number | null;
   /**
-   * `x86_64`, `aarch64`.
+   * O tempo simulado no `$finish`, em femtossegundos, quando o simulador
+   * o informa (o `vvp` informa; o Verilator, não).
    */
-  arch: string;
+  simulated_fs: number | null;
+}
+/**
+ * `history.compare`.
+ */
+export interface RunComparison {
   /**
-   * O modelo do processador (Linux).
+   * O relatório atual.
    */
-  cpu_model: string | null;
+  current_id: string;
+  current: RunMetadata1;
   /**
-   * Processadores lógicos disponíveis.
+   * A referência.
    */
-  cpus: number | null;
+  baseline_id: string;
+  baseline: RunMetadata2;
   /**
-   * A memória total, em bytes (Linux).
+   * A síntese comparada; `null` se os dois não têm estatísticas do mesmo
+   * topo.
    */
-  memory_bytes: number | null;
+  synthesis: SynthesisComparison | null;
   /**
-   * Hash do sistema, da arquitetura, do processador, do número de
-   * processadores e do nome da máquina: muda quando a máquina muda.
+   * A simulação comparada; `null` se os dois não têm tempos do mesmo
+   * simulador e testbench.
    */
-  fingerprint: string;
+  simulation: TimingComparison | null;
+  /**
+   * O que difere no contexto e pode explicar uma mudança (fontes,
+   * versões, máquina), em inglês, sem ponto final.
+   */
+  warnings: string[];
+}
+/**
+ * O contexto dele.
+ */
+export interface RunMetadata1 {
+  /**
+   * Quando terminou, em UTC (`2026-10-03T21:04:05Z`).
+   */
+  timestamp: string;
+  /**
+   * O comando.
+   */
+  command: string;
+  /**
+   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * Quanto levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+  /**
+   * A versão do Lace que gravou.
+   */
+  lace_version: string;
+  /**
+   * O que identifica o projeto: um hash da raiz dele. Relatórios de
+   * projetos diferentes não se comparam.
+   */
+  project: string;
+  /**
+   * O nome do projeto.
+   */
+  project_name: string;
+  /**
+   * O bundle de ferramentas (`2026.09.29`) e a plataforma.
+   */
+  bundle: string;
+  /**
+   * `linux-x64`, `darwin-arm64`, `windows-x64`.
+   */
+  platform: string;
+  /**
+   * O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do
+   * projeto.
+   */
+  top: string | null;
+  /**
+   * O contexto da síntese, quando houve.
+   */
+  synthesis: SynthesisContext | null;
+  /**
+   * O contexto da simulação, quando houve.
+   */
+  simulation: SimulationContext | null;
+  environment: Environment;
+}
+/**
+ * O contexto dela.
+ */
+export interface RunMetadata2 {
+  /**
+   * Quando terminou, em UTC (`2026-10-03T21:04:05Z`).
+   */
+  timestamp: string;
+  /**
+   * O comando.
+   */
+  command: string;
+  /**
+   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * Quanto levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+  /**
+   * A versão do Lace que gravou.
+   */
+  lace_version: string;
+  /**
+   * O que identifica o projeto: um hash da raiz dele. Relatórios de
+   * projetos diferentes não se comparam.
+   */
+  project: string;
+  /**
+   * O nome do projeto.
+   */
+  project_name: string;
+  /**
+   * O bundle de ferramentas (`2026.09.29`) e a plataforma.
+   */
+  bundle: string;
+  /**
+   * `linux-x64`, `darwin-arm64`, `windows-x64`.
+   */
+  platform: string;
+  /**
+   * O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do
+   * projeto.
+   */
+  top: string | null;
+  /**
+   * O contexto da síntese, quando houve.
+   */
+  synthesis: SynthesisContext | null;
+  /**
+   * O contexto da simulação, quando houve.
+   */
+  simulation: SimulationContext | null;
+  environment: Environment;
 }
 /**
  * As estatísticas de síntese, comparadas.
@@ -2246,10 +4949,23 @@ export interface MetricComparison1 {
   percent: number | null;
 }
 /**
- * Um número comparado.
+ * Os tempos de simulação, comparados.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "MetricComparison".
+ * via the `definition` "TimingComparison".
+ */
+export interface TimingComparison {
+  compile: MetricComparison2;
+  execution: MetricComparison3;
+  total: MetricComparison4;
+  simulated: MetricComparison5;
+  /**
+   * As duas rodaram em máquinas diferentes.
+   */
+  environment_changed: boolean;
+}
+/**
+ * Compilação, em milissegundos.
  */
 export interface MetricComparison2 {
   /**
@@ -2276,23 +4992,7 @@ export interface MetricComparison2 {
   percent: number | null;
 }
 /**
- * Os tempos de simulação, comparados.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "TimingComparison".
- */
-export interface TimingComparison {
-  compile: MetricComparison3;
-  execution: MetricComparison4;
-  total: MetricComparison5;
-  simulated: MetricComparison6;
-  /**
-   * As duas rodaram em máquinas diferentes.
-   */
-  environment_changed: boolean;
-}
-/**
- * Compilação, em milissegundos.
+ * Execução, em milissegundos.
  */
 export interface MetricComparison3 {
   /**
@@ -2319,7 +5019,7 @@ export interface MetricComparison3 {
   percent: number | null;
 }
 /**
- * Execução, em milissegundos.
+ * A simulação inteira, em milissegundos.
  */
 export interface MetricComparison4 {
   /**
@@ -2346,7 +5046,7 @@ export interface MetricComparison4 {
   percent: number | null;
 }
 /**
- * A simulação inteira, em milissegundos.
+ * O tempo simulado, em femtossegundos.
  */
 export interface MetricComparison5 {
   /**
@@ -2373,615 +5073,84 @@ export interface MetricComparison5 {
   percent: number | null;
 }
 /**
- * O tempo simulado, em femtossegundos.
+ * `history.clean`.
  */
-export interface MetricComparison6 {
+export interface CleanOutcome {
   /**
-   * Na referência.
+   * Os apagados, do mais antigo para o mais novo.
    */
-  baseline: number | null;
+  removed: string[];
   /**
-   * No atual.
+   * Quantos ficaram.
    */
-  current: number | null;
-  /**
-   * O que mudou.
-   */
-  change: 'unchanged' | 'increased' | 'decreased' | 'added' | 'removed' | 'not_comparable';
-  /**
-   * Atual menos referência.
-   */
-  delta: number | null;
-  /**
-   * A variação em porcentagem da referência. `null` quando não se
-   * compara ou quando a referência é zero e o atual não (não há
-   * porcentagem de zero; o texto mostra `new`).
-   */
-  percent: number | null;
+  kept: number;
 }
 /**
- * Uma linha de [`list`].
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "RunSummary".
+ * `toolchain.info`.
  */
-export interface RunSummary {
+export interface ToolchainInfo {
   /**
-   * O identificador.
+   * O bundle abriu.
    */
-  id: string;
+  found: boolean;
   /**
-   * Quando terminou; `null` num relatório ilegível.
+   * Por que não abriu.
    */
-  timestamp: string | null;
+  error: ErrorInfo | null;
   /**
-   * O comando.
+   * Como foi achado.
    */
-  command: string | null;
+  origin: Origin | null;
   /**
-   * Como terminou.
+   * A pasta do bundle.
    */
-  status: Status | null;
+  root: string | null;
   /**
-   * O módulo de topo.
+   * A versão do bundle.
    */
-  top: string | null;
+  bundle: string | null;
   /**
-   * Tem estatísticas de síntese.
+   * A plataforma do bundle (`linux-x64`, `darwin-arm64`, `windows-x64`).
    */
-  synthesis: boolean;
+  platform: string | null;
   /**
-   * Quanto dos tempos de simulação tem.
+   * Os componentes instalados.
    */
-  simulation: 'available' | 'partial' | 'unavailable';
+  components: BundleComponent[];
   /**
-   * O `record.json` pôde ser lido.
+   * Os componentes que o Lace conhece e que não estão instalados.
    */
-  readable: boolean;
-}
-/**
- * Um relatório guardado: o que a comparação e a lista usam. O texto fica ao
- * lado, em `report.txt` ([`report_text`]).
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "RunRecord".
- */
-export interface RunRecord {
+  not_installed: string[];
   /**
-   * O formato ([`RECORD_SCHEMA`]).
+   * Cada ferramenta que o Lace roda.
    */
-  schema: number;
+  tools: ToolStatus[];
   /**
-   * O identificador (`run-000042`).
+   * O compilador do Verilator: do sistema no Linux e no macOS, do bundle
+   * no Windows (`bundled`).
    */
-  id: string;
-  metadata: RunMetadata1;
+  system_compiler: SystemCompiler | null;
   /**
-   * As estatísticas do Yosys, quando houve síntese e o Yosys as gravou.
+   * O compilador declarado não serve.
    */
-  synthesis: SynthesisStatistics | null;
+  compiler_error: ErrorInfo | null;
   /**
-   * Os tempos da simulação, quando houve simulação.
+   * O Quartus Prime do sistema, se encontrado.
    */
-  simulation: SimulationTimings | null;
-}
-/**
- * O contexto da operação.
- */
-export interface RunMetadata1 {
+  quartus: Quartus1 | null;
   /**
-   * Quando terminou, em UTC (`2026-10-03T21:04:05Z`).
+   * A pasta declarada do Quartus não serve.
    */
-  timestamp: string;
+  quartus_error: ErrorInfo | null;
   /**
-   * O comando.
+   * A CLI `lace` da instalação.
    */
-  command: string;
+  lace_cli: string | null;
   /**
-   * Como terminou.
+   * O cliente web do Surfer (`surfer-aurora/web`), para a onda numa aba;
+   * `None` num bundle que não o traz.
    */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * Quanto levou, do começo ao fim, em milissegundos.
-   */
-  duration_ms: number;
-  /**
-   * A versão do Lace que gravou.
-   */
-  lace_version: string;
-  /**
-   * O que identifica o projeto: um hash da raiz dele. Relatórios de
-   * projetos diferentes não se comparam.
-   */
-  project: string;
-  /**
-   * O nome do projeto.
-   */
-  project_name: string;
-  /**
-   * O bundle de ferramentas (`2026.09.29`) e a plataforma.
-   */
-  bundle: string;
-  /**
-   * `linux-x64`, `darwin-arm64`, `windows-x64`.
-   */
-  platform: string;
-  /**
-   * O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do
-   * projeto.
-   */
-  top: string | null;
-  /**
-   * O contexto da síntese, quando houve.
-   */
-  synthesis: SynthesisContext | null;
-  /**
-   * O contexto da simulação, quando houve.
-   */
-  simulation: SimulationContext | null;
-  environment: Environment;
-}
-/**
- * O que o `stat` do Yosys contou. Uma contagem que ele não informou fica
- * `null`, e é diferente de zero.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "SynthesisStatistics".
- */
-export interface SynthesisStatistics {
-  /**
-   * O Yosys que contou, como ele se identifica (`Yosys 0.69+156 (...)`).
-   */
-  tool: string;
-  /**
-   * O módulo de topo.
-   */
-  top: string;
-  /**
-   * Módulos.
-   */
-  modules: number | null;
-  /**
-   * Fios.
-   */
-  wires: number | null;
-  /**
-   * Bits de fio.
-   */
-  wire_bits: number | null;
-  /**
-   * Fios com nome do usuário.
-   */
-  public_wires: number | null;
-  /**
-   * Bits de fio com nome do usuário.
-   */
-  public_wire_bits: number | null;
-  /**
-   * Memórias.
-   */
-  memories: number | null;
-  /**
-   * Bits de memória.
-   */
-  memory_bits: number | null;
-  /**
-   * Processos.
-   */
-  processes: number | null;
-  /**
-   * Células, sem as instâncias de submódulo.
-   */
-  cells: number | null;
-  /**
-   * As células por tipo, da mais usada para a menos usada e, no empate,
-   * pelo nome.
-   */
-  cell_types: CellUsage[];
-}
-/**
- * Quantas células de um tipo.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "CellUsage".
- */
-export interface CellUsage {
-  /**
-   * O tipo, como o Yosys o nomeia (`$add`, `$dff`).
-   */
-  cell_type: string;
-  /**
-   * Quantas.
-   */
-  count: number;
-}
-/**
- * Os tempos de uma simulação, em milissegundos de relógio. O tempo simulado
- * é outra grandeza: o quanto o tempo andou dentro do modelo.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "SimulationTimings".
- */
-export interface SimulationTimings {
-  /**
-   * A simulação terminou com sucesso.
-   */
-  succeeded: boolean;
-  /**
-   * O passo que compila o Verilog (`iverilog` ou `verilator --binary`).
-   */
-  compile_ms: number | null;
-  /**
-   * O passo que roda o testbench (`vvp` ou o modelo do Verilator).
-   */
-  execution_ms: number | null;
-  /**
-   * A simulação inteira, medida à parte: com a preparação do Lace.
-   */
-  total_ms: number | null;
-  /**
-   * O tempo simulado no `$finish`, em femtossegundos, quando o simulador
-   * o informa (o `vvp` informa; o Verilator, não).
-   */
-  simulated_fs: number | null;
-}
-/**
- * O resultado de [`simulate`] e de [`simulate_project`].
- *
- * Uma simulação que roda até o `$finish` e termina com código 0 é
- * `Succeeded`, mesmo que o circuito esteja errado: conferir o comportamento
- * é olhar `outputs` e a onda. O stdout do testbench (`$display`) está no
- * `stdout` do passo `simulate`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "SimulationResult".
- */
-export interface SimulationResult {
-  /**
-   * O módulo de topo simulado (o testbench).
-   */
-  top: string;
-  /**
-   * O simulador usado. Na simulação rápida de um testbench Verilog, o
-   * Verilator, qualquer que fosse o pedido.
-   */
-  simulator: 'icarus' | 'verilator';
-  /**
-   * A simulação rápida ([`SimulationOptions::fast`]): rodou sem gravar
-   * onda, e `waveform` é `null`.
-   */
-  fast: boolean;
-  /**
-   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * O passo que falhou, quando for o caso: `elaborate` / `verilate`
-   * (Verilog que não compila) ou `simulate` (a simulação em si).
-   */
-  failed_step: Step | null;
-  /**
-   * Icarus: `elaborate` e `simulate`. Verilator: `verilate` e `simulate`.
-   */
-  steps: StepReport[];
-  /**
-   * Mensagens de todos os passos. No passo `simulate`, só as linhas que o
-   * parser reconhece: o resto do stdout é saída do testbench.
-   */
-  diagnostics: Diagnostic[];
-  /**
-   * O `.vvp` ou o executável do Verilator, a onda, e cada
-   * `output_<n>.txt` escrito.
-   */
-  artifacts: Artifact[];
-  /**
-   * A onda gerada, se a simulação chegou ao fim; nunca na simulação
-   * rápida.
-   */
-  waveform: Waveform | null;
-  /**
-   * `<proc>/<proc>/output_<n>.txt` escritos nesta simulação.
-   */
-  outputs: string[];
-  /**
-   * Arquivos que o testbench tenta ler e que não existem. Não impedem a
-   * simulação (o testbench gerado pelo `asmcomp` confere o `$fopen` antes
-   * de ler), mas a porta correspondente não recebe dado nenhum.
-   */
-  missing_inputs: string[];
-  /**
-   * Os testes de um testbench cocotb (`.py`), lidos do `results.xml`;
-   * `null` num testbench Verilog, ou se o cocotb não chegou a gravar o
-   * resultado.
-   */
-  tests: TestReport | null;
-  /**
-   * Quanto a simulação levou, do começo ao fim (preparar, compilar e
-   * rodar), em milissegundos.
-   */
-  duration_ms: number;
-}
-/**
- * Uma onda gerada por simulação, pronta para
- * [`open_waveform`](crate::open_waveform).
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "Waveform".
- */
-export interface Waveform {
-  /**
-   * Caminho absoluto, com o nome que o `$dumpfile` do testbench deu.
-   */
-  path: string;
-  /**
-   * O formato do conteúdo.
-   */
-  format: 'vcd' | 'fst';
-}
-/**
- * O resultado dos testes de um testbench cocotb, lido do `results.xml`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "TestReport".
- */
-export interface TestReport {
-  /**
-   * O `results.xml` que o cocotb gravou.
-   */
-  results: string;
-  /**
-   * Os testes, na ordem em que rodaram.
-   */
-  cases: TestCase[];
-  /**
-   * Quantos passaram.
-   */
-  passed: number;
-  /**
-   * Quantos falharam.
-   */
-  failed: number;
-  /**
-   * Quantos não rodaram (`@cocotb.test(skip=True)`).
-   */
-  skipped: number;
-}
-/**
- * Um teste (`@cocotb.test()`).
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "TestCase".
- */
-export interface TestCase {
-  /**
-   * `<módulo>.<teste>`, como o cocotb mostra (`test_somador.basic_test`).
-   */
-  name: string;
-  /**
-   * Como terminou.
-   */
-  status: 'passed' | 'failed' | 'skipped';
-  /**
-   * Por que falhou (a mensagem da exceção) ou não rodou; `null` quando
-   * passou.
-   */
-  message: string | null;
-  /**
-   * O `.py` do teste.
-   */
-  file: string | null;
-  /**
-   * Numa falha, a linha mais funda do traceback dentro do `.py`; senão, a
-   * linha do teste.
-   */
-  line: number | null;
-}
-/**
- * O que a simulação de um processador escreveu numa porta de saída.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "PortValues".
- */
-export interface PortValues {
-  /**
-   * O número da porta.
-   */
-  port: number;
-  /**
-   * `<proc>/<proc>/output_<porta>.txt`, na pasta de saída.
-   */
-  path: string;
-  /**
-   * Os valores, na ordem em que saíram. Vazio quando a porta não pôde ser
-   * lida.
-   */
-  values: number[];
-  /**
-   * Por que a porta não pôde ser lida: uma linha que não é inteiro, como o
-   * `x` que o simulador escreve numa divisão por zero. `null` quando leu.
-   */
-  error: string | null;
-}
-/**
- * Um processador em `lace status`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "ProcessorStatus".
- */
-export interface ProcessorStatus {
-  /**
-   * O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
-   * gerados.
-   */
-  name: string;
-  /**
-   * A linguagem do fonte.
-   */
-  language: 'cmm' | 'cpp';
-  /**
-   * `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
-   * inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
-   * do C).
-   */
-  dir: string;
-  /**
-   * O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
-   */
-  source: string;
-  /**
-   * `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
-   * as memórias, o testbench, as tabelas da onda e as saídas da
-   * simulação, que roda nela.
-   */
-  output_dir: string;
-  /**
-   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
-   * Verilator, a cópia instrumentada do testbench, a trava de execução).
-   */
-  temp_dir: string;
-  /**
-   * Frequência de operação em MHz (`-f` do `asmcomp`).
-   */
-  frequency_mhz: number;
-  /**
-   * Clocks a simular (`-c` do `asmcomp`, vai para o testbench).
-   */
-  clocks: number;
-  /**
-   * Exporta cada elemento de array como um sinal da onda
-   * (`--wave-arrays` do `cmmcomp`).
-   */
-  show_arrays: boolean;
-  /**
-   * Já foi compilado: o Verilog e o testbench gerados existem.
-   */
-  built: boolean;
-}
-/**
- * Um aviso de [`Project::issues`]: algo estranho no `.spf` que não impede
- * de abrir.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "ProjectIssue".
- */
-export interface ProjectIssue {
-  /**
-   * O tipo, para a interface traduzir.
-   */
-  kind:
-    | 'rescued_path'
-    | 'selection_not_registered'
-    | 'testbench_as_top'
-    | 'invalid_processor_name'
-    | 'duplicate_file'
-    | 'nested_project'
-    | 'legacy_layout';
-  /**
-   * O arquivo ou a pasta envolvida, absoluta.
-   */
-  path: string | null;
-  /**
-   * O complemento do tipo: o caminho como estava gravado
-   * (`rescued_path`), o campo do `.spf` (`selection_not_registered`,
-   * `testbench_as_top`) ou o nome do processador
-   * (`invalid_processor_name`, `legacy_layout`).
-   */
-  detail: string | null;
-  /**
-   * O aviso inteiro, em inglês, pronto para mostrar.
-   */
-  message: string;
-}
-/**
- * O resultado de [`synthesize`].
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "SynthesisResult".
- */
-export interface SynthesisResult {
-  /**
-   * O módulo de topo sintetizado.
-   */
-  top: string;
-  /**
-   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * `synthesize` quando falhou.
-   */
-  failed_step: Step | null;
-  /**
-   * Um passo: o `yosys`. O log completo fica em `yosys.log`, ao lado do
-   * netlist.
-   */
-  steps: StepReport[];
-  /**
-   * Os erros e avisos do Yosys, com arquivo e linha quando ele informa.
-   */
-  diagnostics: Diagnostic[];
-  /**
-   * O netlist (`hierarchy.json`).
-   */
-  artifacts: Artifact[];
-  /**
-   * `hierarchy.json`, quando a síntese terminou.
-   */
-  netlist: string | null;
-  /**
-   * Os módulos do netlist, na ordem do JSON, para escolher o que desenhar.
-   */
-  modules: string[];
-  /**
-   * O que o `stat` do Yosys contou no netlist, quando a síntese terminou
-   * e o Yosys gravou o `stat.json`.
-   */
-  statistics: SynthesisStatistics | null;
-  /**
-   * Quanto a síntese levou, do começo ao fim, em milissegundos.
-   */
-  duration_ms: number;
-}
-/**
- * O resultado de [`render_schematic`].
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "SchematicResult".
- */
-export interface SchematicResult {
-  /**
-   * O módulo desenhado.
-   */
-  module: string;
-  /**
-   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * `graph` (Yosys) ou `render` (`dot`) quando falhou.
-   */
-  failed_step: Step | null;
-  /**
-   * Dois passos: `graph` (`yosys show`) e `render` (`dot`).
-   */
-  steps: StepReport[];
-  /**
-   * Mensagens do Yosys e do Graphviz.
-   */
-  diagnostics: Diagnostic[];
-  /**
-   * O grafo (`.dot`) e o SVG.
-   */
-  artifacts: Artifact[];
-  /**
-   * O SVG, quando foi gerado. Fica ao lado do netlist, com o nome do
-   * módulo (caracteres fora de `[A-Za-z0-9_.-]` viram `_`).
-   */
-  svg: string | null;
-  /**
-   * Quanto o desenho levou, do começo ao fim, em milissegundos.
-   */
-  duration_ms: number;
+  surfer_web: string | null;
 }
 /**
  * Um componente instalado (`components/<nome>.json`).
@@ -3022,22 +5191,33 @@ export interface BundleComponent {
   };
 }
 /**
- * Por quê.
+ * Uma ferramenta do bundle: onde está, ou por que não está.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ToolStatus".
  */
-export interface ErrorInfo1 {
+export interface ToolStatus {
   /**
-   * Código estável, em `snake_case` (`no_testbench`, `component_missing`),
-   * ou `cli` para um erro da própria linha de comando.
+   * O nome do executável (`iverilog`, `cmmcomp`).
    */
-  code: string;
+  name: string;
   /**
-   * A mensagem, em inglês.
+   * O componente que a traz; `None` para o Perl do sistema e o Quartus.
    */
-  message: string;
+  component: string | null;
   /**
-   * O comando que resolve, quando há um.
+   * O executável, quando disponível.
    */
-  hint?: string | null;
+  path: string | null;
+  /**
+   * Vem do sistema, não do bundle: o Perl do Verilator no Linux e no
+   * macOS (no Windows ele vem no bundle) e o Quartus.
+   */
+  system: boolean;
+  /**
+   * Por que não está disponível.
+   */
+  error: ErrorInfo | null;
 }
 /**
  * O compilador C++, o `make` e o Perl que o Verilator usa.
@@ -3099,6 +5279,1083 @@ export interface FileMismatch {
    * O hash do arquivo, ou `None` se ele não existe.
    */
   actual: string | null;
+}
+/**
+ * `experimental.list`, `experimental.set`.
+ */
+export interface ExperimentalInfo {
+  /**
+   * O `experimental.json`; `None` sem pasta de configuração.
+   */
+  path: string | null;
+  /**
+   * Cada recurso e se está ligado.
+   */
+  components: FeatureState[];
+}
+/**
+ * `fpga.check`.
+ */
+export interface Prepared {
+  /**
+   * O `fpga.json`.
+   */
+  config: string;
+  resolved: Resolved1;
+  /**
+   * O Verilog do topo da placa ([`wrapper::generate`]).
+   */
+  board_top: string;
+  /**
+   * Cada ligação como texto ([`wrapper::connections`]): cada entrada do
+   * topo e cada sinal de saída da placa usado, com o que o dirige.
+   */
+  connections: Connection[];
+}
+/**
+ * As ligações conferidas.
+ */
+export interface Resolved1 {
+  board: Board1;
+  /**
+   * O módulo do topo.
+   */
+  top: string;
+  /**
+   * As portas do topo, na ordem da declaração.
+   */
+  ports: TopPort[];
+  /**
+   * As entradas do topo, com a origem de cada bit, do bit 0 em diante.
+   */
+  inputs: PortDrive[];
+  /**
+   * Os sinais de saída da placa usados, com a porta que dirige cada bit.
+   */
+  board_outputs: SignalDrive[];
+  /**
+   * Os sinais de entrada da placa usados, na ordem em que aparecem.
+   */
+  board_inputs: string[];
+  /**
+   * As portas ligadas a um clock da placa.
+   */
+  clocks: Clock[];
+  /**
+   * Os ajustes feitos: larguras completadas ou cortadas, entradas soltas.
+   */
+  notes: string[];
+}
+/**
+ * `fpga.status`.
+ */
+export interface BitstreamState {
+  /**
+   * A placa (o `id`).
+   */
+  board: string;
+  /**
+   * O `.sof`, se a placa já foi compilada.
+   */
+  bitstream: string | null;
+  /**
+   * Quando o `.sof` foi gravado, em milissegundos desde 1970.
+   */
+  built_at_ms: number | null;
+  /**
+   * Por que o `.sof` não serve para gravar, uma razão por item: vazio
+   * com `bitstream`, ele descreve o projeto de agora.
+   */
+  reasons: string[];
+}
+/**
+ * O que `initialize` devolve.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ServerInfo".
+ */
+export interface ServerInfo1 {
+  /**
+   * A versão do Lace.
+   */
+  lace: string;
+  /**
+   * A versão do protocolo ([`PROTOCOL_VERSION`]).
+   */
+  protocol: number;
+  /**
+   * A pasta da instalação do Lace, quando o servidor é o `lace`
+   * instalado.
+   */
+  prefix: string | null;
+  /**
+   * Cada recurso experimental e se está ligado.
+   */
+  experimental: {
+    [k: string]: boolean | undefined;
+  };
+  /**
+   * Os métodos que este servidor atende.
+   */
+  methods: string[];
+}
+/**
+ * O projeto inteiro, como uma interface o mostra. Só lê o disco.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ProjectStatus".
+ */
+export interface ProjectStatus1 {
+  /**
+   * O nome do projeto (o do `.spf`).
+   */
+  name: string;
+  /**
+   * O `.spf`.
+   */
+  spf: string;
+  /**
+   * A pasta do projeto.
+   */
+  root: string;
+  /**
+   * Os módulos registrados (sintetizáveis), na ordem do `.spf`.
+   */
+  synthesizable: ProjectFile[];
+  /**
+   * Os testbenches registrados, na ordem do `.spf`.
+   */
+  testbenches: ProjectFile[];
+  /**
+   * O arquivo de topo, se escolhido.
+   */
+  top_level: string | null;
+  /**
+   * O módulo de topo, quando dá para saber: o `topLevelModule` do `.spf`,
+   * o único módulo do arquivo de topo ou o que tem o nome dele.
+   */
+  top_module: string | null;
+  /**
+   * Por que o módulo de topo não dá para saber (arquivo com vários
+   * módulos, nenhum com o nome dele).
+   */
+  top_module_error: ErrorInfo | null;
+  /**
+   * O testbench que a simulação do projeto roda.
+   */
+  selected_testbench: string | null;
+  /**
+   * O módulo desse testbench.
+   */
+  testbench_module: string | null;
+  /**
+   * A escolha de sinais da onda desse testbench (`wave/<testbench>.json`);
+   * vazia, a onda grava todos os sinais.
+   */
+  wave_selection: string[];
+  /**
+   * Os `.v` e `.sv` da pasta que não estão registrados, e os `.py` com
+   * `@cocotb.test`.
+   */
+  unregistered: string[];
+  /**
+   * Os processadores SAPHO, na ordem do `.spf`.
+   */
+  processors: ProcessorStatus[];
+  /**
+   * A onda da simulação do projeto, se já existe no disco.
+   */
+  waveform: string | null;
+  /**
+   * Os Verilog conhecidos que podem ser o topo: os registrados, o gerado
+   * de cada processador e os de fora do `.spf`, menos os com nome de
+   * testbench e os testbenches cocotb (a regra de
+   * [`Project::set_top_level`]).
+   */
+  top_candidates: string[];
+  /**
+   * O que está estranho no `.spf` sem impedir de abrir
+   * ([`Project::issues`]).
+   */
+  issues: ProjectIssue[];
+}
+/**
+ * Os arquivos que o build de um processador gera, pelo papel. Só entram os
+ * que existem.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "GeneratedFiles".
+ */
+export interface GeneratedFiles1 {
+  /**
+   * `<nome>.v`: o processador em Verilog, um módulo do design.
+   */
+  verilog: string | null;
+  /**
+   * `<nome>_tb.v`: o testbench que o `asmcomp` gera.
+   */
+  testbench: string | null;
+  /**
+   * `<nome>.asm`: o assembly que o compilador gera.
+   */
+  assembly: string | null;
+  /**
+   * `*.mif`: as memórias de dados e de instruções.
+   */
+  memories: string[];
+  /**
+   * As tabelas e os logs do YANC (`prog_log.txt`, `src_lines.txt`,
+   * `trad_opcode.txt`, `app_log.txt`, `pc_<nome>_mem.txt`); as saídas da
+   * simulação (`output_<n>.txt`, `toma_<n>.txt`) ficam de fora.
+   */
+  intermediates: string[];
+}
+/**
+ * `project.remove`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "RemoveOutcome".
+ */
+export interface RemoveOutcome1 {
+  /**
+   * Tirados do projeto (continuam no disco).
+   */
+  removed: string[];
+  /**
+   * Pedidos, mas que não estavam no projeto.
+   */
+  not_registered: string[];
+}
+/**
+ * `project.top`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "TopOutcome".
+ */
+export interface TopOutcome1 {
+  /**
+   * O arquivo de topo, se escolhido.
+   */
+  top_level: string | null;
+  /**
+   * O módulo de topo.
+   */
+  module: string | null;
+  /**
+   * Por que não dá para saber o módulo de um arquivo de topo escolhido.
+   */
+  module_error: ErrorInfo | null;
+}
+/**
+ * O que [`Project::convert_layout`] fez.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LayoutConversion".
+ */
+export interface LayoutConversion1 {
+  /**
+   * Os processadores que tinham a estrutura antiga, na ordem do `.spf`.
+   */
+  processors: string[];
+  /**
+   * O que mudou de lugar.
+   */
+  moved: ConvertedPath[];
+  /**
+   * O que ficou onde estava, com o motivo.
+   */
+  skipped: SkippedPath[];
+  /**
+   * Os fontes que perderam a linha do nome (`#PRNAME`, `#pragma yanc
+   * prname`).
+   */
+  name_lines: RemovedNameLine[];
+  /**
+   * Os processadores cujo nome não serve mais: na 7.1 ele vira o módulo
+   * Verilog, e o YANC recusa um fonte com esse nome.
+   */
+  invalid_names: string[];
+  /**
+   * As subpastas antigas que ficaram com algo que não foi movido (o que o
+   * sistema deixa sozinho numa pasta, como o `.DS_Store`, não conta).
+   */
+  remaining_dirs: string[];
+}
+/**
+ * `project.check_name` e `processor.check_name`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "NameCheck".
+ */
+export interface NameCheck1 {
+  /**
+   * O nome serve.
+   */
+  ok: boolean;
+  /**
+   * Por que não serve (`invalid_name`).
+   */
+  error: ErrorInfo | null;
+}
+/**
+ * Um processador do projeto, com todos os caminhos já absolutos.
+ *
+ * Os valores de simulação (`frequency_mhz`, `clocks`, `show_arrays`) vêm do
+ * `.spf` (`clk`, `numClocks`, `showArrays`) ou dos padrões da AURORA
+ * ([`DEFAULT_FREQUENCY_MHZ`], [`DEFAULT_CLOCKS`], `false`). Para mudá-los
+ * só num build, use [`BuildOptions`](crate::BuildOptions).
+ *
+ * A linguagem é resolvida como na AURORA: `language` declarada no `.spf`;
+ * senão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir na
+ * pasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Processor".
+ */
+export interface Processor1 {
+  /**
+   * O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
+   * gerados.
+   */
+  name: string;
+  /**
+   * A linguagem do fonte.
+   */
+  language: 'cmm' | 'cpp';
+  /**
+   * `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
+   * inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
+   * do C).
+   */
+  dir: string;
+  /**
+   * O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
+   */
+  source: string;
+  /**
+   * `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
+   * as memórias, o testbench, as tabelas da onda e as saídas da
+   * simulação, que roda nela.
+   */
+  output_dir: string;
+  /**
+   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * Verilator, a cópia instrumentada do testbench, a trava de execução).
+   */
+  temp_dir: string;
+  /**
+   * Frequência de operação em MHz (`-f` do `asmcomp`).
+   */
+  frequency_mhz: number;
+  /**
+   * Clocks a simular (`-c` do `asmcomp`, vai para o testbench).
+   */
+  clocks: number;
+  /**
+   * Exporta cada elemento de array como um sinal da onda
+   * (`--wave-arrays` do `cmmcomp`).
+   */
+  show_arrays: boolean;
+}
+/**
+ * `processor.remove`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ProcessorRemoval".
+ */
+export interface ProcessorRemoval1 {
+  removed: RemovedProcessor1;
+  /**
+   * A pasta foi para a lixeira do sistema.
+   */
+  trashed: boolean;
+}
+/**
+ * O resultado de um fluxo. Os campos de uma fase que não rodou ficam `None`
+ * ou vazios.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "FlowOutcome".
+ */
+export interface FlowOutcome1 {
+  /**
+   * O fluxo ([`FlowRequest::name`]).
+   */
+  flow: string;
+  /**
+   * O comando equivalente ([`FlowOptions::command`]).
+   */
+  command: string;
+  /**
+   * Como terminou: o pior entre as fases que rodaram. `Cancelled` se o
+   * cancelamento foi pedido; `TimedOut` se a simulação estourou o prazo;
+   * `Failed` se alguma fase falhou (inclusive um build de `Build`, que
+   * compila todos); senão `Succeeded`.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * `status == Succeeded`.
+   */
+  succeeded: boolean;
+  /**
+   * Os builds feitos antes (ou o próprio build).
+   */
+  builds: BuildResult[];
+  /**
+   * O que esses builds geraram e entrou no `.spf` agora.
+   */
+  registered: AddedFile[];
+  /**
+   * O resultado da verificação.
+   */
+  check: CheckResult | null;
+  /**
+   * Com `lint`, o componente do Verilator que falta quando nenhum passo
+   * dele rodou: para a interface sugerir a instalação.
+   */
+  lint_missing: string | null;
+  /**
+   * A hierarquia.
+   */
+  hierarchy: HierarchyResult | null;
+  /**
+   * Na hierarquia sem processador: os processadores com fonte e sem
+   * build, que ficaram de fora.
+   */
+  not_built: string[];
+  /**
+   * O resultado da simulação.
+   */
+  simulation: SimulationResult | null;
+  /**
+   * Os valores de cada porta de saída do processador simulado (só com
+   * processador e sucesso).
+   */
+  outputs: FlowPortValues[];
+  /**
+   * O resultado da síntese.
+   */
+  synthesis: SynthesisResult | null;
+  /**
+   * O resultado do esquemático.
+   */
+  schematic: SchematicResult | null;
+  /**
+   * Por que o esquemático não foi desenhado depois da síntese (o módulo
+   * pedido não está no netlist, `module_not_found`); a síntese vale.
+   */
+  schematic_error: ErrorInfo | null;
+  /**
+   * O HTML do RTL viewer, gravado ao lado do netlist.
+   */
+  rtl_viewer: string | null;
+  /**
+   * Por que o RTL viewer não saiu (a síntese vale).
+   */
+  rtl_viewer_error: ErrorInfo | null;
+  /**
+   * A onda aberta no surfer-aurora.
+   */
+  wave: WaveOpened | null;
+  /**
+   * Por que a onda não abriu (a simulação vale).
+   */
+  wave_error: ErrorInfo | null;
+  /**
+   * O relatório gravado no histórico (`run-000042`).
+   */
+  report: string | null;
+  /**
+   * Por que o relatório não foi gravado (o fluxo não falha por isso).
+   */
+  report_error: string | null;
+  /**
+   * A compilação para a placa.
+   */
+  fpga: FpgaBuildResult | null;
+  /**
+   * A gravação na placa.
+   */
+  fpga_program: FpgaProgramResult | null;
+}
+/**
+ * A árvore de sinais do testbench do projeto, para escolher o que a onda
+ * grava ([`wave_signals`]).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveSignals".
+ */
+export interface WaveSignals1 {
+  /**
+   * O testbench elaborado (o da simulação do projeto).
+   */
+  testbench: string;
+  /**
+   * O módulo do testbench: a raiz da árvore e o nome dos arquivos em
+   * `wave/`.
+   */
+  module: string;
+  /**
+   * A árvore, a partir do módulo do testbench. `None` quando a elaboração
+   * falhou (os erros em `diagnostics`).
+   */
+  root: SignalScope | null;
+  /**
+   * A escolha gravada; vazia: a simulação grava todos os sinais.
+   */
+  selection: string[];
+  /**
+   * Onde a escolha fica (`wave/<módulo>.json`), exista ou não.
+   */
+  selection_file: string;
+  /**
+   * Itens da escolha que a árvore não tem (um sinal renomeado, um módulo
+   * que saiu): a simulação os deixa de fora.
+   */
+  unknown: string[];
+  /**
+   * Como a elaboração terminou.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * A elaboração (`iverilog`).
+   */
+  steps: StepReport[];
+  /**
+   * Os erros e avisos da elaboração.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Quanto levou, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * A escolha de sinais depois da mudança.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveChoiceOutcome".
+ */
+export interface WaveChoiceOutcome1 {
+  /**
+   * O módulo do testbench do projeto.
+   */
+  testbench: string;
+  /**
+   * O arquivo da escolha (`wave/<testbench>.json`); `None` quando ela
+   * ficou vazia e o arquivo saiu: a onda grava todos os sinais.
+   */
+  file: string | null;
+  /**
+   * A escolha; vazia, todos os sinais.
+   */
+  selection: string[];
+}
+/**
+ * `history.show`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ReportView".
+ */
+export interface ReportView1 {
+  /**
+   * O identificador (`run-000042`).
+   */
+  id: string;
+  /**
+   * O `report.txt`.
+   */
+  path: string;
+  record: RunRecord;
+  /**
+   * O `report.txt`, sem mudança.
+   */
+  text: string;
+}
+/**
+ * Um relatório guardado: o que a comparação e a lista usam. O texto fica ao
+ * lado, em `report.txt` ([`report_text`]).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "RunRecord".
+ */
+export interface RunRecord1 {
+  /**
+   * O formato ([`RECORD_SCHEMA`]).
+   */
+  schema: number;
+  /**
+   * O identificador (`run-000042`).
+   */
+  id: string;
+  metadata: RunMetadata;
+  /**
+   * As estatísticas do Yosys, quando houve síntese e o Yosys as gravou.
+   */
+  synthesis: SynthesisStatistics | null;
+  /**
+   * Os tempos da simulação, quando houve simulação.
+   */
+  simulation: SimulationTimings | null;
+}
+/**
+ * O contexto de uma operação guardada.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "RunMetadata".
+ */
+export interface RunMetadata3 {
+  /**
+   * Quando terminou, em UTC (`2026-10-03T21:04:05Z`).
+   */
+  timestamp: string;
+  /**
+   * O comando.
+   */
+  command: string;
+  /**
+   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * Quanto levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+  /**
+   * A versão do Lace que gravou.
+   */
+  lace_version: string;
+  /**
+   * O que identifica o projeto: um hash da raiz dele. Relatórios de
+   * projetos diferentes não se comparam.
+   */
+  project: string;
+  /**
+   * O nome do projeto.
+   */
+  project_name: string;
+  /**
+   * O bundle de ferramentas (`2026.09.29`) e a plataforma.
+   */
+  bundle: string;
+  /**
+   * `linux-x64`, `darwin-arm64`, `windows-x64`.
+   */
+  platform: string;
+  /**
+   * O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do
+   * projeto.
+   */
+  top: string | null;
+  /**
+   * O contexto da síntese, quando houve.
+   */
+  synthesis: SynthesisContext | null;
+  /**
+   * O contexto da simulação, quando houve.
+   */
+  simulation: SimulationContext | null;
+  environment: Environment;
+}
+/**
+ * A máquina onde a operação rodou. O que o sistema não informa sem rodar
+ * outro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,
+ * `/proc` e `/etc/os-release`) e o `uname`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Environment".
+ */
+export interface Environment1 {
+  /**
+   * O nome da máquina.
+   */
+  hostname: string | null;
+  /**
+   * `linux`, `macos`, `windows`.
+   */
+  os: string;
+  /**
+   * O nome da distribuição (Linux).
+   */
+  os_name: string | null;
+  /**
+   * A versão do kernel (Linux e macOS).
+   */
+  kernel: string | null;
+  /**
+   * `x86_64`, `aarch64`.
+   */
+  arch: string;
+  /**
+   * O modelo do processador (Linux).
+   */
+  cpu_model: string | null;
+  /**
+   * Processadores lógicos disponíveis.
+   */
+  cpus: number | null;
+  /**
+   * A memória total, em bytes (Linux).
+   */
+  memory_bytes: number | null;
+  /**
+   * Hash do sistema, da arquitetura, do processador, do número de
+   * processadores e do nome da máquina: muda quando a máquina muda.
+   */
+  fingerprint: string;
+}
+/**
+ * Dois relatórios comparados: o atual contra a referência.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "RunComparison".
+ */
+export interface RunComparison1 {
+  /**
+   * O relatório atual.
+   */
+  current_id: string;
+  current: RunMetadata1;
+  /**
+   * A referência.
+   */
+  baseline_id: string;
+  baseline: RunMetadata2;
+  /**
+   * A síntese comparada; `null` se os dois não têm estatísticas do mesmo
+   * topo.
+   */
+  synthesis: SynthesisComparison | null;
+  /**
+   * A simulação comparada; `null` se os dois não têm tempos do mesmo
+   * simulador e testbench.
+   */
+  simulation: TimingComparison | null;
+  /**
+   * O que difere no contexto e pode explicar uma mudança (fontes,
+   * versões, máquina), em inglês, sem ponto final.
+   */
+  warnings: string[];
+}
+/**
+ * Um número comparado.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "MetricComparison".
+ */
+export interface MetricComparison6 {
+  /**
+   * Na referência.
+   */
+  baseline: number | null;
+  /**
+   * No atual.
+   */
+  current: number | null;
+  /**
+   * O que mudou.
+   */
+  change: 'unchanged' | 'increased' | 'decreased' | 'added' | 'removed' | 'not_comparable';
+  /**
+   * Atual menos referência.
+   */
+  delta: number | null;
+  /**
+   * A variação em porcentagem da referência. `null` quando não se
+   * compara ou quando a referência é zero e o atual não (não há
+   * porcentagem de zero; o texto mostra `new`).
+   */
+  percent: number | null;
+}
+/**
+ * `history.clean`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "CleanOutcome".
+ */
+export interface CleanOutcome1 {
+  /**
+   * Os apagados, do mais antigo para o mais novo.
+   */
+  removed: string[];
+  /**
+   * Quantos ficaram.
+   */
+  kept: number;
+}
+/**
+ * O que uma tela de ferramentas mostra: o `lace tools` em dados. Nunca
+ * falha: um bundle que não abriu vira `found: false` com o erro
+ * ([`describe_error`]).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ToolchainInfo".
+ */
+export interface ToolchainInfo1 {
+  /**
+   * O bundle abriu.
+   */
+  found: boolean;
+  /**
+   * Por que não abriu.
+   */
+  error: ErrorInfo | null;
+  /**
+   * Como foi achado.
+   */
+  origin: Origin | null;
+  /**
+   * A pasta do bundle.
+   */
+  root: string | null;
+  /**
+   * A versão do bundle.
+   */
+  bundle: string | null;
+  /**
+   * A plataforma do bundle (`linux-x64`, `darwin-arm64`, `windows-x64`).
+   */
+  platform: string | null;
+  /**
+   * Os componentes instalados.
+   */
+  components: BundleComponent[];
+  /**
+   * Os componentes que o Lace conhece e que não estão instalados.
+   */
+  not_installed: string[];
+  /**
+   * Cada ferramenta que o Lace roda.
+   */
+  tools: ToolStatus[];
+  /**
+   * O compilador do Verilator: do sistema no Linux e no macOS, do bundle
+   * no Windows (`bundled`).
+   */
+  system_compiler: SystemCompiler | null;
+  /**
+   * O compilador declarado não serve.
+   */
+  compiler_error: ErrorInfo | null;
+  /**
+   * O Quartus Prime do sistema, se encontrado.
+   */
+  quartus: Quartus1 | null;
+  /**
+   * A pasta declarada do Quartus não serve.
+   */
+  quartus_error: ErrorInfo | null;
+  /**
+   * A CLI `lace` da instalação.
+   */
+  lace_cli: string | null;
+  /**
+   * O cliente web do Surfer (`surfer-aurora/web`), para a onda numa aba;
+   * `None` num bundle que não o traz.
+   */
+  surfer_web: string | null;
+}
+/**
+ * `experimental.list` e `experimental.set`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ExperimentalInfo".
+ */
+export interface ExperimentalInfo1 {
+  /**
+   * O `experimental.json`; `None` sem pasta de configuração.
+   */
+  path: string | null;
+  /**
+   * Cada recurso e se está ligado.
+   */
+  components: FeatureState[];
+}
+/**
+ * O `fpga.json` conferido: a placa, as ligações bit a bit e o topo da
+ * placa gerado.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Prepared".
+ */
+export interface Prepared1 {
+  /**
+   * O `fpga.json`.
+   */
+  config: string;
+  resolved: Resolved1;
+  /**
+   * O Verilog do topo da placa ([`wrapper::generate`]).
+   */
+  board_top: string;
+  /**
+   * Cada ligação como texto ([`wrapper::connections`]): cada entrada do
+   * topo e cada sinal de saída da placa usado, com o que o dirige.
+   */
+  connections: Connection[];
+}
+/**
+ * O arquivo de gravação da placa do `fpga.json`: se existe e, se existe,
+ * por que não descreve o projeto de agora ([`bitstream_state`]).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "BitstreamState".
+ */
+export interface BitstreamState1 {
+  /**
+   * A placa (o `id`).
+   */
+  board: string;
+  /**
+   * O `.sof`, se a placa já foi compilada.
+   */
+  bitstream: string | null;
+  /**
+   * Quando o `.sof` foi gravado, em milissegundos desde 1970.
+   */
+  built_at_ms: number | null;
+  /**
+   * Por que o `.sof` não serve para gravar, uma razão por item: vazio
+   * com `bitstream`, ele descreve o projeto de agora.
+   */
+  reasons: string[];
+}
+/**
+ * O resultado de [`build`]. Ver o módulo `pipeline` para os campos comuns a
+ * toda operação.
+ *
+ * Em JSON (resumido):
+ *
+ * ```json
+ * { "processor": "soma", "language": "cmm", "status": "succeeded",
+ *   "failed_step": null, "frequency_mhz": 100, "clocks": 2000,
+ *   "steps": [ { "step": "compile", "tool": "cmmcomp", "...": "..." } ],
+ *   "diagnostics": [],
+ *   "artifacts": [ { "kind": "verilog", "path": "/p/soma/soma/soma.v",
+ *                    "required": true, "fresh": true } ] }
+ * ```
+ */
+export interface BuildResult1 {
+  /**
+   * O processador compilado.
+   */
+  processor: string;
+  /**
+   * A linguagem do fonte, que decidiu o pipeline.
+   */
+  language: 'cmm' | 'cpp';
+  /**
+   * Como o build terminou.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * O passo que falhou ou quebrou, quando for o caso.
+   */
+  failed_step: Step | null;
+  /**
+   * A frequência usada (do `.spf` ou de [`BuildOptions`]).
+   */
+  frequency_mhz: number;
+  /**
+   * Os clocks usados (do `.spf` ou de [`BuildOptions`]).
+   */
+  clocks: number;
+  /**
+   * Um relatório por compilador executado: `compile` e `assemble`
+   * ([`build_steps`]).
+   */
+  steps: StepReport[];
+  /**
+   * Todas as mensagens de todos os passos, na ordem em que saíram. Hoje
+   * os compiladores param no primeiro erro, mas a API já é uma lista.
+   */
+  diagnostics: Diagnostic[];
+  /**
+   * Obrigatórios, na pasta de saída: `<nome>.asm`, `<nome>.v`,
+   * `<nome>_data.mif`, `<nome>_inst.mif` e o testbench `<nome>_tb.v`.
+   * Intermediários (`pc_<nome>_mem.txt`, `src_lines.txt`,
+   * `trad_opcode.txt`, `prog_log.txt`, `app_log.txt`), quando existem.
+   */
+  artifacts: Artifact[];
+  /**
+   * Quanto o build levou, do começo ao fim, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * O que a simulação de um processador escreveu numa porta de saída.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "PortValues".
+ */
+export interface PortValues {
+  /**
+   * O número da porta.
+   */
+  port: number;
+  /**
+   * `<proc>/<proc>/output_<porta>.txt`, na pasta de saída.
+   */
+  path: string;
+  /**
+   * Os valores, na ordem em que saíram. Vazio quando a porta não pôde ser
+   * lida.
+   */
+  values: number[];
+  /**
+   * Por que a porta não pôde ser lida: uma linha que não é inteiro, como o
+   * `x` que o simulador escreve numa divisão por zero. `null` quando leu.
+   */
+  error: string | null;
+}
+/**
+ * Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a
+ * mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+ * o código, o texto e os campos da variante viram quando o enum não vai.
+ *
+ * ```json
+ * { "code": "processor_not_found",
+ *   "message": "No processor 'x' in the project (available: soma, filtro)",
+ *   "data": { "name": "x", "available": ["soma", "filtro"] } }
+ * ```
+ *
+ * A dica de cada interface (o comando `lace` que resolve, o botão do
+ * Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
+ * pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
+ * CLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.
+ *
+ * ```
+ * use lace_core::{ErrorInfo, LaceError};
+ *
+ * let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+ * assert_eq!(info.code, "processor_exists");
+ * assert_eq!(info.data.unwrap()["name"], "soma");
+ * ```
+ */
+export interface ErrorInfo1 {
+  /**
+   * O identificador estável: [`LaceError::code`], ou um código de quem
+   * chamou (`busy`, `cli`), sempre em `snake_case`.
+   */
+  code: string;
+  /**
+   * O texto do erro, em inglês, pronto para mostrar.
+   */
+  message: string;
+  /**
+   * O que fazer, quando quem mostra sabe: o comando `lace` que resolve,
+   * na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no
+   * JSON quando não há.
+   */
+  hint?: string | null;
+  /**
+   * Os campos estruturados da variante, quando ela os tem
+   * ([`LaceError::data`]): `available`, `files`, `name`, `value`,
+   * `reason`, `path`, `component`. Omitido no JSON quando não há.
+   */
+  data?: {
+    [k: string]: unknown | undefined;
+  };
 }
 /**
  * As versões do Lace em `lace update`.
@@ -3208,72 +6465,6 @@ export interface UpdateChanges {
   removed: number;
 }
 /**
- * Um escopo da árvore: uma instância de módulo, ou um bloco `generate` ou
- * `begin` com nome.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "SignalScope".
- */
-export interface SignalScope {
-  /**
-   * O nome (`dut`, `g[0]`).
-   */
-  name: string;
-  /**
-   * O caminho na hierarquia (`tb.dut`), como vai na escolha.
-   */
-  path: string;
-  /**
-   * Instância de módulo, bloco `generate` ou bloco com nome.
-   */
-  kind: 'module' | 'generate' | 'block';
-  /**
-   * O módulo, numa instância.
-   */
-  module: string | null;
-  /**
-   * É um processador SAPHO (tem `valr2` e `linetabs`): os sinais dele vão
-   * para a onda com qualquer escolha.
-   */
-  processor: boolean;
-  /**
-   * Os sinais, na ordem do Icarus.
-   */
-  signals: WaveSignal[];
-  /**
-   * Os escopos de dentro.
-   */
-  scopes: SignalScope[];
-}
-/**
- * Um sinal da árvore.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "WaveSignal".
- */
-export interface WaveSignal {
-  /**
-   * O nome.
-   */
-  name: string;
-  /**
-   * O caminho na hierarquia (`tb.dut.q`).
-   */
-  path: string;
-  /**
-   * Bits (64 num `real`).
-   */
-  width: number;
-  /**
-   * `reg`, `wire`, `integer` ou `real`.
-   */
-  kind: 'reg' | 'wire' | 'integer' | 'real';
-  /**
-   * A direção, quando o sinal é uma porta do módulo.
-   */
-  direction: PortDirection | null;
-}
-/**
  * O layout salvo no projeto para a onda aberta.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -3289,42 +6480,6 @@ export interface SavedLayoutReport {
    * (`lace wave --reset-layout` volta ao gerado).
    */
   customized: boolean;
-}
-/**
- * Um processador SAPHO achado na onda.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "WaveProcessor".
- */
-export interface WaveProcessor {
-  /**
-   * O escopo da instância na onda (`soma_tb.proc`).
-   */
-  instance: string;
-  /**
-   * O processador (o nome da pasta no projeto e do fonte).
-   */
-  processor: string;
-  /**
-   * Quantas variáveis do programa estão na onda (cada elemento de array
-   * conta).
-   */
-  variables: number;
-  /**
-   * O PC aparece como instrução de assembly (havia `trad_opcode.txt`).
-   */
-  assembly: boolean;
-  /**
-   * A linha do fonte aparece como texto (havia `src_lines.txt`).
-   */
-  source: boolean;
-  /**
-   * As tabelas são mais novas que a onda: o processador foi compilado de
-   * novo depois da simulação, e o assembly e a linha do C± sairiam
-   * deslocados. O PC e a linha aparecem como números até simular de novo;
-   * as interfaces avisam.
-   */
-  outdated: boolean;
 }
 /**
  * `lace add`.
@@ -3385,8 +6540,8 @@ export interface CheckReport {
   report: string | null;
 }
 /**
- * A verificação. Não compila os processadores: verifica o Verilog que
- * está no disco.
+ * O resultado de [`check`]. Não há artefatos: a verificação só diz se o
+ * Verilog elabora, e o que os compiladores acharam.
  */
 export interface CheckResult1 {
   /**
@@ -3465,22 +6620,53 @@ export interface ErrorReport {
   error: ErrorInfo2;
 }
 /**
- * O erro.
+ * Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a
+ * mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+ * o código, o texto e os campos da variante viram quando o enum não vai.
+ *
+ * ```json
+ * { "code": "processor_not_found",
+ *   "message": "No processor 'x' in the project (available: soma, filtro)",
+ *   "data": { "name": "x", "available": ["soma", "filtro"] } }
+ * ```
+ *
+ * A dica de cada interface (o comando `lace` que resolve, o botão do
+ * Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
+ * pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
+ * CLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.
+ *
+ * ```
+ * use lace_core::{ErrorInfo, LaceError};
+ *
+ * let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+ * assert_eq!(info.code, "processor_exists");
+ * assert_eq!(info.data.unwrap()["name"], "soma");
+ * ```
  */
 export interface ErrorInfo2 {
   /**
-   * Código estável, em `snake_case` (`no_testbench`, `component_missing`),
-   * ou `cli` para um erro da própria linha de comando.
+   * O identificador estável: [`LaceError::code`], ou um código de quem
+   * chamou (`busy`, `cli`), sempre em `snake_case`.
    */
   code: string;
   /**
-   * A mensagem, em inglês.
+   * O texto do erro, em inglês, pronto para mostrar.
    */
   message: string;
   /**
-   * O comando que resolve, quando há um.
+   * O que fazer, quando quem mostra sabe: o comando `lace` que resolve,
+   * na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no
+   * JSON quando não há.
    */
   hint?: string | null;
+  /**
+   * Os campos estruturados da variante, quando ela os tem
+   * ([`LaceError::data`]): `available`, `files`, `name`, `value`,
+   * `reason`, `path`, `component`. Omitido no JSON quando não há.
+   */
+  data?: {
+    [k: string]: unknown | undefined;
+  };
 }
 /**
  * `lace experimental`: os recursos experimentais e se cada um está ligado,
@@ -3561,7 +6747,7 @@ export interface FpgaCheckReport {
    * O `fpga.json`.
    */
   config: string;
-  resolved: Resolved1;
+  resolved: Resolved2;
   /**
    * O Verilog do topo da placa que o Lace gera.
    */
@@ -3575,7 +6761,7 @@ export interface FpgaCheckReport {
 /**
  * As ligações, bit a bit.
  */
-export interface Resolved1 {
+export interface Resolved2 {
   board: Board1;
   /**
    * O módulo do topo.
@@ -3607,113 +6793,7 @@ export interface Resolved1 {
   notes: string[];
 }
 /**
- * O resultado de [`program`].
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "FpgaProgramResult".
- */
-export interface FpgaProgramResult {
-  /**
-   * A placa (o `id`).
-   */
-  board: string;
-  /**
-   * O `.sof` gravado.
-   */
-  bitstream: string;
-  /**
-   * O cabo usado, como o `quartus_pgm -l` o escreve
-   * (`USB-Blaster [USB-0]`).
-   */
-  cable: string;
-  /**
-   * A posição da FPGA na cadeia JTAG (o `@n`).
-   */
-  position: number;
-  quartus: Quartus2;
-  /**
-   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * `program` quando falhou.
-   */
-  failed_step: Step | null;
-  /**
-   * Um passo: `program` (`quartus_pgm`).
-   */
-  steps: StepReport[];
-  /**
-   * Os erros e avisos do Programmer.
-   */
-  diagnostics: Diagnostic[];
-  /**
-   * Quanto a gravação levou, do começo ao fim, em milissegundos.
-   */
-  duration_ms: number;
-}
-/**
- * O Quartus que gravou.
- */
-export interface Quartus2 {
-  /**
-   * A pasta `quartus` da instalação (`C:\intelFPGA_lite\22.1std\quartus`).
-   */
-  root: string;
-  /**
-   * A pasta dos programas: `bin64` no Windows, `bin` no Linux.
-   */
-  bin: string;
-  /**
-   * A versão, pelo nome da pasta da instalação (`22.1std`).
-   */
-  version?: string | null;
-}
-/**
- * O resultado de [`hierarchy`].
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "HierarchyResult".
- */
-export interface HierarchyResult {
-  /**
-   * O design, sem testbench: os módulos que nenhum outro instancia (em
-   * geral o topo), com tudo o que eles instanciam. `None` num projeto sem
-   * Verilog de design.
-   */
-  design: Elaboration | null;
-  /**
-   * Cada testbench elaborado com o design: os registrados, na ordem do
-   * `.spf`, e depois o testbench gerado de cada processador compilado.
-   */
-  testbenches: Elaboration[];
-  /**
-   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * `elaborate` quando uma elaboração falhou ou foi cancelada.
-   */
-  failed_step: Step | null;
-  /**
-   * Um `iverilog` para o design e um por testbench, na ordem.
-   */
-  steps: StepReport[];
-  /**
-   * Os erros e avisos de todas as elaborações, com arquivo e linha.
-   */
-  diagnostics: Diagnostic[];
-  /**
-   * Os `.vvp` de cada elaboração.
-   */
-  artifacts: Artifact[];
-  /**
-   * Quanto as elaborações levaram juntas, em milissegundos.
-   */
-  duration_ms: number;
-}
-/**
- * `lace install`.
+ * `lace install` (`docs/schema/install.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "InstallReport".
@@ -3945,7 +7025,7 @@ export interface OrderReport {
  * via the `definition` "ProcRemoveReport".
  */
 export interface ProcRemoveReport {
-  removed: RemovedProcessor1;
+  removed: RemovedProcessor2;
   /**
    * A pasta foi para a lixeira do sistema; `false`, ela continua no disco
    * (ou não existia).
@@ -3955,7 +7035,7 @@ export interface ProcRemoveReport {
 /**
  * O que saiu: o nome, a pasta e os arquivos que saíram das listas.
  */
-export interface RemovedProcessor1 {
+export interface RemovedProcessor2 {
   /**
    * O nome do processador.
    */
@@ -3971,64 +7051,144 @@ export interface RemovedProcessor1 {
   unregistered: ProjectFile[];
 }
 /**
- * Um processador do projeto, com todos os caminhos já absolutos.
- *
- * Os valores de simulação (`frequency_mhz`, `clocks`, `show_arrays`) vêm do
- * `.spf` (`clk`, `numClocks`, `showArrays`) ou dos padrões da AURORA
- * ([`DEFAULT_FREQUENCY_MHZ`], [`DEFAULT_CLOCKS`], `false`). Para mudá-los
- * só num build, use [`BuildOptions`](crate::BuildOptions).
- *
- * A linguagem é resolvida como na AURORA: `language` declarada no `.spf`;
- * senão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir na
- * pasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "Processor".
+ * O processador; só `name` e `language` são obrigatórios.
  */
-export interface Processor {
+export interface NewProcessor1 {
   /**
-   * O nome: a pasta, o nome do fonte, o módulo Verilog e os arquivos
-   * gerados.
+   * Nome do processador: letras, dígitos e `_`, começando por letra ou `_`.
    */
   name: string;
   /**
-   * A linguagem do fonte.
+   * Linguagem do fonte-modelo.
    */
   language: 'cmm' | 'cpp';
   /**
-   * `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que
-   * inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos
-   * do C).
+   * `#NUBITS`: largura da palavra de dados, em bits. Só C±.
    */
-  dir: string;
+  nubits?: number;
   /**
-   * O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`.
+   * `#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE
+   * 754). Só C±.
    */
-  source: string;
+  nbmant?: number;
   /**
-   * `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog,
-   * as memórias, o testbench, as tabelas da onda e as saídas da
-   * simulação, que roda nela.
+   * `#NBEXPO`: bits de expoente do ponto flutuante. Só C±.
    */
-  output_dir: string;
+  nbexpo?: number;
   /**
-   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
-   * Verilator, a cópia instrumentada do testbench, a trava de execução).
+   * `#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o
+   * `cmmcomp` recusa (um divisor genérico viraria o caminho crítico da
+   * ULA). Só C±; o fonte só traz a diretiva quando difere de 128, o
+   * padrão do YANC.
    */
-  temp_dir: string;
+  nugain?: number;
   /**
-   * Frequência de operação em MHz (`-f` do `asmcomp`).
+   * `#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão:
+   * sem a diretiva, e o `asmcomp` calcula a profundidade pelo programa.
    */
-  frequency_mhz: number;
+  ndstac?: number | null;
   /**
-   * Clocks a simular (`-c` do `asmcomp`, vai para o testbench).
+   * `#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±.
+   * `None`, o padrão: sem a diretiva, calculada pelo programa.
    */
-  clocks: number;
+  sdepth?: number | null;
   /**
-   * Exporta cada elemento de array como um sinal da onda
-   * (`--wave-arrays` do `cmmcomp`).
+   * `#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada.
    */
-  show_arrays: boolean;
+  input_ports?: number;
+  /**
+   * `#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída.
+   */
+  output_ports?: number;
+}
+/**
+ * O que muda (`None` mantém).
+ */
+export interface ProcessorConfig1 {
+  /**
+   * Frequência de operação em MHz (`clk` no `.spf`).
+   */
+  frequency_mhz?: number | null;
+  /**
+   * Clocks que o testbench gerado simula (`numClocks` no `.spf`).
+   */
+  clocks?: number | null;
+  /**
+   * Exportar arrays para a simulação (`showArrays` no `.spf`).
+   */
+  show_arrays?: boolean | null;
+}
+/**
+ * Qual onda e com que layout.
+ */
+export interface WaveRequest1 {
+  /**
+   * Qual onda.
+   */
+  source:
+    | {
+        /**
+         * O arquivo.
+         */
+        path: string;
+        kind: 'file';
+      }
+    | {
+        /**
+         * O processador; `None`, o projeto.
+         */
+        processor?: string | null;
+        kind: 'project';
+      };
+  /**
+   * O layout.
+   */
+  layout?:
+    | {
+        kind: 'generated';
+      }
+    | {
+        kind: 'none';
+      }
+    | {
+        kind: 'reset';
+      }
+    | {
+        /**
+         * O arquivo (`.surf.ron` ou `.sucl`).
+         */
+        path: string;
+        kind: 'file';
+      };
+}
+/**
+ * O que o `fpga.json` guarda.
+ */
+export interface FpgaConfig1 {
+  /**
+   * A placa ([`super::board()`]).
+   */
+  board: string;
+  /**
+   * O módulo que vai para a placa. Sem ele, o topo do projeto.
+   */
+  top?: string | null;
+  /**
+   * As ligações, na ordem do arquivo.
+   */
+  connect?: {
+    [k: string]: string | undefined;
+  };
+}
+/**
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Responses".
+ */
+export interface Responses {
+  response: Response;
+  notification: Notification;
+  error: ErrorInfo;
+  shutdown: ShutdownReason;
 }
 /**
  * `lace remove`.
@@ -4068,151 +7228,6 @@ export interface ReportCleanReport {
   kept: number;
 }
 /**
- * Dois relatórios comparados: o atual contra a referência.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "RunComparison".
- */
-export interface RunComparison {
-  /**
-   * O relatório atual.
-   */
-  current_id: string;
-  current: RunMetadata2;
-  /**
-   * A referência.
-   */
-  baseline_id: string;
-  baseline: RunMetadata3;
-  /**
-   * A síntese comparada; `null` se os dois não têm estatísticas do mesmo
-   * topo.
-   */
-  synthesis: SynthesisComparison | null;
-  /**
-   * A simulação comparada; `null` se os dois não têm tempos do mesmo
-   * simulador e testbench.
-   */
-  simulation: TimingComparison | null;
-  /**
-   * O que difere no contexto e pode explicar uma mudança (fontes,
-   * versões, máquina), em inglês, sem ponto final.
-   */
-  warnings: string[];
-}
-/**
- * O contexto dele.
- */
-export interface RunMetadata2 {
-  /**
-   * Quando terminou, em UTC (`2026-10-03T21:04:05Z`).
-   */
-  timestamp: string;
-  /**
-   * O comando.
-   */
-  command: string;
-  /**
-   * Como terminou.
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * Quanto levou, do começo ao fim, em milissegundos.
-   */
-  duration_ms: number;
-  /**
-   * A versão do Lace que gravou.
-   */
-  lace_version: string;
-  /**
-   * O que identifica o projeto: um hash da raiz dele. Relatórios de
-   * projetos diferentes não se comparam.
-   */
-  project: string;
-  /**
-   * O nome do projeto.
-   */
-  project_name: string;
-  /**
-   * O bundle de ferramentas (`2026.09.29`) e a plataforma.
-   */
-  bundle: string;
-  /**
-   * `linux-x64`, `darwin-arm64`, `windows-x64`.
-   */
-  platform: string;
-  /**
-   * O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do
-   * projeto.
-   */
-  top: string | null;
-  /**
-   * O contexto da síntese, quando houve.
-   */
-  synthesis: SynthesisContext | null;
-  /**
-   * O contexto da simulação, quando houve.
-   */
-  simulation: SimulationContext | null;
-  environment: Environment;
-}
-/**
- * O contexto dela.
- */
-export interface RunMetadata3 {
-  /**
-   * Quando terminou, em UTC (`2026-10-03T21:04:05Z`).
-   */
-  timestamp: string;
-  /**
-   * O comando.
-   */
-  command: string;
-  /**
-   * Como terminou.
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * Quanto levou, do começo ao fim, em milissegundos.
-   */
-  duration_ms: number;
-  /**
-   * A versão do Lace que gravou.
-   */
-  lace_version: string;
-  /**
-   * O que identifica o projeto: um hash da raiz dele. Relatórios de
-   * projetos diferentes não se comparam.
-   */
-  project: string;
-  /**
-   * O nome do projeto.
-   */
-  project_name: string;
-  /**
-   * O bundle de ferramentas (`2026.09.29`) e a plataforma.
-   */
-  bundle: string;
-  /**
-   * `linux-x64`, `darwin-arm64`, `windows-x64`.
-   */
-  platform: string;
-  /**
-   * O módulo de topo: o da síntese, ou o testbench simulado, ou o topo do
-   * projeto.
-   */
-  top: string | null;
-  /**
-   * O contexto da síntese, quando houve.
-   */
-  synthesis: SynthesisContext | null;
-  /**
-   * O contexto da simulação, quando houve.
-   */
-  simulation: SimulationContext | null;
-  environment: Environment;
-}
-/**
  * `lace report list`: os relatórios, do mais novo para o mais antigo.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -4239,7 +7254,7 @@ export interface ReportShowReport {
    * O `report.txt`.
    */
   path: string;
-  record: RunRecord1;
+  record: RunRecord2;
   /**
    * O `report.txt`, sem mudança.
    */
@@ -4248,7 +7263,7 @@ export interface ReportShowReport {
 /**
  * O que a comparação usa: contexto, estatísticas e tempos.
  */
-export interface RunRecord1 {
+export interface RunRecord2 {
   /**
    * O formato ([`RECORD_SCHEMA`]).
    */
@@ -4257,7 +7272,7 @@ export interface RunRecord1 {
    * O identificador (`run-000042`).
    */
   id: string;
-  metadata: RunMetadata1;
+  metadata: RunMetadata;
   /**
    * As estatísticas do Yosys, quando houve síntese e o Yosys as gravou.
    */
@@ -4477,7 +7492,7 @@ export interface TopReport {
   module_error: ErrorInfo | null;
 }
 /**
- * `lace uninstall`.
+ * `lace uninstall` (`docs/schema/uninstall.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UninstallReport".
@@ -4489,12 +7504,13 @@ export interface UninstallReport {
   prefix: string;
   /**
    * `true`: a pasta e o atalho já saíram (Linux, macOS). `false`: o
-   * desinstalador do Windows foi aberto e termina depois que o `lace` sai.
+   * desinstalador do Windows foi aberto e termina depois que quem chamou
+   * sai.
    */
   removed: boolean;
 }
 /**
- * `lace update`.
+ * O relatório do `lace update` (`docs/schema/update.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UpdateReport".
@@ -4582,58 +7598,6 @@ export interface WaveChoiceReport {
    * A escolha; vazia: todos os sinais.
    */
   selection: string[];
-}
-/**
- * A árvore de sinais do testbench do projeto, para escolher o que a onda
- * grava ([`wave_signals`]).
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "WaveSignals".
- */
-export interface WaveSignals {
-  /**
-   * O testbench elaborado (o da simulação do projeto).
-   */
-  testbench: string;
-  /**
-   * O módulo do testbench: a raiz da árvore e o nome dos arquivos em
-   * `wave/`.
-   */
-  module: string;
-  /**
-   * A árvore, a partir do módulo do testbench. `None` quando a elaboração
-   * falhou (os erros em `diagnostics`).
-   */
-  root: SignalScope | null;
-  /**
-   * A escolha gravada; vazia: a simulação grava todos os sinais.
-   */
-  selection: string[];
-  /**
-   * Onde a escolha fica (`wave/<módulo>.json`), exista ou não.
-   */
-  selection_file: string;
-  /**
-   * Itens da escolha que a árvore não tem (um sinal renomeado, um módulo
-   * que saiu): a simulação os deixa de fora.
-   */
-  unknown: string[];
-  /**
-   * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
-   */
-  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
-  /**
-   * A elaboração (`iverilog`).
-   */
-  steps: StepReport[];
-  /**
-   * Os erros e avisos da elaboração.
-   */
-  diagnostics: Diagnostic[];
-  /**
-   * Quanto levou, em milissegundos.
-   */
-  duration_ms: number;
 }
 /**
  * `lace wave`.

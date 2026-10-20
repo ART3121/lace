@@ -1,9 +1,10 @@
 // O LaceClient pela linha de comando, e o único lugar da extensão que cria
-// processos. Cada chamada roda `lace -C <.spf> --json ...` (ou `--events`)
-// sem shell, com os caminhos como argumentos, e interpreta o código de saída
-// como o docs/CLI.md descreve.
+// processos (o `lace serve` do serveClient.ts também nasce aqui). Cada
+// chamada roda `lace -C <.spf> --json ...` (ou `--events`) sem shell, com os
+// caminhos como argumentos, e interpreta o código de saída como o
+// docs/CLI.md descreve.
 
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 
 import {
   LaceProcessError,
@@ -49,6 +50,18 @@ export interface LaceCommand {
 export interface LaceLog {
   info(message: string): void;
   warn(message: string): void;
+}
+
+/**
+ * Abre um `lace serve` com stdin, stdout e stderr em pipes: o processo do
+ * ServeLaceClient. Sem shell e sem janela, como os comandos.
+ */
+export function spawnServe(command: LaceCommand): ChildProcess {
+  return spawn(command.file, [...command.args, 'serve'], {
+    shell: false,
+    windowsHide: true,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 }
 
 export interface JsonOptions extends RunOptions {

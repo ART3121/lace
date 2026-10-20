@@ -1,6 +1,7 @@
 // O que a extensão pede ao Lace. Vistas e comandos dependem só desta
-// interface: a implementação de hoje roda a CLI (cliClient.ts), e um
-// `lace lsp` futuro entra no lugar dela sem mexer no resto.
+// interface: uma implementação roda a CLI, um processo por comando
+// (cliClient.ts); a outra fala com um `lace serve` em segundo plano
+// (serveClient.ts). A conexão escolhe (connection.ts, `lace.transport`).
 
 import type {
   AddReport,
@@ -155,6 +156,8 @@ export interface LaceClient {
   sim(spf: string, options?: SimOptions): Promise<LaceRun<SimReport>>;
   /** `lace synth`: compila os processadores e sintetiza o topo no Yosys. */
   synth(spf: string, options?: SynthOptions): Promise<LaceRun<SynthReport>>;
+  /** Solta o que o cliente mantém (o `lace serve` em segundo plano). */
+  dispose?(): Promise<void> | void;
 }
 
 /**

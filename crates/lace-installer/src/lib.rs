@@ -27,24 +27,44 @@
 //! - [`install`]: extrair, conferir, trocar a instalação antiga, atalho,
 //!   desinstalador;
 //! - [`add`]: acrescentar aplicativos a uma instalação (`lace install`);
-//! - [`update`]: atualizar trocando só os arquivos que mudaram (`lace update`);
+//! - [`update`]: atualizar trocando só os arquivos que mudaram (`lace update`),
+//!   e a orquestração inteira do `lace update` (consultar, planejar, aplicar,
+//!   cair para o instalador);
+//! - [`release`]: as releases na rede (as versões, os downloads conferidos
+//!   pelo `SHA256SUMS`);
+//! - [`installation`]: a pasta de uma instalação feita pelo instalador;
+//! - [`uninstall`]: remover uma instalação;
+//! - [`error`]: os erros com código que atravessam a fronteira;
 //! - [`desktop`]: o atalho do Lace Studio no menu de aplicativos;
 //! - [`pack`]: montar o payload e o estágio do Inno Setup a partir do bundle;
-//! - [`tui`]: a interface de terminal;
-//! - [`brand`]: as cores e a marca do Lace na interface de terminal.
+//! - `tui` (com o recurso `tui`): a interface de terminal;
+//! - `brand` (idem): as cores e a marca do Lace na interface de terminal.
+//!
+//! A CLI, o Studio e o `lace serve` chamam esta biblioteca em processo: a
+//! regra do que é atualizar mora aqui uma vez só. Nada aqui escreve no
+//! terminal; o que acontece sai por [`install::Event`], e o ambiente só é
+//! lido por quem monta a [`release::Network`].
 
 #![forbid(unsafe_code)]
 
 pub mod add;
+#[cfg(feature = "tui")]
 pub mod brand;
 pub mod desktop;
+pub mod error;
 pub mod files;
 pub mod install;
+pub mod installation;
 pub mod pack;
 pub mod payload;
 pub mod plan;
+pub mod release;
+#[cfg(feature = "tui")]
 pub mod tui;
+pub mod uninstall;
 pub mod update;
+
+pub use error::Error;
 
 /// Versão do Lace que este instalador instala (a do workspace).
 pub const LACE_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -52,6 +72,7 @@ pub const LACE_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// A primeira letra em minúscula, para a frase vir depois de dois-pontos ou
 /// de "For": "Every app" vira "every app". Uma sigla no começo ("YANC
 /// only") fica como está.
+#[cfg_attr(not(feature = "tui"), allow(dead_code))]
 pub(crate) fn lowercase_first(text: &str) -> String {
     let mut chars = text.chars();
     match (chars.next(), chars.next()) {
@@ -63,6 +84,7 @@ pub(crate) fn lowercase_first(text: &str) -> String {
 }
 
 /// Quebra `text` em linhas de até `width` caracteres, nos espaços.
+#[cfg_attr(not(feature = "tui"), allow(dead_code))]
 pub(crate) fn wrap(text: &str, width: usize) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();

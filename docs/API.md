@@ -1820,9 +1820,11 @@ Prime 17.1, 18.0 e 18.1.
 ### 5.10.1 Recursos experimentais: o módulo `experimental`
 
 Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
-`Feature` lista os recursos (hoje, `Feature::Fpga`, a placa FPGA), com
-`id()` (`"fpga"`, o identificador do arquivo e da CLI), `name()` e
-`description()`, em inglês; `Feature::ALL` tem todos.
+`Feature` lista os recursos (hoje, `Feature::Fpga`, a placa FPGA, e
+`Feature::Assistant`, o assistente de IA: `lace chat`, `lace mcp` e a vista
+Assistente do Studio), com `id()` (`"fpga"`, `"assistant"`, o identificador
+do arquivo e da CLI), `name()` e `description()`, em inglês; `Feature::ALL`
+tem todos.
 
 O que está ligado fica em `experimental.json`, na pasta de configuração do
 Lace do usuário (`%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace` ou
@@ -1840,6 +1842,81 @@ sem `APPDATA` ou `HOME`).
 A leitura falha fechada: sem a pasta, sem o arquivo ou com ele ilegível,
 nada está ligado. Gravar mantém os identificadores que esta versão não
 conhece.
+
+### 5.11 Os fluxos compostos, a entrega, a busca do bundle e o contrato
+
+As operações de 5.1 a 5.10 são as peças. O que uma interface faz de fato é
+compô-las: compilar os processadores antes de simular, registrar no `.spf`
+o que o YANC gerou, ler as portas de saída, gravar o relatório, abrir a
+onda. Essa composição morava duas vezes, na CLI e no Studio, e divergia;
+agora mora aqui, uma vez, e os dois (mais o `lace serve`) a chamam.
+
+**`lace_core::flows`.** Um [`FlowRequest`] (`build`, `check`, `hierarchy`,
+`simulate`, `synthesize`, `schematic`, `fpga_build`, `fpga_program`; em
+JSON, etiquetado por `flow`) entra em `flows::run(&Toolchain, &mut
+Project, &FlowRequest, &FlowOptions, progress, &Control) ->
+Result<FlowOutcome>`. As decisões de interface são parâmetros de
+[`FlowOptions`]: o texto do comando para o relatório (`command`), se a
+onda abre em janela ou não (`wave: WavePolicy`), quem abre o RTL viewer
+(`viewer_opener`). O `progress` recebe [`Progress`]: a fase que começou
+(`Phase`), cada processador compilado, a onda aberta. O [`FlowOutcome`]
+tem `status` explícito (`succeeded`, `failed`, `cancelled`, `timed_out`,
+`crashed`, `incomplete`) e `succeeded`, e as partes que o fluxo produziu
+(`builds`, `registered`, `check`, `hierarchy`, `simulation`, `outputs`,
+`synthesis`, `schematic`, `schematic_error`, `rtl_viewer`, `wave`,
+`wave_error`, `report`, `report_error`, `fpga`, `fpga_program`). As regras
+que antes divergiam estão fixas: o `build` continua depois de um
+processador que falha e mostra todos os erros; o `check` não compila
+processadores; a simulação para no primeiro build que falhar
+(`simulation: null`); um módulo inexistente no esquemático é
+`schematic_error`, não falha do fluxo; a onda que não abre é `wave_error`.
+`flows::open_wave` abre uma onda com a política de layout
+(`generated`, `none`, `reset`, `file`) e devolve [`WaveOpened`];
+`flows::choose_signals` muda a escolha de sinais. O `lace learn` tem o
+seu em `lace_learn::flows`.
+
+**`lace_core::delivery`.** A entrega da saída ao vivo para uma interface
+com fila: o `Dispatcher` recebe os eventos do `Control` e o `Progress` e
+entrega [`Notification`] em lotes (`phase`, `events`, `output_omitted`,
+`build`, `install`), no máximo a cada 30 ms ou 500 eventos, com um teto de
+linhas (20 000 de uma vez e depois 5 000 por segundo; o que passa vira
+`output_omitted`, no lugar onde estaria) e um canal limitado: a ferramenta
+espera um cliente lento em vez de a memória crescer. Era o código de
+`jobs.rs` do Studio; agora o Studio, o `lace serve` e o `lace mcp` usam o
+mesmo.
+
+**`lace_core::locate`.** A busca do bundle a partir de outro programa, com
+a ordem que o Studio usava: a pasta declarada (`settings`), a variável
+(`environment`), ao lado do executável (`exe`), as pastas padrão do
+instalador, o `lace` do `PATH`. Quem chama monta o [`Lookup`] com o que
+leu do ambiente e das preferências (o core não lê ambiente), e `resolve`
+devolve o bundle com a origem (`Found`); `describe` monta o
+[`ToolchainInfo`] da tela de ferramentas e do `lace tools`.
+`Project::status()` devolve o retrato do projeto ([`ProjectStatus`]: o
+`lace status` e a árvore do Studio) e `Processor::output_ports` as portas
+de saída lidas pelo nome do arquivo.
+
+**`lace_core::protocol`.** O contrato do orquestrador em tipos com schema:
+[`Request`] (um método por operação, com grupo e ponto: `project.status`,
+`flow.run`, `history.list`, `update.check`, ...), [`Response`] (o valor em
+si, sem etiqueta), [`ServerInfo`], [`ShutdownReason`] e os tipos de
+resposta que não existiam (`TopOutcome`, `RemoveOutcome`, `NameCheck`,
+`ProcessorRemoval`, `ReportView`, `CleanOutcome`, `ExperimentalInfo`).
+`request_schema()` gera o schema dos pedidos na vista de quem desserializa
+(um campo com padrão é opcional) e `response_schema()` o das respostas e
+notificações; a CLI os grava em `docs/schema/protocol-request.json` e
+`protocol-response.json`, e os dois `gen-lace-types` (Studio, VS Code)
+geram os tipos TypeScript deles. `METHODS` lista os métodos. O `lace
+serve` é o transporte deste contrato por stdio, e o `lace mcp` o
+adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
+
+**`ErrorInfo`.** O erro pronto para atravessar uma fronteira: `code` (o
+`LaceError::code()`, ou um código de quem chamou), `message`, `hint` (o
+que fazer, quando quem mostra sabe; o core não o preenche) e `data` (os
+campos da variante, quando há: `available`, `files`, `path`, `reason`,
+...), os dois últimos omitidos no JSON quando não há. É o `error` do
+`--json` da CLI, o `error.data` do `lace serve` e o que vai dentro de um
+`FlowOutcome` (`schematic_error`, `wave_error`).
 
 ---
 
@@ -2169,8 +2246,14 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `StaleBitstream` | `stale_bitstream` | `fpga::program` com um `.sof` que não descreve o projeto de agora: um fonte, uma memória, o `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi trocado, ou a compilação não terminou | `fpga::build` de novo |
 | `QuartusMissing` | `quartus_missing` | `fpga::build`, `fpga::program` ou `tool(Tool::Quartus)` sem Quartus (2.5) | instalar o Quartus Prime Lite com o suporte à família da placa, ou declarar a pasta dele |
 | `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `lace experimental enable <recurso>`, ou Preferências > Experimental no Studio |
+| `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe: a simulação não rodou, ou não chegou ao fim | simular antes (`lace sim [-p X]`, o botão Simular) |
+| `SignalNotFound` | `signal_not_found` | `flows::choose_signals` com um caminho que a árvore do testbench elaborado não tem; `similar` traz os parecidos | ver `similar`, ou `wave_signals` |
+| `SignalNotChosen` | `signal_not_chosen` | tirar da escolha um caminho que não está na escolha gravada nem no design | ver a escolha (`wave_signals`) |
+| `TestbenchNotElaborated` | `testbench_not_elaborated` | a escolha de sinais precisa da árvore do testbench, e a elaboração dele pelo Icarus falhou; `reason` é a primeira mensagem | corrigir o testbench (`lace check`) |
 
-O enum é `#[non_exhaustive]`: todo `match` precisa de `_`.
+O enum é `#[non_exhaustive]`: todo `match` precisa de `_`. Para atravessar
+uma fronteira (JSON, outro processo), um `LaceError` vira [`ErrorInfo`]
+(`ErrorInfo::from(&error)`; 5.11).
 
 ---
 

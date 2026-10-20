@@ -1,47 +1,41 @@
-//! Os fluxos: compilar, verificar, simular, sintetizar, desenhar e compilar
-//! para a placa FPGA.
+//! Os fluxos do Studio: o pedido da interface vira um fluxo do core
+//! (`lace_core::flows`) ou a correção de um exercício do lace-learn
+//! (`lace_learn::flows`), e o resultado volta com o que só o Studio
+//! acrescenta: a onda numa aba e a correção.
 //!
-//! Cada fluxo é a mesma composição de funções do Core que o comando da CLI
-//! faz (`crates/lace-cli/src/commands.rs`): antes da simulação e da
-//! síntese, compila os processadores (`build_processors`, parando no
-//! primeiro que falhar); roda a operação, lê as portas de saída, grava o
-//! relatório no histórico do projeto e, na simulação, abre a onda. A
-//! verificação não compila: roda o Icarus sobre o que está no disco.
+//! A composição em si (compilar antes, parar no primeiro build que falhar,
+//! registrar o Verilog gerado, simular, ler as portas, gravar o relatório,
+//! abrir a onda) mora no core desde a 0.9: é a mesma da CLI. Aqui ficam só
+//! as decisões da interface: o texto `lace-studio ...` do histórico, e se a
+//! onda abre em janela ou numa aba (preferência `wave_viewer`).
 //!
-//! Regra posta na CLI é regra que a GUI tem de copiar. Esta cópia está
-//! isolada aqui para sair inteira quando o Core ganhar os fluxos compostos
-//! (ver `docs/ARCHITECTURE.md`, "Pendências no Lace").
-//!
-//! Nada aqui fala com a interface: o progresso sai pela função `progress`,
-//! e quem a transforma em mensagens é `jobs.rs`.
+//! Nada aqui fala com a interface: o progresso sai pela função `progress`
+//! do core, e quem a transforma em mensagens é `jobs.rs`.
 
-use std::time::{Duration, SystemTime};
+use std::ops::Deref;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::experimental::Feature;
-use lace_core::fpga::{self, FpgaBuildResult, FpgaConfig, FpgaProgramResult};
-use lace_core::history::{self, Operation};
-use lace_core::{
-    AddedFile, BuildOptions, BuildResult, CheckOptions, CheckResult, Control, DesignTarget,
-    OnFailure, Processor, Project, SchematicOptions, SchematicResult, SimulationOptions,
-    SimulationResult, Simulator, SynthesisResult, Toolchain, ViewerOptions,
+use lace_core::flows::{
+    self as core, FlowOptions, LayoutPolicy, ProgressFn, WaveOpened, WavePolicy, WaveRequest,
+    WaveSource,
 };
+use lace_core::{Control, Simulator, Status, Toolchain};
+use lace_learn::{Grade, Verdict};
 use serde::{Deserialize, Serialize};
 
-use crate::error::{IpcError, IpcResult};
+pub use lace_core::flows::{Phase, Progress};
+
+use crate::error::IpcResult;
 use crate::settings::Settings;
 use crate::toolchain;
 
-/// Quanto esperar para saber se o surfer-aurora abriu: sem display ou com
-/// onda inválida, ele fecha em menos de um segundo (o mesmo da CLI).
-pub const SURFER_GRACE: Duration = Duration::from_millis(1500);
-
-/// O que a interface pede.
+/// O que a interface pede: os fluxos do core, no formato deles, mais a
+/// correção de um exercício.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "flow", rename_all = "snake_case")]
 pub enum FlowRequest {
-    /// `lace build [-p NOME]...`: compila os processadores pedidos (vazio:
-    /// todos), mesmo que um falhe, para mostrar todos os erros.
+    /// `lace build [-p NOME]...`.
     Build {
         /// Os processadores; vazio é todos.
         #[serde(default)]
@@ -52,36 +46,37 @@ pub enum FlowRequest {
         /// Só os módulos deste arquivo.
         #[serde(default)]
         file: Option<Utf8PathBuf>,
-        /// Só este processador: compila ele e verifica o Verilog dele e o
-        /// testbench que o YANC gerou (`CheckOptions::processor`), no lugar
-        /// do projeto. É o alvo da barra de ferramentas.
+        /// Só este processador.
         #[serde(default)]
         processor: Option<String>,
         /// Acrescenta o `verilator --lint-only`.
         #[serde(default)]
         lint: bool,
     },
+    /// `lace hierarchy [-p NOME]`.
+    Hierarchy {
+        /// Só este processador.
+        #[serde(default)]
+        processor: Option<String>,
+    },
     /// `lace sim [TESTBENCH] [-p NOME] [--verilator] [--fast] [--timeout S] [--open]`.
     Simulate {
-        /// Simula este processador com o testbench do YANC; `None`, a
-        /// simulação do projeto.
+        /// Simula este processador; `None`, a simulação do projeto.
         #[serde(default)]
         processor: Option<String>,
         /// Troca o testbench da simulação do projeto antes de simular.
         #[serde(default)]
         testbench: Option<Utf8PathBuf>,
-        /// Icarus ou Verilator. Na simulação rápida, só o de um testbench
-        /// cocotb (`SimulationOptions::fast`).
+        /// Icarus ou Verilator.
         simulator: Simulator,
-        /// A simulação rápida, o Fast Sim da AURORA: sem onda, com o
-        /// testbench Verilog no Verilator.
+        /// A simulação rápida: sem onda, com o testbench Verilog no Verilator.
         #[serde(default)]
         fast: bool,
         /// Prazo do passo `simulate`, em segundos.
         #[serde(default)]
         timeout_s: Option<u64>,
-        /// Abrir a onda no surfer-aurora se a simulação der certo. A
-        /// simulação rápida não tem onda.
+        /// Abrir a onda se a simulação der certo: em janela ou, com a
+        /// preferência `wave_viewer` em `tab`, numa aba (`wave_tab`).
         #[serde(default)]
         open_wave: bool,
     },
@@ -96,9 +91,12 @@ pub enum FlowRequest {
         /// O módulo do esquemático; `None`, o topo da síntese.
         #[serde(default)]
         module: Option<String>,
+        /// Grava o HTML do RTL viewer ao lado do netlist (o Studio desenha o
+        /// próprio esquemático, então a interface não pede isso).
+        #[serde(default)]
+        open_viewer: bool,
     },
-    /// Desenha outro módulo de um netlist que já existe, sem sintetizar de
-    /// novo. Não tem comando equivalente na CLI e não grava relatório.
+    /// Desenha outro módulo de um netlist que já existe. Sem relatório.
     Schematic {
         /// O `hierarchy.json` da síntese.
         netlist: Utf8PathBuf,
@@ -108,18 +106,16 @@ pub enum FlowRequest {
         #[serde(default = "yes")]
         bus_widths: bool,
     },
-    /// `lace fpga build`: compila os processadores e depois o projeto para a
-    /// placa do `fpga.json` pelo Quartus. Como na CLI, não grava relatório.
+    /// `lace fpga build`.
     FpgaBuild,
-    /// `lace fpga program [--cable NOME]`: grava o `.sof` da última
-    /// compilação para a placa. Não compila nem grava relatório.
+    /// `lace fpga program [--cable NOME]`.
     FpgaProgram {
         /// O cabo; `None`, o primeiro que o Quartus lista.
         #[serde(default)]
         cable: Option<String>,
     },
-    /// `lace learn check NOME`: corrige um exercício da pasta de exercícios
-    /// (`lace-learn`) e grava se ele está resolvido. Não grava relatório.
+    /// `lace learn check NOME`: corrige um exercício da pasta de exercícios e
+    /// grava se ele está resolvido. Não grava relatório.
     Learn {
         /// A pasta de exercícios (ou uma pasta dentro dela).
         root: Utf8PathBuf,
@@ -135,53 +131,50 @@ fn yes() -> bool {
 impl FlowRequest {
     /// O nome curto do fluxo, como vai no resultado.
     pub fn name(&self) -> &'static str {
-        match self {
-            FlowRequest::Build { .. } => "build",
-            FlowRequest::Check { .. } => "check",
-            FlowRequest::Simulate { .. } => "simulate",
-            FlowRequest::Synthesize { .. } => "synthesize",
-            FlowRequest::Schematic { .. } => "schematic",
-            FlowRequest::Learn { .. } => "learn",
-            FlowRequest::FpgaBuild => "fpga_build",
-            FlowRequest::FpgaProgram { .. } => "fpga_program",
+        match self.core() {
+            Some(request) => request.name(),
+            None => "learn",
         }
     }
 
     /// O recurso experimental de que o fluxo faz parte: `jobs.rs` não o
-    /// começa com o recurso desligado. [`run`] não confere, como as funções
-    /// do Core que ele chama.
+    /// começa com o recurso desligado.
     pub fn feature(&self) -> Option<Feature> {
-        match self {
-            FlowRequest::FpgaBuild | FlowRequest::FpgaProgram { .. } => Some(Feature::Fpga),
-            _ => None,
-        }
+        self.core().and_then(|request| request.feature())
     }
 
     /// O comando equivalente da CLI, para o relatório e para o console. O
     /// prefixo é `lace-studio` porque quem rodou foi o Studio, não a CLI.
     pub fn command_line(&self) -> String {
-        let mut parts = vec!["lace-studio".to_owned()];
         match self {
-            FlowRequest::Build { processors } => {
-                parts.push("build".into());
-                for p in processors {
-                    parts.extend(["-p".into(), p.clone()]);
-                }
+            FlowRequest::Learn { exercise, .. } => {
+                format!("lace-studio learn check {}", quoted(exercise))
             }
+            other => other
+                .core()
+                .expect("todo pedido que não é learn é do core")
+                .command_line("lace-studio"),
+        }
+    }
+
+    /// O pedido do core, para tudo que não é a correção de um exercício.
+    fn core(&self) -> Option<core::FlowRequest> {
+        Some(match self {
+            FlowRequest::Build { processors } => core::FlowRequest::Build {
+                processors: processors.clone(),
+            },
             FlowRequest::Check {
                 file,
                 processor,
                 lint,
-            } => {
-                parts.push("check".into());
-                parts.extend(file.iter().map(|f| quoted(f.as_str())));
-                if let Some(p) = processor {
-                    parts.extend(["-p".into(), p.clone()]);
-                }
-                if *lint {
-                    parts.push("--lint".into());
-                }
-            }
+            } => core::FlowRequest::Check {
+                file: file.clone(),
+                processor: processor.clone(),
+                lint: *lint,
+            },
+            FlowRequest::Hierarchy { processor } => core::FlowRequest::Hierarchy {
+                processor: processor.clone(),
+            },
             FlowRequest::Simulate {
                 processor,
                 testbench,
@@ -189,57 +182,40 @@ impl FlowRequest {
                 fast,
                 timeout_s,
                 open_wave,
-            } => {
-                parts.push("sim".into());
-                parts.extend(testbench.iter().map(|t| quoted(t.as_str())));
-                if let Some(p) = processor {
-                    parts.extend(["-p".into(), p.clone()]);
-                }
-                if *simulator == Simulator::Verilator {
-                    parts.push("--verilator".into());
-                }
-                if *fast {
-                    parts.push("--fast".into());
-                }
-                if let Some(t) = timeout_s {
-                    parts.extend(["--timeout".into(), t.to_string()]);
-                }
-                // O `--open` e o `--fast` não andam juntos na CLI.
-                if *open_wave && !*fast {
-                    parts.push("--open".into());
-                }
-            }
+            } => core::FlowRequest::Simulate {
+                processor: processor.clone(),
+                testbench: testbench.clone(),
+                simulator: *simulator,
+                fast: *fast,
+                timeout_s: *timeout_s,
+                open_wave: *open_wave,
+            },
             FlowRequest::Synthesize {
                 processor,
                 schematic,
                 module,
-            } => {
-                parts.push("synth".into());
-                if let Some(p) = processor {
-                    parts.extend(["-p".into(), p.clone()]);
-                }
-                if *schematic {
-                    parts.push("--svg".into());
-                }
-                if let Some(m) = module {
-                    parts.extend(["--module".into(), m.clone()]);
-                }
-            }
-            FlowRequest::Schematic { module, .. } => {
-                parts.extend(["schematic".into(), module.clone()]);
-            }
-            FlowRequest::Learn { exercise, .. } => {
-                parts.extend(["learn".into(), "check".into(), exercise.clone()]);
-            }
-            FlowRequest::FpgaBuild => parts.extend(["fpga".into(), "build".into()]),
-            FlowRequest::FpgaProgram { cable } => {
-                parts.extend(["fpga".into(), "program".into()]);
-                if let Some(cable) = cable {
-                    parts.extend(["--cable".into(), quoted(cable)]);
-                }
-            }
-        }
-        parts.join(" ")
+                open_viewer,
+            } => core::FlowRequest::Synthesize {
+                processor: processor.clone(),
+                schematic: *schematic,
+                module: module.clone(),
+                open_viewer: *open_viewer,
+            },
+            FlowRequest::Schematic {
+                netlist,
+                module,
+                bus_widths,
+            } => core::FlowRequest::Schematic {
+                netlist: netlist.clone(),
+                module: module.clone(),
+                bus_widths: *bus_widths,
+            },
+            FlowRequest::FpgaBuild => core::FlowRequest::FpgaBuild,
+            FlowRequest::FpgaProgram { cable } => core::FlowRequest::FpgaProgram {
+                cable: cable.clone(),
+            },
+            FlowRequest::Learn { .. } => return None,
+        })
     }
 }
 
@@ -251,136 +227,26 @@ fn quoted(text: &str) -> String {
     }
 }
 
-/// O resultado de um fluxo. Os campos de uma fase que não rodou ficam
-/// `null` (ou vazios), como no `--json` da CLI.
+/// O resultado de um fluxo: o do core, com o que só o Studio acrescenta.
+/// Serializa no mesmo nível (os campos do core e os dois daqui).
 #[derive(Debug, Clone, Serialize)]
 pub struct FlowOutcome {
-    /// O fluxo (`build`, `check`, `simulate`, `synthesize`, `schematic`).
-    pub flow: &'static str,
-    /// O comando equivalente.
-    pub command: String,
-    /// Tudo deu certo.
-    pub succeeded: bool,
-    /// Os builds feitos antes (ou o próprio build).
-    pub builds: Vec<BuildResult>,
-    /// O que esses builds geraram e entrou no `.spf` agora
-    /// (`Project::register_generated`).
-    pub registered: Vec<AddedFile>,
-    /// O resultado da verificação.
-    pub check: Option<CheckResult>,
-    /// O resultado da simulação.
-    pub simulation: Option<SimulationResult>,
-    /// Os valores de cada porta de saída do processador simulado.
-    pub outputs: Vec<PortValues>,
-    /// O resultado da síntese.
-    pub synthesis: Option<SynthesisResult>,
-    /// O resultado do esquemático.
-    pub schematic: Option<SchematicResult>,
-    /// Por que o esquemático não foi desenhado depois da síntese (o módulo
-    /// pedido não está no netlist, `module_not_found`); a síntese em si vale.
-    pub schematic_error: Option<IpcError>,
-    /// A onda aberta no surfer-aurora.
-    pub wave: Option<WaveOpened>,
+    /// O resultado do core.
+    #[serde(flatten)]
+    pub core: core::FlowOutcome,
     /// A onda que a interface abre numa aba (preferência `wave_viewer` em
     /// `tab`, com o cliente web no bundle), no lugar da janela.
     pub wave_tab: Option<Utf8PathBuf>,
-    /// Por que a onda não abriu (a simulação em si deu certo).
-    pub wave_error: Option<IpcError>,
-    /// O relatório gravado no histórico (`run-000042`).
-    pub report: Option<String>,
-    /// Por que o relatório não foi gravado (a operação não falha por isso).
-    pub report_error: Option<String>,
     /// A correção de um exercício (fluxo `learn`).
-    pub learn: Option<lace_learn::Grade>,
-    /// A compilação para a placa (fluxo `fpga_build`).
-    pub fpga: Option<FpgaBuildResult>,
-    /// A gravação na placa (fluxo `fpga_program`).
-    pub fpga_program: Option<FpgaProgramResult>,
+    pub learn: Option<Grade>,
 }
 
-impl FlowOutcome {
-    fn new(request: &FlowRequest) -> Self {
-        FlowOutcome {
-            flow: request.name(),
-            command: request.command_line(),
-            succeeded: false,
-            builds: Vec::new(),
-            registered: Vec::new(),
-            check: None,
-            simulation: None,
-            outputs: Vec::new(),
-            synthesis: None,
-            schematic: None,
-            schematic_error: None,
-            wave: None,
-            wave_tab: None,
-            wave_error: None,
-            report: None,
-            report_error: None,
-            learn: None,
-            fpga: None,
-            fpga_program: None,
-        }
+impl Deref for FlowOutcome {
+    type Target = core::FlowOutcome;
+
+    fn deref(&self) -> &Self::Target {
+        &self.core
     }
-}
-
-/// Os valores de uma porta de saída.
-#[derive(Debug, Clone, Serialize)]
-pub struct PortValues {
-    /// A porta.
-    pub port: u32,
-    /// O `output_<porta>.txt`.
-    pub path: Utf8PathBuf,
-    /// Os valores, um por linha do arquivo.
-    pub values: Vec<i64>,
-    /// Por que não deu para ler (linha que não é inteiro).
-    pub error: Option<IpcError>,
-}
-
-/// A onda aberta no surfer-aurora.
-#[derive(Debug, Clone, Serialize)]
-pub struct WaveOpened {
-    /// O arquivo da onda.
-    pub waveform: Utf8PathBuf,
-    /// O PID do surfer-aurora.
-    pub pid: u32,
-    /// O log do surfer-aurora.
-    pub log: Utf8PathBuf,
-    /// Os processadores compilados de novo depois desta simulação
-    /// (`WaveProcessor::outdated`): o PC e a linha aparecem como números.
-    pub outdated: Vec<String>,
-}
-
-/// A fase que começou, para a interface mostrar o que está acontecendo.
-#[derive(Debug, Clone, Copy, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Phase {
-    /// Compilando processadores (YANC).
-    Build,
-    /// Verificando o Verilog.
-    Check,
-    /// Simulando.
-    Simulate,
-    /// Sintetizando.
-    Synthesize,
-    /// Desenhando o esquemático.
-    Schematic,
-    /// Abrindo a onda.
-    Wave,
-    /// Corrigindo um exercício do `lace learn`.
-    Learn,
-    /// Compilando para a placa (Quartus).
-    Fpga,
-    /// Gravando na placa (Quartus Programmer).
-    Program,
-}
-
-/// O progresso de um fluxo.
-pub enum Progress {
-    /// Uma fase começou.
-    Phase(Phase),
-    /// Um processador terminou de compilar.
-    Built(BuildResult),
 }
 
 /// Roda um fluxo inteiro. `Err` é o Lace não conseguir rodar; um fluxo que
@@ -390,10 +256,9 @@ pub fn run(
     settings: &Settings,
     spf: &Utf8Path,
     control: &Control,
-    progress: &dyn Fn(Progress),
+    progress: ProgressFn<'_>,
 ) -> IpcResult<FlowOutcome> {
-    let started = SystemTime::now();
-    let mut outcome = FlowOutcome::new(request);
+    let command = request.command_line();
 
     // O exercício é um projeto Lace, mas a correção é a do lace-learn: não
     // depende do projeto aberto.
@@ -406,346 +271,79 @@ pub fn run(
         let exercise = workspace.track().require(exercise)?.clone();
         // Sem a saída ao vivo: o resumo do testbench é para a correção ler.
         let quiet = Control::new().with_cancel(control.cancel_token().clone());
-        let grade = lace_learn::grade(&toolchain, &workspace, &exercise, &quiet)?;
-        workspace.record(&grade)?;
-        outcome.succeeded = grade.solved();
-        outcome.learn = Some(grade);
-        return Ok(outcome);
+        let checked = lace_learn::flows::check(
+            &toolchain,
+            &mut workspace,
+            std::slice::from_ref(&exercise),
+            &quiet,
+            &mut |_| {},
+        )?;
+        let grade = checked.results.into_iter().next();
+        let mut outcome = core::FlowOutcome::new("learn", &command);
+        match &grade {
+            Some(grade) if grade.verdict == Verdict::Cancelled => outcome.worsen(Status::Cancelled),
+            Some(grade) if !grade.solved() => outcome.worsen(Status::Failed),
+            _ => {}
+        }
+        return Ok(FlowOutcome {
+            core: outcome,
+            wave_tab: None,
+            learn: grade,
+        });
     }
 
+    let core_request = request.core().expect("não é learn");
     let mut project = crate::state::open_project(spf)?;
-
-    if let FlowRequest::FpgaProgram { cable } = request {
-        let toolchain = toolchain::require(settings)?;
-        progress(Progress::Phase(Phase::Program));
-        let result = fpga::program(&toolchain, &project, cable.as_deref(), control)?;
-        outcome.succeeded = result.succeeded();
-        outcome.fpga_program = Some(result);
-        return Ok(outcome);
-    }
-
-    if let FlowRequest::Schematic {
-        netlist,
-        module,
-        bus_widths,
-    } = request
-    {
-        let toolchain = toolchain::require(settings)?;
-        progress(Progress::Phase(Phase::Schematic));
-        let mut options = SchematicOptions::default();
-        options.bus_widths = *bus_widths;
-        let result = lace_core::render_schematic(&toolchain, netlist, module, &options, control)?;
-        outcome.succeeded = result.succeeded();
-        outcome.schematic = Some(result);
-        return Ok(outcome);
-    }
-
-    if let FlowRequest::Build { processors } = request
-        && processors.is_empty()
-        && project.processors().is_empty()
-    {
-        // Um projeto só de Verilog não tem o que compilar, e isso não é
-        // erro (a CLI avisa e sai com 0).
-        outcome.succeeded = true;
-        return Ok(outcome);
-    }
-
     let toolchain = toolchain::require(settings)?;
-    // O `fpga.json`, a placa e o Quartus antes de compilar qualquer coisa,
-    // como a CLI: faltar um deles não deve custar o build dos processadores.
-    if let FlowRequest::FpgaBuild = request {
-        let config = FpgaConfig::read(project.root())?;
-        fpga::board(&config.board)?;
-        if toolchain.quartus().is_none() {
-            return Err(lace_core::LaceError::QuartusMissing.into());
-        }
-    }
-    if let FlowRequest::Simulate {
-        testbench: Some(testbench),
-        ..
-    } = request
-    {
-        project.set_testbench(testbench)?;
-    }
-
-    // Os processadores a compilar antes, e se a falha de um para o resto.
-    let (targets, on_failure): (Vec<&Processor>, OnFailure) = match request {
-        FlowRequest::Build { processors } if processors.is_empty() => {
-            (project.processors().iter().collect(), OnFailure::Continue)
-        }
-        FlowRequest::Build { processors } => (
-            processors
-                .iter()
-                .map(|name| project.require_processor(name))
-                .collect::<Result<_, _>>()?,
-            OnFailure::Continue,
-        ),
-        // A verificação só roda o Icarus sobre o que está no disco.
-        FlowRequest::Check { .. } => (Vec::new(), OnFailure::Stop),
-        FlowRequest::Simulate {
-            processor: Some(name),
-            ..
-        }
-        | FlowRequest::Synthesize {
-            processor: Some(name),
-            ..
-        } => (vec![project.require_processor(name)?], OnFailure::Stop),
-        _ => (project.buildable_processors(), OnFailure::Stop),
+    // A onda numa aba é do Studio: o core não a abre, e a interface recebe
+    // o caminho em `wave_tab`.
+    let tab = settings.wave_viewer == "tab" && toolchain.surfer_web_dir().is_ok();
+    let mut options = FlowOptions::new(command);
+    options.wave = if tab {
+        WavePolicy::None
+    } else {
+        WavePolicy::Window
     };
-
-    if !targets.is_empty() {
-        progress(Progress::Phase(Phase::Build));
-    }
-    outcome.builds = lace_core::build_processors(
+    let outcome = core::run(
         &toolchain,
-        targets,
-        &BuildOptions::default(),
-        on_failure,
+        &mut project,
+        &core_request,
+        &options,
+        progress,
         control,
-        |result| progress(Progress::Built(result.clone())),
     )?;
-    // O `.v` e o testbench que cada processador gerou entram no `.spf`, como
-    // na CLI. Uma falha ao gravar não desfaz o build.
-    match project.register_generated(&outcome.builds) {
-        Ok(files) => outcome.registered = files,
-        Err(error) => {
-            tracing::warn!("The generated files could not be added to the project: {error}")
-        }
-    }
-    let built = outcome.builds.iter().all(BuildResult::succeeded);
-    let mut operation = Operation::new(&outcome.command, started).with_builds(&outcome.builds);
-
-    if let FlowRequest::FpgaBuild = request {
-        if built {
-            progress(Progress::Phase(Phase::Fpga));
-            let result = fpga::build(&toolchain, &project, control)?;
-            outcome.succeeded = result.succeeded();
-            outcome.fpga = Some(result);
-        }
-        return Ok(outcome);
-    }
-    if !built || matches!(request, FlowRequest::Build { .. }) {
-        outcome.succeeded = built;
-        (outcome.report, outcome.report_error) = record(&project, &toolchain, &operation);
-        return Ok(outcome);
-    }
-
-    match request {
-        FlowRequest::Check {
-            file,
-            processor,
-            lint,
-        } => {
-            progress(Progress::Phase(Phase::Check));
-            let mut options = CheckOptions::default();
-            options.file = file.clone();
-            options.processor = processor.clone();
-            options.lint = *lint;
-            let result = lace_core::check(&toolchain, &project, &options, control)?;
-            outcome.succeeded = result.succeeded();
-            outcome.check = Some(result);
-        }
-        FlowRequest::Simulate {
-            processor,
-            simulator,
-            fast,
-            timeout_s,
-            ..
-        } => {
-            progress(Progress::Phase(Phase::Simulate));
-            let mut options = SimulationOptions::new(*simulator);
-            options.timeout = timeout_s.map(Duration::from_secs);
-            options.fast = *fast;
-            let processor = processor
-                .as_deref()
-                .map(|name| project.require_processor(name))
-                .transpose()?;
-            let result = match processor {
-                Some(p) => lace_core::simulate(&toolchain, p, &options, control)?,
-                None => lace_core::simulate_project(&toolchain, &project, &options, control)?,
-            };
-            if let Some(p) = processor
-                && result.succeeded()
-            {
-                outcome.outputs = port_values(p, &result);
-            }
-            outcome.succeeded = result.succeeded();
-            outcome.simulation = Some(result);
-        }
-        FlowRequest::Synthesize {
-            processor,
-            schematic,
-            module,
-        } => {
-            progress(Progress::Phase(Phase::Synthesize));
-            let target = match processor {
-                Some(name) => DesignTarget::Processor(name.clone()),
-                None => DesignTarget::TopLevel,
-            };
-            let result = lace_core::synthesize(&toolchain, &project, &target, control)?;
-            if *schematic && let Some(netlist) = &result.netlist {
-                progress(Progress::Phase(Phase::Schematic));
-                let module = module.as_deref().unwrap_or(&result.top);
-                match lace_core::render_schematic(
-                    &toolchain,
-                    netlist,
-                    module,
-                    &SchematicOptions::default(),
-                    control,
-                ) {
-                    Ok(svg) => outcome.schematic = Some(svg),
-                    // Um módulo fora do netlist: a síntese e as estatísticas
-                    // ficam, e a interface explica e oferece outro módulo.
-                    Err(error @ lace_core::LaceError::ModuleNotFound { .. }) => {
-                        outcome.schematic_error = Some(error.into());
-                    }
-                    Err(error) => return Err(error.into()),
-                }
-            }
-            outcome.succeeded =
-                result.succeeded() && outcome.schematic.as_ref().is_none_or(|s| s.succeeded());
-            outcome.synthesis = Some(result);
-        }
-        FlowRequest::Build { .. }
-        | FlowRequest::Schematic { .. }
-        | FlowRequest::Learn { .. }
-        | FlowRequest::FpgaBuild
-        | FlowRequest::FpgaProgram { .. } => {
-            unreachable!()
-        }
-    }
-
-    if let Some(check) = &outcome.check {
-        operation = operation.with_check(check);
-    }
-    if let Some(simulation) = &outcome.simulation {
-        operation = operation.with_simulation(simulation);
-    }
-    if let Some(synthesis) = &outcome.synthesis {
-        operation = operation.with_synthesis(synthesis);
-    }
-    if let Some(schematic) = &outcome.schematic {
-        operation = operation.with_schematic(schematic);
-    }
-    let (report, report_error) = record(&project, &toolchain, &operation);
-    (outcome.report, outcome.report_error) = (report, report_error);
-
-    // Como o botão Wave da AURORA e o `lace sim --open`: a onda abre
-    // quando a simulação a entrega (deu certo, ou um teste cocotb falhou com
-    // a simulação indo até o fim) e o relatório foi gravado.
-    if let FlowRequest::Simulate {
-        open_wave: true, ..
-    } = request
-        && let Some(wave) = outcome
+    let wave_tab = match &core_request {
+        core::FlowRequest::Simulate {
+            open_wave: true, ..
+        } if tab => outcome
             .simulation
             .as_ref()
             .and_then(|s| s.waveform.as_ref())
-    {
-        progress(Progress::Phase(Phase::Wave));
-        if settings.wave_viewer == "tab" && toolchain.surfer_web_dir().is_ok() {
-            outcome.wave_tab = Some(wave.path.clone());
-        } else {
-            match open_wave(&toolchain, &wave.path) {
-                Ok(opened) => outcome.wave = Some(opened),
-                Err(error) => outcome.wave_error = Some(error),
-            }
-        }
-    }
-    Ok(outcome)
+            .map(|w| w.path.clone()),
+        _ => None,
+    };
+    Ok(FlowOutcome {
+        core: outcome,
+        wave_tab,
+        learn: None,
+    })
 }
 
-/// Grava a operação no histórico e devolve o relatório ou o motivo de não
-/// ter gravado. Uma falha ao gravar não muda o resultado do fluxo.
-fn record(
-    project: &Project,
-    toolchain: &Toolchain,
-    operation: &Operation,
-) -> (Option<String>, Option<String>) {
-    match history::record(project, toolchain, operation) {
-        Ok(record) => (Some(record.id), None),
-        Err(error) => (None, Some(error.to_string())),
-    }
-}
-
-/// Os valores de cada porta de saída que a simulação do processador
-/// escreveu, na ordem das portas. A porta sai do nome do arquivo, como na
-/// CLI (`port_values`), porque o `Processor` não guarda o `#NUIOOU`.
-fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValues> {
-    let dir = &processor.output_dir;
-    let mut ports: Vec<u32> = result
-        .outputs
-        .iter()
-        .filter(|path| path.parent() == Some(dir.as_path()))
-        .filter_map(|path| {
-            path.file_name()?
-                .strip_prefix("output_")?
-                .strip_suffix(".txt")?
-                .parse()
-                .ok()
-        })
-        .collect();
-    ports.sort_unstable();
-    ports.dedup();
-    ports
-        .into_iter()
-        .map(|port| {
-            let (values, error) = match processor.read_output_values(port) {
-                Ok(values) => (values, None),
-                Err(error) => (Vec::new(), Some(IpcError::from(error))),
-            };
-            PortValues {
-                port,
-                path: processor.output_path(port),
-                values,
-                error,
-            }
-        })
-        .collect()
-}
-
-/// Abre uma onda no surfer-aurora, com o layout dos processadores SAPHO
-/// quando ela tem processador (como o `lace wave`), e confere que ele não
-/// fechou logo. Sem layout (a onda não é VCD nem FST, ou ele falhou), abre a
-/// onda crua.
-///
-/// O Surfer continua aberto depois desta chamada; uma thread espera ele
-/// fechar, para o processo não ficar zumbi (`<defunct>`) até o Studio sair.
+/// Abre uma onda no surfer-aurora, como o `lace wave`: a onda de um
+/// exercício do `lace learn` abre com o layout da correção; as outras, com o
+/// layout dos processadores SAPHO quando têm processador. Confere que o
+/// Surfer não fechou logo, e uma thread espera ele fechar, para o processo
+/// não ficar zumbi.
 pub fn open_wave(toolchain: &Toolchain, waveform: &Utf8Path) -> IpcResult<WaveOpened> {
-    let mut outdated = Vec::new();
-    // A onda de um exercício do `lace learn` abre com o layout da correção.
-    let learn = lace_learn::layout::layout_of(waveform);
-    let options = match lace_core::prepare_wave_layout(waveform) {
-        _ if learn.is_some() => {
-            let mut options = ViewerOptions::default();
-            options.layout = learn;
-            options
-        }
-        Ok(Some(layout)) => {
-            outdated = layout
-                .layout
-                .processors
-                .iter()
-                .filter(|p| p.outdated)
-                .map(|p| p.processor.clone())
-                .collect();
-            ViewerOptions::with_layout(&layout)
-        }
-        Ok(None) => ViewerOptions::default(),
-        Err(error) => {
-            tracing::warn!("No processor layout for {waveform}: {error}");
-            ViewerOptions::default()
-        }
+    let layout = match lace_learn::layout::layout_of(waveform) {
+        Some(path) => LayoutPolicy::File { path },
+        None => LayoutPolicy::Generated,
     };
-    let mut surfer = lace_core::open_waveform(toolchain, waveform, &options)?;
-    surfer.ensure_started(SURFER_GRACE)?;
-    let opened = WaveOpened {
-        waveform: waveform.to_owned(),
-        pid: surfer.id(),
-        log: surfer.log_file().to_owned(),
-        outdated,
+    let request = WaveRequest {
+        source: WaveSource::File {
+            path: waveform.to_owned(),
+        },
+        layout,
     };
-    std::thread::spawn(move || {
-        let _ = surfer.wait();
-    });
-    Ok(opened)
+    Ok(core::open_wave(toolchain, None, &request)?)
 }

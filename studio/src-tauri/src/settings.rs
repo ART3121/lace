@@ -83,6 +83,17 @@ pub struct Settings {
     /// pela interface.
     #[serde(default = "already_toured")]
     pub tour_done: bool,
+    /// O executável do Claude Code para o assistente (ou a pasta dele);
+    /// `None` procura no `PATH` e nas pastas dos instaladores.
+    pub assistant_claude: Option<String>,
+    /// O `lace` que serve as ferramentas ao assistente; `None` é o da
+    /// instalação do bundle. Para desenvolvimento, um build em `target/`.
+    pub assistant_lace: Option<String>,
+    /// O modelo do assistente (`--model` do Claude Code); `None` é o padrão.
+    pub assistant_model: Option<String>,
+    /// O assistente pode editar e criar arquivos na pasta do projeto, além
+    /// de usar as ferramentas do Lace e ler arquivos.
+    pub assistant_allow_edits: bool,
     /// Projetos abertos recentemente, do mais novo para o mais antigo.
     pub recent_projects: Vec<RecentProject>,
 }
@@ -126,6 +137,10 @@ impl Default for Settings {
             zen: ZenSettings::default(),
             layouts: LayoutSettings::default(),
             tour_done: false,
+            assistant_claude: None,
+            assistant_lace: None,
+            assistant_model: None,
+            assistant_allow_edits: false,
             recent_projects: Vec::new(),
         }
     }

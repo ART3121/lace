@@ -32,7 +32,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, bail};
-use lace_core::{Platform, Toolchain};
+use lace_core::{CancelToken, Platform, Toolchain};
 use serde::{Deserialize, Serialize};
 
 use crate::add::ChunkSource;
@@ -40,6 +40,10 @@ use crate::files::{self, FilesManifest};
 use crate::install::{Event, RECEIPT_FILE, Receipt};
 use crate::payload::{Chunk, Index};
 use crate::plan::Selection;
+
+mod flow;
+
+pub use flow::*;
 
 /// O nome que [`Plan::changed`] dá aos arquivos sempre instalados: o `lace`
 /// e o cabeçalho do bundle.
@@ -75,11 +79,12 @@ pub struct InstallLock(#[allow(dead_code)] fs::File);
 /// com outra operação rodando nela (outro `lace`, o Studio), um erro que diz
 /// isso.
 pub fn lock(prefix: &Path) -> anyhow::Result<InstallLock> {
-    try_lock(prefix)?.with_context(|| {
-        format!(
-            "Another installation or update of Lace is running in {}; wait for it to finish",
-            prefix.display()
-        )
+    // O erro tipado por dentro do `anyhow`: quem recebe na fronteira
+    // ([`crate::error::from_anyhow`]) o recupera com o código dele.
+    try_lock(prefix)?.ok_or_else(|| {
+        anyhow::Error::new(crate::Error::InstallInProgress {
+            prefix: camino::Utf8PathBuf::from(prefix.to_string_lossy().into_owned()),
+        })
     })
 }
 
@@ -420,13 +425,29 @@ fn mark<'a>(changed: &mut BTreeSet<&'a str>, components: &'a [String]) {
 }
 
 /// Faz o [`Plan`] na instalação em `prefix`, com os pedaços de `source` e o
-/// manifesto `new` da versão nova, chamando `on` a cada passo.
+/// manifesto `new` da versão nova, chamando `on` a cada passo. Sem
+/// cancelamento: ver [`apply_with`].
 pub fn apply(
     source: &dyn ChunkSource,
     plan: &Plan,
     new: &FilesManifest,
     prefix: &Path,
+    on: impl FnMut(Event),
+) -> anyhow::Result<Applied> {
+    apply_with(source, plan, new, prefix, on, &CancelToken::new())
+}
+
+/// [`apply`] conferindo `cancel` antes de cada pedaço e antes da troca dos
+/// arquivos. Durante a troca o pedido é ignorado: o diário já cobre um
+/// processo que morre no meio, e parar ali só repetiria o que ele desfaz.
+/// Cancelado, devolve [`crate::Error::Cancelled`] dentro do `anyhow`.
+pub fn apply_with(
+    source: &dyn ChunkSource,
+    plan: &Plan,
+    new: &FilesManifest,
+    prefix: &Path,
     mut on: impl FnMut(Event),
+    cancel: &CancelToken,
 ) -> anyhow::Result<Applied> {
     let _lock = lock(prefix)?;
     let pid = std::process::id();
@@ -439,7 +460,10 @@ pub fn apply(
     }
     fs::create_dir_all(&staging).with_context(|| format!("Creating {}", staging.display()))?;
     let mut left_to_recover = false;
-    let result = stage(source, plan, new, &staging, &mut on).and_then(|()| {
+    let result = stage(source, plan, new, &staging, &mut on, cancel).and_then(|()| {
+        if cancel.is_cancelled() {
+            return Err(anyhow::Error::new(crate::Error::Cancelled));
+        }
         let mut put: Vec<String> = plan
             .chunks
             .iter()
@@ -515,12 +539,18 @@ fn stage(
     new: &FilesManifest,
     staging: &Path,
     on: &mut impl FnMut(Event),
+    cancel: &CancelToken,
 ) -> anyhow::Result<()> {
     on(Event::Start {
         total: plan.download(),
     });
     let count = plan.chunks.len();
     for (i, planned) in plan.chunks.iter().enumerate() {
+        // Cada pedaço vem antes de a instalação mudar: o cancelamento para
+        // aqui, sem nada a desfazer.
+        if cancel.is_cancelled() {
+            return Err(anyhow::Error::new(crate::Error::Cancelled));
+        }
         on(Event::Chunk {
             index: i + 1,
             count,
@@ -771,7 +801,12 @@ mod tests {
         write(&prefix.join("toolchain/files.json"), "manifesto velho");
         write(&staging.join("toolchain/files.json"), "manifesto novo");
         write(&prefix.join("toolchain/sai"), "sai");
-        let put = ["bin/lace", "toolchain/a", "toolchain/sub/novo", "toolchain/depois"];
+        let put = [
+            "bin/lace",
+            "toolchain/a",
+            "toolchain/sub/novo",
+            "toolchain/depois",
+        ];
         save_journal(
             prefix,
             &SavedJournal {
@@ -795,8 +830,14 @@ mod tests {
         let prefix = dir.path();
         interrupted(prefix);
         assert_eq!(recover(prefix).unwrap().as_deref(), Some("9.9.9"));
-        assert_eq!(read(&prefix.join("bin/lace")).as_deref(), Some("lace velho"));
-        assert_eq!(read(&prefix.join("toolchain/a")).as_deref(), Some("a velho"));
+        assert_eq!(
+            read(&prefix.join("bin/lace")).as_deref(),
+            Some("lace velho")
+        );
+        assert_eq!(
+            read(&prefix.join("toolchain/a")).as_deref(),
+            Some("a velho")
+        );
         assert_eq!(
             read(&prefix.join("toolchain/files.json")).as_deref(),
             Some("manifesto velho")

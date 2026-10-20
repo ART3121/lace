@@ -1,7 +1,9 @@
 //! Os recursos experimentais: partes do Lace que ainda mudam muito e que
-//! ficam desligadas até o usuário ligar. Hoje há um, a placa FPGA
-//! ([`Feature::Fpga`]): as ligações do `fpga.json`, a compilação pelo Quartus
-//! Prime e a gravação na placa ([`crate::fpga`]).
+//! ficam desligadas até o usuário ligar. Hoje há dois: a placa FPGA
+//! ([`Feature::Fpga`]: as ligações do `fpga.json`, a compilação pelo Quartus
+//! Prime e a gravação na placa, [`crate::fpga`]) e o assistente de IA
+//! ([`Feature::Assistant`]: o `lace mcp`, o `lace chat` e a vista Assistente
+//! do Studio, tudo o que passa pelo crate `lace-agent`).
 //!
 //! O que está ligado fica em `experimental.json`, na pasta de configuração
 //! do Lace do usuário: `%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace`
@@ -36,7 +38,8 @@ pub const SETTINGS_FILE: &str = "experimental.json";
 /// A lista do arquivo com os recursos ligados.
 const ENABLED: &str = "enabled";
 
-/// Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`).
+/// Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,
+/// `assistant`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
@@ -45,16 +48,21 @@ pub enum Feature {
     /// Prime e a gravação na placa (`lace fpga`, a aba Placa FPGA do
     /// Studio).
     Fpga,
+    /// O assistente de IA: o `lace mcp` (as ferramentas do Lace para um
+    /// agente), o `lace chat` e a vista Assistente do Studio, sobre o
+    /// Claude Code instalado na máquina (o crate `lace-agent`).
+    Assistant,
 }
 
 impl Feature {
     /// Todos, na ordem da lista.
-    pub const ALL: &'static [Feature] = &[Feature::Fpga];
+    pub const ALL: &'static [Feature] = &[Feature::Fpga, Feature::Assistant];
 
-    /// O identificador, o do arquivo e da CLI (`fpga`).
+    /// O identificador, o do arquivo e da CLI (`fpga`, `assistant`).
     pub fn id(self) -> &'static str {
         match self {
             Feature::Fpga => "fpga",
+            Feature::Assistant => "assistant",
         }
     }
 
@@ -67,6 +75,7 @@ impl Feature {
     pub fn name(self) -> &'static str {
         match self {
             Feature::Fpga => "FPGA boards",
+            Feature::Assistant => "AI assistant",
         }
     }
 
@@ -75,6 +84,9 @@ impl Feature {
         match self {
             Feature::Fpga => {
                 "FPGA boards: the fpga.json connections, the Quartus Prime build and board programming"
+            }
+            Feature::Assistant => {
+                "AI assistant: lace chat, the Assistant view of Lace Studio and lace mcp, the Lace tools for an agent such as Claude Code"
             }
         }
     }
@@ -237,13 +249,21 @@ mod tests {
     fn everything_starts_disabled() {
         let (_dir, path) = file();
         assert!(!enabled_at(&path, Feature::Fpga));
+        assert!(!enabled_at(&path, Feature::Assistant));
         assert_eq!(
             states_from(&read(&path)),
-            [FeatureState {
-                feature: Feature::Fpga,
-                enabled: false,
-                description: Feature::Fpga.description().to_owned(),
-            }]
+            [
+                FeatureState {
+                    feature: Feature::Fpga,
+                    enabled: false,
+                    description: Feature::Fpga.description().to_owned(),
+                },
+                FeatureState {
+                    feature: Feature::Assistant,
+                    enabled: false,
+                    description: Feature::Assistant.description().to_owned(),
+                },
+            ]
         );
     }
 
@@ -288,6 +308,7 @@ mod tests {
     #[test]
     fn features_go_by_their_id() {
         assert_eq!(Feature::from_id("fpga"), Some(Feature::Fpga));
+        assert_eq!(Feature::from_id("assistant"), Some(Feature::Assistant));
         assert_eq!(Feature::from_id("FPGA"), None);
         assert_eq!(serde_json::to_string(&Feature::Fpga).unwrap(), "\"fpga\"");
         let error = LaceError::ExperimentalDisabled {

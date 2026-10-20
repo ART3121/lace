@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "InstallReport",
-  "description": "`lace install`.",
+  "description": "`lace install` (`docs/schema/install.json`).",
   "type": "object",
   "properties": {
     "prefix": {

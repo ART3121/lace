@@ -45,6 +45,8 @@ import type {
   RecentStatus,
   SearchMatch,
   Settings,
+  AgentEvent,
+  AssistantInfo,
   TerminalMessage,
   TextFile,
   ToolchainInfo,
@@ -256,6 +258,19 @@ export const api = {
     },
     cancel: (job?: number | null) => call<boolean>('flow_cancel', { job: job ?? null }),
     running: () => call<number | null>('flow_running'),
+  },
+
+  assistant: {
+    info: () => call<AssistantInfo>('assistant_info'),
+    /** Abre uma sessão; os eventos chegam por `onEvent`, começando por `ready`. */
+    start: (resume: string | null, onEvent: (event: AgentEvent) => void) => {
+      const channel = new Channel<AgentEvent>();
+      channel.onmessage = onEvent;
+      return call<number>('assistant_start', { resume, channel });
+    },
+    send: (id: number, text: string) => call<void>('assistant_send', { id, text }),
+    interrupt: (id: number) => call<void>('assistant_interrupt', { id }),
+    stop: (id: number) => call<void>('assistant_stop', { id }),
   },
 
   terminal: {

@@ -137,9 +137,11 @@ function channelOf(step: Step, tool: string): ConsoleChannel {
 const PHASE_CHANNEL: Record<Phase, ConsoleChannel> = {
   build: 'cmm',
   check: 'verilog',
+  hierarchy: 'verilog',
   simulate: 'wave',
   synthesize: 'rtlViewer',
   schematic: 'rtlViewer',
+  rtl_viewer: 'rtlViewer',
   wave: 'wave',
   learn: 'verilog',
   fpga: 'fpga',

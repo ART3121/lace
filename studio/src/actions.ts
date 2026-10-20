@@ -27,6 +27,7 @@ import {
   FileCode,
   FolderOpen,
   FolderPlus,
+  Bot,
   GraduationCap,
   Hammer,
   ListChecks,
@@ -570,6 +571,9 @@ export const ACTIONS: Action[] = [
   { id: 'viewSearch', label: 'action.viewSearch', category: 'view', run: () => reveal('search') },
   { id: 'viewReports', label: 'action.viewReports', category: 'view', run: () => reveal('reports') },
   { id: 'viewLearn', label: 'action.viewLearn', category: 'view', icon: GraduationCap, run: () => reveal('learn') },
+  // O assistente de IA, experimental.
+  { id: 'viewAssistant', label: 'action.viewAssistant', category: 'view', icon: Bot, feature: 'assistant', run: () => reveal('assistant') },
+  { id: 'assistantTab', label: 'action.assistantTab', category: 'view', feature: 'assistant', run: () => useEditor.getState().openView('assistant') },
   {
     id: 'splitEditor',
     label: 'action.splitEditor',

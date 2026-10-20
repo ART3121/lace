@@ -51,6 +51,8 @@ pub mod codes {
     pub const WAVE_TOO_LARGE: &str = "wave_too_large";
     /// Falha interna (thread que morreu, JSON inválido).
     pub const INTERNAL: &str = "internal";
+    /// O assistente: o Claude Code não foi achado, ou a sessão terminou.
+    pub const ASSISTANT: &str = "assistant";
 }
 
 /// O erro de um comando, como a interface o recebe.
@@ -97,12 +99,27 @@ impl From<lace_core::LaceError> for IpcError {
     }
 }
 
+impl From<lace_core::ErrorInfo> for IpcError {
+    fn from(error: lace_core::ErrorInfo) -> Self {
+        IpcError {
+            code: error.code,
+            message: error.message,
+        }
+    }
+}
+
 impl From<lace_learn::LearnError> for IpcError {
     fn from(error: lace_learn::LearnError) -> Self {
         IpcError {
             code: error.code().to_owned(),
             message: error.to_string(),
         }
+    }
+}
+
+impl From<lace_installer::Error> for IpcError {
+    fn from(error: lace_installer::Error) -> Self {
+        IpcError::new(error.code(), error.to_string())
     }
 }
 

@@ -9,26 +9,27 @@
 import type {
   AddedFile,
   BuildResult,
-  Elaboration,
-  HierarchyResult,
-  ModuleInstance,
-  MovedPath,
   BundleComponent,
   CheckResult,
+  Connection,
+  Elaboration,
   Event,
   FileRole,
-  Connection,
   FpgaBuildResult,
   FpgaProgramResult,
-  Resolved,
   Grade,
+  HierarchyResult,
   Language,
+  ModuleInstance,
+  MovedPath,
   Processor,
   ProjectIssue,
   Quartus,
+  Resolved,
   SchematicResult,
   SimulationResult,
   Simulator,
+  Status,
   Step,
   SynthesisResult,
   SystemCompiler,
@@ -95,6 +96,15 @@ export interface Settings {
   /** O tour pela interface já apareceu (state/tour.ts). Sem `settings.json`,
    * começa `false`, e o tour abre sozinho. */
   tour_done: boolean;
+  /** O executável do Claude Code para o assistente (ou a pasta dele); null
+   * procura no PATH e nas pastas dos instaladores. */
+  assistant_claude: string | null;
+  /** O `lace` que serve as ferramentas ao assistente; null, o da instalação. */
+  assistant_lace: string | null;
+  /** O modelo do assistente (`--model` do Claude Code); null, o padrão. */
+  assistant_model: string | null;
+  /** O assistente pode editar e criar arquivos na pasta do projeto. */
+  assistant_allow_edits: boolean;
   recent_projects: RecentProject[];
 }
 
@@ -304,29 +314,46 @@ export interface PortValues {
   error: IpcError | null;
 }
 
-/** `flows.rs`: WaveOpened. */
+/** `lace_core::flows::WaveOpened`. */
 export interface WaveOpened {
   waveform: string;
   pid: number;
   log: string;
+  /** O estado do Surfer com que a onda abriu (`.surf.ron` ou `.sucl`). */
+  layout?: string | null;
+  saved_layout?: { path: string; customized: boolean } | null;
+  processors?: WaveProcessor[];
+  selection?: string[];
   /** Processadores compilados de novo depois da simulação: PC e linha em
    * números até simular de novo. */
   outdated: string[];
+  /** O layout gerado falhou e a onda abriu sem ele: o motivo. */
+  layout_error?: string | null;
+  reset_deleted?: string | null;
 }
 
-/** `flows.rs`: FlowOutcome. */
+/** `lace_core::flows::FlowOutcome`, com `wave_tab` e `learn` do Studio
+ * (`flows.rs`). */
 export interface FlowOutcome {
   flow: FlowName;
   command: string;
+  /** Como terminou: o pior entre as fases que rodaram. */
+  status?: Status;
   succeeded: boolean;
   builds: BuildResult[];
   /** O `.v` e o testbench que os builds geraram e entraram no `.spf` agora. */
   registered: AddedFile[];
   check: CheckResult | null;
+  /** Com `lint`, o componente do Verilator que falta. */
+  lint_missing?: string | null;
+  hierarchy?: HierarchyResult | null;
+  not_built?: string[];
   simulation: SimulationResult | null;
   outputs: PortValues[];
   synthesis: SynthesisResult | null;
   schematic: SchematicResult | null;
+  rtl_viewer?: string | null;
+  rtl_viewer_error?: IpcError | null;
   wave: WaveOpened | null;
   /** A onda a abrir numa aba, no lugar da janela. */
   wave_tab: string | null;
@@ -357,8 +384,19 @@ export interface CliOutcome {
   result: unknown;
 }
 
-/** `flows.rs`: Phase. */
-export type Phase = 'build' | 'check' | 'simulate' | 'synthesize' | 'schematic' | 'wave' | 'learn' | 'fpga' | 'program';
+/** `lace_core::flows::Phase`. */
+export type Phase =
+  | 'build'
+  | 'check'
+  | 'hierarchy'
+  | 'simulate'
+  | 'synthesize'
+  | 'schematic'
+  | 'rtl_viewer'
+  | 'wave'
+  | 'learn'
+  | 'fpga'
+  | 'program';
 
 /** O `fpga.json` (`lace_core::fpga::FpgaConfig`): a placa, o topo e as
  * ligações, porta (com faixa) para sinal da placa (`[!]SINAL[faixa]`, `0`,
@@ -402,6 +440,7 @@ export type JobMessage =
   | { type: 'events'; events: Event[] }
   | { type: 'output_omitted'; step: Step; tool: string; lines: number }
   | { type: 'build'; result: BuildResult }
+  | { type: 'install'; event: unknown }
   | { type: 'cli_output'; stream: 'stdout' | 'stderr'; line: string }
   | { type: 'finished'; outcome: FlowOutcome | CliOutcome }
   | { type: 'failed'; error: IpcError };
@@ -461,6 +500,35 @@ export interface WaveTab {
 
 /** `terminal.rs`: TerminalMessage. */
 export type TerminalMessage = { type: 'data'; data: string } | { type: 'exit'; code: number | null };
+
+/** `lace_agent::AgentEvent` (assistant.rs): o que acontece numa sessão do
+ * assistente, na ordem. */
+export type AgentEvent =
+  | { type: 'ready'; session_id: string; model: string | null; tools: string[]; lace_connected: boolean | null }
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; id: string; content: string; is_error: boolean }
+  | {
+      type: 'done';
+      is_error: boolean;
+      text: string | null;
+      cost_usd: number | null;
+      duration_ms: number | null;
+      turns: number | null;
+      session_id: string | null;
+      input_tokens: number | null;
+      output_tokens: number | null;
+    }
+  | { type: 'log'; line: string }
+  | { type: 'exited'; code: number | null };
+
+/** `assistant.rs`: AssistantInfo. */
+export interface AssistantInfo {
+  claude: string | null;
+  version: string | null;
+  lace: string | null;
+  project: string | null;
+}
 
 /** `watcher.rs`: o evento `studio://fs-changed`. */
 export interface FsChanged {

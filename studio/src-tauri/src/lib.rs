@@ -11,7 +11,8 @@
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, compilação para a placa: operações canceláveis com saída ao vivo |
 //! | [`commands::fpga`] | as placas, o `fpga.json` e a conferência das ligações; só com a placa FPGA ligada |
-//! | [`commands::experimental`] | os recursos experimentais do Lace (a placa FPGA): quais estão ligados, ligar e desligar |
+//! | [`commands::experimental`] | os recursos experimentais do Lace (a placa FPGA, o assistente de IA): quais estão ligados, ligar e desligar |
+//! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
 //! | [`commands::history`] | relatórios do `.lace/reports`: listar, mostrar, comparar, apagar |
 //! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
@@ -37,6 +38,7 @@ pub mod commands {
     pub mod toolchain;
     pub mod wave;
 }
+pub mod assistant;
 pub mod error;
 pub mod flows;
 pub mod jobs;
@@ -204,6 +206,11 @@ pub fn run() {
             terminal::terminal_cd,
             terminal::terminal_resize,
             terminal::terminal_kill,
+            assistant::assistant_info,
+            assistant::assistant_start,
+            assistant::assistant_send,
+            assistant::assistant_interrupt,
+            assistant::assistant_stop,
             wave_tab::wave_tab_open,
             wave_tab::wave_tab_close,
             commands::wave::wave_signals,
@@ -245,6 +252,7 @@ fn relaunch() {
 fn shutdown(app: &AppHandle) {
     jobs::cancel_and_wait(app, SHUTDOWN_WAIT);
     terminal::kill_all(app);
+    assistant::stop_all(app);
 }
 
 /// Log no stderr. `RUST_LOG` escolhe o nível (padrão: avisos, e `info` do

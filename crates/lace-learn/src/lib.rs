@@ -34,6 +34,7 @@
 #![deny(missing_docs)]
 
 pub mod dev;
+pub mod flows;
 mod error;
 pub mod grade;
 pub mod layout;

@@ -309,7 +309,8 @@ fn fpga_is_experimental_and_off_until_enabled() {
             "Enable it with: lace experimental enable fpga",
         ));
     let list = stdout(lace().arg("experimental"), 0);
-    assert!(list.contains("  fpga  off  FPGA boards"), "{list}");
+    assert!(list.contains("  fpga       off  FPGA boards"), "{list}");
+    assert!(list.contains("  assistant  off  AI assistant"), "{list}");
 
     lace()
         .args(["experimental", "enable", "fpga"])
@@ -340,7 +341,43 @@ fn fpga_is_experimental_and_off_until_enabled() {
         .args(["experimental", "enable", "nada"])
         .assert()
         .code(2)
-        .stderr(predicate::str::contains("[possible values: fpga]"));
+        .stderr(predicate::str::contains("[possible values: fpga, assistant]"));
+}
+
+/// O `lace mcp` e o `lace chat` (o assistente de IA) são experimentais:
+/// desligados, nenhum dos dois abre, e o erro diz como ligar.
+#[test]
+fn the_assistant_is_experimental_and_off_until_enabled() {
+    let (_guard, config) = tempdir();
+    let lace = || lace_with_config(&config);
+    for command in [&["mcp"][..], &["mcp", "setup", "print"], &["chat"]] {
+        lace()
+            .args(command)
+            .assert()
+            .code(2)
+            .stdout("")
+            .stderr(predicate::str::contains(
+                "Error: The experimental component assistant (AI assistant) is disabled",
+            ))
+            .stderr(predicate::str::contains(
+                "Enable it with: lace experimental enable assistant",
+            ));
+    }
+    lace()
+        .args(["experimental", "enable", "assistant"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Enabled assistant (AI assistant)"));
+    // Ligado, o chat passa da conferência e para no que vem depois: sem
+    // terminal, ele recusa com a própria mensagem.
+    lace()
+        .arg("chat")
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("lace chat needs a terminal"));
+    let report = json(lace().args(["--json", "experimental"]), 0);
+    assert_eq!(report["components"][1]["feature"], "assistant");
+    assert_eq!(report["components"][1]["enabled"], true);
 }
 
 #[test]

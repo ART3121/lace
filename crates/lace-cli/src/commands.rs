@@ -12,12 +12,14 @@ use std::time::{Duration, SystemTime};
 use anyhow::bail;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::CommandFactory;
-use lace_core::history::{self, Cleanup, Operation};
+use lace_core::flows::{
+    self, FlowOptions, FlowOutcome, FlowRequest, LayoutPolicy, Phase, Progress, WaveRequest,
+    WaveSource,
+};
+use lace_core::history::{self, Cleanup};
 use lace_core::{
-    AddedFile, BuildOptions, BuildResult, CheckOptions, Control, DesignTarget, HierarchyOptions,
-    LaceError, Language, ListPosition, NewProcessor, OnFailure, PreparedLayout, Processor,
-    ProcessorConfig, Project, RunningProcess, SchematicOptions, SimulationOptions,
-    SimulationResult, Simulator, Tool, Toolchain, ViewerOptions,
+    Control, Language, ListPosition, NewProcessor, Processor, ProcessorConfig, Project, Simulator,
+    Toolchain,
 };
 
 use crate::output::Output;
@@ -102,9 +104,27 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Fpga(command) => return crate::fpga::run(cli, command, out, control),
         Command::Experimental(args) => crate::experimental::run(args, out)?,
         Command::Tools { verify } => return tools(cli, *verify, out),
+        Command::Serve(args) => {
+            return crate::serve::run(&cli.toolchain, args, control.cancel_token());
+        }
+        // O assistente de IA (o lace-agent) é experimental: desligado, nem
+        // o chat nem o servidor MCP abrem.
+        Command::Chat(args) => {
+            lace_core::experimental::require(lace_core::experimental::Feature::Assistant)?;
+            return crate::chat::run(&cli.project, &cli.toolchain, args, control.cancel_token());
+        }
+        Command::Mcp(args) => {
+            lace_core::experimental::require(lace_core::experimental::Feature::Assistant)?;
+            return crate::mcp::run(&cli.project, &cli.toolchain, args, control.cancel_token());
+        }
         Command::Install(args) => {
             let from = args.from.as_deref().map(settings::absolute).transpose()?;
-            crate::install::run(out, &args.components, from.as_deref())?;
+            crate::install::run(
+                out,
+                &args.components,
+                from.as_deref(),
+                control.cancel_token(),
+            )?;
         }
         Command::Update {
             check,
@@ -124,6 +144,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
                     from: from.as_deref(),
                     reopen_studio: *reopen_studio,
                 },
+                control.cancel_token(),
             )?
         }
         Command::Setup {
@@ -142,10 +163,6 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
     }
     Ok(true)
 }
-
-/// Quanto esperar para saber se o Surfer abriu: sem display ou com onda
-/// inválida, ele fecha em menos de um segundo.
-const SURFER_GRACE: Duration = Duration::from_millis(1500);
 
 /// O projeto da pasta atual (ou do `-C`): o `.spf` dela ou da primeira
 /// pasta acima que tiver um. Assim todo comando funciona de dentro do
@@ -433,10 +450,130 @@ fn confirm_trash(name: &str, dir: &Utf8Path) -> anyhow::Result<()> {
     }
 }
 
+/// A saída da CLI para o que um fluxo diz enquanto roda
+/// ([`lace_core::flows::Progress`]), na ordem em que acontece: é o que cada
+/// comando imprimia entre uma chamada e outra do Core.
+pub(crate) struct Printer<'a> {
+    out: &'a Output,
+    root: &'a Utf8Path,
+    /// `--lint`, para o resumo da verificação.
+    lint: bool,
+    /// `--fast`: a fase que não rodou se chama "Fast simulation".
+    fast: bool,
+    /// O prazo da simulação, para o resumo.
+    timeout: Option<Duration>,
+    /// A dica para abrir a onda, impressa depois do resumo da simulação
+    /// quando ela tem onda e não se pediu `--open`.
+    wave_hint: Option<String>,
+}
+
+impl<'a> Printer<'a> {
+    pub(crate) fn new(out: &'a Output, root: &'a Utf8Path) -> Self {
+        Printer {
+            out,
+            root,
+            lint: false,
+            fast: false,
+            timeout: None,
+            wave_hint: None,
+        }
+    }
+
+    fn on(&self, progress: Progress<'_>) {
+        let out = self.out;
+        match progress {
+            Progress::Phase(_) => {}
+            Progress::Built(result) => out.build(result, self.root),
+            Progress::Registered(files) => {
+                for file in files {
+                    out.added(file, self.root);
+                }
+            }
+            Progress::RegisterFailed(error) => out.warning(&format!(
+                "The generated files could not be added to the project: {error}"
+            )),
+            Progress::NotRun { what, builds } => {
+                out.not_run(not_run_name(what, self.fast), builds);
+            }
+            Progress::Checked(result) => out.check(result, self.lint, self.root),
+            Progress::Elaborated { result, not_built } => {
+                let names: Vec<&str> = not_built.iter().map(String::as_str).collect();
+                out.hierarchy(result, &names, self.root);
+            }
+            Progress::Simulated { result, outputs } => {
+                out.simulation(result, &port_values(outputs), self.root, self.timeout);
+                if result.waveform.is_some()
+                    && let Some(hint) = &self.wave_hint
+                {
+                    out.next(hint);
+                }
+            }
+            Progress::Synthesized(result) => out.synthesis(result, self.root),
+            Progress::Drawn(result) => out.schematic(result, self.root),
+            Progress::FpgaBuilt(result) => out.fpga_build(result, self.root),
+            Progress::Programmed(result) => out.fpga_program(result, self.root),
+            Progress::Recorded(id) => out.recorded(id),
+            Progress::ReportNotSaved(error) => out.report_not_saved(error),
+            Progress::WaveOpened(opened) => out.opened(opened),
+            Progress::RtlViewer { path, opener } => out.rtl_viewer(path, opener),
+        }
+    }
+}
+
+/// O nome da fase que não rodou, como a CLI sempre o escreveu.
+fn not_run_name(phase: Phase, fast: bool) -> &'static str {
+    match phase {
+        Phase::Simulate if fast => "Fast simulation",
+        Phase::Simulate => "Simulation",
+        Phase::Synthesize => "Synthesis",
+        Phase::Fpga => "FPGA build",
+        _ => "Operation",
+    }
+}
+
+/// Os valores das portas como o `sim.json` sempre os escreveu: o motivo de
+/// uma porta ilegível em texto.
+pub(crate) fn port_values(outputs: &[flows::PortValues]) -> Vec<PortValues> {
+    outputs
+        .iter()
+        .map(|o| PortValues {
+            port: o.port,
+            path: o.path.clone(),
+            values: o.values.clone(),
+            error: o.error.as_ref().map(|e| e.message.clone()),
+        })
+        .collect()
+}
+
+/// Roda um fluxo com a saída da CLI: o `started` tomado antes de abrir o
+/// projeto, a linha de comando digitada no histórico, a onda em janela e o
+/// RTL viewer no navegador (ou só gravado, com `LACE_OPENER`).
+pub(crate) fn run_flow(
+    toolchain: &Toolchain,
+    project: &mut Project,
+    request: &FlowRequest,
+    started: SystemTime,
+    printer: &Printer<'_>,
+    control: &Control,
+) -> anyhow::Result<FlowOutcome> {
+    let mut options = FlowOptions::new(command_line());
+    options.started = Some(started);
+    options.viewer_opener = std::env::var(OPENER_ENV).ok().filter(|v| !v.is_empty());
+    Ok(flows::run(
+        toolchain,
+        project,
+        request,
+        &options,
+        &|progress| printer.on(progress),
+        control,
+    )?)
+}
+
 fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
     let mut project = open(cli)?;
-    // Um projeto só de Verilog não tem o que compilar, e isso não é erro.
+    // Um projeto só de Verilog não tem o que compilar, e isso não é erro;
+    // nem o bundle é preciso.
     if args.processors.is_empty() && project.processors().is_empty() {
         out.no_processors();
         out.json(&BuildReport {
@@ -450,366 +587,192 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
     // Sem nomes, dentro da pasta de um processador compila ele; no resto do
     // projeto, todos.
     let processors = if !args.processors.is_empty() {
-        args.processors
-            .iter()
-            .map(|name| project.require_processor(name))
-            .collect::<Result<Vec<_>, _>>()?
+        // Um nome desconhecido é erro antes do bundle e de qualquer build.
+        for name in &args.processors {
+            project.require_processor(name)?;
+        }
+        args.processors.clone()
     } else if let Some(here) = processor_here(cli, &project)? {
-        vec![here]
+        vec![here.name.clone()]
     } else {
-        project.processors().iter().collect()
+        Vec::new()
     };
     let toolchain = cli.toolchain.resolve()?;
-    let results = lace_core::build_processors(
-        &toolchain,
-        processors,
-        &BuildOptions::default(),
-        OnFailure::Continue,
-        control,
-        |r| out.build(r, project.root()),
-    )?;
-    let registered = register_generated(&mut project, &results, out);
-    let ok = results.iter().all(BuildResult::succeeded);
-    let operation = Operation::new(command_line(), started).with_builds(&results);
-    let report = record(&project, &toolchain, &operation, out);
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
+    let request = FlowRequest::Build { processors };
+    let outcome = run_flow(&toolchain, &mut project, &request, started, &printer, control)?;
     out.json(&BuildReport {
         project: project.spf_path().to_owned(),
-        results,
-        registered,
-        report,
+        results: outcome.builds,
+        registered: outcome.registered,
+        report: outcome.report,
     })?;
-    Ok(ok)
-}
-
-/// Depois de compilar: o `.v` e o testbench que cada processador gerou
-/// entram no `.spf`, se ainda não estão (`Project::register_generated`). Uma
-/// falha ao gravar vira aviso: o build valeu do mesmo jeito.
-pub(crate) fn register_generated(
-    project: &mut Project,
-    builds: &[BuildResult],
-    out: &Output,
-) -> Vec<AddedFile> {
-    match project.register_generated(builds) {
-        Ok(files) => {
-            for file in &files {
-                out.added(file, project.root());
-            }
-            files
-        }
-        Err(error) => {
-            out.warning(&format!(
-                "The generated files could not be added to the project: {error}"
-            ));
-            Vec::new()
-        }
-    }
-}
-
-/// Compila os processadores antes de verificar, simular ou sintetizar, e
-/// para no primeiro que falhar: com um processador quebrado, o resto não
-/// serve. Sem processadores, não faz nada.
-pub(crate) fn build_first<'a>(
-    toolchain: &Toolchain,
-    project: &Project,
-    processors: impl IntoIterator<Item = &'a Processor>,
-    out: &Output,
-    control: &Control,
-) -> anyhow::Result<Vec<BuildResult>> {
-    Ok(lace_core::build_processors(
-        toolchain,
-        processors,
-        &BuildOptions::default(),
-        OnFailure::Stop,
-        control,
-        |r| out.build(r, project.root()),
-    )?)
+    Ok(outcome.succeeded)
 }
 
 fn check(cli: &Cli, args: &CheckArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let toolchain = cli.toolchain.resolve()?;
     // Sem arquivo nem `-p`, dentro da pasta de um processador verifica ele;
     // no resto do projeto, o projeto.
     let processor = match (&args.processor, &args.file) {
-        (Some(name), _) => Some(project.require_processor(name)?),
-        (None, None) => processor_here(cli, &project)?,
+        (Some(name), _) => Some(project.require_processor(name)?.name.clone()),
+        (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    // Só o Icarus (e o Verilator, com --lint) sobre o que está no disco: o
-    // check não recompila os processadores.
-    let mut options = CheckOptions::default();
-    options.file = args.file.as_deref().map(settings::absolute).transpose()?;
-    options.lint = args.lint;
-    options.processor = processor.map(|p| p.name.clone());
-    let result = lace_core::check(&toolchain, &project, &options, control)?;
-    out.check(&result, args.lint, project.root());
-    if args.lint
-        && !result.steps.iter().any(|s| s.tool == Tool::Verilator)
-        && let Err(LaceError::ComponentMissing(component)) = toolchain.tool(Tool::Verilator)
-    {
-        out.next(&format!(
-            "Install the linter with: lace install {component}"
-        ));
+    let root = project.root().to_owned();
+    let mut printer = Printer::new(out, &root);
+    printer.lint = args.lint;
+    let request = FlowRequest::Check {
+        file: args.file.as_deref().map(settings::absolute).transpose()?,
+        processor,
+        lint: args.lint,
+    };
+    let outcome = run_flow(&toolchain, &mut project, &request, started, &printer, control)?;
+    if let Some(component) = &outcome.lint_missing {
+        out.next(&format!("Install the linter with: lace install {component}"));
     }
-    let ok = result.succeeded();
-    let operation = Operation::new(command_line(), started).with_check(&result);
-    let report = record(&project, &toolchain, &operation, out);
     out.json(&CheckReport {
-        check: result,
-        report,
+        check: outcome.check.expect("a verificação rodou"),
+        report: outcome.report,
     })?;
-    Ok(ok)
+    Ok(outcome.succeeded)
 }
 
 /// `lace hierarchy`. Não compila os processadores nem grava relatório: é a
-/// hierarquia do que está no disco (`lace_core::hierarchy`).
+/// hierarquia do que está no disco.
 fn hierarchy(
     cli: &Cli,
     args: &HierarchyArgs,
     out: &Output,
     control: &Control,
 ) -> anyhow::Result<bool> {
-    let project = open(cli)?;
+    let started = SystemTime::now();
+    let mut project = open(cli)?;
     let toolchain = cli.toolchain.resolve()?;
     let processor = match &args.processor {
-        Some(name) => Some(project.require_processor(name)?),
-        None => processor_here(cli, &project)?,
+        Some(name) => Some(project.require_processor(name)?.name.clone()),
+        None => processor_here(cli, &project)?.map(|p| p.name.clone()),
     };
-    let mut options = HierarchyOptions::default();
-    options.processor = processor.map(|p| p.name.clone());
-    let result = lace_core::hierarchy(&toolchain, &project, &options, control)?;
-    // Os que ficaram de fora por não terem sido compilados.
-    let not_built: Vec<&str> = match processor {
-        Some(_) => Vec::new(),
-        None => project
-            .buildable_processors()
-            .into_iter()
-            .filter(|p| !p.is_built())
-            .map(|p| p.name.as_str())
-            .collect(),
-    };
-    out.hierarchy(&result, &not_built, project.root());
-    out.json(&result)?;
-    Ok(result.succeeded())
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
+    let request = FlowRequest::Hierarchy { processor };
+    let outcome = run_flow(&toolchain, &mut project, &request, started, &printer, control)?;
+    out.json(&outcome.hierarchy.expect("a hierarquia rodou"))?;
+    Ok(outcome.succeeded)
 }
 
 fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
     let mut project = open(cli)?;
     let toolchain = cli.toolchain.resolve()?;
-    if let Some(testbench) = &args.testbench {
-        project.set_testbench(settings::absolute(testbench)?)?;
-    }
-
     // Sem `-p` nem testbench, dentro da pasta de um processador simula
-    // ele; no resto do projeto, a simulação do projeto. Pelo nome: o build
-    // grava no `.spf` o que gerou, e o processador é procurado de novo.
-    let processor_name = match (&args.processor, &args.testbench) {
+    // ele; no resto do projeto, a simulação do projeto.
+    let processor = match (&args.processor, &args.testbench) {
         (Some(name), _) => Some(project.require_processor(name)?.name.clone()),
         (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    let targets = match &processor_name {
-        Some(name) => vec![project.require_processor(name)?],
-        None => project.buildable_processors(),
-    };
-    let builds = build_first(&toolchain, &project, targets, out, control)?;
-    let registered = register_generated(&mut project, &builds, out);
-    let processor = processor_name
-        .as_deref()
-        .map(|name| project.require_processor(name))
-        .transpose()?;
-    if !builds.iter().all(BuildResult::succeeded) {
-        out.not_run(
-            if args.fast {
-                "Fast simulation"
-            } else {
-                "Simulation"
-            },
-            &builds,
-        );
-        let operation = Operation::new(command_line(), started).with_builds(&builds);
-        let report = record(&project, &toolchain, &operation, out);
-        out.json(&SimReport {
-            builds,
-            registered,
-            simulation: None,
-            outputs: Vec::new(),
-            surfer_pid: None,
-            report,
-        })?;
-        return Ok(false);
-    }
-
-    let mut options = SimulationOptions::new(if args.verilator {
-        Simulator::Verilator
-    } else {
-        Simulator::Icarus
-    });
-    options.timeout = args.timeout.map(Duration::from_secs);
-    options.fast = args.fast;
-    let result = match processor {
-        Some(processor) => lace_core::simulate(&toolchain, processor, &options, control)?,
-        None => lace_core::simulate_project(&toolchain, &project, &options, control)?,
-    };
-    let outputs = match processor {
-        Some(processor) if result.succeeded() => port_values(processor, &result),
-        _ => Vec::new(),
-    };
-    out.simulation(
-        &result,
-        &outputs,
-        project.root(),
-        args.timeout.map(Duration::from_secs),
-    );
-    if result.waveform.is_some() && !args.open {
-        out.next(&match processor {
-            Some(p) => format!("Open the waveform with: lace wave -p {}", p.name),
+    let root = project.root().to_owned();
+    let mut printer = Printer::new(out, &root);
+    printer.fast = args.fast;
+    printer.timeout = args.timeout.map(Duration::from_secs);
+    if !args.open {
+        printer.wave_hint = Some(match &processor {
+            Some(p) => format!("Open the waveform with: lace wave -p {p}"),
             None => "Open the waveform with: lace wave".to_owned(),
         });
     }
-    let operation = Operation::new(command_line(), started)
-        .with_builds(&builds)
-        .with_simulation(&result);
-    let report = record(&project, &toolchain, &operation, out);
-
-    let mut surfer_pid = None;
-    if args.open
-        && let Some(wave) = &result.waveform
-    {
-        let (mut surfer, layout) = open_with_layout(&toolchain, &wave.path, true)?;
-        surfer.ensure_started(SURFER_GRACE)?;
-        out.opened(&surfer, layout.as_ref());
-        surfer_pid = Some(surfer.id());
+    let request = FlowRequest::Simulate {
+        processor,
+        testbench: args.testbench.as_deref().map(settings::absolute).transpose()?,
+        simulator: if args.verilator {
+            Simulator::Verilator
+        } else {
+            Simulator::Icarus
+        },
+        fast: args.fast,
+        timeout_s: args.timeout,
+        open_wave: args.open,
+    };
+    let outcome = run_flow(&toolchain, &mut project, &request, started, &printer, control)?;
+    // O Surfer que não abriu é erro do comando, depois do relatório gravado,
+    // como sempre foi.
+    if let Some(error) = outcome.wave_error {
+        return Err(error.into());
     }
-    let ok = result.succeeded();
     out.json(&SimReport {
-        builds,
-        registered,
-        simulation: Some(result),
-        outputs,
-        surfer_pid,
-        report,
+        builds: outcome.builds,
+        registered: outcome.registered,
+        simulation: outcome.simulation,
+        outputs: port_values(&outcome.outputs),
+        surfer_pid: outcome.wave.as_ref().map(|w| w.pid),
+        report: outcome.report,
     })?;
-    Ok(ok)
-}
-
-/// Os valores de cada porta de saída que a simulação do processador
-/// escreveu, na ordem das portas. A porta sai do nome do arquivo
-/// (`output_<porta>.txt`), porque o `Processor` não guarda o `#NUIOOU`.
-/// Uma porta que não dá para ler (um `x` do simulador numa divisão por
-/// zero) vem com o motivo em `error`, sem derrubar o resto: o resumo, as
-/// outras portas e o relatório continuam.
-fn port_values(processor: &Processor, result: &SimulationResult) -> Vec<PortValues> {
-    let dir = &processor.output_dir;
-    let mut ports: Vec<u32> = result
-        .outputs
-        .iter()
-        .filter(|path| path.parent() == Some(dir.as_path()))
-        .filter_map(|path| {
-            path.file_name()?
-                .strip_prefix("output_")?
-                .strip_suffix(".txt")?
-                .parse()
-                .ok()
-        })
-        .collect();
-    ports.sort_unstable();
-    ports.dedup();
-    ports
-        .into_iter()
-        .map(|port| {
-            let (values, error) = match processor.read_output_values(port) {
-                Ok(values) => (values, None),
-                Err(error) => (Vec::new(), Some(error.to_string())),
-            };
-            PortValues {
-                port,
-                path: processor.output_path(port),
-                values,
-                error,
-            }
-        })
-        .collect()
+    Ok(outcome.succeeded)
 }
 
 fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     if let Some(command) = &args.command {
         return crate::wave_choice::run(cli, command, out, control);
     }
-    let waveform = match &args.waveform {
-        Some(path) => settings::absolute(path)?,
+    let (project, source) = match &args.waveform {
+        Some(path) => (
+            None,
+            WaveSource::File {
+                path: settings::absolute(path)?,
+            },
+        ),
         None => {
             let project = open(cli)?;
             let processor = match &args.processor {
                 Some(name) => Some(project.require_processor(name)?),
                 None => processor_here(cli, &project)?,
             };
+            // A onda que ainda não existe (ou o processador não compilado) é
+            // erro antes de abrir o bundle, como sempre foi na CLI.
             let path = lace_core::waveform_path(&project, processor)?;
             if !path.is_file() {
-                let sim = match processor {
-                    Some(p) => format!("lace sim -p {}", p.name),
-                    None => "lace sim".to_owned(),
-                };
-                bail!(
-                    "Waveform {} does not exist yet; simulate first with: {sim}",
-                    from_shell(&path)
-                );
+                return Err(lace_core::LaceError::NoWaveform {
+                    path,
+                    processor: processor.map(|p| p.name.clone()),
+                }
+                .into());
             }
-            path
+            let processor = processor.map(|p| p.name.clone());
+            (Some(project), WaveSource::Project { processor })
         }
     };
     let toolchain = cli.toolchain.resolve()?;
-    // O layout salvo no projeto sai antes: a onda abre com o gerado, que
-    // passa a ser o salvo.
-    if args.reset_layout
-        && let Ok(project) = Project::discover(&waveform)
-        && let Some(testbench) = lace_core::wave_testbench_of(&waveform)?
-        && lace_core::reset_saved_layout(&project, &testbench)?
+    let layout = if args.no_layout {
+        LayoutPolicy::None
+    } else if args.reset_layout {
+        LayoutPolicy::Reset
+    } else {
+        LayoutPolicy::Generated
+    };
+    let request = WaveRequest { source, layout };
+    let opened = flows::open_wave(&toolchain, project.as_ref(), &request)?;
+    if let Some(testbench) = &opened.reset_deleted
         && out.is_text()
     {
         println!("The saved layout of {testbench} was deleted; opening the generated one");
     }
-    let (mut surfer, layout) = open_with_layout(&toolchain, &waveform, !args.no_layout)?;
-    surfer.ensure_started(SURFER_GRACE)?;
-    out.opened(&surfer, layout.as_ref());
+    out.opened(&opened);
     out.json(&WaveReport {
-        pid: surfer.id(),
-        log: surfer.log_file().to_owned(),
-        layout: layout.as_ref().map(|l| l.state.clone()),
-        saved_layout: layout.as_ref().and_then(|l| l.saved.as_ref()).map(|s| {
-            SavedLayoutReport {
-                path: s.path.clone(),
-                customized: s.customized,
-            }
+        pid: opened.pid,
+        log: opened.log,
+        layout: opened.layout,
+        saved_layout: opened.saved_layout.map(|s| SavedLayoutReport {
+            path: s.path,
+            customized: s.customized,
         }),
-        processors: layout.map(|l| l.layout.processors).unwrap_or_default(),
-        waveform,
+        processors: opened.processors,
+        waveform: opened.waveform,
     })?;
     Ok(true)
-}
-
-/// Abre a onda no Surfer, com o layout dos processadores SAPHO quando
-/// `layout` e a onda tem processador.
-fn open_with_layout(
-    toolchain: &Toolchain,
-    waveform: &Utf8Path,
-    layout: bool,
-) -> anyhow::Result<(RunningProcess, Option<PreparedLayout>)> {
-    let prepared = if layout {
-        lace_core::prepare_wave_layout(waveform)?
-    } else {
-        None
-    };
-    let options = prepared
-        .as_ref()
-        .map(ViewerOptions::with_layout)
-        .unwrap_or_default();
-    Ok((
-        lace_core::open_waveform(toolchain, waveform, &options)?,
-        prepared,
-    ))
 }
 
 fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
@@ -819,123 +782,44 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
     // O topo do projeto sintetiza com o Verilog de todos os processadores;
     // com -p, ou dentro da pasta de um processador, só o daquele.
     let processor = match &args.processor {
-        Some(name) => Some(project.require_processor(name)?),
-        None => processor_here(cli, &project)?,
+        Some(name) => Some(project.require_processor(name)?.name.clone()),
+        None => processor_here(cli, &project)?.map(|p| p.name.clone()),
     };
-    let (target, processors) = match processor {
-        Some(processor) => (
-            DesignTarget::Processor(processor.name.clone()),
-            vec![processor],
-        ),
-        None => (DesignTarget::TopLevel, project.buildable_processors()),
-    };
-    let builds = build_first(&toolchain, &project, processors, out, control)?;
-    let registered = register_generated(&mut project, &builds, out);
-    if !builds.iter().all(BuildResult::succeeded) {
-        out.not_run("Synthesis", &builds);
-        let operation = Operation::new(command_line(), started).with_builds(&builds);
-        let report = record(&project, &toolchain, &operation, out);
-        out.json(&SynthReport {
-            builds,
-            registered,
-            synthesis: None,
-            schematic: None,
-            rtl_viewer: None,
-            report,
-        })?;
-        return Ok(false);
-    }
-
-    let result = lace_core::synthesize(&toolchain, &project, &target, control)?;
-    out.synthesis(&result, project.root());
-
-    let mut schematic = None;
-    // Um módulo fora do netlist não desfaz a síntese: o relatório dela é
-    // gravado, e o erro vem depois.
-    let mut refused = None;
     if args.no_schematic_limit {
         tracing::debug!("--no-schematic-limit is ignored: the schematic has no connection limit");
     }
-    if args.svg
-        && let Some(netlist) = &result.netlist
-    {
-        let module = args.module.as_deref().unwrap_or(&result.top);
-        let options = SchematicOptions::default();
-        match lace_core::render_schematic(&toolchain, netlist, module, &options, control) {
-            Ok(svg) => {
-                out.schematic(&svg, project.root());
-                schematic = Some(svg);
-            }
-            Err(error @ LaceError::ModuleNotFound { .. }) => refused = Some(error),
-            Err(error) => return Err(error.into()),
-        }
-    }
-    let ok = result.succeeded() && schematic.as_ref().is_none_or(|s| s.succeeded());
-    let mut operation = Operation::new(command_line(), started)
-        .with_builds(&builds)
-        .with_synthesis(&result);
-    if let Some(svg) = &schematic {
-        operation = operation.with_schematic(svg);
-    }
-    let report = record(&project, &toolchain, &operation, out);
-    if let Some(error) = refused {
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
+    let request = FlowRequest::Synthesize {
+        processor,
+        schematic: args.svg,
+        module: args.module.clone(),
+        open_viewer: args.open,
+    };
+    let outcome = run_flow(&toolchain, &mut project, &request, started, &printer, control)?;
+    // Um módulo fora do netlist e um RTL viewer que não abriu são erros do
+    // comando, depois do relatório gravado, como sempre foram.
+    if let Some(error) = outcome.schematic_error {
         return Err(error.into());
     }
-    // O RTL viewer: o HTML do netlist, aberto no navegador. Um erro aqui vem
-    // depois do relatório gravado, como o do Surfer no `sim --open`.
-    let mut rtl_viewer = None;
-    if args.open
-        && result.succeeded()
-        && let Some(netlist) = &result.netlist
-    {
-        let template = lace_core::rtl_viewer::template(&toolchain)?;
-        let html = lace_core::rtl_viewer::write(
-            &template,
-            netlist,
-            &format!("{} (RTL viewer)", result.top),
-        )?;
-        let opener = std::env::var(OPENER_ENV).ok().filter(|v| !v.is_empty());
-        if opener.is_none() {
-            lace_core::open_with_system(&html)?;
-        }
-        out.rtl_viewer(&html, opener.as_deref());
-        rtl_viewer = Some(html);
+    if let Some(error) = outcome.rtl_viewer_error {
+        return Err(error.into());
     }
     out.json(&SynthReport {
-        builds,
-        registered,
-        synthesis: Some(result),
-        schematic,
-        rtl_viewer,
-        report,
+        builds: outcome.builds,
+        registered: outcome.registered,
+        synthesis: outcome.synthesis,
+        schematic: outcome.schematic,
+        rtl_viewer: outcome.rtl_viewer,
+        report: outcome.report,
     })?;
-    Ok(ok)
+    Ok(outcome.succeeded)
 }
 
 /// Quem abre o RTL viewer no lugar do navegador. A extensão do VS Code a
 /// define (`vscode`) no terminal integrado: lá, o `lace synth --open` só
 /// grava o HTML, e ela abre o netlist numa aba.
 const OPENER_ENV: &str = "LACE_OPENER";
-
-/// Grava a operação no histórico do projeto, para `lace report`. Uma falha
-/// ao gravar não muda o resultado do comando: vira um aviso.
-fn record(
-    project: &Project,
-    toolchain: &Toolchain,
-    operation: &Operation,
-    out: &Output,
-) -> Option<String> {
-    match history::record(project, toolchain, operation) {
-        Ok(record) => {
-            out.recorded(&record.id);
-            Some(record.id)
-        }
-        Err(error) => {
-            out.report_not_saved(&error);
-            None
-        }
-    }
-}
 
 /// A linha de comando como o usuário a escreveu, para o relatório.
 fn command_line() -> String {

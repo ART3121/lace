@@ -7,14 +7,15 @@
 //! dicas vêm da trilha, em português.
 
 use std::io::{IsTerminal, Write};
-use std::time::Duration;
 
 use anyhow::bail;
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::{Control, RunningProcess, Severity, Toolchain, ViewerOptions};
+use lace_core::flows::WaveOpened;
+use lace_core::{Control, Severity, Toolchain};
+use lace_learn::flows;
 use lace_learn::{
-    DevExercise, Exercise, Finding, Grade, LearnError, Verdict, Workspace, check_track, grade,
-    load_track, tracks_dir,
+    DevExercise, Exercise, Finding, Grade, LearnError, Verdict, Workspace, check_track, load_track,
+    tracks_dir,
 };
 
 use crate::output::{BOLD, DIM, ERROR, OK, Output, WARNING, paint};
@@ -27,9 +28,6 @@ use crate::{Cli, LearnArgs, LearnCommand, LearnDevCommand};
 
 /// A pasta que o `lace learn init` cria sem nome.
 pub const DEFAULT_DIR: &str = "lace-learn";
-
-/// Quanto esperar para saber se o Surfer abriu.
-const SURFER_GRACE: Duration = Duration::from_millis(1500);
 
 pub fn run(cli: &Cli, args: &LearnArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     // Sem a saída ao vivo do testbench: o resumo dele é para a correção ler.
@@ -109,34 +107,40 @@ fn check(
     } else {
         vec![exercise(&workspace, name)?]
     };
-    let mut results = Vec::new();
-    for exercise in &exercises {
-        let grade = grade(&toolchain, &workspace, exercise, control)?;
-        workspace.record(&grade)?;
-        if out.is_text() {
-            if all {
-                let (style, word) = verdict_word(grade.verdict);
-                println(&format!("{:<10} {}", paint(style, word), exercise.name));
-            } else {
-                print_lines(&result_text(&grade, &workspace, exercise));
-            }
+    let text = out.is_text();
+    // O texto de cada resultado só precisa dos caminhos da pasta de
+    // exercícios, que não mudam: uma cópia serve enquanto o fluxo grava o
+    // estado na original.
+    let view = workspace.clone();
+    let mut on_grade = |grade: &Grade| {
+        if !text {
+            return;
         }
-        let cancelled = grade.verdict == Verdict::Cancelled;
-        results.push(grade);
-        if cancelled {
-            break;
+        if all {
+            let (style, word) = verdict_word(grade.verdict);
+            println(&format!("{:<10} {}", paint(style, word), grade.exercise));
+        } else if let Some(exercise) = exercises.iter().find(|e| e.name == grade.exercise) {
+            print_lines(&result_text(grade, &view, exercise));
         }
+    };
+    let outcome = flows::check(
+        &toolchain,
+        &mut workspace,
+        &exercises,
+        control,
+        &mut on_grade,
+    )?;
+    if text && all {
+        println(&format!(
+            "\n{} of {} exercises solved",
+            outcome.solved, outcome.total
+        ));
     }
-    let solved = workspace.solved_count();
-    let total = workspace.track().len();
-    if out.is_text() && all {
-        println(&format!("\n{solved} of {total} exercises solved"));
-    }
-    let ok = results.iter().all(Grade::solved);
+    let ok = outcome.succeeded();
     out.json(&LearnCheckReport {
-        results,
-        solved,
-        total,
+        results: outcome.results,
+        solved: outcome.solved,
+        total: outcome.total,
     })?;
     Ok(ok)
 }
@@ -247,43 +251,25 @@ fn wave(cli: &Cli, name: Option<&str>, out: &Output) -> anyhow::Result<bool> {
     let toolchain = cli.toolchain.resolve()?;
     let workspace = open(cli, Some(&toolchain))?;
     let exercise = exercise(&workspace, name)?;
-    let (surfer, layout) = open_wave(&toolchain, &workspace, &exercise)?;
-    out.message(
-        "Waveform opened in surfer-aurora",
-        &workspace.waveform(&exercise),
-    );
+    let opened = open_wave(&toolchain, &workspace, &exercise)?;
+    out.message("Waveform opened in surfer-aurora", &opened.waveform);
     out.json(&LearnWaveReport {
         exercise: exercise.name.clone(),
-        waveform: workspace.waveform(&exercise),
-        layout,
-        pid: surfer.id(),
+        waveform: opened.waveform,
+        layout: opened.layout,
+        pid: opened.pid,
     })?;
     Ok(true)
 }
 
-/// Abre a onda da última correção no Surfer, com o layout do exercício.
+/// Abre a onda da última correção no Surfer, com o layout do exercício
+/// (`lace_learn::flows::open_wave`).
 pub(crate) fn open_wave(
     toolchain: &Toolchain,
     workspace: &Workspace,
     exercise: &Exercise,
-) -> anyhow::Result<(RunningProcess, Option<Utf8PathBuf>)> {
-    let wave = workspace.waveform(exercise);
-    if !wave.is_file() {
-        bail!(
-            "Exercise {} has no waveform yet: check it first with: lace learn check {}",
-            exercise.name,
-            exercise.name
-        );
-    }
-    let layout = workspace
-        .exercise_dir(exercise)
-        .join(lace_learn::layout::LAYOUT_FILE);
-    let mut options = ViewerOptions::default();
-    let layout = layout.is_file().then_some(layout);
-    options.layout = layout.clone();
-    let mut surfer = lace_core::open_waveform(toolchain, &wave, &options)?;
-    surfer.ensure_started(SURFER_GRACE)?;
-    Ok((surfer, layout))
+) -> anyhow::Result<WaveOpened> {
+    Ok(flows::open_wave(toolchain, workspace, exercise)?)
 }
 
 fn dev_check(
@@ -551,6 +537,9 @@ pub fn error_info(error: &LearnError) -> (&'static str, Option<String>) {
             Some("Choose another folder: lace learn init <folder>".into())
         }
         LearnError::TrackNotFound { .. } => Some("The installed track is: verilog".into()),
+        LearnError::NoWaveform { exercise, .. } => {
+            Some(format!("Check it first with: lace learn check {exercise}"))
+        }
         _ => None,
     };
     (error.code(), hint)

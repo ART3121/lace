@@ -1,0 +1,1993 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Request",
+  "description": "O que um cliente pede. Em JSON, `{\"method\": \"...\", \"params\": {...}}`;\num método sem parâmetros vai sem `params`. Os caminhos são absolutos.",
+  "oneOf": [
+    {
+      "description": "O primeiro pedido de uma sessão: quem é o cliente. Resposta:\n[`ServerInfo`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "initialize"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "client": {
+              "description": "O cliente e a versão dele (`lace-vscode 0.1.0`).",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          }
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Encerrar a sessão: os pedidos em andamento são cancelados.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "shutdown"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
+      "description": "Cria `<parent>/<name>/<name>.spf`. Resposta: o [`ProjectStatus`] do\nprojeto novo.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.create"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "parent": {
+              "description": "A pasta de cima, que precisa existir.",
+              "type": "string"
+            },
+            "name": {
+              "description": "O nome do projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "parent",
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "O retrato do projeto. Resposta: [`ProjectStatus`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.status"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O `.spf` ou a pasta do projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Registra arquivos Verilog (criando os que não existem). Resposta: um\n[`AddedFile`] por arquivo.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.add"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "files": {
+              "description": "Os arquivos.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "testbench": {
+              "description": "Registrar como testbench em vez de decidir pelo conteúdo.",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "project",
+            "files"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Tira arquivos do projeto, sem apagar. Resposta: [`RemoveOutcome`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.remove"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "files": {
+              "description": "Os arquivos.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "project",
+            "files"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Escolhe o topo por arquivo ou por nome de módulo; sem alvo, só\nconsulta. Resposta: [`TopOutcome`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.top"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "target": {
+              "description": "O arquivo ou o módulo.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Escolhe o testbench da simulação do projeto. Resposta:\n[`ProjectStatus`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.testbench"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "path": {
+              "description": "O testbench.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project",
+            "path"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Muda a posição de um arquivo na lista dele. Resposta: a lista, na\nordem nova ([`ProjectFile`]).",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.order"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "file": {
+              "description": "O arquivo.",
+              "type": "string"
+            },
+            "position": {
+              "description": "Para onde.",
+              "$ref": "#/$defs/ListPosition"
+            }
+          },
+          "required": [
+            "project",
+            "file",
+            "position"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Move ou renomeia um arquivo ou pasta do projeto, mantendo o `.spf` em\ndia; com `after`, só registra um movimento já feito. Resposta:\n[`MovedPath`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.move"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "from": {
+              "description": "De onde.",
+              "type": "string"
+            },
+            "to": {
+              "description": "Para onde (o caminho final).",
+              "type": "string"
+            },
+            "after": {
+              "description": "O movimento já aconteceu fora do Lace.",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "project",
+            "from",
+            "to"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Converte um projeto da estrutura do YANC 6.x. Resposta:\n[`LayoutConversion`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.convert"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Um nome serve para um projeto novo? Resposta: [`NameCheck`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "project.check_name"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "O nome.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Um nome serve para um processador novo? Resposta: [`NameCheck`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "processor.check_name"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "O nome.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Cria um processador. Resposta: o [`Processor`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "processor.add"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "spec": {
+              "description": "O processador; só `name` e `language` são obrigatórios.",
+              "$ref": "#/$defs/NewProcessor"
+            }
+          },
+          "required": [
+            "project",
+            "spec"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Muda os parâmetros de simulação de um processador. Resposta: o\n[`Processor`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "processor.set"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "name": {
+              "description": "O processador.",
+              "type": "string"
+            },
+            "config": {
+              "description": "O que muda (`None` mantém).",
+              "$ref": "#/$defs/ProcessorConfig"
+            }
+          },
+          "required": [
+            "project",
+            "name",
+            "config"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Tira um processador do projeto. Resposta: [`ProcessorRemoval`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "processor.remove"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "name": {
+              "description": "O processador.",
+              "type": "string"
+            },
+            "to_trash": {
+              "description": "Mandar a pasta dele para a lixeira do sistema.",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "project",
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Os valores de uma porta de saída da última simulação do processador.\nResposta: os valores.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "processor.outputs"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "processor": {
+              "description": "O processador.",
+              "type": "string"
+            },
+            "port": {
+              "description": "A porta.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "project",
+            "processor",
+            "port"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Roda um fluxo ([`FlowRequest`]). Enquanto roda, as notificações\n(`phase`, `events`, `output_omitted`, `build`); no fim, o\n[`FlowOutcome`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "flow.run"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "request": {
+              "description": "O fluxo.",
+              "$ref": "#/$defs/FlowRequest"
+            },
+            "options": {
+              "description": "As opções da interface; sem elas, o comando é o da CLI\nequivalente, a onda abre em janela e o RTL viewer no navegador.",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/FlowOptions"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "output": {
+              "description": "Receber a saída das ferramentas ao vivo (`events`). Sem isso, o\n`vvp` roda com buffer, que é mais rápido.",
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "required": [
+            "project",
+            "request"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Abre uma onda no surfer-aurora. Resposta: [`WaveOpened`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "wave.open"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto, para uma onda do projeto; `None` para um arquivo.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "request": {
+              "description": "Qual onda e com que layout.",
+              "$ref": "#/$defs/WaveRequest"
+            }
+          },
+          "required": [
+            "request"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "A árvore de sinais do testbench do projeto, com a escolha gravada.\nResposta: [`WaveSignals`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "wave.signals"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Muda a escolha de sinais. Resposta: [`WaveChoiceOutcome`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "wave.choose"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "choice": {
+              "description": "A mudança.",
+              "$ref": "#/$defs/WaveChoice"
+            }
+          },
+          "required": [
+            "project",
+            "choice"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Apaga o layout salvo de uma onda. Resposta: se havia.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "wave.reset_layout"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "waveform": {
+              "description": "A onda.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "waveform"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Os relatórios do projeto, do mais novo para o mais antigo. Resposta:\n[`RunSummary`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "history.list"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "limit": {
+              "description": "Quantos, no máximo.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint",
+              "minimum": 0,
+              "default": null
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Um relatório (o mais novo sem `id`). Resposta: [`ReportView`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "history.show"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "id": {
+              "description": "`run-000042` ou `42`.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Compara dois relatórios. Resposta: [`RunComparison`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "history.compare"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "id": {
+              "description": "O atual (o mais novo sem ele).",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "against": {
+              "description": "A referência (o anterior comparável sem ela).",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Quais relatórios uma limpeza apagaria, sem apagar. Resposta: os\nidentificadores.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "history.plan_cleanup"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "cleanup": {
+              "description": "A regra.",
+              "$ref": "#/$defs/Cleanup"
+            }
+          },
+          "required": [
+            "project",
+            "cleanup"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Apaga exatamente estes relatórios. Resposta: [`CleanOutcome`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "history.clean"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "ids": {
+              "description": "Os identificadores (do plano).",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "project",
+            "ids"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "O bundle e as ferramentas. Resposta: [`ToolchainInfo`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "toolchain.info"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
+      "description": "Confere o SHA-256 dos executáveis. Resposta: os que não conferem\n([`FileMismatch`]; vazio, todos conferem).",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "toolchain.verify"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
+      "description": "Os recursos experimentais e se estão ligados. Resposta:\n[`ExperimentalInfo`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "experimental.list"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
+      "description": "Liga ou desliga um recurso experimental. Resposta:\n[`ExperimentalInfo`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "experimental.set"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "feature": {
+              "description": "O recurso (`fpga`).",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Ligado.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "feature",
+            "enabled"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "As placas conhecidas, ou uma. Resposta: [`Board`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.boards"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "board": {
+              "description": "Uma placa; `None`, todas.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          }
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "O `fpga.json` do projeto. Resposta: o [`FpgaConfig`], ou `null`.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.config"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Grava o `fpga.json`. Resposta: nada.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.config_set"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "config": {
+              "description": "A configuração.",
+              "$ref": "#/$defs/FpgaConfig"
+            }
+          },
+          "required": [
+            "project",
+            "config"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Confere o `fpga.json` contra a placa e o topo. Resposta:\n[`Prepared`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.check"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Os módulos do projeto que podem ir para a placa. Resposta: os\nnomes, na ordem dos arquivos.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.modules"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "O arquivo de gravação da última compilação e se serve. Resposta:\n[`BitstreamState`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.status"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Os cabos de gravação ligados. Resposta: os nomes.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.cables"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
+      "description": "As versões: este Lace, a última release, o bundle, cada componente.\nResposta: o relatório do instalador.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "update.check"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
+      "description": "Atualiza a instalação. Enquanto roda, `install`; no fim, o\nrelatório do instalador. Com `updated`, o servidor encerra em\nseguida: o binário dele foi trocado.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "update.apply"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "full": {
+              "description": "O instalador inteiro, sem tentar por componentes.",
+              "type": "boolean",
+              "default": false
+            },
+            "from": {
+              "description": "Um instalador no disco, sem rede.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          }
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Instala componentes do bundle. Enquanto roda, `install`; no fim, o\nrelatório do instalador.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "install.add"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "components": {
+              "description": "Os componentes.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "components"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Corrige um exercício do `lace learn` (ou todos). Resposta: o\nrelatório da correção do lace-learn.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "learn.check"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "root": {
+              "description": "A pasta de exercícios, ou uma pasta dentro dela.",
+              "type": "string"
+            },
+            "exercise": {
+              "description": "O exercício; `None`, o atual.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "all": {
+              "description": "Todos os exercícios.",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "root"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    }
+  ],
+  "$defs": {
+    "ListPosition": {
+      "description": "Para onde [`Project::reorder_file`] leva um arquivo na lista dele. Em\nJSON: `{\"kind\": \"first\"}`, `{\"kind\": \"before\", \"path\": \"rtl/b.v\"}`.",
+      "oneOf": [
+        {
+          "description": "O primeiro da lista.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "first"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "O último.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "last"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Logo antes deste arquivo, da mesma lista.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "before"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "Logo depois deste arquivo, da mesma lista.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "after"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        }
+      ]
+    },
+    "NewProcessor": {
+      "description": "Parâmetros do cabeçalho de um processador novo.\n\nOs padrões são os da AURORA (`js/project/processor_defaults.ts`): o float\nestreito do SAPHO, 23 = 16 + 6 + 1 bits. No fluxo C só as portas vão para\no fonte; o resto fica com o que o `cppcomp` foi compilado para assumir.\n\nEm JSON, só `name` e `language` são obrigatórios: um campo ausente fica\ncom o padrão de [`NewProcessor::new`], e, sem `nubits`, com `nbmant` ou\n`nbexpo` dados, `nubits` vira `nbmant + nbexpo + 1`\n([`NewProcessor::nubits_for`]), a única largura que o `asmcomp` aceita.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Nome do processador: letras, dígitos e `_`, começando por letra ou `_`.",
+          "type": "string"
+        },
+        "language": {
+          "description": "Linguagem do fonte-modelo.",
+          "$ref": "#/$defs/Language"
+        },
+        "nubits": {
+          "description": "`#NUBITS`: largura da palavra de dados, em bits. Só C±.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 23
+        },
+        "nbmant": {
+          "description": "`#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE\n754). Só C±.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 16
+        },
+        "nbexpo": {
+          "description": "`#NBEXPO`: bits de expoente do ponto flutuante. Só C±.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 6
+        },
+        "nugain": {
+          "description": "`#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o\n`cmmcomp` recusa (um divisor genérico viraria o caminho crítico da\nULA). Só C±; o fonte só traz a diretiva quando difere de 128, o\npadrão do YANC.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 128
+        },
+        "ndstac": {
+          "description": "`#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão:\nsem a diretiva, e o `asmcomp` calcula a profundidade pelo programa.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0,
+          "default": null
+        },
+        "sdepth": {
+          "description": "`#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±.\n`None`, o padrão: sem a diretiva, calculada pelo programa.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0,
+          "default": null
+        },
+        "input_ports": {
+          "description": "`#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 1
+        },
+        "output_ports": {
+          "description": "`#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 1
+        }
+      },
+      "required": [
+        "name",
+        "language"
+      ]
+    },
+    "Language": {
+      "description": "Linguagem do programa de um processador. Em JSON: `\"cmm\"` ou `\"cpp\"`.",
+      "oneOf": [
+        {
+          "description": "C±, compilado pelo `cmmcomp`.",
+          "type": "string",
+          "const": "cmm"
+        },
+        {
+          "description": "C, compilado pelo `cppcomp`. A AURORA e o YANC chamam de \"cpp\" e\nusam a extensão `.cpp`.",
+          "type": "string",
+          "const": "cpp"
+        }
+      ]
+    },
+    "ProcessorConfig": {
+      "description": "Parâmetros de simulação de um processador, para\n[`Project::configure_processor`]. `None` em um campo mantém o valor\natual.",
+      "type": "object",
+      "properties": {
+        "frequency_mhz": {
+          "description": "Frequência de operação em MHz (`clk` no `.spf`).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "clocks": {
+          "description": "Clocks que o testbench gerado simula (`numClocks` no `.spf`).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "show_arrays": {
+          "description": "Exportar arrays para a simulação (`showArrays` no `.spf`).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "FlowRequest": {
+      "description": "O que o cliente pede. Os alvos são sempre explícitos: a CLI resolve o\nprocessador da pasta atual antes de montar o pedido.",
+      "oneOf": [
+        {
+          "description": "Compila os processadores pedidos (vazio: todos), mesmo que um falhe,\npara mostrar todos os erros. Registra no `.spf` o que gerou e grava\nrelatório.",
+          "type": "object",
+          "properties": {
+            "processors": {
+              "description": "Os processadores; vazio é todos os do projeto.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            },
+            "flow": {
+              "type": "string",
+              "const": "build"
+            }
+          },
+          "required": [
+            "flow"
+          ]
+        },
+        {
+          "description": "Verifica o Verilog que está no disco, sem compilar os processadores.\nGrava relatório.",
+          "type": "object",
+          "properties": {
+            "file": {
+              "description": "Só os módulos deste arquivo como raiz.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "processor": {
+              "description": "Só este processador: o Verilog dele e o testbench que o YANC\ngerou, no lugar do projeto.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "lint": {
+              "description": "Acrescenta o `verilator --lint-only`.",
+              "type": "boolean",
+              "default": false
+            },
+            "flow": {
+              "type": "string",
+              "const": "check"
+            }
+          },
+          "required": [
+            "flow"
+          ]
+        },
+        {
+          "description": "A hierarquia do design e de cada testbench, elaborada pelo Icarus,\ndo que está no disco. Não compila nem grava relatório.",
+          "type": "object",
+          "properties": {
+            "processor": {
+              "description": "Só este processador.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "flow": {
+              "type": "string",
+              "const": "hierarchy"
+            }
+          },
+          "required": [
+            "flow"
+          ]
+        },
+        {
+          "description": "Compila os processadores que faltam (parando no primeiro que falhar)\ne simula o processador ou o projeto. Grava relatório; abre a onda se\npedido.",
+          "type": "object",
+          "properties": {
+            "processor": {
+              "description": "Simula este processador com o testbench do YANC; `None`, a\nsimulação do projeto.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "testbench": {
+              "description": "Troca o testbench da simulação do projeto antes de simular\n(grava o `.spf`).",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "simulator": {
+              "description": "Icarus ou Verilator. Na simulação rápida, só vale para um\ntestbench cocotb.",
+              "$ref": "#/$defs/Simulator"
+            },
+            "fast": {
+              "description": "A simulação rápida: sem onda, com o testbench Verilog no\nVerilator.",
+              "type": "boolean",
+              "default": false
+            },
+            "timeout_s": {
+              "description": "Prazo do passo `simulate`, em segundos.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0,
+              "default": null
+            },
+            "open_wave": {
+              "description": "Abrir a onda se a simulação a entregar, conforme\n[`FlowOptions::wave`]. A simulação rápida não tem onda.",
+              "type": "boolean",
+              "default": false
+            },
+            "flow": {
+              "type": "string",
+              "const": "simulate"
+            }
+          },
+          "required": [
+            "flow",
+            "simulator"
+          ]
+        },
+        {
+          "description": "Compila os processadores que faltam e sintetiza o processador ou o\ntopo do projeto com o Yosys. Grava relatório.",
+          "type": "object",
+          "properties": {
+            "processor": {
+              "description": "Sintetiza só este processador; `None`, o topo do projeto.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "schematic": {
+              "description": "Desenha o esquemático (Yosys `show` e Graphviz) depois.",
+              "type": "boolean",
+              "default": false
+            },
+            "module": {
+              "description": "O módulo do esquemático; `None`, o topo da síntese.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "open_viewer": {
+              "description": "Grava o HTML do RTL viewer ao lado do netlist e o abre conforme\n[`FlowOptions::viewer_opener`].",
+              "type": "boolean",
+              "default": false
+            },
+            "flow": {
+              "type": "string",
+              "const": "synthesize"
+            }
+          },
+          "required": [
+            "flow"
+          ]
+        },
+        {
+          "description": "Desenha outro módulo de um netlist que já existe, sem sintetizar de\nnovo. Sem relatório.",
+          "type": "object",
+          "properties": {
+            "netlist": {
+              "description": "O `hierarchy.json` da síntese.",
+              "type": "string"
+            },
+            "module": {
+              "description": "O módulo.",
+              "type": "string"
+            },
+            "bus_widths": {
+              "description": "Escrever a largura dos barramentos nas arestas.",
+              "type": "boolean",
+              "default": true
+            },
+            "flow": {
+              "type": "string",
+              "const": "schematic"
+            }
+          },
+          "required": [
+            "flow",
+            "netlist",
+            "module"
+          ]
+        },
+        {
+          "description": "Compila os processadores e depois o projeto para a placa do\n`fpga.json`, pelo Quartus. Recurso experimental; sem relatório.",
+          "type": "object",
+          "properties": {
+            "flow": {
+              "type": "string",
+              "const": "fpga_build"
+            }
+          },
+          "required": [
+            "flow"
+          ]
+        },
+        {
+          "description": "Grava na placa o `.sof` da última compilação. Recurso experimental;\nsem relatório.",
+          "type": "object",
+          "properties": {
+            "cable": {
+              "description": "O cabo; `None`, o primeiro que o Quartus lista.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "flow": {
+              "type": "string",
+              "const": "fpga_program"
+            }
+          },
+          "required": [
+            "flow"
+          ]
+        }
+      ]
+    },
+    "Simulator": {
+      "description": "Qual simulador usar. Em JSON: `\"icarus\"` ou `\"verilator\"`.",
+      "oneOf": [
+        {
+          "description": "Icarus Verilog (`iverilog` + `vvp`): compila em segundos, simula\ndevagar. O padrão.",
+          "type": "string",
+          "const": "icarus"
+        },
+        {
+          "description": "Verilator: compila o modelo para C++ (dezenas de segundos na primeira\nvez; o `obj_dir` é reaproveitado depois), simula rápido.",
+          "type": "string",
+          "const": "verilator"
+        }
+      ]
+    },
+    "FlowOptions": {
+      "description": "O que é da interface, não do fluxo.",
+      "type": "object",
+      "properties": {
+        "command": {
+          "description": "O texto do comando para o histórico e para o console (`lace sim -p\nsoma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um\ncliente sem linha de comando monta com [`FlowRequest::command_line`].",
+          "type": "string"
+        },
+        "wave": {
+          "description": "Como abrir a onda quando o pedido tem `open_wave`.",
+          "$ref": "#/$defs/WavePolicy",
+          "default": "window"
+        },
+        "viewer_opener": {
+          "description": "Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do\nsistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o\n`LACE_OPENER=vscode` do terminal da extensão do VS Code).",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "command"
+      ]
+    },
+    "WavePolicy": {
+      "description": "Como um fluxo abre a onda que a simulação entregou.",
+      "oneOf": [
+        {
+          "description": "Não abre: o cliente mostra a onda por conta própria (a aba do\nStudio). O caminho fica em [`SimulationResult::waveform`].",
+          "type": "string",
+          "const": "none"
+        },
+        {
+          "description": "Abre no surfer-aurora, em janela, com o layout dos processadores\nSAPHO ([`open_wave`]).",
+          "type": "string",
+          "const": "window"
+        }
+      ]
+    },
+    "WaveRequest": {
+      "description": "O pedido de [`open_wave`].",
+      "type": "object",
+      "properties": {
+        "source": {
+          "description": "Qual onda.",
+          "$ref": "#/$defs/WaveSource"
+        },
+        "layout": {
+          "description": "O layout.",
+          "$ref": "#/$defs/LayoutPolicy",
+          "default": {
+            "kind": "generated"
+          }
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "WaveSource": {
+      "description": "Qual onda abrir.",
+      "oneOf": [
+        {
+          "description": "Um arquivo VCD, FST ou GHW.",
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "O arquivo.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "file"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "A onda da simulação de um processador do projeto, ou, sem\nprocessador, a da simulação do projeto\n([`waveform_path`](crate::waveform_path)).",
+          "type": "object",
+          "properties": {
+            "processor": {
+              "description": "O processador; `None`, o projeto.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "kind": {
+              "type": "string",
+              "const": "project"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "LayoutPolicy": {
+      "description": "O que fazer com o layout dos processadores SAPHO ao abrir a onda.",
+      "oneOf": [
+        {
+          "description": "O layout gerado (ou o salvo no projeto, se o usuário salvou).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "generated"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Nenhum: a onda crua.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Apaga o layout salvo no projeto e abre com o gerado.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reset"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Um arquivo de estado ou de comandos do Surfer (o layout de um\nexercício do lace-learn).",
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "O arquivo (`.surf.ron` ou `.sucl`).",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "file"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        }
+      ]
+    },
+    "WaveChoice": {
+      "description": "Uma mudança na escolha de sinais da onda do testbench do projeto\n([`choose_signals`]).",
+      "oneOf": [
+        {
+          "description": "Todos os sinais de novo: a escolha fica vazia e o arquivo sai.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Acrescenta sinais e escopos (caminhos como `tb.dut.q`).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "add"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "paths"
+          ]
+        },
+        {
+          "description": "Tira sinais e escopos.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "remove"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "paths"
+          ]
+        }
+      ]
+    },
+    "Cleanup": {
+      "description": "Quais relatórios [`plan_cleanup`] escolhe para apagar. Em JSON:\n`{\"kind\": \"all\"}`, `{\"kind\": \"keep_latest\", \"value\": 5}`,\n`{\"kind\": \"reports\", \"value\": [\"run-000042\", \"7\"]}`.",
+      "oneOf": [
+        {
+          "description": "Todos.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "all"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Todos menos os `n` mais novos.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "keep_latest"
+            },
+            "value": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        },
+        {
+          "description": "Estes, como o usuário escreveu (`run-000042` ou `42`).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reports"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ]
+        }
+      ]
+    },
+    "FpgaConfig": {
+      "description": "O que o `fpga.json` guarda.",
+      "type": "object",
+      "properties": {
+        "board": {
+          "description": "A placa ([`super::board()`]).",
+          "type": "string"
+        },
+        "top": {
+          "description": "O módulo que vai para a placa. Sem ele, o topo do projeto.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "connect": {
+          "description": "As ligações, na ordem do arquivo.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "board"
+      ]
+    }
+  }
+}

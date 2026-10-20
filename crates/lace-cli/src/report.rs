@@ -42,6 +42,10 @@ macro_rules! reports {
             vec![
                 $(($name, schema_of::<$type>()),)*
                 ("events", schema_of::<EventLine>()),
+                // O protocolo do lace serve, nas duas vistas: os pedidos (campos
+                // opcionais onde o core tem um valor fixo) e as respostas.
+                ("protocol-request", lace_core::protocol::request_schema()),
+                ("protocol-response", lace_core::protocol::response_schema()),
             ]
         }
     };
@@ -81,9 +85,9 @@ reports! {
     "report-clean" => ReportCleanReport,
     "report-compare" => RunComparison,
     "tools" => ToolsReport,
-    "install" => InstallReport,
-    "uninstall" => UninstallReport,
-    "update" => crate::update::UpdateReport,
+    "install" => lace_installer::add::InstallReport,
+    "uninstall" => lace_installer::uninstall::UninstallReport,
+    "update" => lace_installer::update::UpdateReport,
     "learn-init" => LearnInitReport,
     "learn-check" => LearnCheckReport,
     "learn-list" => LearnListReport,
@@ -459,29 +463,6 @@ pub enum ToolEntry {
     },
 }
 
-/// `lace install`.
-#[derive(Serialize, JsonSchema)]
-pub struct InstallReport {
-    /// A pasta da instalação.
-    #[schemars(with = "String")]
-    pub prefix: Utf8PathBuf,
-    /// Os aplicativos do bundle instalados agora.
-    pub components: Vec<String>,
-    /// Os que entraram nesta chamada (com os que eles exigem).
-    pub added: Vec<String>,
-}
-
-/// `lace uninstall`.
-#[derive(Serialize, JsonSchema)]
-pub struct UninstallReport {
-    /// A pasta da instalação.
-    #[schemars(with = "String")]
-    pub prefix: Utf8PathBuf,
-    /// `true`: a pasta e o atalho já saíram (Linux, macOS). `false`: o
-    /// desinstalador do Windows foi aberto e termina depois que o `lace` sai.
-    pub removed: bool,
-}
-
 /// Qualquer comando que não conseguiu rodar (código de saída 2).
 #[derive(Serialize, JsonSchema)]
 pub struct ErrorReport {
@@ -489,18 +470,9 @@ pub struct ErrorReport {
     pub error: ErrorInfo,
 }
 
-/// Um erro do Lace.
-#[derive(Serialize, JsonSchema)]
-pub struct ErrorInfo {
-    /// Código estável, em `snake_case` (`no_testbench`, `component_missing`),
-    /// ou `cli` para um erro da própria linha de comando.
-    pub code: String,
-    /// A mensagem, em inglês.
-    pub message: String,
-    /// O comando que resolve, quando há um.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub hint: Option<String>,
-}
+/// Um erro do Lace: o ErrorInfo do core, com code, message, hint (o comando
+/// que resolve) e, quando existem, os campos da variante (data).
+pub use lace_core::ErrorInfo;
 
 /// `lace learn init`: a pasta de exercícios criada.
 #[derive(Serialize, JsonSchema)]

@@ -22,6 +22,7 @@
 use std::collections::HashMap;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use schemars::JsonSchema;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -31,7 +32,7 @@ use crate::process;
 use crate::toolchain::{Tool, Toolchain};
 
 /// Direção de uma porta.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum PortDirection {
@@ -44,7 +45,7 @@ pub enum PortDirection {
 }
 
 /// Uma porta de um módulo.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
 pub struct Port {
     /// Nome.
@@ -58,12 +59,13 @@ pub struct Port {
 }
 
 /// Um módulo e as portas dele, na ordem da declaração.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
 pub struct ModuleInterface {
     /// Nome do módulo.
     pub name: String,
     /// O arquivo que o declara.
+    #[schemars(with = "String")]
     pub file: Utf8PathBuf,
     /// As portas.
     pub ports: Vec<Port>,

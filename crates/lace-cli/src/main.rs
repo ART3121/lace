@@ -3,6 +3,7 @@
 //! negócio mora aqui.
 
 mod cancel;
+mod chat;
 mod commands;
 mod experimental;
 mod fpga;
@@ -10,11 +11,12 @@ mod install;
 mod installation;
 mod learn;
 mod learn_tui;
+mod mcp;
 mod meter;
 mod output;
 mod progress;
-mod release;
 mod report;
+mod serve;
 mod settings;
 mod uninstall;
 mod update;
@@ -184,6 +186,12 @@ enum Command {
     Fpga(FpgaCommand),
     /// Turn experimental components on and off (no subcommand: list them)
     Experimental(ExperimentalArgs),
+    /// Serve the Lace API to another program over stdin and stdout (JSON-RPC 2.0, one message per line)
+    Serve(serve::ServeArgs),
+    /// Experimental, off by default: serve the Lace API to an AI agent as an MCP server over stdin and stdout (lace experimental enable assistant)
+    Mcp(mcp::McpArgs),
+    /// Experimental, off by default: chat with the Lace assistant (Claude Code with the Lace tools) in the terminal (lace experimental enable assistant)
+    Chat(chat::ChatArgs),
     /// Show the bundled tools and their versions
     Tools {
         /// Verify each executable against the manifest SHA-256
@@ -600,7 +608,12 @@ fn main() -> ExitCode {
         output::Mode::Text
     };
     let out = output::Output::new(mode, cli.verbose > 0);
-    let cancel = cancel_on_signals();
+    // O `lace serve` encerra do jeito dele no primeiro sinal (cancela,
+    // espera, sai); sair na hora no segundo deixaria o que roda órfão.
+    let cancel = cancel_on_signals(!matches!(
+        cli.command,
+        Command::Serve(_) | Command::Mcp(_) | Command::Chat(_)
+    ));
     cancel::set(cancel.clone());
     let control = out.control(cancel.clone());
     // A consulta da última versão roda enquanto o comando roda.
@@ -632,6 +645,9 @@ impl Command {
             Command::Update { .. }
                 | Command::Uninstall { .. }
                 | Command::Setup { .. }
+                | Command::Serve(_)
+                | Command::Mcp(_)
+                | Command::Chat(_)
                 | Command::Completions { .. }
         )
     }
@@ -717,12 +733,12 @@ fn capitalize(text: &str) -> String {
 /// O pedido de cancelamento que o Ctrl+C (SIGINT) e o SIGTERM fazem; no
 /// Unix, também o SIGHUP de um terminal fechado. O primeiro sinal pede o
 /// cancelamento: o Core encerra a ferramenta que roda, com tudo o que ela
-/// iniciou, e o comando termina mostrando o que chegou a rodar. O segundo
-/// sai na hora, com 130.
+/// iniciou, e o comando termina mostrando o que chegou a rodar. Com
+/// `exit_on_second`, o segundo sai na hora, com 130.
 ///
 /// Sem isto, o sinal mataria só o Lace: as ferramentas rodam num grupo de
 /// processos próprio e continuariam rodando sozinhas.
-fn cancel_on_signals() -> CancelToken {
+fn cancel_on_signals(exit_on_second: bool) -> CancelToken {
     use signal_hook::consts::signal::{SIGINT, SIGTERM};
     let flag = Arc::new(AtomicBool::new(false));
     #[cfg(unix)]
@@ -732,12 +748,17 @@ fn cancel_on_signals() -> CancelToken {
     for signal in signals {
         // A ordem importa: a saída imediata confere a flag antes de a
         // segunda chamada marcá-la, então só dispara a partir do segundo sinal.
-        let registered = signal_hook::flag::register_conditional_shutdown(
-            signal,
-            i32::from(EXIT_CANCELLED),
-            Arc::clone(&flag),
-        )
-        .and_then(|_| signal_hook::flag::register(signal, Arc::clone(&flag)));
+        let registered = if exit_on_second {
+            signal_hook::flag::register_conditional_shutdown(
+                signal,
+                i32::from(EXIT_CANCELLED),
+                Arc::clone(&flag),
+            )
+            .map(|_| ())
+        } else {
+            Ok(())
+        }
+        .and_then(|()| signal_hook::flag::register(signal, Arc::clone(&flag)));
         if let Err(error) = registered {
             tracing::warn!(signal, %error, "No signal handler, Ctrl+C will not cancel");
         }
