@@ -438,6 +438,17 @@ export type Finding =
     }
   | {
       kind: 'reset_only';
+    }
+  | {
+      /**
+       * O sinal (`modulo.sinal` quando é de um submódulo).
+       */
+      signal: string;
+      /**
+       * A linha do `always` que gerou o latch, no arquivo do aluno.
+       */
+      line: number | null;
+      kind: 'latch_inferred';
     };
 /**
  * Como terminou a correção.
@@ -2787,11 +2798,17 @@ export interface Grade {
    */
   reset_mismatches: number | null;
   /**
-   * O que se percebeu sobre a causa do erro.
+   * A primeira amostra errada, com as entradas e as saídas.
+   */
+  counterexample: Counterexample | null;
+  /**
+   * O que se percebeu sobre a causa do erro, e o latch que a síntese
+   * achou (este, também com o exercício resolvido).
    */
   findings: Finding[];
   /**
-   * Os erros e avisos dos compiladores sobre o código do aluno.
+   * Os erros e avisos dos compiladores sobre o código do aluno, com os
+   * avisos do lint do Verilator quando ele está instalado.
    */
   diagnostics: Diagnostic[];
   /**
@@ -2836,6 +2853,84 @@ export interface OutputCheck {
    * Das amostras erradas, quantas tinham bit em X ou Z.
    */
   unknown: number;
+}
+/**
+ * A primeira amostra errada: o que entrou e o que saiu, para o aluno
+ * refazer o caso de cabeça. Vem das linhas `first` do resumo; um `tb.v`
+ * escrito à mão que não as escreve fica sem.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Counterexample".
+ */
+export interface Counterexample {
+  /**
+   * O instante da amostra, em ns.
+   */
+  time_ns: number;
+  /**
+   * No sequencial, o ciclo (a partir de 0).
+   */
+  cycle: number | null;
+  /**
+   * As entradas nessa amostra, sem o clock.
+   */
+  inputs: SignalValue[];
+  /**
+   * Cada saída nessa amostra: a esperada e a do aluno.
+   */
+  outputs: OutputValue[];
+}
+/**
+ * O valor de uma entrada no contraexemplo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SignalValue".
+ */
+export interface SignalValue {
+  /**
+   * A porta.
+   */
+  name: string;
+  /**
+   * Os bits, do mais significativo ao menos, com `x` e `z`.
+   */
+  bits: string;
+  /**
+   * O valor para ler: `1`, `4'b0101 (5)`, `16'h00ff (255)`.
+   */
+  text: string;
+}
+/**
+ * Uma saída no contraexemplo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "OutputValue".
+ */
+export interface OutputValue {
+  /**
+   * A porta.
+   */
+  name: string;
+  /**
+   * Os bits que a referência deu.
+   */
+  expected_bits: string;
+  /**
+   * Os bits que o módulo do aluno deu.
+   */
+  actual_bits: string;
+  /**
+   * O esperado, para ler.
+   */
+  expected: string;
+  /**
+   * O do aluno, para ler.
+   */
+  actual: string;
+  /**
+   * Se esta saída errou nessa amostra.
+   */
+  wrong: boolean;
 }
 /**
  * Um exercício conferido.

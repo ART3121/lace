@@ -376,6 +376,11 @@ fn result_text(grade: &Grade, workspace: &Workspace, exercise: &Exercise) -> Str
                     ),
                 );
             }
+            if let Some(first) = &grade.counterexample {
+                for l in counterexample_lines(first) {
+                    line(&mut text, format!("  {l}"));
+                }
+            }
         }
         Verdict::TimedOut => line(
             &mut text,
@@ -436,8 +441,40 @@ pub(crate) fn finding_text(finding: &Finding) -> String {
             format!("{output} is X or Z in every wrong sample: is it assigned?")
         }
         Finding::ResetOnly => "It only goes wrong while the reset is active: check what the reset does (synchronous or asynchronous) and the value after it.".to_owned(),
+        Finding::LatchInferred { signal, line } => {
+            let at = line.map(|l| format!(", line {l}")).unwrap_or_default();
+            format!(
+                "{signal} keeps its old value when no branch assigns it: that is a latch{at}. In a combinational always, give it a value in every branch, or a default before the if or case."
+            )
+        }
         _ => String::new(),
     }
+}
+
+/// O contraexemplo em linhas de texto: o instante, as entradas e cada
+/// saída, com a esperada e a do aluno.
+pub(crate) fn counterexample_lines(first: &lace_learn::Counterexample) -> Vec<String> {
+    let when = match first.cycle {
+        Some(cycle) => format!("at {} ns, cycle {cycle}", first.time_ns),
+        None => format!("at {} ns", first.time_ns),
+    };
+    let mut lines = vec![format!("First wrong sample, {when}:")];
+    if !first.inputs.is_empty() {
+        let inputs: Vec<String> = first
+            .inputs
+            .iter()
+            .map(|i| format!("{} = {}", i.name, i.text))
+            .collect();
+        lines.push(format!("  inputs   {}", inputs.join(", ")));
+    }
+    for o in &first.outputs {
+        let mark = if o.wrong { "  <- wrong" } else { "" };
+        lines.push(format!(
+            "  {:<8} expected {}, yours {}{mark}",
+            o.name, o.expected, o.actual
+        ));
+    }
+    lines
 }
 
 fn verdict_word(verdict: Verdict) -> (anstyle::Style, &'static str) {

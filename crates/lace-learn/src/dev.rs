@@ -1,7 +1,8 @@
 //! O `lace learn dev check`: confere uma trilha antes de ela ir para o
 //! componente. Para cada exercício: as portas de `start.v` e de
 //! `solution.v` são as mesmas, o enunciado tem dica, o testbench sai, o
-//! `start.v` não passa e a `solution.v` passa.
+//! `start.v` não passa e a `solution.v` passa, sem latch e sem aviso (do
+//! Icarus e, com o Verilator instalado, do lint).
 
 use camino::Utf8Path;
 use lace_core::Control;
@@ -112,6 +113,26 @@ pub fn check_track(
                 entry
                     .problems
                     .push(format!("solution.v does not pass: {}", explain(&checked)));
+            }
+            // A resposta oficial é o exemplo: sem latch e sem aviso de lint
+            // (o aluno a vê depois de resolver).
+            for finding in &checked.findings {
+                if let crate::grade::Finding::LatchInferred { signal, line } = finding {
+                    let at = line.map(|l| format!(" (line {l})")).unwrap_or_default();
+                    entry
+                        .problems
+                        .push(format!("solution.v infers a latch for {signal}{at}"));
+                }
+            }
+            for d in checked
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == lace_core::Severity::Warning)
+            {
+                let at = d.line.map(|l| format!(":{l}")).unwrap_or_default();
+                entry
+                    .problems
+                    .push(format!("solution.v{at}: warning: {}", d.message));
             }
             workspace.reset(&exercise)?;
         }

@@ -11,8 +11,14 @@
 //! LACE-LEARN mismatched 4         amostras com alguma saída errada
 //! LACE-LEARN output y 4 25 0      erros, primeiro erro em ns (-1: nenhum), amostras em X
 //! LACE-LEARN reset 2              só com reset: erros com o reset ativo
+//! LACE-LEARN first 25 -1          a primeira amostra errada: ns e ciclo (-1: combinacional)
+//! LACE-LEARN first_in a 1         o valor de cada entrada nela, em binário
+//! LACE-LEARN first_out y 1 0      cada saída nela: o esperado e o do aluno
 //! LACE-LEARN end
 //! ```
+//!
+//! As linhas `first` saem uma vez, na primeira amostra errada, e são o
+//! contraexemplo da correção ([`Counterexample`](crate::grade::Counterexample)).
 //!
 //! Um `tb.v` escrito à mão segue o mesmo contrato: instancia `<módulo>` e
 //! `<módulo>_ref` (incluindo `<módulo>_ref.v`), grava a onda em
@@ -198,6 +204,30 @@ pub fn generate(exercise: &Exercise, interface: &ModuleInterface) -> Result<Stri
             "            if (({n}_ref ^ {n} ^ {n}_ref) !== {n}_ref) begin\n                lace_{n}_errors = lace_{n}_errors + 1;\n                if (lace_{n}_first < 0) lace_{n}_first = $time;\n                if ((^{n}) === 1'bx) lace_{n}_unknown = lace_{n}_unknown + 1;\n                {MISMATCH_SIGNAL} = 1;\n            end\n"
         ));
     }
+    // A primeira amostra errada: o contraexemplo.
+    let cycle = match spec.kind {
+        Kind::Combinational => "-1",
+        Kind::Sequential => "lace_i",
+    };
+    v.push_str(&format!(
+        "            if ({MISMATCH_SIGNAL} && lace_mismatched == 0) begin\n                $display(\"{PROTOCOL} first %0d %0d\", $time, {cycle});\n"
+    ));
+    let shown_inputs = data_inputs
+        .iter()
+        .map(|p| p.name.as_str())
+        .chain(reset.as_ref().map(|r| r.name.as_str()));
+    for name in shown_inputs {
+        v.push_str(&format!(
+            "                $display(\"{PROTOCOL} first_in {name} %b\", {name});\n"
+        ));
+    }
+    for port in &outputs {
+        let n = &port.name;
+        v.push_str(&format!(
+            "                $display(\"{PROTOCOL} first_out {n} %b %b\", {n}_ref, {n});\n"
+        ));
+    }
+    v.push_str("            end\n");
     v.push_str(&format!(
         "            if ({MISMATCH_SIGNAL}) lace_mismatched = lace_mismatched + 1;\n"
     ));

@@ -70,15 +70,26 @@
           "format": "uint64",
           "minimum": 0
         },
+        "counterexample": {
+          "description": "A primeira amostra errada, com as entradas e as saídas.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Counterexample"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "findings": {
-          "description": "O que se percebeu sobre a causa do erro.",
+          "description": "O que se percebeu sobre a causa do erro, e o latch que a síntese\nachou (este, também com o exercício resolvido).",
           "type": "array",
           "items": {
             "$ref": "#/$defs/Finding"
           }
         },
         "diagnostics": {
-          "description": "Os erros e avisos dos compiladores sobre o código do aluno.",
+          "description": "Os erros e avisos dos compiladores sobre o código do aluno, com os\navisos do lint do Verilator quando ele está instalado.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/Diagnostic"
@@ -119,6 +130,7 @@
         "mismatched",
         "outputs",
         "reset_mismatches",
+        "counterexample",
         "findings",
         "diagnostics",
         "output",
@@ -199,6 +211,108 @@
         "unknown"
       ]
     },
+    "Counterexample": {
+      "description": "A primeira amostra errada: o que entrou e o que saiu, para o aluno\nrefazer o caso de cabeça. Vem das linhas `first` do resumo; um `tb.v`\nescrito à mão que não as escreve fica sem.",
+      "type": "object",
+      "properties": {
+        "time_ns": {
+          "description": "O instante da amostra, em ns.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cycle": {
+          "description": "No sequencial, o ciclo (a partir de 0).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "inputs": {
+          "description": "As entradas nessa amostra, sem o clock.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SignalValue"
+          }
+        },
+        "outputs": {
+          "description": "Cada saída nessa amostra: a esperada e a do aluno.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OutputValue"
+          }
+        }
+      },
+      "required": [
+        "time_ns",
+        "cycle",
+        "inputs",
+        "outputs"
+      ]
+    },
+    "SignalValue": {
+      "description": "O valor de uma entrada no contraexemplo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A porta.",
+          "type": "string"
+        },
+        "bits": {
+          "description": "Os bits, do mais significativo ao menos, com `x` e `z`.",
+          "type": "string"
+        },
+        "text": {
+          "description": "O valor para ler: `1`, `4'b0101 (5)`, `16'h00ff (255)`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "bits",
+        "text"
+      ]
+    },
+    "OutputValue": {
+      "description": "Uma saída no contraexemplo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A porta.",
+          "type": "string"
+        },
+        "expected_bits": {
+          "description": "Os bits que a referência deu.",
+          "type": "string"
+        },
+        "actual_bits": {
+          "description": "Os bits que o módulo do aluno deu.",
+          "type": "string"
+        },
+        "expected": {
+          "description": "O esperado, para ler.",
+          "type": "string"
+        },
+        "actual": {
+          "description": "O do aluno, para ler.",
+          "type": "string"
+        },
+        "wrong": {
+          "description": "Se esta saída errou nessa amostra.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "expected_bits",
+        "actual_bits",
+        "expected",
+        "actual",
+        "wrong"
+      ]
+    },
     "Finding": {
       "description": "O que a correção percebeu sobre a causa do erro.",
       "oneOf": [
@@ -244,6 +358,34 @@
           },
           "required": [
             "kind"
+          ]
+        },
+        {
+          "description": "A síntese achou um latch: o sinal guarda o valor quando nenhum ramo\ndo `always` o atribui. Num circuito combinacional, faltou um `else`,\num `default` ou um valor antes do `if`. Pode aparecer com o exercício\nresolvido: a simulação passa, e o circuito não é o que parece.",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal (`modulo.sinal` quando é de um submódulo).",
+              "type": "string"
+            },
+            "line": {
+              "description": "A linha do `always` que gerou o latch, no arquivo do aluno.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "latch_inferred"
+            }
+          },
+          "required": [
+            "kind",
+            "signal",
+            "line"
           ]
         }
       ]

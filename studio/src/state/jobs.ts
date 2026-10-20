@@ -498,6 +498,16 @@ function writeOutcome(outcome: FlowOutcome): void {
       const text = t('console.learnOutput', { output: o.name, wrong: o.mismatches, samples: g.samples, first: o.first_ns ?? '-' });
       write(stage, fmt.item('error', text.trim()), true);
     }
+    // O contraexemplo: as entradas e as saídas que erraram na primeira amostra errada.
+    const first = g.counterexample;
+    if (first) {
+      const inputs = first.inputs.map((i) => `${i.name} = ${i.text}`).join(', ');
+      write(stage, fmt.detail(t('console.learnFirst', { time: first.time_ns, inputs }).trim()), true);
+      for (const o of first.outputs.filter((o) => o.wrong)) {
+        const text = t('console.learnFirstOutput', { output: o.name, expected: o.expected, actual: o.actual });
+        write(stage, fmt.item('error', text.trim()), true);
+      }
+    }
     writeDiagnostics(stage, g.diagnostics);
   }
   if (outcome.report) write(stage, fmt.note(t('console.report', { id: outcome.report })));

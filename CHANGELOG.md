@@ -1,5 +1,21 @@
 # Mudanças
 
+## Não publicada
+
+- A correção do `lace learn` mostra a primeira amostra errada: o instante
+  (e o ciclo, num circuito sequencial), o valor de cada entrada e cada
+  saída, com o esperado e o do aluno, em binário até 8 bits e em
+  hexadecimal acima, com o decimal ao lado. O testbench gerado escreve as
+  linhas novas `first`, `first_in` e `first_out` do resumo; um `tb.v`
+  escrito à mão pode escrevê-las também. O JSON do `lace learn check` traz
+  o `counterexample`.
+- Com o Verilator instalado, a correção acrescenta os avisos do lint sobre
+  o arquivo do aluno (sem os de estilo), e, com o Yosys, avisa do latch
+  inferido, com o sinal e a linha (`latch_inferred`), também num exercício
+  resolvido. Nenhum dos dois muda o veredito; `"advice": false` no
+  `exercise.json` desliga os dois. O `lace learn dev check` passa a exigir
+  a solução sem latch e sem aviso.
+
 ## 0.9.0 (2026-10-20)
 
 - O core passa a ser a API do orquestrador de fato. A composição dos

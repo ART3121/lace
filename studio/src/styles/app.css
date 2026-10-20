@@ -4273,6 +4273,18 @@ body.is-dragging * {
   margin-top: var(--space-2);
 }
 
+.learn-result__tables {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.learn-result__wrong td {
+  color: var(--error);
+  font-weight: 600;
+}
+
 .learn-result__diagnostics {
   margin: var(--space-2) 0 0;
   padding: 0;
