@@ -75,7 +75,7 @@ execução) e apaga o que baixou no fim.
 
 | O quê | Linux, macOS | Windows |
 |---|---|---|
-| versão fixa | `... \| LACE_VERSION=0.8.0 sh` | `$env:LACE_VERSION = "0.8.0"` antes do `irm` |
+| versão fixa | `... \| LACE_VERSION=0.9.0 sh` | `$env:LACE_VERSION = "0.9.0"` antes do `irm` |
 | sem perguntas | `... \| sh -s -- --yes` | `$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"` antes do `irm` |
 | outras opções do instalador | `... \| sh -s -- --yes --profile verilog --prefix /opt/lace` | os parâmetros do Inno Setup em `LACE_SETUP_ARGS` |
 | para todos os usuários | `... \| sudo sh` (vai para `/opt/lace`) | o assistente pergunta |
@@ -250,9 +250,9 @@ perguntar.
 **Sem interação** (scripts, laboratórios):
 
 ```
-lace-0.8.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
-lace-0.8.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
-lace-0.8.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
+lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
+lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
+lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
 ```
 
 O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
@@ -273,8 +273,8 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
 
 ```
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.8.0/lace-0.8.0-linux-x64.tar.gz
-tar xzf lace-0.8.0-linux-x64.tar.gz && ./lace-0.8.0-linux-x64/install
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
+tar xzf lace-0.9.0-linux-x64.tar.gz && ./lace-0.9.0-linux-x64/install
 ```
 
 A instalação guiada no terminal tem estas telas:
@@ -385,7 +385,7 @@ recusa abrir o `install` ("desenvolvedor não pode ser verificado"). O
 foi baixado pelo navegador:
 
 ```
-xattr -dr com.apple.quarantine lace-0.8.0-darwin-arm64
+xattr -dr com.apple.quarantine lace-0.9.0-darwin-arm64
 ```
 
 Isto não foi verificado num Mac: é o comportamento documentado do

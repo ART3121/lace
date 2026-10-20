@@ -77,8 +77,8 @@ irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 Sem o script, direto da [página da release](https://github.com/ART3121/lace/releases/latest):
 
 ```sh
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.8.0/lace-0.8.0-linux-x64.tar.gz
-tar xzf lace-0.8.0-linux-x64.tar.gz && ./lace-0.8.0-linux-x64/install
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
+tar xzf lace-0.9.0-linux-x64.tar.gz && ./lace-0.9.0-linux-x64/install
 ```
 
 No macOS, troque `linux-x64` por `darwin-arm64`. Baixe pelo `curl`, não
@@ -128,7 +128,7 @@ A extensão ainda não está no Marketplace: o arquivo dela,
 Lace instalado (acima) e do VS Code 1.90 ou mais novo.
 
 ```sh
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.8.0/lace-vscode-0.1.0.vsix
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/lace-vscode-0.1.0.vsix
 code --install-extension lace-vscode-0.1.0.vsix
 ```
 

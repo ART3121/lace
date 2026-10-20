@@ -1,6 +1,6 @@
 # Mudanças
 
-## 0.9.0 (não publicada)
+## 0.9.0 (2026-10-20)
 
 - O core passa a ser a API do orquestrador de fato. A composição dos
   fluxos (compilar antes, registrar o que o YANC gerou, ler as portas de
