@@ -15,7 +15,7 @@ Todo item público do `lace-core` tem documentação (o crate compila com
 Sumário:
 
 1. [Conceitos](#1-conceitos)
-2. [Toolchain](#2-toolchain)
+2. [O bundle (`Toolchain`)](#2-o-bundle-toolchain)
 3. [Projeto](#3-projeto)
 4. [Arquivos do projeto](#4-arquivos-do-projeto)
 5. [Operações](#5-operações)
@@ -33,10 +33,10 @@ A API tem quatro peças:
 
 | Peça | Tipo | O que é |
 |---|---|---|
-| Toolchain | `Toolchain` | O bundle de ferramentas instalado com o Lace, aberto e conferido. É o único lugar de onde o Lace executa algo. |
+| Toolchain | `Toolchain` | O bundle de ferramentas instalado com o Lace, aberto e conferido. É de onde o Lace executa as ferramentas; o que ele roda de fora do bundle está em 2.4, 2.5, 5.6.1 e 5.8. |
 | Projeto | `Project` | Um `.spf` da AURORA aberto, com seus arquivos Verilog e processadores. |
 | Processador | `Processor` | Um processador SAPHO do projeto: nome, linguagem, caminhos, parâmetros de simulação. |
-| Operação | funções livres | `build`, `simulate`, `simulate_project`, `check`, `synthesize`, `render_schematic`, `open_waveform`. Cada uma recebe a toolchain e o que operar, e devolve um resultado. As que executam ferramentas, todas menos `open_waveform`, recebem por último um `&Control`, que cancela a operação e mostra o que as ferramentas escrevem enquanto rodam (5.8). |
+| Operação | funções livres | `build`, `simulate`, `simulate_project`, `check`, `hierarchy`, `synthesize`, `render_schematic`, `wave_signals`, `open_waveform`. Cada uma recebe a toolchain e o que operar, e devolve um resultado. As que executam ferramentas, todas menos `open_waveform`, recebem por último um `&Control`, que cancela a operação e mostra o que as ferramentas escrevem enquanto rodam (5.8). |
 
 Um projeto é Verilog; processadores SAPHO são opcionais. Quando existem, o
 cliente os compila com `build` antes de verificar, simular ou sintetizar,
@@ -72,7 +72,9 @@ if !built.succeeded() {
 
 O Lace só executa ferramentas de um bundle versionado instalado com ele:
 YANC, surfer-aurora e uma release fixa do OSS CAD Suite (Icarus, Verilator,
-Yosys, `dot`), mais o Graphviz no Windows. Nunca do `PATH`, nunca de caminho
+cocotb, Yosys, `dot`, openFPGALoader); no Windows, o Icarus, o Verilator e o
+cocotb vêm do bloco MSYS2 do lace-toolchain (`msys/`), e o `dot`, do
+Graphviz. Nunca do `PATH`, nunca de caminho
 configurado. O que vem no bundle, as versões, como ele é montado e o que vem
 do sistema estão em [BUNDLE.md](BUNDLE.md); os instaladores, em
 [INSTALL.md](INSTALL.md).
@@ -133,8 +135,8 @@ procurar, para o atalho `~/.local/bin/lace` do instalador funcionar.
 Icarus, Verilator, cocotb, Yosys e o `dot` do Linux e do macOS dividem o
 diretório `oss-cad-suite/`: cada componente traz a parte do pacote da sua
 ferramenta, e as bibliotecas em comum vêm com qualquer um deles. No
-Windows, Icarus e
-Verilator dividem do mesmo jeito o `msys/`, o bloco MSYS2 do lace-toolchain,
+Windows, Icarus,
+Verilator e cocotb dividem do mesmo jeito o `msys/`, o bloco MSYS2 do lace-toolchain,
 com os programas em `ucrt64/bin`. O caminho de cada ferramenta dentro do
 diretório é fixo por plataforma, no código; o diretório vem do manifesto do
 componente. Nada é configurável.
@@ -163,7 +165,7 @@ Windows, com o erro do componente verilator (`ComponentMissing` ou
 
 O Quartus Prime compila para as placas Intel ([FPGA.md](FPGA.md)) e é a
 segunda exceção à regra do bundle. O `open` não o procura: o Core não lê
-variáveis de ambiente, e quem abre o bundle passa o que achou.
+variáveis de ambiente para achá-lo, e quem abre o bundle passa o que achou.
 
 | Função | Faz |
 |---|---|
@@ -190,6 +192,9 @@ a pasta e o nome do usuário (no Linux, também `LANG` e `TMPDIR`). A lista
   <projeto>.spf                  arquivo de projeto (JSON, formato AURORA)
   *.v                            Verilog do usuário, em qualquer subpasta, registrado no .spf
   <tb>.fst ou <tb>.vcd           onda da simulação do projeto (o $dumpfile do testbench)
+  wave/<testbench>.json          a escolha de sinais da onda do testbench (5.7.3)
+  wave/<testbench>.surf.ron      o layout salvo do Surfer (5.7.4)
+  fpga.json                      a placa e as ligações (5.10)
   <processador>/                 o que a pessoa escreve:
     <processador>.cmm            o fonte (ou .cpp), que dá o nome ao processador
     input_<n>.txt, cade_<n>.txt  as entradas da simulação
@@ -202,6 +207,8 @@ a pasta e o nome do usuário (no Linux, também `LANG` e `TMPDIR`). A lista
   .lace/Temp/                    simulação do projeto (.vvp, obj_dir, testbench instrumentado)
   .lace/Temp/synth/<topo>/       síntese: script, log, netlist, esquemáticos
   .lace/Temp/hierarchy/          hierarquia: um .vvp por elaboração, refeita a cada chamada
+  .lace/reports/                 o histórico de relatórios (5.9)
+  .lace/fpga/<placa>/            o projeto do Quartus e os arquivos de gravação (5.10)
 ```
 
 É a estrutura do YANC 7.1, a de quem o usa no terminal (`cmmcomp soma.cmm`
@@ -239,7 +246,7 @@ pasta do processador) e `output_path(n)` (na de saída).
 |---|---|
 | `Project::open(caminho)` | Aceita o `.spf` ou o diretório (usa `<dir>/<nome-do-dir>.spf` ou o único `.spf` dele). Só lê. |
 | `Project::discover(caminho)` | Acha o projeto que contém o caminho: o `.spf` dele ou da primeira pasta acima que tenha um, com a regra de `open` em cada pasta. É o que a CLI usa, para os comandos funcionarem de qualquer pasta do projeto. Sem nenhum até a raiz do sistema, `ProjectNotFound`. |
-| `project.processor_at(caminho)` | O processador cuja pasta (ou a temporária dele) contém o caminho; `None` fora delas. A CLI usa para `sim` e `wave` sem `-p`. |
+| `project.processor_at(caminho)` | O processador cuja pasta (ou a temporária dele) contém o caminho; `None` fora delas. A CLI usa para `status`, `build`, `check`, `hierarchy`, `sim`, `wave`, `synth` e `proc set` sem nome de processador. |
 | `Project::create(pai, nome)` | Cria `<pai>/<nome>/<nome>.spf` vazio, no formato da AURORA. Recusa se já existir. |
 | `project.add_processor(&NewProcessor)` | Cria a pasta do processador, o fonte-modelo dentro dela (3.5) e a entrada no `.spf`; a pasta de saída nasce no primeiro `build`. Recusa nome repetido, nome que não passa em `validate_new_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
 | `project.configure_processor(nome, &ProcessorConfig)` | Grava `clk`, `numClocks` e `showArrays` no `.spf` (campos `None` ficam como estão). Uma entrada no formato antigo (só o nome) vira objeto. Valem a partir do próximo `build`. Frequência de 1 a `MAX_FREQUENCY_MHZ` (500000) e clocks de 1 a `MAX_CLOCKS` (2147483647); fora disso, `InvalidParameter`, e nada é gravado. |
@@ -249,9 +256,12 @@ pasta do processador) e `output_path(n)` (na de saída).
 | `project.legacy_processors()`, `project.convert_layout()` | Os processadores na estrutura do YANC 6.x, e a conversão deles (3.6). |
 | `project.buildable_processors()` | Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o botão Wave da AURORA compila antes de simular o projeto. Um na estrutura do YANC 6.x entra, e o build dele recusa com `LegacyLayout`, em vez de a simulação usar o Verilog velho de `Hardware/`. |
 
-Todo método que altera o projeto grava o `.spf` na hora (gravação atômica:
-arquivo temporário e `rename`). Não existe "salvar". Um `Project` aberto não
-percebe mudanças que outro programa faça no `.spf`: abra de novo.
+Todo método que altera o projeto trava `.lace/spf.lock`, relê o `.spf` do
+disco, aplica a mudança e grava na hora (gravação atômica: arquivo
+temporário e `rename`): duas gravações ao mesmo tempo, como a do Studio e a
+da CLI, entram uma depois da outra, e nenhuma perde a da outra. Não existe
+"salvar". Fora das gravações, um `Project` aberto não percebe mudanças que
+outro programa faça no `.spf`: para ler sem gravar, abra de novo.
 
 `NewProcessor::validate()` confere os parâmetros contra o que o YANC
 compila, e é o que `add_processor` aplica. Portas de entrada e de saída: de 0
@@ -284,8 +294,9 @@ parâmetro (`#NUBITS`), o valor e a regra. Em C, só as portas contam.
 | `metadata.lastModified` | não | em toda gravação |
 | `metadata.projectPath`, `structure.basePath` | não (a raiz é o diretório do `.spf`) | em toda gravação, com a raiz atual |
 | `structure.processors` | sim | `add_processor`, `configure_processor`, `remove_processor` |
-| `structure.synthesizableFiles`, `testbenchFiles` | sim | `add_verilog`, `remove_verilog`, `set_top`, `add_file`, `remove_file`, `set_top_level`, `set_testbench`, `remove_processor` |
-| `structure.topLevelFile`, `testbenchFile` | sim | `add_verilog` (o primeiro de cada papel), `remove_verilog`, `set_top`, `set_top_level`, `set_testbench`, `remove_processor` |
+| `structure.synthesizableFiles`, `testbenchFiles` | sim | `add_verilog`, `remove_verilog`, `set_top`, `add_file`, `remove_file`, `reorder_file`, `set_top_level`, `set_testbench`, `move_path`, `record_move`, `register_generated`, `remove_processor`, `convert_layout`; toda gravação conserta os caminhos achados pela cauda e tira as entradas repetidas (4.1) |
+| `structure.topLevelFile`, `testbenchFile` | sim | `add_verilog` (o primeiro de cada papel), `remove_verilog`, `set_top`, `set_top_level`, `set_testbench`, `move_path`, `record_move`, `register_generated`, `remove_processor`, `convert_layout` |
+| `structure.topLevelModule` (campo do Lace) | sim | `set_top` com nome de módulo; sai com `set_top_level` e quando o arquivo de topo sai da lista |
 | qualquer outro (`commandOverrides`, `folders`, ...) | não | preservado como estava |
 
 A leitura é tolerante como a da AURORA: JSON estrito primeiro; se falhar, tira
@@ -457,6 +468,7 @@ na AURORA (4.4).
 | `resolve_path(texto)` | converte um caminho como está no `.spf` para absoluto |
 | `move_path(de, para) -> Result<MovedPath>` | move ou renomeia um arquivo ou pasta do projeto; os arquivos registrados continuam registrados no lugar novo |
 | `record_move(de, para) -> Result<MovedPath>` | registra no `.spf` um movimento que já aconteceu fora do Lace, sem tocar no disco |
+| `replace_refusal(de, destino) -> Option<&str>` | por que o que está em `destino` não pode sair para dar lugar a `de`, num `move_path` que achou o destino ocupado (`PathExists`), ou `None` se pode: a pergunta de quem oferece substituir o destino (o Studio, que o manda para a lixeira); o Core nunca sobrescreve |
 | `register_generated(builds) -> Result<Vec<AddedFile>>` | registra o `<nome>.v` e o `<nome>_tb.v` que cada build bem-sucedido gerou na pasta de saída e o projeto ainda não tem (5.1.1) |
 
 `add_verilog(toolchain, caminho, testbench)`:
@@ -808,7 +820,7 @@ de saída do processador e `T` = a temporária:
 |---|---|---|---|
 | Icarus | `elaborate` | `iverilog -y <SAPHO> -s <nome>_tb -o T/<nome>_tb.vvp O/<nome>.v T/instr_<nome>_tb.v` | `O` |
 | Icarus | `simulate` | `vvp -n [-i] T/<nome>_tb.vvp -fst`, com `-i` quando o `Control` tem receptor de eventos (5.8); sem `-fst` só quando a onda não vai para um `.fst` (o formato da onda, abaixo) | `O` |
-| Verilator | `verilate` | `perl verilator --binary --main --trace -j 0 ... --top-module <nome>_tb -Mdir T/obj_dir_<nome>_tb -y <SAPHO> <arquivos>` | `T` |
+| Verilator | `verilate` | `perl verilator --binary --main --trace -j 0 ... --top-module <nome>_tb -Mdir T/obj_dir_<nome>_tb -y <SAPHO> <arquivos>` (no Windows, `verilator_bin.exe` no lugar de `perl verilator`) | `T` |
 | Verilator | `simulate` | `T/obj_dir_<nome>_tb/V<nome>_tb` | `O` |
 
 O CWD é a pasta de saída, como o YANC 7.1 pede: o `.v` do processador lê as
@@ -883,15 +895,17 @@ no macOS). As três mudanças:
 Na simulação rápida saem `--trace`, `--no-trace-top` e `--autoflush`
 (abaixo).
 
-O script `verilator` roda pelo Perl do `SystemCompiler`, com `PATH` = o
-diretório do script (`bin/` do OSS CAD Suite, `ucrt64/bin` do `msys/`),
-depois os diretórios do compilador, e `LC_ALL=C`. No Windows ele recebe
-também `--no-unlimited-stack` e `VERILATOR_BIN=verilator_bin.exe`: sem a
-primeira, o script tenta `ulimit -s unlimited 2>/dev/null` pelo `cmd.exe`,
-que escreve um erro de caminho no stderr a cada chamada; sem a segunda, o
-Verilator anota entre as entradas do modelo (`__verFiles.dat`) um
-`verilator_bin` sem extensão, que não existe, e o `--skip-identical` nunca
-reconhece um modelo em dia. A primeira compilação do modelo leva dezenas de
+No Linux e no macOS, o script `verilator` roda pelo Perl do
+`SystemCompiler`, com `PATH` = o diretório do script (`bin/` do OSS CAD
+Suite), depois os diretórios do compilador, e `LC_ALL=C`. No Windows o Lace
+não passa pelo script: roda direto o `verilator_bin.exe` de `ucrt64/bin`, com
+`PATH` = esse diretório, depois os do compilador e o `System32`, `LC_ALL=C` e
+o `VERILATOR_ROOT` que o script deduziria do próprio caminho. Pelo script, o
+`system()` passava cada argumento pelo `cmd.exe` com o escape de shell do
+Unix, e um fonte numa pasta com espaço ou acento virava outro caminho; e o
+`verilator_bin`, chamado sem o `.exe`, anotava entre as entradas do modelo
+(`__verFiles.dat`) um nome que não existe, e o `--skip-identical` nunca
+reconhecia um modelo em dia. A primeira compilação do modelo leva dezenas de
 segundos. Depois, com os fontes e as flags iguais, o Verilator não gera o
 C++ de novo, o `make` não recompila nada e a simulação só roda o executável
 (medido no Windows em 2026-10-07, num contador: 0,4 s, contra 9 s antes); o
@@ -1018,7 +1032,7 @@ da diretiva (ou o topo):
 |---|---|---|---|
 | Icarus | `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s lace_cocotb_dump -o <B>/<dut>.vvp <design> <B>/lace_cocotb_dump.v` | raiz |
 | Icarus | `simulate` | `vvp -n [-i] -m <VPI do cocotb> <B>/<dut>.vvp -fst` | raiz |
-| Verilator | `verilate` | `perl verilator --cc --exe --build --vpi --public-flat-rw --prefix Vtop -o V<dut> --timescale 1ns/1ps -LDFLAGS <VPI do cocotb> ... --trace --no-trace-top <as flags de 5.2> --top-module <dut> -Mdir <B>/obj_dir_<dut> [-y <SAPHO>] <verilator.cpp do cocotb> <design>` | `<B>` |
+| Verilator | `verilate` | `perl verilator --cc --exe --build --vpi --public-flat-rw --prefix Vtop -o V<dut> --timescale 1ns/1ps -LDFLAGS <VPI do cocotb> ... --trace --no-trace-top <as flags de 5.2> --top-module <dut> -Mdir <B>/obj_dir_<dut> [-y <SAPHO>] <verilator.cpp do cocotb> <design>` (no Windows, `verilator_bin.exe` no lugar de `perl verilator`) | `<B>` |
 | Verilator | `simulate` | `<B>/obj_dir_<dut>/V<dut> --trace --trace-file <raiz>/<módulo de teste>.vcd` | raiz |
 
 `<design>` é o mesmo da simulação de um testbench Verilog (5.3, passo 2),
@@ -1157,8 +1171,9 @@ arquivo, o único que o outro não instancia.
 Com `lint` e sem o Verilator instalado, a verificação roda do mesmo jeito,
 sem o passo `lint`, e um diagnóstico de aviso diz que o lint não rodou.
 
-Os processadores não são compilados aqui. Compile antes com
-`build_processors`, como a CLI faz.
+Os processadores não são compilados aqui, nem pelo `lace check` (5.11):
+um processador sem o Verilog gerado num projeto com outro Verilog fica de
+fora, com um aviso, e, sem nada para verificar, o erro é `NotBuilt`.
 
 Erros: `EmptyProject` sem nenhum arquivo Verilog registrado e sem
 processadores; `InvalidProject` se um sintetizável registrado não existe;
@@ -1256,7 +1271,7 @@ Síntese de visualização (a do RTLViewer da AURORA), sem mapear para FPGA.
 
 | Alvo | Topo | Arquivos |
 |---|---|---|
-| `DesignTarget::TopLevel` | o nome do arquivo de topo (`project.top_level()`, ver 3.4) | o design de `check` (5.4) |
+| `DesignTarget::TopLevel` | o módulo de topo (`project.top_module()`, ver 3.4) | o design de `check` (5.4) |
 | `DesignTarget::Processor(nome)` | o processador | `<nome>/<nome>/<nome>.v` |
 
 Quando o projeto tem processadores, todo `.v` da biblioteca SAPHO
@@ -1358,8 +1373,8 @@ embutidos, que o componente `rtl-viewer` do bundle traz. Não roda ferramenta.
 | Função | O que faz |
 |---|---|
 | `rtl_viewer::template(&Toolchain) -> Result<Utf8PathBuf>` | o modelo: o de `LACE_RTL_VIEWER` (`TEMPLATE_ENV`), se definida, ou o do componente. `ComponentMissing("rtl-viewer")` sem o componente; `ToolchainIncomplete` sem o arquivo |
-| `rtl_viewer::write(&modelo, &netlist, título) -> Result<Utf8PathBuf>` | preenche o modelo com o netlist (`SynthesisResult::netlist`) e grava `rtl-viewer.html` na pasta dele, sobrescrevendo o de antes. Os `<` do JSON viram `<`, para um `</script>` dentro de uma string do netlist não fechar o elemento. `ToolchainIncomplete` se o modelo não tem os lugares do netlist e da configuração |
-| `open_with_system(&caminho) -> Result<()>` | abre um arquivo com o programa padrão do sistema (`xdg-open`, `open`, o Explorer), sem esperar por ele. É a única exceção à regra de só rodar ferramentas do bundle: o navegador do usuário não vem nele. `Spawn` se o abridor não pôde rodar |
+| `rtl_viewer::write(&modelo, &netlist, título) -> Result<Utf8PathBuf>` | preenche o modelo com o netlist (`SynthesisResult::netlist`) e grava `rtl-viewer.html` na pasta dele, sobrescrevendo o de antes. Os `<` do JSON viram `\u003c`, para um `</script>` dentro de uma string do netlist não fechar o elemento. `ToolchainIncomplete` se o modelo não tem os lugares do netlist e da configuração |
+| `open_with_system(&caminho) -> Result<()>` | abre um arquivo com o programa padrão do sistema (`xdg-open`, `open`, o Explorer), sem esperar por ele. É uma das exceções à regra de só rodar ferramentas do bundle, com o compilador do Verilator (2.4), o Quartus (2.5) e o `taskkill` (5.8): o navegador do usuário não vem nele. O abridor é chamado pelo nome, sem caminho fixo, e herda o ambiente do Lace. `Spawn` se o abridor não pôde rodar |
 
 ### 5.7 `open_waveform(&Toolchain, &onda, &ViewerOptions) -> Result<RunningProcess>`
 
@@ -1417,7 +1432,7 @@ nome a esses números e os arruma em grupos:
 
 O processador é o escopo com `valr2` e `linetabs`. O nome dele sai do
 subescopo `p_<nome>.core` que o YANC cria; sem ele, do pai `<nome>_inst`, da
-raiz `<nome>_tb` ou da instância. As tabelas vêm da pasta temporária do
+raiz `<nome>_tb` ou da instância. As tabelas vêm da pasta de saída do
 processador com esse nome no projeto que contém a onda (fora de projeto, da
 pasta da onda, se ela tem `pc_<nome>_mem.txt`):
 
@@ -1459,8 +1474,10 @@ e a hierarquia dele vira o mesmo texto do cabeçalho de um VCD.
 `Ok(None)`: a onda não é VCD nem FST (o GHW abre sem layout), ou não tem
 nem sinal na raiz nem processador.
 `WaveLayout`: `state` (o `.surf.ron`), `mappings` (`MappingTranslator`:
-`name`, `content`) e `processors` (`WaveProcessor`: `instance`,
-`processor`, `variables`, `assembly`, `source`, `outdated`).
+`name`, `content`), `processors` (`WaveProcessor`: `instance`,
+`processor`, `variables`, `assembly`, `source`, `outdated`), `testbench`
+(o escopo de cima da onda, que dá o nome dos arquivos em `wave/`) e
+`selection` (a escolha de sinais que o layout seguiu).
 
 ### 5.7.2 `prepare_wave_layout(&onda) -> Result<Option<PreparedLayout>>`
 
@@ -1539,10 +1556,14 @@ próxima abertura volta ao gerado.
 ### 5.8 Cancelamento, prazo e saída ao vivo: `Control`
 
 Toda operação que executa ferramentas (`build`, `build_processors`, `check`,
-`simulate`, `simulate_project`, `synthesize`, `render_schematic`) recebe um
+`hierarchy`, `simulate`, `simulate_project`, `synthesize`, `render_schematic`,
+`wave_signals`, `fpga::build`, `fpga::program`, `flows::run`,
+`flows::choose_signals`) recebe um
 `&Control` como último argumento; em `build_processors`, antes de
 `on_result`. Ele leva o pedido de cancelamento e, se houver, quem recebe os
-eventos. `Control::default()` não cancela e não avisa nada.
+eventos. `Control::default()` não cancela e não avisa nada. As consultas
+`fpga::cables` (o `quartus_pgm -l`) e `verilog::read_interfaces` (o Yosys,
+também dentro de `fpga::prepare` e de `add_verilog`) rodam sem ele, até o fim.
 
 | Tipo | O que é |
 |---|---|
@@ -1620,9 +1641,10 @@ Verilator roda o `make`, que roda o compilador C++.
   job, e tudo o que a ferramenta iniciou termina junto. O que sobrar quando o
   passo acaba também termina, e o mesmo vale se o processo do Lace morrer,
   mesmo à força: o sistema fecha o handle do job. Se o sistema recusar o
-  job, o `taskkill /T /F` do `System32` encerra a árvore. O `taskkill.exe` é
-  o único programa do sistema que o Lace roda fora da exceção do Verilator,
-  e só serve para encerrar ([BUNDLE.md](BUNDLE.md), seção 4).
+  job, o `taskkill /T /F` do `System32` encerra a árvore. O `taskkill.exe` só
+  serve para encerrar ([BUNDLE.md](BUNDLE.md), seção 4); os outros programas
+  do sistema que o Lace roda são o compilador do Verilator (2.4), o Quartus
+  (2.5) e o abridor de `open_with_system` (5.6.1).
   Nenhuma ferramenta abre janela de console (`hide_console`): se o Lace tem
   console (um terminal, ou o que quem o criou lhe deu), ela divide esse
   console, e o Ctrl+C chega a ela também; se não tem (o Studio), ela leva
@@ -1641,9 +1663,10 @@ um pedido feito antes da operação devolve `cancelled` sem passo nenhum, com
 traz `waveform` no resultado: uma cancelada ou que passou do prazo não traz,
 mesmo que o arquivo da onda exista.
 
-**Prazo.** Só a simulação tem prazo (`SimulationOptions::timeout`, 5.2), e
-só no passo `simulate`: é onde um código do usuário pode não terminar, como
-um testbench sem `$finish`. Sem prazo por padrão.
+**Prazo.** A simulação tem prazo (`SimulationOptions::timeout`, 5.2), só no
+passo `simulate`: é onde um código do usuário pode não terminar, como um
+testbench sem `$finish`; sem prazo por padrão. O esquemático tem o dele, no
+passo `render` do `dot` (`SchematicOptions::timeout`, 60 s por padrão, 5.6).
 
 **O custo da saída ao vivo.** Num pipe, o `vvp` guarda o stdout em buffer:
 o `$display` só sai quando o buffer enche ou no fim, e se perde se o
@@ -1665,8 +1688,9 @@ em vez de a fila crescer na memória.
 
 Depois de uma operação, a interface chama `history::record` com o que cada
 fase devolveu, e o Lace grava um relatório no histórico do projeto. Nenhuma
-operação grava sozinha: quem decide é quem chama (a CLI grava depois de
-`build`, `check`, `sim` e `synth`).
+operação grava sozinha: quem decide é quem chama. Os fluxos de
+`lace_core::flows` (5.11), que a CLI, o Studio e o `lace serve` usam,
+gravam depois de `build`, `check`, `simulate` e `synthesize`.
 
 ```rust
 use lace_core::history::{self, Operation};
@@ -1810,7 +1834,7 @@ montar as ligações antes de estarem certas. `Prepared::connections` traz
 cada ligação como texto (`target`, `source`), como o `lace fpga check`
 mostra.
 `FpgaProgramResult` traz `board`, `bitstream`, `cable`, `position`,
-`quartus` e os campos comuns.
+`quartus` e os campos comuns, menos `artifacts`.
 
 Conferido em 2026-10-09 com o Quartus Prime 25.1 Lite no Windows e uma
 DE2-115 (compilar e gravar). As mensagens e os relatórios também foram
@@ -1862,9 +1886,10 @@ onda abre em janela ou não (`wave: WavePolicy`), quem abre o RTL viewer
 (`Phase`), cada processador compilado, a onda aberta. O [`FlowOutcome`]
 tem `status` explícito (`succeeded`, `failed`, `cancelled`, `timed_out`,
 `crashed`, `incomplete`) e `succeeded`, e as partes que o fluxo produziu
-(`builds`, `registered`, `check`, `hierarchy`, `simulation`, `outputs`,
-`synthesis`, `schematic`, `schematic_error`, `rtl_viewer`, `wave`,
-`wave_error`, `report`, `report_error`, `fpga`, `fpga_program`). As regras
+(`builds`, `registered`, `check`, `lint_missing`, `hierarchy`, `not_built`,
+`simulation`, `outputs`, `synthesis`, `schematic`, `schematic_error`,
+`rtl_viewer`, `rtl_viewer_error`, `wave`, `wave_error`, `report`,
+`report_error`, `fpga`, `fpga_program`). As regras
 que antes divergiam estão fixas: o `build` continua depois de um
 processador que falha e mostra todos os erros; o `check` não compila
 processadores; a simulação para no primeiro build que falhar
@@ -1880,18 +1905,22 @@ com fila: o `Dispatcher` recebe os eventos do `Control` e o `Progress` e
 entrega [`Notification`] em lotes (`phase`, `events`, `output_omitted`,
 `build`, `install`), no máximo a cada 30 ms ou 500 eventos, com um teto de
 linhas (20 000 de uma vez e depois 5 000 por segundo; o que passa vira
-`output_omitted`, no lugar onde estaria) e um canal limitado: a ferramenta
-espera um cliente lento em vez de a memória crescer. Era o código de
+`output_omitted`, no lugar onde estaria) e um canal limitado: com a fila cheia, a ferramenta espera o cliente até
+500 ms por linha (`Limits::send_timeout`) e, se a entrega continuar parada,
+a linha fica de fora e entra em `output_omitted`, em vez de a memória crescer. Era o código de
 `jobs.rs` do Studio; agora o Studio, o `lace serve` e o `lace mcp` usam o
 mesmo.
 
 **`lace_core::locate`.** A busca do bundle a partir de outro programa, com
 a ordem que o Studio usava: a pasta declarada (`settings`), a variável
-(`environment`), ao lado do executável (`exe`), as pastas padrão do
-instalador, o `lace` do `PATH`. Quem chama monta o [`Lookup`] com o que
-leu do ambiente e das preferências (o core não lê ambiente), e `resolve`
+(`environment`), o bundle que contém o executável (`exe`, onde o instalador
+põe o Studio), as pastas padrão do instalador, o `lace` do `PATH` e, por
+último, o bundle ao lado do executável, como a CLI. Quem chama monta o [`Lookup`] com o que
+leu do ambiente e das preferências (o core não lê o ambiente para achar o bundle), e `resolve`
 devolve o bundle com a origem (`Found`); `describe` monta o
-[`ToolchainInfo`] da tela de ferramentas e do `lace tools`.
+[`ToolchainInfo`] da tela de ferramentas do Studio e do `toolchain.info` do
+`lace serve`: o que o `lace tools` mostra, em dados (a CLI monta o relatório
+dela direto do `Toolchain`).
 `Project::status()` devolve o retrato do projeto ([`ProjectStatus`]: o
 `lace status` e a árvore do Studio) e `Processor::output_ports` as portas
 de saída lidas pelo nome do arquivo.
@@ -1899,7 +1928,9 @@ de saída lidas pelo nome do arquivo.
 **`lace_core::protocol`.** O contrato do orquestrador em tipos com schema:
 [`Request`] (um método por operação, com grupo e ponto: `project.status`,
 `flow.run`, `history.list`, `update.check`, ...), [`Response`] (o valor em
-si, sem etiqueta), [`ServerInfo`], [`ShutdownReason`] e os tipos de
+si, sem etiqueta; o de `update.*`, `install.add` e `learn.check` vem do
+`lace-installer` (`update::run`, `add::add`) e do `lace-learn`, que o
+servidor linka, como `Response::Other`, com o schema do crate de origem), [`ServerInfo`], [`ShutdownReason`] e os tipos de
 resposta que não existiam (`TopOutcome`, `RemoveOutcome`, `NameCheck`,
 `ProcessorRemoval`, `ReportView`, `CleanOutcome`, `ExperimentalInfo`).
 `request_schema()` gera o schema dos pedidos na vista de quem desserializa
@@ -1916,7 +1947,7 @@ que fazer, quando quem mostra sabe; o core não o preenche) e `data` (os
 campos da variante, quando há: `available`, `files`, `path`, `reason`,
 ...), os dois últimos omitidos no JSON quando não há. É o `error` do
 `--json` da CLI, o `error.data` do `lace serve` e o que vai dentro de um
-`FlowOutcome` (`schematic_error`, `wave_error`).
+`FlowOutcome` (`schematic_error`, `rtl_viewer_error`, `wave_error`).
 
 ---
 
@@ -1927,7 +1958,7 @@ O JSON Schema de cada tipo é gerado do próprio tipo e fica em
 `docs/schema/`, nos `$defs` do schema do comando da CLI que o escreve:
 `BuildResult` em `build.json`, `CheckResult` em `check.json`,
 `SimulationResult` em `sim.json`, `SynthesisResult` e `SchematicResult` em
-`synth.json`, `HierarchyResult` em `hierarchy.json`, `MovedPath` em
+`synth.json`, `HierarchyResult` na raiz de `hierarchy.json` (não em `$defs`), `MovedPath` em
 `move.json`, `Event` em `events.json`. Um teste confere que os arquivos são
 o que os tipos geram.
 
@@ -1967,9 +1998,6 @@ tenha falhado (5.4.1).
 |---|---|
 | `build` C± | `compile`/`cmmcomp`, `assemble`/`asmcomp` |
 | `build` C | `compile`/`cppcomp`, `assemble`/`asmcomp` |
-
-`preprocess`/`cpppp` e `pre_assemble`/`appcomp` só aparecem nos relatórios
-de builds feitos com o YANC até a 6.x.
 | `simulate*` Icarus | `elaborate`/`iverilog`, `simulate`/`vvp` |
 | `simulate*` Verilator | `verilate`/`verilator`, `simulate`/`verilator` |
 | `check` | `check_syntax`/`iverilog` (um para o design, um por testbench), `lint`/`verilator` (com `lint`) |
@@ -1978,6 +2006,9 @@ de builds feitos com o YANC até a 6.x.
 | `render_schematic` | `graph`/`yosys`, `render`/`dot` |
 | `fpga::build` | `synthesize`/`quartus` (`quartus_map`), `fit`/`quartus` (`quartus_fit`), `bitstream`/`quartus` (`quartus_asm`), `timing`/`quartus` (`quartus_sta`) |
 | `fpga::program` | `program`/`quartus` (`quartus_pgm`) |
+
+`preprocess`/`cpppp` e `pre_assemble`/`appcomp` só aparecem nos relatórios
+de builds feitos com o YANC até a 6.x.
 
 `StepReport` guarda `command` (programa, argumentos, CWD, ambiente),
 `termination`, `stdout`, `stderr` e `duration_ms`. Com ele dá para reproduzir
@@ -2003,11 +2034,11 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 | `instruction_memory` | `O/<nome>_inst.mif` | `build` |
 | `testbench` | `O/<nome>_tb.v` | `build` |
 | `preprocessed_source` | `pp.cpp` (só nos relatórios do YANC até a 6.x) | `build` C |
-| `program_counter_map` | `T/pc_<nome>_mem.txt` | `build` |
+| `program_counter_map` | `O/pc_<nome>_mem.txt` | `build` |
 | `source_translation` | `O/src_lines.txt` | `build` |
-| `opcode_translation` | `T/trad_opcode.txt` | `build` |
+| `opcode_translation` | `O/trad_opcode.txt` | `build` |
 | `compiler_log` | `O/prog_log.txt` | `build` |
-| `pre_assembler_log` | `T/app_log.txt` | `build` |
+| `pre_assembler_log` | `O/app_log.txt` | `build` |
 | `icarus_image` | `<trabalho>/<topo>.vvp`; na hierarquia, `hierarchy/design.vvp`, `hierarchy/tb-<n>.vvp`, `hierarchy/proc-<nome>.vvp` | `simulate*` Icarus, `hierarchy` |
 | `verilated_model` | `<trabalho>/obj_dir_<topo>/V<topo>`; na simulação rápida, `obj_dir_fast_<topo>` | `simulate*` Verilator |
 | `waveform` | nome do `$dumpfile`, ou o da onda injetada (5.3) | `simulate*` |
@@ -2026,7 +2057,7 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 
 Um elemento de `results` na saída real de
 `lace -C com_erro build -p conta --json` (caminhos encurtados, bundle em
-`/opt/lace/toolchain`, com o YANC 7.1, artefatos cortados):
+`/opt/lace/toolchain`, com o YANC 7.1, artefatos e o `duration_ms` cortados):
 
 ```json
 {
@@ -2043,8 +2074,8 @@ Um elemento de `results` na saída real de
       "command": {
         "program": "/opt/lace/toolchain/yanc/bin/cmmcomp",
         "args": ["/home/eu/projetos/com_erro/conta/conta.cmm",
-                 "-o", "/home/eu/projetos/com_erro/.lace/Temp/conta", "--lang=en"],
-        "cwd": "/home/eu/projetos/com_erro/.lace/Temp/conta",
+                 "-o", "/home/eu/projetos/com_erro/conta/conta", "--lang=en"],
+        "cwd": "/home/eu/projetos/com_erro/conta",
         "env": [],
         "inherit": []
       },
@@ -2078,7 +2109,7 @@ achar o erro; o `.v` não, porque o `asmcomp` nem rodou.
 ### 6.5 Exemplo: simulação
 
 Exemplo de `lace -C soma sim -p soma --json`, campo `simulation` (caminhos
-encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
+encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no macOS, o
 `iverilog` e o `vvp` do bundle são lançadores em bash, que o Lace roda pelo
 `/bin/bash` com `PATH=/usr/bin:/bin` (9.1):
 
@@ -2086,6 +2117,7 @@ encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
 {
   "top": "soma_tb",
   "simulator": "icarus",
+  "fast": false,
   "status": "succeeded",
   "failed_step": null,
   "steps": [
@@ -2137,7 +2169,8 @@ encurtados, bundle em `/opt/lace/toolchain`). No Linux e no macOS, o
   ],
   "waveform": { "path": "/home/eu/projetos/soma/soma/soma/soma_tb.fst", "format": "fst" },
   "outputs": ["/home/eu/projetos/soma/soma/soma/output_0.txt"],
-  "missing_inputs": []
+  "missing_inputs": [],
+  "tests": null
 }
 ```
 
@@ -2181,7 +2214,7 @@ Regras:
   resumo `info` só.
 - No `iverilog`, a macro indefinida é erro (5.4), e um erro faz o passo
   falhar mesmo com código 0.
-- As mensagens do YANC vêm em inglês, porque o Lace pede `-en`.
+- As mensagens do YANC vêm em inglês, porque o Lace pede `--lang=en`.
 - No Quartus, os `Info` (centenas) ficam de fora, as linhas indentadas
   entram no `raw` da mensagem de cima, e o resumo de uma ferramenta que
   falhou (`Error: Quartus Prime Fitter was unsuccessful. ...`, com os
@@ -2197,7 +2230,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | Variante | `code()` | Quando | O que fazer |
 |---|---|---|---|
 | `BundleNotFound` | `bundle_not_found` | não há `toolchain/` com `bundle.json` ao lado do executável | reinstalar o Lace |
-| `InvalidBundle` | `invalid_bundle` | manifesto ausente ou inválido, formato novo demais, outra plataforma, componente ausente ou fora do bundle, executável que é symlink para fora do bundle | reinstalar, ou montar o bundle certo |
+| `InvalidBundle` | `invalid_bundle` | manifesto ausente ou inválido, formato diferente de `BUNDLE_SCHEMA`, outra plataforma, componente ausente ou fora do bundle, executável que é symlink para fora do bundle | reinstalar, ou montar o bundle certo |
 | `UnsupportedPlatform` | `unsupported_platform` | fora de Linux x64, macOS arm64, Windows x64 | não há bundle |
 | `ComponentMissing` | `component_missing` | o componente da ferramenta não foi instalado; a mensagem não diz como instalar, que é de cada interface | `lace install <componente>`, ou o botão Instalar do Studio |
 | `ToolchainIncomplete` | `toolchain_incomplete` | o componente está lá, mas falta o executável (ou o `verilator_bin`), ou um diretório do YANC | reinstalar |
@@ -2214,7 +2247,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `InvalidSource` | `invalid_source` | fonte ausente, ou com outro nome que não `<processador>.<ext>` | corrigir o fonte |
 | `LegacyLayout` | `legacy_layout` | `build` de um processador na estrutura de pastas do YANC 6.x (`Software/`, `Hardware/`, `Simulation/`) | `convert_layout` (3.6) |
 | `YancTooOld` | `yanc_too_old` | `build` com um bundle cujo YANC é anterior à 7.1 | instalar o bundle atual |
-| `NotBuilt` | `not_built` | simular, sintetizar ou elaborar a hierarquia de processador sem `build`; `waveform_path` de processador não compilado | rodar `build` |
+| `NotBuilt` | `not_built` | simular, sintetizar, verificar (`check` com `processor`) ou elaborar a hierarquia de processador sem `build`; `check` de um projeto em que nada se verifica porque nenhum processador foi compilado; um arquivo registrado que o build de um processador gera e ainda não existe; `waveform_path` de processador não compilado | rodar `build` |
 | `NoTestbench` | `no_testbench` | `simulate_project` ou `waveform_path` sem testbench | `add_verilog` de um testbench, ou `set_testbench` |
 | `NoCocotbToplevel` | `no_cocotb_toplevel` | `simulate_project` de um testbench cocotb sem a diretiva `# aurora-toplevel:` num projeto sem topo | a diretiva no `.py`, ou `set_top` |
 | `CocotbUnavailable` | `cocotb_unavailable` | o Python do componente `cocotb` não carregou o cocotb (a sonda de 5.3.2 falhou), ou o cocotb dele não traz a biblioteca do simulador; `reason` traz o fim da saída da sonda ou a biblioteca que falta | reinstalar o componente |
@@ -2229,7 +2262,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `ProcessExitedEarly` | `process_exited_early` | o Surfer fechou logo ao abrir | ver o fim do log (`tail`) |
 | `NonUtf8Path` | `non_utf8_path` | caminho não UTF-8 | renomear |
 | `PathTooLong` | `path_too_long` | caminho acima de `YANC_PATH_LIMIT` (259 no Windows, 1000 nos outros) | mover o projeto |
-| `NonAsciiPath` | `non_ascii_path` | processador num caminho com caractere fora do ASCII: o YANC grava o caminho absoluto das memórias e das entradas, e o `vvp` do Icarus não abre nome com acento | mover o projeto para uma pasta sem acento |
+| `NonAsciiPath` | `non_ascii_path` | processador num caminho com caractere fora do ASCII (a pasta dele em `simulate`, a raiz do projeto com processador em `simulate_project`): o Lace passa ao simulador o caminho completo dos arquivos, e a recusa fica até a simulação numa pasta com acento ser conferida no Windows (5.2) | mover o projeto para uma pasta sem acento |
 | `Spawn` | `spawn` | processo não iniciou | ver permissão e caminho |
 | `Io` | `io` | leitura ou escrita do Lace falhou | ver `context` e `path` |
 | `ProjectNotFound` | `project_not_found` | `Project::discover` sem `.spf` na pasta nem nas de cima | rodar de dentro de um projeto, ou criar um |
@@ -2264,19 +2297,23 @@ Garantias:
 - **Sem I/O de console.** O Core não escreve no terminal, não chama `exit`,
   não entra em pânico em erro esperado. O log sai por `tracing`, com spans
   por operação (`build`, `simulate`, `simulate_project`, `check`,
-  `hierarchy`, `synthesize`, `render_schematic`); o cliente configura o
+  `hierarchy`, `synthesize`, `render_schematic`, `wave_signals`, `fpga_build`,
+  `fpga_program`); o cliente configura o
   subscriber.
 - **Só o bundle.** Toda ferramenta sai do bundle instalado com o Lace, num
-  caminho fixo por plataforma. Nada do `PATH`, nada configurável. A exceção é
-  a do Verilator no Linux e no macOS (compilador, `make` e Perl do sistema,
-  em locais fixos); no Windows os três vêm no bundle.
-- **Ambiente explícito.** Todo filho parte de um ambiente vazio. No Windows
+  caminho fixo por plataforma. Nada do `PATH`, nada configurável. As exceções
+  são a do Verilator no Linux e no macOS (compilador, `make` e Perl do
+  sistema, em locais fixos ou numa pasta declarada; no Windows os três vêm
+  no bundle) e a do Quartus Prime, para as placas Intel (2.5), de pastas
+  padrão ou declaradas, nunca do `PATH`.
+- **Ambiente explícito.** Toda ferramenta parte de um ambiente vazio (o abridor de `open_with_system` e o `taskkill` herdam o do Lace). No Windows
   recebe `SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `ProgramData`, `TEMP`,
   `TMP`; as ferramentas do OSS CAD
   Suite recebem `PATH` com `bin;lib` do pacote, e as do `msys/`, com
   `ucrt64/bin`. No Linux e no macOS, os lançadores do pacote recebem
-  `PATH=/usr/bin:/bin`. O Verilator recebe o diretório do script e os do
-  compilador, e `LC_ALL=C`; o
+  `PATH=/usr/bin:/bin`. O Verilator recebe o diretório do script (no Windows, o
+  do `verilator_bin.exe`) e os do compilador, `LC_ALL=C` e, no Windows,
+  `VERILATOR_ROOT`; o
   surfer-aurora recebe as variáveis de display. O `StepReport` registra o que
   foi definido.
 - **stdin fechado.** Todo filho recebe stdin nulo, e o `vvp` roda com `-n`:
@@ -2295,15 +2332,21 @@ Garantias:
   `Send`. Uma GUI roda as operações numa thread de trabalho e cancela da
   thread da interface (5.8).
 - **FFI.** A superfície pública só expõe tipos do Lace, da `std`, de
-  `camino` (caminhos), de `serde` e de `schemars` (derive). Os enums são
-  `#[non_exhaustive]`.
+  `camino` (caminhos), de `serde`, de `serde_json` (o `Value` de
+  `ErrorInfo::data`, `LaceError::data`, `Notification::Install` e
+  `protocol::Response::Other`) e de `schemars` (derive e os schemas de
+  `protocol`). Os enums são `#[non_exhaustive]`, menos os da 0.9.0 em
+  `flows`, `delivery`, `locate` e `protocol` (`FlowRequest`, `WavePolicy`,
+  `Progress`, `WaveSource`, `LayoutPolicy`, `WaveChoice`, `Notification`,
+  `Origin`, `ShutdownReason`).
 
 Limites desta versão:
 
 - As operações bloqueiam até o fim, menos `open_waveform`. Cancelar e
   acompanhar a saída é pelo `Control` (5.8), de outra thread.
-- Só a simulação tem prazo (`SimulationOptions::timeout`). Build, `check`,
-  hierarquia, síntese e esquemático rodam até o fim ou até o cancelamento.
+- Só a simulação (`SimulationOptions::timeout`) e o desenho do esquemático
+  (`SchematicOptions::timeout`, 60 s por padrão) têm prazo. Build, `check`,
+  hierarquia e síntese rodam até o fim ou até o cancelamento.
 - No Unix, um SIGKILL no processo que usa a biblioteca não tem como
   encerrar os filhos: eles rodam num grupo de processos próprio e continuam
   rodando. O mesmo vale para um SIGTERM que o processo não trata. Quem
@@ -2330,7 +2373,7 @@ O Lace é escrito para Linux, macOS e Windows. O que foi conferido e como:
 | compila, `clippy -D warnings` | sim | sim (MSVC e GNU, cruzado) | sim (Intel e Apple Silicon, cruzado) |
 | testes de unidade | sim | sim, no Wine | não |
 | build com o YANC real, regressão do YANC (66 + 10 casos), CLI | sim | sim, no Wine, com o YANC compilado para Windows | não |
-| Icarus, Verilator, Yosys, `dot`, surfer-aurora do bundle | sim (bundle 2026.09.29: Icarus 14.0 devel, Verilator 5.053 devel, Yosys 0.69+156, Graphviz 2.43, surfer-aurora v0.7.0-nips.10) | não | não |
+| Icarus, Verilator, Yosys, `dot`, surfer-aurora do bundle | sim (bundle 2026.09.29, com o OSS CAD Suite 2026-09-29 e o surfer-aurora v0.7.0-nips.10, os mesmos do bundle atual, 2026.10.13: Icarus 14.0 devel, Verilator 5.053 devel, Yosys 0.69+156, Graphviz 2.43, surfer-aurora v0.7.0-nips.10) | não | não |
 
 O Wine executa a API do Windows (criação de processo, caminhos `C:\`,
 `.exe`, ambiente), mas não é o Windows. A verificação completa nos três
@@ -2351,7 +2394,7 @@ O que muda por sistema, e como o Lace trata:
 | encerrar um passo (cancelamento, prazo) | Unix: grupo de processos próprio por passo, SIGTERM ao grupo e SIGKILL depois de 1 s. Windows: Job Object por passo (`KILL_ON_JOB_CLOSE`), que encerra a árvore também quando o Lace morre; `taskkill /T /F` do `System32` se o sistema recusar o job |
 | janela de console | Windows: nenhuma (`hide_console`); com console o filho divide o do Lace, sem console leva `CREATE_NO_WINDOW` |
 | ferramentas do OSS CAD Suite | lançadores bash via `/bin/bash` (Linux, macOS); `.exe` com `PATH=bin;lib` (Windows) |
-| Verilator | script Perl pelo Perl do sistema; Python do bundle no `make`; sem `-march=native` no macOS |
+| Verilator | Linux e macOS: o script Perl pelo Perl do sistema; Windows: o `verilator_bin.exe` direto, com `VERILATOR_ROOT`; Python do bundle no `make`; sem `-march=native` no macOS |
 | fins de linha | CRLF aceito em toda leitura (`.spf`, fontes, saídas); no Windows o YANC grava CRLF |
 
 ---
@@ -2378,5 +2421,5 @@ O que muda por sistema, e como o Lace trata:
 | Esquemático | netlistsvg (fork próprio), dentro do processo, ~50 skins | `show` do Yosys + `dot` do Graphviz; o Studio desenha o próprio, do `hierarchy.json`, com o ELK |
 | Onda do Verilator | FST | VCD (o FST do Verilator do bundle exige lz4 e zlib do sistema) |
 | Layout do Surfer | gera `.surf.ron` e tradutores na pasta de configuração do usuário | gera o mesmo layout (`wave_layout`), com os tradutores em `.lace/Temp/surfer/` |
-| Sinais fora dos processadores no layout | todos os escopos | só os da raiz do testbench |
+| Sinais fora dos processadores no layout | todos os escopos | só os da raiz do testbench; com escolha de sinais (5.7.3), os escolhidos, um grupo por escopo |
 | Teste de hardware (THTEST) | harness C++ próprio | não implementado |

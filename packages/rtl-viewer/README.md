@@ -35,4 +35,5 @@ npm run build        # dist/: rtl-viewer.js, os CSS e o modelo rtl-viewer.html
 atlas-light): rode de novo quando eles mudarem e confira o diff.
 
 Para testar o `lace synth --open` com este build, sem o componente
-instalado: `LACE_RTL_VIEWER=$PWD/dist/rtl-viewer.html lace synth --open`.
+instalado, desta pasta:
+`LACE_RTL_VIEWER=$PWD/dist/rtl-viewer.html lace -C <projeto> synth --open`.

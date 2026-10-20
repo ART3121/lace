@@ -7,7 +7,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 
 | Estado | Significa |
 |---|---|
-| **Feito** | funciona no Studio 0.1 |
+| **Feito** | funciona no Studio |
 | **Parcial** | parte funciona; a nota diz o que falta |
 | **Fase 2**, **Fase 3** | planejado para a fase indicada (ver o fim da página) |
 | **Depende do Lace** | precisa de algo que o `lace-core` ainda não tem; a nota diz o quê |
@@ -51,7 +51,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Vista de arquivos Verilog com selos de topo e testbench | Feito | Explorador > Fontes: Módulos (topo marcado com o módulo, e o Verilog gerado de cada processador), Testbenches (o simulado marcado, e o testbench gerado de cada processador), Processadores (programa, memórias, simulação, intermediários do YANC), Fora do projeto |
 | Classificação sintetizável ou testbench pelo conteúdo | Feito | pela regra da AURORA, no Core (`add_verilog`) |
 | Definir topo, marcar testbench, novo `.v`, menu de contexto | Feito | qualquer `.v` pode ser topo, inclusive o gerado pelo build de um processador; nome de testbench (`tb_<nome>.v`, `<nome>_tb.v`) não |
-| Arrastar arquivos para importar | Feito | do sistema: numa pasta da árvore de arquivos, copia; em Módulos ou Testbenches, copia para o projeto e registra com esse papel; `.spf` abre o projeto. Dentro da árvore: mover arquivos e pastas (o `.spf` acompanha) e trocar um Verilog de Módulos para Testbenches |
+| Arrastar arquivos para importar | Feito | do sistema: numa pasta da árvore de arquivos, copia; em Módulos ou Testbenches, registra com esse papel no lugar onde o arquivo está, sem copiar; `.spf` abre o projeto. Dentro da árvore: mover arquivos e pastas (o `.spf` acompanha) e trocar um Verilog de Módulos para Testbenches |
 | Vista de pastas: novo arquivo e pasta, renomear (F2), apagar para a lixeira, copiar caminho, mostrar no gerenciador | Feito | Explorador > Arquivos |
 | Recortar, copiar e colar arquivos; desfazer apagar | Fase 2 | |
 | Vista de hierarquia | Diferente | Explorador > Hierarquia. A AURORA montava a hierarquia com o Yosys; o Studio usa a elaboração do Icarus, que atualiza sozinha depois de cada verificação, simulação, build ou síntese e mostra também cada testbench e a biblioteca SAPHO |
@@ -66,7 +66,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Wave (F8) | Feito | Wave (F8): simula e abre a onda no surfer-aurora |
 | Fast Sim (F9) | Feito | Rápida (F9): `lace sim --fast`, sem gravar onda; o testbench Verilog no Verilator, como na AURORA, mas sem exigir o Verilator escolhido; o cocotb no simulador escolhido |
 | RTLViewer (F10) | Feito | síntese do Yosys, e o esquemático desenhado pelo próprio Studio a partir do netlist, com o layout do ELK (o motor do netlistsvg) e as cores do tema; não o netlistsvg (API.md seção 10) |
-| Full Build (F5) | Feito | F5: verifica e, se passou, simula |
+| Full Build (F5) | Feito | F5: compila os processadores, se houver, verifica e, se passou, simula |
 | Cancelar (Shift+F5) | Feito | Parar (Shift+F5); o Core encerra a ferramenta com tudo o que ela iniciou |
 | Icarus ou Verilator | Feito | menu Fluxo e preferência |
 | Simulação de processador direto, sem testbench do projeto | Feito | alvo = processador; a AURORA só simulava pelo projeto |
@@ -90,7 +90,7 @@ próximas sessões.
 | TVERI | Feito | terminal de etapa Verilog |
 | TWAVE | Feito | terminal de etapa Wave; mostra também as saídas de cada porta do processador |
 | TRTLViewer | Feito | terminal de etapa RTLViewer |
-| TCMD (shell real) | Feito | aba Terminal: o shell do usuário (PowerShell no Windows), com o `lace` no `PATH` |
+| TCMD (shell real) | Feito | aba Terminal: o shell do usuário (no Windows, o PowerShell ou o `cmd.exe`, pela preferência `terminal_shell`), com o `lace` no `PATH` |
 | THTEST (teste de hardware) | Depende do Lace | não implementado no Lace (API.md, seção 10) |
 | Links `arquivo:linha` clicáveis | Feito | |
 | Modo verboso | Feito | preferência: mostra o comando de cada passo e as mensagens `info` |
@@ -123,17 +123,17 @@ próximas sessões.
 | Busca, detalhes da célula e da rede, minimapa | A mais | não há na AURORA |
 | 82 skins do netlistsvg | Diferente | um desenho só, que segue o tema do Studio (as famílias de célula pegam a paleta do tema) |
 | Simulação interativa com DigitalJS | Fase 3 | |
-| Estatísticas da síntese | Feito | aba Síntese: células, fios, memórias e células por tipo (sem LUT nem temporização: não há mapeamento para FPGA) |
+| Estatísticas da síntese | Feito | aba Síntese: células, fios, memórias e células por tipo (sem LUT nem temporização: a síntese do Yosys não mapeia para FPGA; com a placa FPGA ligada, os recursos e o tempo do Quartus aparecem na aba Placa FPGA) |
 
 ## Editor
 
 | Recurso da AURORA | Estado | No Studio, ou o que falta |
 |---|---|---|
 | Monaco, abas provisórias, marcador de alteração, reabrir aba fechada | Feito | |
-| Reordenar abas arrastando | Fase 2 | |
+| Reordenar abas arrastando | Feito | na barra de abas, com eventos de ponteiro, também entre grupos |
 | Dividir o editor (até 3) | Feito | lado a lado, cada grupo com as suas abas; arrastar abas entre grupos, abrir ao lado, `Ctrl+\` e Ctrl+1..3 |
 | Realce de C± | Feito | gramática portada e conferida contra o léxico do YANC; corrige pontos em que a AURORA divergia (ver `src/editor/languages/cmm.ts`) |
-| Realce do assembly do SAPHO | Feito | os 114 opcodes do YANC |
+| Realce do assembly do SAPHO | Feito | os 117 mnemônicos da gramática (`OPCODES`, em `src/editor/languages/asm.ts`), com QUO, REM e F_QUO, que entraram no YANC 6.0 |
 | Realce de Verilog e SystemVerilog | Feito | o do Monaco |
 | Realce de MATLAB | Fase 2 | |
 | Camada semântica tree-sitter | Fase 2 | |
@@ -156,15 +156,16 @@ próximas sessões.
 | Preferências: idioma, tema, editor, modo verboso | Feito | Preferências (Ctrl+,) |
 | Atalhos configuráveis | Fase 2 | a tabela já está em `actions.ts` |
 | Componentes: baixar, remover, conferir | Feito | Ferramentas do Lace: componentes, executáveis, compilador do Verilator, conferência dos hashes, instalar (`lace install`); remover componente o Lace não faz |
-| Inglês e português | Feito | o YANC roda sempre em inglês (`-en`), por decisão do Lace |
+| Inglês e português | Feito | o YANC roda sempre em inglês (`--lang=en`), por decisão do Lace |
 | Temas | Feito | a AURORA tinha só o escuro; o Studio tem 15, com o Atlas de padrão e o Aurora Legacy nas cores da AURORA |
-| Atualização | Parcial | procura e instala atualização do Lace e do bundle (`lace update`), na tela de ferramentas; atualização do próprio Studio, Fase 2 |
+| Atualização | Feito | procura e instala atualização do Lace e do bundle (`lace update`), com o próprio Studio, que é um componente do bundle; procura sozinho ao abrir e a cada 12 horas (preferência `check_updates`), oferece a versão nova e reinicia nela; também em Ferramentas > Procurar atualizações |
 | Manual offline num navegador interno | Fase 2 | hoje, Ajuda > Manual do SAPHO abre o site |
 | Sobre | Feito | |
-| Assistente (Aurora Intelligence) | Fase 3 | ver abaixo |
+| Assistente (Aurora Intelligence) | Parcial | a vista Assistente, experimental (Preferências > Experimental > Assistente de IA): uma conversa com o Claude Code, que usa as ferramentas do Lace pelo `lace mcp`; operar o Studio pelas ações dele, Fase 3 (ver abaixo) |
 | Painel de Git (GitHub e GitLab) | Fase 3 | |
-| Gerenciador de bibliotecas Python (cocotb) | Depende do Lace | só faz sentido quando o Lace rodar cocotb |
-| Tela de abertura, fundo animado, ícone personalizado | Diferente | o visual do Studio é neutro e sem enfeite |
+| Gerenciador de bibliotecas Python (cocotb) | Depende do Lace | o Lace já roda cocotb, com o Python do componente `cocotb`, mas o Core não instala pacotes nesse Python |
+| Tela de abertura | Feito | o splash: uma janela pequena com o logo animado enquanto o Studio abre (`public/splash.html`) |
+| Fundo animado, ícone personalizado | Diferente | o visual do Studio é neutro e sem enfeite |
 | Extras do Windows (bateria, rede, Smart App Control, jumplist) | Diferente | fora do escopo |
 
 ## Também no Studio
@@ -177,11 +178,11 @@ Recursos que esta comparação não cobre, porque não estão no manual da AUROR
 | Modo Vim no editor (`monaco-vim`), com `:w`, `:q`, `:wq` | pedido para o Studio |
 | Limpar relatórios (todos, ou todos menos os N mais novos) | `lace report clean`, do Lace |
 | Hierarquia de cada testbench, além da do design | a elaboração do Icarus |
-| Mover arquivos na árvore mantendo o `.spf` | o Studio, compondo funções do Core |
+| Mover arquivos na árvore mantendo o `.spf` | o `Project::move_path` do Core (`lace move`) |
 
 ## Fases
 
-**Fase 1 (0.1, esta).** A IDE inteira em volta do Lace: projeto, explorador,
+**Fase 1 (0.1).** A IDE inteira em volta do Lace: projeto, explorador,
 editor com C±, asm e Verilog, os fluxos (C±, Verilog, Wave, Rápida, RTLViewer)
 com saída ao vivo e cancelamento, consoles por etapa, Problemas, terminal de
 shell, esquemático, estatísticas, relatórios (comparar e limpar), hierarquia
@@ -192,12 +193,12 @@ linha do C±).
 
 **Fase 2.** Fechar o que falta da AURORA sem depender de decisão grande:
 escolher um layout próprio da onda, LSP de Verilog, formatação, substituir nos arquivos, exportar log, backup e
-exemplos, atalhos configuráveis, manual offline, atualização do Studio.
+exemplos, atalhos configuráveis, manual offline.
 
-**Fase 3.** O assistente (o papel da Aurora Intelligence: operar o Studio
+**Fase 3.** O resto do assistente, que chegou na 0.9.0 como vista experimental com as ferramentas do Lace (o papel da Aurora Intelligence: operar o Studio
 pelas mesmas ações e comandos desta documentação), Git, histórico local e
 pontos de restauração, simulação interativa do esquemático.
 
-**Depende do Lace.** THTEST, escolha de sinais da onda,
-command overrides, cocotb, renomear processador, renomear projeto.
+**Depende do Lace.** THTEST, command overrides, o gerenciador de bibliotecas
+Python do cocotb, renomear processador, renomear projeto.
 Cada um é uma proposta para o `lace-core` antes de ser um botão aqui.

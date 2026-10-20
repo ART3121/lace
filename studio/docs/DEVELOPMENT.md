@@ -10,7 +10,7 @@ tipo de mudança. A arquitetura está em [ARCHITECTURE.md](ARCHITECTURE.md).
 | Rust | 1.90 ou mais novo (`rust-version` do `src-tauri/Cargo.toml`) | o backend; o Tauri 2.12 pede 1.90 |
 | Node.js | 22 | a interface (Vite, TypeScript) |
 | Dependências de sistema do Tauri | ver abaixo | WebView e GTK |
-| O repositório do Lace | o Studio está em `studio/` dele | o `lace-core` entra por caminho (`../crates/lace-core`, em `src-tauri/Cargo.toml`) e os tipos saem de `../docs/schema` |
+| O repositório do Lace | o Studio está em `studio/` dele | o `lace-core`, o `lace-learn`, o `lace-installer` e o `lace-agent` entram por caminho (`../../crates/`, em `src-tauri/Cargo.toml`) e os tipos saem de `../docs/schema` |
 | Uma instalação do Lace | qualquer | rodar o Studio e os testes de fluxo; ou um bundle em `LACE_TEST_BUNDLE` |
 
 Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
@@ -64,7 +64,7 @@ campos de texto, em `src/main.tsx`).
 | `npm run tauri build` | o aplicativo inteiro e os instaladores da plataforma |
 
 Os testes de `src-tauri/tests/flows.rs` rodam check, sim, synth e build
-sobre cópias dos exemplos do Lace, com o bundle que o Studio acharia
+sobre cópias dos exemplos do Lace, a correção de um exercício (`learn`) sobre a trilha de teste do `lace-learn` e as recusas do `fpga_build`, com o bundle que o Studio acharia
 sozinho ou com `LACE_TEST_BUNDLE=/caminho/do/toolchain`. Sem bundle, avisam e
 passam; com `CI` definido, falham.
 
@@ -136,11 +136,11 @@ abertura levou (`Startup: modules loaded in ... ms, first frame at ...
 ms`, contado da navegação da WebView).
 
 A janela só aparece quando a interface está desenhada (ARCHITECTURE.md,
-4.1). No desenvolvimento isso leva de 1,5 s a 3 s com o Vite já aquecido, e
+4.1). No desenvolvimento isso leva pelo menos 3,2 s, o tempo mínimo do splash (`SPLASH_MIN_MS`, em `src/App.tsx`), com o Vite já aquecido, e
 mais na primeira vez depois de subir o Vite, que pré-empacota as
 dependências; se o Vite não estiver rodando, a janela aparece vazia depois
-de 10 s. Um script que espera a janela (o `smoke.sh` da seção anterior, o
-`wmctrl`) precisa esperar esse tempo.
+de 10 s. Um script que espera a janela (com o `wmctrl`, por exemplo)
+precisa esperar esse tempo.
 
 ## 4. Onde mudar o quê
 
@@ -244,8 +244,12 @@ AURORA: onde as duas divergem há um comentário dizendo o que vale.
 
 ## 6. Versão e distribuição
 
-A versão está em três lugares, que andam juntos: `package.json`,
-`src-tauri/Cargo.toml` e `src-tauri/tauri.conf.json`. Anote a mudança em
+A versão do Studio é a do Lace e está em cinco lugares, que andam juntos:
+`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`,
+`src-tauri/tauri.conf.json` e o pacote `studio` de `bundle/versions.json` da
+raiz. O `bundle.py` recusa o Studio com versões diferentes, e o
+`release.yml` recusa a tag se o Studio não tiver a versão do Lace
+([docs/RELEASE.md](../../docs/RELEASE.md), seção 6.1). Anote a mudança em
 [CHANGELOG.md](../CHANGELOG.md).
 
 Os ícones do app em `src-tauri/icons/` saem de `public/brand/lace-icon.svg`.
@@ -259,6 +263,7 @@ for f in src-tauri/icons/*; do cp "/tmp/lace-icons/$(basename "$f")" "$f"; done
 
 `npm run tauri build` gera os instaladores da plataforma em que roda
 (`.deb`, `.rpm` e AppImage no Linux; `.dmg` no macOS; `.msi` e `.exe` no
-Windows). Para os três sistemas, o caminho é um workflow de CI com uma
-máquina de cada; ainda não existe (ver [AURORA_PARITY.md](AURORA_PARITY.md),
-Fase 2, atualização do Studio).
+Windows). Eles não vão para os usuários: o Studio sai no instalador do Lace,
+compilado pelo `scripts/bundle.py` da raiz (`tauri build --no-bundle`, e só o
+`.app` no macOS) nas três plataformas, no workflow
+`.github/workflows/installers.yml`, que o `release.yml` chama numa tag.

@@ -27,9 +27,9 @@ rustup component add clippy rustfmt
 
 Use o Rust estável atual, que é o que a release usa
 (`dtolnay/rust-toolchain@stable`, em `.github/workflows/installers.yml`). O mínimo é
-o 1.88 (`rust-version` no `Cargo.toml`, edição 2024): o código usa let chains
+o 1.89 (`rust-version` no `Cargo.toml`, edição 2024); o código usa let chains
 (`if let ... && let ...`, por exemplo em `diagnostics.rs`), que versões
-anteriores recusam.
+anteriores à 1.88 recusam.
 
 ### Compilar e rodar os testes
 
@@ -48,7 +48,7 @@ não diz nada sobre o fluxo das ferramentas.
 
 Não defina a variável `CI` na sua máquina. Com ela definida, a falta do
 bundle ou de uma ferramenta é falha, não teste pulado. O GitHub Actions
-define `CI`, e por isso lá nada é pulado.
+define `CI`, mas hoje não roda os testes do Rust.
 
 ### O bundle, para os testes que rodam ferramentas
 
@@ -58,8 +58,7 @@ então um caminho relativo aponta para o lugar errado. Há dois jeitos de ter
 um bundle.
 
 **Usar o de uma instalação do Lace.** Instale pelo [README](README.md) e
-aponte para a pasta `toolchain/` da instalação. Não compila nada; é o que o
-CI faz (`.github/workflows/installers.yml`).
+aponte para a pasta `toolchain/` da instalação. Não compila nada.
 
 ```sh
 export LACE_TEST_BUNDLE="$HOME/.local/share/lace/toolchain"            # Linux, macOS
@@ -74,9 +73,11 @@ do campo `bundle` de `bundle/versions.json`; se não for, os testes rodam
 contra outras versões. Sem o Verilator (numa instalação Custom sem ele), os
 testes dele são pulados.
 
-**Montar o bundle.** Precisa de Python 3.9 ou mais novo, `git`, e do que
-compila o YANC e o surfer-aurora (`gcc`, `make`, `flex`, `bison`, `cargo`; a
-tabela por sistema está em [docs/BUNDLE.md](docs/BUNDLE.md), seção 6).
+**Montar o bundle.** Precisa de Python 3.9 ou mais novo, `git`, do que
+compila o YANC (`gcc`, `make`, `flex`, `bison`) e, no bundle completo, do
+Node.js, para o Studio e o RTL viewer, e do `cargo`, para o Studio; o
+surfer-aurora vem pré-compilado (a tabela por sistema está em
+[docs/BUNDLE.md](docs/BUNDLE.md), seção 6).
 
 ```sh
 python3 scripts/bundle.py --out dist/toolchain               # completo
@@ -92,8 +93,8 @@ Com o bundle definido, há mais duas dependências:
   compilador vem no bundle.
 - **`yanc_regression` precisa do fonte do YANC** no commit do bundle (o
   `commit` de `yanc` em `bundle/versions.json`), em `vendor/yanc` ou no
-  caminho de `LACE_TEST_YANC_SRC`. Sem ele, o teste falha ao ler a pasta
-  dos casos de teste.
+  caminho de `LACE_TEST_YANC_SRC`. Sem ele, o teste é pulado, como sem o
+  bundle (com `CI` definido, falha).
 
 ```sh
 git clone https://github.com/nipscernlab/yanc vendor/yanc
@@ -164,13 +165,15 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `layout.rs` | a conversão de um projeto da estrutura do YANC 6.x (`Software/`, `Hardware/`, `Simulation/`) para a do 7.1 (`Project::convert_layout`), a mesma da AURORA |
 | `source.rs` | lê as diretivas do cabeçalho do fonte (`#NUBITS`, `#pragma yanc nubits`), sem os comentários |
 | `simulate.rs` | `simulate` (um processador), `simulate_project` (o testbench do projeto), `waveform_path`, `missing_inputs`; os comandos do Icarus e do Verilator em `execute`; a injeção de `$dumpvars` |
+| `cocotb.rs` | módulo público `lace_core::cocotb`: os testbenches em Python (`is_testbench`, a diretiva `# aurora-toplevel:` em `toplevel_directive`), o modelo do testbench cocotb (`testbench_template`) e o resultado dos testes (`TestReport`, do `results.xml`) |
 | `synth.rs` | `check` (Icarus e, com `lint`, Verilator), `synthesize` (Yosys), `render_schematic` (`show` do Yosys e `dot`); `CheckOptions`, `DesignTarget`; os arquivos do design (`project_sources`, `processor_verilog`), que `hierarchy.rs` também usa |
 | `hierarchy.rs` | `hierarchy`: a árvore de instâncias do design e de cada testbench, elaborada pelo Icarus e lida do `.vvp` (`parse_vvp`); `HierarchyOptions`, `HierarchyResult`, `Elaboration`, `ModuleInstance` |
 | `stats.rs` | `SynthesisStatistics`: lê o `stat -json` do Yosys que a síntese grava (`SynthesisMetric`, `CellUsage`) |
 | `history.rs` | módulo público `lace_core::history`: o relatório de cada operação e o histórico em `.lace/reports/` (`record`, `list`, `load`, `latest`, `report_text`), a comparação (`compare`, `compare_reports`, `previous_comparable`) e o texto do `report.txt` (`render`) |
 | `wave.rs` | `open_waveform` (surfer-aurora) e `ViewerOptions` |
-| `fpga/` | módulo público `lace_core::fpga` ([docs/FPGA.md](docs/FPGA.md)): as placas (`board.rs`, com os JSONs de `crates/lace-core/boards/` embutidos), o `fpga.json` e a resolução das ligações bit a bit (`config.rs`), o topo da placa gerado (`wrapper.rs`), o Quartus do sistema e a invocação dos programas dele (`quartus.rs`), o `.qsf` e o `.sdc` (`qsf.rs`), a leitura dos resumos de recursos e de tempo (`summary.rs`), a compilação para a placa (`build.rs`) e `prepare`, que junta tudo para um projeto |
-| `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho do VCD e das tabelas do YANC |
+| `wave_signals.rs` | a escolha dos sinais que a onda do testbench grava: a árvore elaborada pelo Icarus (`wave_signals`), a escolha em `wave/<testbench>.json` (`read_selection`, `write_selection`) e o layout salvo (`layout_file`) |
+| `fpga/` | módulo público `lace_core::fpga` ([docs/FPGA.md](docs/FPGA.md)): as placas (`board.rs`, com os JSONs de `crates/lace-core/boards/` embutidos), o `fpga.json` e a resolução das ligações bit a bit (`config.rs`), o topo da placa gerado (`wrapper.rs`), o Quartus do sistema e a invocação dos programas dele (`quartus.rs`), o `.qsf` e o `.sdc` (`qsf.rs`), a leitura dos resumos de recursos e de tempo (`summary.rs`), a compilação para a placa (`build.rs`), o registro da compilação (`manifest.rs`, o `lace-build.json`), a conferência dos pinos depois do Fitter (`pins.rs`), a gravação na placa pelo Quartus Programmer (`program.rs`) e `prepare`, que junta tudo para um projeto |
+| `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho da onda (VCD ou FST) e das tabelas do YANC |
 | `paths.rs` | `YANC_PATH_LIMIT`, `canonicalize` sem o prefixo `\\?\` do Windows, normalização de caminhos |
 | `flows/` | módulo público `lace_core::flows`: os fluxos compostos que a CLI, o Studio e o `lace serve` chamam (`run`, `FlowRequest`, `FlowOutcome` com `status`), a onda (`open_wave`) e a escolha de sinais (`choose_signals`) |
 | `protocol.rs` | módulo público `lace_core::protocol`: o contrato do orquestrador, com `Request`, `Response`, `METHODS`, `PROTOCOL_VERSION` e o schema em duas vistas; é onde nasce um método novo ([docs/METODOLOGIA.md](docs/METODOLOGIA.md)) |
@@ -184,25 +187,33 @@ está no [README](README.md#como-as-partes-se-ligam).
 | Arquivo | O que mora lá |
 |---|---|
 | `main.rs` | a definição da linha de comando com o `clap` (`Cli`, `Command`, `ProcCommand`, as structs `*Args`), o texto de ajuda, `main` com os códigos de saída (`EXIT_FAILED`, `EXIT_ERROR`, `EXIT_CANCELLED`), `cancel_on_signals` (Ctrl+C e SIGTERM viram cancelamento), `init_tracing` e o teste `cli_definition_is_valid` |
-| `commands.rs` | uma função por comando, chamada por `run`; converte os caminhos digitados em absolutos e chama o Core com o `Control`; `build_first` compila os processadores antes de `check`, `sim` e `synth`; `record` grava cada operação no histórico, e `report` atende `lace report` |
+| `commands.rs` | uma função por comando, chamada por `run`; converte os caminhos digitados em absolutos e chama o Core com o `Control`; `build`, `check`, `hierarchy`, `sim` e `synth` montam um `FlowRequest` e o entregam a `run_flow`, que chama `lace_core::flows::run` (é o fluxo que compila os processadores antes de `sim` e `synth` e grava o relatório no histórico) com o `Printer`, que escreve o que o fluxo avisa; `wave` chama `flows::open_wave`, e `report` atende `lace report` |
 | `output.rs` | `Output`: a saída em texto (cores só em terminal, `NO_COLOR`), em JSON (`Output::json`) e em eventos (`--events`); `Output::control` monta o `Control` de cada modo, e `live_text` mostra o testbench enquanto roda; a formatação dos diagnósticos, das tabelas de `lace report list` e `compare`, e `hint`, a dica de comando para alguns erros |
 | `report.rs` | um tipo por saída do `--json` (`SimReport`, `StatusReport`, ...), o trait `Report` que `Output::json` exige, a macro `reports!` que registra cada um, e o teste que confere `docs/schema/` ([Contrato do `--json`](#contrato-do---json)) |
-| `installation.rs` | a instalação de onde este `lace` roda: a pasta (`prefix`), o recibo `install.json` (`Receipt`) e o desinstalador do Windows |
+| `installation.rs` | a pasta da instalação de onde este `lace` roda (`prefix`, por `lace_installer::installation::prefix_of`) e `lib_error`, que traz um erro da biblioteca do instalador para a CLI (o cancelamento vira a saída 130); o recibo e o desinstalador são de `lace_installer::installation` |
 | `install.rs` | `lace install`: a lista (a TUI de `lace-installer`) ou os nomes, e de onde vêm os pedaços dos aplicativos (`--from`, ou a release, por `ReleasePayload`); quem extrai é `lace_installer::add` |
 | `update.rs` | `lace update`: a casca sobre `lace_installer::update`, com as tabelas, as confirmações e a barra; as versões, as releases (`lace_installer::release`, atrás do trait `Sources`, para testar sem rede) e a troca dos arquivos são da biblioteca |
 | `uninstall.rs` | `lace uninstall`: acha a instalação ao redor do executável e roda o desinstalador que o instalador deixou (`uninstall.sh`, ou o do Inno no Windows) |
-| `settings.rs` | de onde vem o bundle (`ToolchainArgs::resolve`: `--toolchain`, `LACE_TOOLCHAIN` ou ao lado do executável), o compilador declarado (`--compiler`, `LACE_COMPILER`, `compiler_in`), o Quartus (`ToolchainArgs::quartus`: `--quartus`, `LACE_QUARTUS`, `QUARTUS_ROOTDIR`, pastas padrão) e `absolute` |
-| `fpga.rs` | `lace fpga boards`, `lace fpga check` e `lace fpga build` |
+| `settings.rs` | as opções globais do bundle e do que vem do sistema (`ToolchainArgs`: `--toolchain` ou `LACE_TOOLCHAIN`, `--compiler` ou `LACE_COMPILER`, `--quartus` ou `LACE_QUARTUS`); `ToolchainArgs::lookup` monta o `Lookup` (com a `QUARTUS_ROOTDIR` e a `HOME`) e `ToolchainArgs::resolve` abre o bundle por `lace_core::locate::resolve`, onde moram o `compiler_in` e a busca do Quartus; e `absolute` |
+| `fpga.rs` | `lace fpga boards`, `lace fpga check`, `lace fpga build` e `lace fpga program` (com `--list`, os cabos) |
 | `serve.rs` | `lace serve`: o protocolo por JSON-RPC 2.0 sobre stdio; `Server::handle_with` é o despacho de cada método para o Core, que o `lace mcp` também usa |
 | `mcp/` | `lace mcp`: as ferramentas para um agente de IA (`TOOLS`, em `mod.rs`), o resumo em texto de cada resultado (`summary.rs`) e o `lace mcp setup` (`setup.rs`) |
 | `chat.rs` | `lace chat`: a tela do assistente no terminal, sobre o `lace-agent` |
 | `experimental.rs` | `lace experimental`: lista, liga e desliga os recursos experimentais |
+| `learn.rs` | `lace learn`: os subcomandos e a saída deles, sobre o `lace-learn` |
+| `learn_tui.rs` | o modo watch do `lace learn`: a tela de terminal no estilo do rustlings |
+| `wave_choice.rs` | `lace wave signals`, `select` e `unselect`: a escolha dos sinais da onda |
+| `update_check.rs` | a verificação automática de atualização: uma consulta por dia e o aviso de Lace mais novo no fim do comando |
+| `progress.rs` | a barra que mostra que uma ferramenta está rodando, no stderr de um terminal |
+| `meter.rs` | a linha de progresso dos downloads do `lace install` e do `lace update` |
+| `cancel.rs` | o Ctrl+C nas perguntas dos comandos que mexem na instalação: o pedido de `main` (`set`) e o `Cancelled`, que vira a saída 130 |
 
 ### `crates/lace-learn/src/`
 
 Os exercícios do `lace learn` ([docs/LEARN.md](docs/LEARN.md)), sobre a API
-pública do Core: o crate não roda ferramenta por conta própria, só chama o
-`check` e o `simulate_project`.
+pública do Core: o crate não roda ferramenta por conta própria: chama o
+`check` e o `simulate_project` para corrigir e o `flows::open_wave` para abrir
+a onda.
 
 | Arquivo | O que mora lá |
 |---|---|
@@ -215,29 +226,62 @@ pública do Core: o crate não roda ferramenta por conta própria, só chama o
 | `grade.rs` | a correção: `grade`, `Grade`, `Verdict`, `Finding`; os diagnósticos que o aluno vê |
 | `layout.rs` | o `.sucl` que abre a onda arrumada (`commands`, `layout_of`) |
 | `dev.rs` | o `lace learn dev check` (`check_track`) |
+| `flows.rs` | os fluxos que a CLI e o Studio compartilham: corrigir (`check`, `LearnCheckOutcome`) e abrir a onda da última correção com o layout do exercício (`open_wave`) |
+| `error.rs` | `LearnError`, com o `code()` que as interfaces traduzem |
+
+### `crates/lace-installer/src/`
+
+| Arquivo | O que mora lá |
+|---|---|
+| `lib.rs` | os módulos, a forma do instalador de Linux e macOS (`install` e `payload/`) e a documentação do crate |
+| `install.rs` | instalar o payload num prefixo (`Target`), o recibo `install.json` (`Receipt`) e o `uninstall.sh` |
+| `installation.rs` | a instalação de onde um `lace` roda (`prefix_of`, `receipt`, `uninstaller_exe`): a base de `lace install`, `lace update`, `lace uninstall` e do Studio |
+| `add.rs` | `lace install`: os aplicativos novos numa instalação (`prepare`, `add_components`), com os pedaços do disco ou da release (`Payload`) |
+| `update/` | `lace update`: o plano e a troca só dos arquivos que mudaram (`mod.rs`: `plan`, `apply`) e a orquestração que a CLI, o Studio e o `lace serve` compartilham (`flow.rs`: `check`, `run`, `Hooks`) |
+| `release.rs` | as releases na rede, pelo `curl` do sistema: `Network`, `Remote`, o trait `Sources` e `is_newer` |
+| `uninstall.rs` | `lace uninstall`: chama o desinstalador que o instalador deixou (`uninstall.sh`, ou o `unins000.exe` do Inno) |
+| `files.rs` | o manifesto de arquivos (`files.json`): o SHA-256 de cada arquivo, por pedaço |
+| `payload.rs` | o índice do payload (`index.json`, `Index`) e o nome de cada arquivo na release (`release_asset`) |
+| `plan.rs` | os perfis de instalação e a seleção de componentes |
+| `pack.rs` | o `lace-pack`: os pedaços da TUI (`tui`), o estágio do Inno Setup (`inno`) e os arquivos da release (`release_assets`) |
+| `tui.rs` | a instalação guiada no terminal (`App`), também a lista do `lace install` (`App::for_adding`) |
+| `desktop.rs` | o atalho do Lace Studio no menu de aplicativos, no Linux e no macOS |
+| `brand.rs` | as cores e a marca do Lace no terminal |
+| `error.rs` | `Error`: os erros que atravessam a fronteira, com código próprio |
+| `main.rs`, `bin/lace-pack.rs` | os executáveis `lace-installer` (o `install` do instalador de Linux e macOS) e `lace-pack` |
+
+### `crates/lace-agent/src/`
+
+| Arquivo | O que mora lá |
+|---|---|
+| `lib.rs` | os módulos, `AgentError` e a documentação do crate |
+| `locate.rs` | onde está o Claude Code (`find_claude`, `version`): o caminho das preferências, o `PATH` e as pastas dos instaladores |
+| `session.rs` | a sessão do Claude Code em `--print` com `stream-json` (`Session`, `SessionOptions`, `Permission`), traduzida em `AgentEvent` |
 
 ### O resto do repositório
 
 | Caminho | O que é |
 |---|---|
-| `crates/lace-core/tests/` | `api_contract.rs` (garantias da API), `build.rs` (YANC, com snapshots em `snapshots/`, e a conversão da estrutura antiga), `control.rs` (cancelamento, prazo e eventos com o Icarus), `tools.rs` (simulação, síntese, esquemático, Surfer), `verilog_flow.rs` (o fluxo Verilog, mover arquivos e a hierarquia; a primeira metade roda sem ferramenta), `yanc_regression.rs` (os casos de teste do YANC), `common/mod.rs` (como achar o bundle) |
+| `crates/lace-core/tests/` | `api_contract.rs` (garantias da API), `build.rs` (YANC, com snapshots em `snapshots/`, e a conversão da estrutura antiga), `control.rs` (cancelamento, prazo e eventos com o Icarus), `tools.rs` (simulação, síntese, esquemático, Surfer), `verilog_flow.rs` (o fluxo Verilog, mover arquivos e a hierarquia; a primeira metade roda sem ferramenta), `yanc_regression.rs` (os casos de teste do YANC), `flows.rs` (os fluxos compostos, com o bundle), `history.rs` (gravar, listar, ler e comparar relatórios), `wave_signals.rs` (a escolha dos sinais da onda e o layout salvo), `common/mod.rs` (como achar o bundle) |
 | `crates/lace-cli/tests/cli.rs` | a CLI de ponta a ponta: códigos de saída, texto, JSON, eventos e Ctrl+C |
 | `crates/lace-cli/tests/schema.rs` | a saída `--json` de cada comando, validada contra `docs/schema/` |
+| `crates/lace-cli/tests/serve.rs` | o `lace serve` de ponta a ponta: um cliente JSON-RPC de verdade falando com o binário por stdin e stdout |
 | `crates/lace-cli/tests/learn.rs` | o `lace learn` de ponta a ponta, com a trilha de teste e o `--json` validado |
 | `crates/lace-learn/tests/` | `grading.rs` (a pasta de exercícios e a correção, com a trilha de `fixtures/teste`), `track.rs` (as trilhas de `lace-learn/` passam no `dev check`) |
 | `lace-learn/` | as trilhas de exercícios, que viram o componente `lace-learn` ([docs/LEARN.md](docs/LEARN.md)) |
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
 | `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `lace synth --open`, que vira o componente `rtl-viewer` |
-| `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
-| `crates/lace-installer/` | o instalador em terminal e o `lace-pack`; `tests/install.rs` empacota um bundle pequeno e instala de verdade |
+| `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pelo `lace serve` ou, com um Lace sem ele (ou `lace.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
+| `crates/lace-installer/tests/` | `install.rs` (empacota um bundle pequeno e instala de verdade) e `update.rs` (duas versões de um bundle pequeno: instala a primeira e atualiza para a segunda trocando só o que mudou) |
+| `studio/` | o Lace Studio, em Tauri: o backend em Rust (`studio/src-tauri/`, fora do workspace, com o próprio `Cargo.lock`) e a interface em React (`studio/src/`); o guia é o [studio/docs/DEVELOPMENT.md](studio/docs/DEVELOPMENT.md) |
 | `examples/` | os projetos `soma`, `com_erro` e `contador`, usados pelos testes |
 | `bundle/versions.json` | a versão e o hash de cada pacote do bundle |
 | `bundle/components.json` | o que cada componente leva de cada pacote |
-| `scripts/bundle.py`, `scripts/binaries.py` | a montagem do bundle e a leitura de dependências de binários |
+| `scripts/bundle.py`, `scripts/binaries.py`, `scripts/installer_art.py` | a montagem do bundle, a leitura de dependências de binários e as imagens do assistente de Windows (`installer/windows/art/`) |
 | `installer/windows/lace.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
 | `.github/workflows/` | `release.yml` (publica a release numa tag) e o `installers.yml` que ele chama (bundle e instaladores, sem testes); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); `vscode.yml` (a extensão do VS Code e o RTL viewer, a cada push que muda `editors/vscode/`, `packages/rtl-viewer/` ou `docs/schema/`); fora esse, não há CI a cada push |
-| `docs/` | API, CLI, bundle, instalação e release |
+| `docs/` | API, CLI, bundle, instalação, release, metodologia, placas FPGA, `lace learn`, as pendências de fora do Lace e o desenho das partes (`img/`) |
 
 ### Como uma operação anda
 
@@ -246,20 +290,26 @@ O caminho de `lace check`, que é o de toda operação que roda ferramentas:
 1. `main.rs`: o `clap` lê os argumentos em `Cli`, e `commands::run` chama
    `check`.
 2. `commands.rs`, função `check`: abre o `Project`, resolve o `Toolchain`
-   (`settings.rs`), compila os processadores (`build_first`), monta
-   `CheckOptions` e chama `lace_core::check` com o `Control` que `main`
-   criou (`Output::control`).
-3. `synth.rs`, função `check`: monta cada comando com
+   (`settings.rs`), monta o `FlowRequest::Check` e chama `run_flow`, que
+   entrega o pedido a `lace_core::flows::run` com o `Control` que `main`
+   criou (`Output::control`) e com o `Printer`, que recebe o `Progress` do
+   fluxo.
+3. `flows/run.rs`, função `check`: monta `CheckOptions`, chama
+   `lace_core::check` sobre o que está no disco, sem compilar os
+   processadores (o `sim` e o `synth` compilam antes), e grava o relatório
+   no histórico.
+4. `synth.rs`, função `check`: monta cada comando com
    `Toolchain::invocation` e o entrega a um `Runner`.
-4. `pipeline.rs`, `Runner::run`: confere o cancelamento, avisa
+5. `pipeline.rs`, `Runner::run`: confere o cancelamento, avisa
    `StepStarted`, executa por `process::run` (ambiente vazio, stdin fechado,
    grupo de processos próprio), que avisa cada linha (`Event::Output`) e
-   encerra o processo se o cancelamento chegar; interpreta stdout e stderr
-   com `diagnostics::parse`, guarda o `StepReport`, avisa `StepFinished` e
-   para no primeiro passo que falha.
-5. De volta à CLI, `Output::check` escreve o texto e `Output::json` o
-   `CheckReport`; `main` transforma `Ok(true)`, `Ok(false)` e `Err` em 0, 1 e
-   2, ou em 130 se o Ctrl+C chegou.
+   encerra o processo se o cancelamento chegar; avisa `StepFinished`,
+   interpreta stdout e stderr com `diagnostics::parse`, guarda o
+   `StepReport` e para no primeiro passo que falha.
+6. De volta à CLI, o `Printer` escreve o texto com `Output::check` quando o
+   fluxo avisa `Progress::Checked`, e `Output::json` escreve o
+   `CheckReport`; `main` transforma `Ok(true)`, `Ok(false)` e `Err` em 0, 1
+   e 2, ou em 130 se o Ctrl+C chegou.
 
 ## Onde mudar o quê
 
@@ -312,7 +362,9 @@ herdada do ambiente do usuário.
    é uma variante de `enum Command`.
 2. `crates/lace-cli/src/commands.rs`: o braço do `match` em `run` e a
    função do comando, que passa o valor ao Core (no `check`, um campo de
-   `CheckOptions`). A função devolve `Ok(false)` quando a operação rodou e
+   `FlowRequest::Check`, de `lace_core::flows`, que o fluxo passa a
+   `CheckOptions`; o `FlowRequest` vai no `flow.run` do protocolo, e o
+   campo novo muda o `docs/schema/`). A função devolve `Ok(false)` quando a operação rodou e
    falhou (código 1) e `Err` quando não conseguiu rodar (código 2).
 3. `crates/lace-cli/src/output.rs`: o texto, num método de `Output`. O
    JSON é um tipo de `crates/lace-cli/src/report.rs`, escrito por
@@ -327,7 +379,7 @@ herdada do ambiente do usuário.
    - `cli_definition_is_valid`, em `main.rs`, confere a definição do
      `clap` (nomes repetidos, conflitos): `cargo test -p lace-cli --bins`;
    - um teste em `crates/lace-cli/tests/cli.rs`, com os auxiliares de lá:
-     `new_project`, `lace_in(&cfg, &root)` para rodar dentro do projeto,
+     `new_project`, `lace_in(&root)` para rodar dentro do projeto,
      `json(&mut cmd, código)` e `stdout(&mut cmd, código)`. Se precisar de
      ferramenta, comece com `env_or_skip("LACE_TEST_BUNDLE")` e passe o
      bundle por `LACE_TOOLCHAIN`, como `build_ok_is_exit_code_0` faz.
@@ -348,7 +400,7 @@ a gravidade errada:
    interpretador pela ferramenta: `parse_yanc_phrase` (`cmmcomp`,
    `asmcomp`), `parse_c_style` e `parse_tool_prefixed` (`cppcomp`),
    `parse_c_style` e `parse_icarus` (`iverilog`, `vvp`), `parse_verilator`,
-   `parse_yosys`, `parse_graphviz`. Acrescente o caso na função da
+   `parse_yosys`, `parse_graphviz`, `parse_quartus`. Acrescente o caso na função da
    ferramenta.
 2. Mantenha as regras do módulo: o texto original fica em `raw`; linha do
    stderr que não casa vira `Severity::Unknown` e nunca é descartada; linha
@@ -368,7 +420,8 @@ a gravidade errada:
 
 ### Mudar o modelo de módulo ou de testbench
 
-Os arquivos que `lace add` cria saem de `crates/lace-core/src/verilog.rs`:
+Os arquivos Verilog que `lace add` cria saem de `crates/lace-core/src/verilog.rs`
+(o testbench cocotb, um `.py`, sai de `testbench_template`, em `cocotb.rs`):
 `module_template(nome)` e `testbench_template(testbench, dut)`, com os
 auxiliares `is_clock`, `reset_polarity` e `range`. Quem os chama é
 `Project::add_verilog`, em `files.rs`; o módulo testado vem de
@@ -401,7 +454,12 @@ mudá-los muda a classificação dos arquivos de todos os projetos.
 1. Em `bundle/versions.json`, dentro de `packages`, troque a versão e o
    SHA-256 (OSS CAD Suite e Graphviz, por plataforma) ou o commit (YANC e
    surfer-aurora). O SHA-256 do OSS CAD Suite está no campo `digest` da API
-   de releases do GitHub; o do Graphviz, no `.sha256` ao lado do zip.
+   de releases do GitHub; o do Graphviz, no `.sha256` ao lado do zip. No
+   surfer-aurora, troque também o `prebuilt`, com as URLs e os SHA-256 do
+   resumo do `gh workflow run surfer-aurora.yml`, e o `web`: o `bundle.py`
+   usa o `prebuilt` que estiver lá, sem conferir o commit. No Windows, o
+   Icarus e o Verilator vêm do pacote `msys`, uma release `ucrt64-vN` do
+   lace-toolchain ([docs/BUNDLE.md](docs/BUNDLE.md), seção 6).
 2. Troque `bundle`, o identificador do bundle.
 3. YANC: ponha o seu `vendor/yanc` no mesmo commit (ou aponte
    `LACE_TEST_YANC_SRC` para um fonte nele), de onde o `yanc_regression` lê
@@ -423,12 +481,14 @@ mudá-los muda a classificação dos arquivos de todos os projetos.
    `data`, `run`) e, se o executável mudou de lugar, `Tool::location` em
    `crates/lace-core/src/toolchain.rs`.
 6. Documente em [docs/BUNDLE.md](docs/BUNDLE.md), seção 1 (as tabelas de
-   versões) e no `CHANGELOG.md`. O identificador antigo aparece em mais
-   lugares (`lib.rs`, `docs/API.md` seção 9.1, `docs/RELEASE.md`):
+   versões) e no `CHANGELOG.md`. O identificador antigo pode aparecer em
+   mais lugares (hoje, no exemplo do `files.json` em
+   `crates/lace-installer/src/files.rs`):
    `grep -rn "<identificador antigo>" --exclude-dir=target --exclude-dir=vendor .`
 
-O `installers.yml` monta o bundle nas três plataformas a cada push; é ali
-que se confirma que a versão nova funciona no macOS e no Windows.
+O `installers.yml` só roda numa tag, chamado pelo `release.yml`, e não roda
+teste: no macOS e no Windows, a versão nova se confirma montando o bundle e
+rodando os testes nesses sistemas, à mão.
 
 ### Acrescentar um erro novo
 
@@ -441,7 +501,8 @@ lugar é um diagnóstico no resultado.
    e a mensagem em `#[error("...")]`, em inglês, começando com maiúscula e
    sem nome de comando da CLI.
 2. No mesmo arquivo, o braço em `LaceError::code()`, com um código novo em
-   `snake_case`. Um código existente nunca muda.
+   `snake_case`, e o braço em `LaceError::data()`, com os campos que vão em
+   `ErrorInfo::data` (ou `None`). Um código existente nunca muda.
 3. Se um comando resolve o erro, a dica vai na função `hint` de
    `crates/lace-cli/src/output.rs`; no JSON ela sai em `error.hint`.
 4. Testes: o código e a mensagem neutra, como em
@@ -463,32 +524,41 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
   `eprintln!` no `lace-core` reprova o `cargo clippy`. O log sai por
   `tracing` (`tracing::info!`, `tracing::debug!`). O Core também não chama
   `exit` e não entra em pânico em erro esperado: devolve `LaceError`.
-- **Sem `unsafe`.** `lace-core` e `lace-installer` têm
+- **Sem `unsafe`.** `lace-core`, `lace-learn`, `lace-installer` e `lace-agent` têm
   `#![forbid(unsafe_code)]`. A CLI não tem o atributo, e também não usa
   `unsafe`.
 - **Todo item público do Core é documentado.** `#![deny(missing_docs)]` em
   `lib.rs`. Rode o `cargo doc` com `-D warnings` antes de mandar: ele também
   reprova link quebrado na documentação. Os exemplos da documentação rodam como
   teste; marque com `no_run` o que precisa do bundle, como os de `lib.rs`.
-- **Só ferramentas do bundle.** Programa externo roda por
+- **Só ferramentas do bundle.** No Core, programa externo roda por
   `Toolchain::invocation` e `process::run`. Nada de
   `std::process::Command` fora de `process.rs`, nada do `PATH`, nenhuma
-  variável herdada sem estar declarada. A única exceção é
+  variável herdada sem estar declarada. A única exceção no Core é
   `process::open_with_system`, que abre o HTML do RTL viewer no navegador
-  pelo abridor do sistema: o navegador do usuário não vem no bundle.
+  pelo abridor do sistema: o navegador do usuário não vem no bundle. Fora
+  do Core, o que não vem no bundle roda por `std::process::Command`: o
+  `curl` do sistema no `lace-installer` (`release.rs`) e o Claude Code, que
+  o `lace-agent` e o `lace mcp setup` acham no `PATH`.
 - **Regra de negócio no Core.** A CLI abre, chama e mostra. As mensagens do
   Core não citam comandos; os comandos aparecem só em `hint`, na CLI.
 - **O Core nunca sobrescreve código do usuário.** Criar processador ou
   arquivo recusa se o arquivo já existe; só artefatos gerados (a pasta de
   saída de cada processador, `.lace/Temp/`) são reescritos. A conversão da
   estrutura antiga (`convert_layout`) move sem apagar nem sobrescrever.
-- **Tipos públicos.** Os enums públicos são `#[non_exhaustive]`, e as
+- **Tipos públicos.** Os enums públicos são `#[non_exhaustive]` (hoje faltam
+  `FlowRequest`, `Progress`, `WavePolicy`, `WaveSource`, `LayoutPolicy` e
+  `WaveChoice`, de `flows`, `delivery::Notification`, `locate::Origin` e
+  `protocol::ShutdownReason`), e as
   structs que podem ganhar campos também (`CheckOptions` é construída com
   `CheckOptions::default()` e campo a campo). Os resultados implementam
   `Serialize` e `JsonSchema`, e esse é o JSON da CLI; campo de caminho leva
   `#[schemars(with = "String")]`.
 - **Toda espera por ferramenta passa pelo `Runner`.** É ele que respeita o
-  `Control`: cancelamento, prazo e eventos. Uma operação nova que roda
+  `Control`: cancelamento, prazo e eventos (as exceções de hoje chamam
+  `process::run` direto: as portas pelo Yosys em `verilog::read_interfaces`,
+  a sonda do cocotb e os cabos do Quartus em `fpga::cables`). Uma operação
+  nova que roda
   ferramenta recebe `control: &Control` como último argumento e o entrega a
   `Runner::new`.
 - **Caminhos** são `camino::Utf8Path` e `Utf8PathBuf` em toda a API.
@@ -503,7 +573,7 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
   JSON (`classify`, `TESTBENCH_THRESHOLD`, `no_top_level`, `failed_step`,
   `classification_follows_the_aurora_scores`). As mensagens das asserções
   dos testes são em português. As mensagens do YANC chegam em inglês porque
-  o Lace sempre pede `-en`.
+  o Lace sempre pede `--lang=en`.
 - **Três plataformas.** O código compila para Linux, macOS e Windows; o que
   muda por sistema vai em `cfg(windows)` (veja `INHERITED_ENV` em
   `process.rs` e `YANC_PATH_LIMIT` em `paths.rs`). A release compila nos
@@ -519,7 +589,8 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
 
 Toda operação que executa ferramentas (`build`, `build_processors`,
 `check`, `hierarchy`, `simulate`, `simulate_project`, `synthesize`,
-`render_schematic`)
+`render_schematic`, `wave_signals`, `fpga::build`, `fpga::program` e os
+fluxos `flows::run` e `flows::choose_signals`)
 recebe um `Control` como último argumento. `Control::default()` roda até o
 fim e não avisa nada; é o que os testes usam quando não testam isso.
 
@@ -539,8 +610,9 @@ let control = Control::new()
   Windows o Job Object do passo.
   Os passos seguintes não começam. A operação volta como `Ok`, com
   `Status::Cancelled` e os passos que chegaram a rodar.
-- **Prazo** é só o da simulação, `SimulationOptions::timeout`. Passou dele:
-  `Status::TimedOut`, com o que o testbench escreveu até ali.
+- **Prazo**: o da simulação, `SimulationOptions::timeout`, e o do `dot`,
+  `SchematicOptions::timeout` (60 s por padrão, `SCHEMATIC_TIMEOUT`).
+  Passou dele: `Status::TimedOut`, com o que a ferramenta escreveu até ali.
 - **Eventos**: `StepStarted` (com o comando), `Output` (uma linha, com
   `stream` e `diagnostic`) e `StepFinished` (com o `Termination` e a
   duração). `diagnostic` é `true` nas linhas que o Lace reconhece como

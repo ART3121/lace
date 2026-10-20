@@ -1,6 +1,7 @@
 # Instalar o Lace
 
-Cada release traz um instalador por plataforma. O instalador põe o Lace, o
+Cada release traz um instalador para o Linux, um para o macOS e dois para o
+Windows. O instalador põe o Lace, o
 Lace Studio e o bundle de ferramentas (as versões exatas, ver
 [BUNDLE.md](BUNDLE.md)) numa pasta só, e deixa escolher o que instalar: o
 Studio e cada ferramenta do bundle são componentes, e só a linha de comando
@@ -8,11 +9,13 @@ Studio e cada ferramenta do bundle são componentes, e só a linha de comando
 
 | Plataforma | Arquivo | Instalador |
 |---|---|---|
-| Windows 10 e 11, x64 | `lace-<versão>-windows-x64-setup.exe` | assistente (Inno Setup) |
+| Windows 10 e 11, x64 | `lace-<versão>-windows-x64-web-setup.exe`, que baixa só os aplicativos marcados, ou `lace-<versão>-windows-x64-setup.exe`, com o bundle inteiro | assistente (Inno Setup) |
 | Linux x64 | `lace-<versão>-linux-x64.tar.gz` | no terminal (TUI) |
 | macOS, Apple Silicon | `lace-<versão>-darwin-arm64.tar.gz` | no terminal (TUI) |
 
-O `SHA256SUMS` da release tem o hash de cada arquivo.
+O `SHA256SUMS` da release tem o hash de cada arquivo que o `release.yml`
+publica. O `.vsix` da extensão do VS Code, anexado à mão depois, não está
+nele.
 
 ## Requisitos
 
@@ -70,7 +73,7 @@ barra do `curl`; o `install.ps1`, uma linha com a barra, a porcentagem, os
 MiB, a velocidade e o tempo que falta, que encolhe para caber na janela. O
 `install.sh` roda em qualquer shell, porque é executado pelo `sh`; a
 instalação guiada lê o teclado pelo terminal mesmo com o `| sh`. Ele baixa
-para `~/.cache` (há distribuições que montam o `/tmp` sem permissão de
+para `~/.cache`, ou para `/var/tmp` como root (há distribuições que montam o `/tmp` sem permissão de
 execução) e apaga o que baixou no fim.
 
 | O quê | Linux, macOS | Windows |
@@ -136,7 +139,8 @@ Windows.
 Uma ferramenta de componente não instalado dá erro claro quando usada:
 
 ```
-Error: Component verilator is not installed (run the Lace installer again and select it)
+Error: Component verilator is not installed
+  Install it with: lace install verilator
 ```
 
 `lace tools` mostra o que está instalado e o que não está.
@@ -199,7 +203,7 @@ MSYS2 do lace-toolchain): não é preciso instalar o MSYS2.
 
 **Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, openFPGALoader, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
+surfer-aurora, openFPGALoader, Lace Studio, Lace Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `lace install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
@@ -224,8 +228,9 @@ com o Studio marcado.
 
 O desinstalador do Windows apaga o `toolchain/` inteiro, com o que o
 `lace install` pôs. Rodar o assistente de novo à mão também refaz o
-`toolchain/` com a seleção dele, que não conhece os aplicativos
-acrescentados depois: marque-os lá também.
+`toolchain/` com a seleção dele; os aplicativos que a pasta tem, inclusive
+os que o `lace install` acrescentou, já vêm marcados, e o que for
+desmarcado sai.
 
 **Atualizar:** o Lace Studio procura versão nova ao abrir, oferece a
 atualização e reinicia na versão nova; o `lace`, num terminal, avisa no fim
@@ -261,7 +266,7 @@ O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
 perfis. O `/TYPE=recomendada` de antes cai no perfil padrão.
 Nos parâmetros do Inno Setup, os nomes dos componentes são `lace`, `yanc`, `icarus`,
 `icarus\cocotb`, `icarus\lace_learn`, `verilator`, `yosys`,
-`yosys\graphviz`, `surfer_aurora`, `openfpgaloader` e `studio`; as
+`yosys\graphviz`, `yosys\rtl_viewer`, `surfer_aurora`, `openfpgaloader` e `studio`; as
 tarefas, `path` e
 `studioicon` (o atalho do Studio na área de trabalho).
 
@@ -289,7 +294,8 @@ A instalação guiada no terminal tem estas telas:
 5. resumo;
 6. progresso e resultado, com a conferência dos hashes dos executáveis.
 
-`Esc` volta uma tela, `Ctrl+C` sai sem mudar nada.
+`Esc` volta uma tela, `Ctrl+C` sai sem mudar nada; durante a extração, ele
+não interrompe.
 
 | | Usuário comum | root (`sudo ./install`, ou `curl ... \| sudo sh`) |
 |---|---|---|
@@ -323,7 +329,7 @@ instala também o Yosys, e avisa).
 
 **Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, openFPGALoader, Lace Studio, Lace Learn), com os instalados marcados e travados; marque os novos com
+surfer-aurora, openFPGALoader, Lace Studio, Lace Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `lace install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
@@ -368,7 +374,8 @@ atalho, o do Studio no menu e a pasta; uma instalação do sistema (`/opt/lace`)
 O que não sai, porque não é da instalação: os projetos, com o `.lace/` de
 cada um (intermediários e ondas, que se apagam à mão), e o histórico de
 arquivos do surfer-aurora (`~/.local/share/surfer` no Linux), que o Surfer e
-a AURORA também usam, e as preferências do Studio. Um
+a AURORA também usam, as preferências do Studio, o `experimental.json` do
+`lace experimental` e o `update-check.json` do aviso de versão nova. Um
 `~/.config/lace/config.json` de um build de desenvolvimento anterior à
 0.2.0 (o `lace config`, que saiu), que nenhuma versão lê, sai junto com
 `lace uninstall`.
@@ -464,7 +471,7 @@ Os dois fluxos, Verilog e SAPHO, completos estão em
     bundle.json
     components/<nome>.json
     files.json          o SHA-256 de cada arquivo instalado (desde a 0.7.0)
-    yanc/ oss-cad-suite/ surfer-aurora/ graphviz/ msys/ studio/
+    yanc/ oss-cad-suite/ surfer-aurora/ graphviz/ msys/ studio/ lace-learn/ rtl-viewer/
   install.json          (Linux, macOS) o que foi instalado
   uninstall.sh          (Linux, macOS)
   unins000.exe          (Windows)

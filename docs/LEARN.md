@@ -62,7 +62,8 @@ que os terminais sem cores de 24 bits também mostram.
 
 Os subcomandos fazem cada coisa uma vez, para scripts ou sem terminal
 interativo. Todos aceitam `--json`, com o schema em `docs/schema/learn-*.json`,
-e todos acham a pasta de exercícios a partir da pasta atual (ou do `-C`),
+e todos, menos o `init` e o `dev check`, acham a pasta de exercícios a
+partir da pasta atual (ou do `-C`),
 como os outros comandos acham o projeto.
 
 | Comando | Faz |
@@ -195,8 +196,9 @@ duas vezes: 2 ns depois da subida (o estado novo) e 2 ns antes da próxima,
 depois de as entradas mudarem na descida (as saídas de Mealy e o reset
 assíncrono). As entradas que não são clock nem reset mudam a cada ciclo.
 
-O gerador recusa porta `inout`, clock ou reset que não seja entrada de 1
-bit, uma saída `<x>` ao lado de uma porta `<x>_ref`, uma porta chamada
+O gerador recusa módulo sem saída, porta `inout`, clock ou reset que não
+seja entrada de 1 bit, `active` do reset que não seja 0 nem 1, uma porta
+`<x>` ao lado de uma porta `<x>_ref`, uma porta chamada
 `mismatch` ou começada por `lace_`, e mais de 16 bits de entrada no
 estímulo exaustivo.
 

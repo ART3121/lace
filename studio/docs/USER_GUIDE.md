@@ -44,8 +44,9 @@ com o tema Atlas, o idioma do sistema e o layout Padrão, ele começa um tour
 pela janela: tudo escurece, e uma parte de cada vez fica acesa, com um
 cartão que diz o que ela faz. A parte acesa continua funcionando: dá para
 clicar nela, e alguns passos pedem uma tarefa (abrir o menu Fluxo, trocar
-de vista pela barra de atividades, esconder o painel e trazê-lo de volta
-com Ctrl+J, abrir a paleta) e seguem sozinhos quando ela é feita. Pular
+de vista pela barra de atividades, abrir Problemas no cabeçalho do painel,
+esconder o painel e trazê-lo de volta com Ctrl+J, abrir a paleta) e seguem
+sozinhos quando ela é feita. Pular
 passa uma tarefa, as setas do teclado avançam e voltam, e Esc sai. O tour
 volta em Ajuda > Tour pela interface e na tela inicial. Um Studio atualizado
 de uma versão anterior não abre o tour sozinho.
@@ -60,8 +61,8 @@ de uma versão anterior não abre o tour sozinho.
  │at│ esquerda       │                                  │ direita      │
  │iv│ (explorador,   │                                  │ (vazia no    │
  │id│  fluxo, busca, ├──────────────────────────────────┤  Padrão)     │
- │ad│  relatórios)   │ painel: C±, ASM, Verilog, Wave,  │              │
- │es│                │ RTLViewer, Problemas, Terminal   │              │
+ │ad│  relatórios)   │ painel: INFO, Terminal,          │              │
+ │es│                │ Problemas                        │              │
  └──┴────────────────┴──────────────────────────────────┴──────────────┘
  status       projeto, topo, testbench | operação ou último resultado | problemas, cursor, simulador, bundle, regiões
 ```
@@ -93,7 +94,9 @@ e item pode ser escondido (seção 2.4).
   Problemas, embaixo do editor ou à direita dele. Ctrl+J esconde e mostra; o botão de maximizar dá
   ao painel o lugar do editor.
 - **Barra lateral direita**: vazia no Padrão; recebe as vistas que você
-  mover para ela. Ctrl+Alt+B esconde e mostra.
+  mover para ela e, com o Assistente de IA ligado (seção 9), a vista
+  Assistente: Exibir > Assistente a abre ali, e Exibir > Assistente em aba,
+  numa aba do editor. Ctrl+Alt+B esconde e mostra.
 - **Barra de status**: o que está sendo feito agora e há quanto tempo, ou
   como terminou a última operação. Clicar nos contadores de problemas abre
   o painel Problemas; clicar no bundle abre as Ferramentas do Lace. No
@@ -158,7 +161,7 @@ pastas que você abre ficam lembradas por projeto.
 | arquivo ou pasta da árvore de arquivos | uma pasta (ou o espaço vazio, para a raiz) | move; os `.v` registrados continuam registrados, com o topo e o testbench escolhido acompanhando |
 | um `.v` das Fontes | Módulos ou Testbenches | muda o papel do arquivo |
 | arquivos do gerenciador de arquivos do sistema | uma pasta da árvore de arquivos | copia para lá |
-| `.v` ou `.sv` do sistema | Módulos ou Testbenches | copia para a raiz do projeto, se vier de fora, e registra com esse papel |
+| `.v`, `.sv` ou `.py` do sistema | Módulos ou Testbenches | registra no lugar, sem copiar: em Testbenches, como testbench; em Módulos, com o papel que o conteúdo indica |
 | um `.spf` do sistema | qualquer lugar | abre o projeto |
 | outros arquivos do sistema | o editor | abrem em abas |
 
@@ -251,9 +254,11 @@ centralizar o editor, mostrar as abas, esconder os números de linha.
 ### 2.4 Layout da janela
 
 Há três regiões: a barra lateral esquerda, a direita e o painel, que fica
-embaixo ou à direita do editor. As catorze vistas (Explorador, Fluxo, Busca,
-Relatórios, Exercícios, o INFO, os terminais de etapa C±, ASM, Verilog,
-Wave, RTLViewer e Placa, Problemas e Terminal) vão para qualquer uma delas.
+embaixo ou à direita do editor. As quinze vistas (Explorador, Fluxo, Busca,
+Relatórios, Exercícios, Assistente, o INFO, os terminais de etapa C±, ASM,
+Verilog, Wave, RTLViewer e Placa, Problemas e Terminal) vão para qualquer
+uma delas. A Placa e o Assistente só existem com o recurso experimental
+ligado (seção 9).
 O editor fica sempre no meio.
 
 | Para | Faça |
@@ -274,10 +279,11 @@ Esconder a barra de menus tira só os menus: a barra de título continua,
 com o título e os botões da janela.
 
 O que foi escondido sempre tem volta: a paleta (Ctrl+Shift+P) e o botão
-direito na barra de abas do editor, que nunca some, mostram todas as barras
-e regiões. Sem a barra de status, o indicador do canto, o mesmo do zen,
-mostra a operação, o resultado e a linha do Vim. Sem o seletor de alvo na
-barra de ferramentas, o alvo se escolhe em Fluxo > Escolher o alvo.
+direito na barra de abas do editor, que aparece sempre que há uma aba
+aberta, mostram todas as barras e regiões. Sem a barra de status, o
+indicador do canto, o mesmo do zen, mostra a operação, o resultado e a
+linha do Vim. Sem o seletor de alvo na barra de ferramentas, o alvo se
+escolhe pela paleta (Ctrl+Shift+P), em Escolher o alvo.
 
 As Preferências e o RTLViewer usam a janela inteira: enquanto um deles está
 na frente, as barras laterais e o painel ficam escondidos, e voltam como
@@ -394,7 +400,7 @@ de um processador gerou (`<proc>/<proc>/<proc>.v`) e um `.v` que ainda não
 está no projeto, que passa a ser registrado. A exceção é o nome de
 testbench: `tb_<nome>.v`, `<nome>_tb.v` e `tb.v` não viram topo. Escolha
 pelo botão direito no arquivo (nas Fontes, na árvore de arquivos ou na
-hierarquia) ou por **Projeto > Escolher o topo**, que lista todos os
+hierarquia) ou por **Projeto > Escolher o módulo de topo**, que lista todos os
 candidatos e diz de onde cada um vem. O `.v` gerado escolhido como topo
 continua sendo refeito a cada build; registrado, ele aparece uma vez só em
 Módulos, com as marcas Gerado e Topo. Para trocar o topo ou o testbench
@@ -484,8 +490,8 @@ em janela**. Trocar de aba não perde
 nada: a aba de onda guarda o zoom, o cursor e os sinais acrescentados
 enquanto estiver aberta (cada aba de onda aberta ocupa memória; feche as
 que não usa). Simular de novo recarrega a aba aberta da onda. A aba precisa
-do cliente web do Surfer no bundle e de uma onda de até 256 MB; fora disso,
-a onda abre em janela.
+do cliente web do Surfer no bundle: sem ele, a onda abre em janela. Uma onda
+de mais de 256 MB não abre na aba, que avisa e oferece **Abrir em janela**.
 
 **O layout salvo.** A onda de um testbench do projeto abre com o layout de
 `wave/<testbench>.surf.ron`, na pasta do projeto, e o **Ctrl+S** do Surfer
@@ -597,8 +603,9 @@ $ lace-studio sim -p soma
   está, e a aba do INFO ganha um ponto. Numa falha, ele rola até o primeiro
   erro da rodada.
 - Um `arquivo:linha` é um link: clique para abrir o arquivo na linha. Com a
-  preferência "Mostrar o comando de cada passo", aparece também a linha de
-  comando exata de cada ferramenta, para repetir à mão.
+  preferência "Mostrar o comando de cada passo e as mensagens info nos
+  consoles" (Preferências > Simulação), aparece também a linha de comando
+  exata de cada ferramenta, para repetir à mão.
 
 **Terminais de etapa.** O botão de escolher o terminal (as setas para cima
 e para baixo, no cabeçalho de qualquer terminal) lista o INFO, o Terminal e
@@ -631,9 +638,12 @@ ignorado; um processador com nome que não compila.
 `lace` no `PATH`: `lace status`, `lace report compare`, tudo o que a CLI
 faz. Ao abrir outro projeto, o terminal vai junto: o Studio digita no shell
 o `cd` para a pasta nova (`Set-Location` no PowerShell, `cd /d` no Prompt
-de Comando), e o histórico e o que estava na tela ficam. Um programa
-rodando no terminal nessa hora recebe o `cd` como entrada; encerre-o antes
-de trocar de projeto. O botão `+` abre outro no lugar do atual. No Linux e no macOS é o seu
+de Comando), e o histórico e o que estava na tela ficam. No Linux e no
+macOS, se um programa estiver rodando no terminal nessa hora, o Studio não
+digita o `cd` e avisa no terminal que ele ficou na pasta anterior. No
+Windows, onde o terminal não informa se há um programa rodando, o `cd` vai
+para o programa como entrada: encerre-o antes de trocar de projeto. O botão
+`+` abre outro no lugar do atual. No Linux e no macOS é o seu
 shell (a variável `SHELL`). No Windows, Preferências > Geral escolhe
 entre o PowerShell (o padrão) e o Prompt de Comando (`cmd`); trocar
 reinicia o terminal aberto com o shell novo.
@@ -847,14 +857,15 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem), o modelo da barra de ferramentas e os itens dela e da barra de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
-| Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`) e, com a placa FPGA ligada, a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
+| Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`), a pasta das trilhas de exercícios (o `LACE_LEARN_DIR` da CLI; seção 7.1) e, com a placa FPGA ligada, a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
+| Assistente | só com o Assistente de IA ligado (página Experimental): o executável do Claude Code, o modelo, se ele pode editar os arquivos do projeto e o executável `lace` das ferramentas. Quem autentica é o Claude Code; o Studio não guarda chave |
 | Experimental | os recursos do Lace que ainda mudam muito, desligados por padrão: hoje, a **Placa FPGA** (seção 7.2) e o **Assistente de IA** (a vista Assistente, uma conversa com o Claude Code instalado na máquina sobre o projeto aberto, com as ferramentas do Lace; ligado, ganha a própria página de Preferências). Ficam no `experimental.json` da pasta de configuração do Lace (o caminho aparece na página), não no `settings.json`, e valem também para a CLI (`lace experimental`) |
 
 As preferências ficam em `settings.json`, na pasta de configuração do
 aplicativo: `~/.config/com.nipscern.lace-studio/` no Linux,
 `%APPDATA%\com.nipscern.lace-studio\` no Windows,
 `~/Library/Application Support/com.nipscern.lace-studio/` no macOS. O
-caminho exato aparece em Ajuda > Sobre.
+caminho exato aparece em Ajuda > Sobre o Lace Studio.
 
 ### Temas
 
@@ -886,7 +897,7 @@ Gruvbox, Solarized) ou, num tema sem par, para o Atlas Branco ou o Atlas.
 
 ## 9.1 Sobre
 
-Ajuda > Sobre abre uma aba com a versão do Studio, a do bundle do Lace e a
+Ajuda > Sobre o Lace Studio abre uma aba com a versão do Studio, a do bundle do Lace e a
 de cada componente (com os que faltam instalar), as do Tauri e do motor de
 páginas do sistema (WebKitGTK, WebView2 ou WKWebView), as pastas das
 preferências e do bundle (o botão ao lado abre a pasta) e os links da
@@ -920,15 +931,15 @@ No macOS, Ctrl é Cmd. A lista também está em Ajuda > Atalhos de teclado.
 | Explorador, barra lateral esquerda, barra lateral direita, painel | Ctrl+Shift+E, Ctrl+B, Ctrl+Alt+B, Ctrl+J |
 | Selecionar layout | Ctrl+K L |
 | Selecionar tema | Ctrl+K T |
-| Terminal, Problemas | Ctrl+`, Ctrl+Shift+M |
+| INFO, Terminal, Problemas | Ctrl+Shift+U, Ctrl+`, Ctrl+Shift+M |
 | Modo zen (entrar e sair) | Ctrl+K Z; Esc Esc também sai |
 | Histórico de relatórios | Ctrl+Shift+H |
 | Corrigir o exercício (lace learn) | Ctrl+Alt+L |
 | Zoom | Ctrl+=, Ctrl+-, Ctrl+0 |
 
 Dentro do Terminal, as teclas com Ctrl sozinho (Ctrl+C, Ctrl+W, Ctrl+P) vão
-para o shell; só as teclas de função e as combinações com Ctrl+Shift
-continuam do Studio.
+para o shell; só as teclas de função, as combinações com Ctrl+Shift e o
+Ctrl+` continuam do Studio.
 
 O Ctrl+F busca no arquivo da frente. Com o RTLViewer na frente, vai para a
 busca dele; sem arquivo nem RTLViewer (outra vista, o editor vazio), abre a

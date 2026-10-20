@@ -45,8 +45,8 @@ Três regras orientam tudo:
   Rust, do jeito que o Lace prevê para uma GUI: abre o projeto,
   chama a função, devolve o resultado serializado. O Studio não sabe montar
   a linha de comando do `iverilog` nem ler a saída do `cmmcomp`; quem sabe é
-  o Core. A exceção, isolada e documentada, é a composição dos fluxos
-  ([seção 8](#8-pendências-no-lace)).
+  o Core, inclusive a composição dos fluxos, que até a 0.8 era a
+  exceção ([seção 8](#8-pendências-no-lace)).
 - **O disco é a fonte da verdade.** O Studio guarda o caminho do `.spf` e
   reabre o projeto a cada comando, como a CLI faz a cada execução. O `.spf`
   pode mudar por fora (a CLI no terminal do próprio Studio, um editor de
@@ -58,7 +58,7 @@ Três regras orientam tudo:
 ## 2. Pastas
 
 ```
-lace-studio/
+studio/
   src/                       a interface (React + TypeScript)
     main.tsx, App.tsx        entrada; a janela e as ligações globais
     actions.ts               todas as ações: menus, barra, paleta e atalhos leem daqui
@@ -66,11 +66,11 @@ lace-studio/
       api.ts                 uma função por comando Tauri
       types.ts               os tipos do Studio (espelho dos structs Rust)
       lace-types.ts          os tipos do Core, GERADOS dos JSON Schemas do Lace
-    state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic;
-                             layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela)
+    state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic, assistant, experimental, learn, settingsPage, tour, updates, waves;
+                             layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela); learnSession.ts, splash.ts e wideTabs.ts, sem store
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
     console/                 os consoles xterm.js e o terminal de shell
-    components/              layout/, sidebar/, editor/, panel/, views/, dialogs/
+    components/              layout/, sidebar/, editor/, panel/, views/, dialogs/, assistant/, tour/
     i18n/                    pt.ts (referência), en.ts, t() e useT()
     themes/                  os temas: model.ts (o formato), catalog.ts (os 15), index.ts (aplicar)
     styles/                  tokens.css (medidas), app.css
@@ -78,7 +78,7 @@ lace-studio/
     dev/smoke.ts             roteiro de fumaça, só na build de desenvolvimento
   src-tauri/                 o backend (Rust)
     src/lib.rs               registro dos plugins, do estado e dos comandos
-    src/commands/            app, project, files, history, toolchain
+    src/commands/            app, project, files, history, learn, experimental, fpga, toolchain, wave
     src/flows.rs             a casca sobre lace_core::flows (mais o fluxo learn)
     src/jobs.rs              operações em thread; a entrega em lotes é lace_core::delivery
     src/terminal.rs          o terminal de shell (portable-pty)
@@ -108,6 +108,7 @@ lace-studio/
 | `job` | a operação rodando (identificador e `CancelToken`); uma por vez |
 | `terminals` | os pseudoterminais abertos |
 | `watcher` | o vigia da pasta do projeto |
+| `assistants` | as sessões do assistente abertas, por identificador (`assistant::Assistants`) |
 
 ### 3.2 Comandos
 
@@ -119,13 +120,18 @@ interface.
 
 | Módulo | Comandos |
 |---|---|
-| `commands::app` | versão, preferências, recentes, abrir a onda (`lace wave`) |
-| `commands::project` | abrir, criar, fechar, retrato do projeto (`lace status`), `add`, `remove`, `top`, testbench, `proc add`, `proc set`, valores de saída |
-| `commands::files` | ler pasta, ler e gravar texto (com detecção de conflito), criar, renomear, lixeira, lista para o "abrir rápido", busca |
-| `commands::history` | `lace report list`, `show`, `compare` |
+| `commands::app` | versão, preferências, recentes, abrir a onda (`lace wave`), sair e reiniciar, fechar o splash, o log da interface e o roteiro de fumaça |
+| `commands::project` | abrir, criar, fechar, retrato do projeto (`lace status`), `add`, `remove`, `order`, `top`, testbench, `proc add`, `proc set`, `proc remove`, valores de saída, `move`, `convert`, hierarquia, conferir nomes, a pasta padrão dos projetos |
+| `commands::files` | ler pasta, ler e gravar texto (com detecção de conflito), criar, renomear, copiar, lixeira, lista para o "abrir rápido", busca |
+| `commands::history` | `lace report list`, `show`, `compare`, `clean` |
+| `commands::learn` | os exercícios do `lace learn`: as trilhas, abrir e criar a pasta, o exercício atual, restaurar |
+| `commands::experimental` | `lace experimental`: listar, ligar e desligar |
+| `commands::fpga` | a placa FPGA, experimental: `lace fpga boards` e `check`, o `fpga.json`, o estado do `.sof`, os cabos |
+| `commands::wave` | `lace wave signals`, `select` e `--reset-layout` |
 | `commands::toolchain` | `lace tools [--verify]`, `lace update [--check]`, `lace install` (a biblioteca do instalador, em processo) |
-| `jobs` | começar, cancelar e consultar a operação (build, check, sim, synth, esquemático) |
-| `terminal` | abrir, escrever, redimensionar e encerrar o terminal de shell |
+| `jobs` | começar, cancelar e consultar a operação (build, check, sim, synth, esquemático, exercício, placa) |
+| `terminal` | abrir, escrever, confirmar a saída, `cd`, redimensionar e encerrar o terminal de shell |
+| `assistant` | o assistente, experimental: abrir, mandar mensagem, interromper e encerrar uma sessão do Claude Code |
 | `wave_tab` | a onda numa aba: registra a onda e o layout no servidor local que serve o cliente web do Surfer |
 
 ### 3.3 Erros
@@ -135,8 +141,8 @@ mantém:
 
 - `Err(IpcError)`: o Lace não conseguiu rodar (bundle, projeto, E/S). O
   `code` é o `LaceError::code()` do Core, estável, ou um dos códigos do
-  Studio (`no_project`, `busy`, `conflict`, `outside_project`, `exists`,
-  `cli`, `terminal`, `io`, `internal`). A interface traduz pelo código
+  Studio (`error::codes`: `no_project`, `spf_missing`, `busy`, `conflict`, `outside_project`, `exists`, `invalid_argument`,
+  `terminal`, `unsafe_path`, `terminal_busy`, `cannot_replace`, `io`, `surfer_web_missing`, `wave_too_large`, `internal`, `assistant`). A interface traduz pelo código
   (`i18n`, chaves `error.<code>`) e mostra a mensagem original embaixo.
 - Uma operação que rodou e falhou é `Ok`, com `succeeded: false` e os
   diagnósticos no resultado. Isso vai para os consoles, para o painel
@@ -149,7 +155,7 @@ programa, então procura a instalação do Lace, com a busca que mora no Core
 (`lace_core::locate`; `toolchain.rs` só monta o `Lookup` com as
 preferências e o ambiente), nesta ordem: a pasta das preferências,
 `LACE_TOOLCHAIN`, a pasta do próprio Studio, as pastas padrão do
-instalador e o `lace` do `PATH` (resolvendo o atalho até a instalação).
+instalador, o `lace` do `PATH` (resolvendo o atalho até a instalação) e, por fim, ao lado do próprio executável, como a CLI.
 Uma pasta declarada e inválida é erro, sem cair para as outras, como o
 `--toolchain` da CLI. O `PATH` só serve para achar a instalação; as
 ferramentas continuam saindo do bundle.
@@ -188,7 +194,7 @@ destino no projeto. Mover e renomear na árvore (`project_move`) são o
 fica no lugar (o `.spf`, `.lace/`, as pastas e o fonte dos processadores).
 O Studio só acrescenta o substituir: com `overwrite`, se o Core responde
 `path_exists`, o que está no destino vai para a lixeira e o movimento é
-tentado de novo. O Core nunca sobrescreve.
+tentado de novo, menos quando o destino é o que o Core mantém no lugar, a pasta do projeto ou uma pasta que contém a origem (`Project::replace_refusal`): aí o erro é `cannot_replace`, e nada vai para a lixeira. O Core nunca sobrescreve.
 
 ### 3.6 Hierarquia e nome de projeto
 
@@ -202,14 +208,14 @@ A regra de nome de projeto também é do Core (`validate_project_name`): o
 `Project::create` recusa, e o diálogo de projeto novo chama
 `project_check_name` enquanto o usuário digita, para avisar antes. O de
 processador novo faz o mesmo com `processor_check_name`
-(`validate_processor_name`), e mantém o `#NUBITS` igual a `#NBMANT +
+(`validate_new_processor_name`, que recusa também os nomes das pastas do Lace), e mantém o `#NUBITS` igual a `#NBMANT +
 #NBEXPO + 1` enquanto o usuário muda a mantissa ou o expoente; o resto dos
 parâmetros o Core confere ao criar (`invalid_parameter`).
 
 ### 3.7 Encerrar
 
 Ao sair (evento `RunEvent::Exit`) e ao receber SIGTERM, SIGINT ou SIGHUP
-(Unix), o Studio cancela a operação rodando, espera até 3 s e fecha os
+(Unix), o Studio cancela a operação rodando, espera até 3 s, encerra as sessões do assistente e fecha os
 terminais. Sem isso, no Linux e no macOS, as ferramentas, que o Lace roda
 num grupo de processos próprio, continuariam rodando depois que o Studio
 saísse (API.md do Lace, seção 9, "Limites"). No Windows, cada passo roda
@@ -257,19 +263,23 @@ vista, voltam para a barra de menus. As permissões são as de
 
 **Abertura.** A janela nasce escondida e com fundo escuro (`visible: false`
 e `backgroundColor` em `tauri.conf.json`). A interface a mostra
-(`reveal`, em `App.tsx`) depois de aplicar o tema e o zoom das preferências
-e de reabrir o último projeto, com um limite de 1,5 s para um projeto
-grande não segurar a abertura. Assim o primeiro quadro já é o de trabalho,
+(`reveal`, em `App.tsx`) depois de aplicar o tema e o zoom das preferências,
+de achar o Lace e de reabrir o último projeto, com um limite de 8 s
+(`REVEAL_WAIT_MS`) para um projeto grande não segurar a abertura.
+Enquanto isso, o splash (a janela `splash` do `tauri.conf.json`,
+`public/splash.html`) fica na frente com o logo animado, pelo menos 3,2 s
+(`SPLASH_MIN_MS`), e fecha quando a principal aparece. Assim o primeiro
+quadro já é o de trabalho,
 e não uma página branca enquanto o JavaScript carrega. Se a interface não
 chegar a mostrar a janela (o Vite fora do ar, um módulo que não carregou),
-o backend a mostra depois de 10 s (`REVEAL_FALLBACK`, em `lib.rs`). O log
+o backend a mostra e fecha o splash depois de 10 s (`REVEAL_FALLBACK`, em `lib.rs`). O log
 registra quanto a abertura levou (`Startup: modules loaded in ... ms, first
 frame at ... ms`).
 
 **Layout** (`state/layoutModel.ts`, `state/layout.ts`,
 `state/savedLayouts.ts`). Três regiões fixas, como no VS Code: a barra
 lateral esquerda, a direita e o painel (embaixo ou à direita do editor). As
-catorze vistas (as cinco da barra lateral, o INFO, os seis terminais de
+quinze vistas (as cinco da barra lateral esquerda, o Assistente, experimental, o INFO, os seis terminais de
 etapa, Problemas e Terminal) ficam cada uma em uma região e podem ir para
 qualquer outra. O
 arranjo é um `LayoutBody`: as vistas de cada região, a ativa e se ela
@@ -369,6 +379,12 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useHierarchy` | `state/hierarchy.ts` | a última hierarquia elaborada, se está desatualizada; atualiza depois de cada fluxo que passa |
 | `useReports` | `state/reports.ts` | a versão da lista de relatórios; a limpeza (plano, confirmação, apagar) |
 | `useDrag` | `components/sidebar/dnd.ts` | o arrasto em curso: o que, sobre qual destino, se pode soltar |
+| `useAssistant` | `state/assistant.ts` | o assistente, experimental: a sessão aberta, a transcrição, o estado do turno, o rascunho e o custo da conversa |
+| `useExperimental` | `state/experimental.ts` | os recursos experimentais ligados, lidos do `experimental.json` do Core e relidos quando a janela ganha o foco |
+| `useLearn` | `state/learn.ts` | os exercícios do `lace learn`: a pasta aberta, a última correção de cada exercício e as dicas à mostra |
+| `useUpdates` | `state/updates.ts` | o último `lace update --check`, a busca em andamento e a saída que ficou para depois de atualizar |
+| `useTour` | `state/tour.ts` | o tour pela interface: se está aberto e em que passo |
+| `useWaveReloads` | `state/waves.ts` | um contador por onda, que faz a aba aberta dela ler a onda de novo depois de uma simulação |
 
 O que não é estado de React fica em módulos: o Monaco (`editor/monaco.ts`,
 um modelo por arquivo), os consoles e o terminal (`console/`). Escrever uma
@@ -550,10 +566,10 @@ Exemplo: F8 (Wave) com o alvo no projeto.
 3. `jobs::flow_start` reserva a vaga (`busy` se já houver uma), cria o
    `CancelToken`, começa a thread de entrega e a thread de trabalho, e
    devolve o identificador.
-4. Na thread de trabalho, `flows::run` faz a mesma composição do `lace sim`:
+4. Na thread de trabalho, `flows::run` chama `lace_core::flows::run`, a mesma composição do `lace sim`:
    compila os processadores que têm fonte (`build_processors`, parando no
    primeiro que falhar), simula o projeto (`simulate_project`), grava o
-   relatório (`history::record`) e abre a onda (`open_waveform`).
+   relatório (`history::record`) e, com `wave_viewer` em `window`, abre a onda em janela (`open_wave`); com `tab`, o padrão, e o cliente web no bundle, o Core não abre, e o resultado traz a onda em `wave_tab` para a interface abrir a aba.
 5. O Core avisa cada linha que as ferramentas escrevem pelo receptor do
    `Control`. O receptor só manda o evento por um canal; a thread de entrega
    junta os eventos em lotes de até 500 ou 30 ms e os manda para a interface.
@@ -580,7 +596,7 @@ com `status: cancelled`, que chega pelo mesmo caminho.
   tipo público no Lace: rode de novo e confira o diff.
 - **Tipos do Studio:** os structs de `src-tauri/src` e as interfaces de
   `src/ipc/types.ts` são mantidos à mão, lado a lado, com o arquivo Rust
-  citado no comentário de cada interface. Mudou um, mude o outro e o
+  citado no comentário de cada interface. Desde a 0.9.0, vários tipos que o backend devolve são do Core e já vêm gerados em `lace-types.ts` (`ProjectStatus`, que é o `ProjectSnapshot`, `ToolchainInfo`, `FlowOutcome`, `Phase`, `WaveOpened`, `LayoutConversion`), mas `types.ts` ainda os copia à mão. Mudou um, mude o outro e o
   [IPC.md](IPC.md).
 - **Nomes de argumento:** o Tauri converte os argumentos de primeiro nível
   de `camelCase` (JavaScript) para `snake_case` (Rust); os campos de structs
@@ -595,7 +611,7 @@ com `status: cancelled`, que chega pelo mesmo caminho.
   no DOM.
 - Os plugins têm só as permissões da janela principal
   (`capabilities/default.json`): diálogos de arquivo, abrir caminhos e URLs
-  no sistema, título, zoom e fechar a janela.
+  no sistema, título, zoom, mostrar a janela, tela cheia, os botões e o arraste da barra de título integrada (minimizar, maximizar, tirar a moldura, arrastar) e fechar a janela.
 - Criar, renomear e apagar só dentro da pasta do projeto; apagar vai para a
   lixeira.
 - O processo das ferramentas recebe o ambiente que o Core monta (vazio mais
