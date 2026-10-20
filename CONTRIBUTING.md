@@ -131,6 +131,9 @@ Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 `lace-installer` é o instalador em terminal (Linux, macOS) e o empacotador
 `lace-pack`.
 
+O desenho das partes, com as ferramentas e os arquivos que cada uma usa,
+está no [README](README.md#como-as-partes-se-ligam).
+
 ### `crates/lace-core/src/`
 
 | Arquivo | O que mora lá |

@@ -206,6 +206,25 @@ Para outro programa (uma extensão de editor, um script), todo comando aceita
 as ferramentas rodam. O formato de cada um está em
 [docs/schema/](docs/schema/), gerado do código.
 
+## Como as partes se ligam
+
+<p align="center">
+  <a href="docs/img/mapa.svg">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/img/mapa-escuro.svg">
+      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o lace-core; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
+    </picture>
+  </a>
+</p>
+
+O Lace Studio e a linha de comando `lace` linkam as bibliotecas e chamam as
+mesmas funções do `lace-core`. Os outros programas falam com um processo
+filho: a extensão do VS Code com o `lace serve`, por JSON-RPC, e um agente de
+IA com o `lace mcp`, o mesmo contrato como servidor MCP
+([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
+O `lace chat` e a vista Assistente do Studio usam o `lace-agent`, que abre o
+Claude Code com o `lace mcp`.
+
 ## Documentação
 
 | Documento | Para quê |
