@@ -151,9 +151,11 @@ Studio inteiro funcionam nele.
 4. Com o código compilando e simulando (resolvido ou não), os avisos além
    do veredito, que nunca reprovam:
    - o lint do Verilator (`--lint-only -Wall`), só sobre o arquivo do aluno,
-     sem os avisos de estilo que não ensinam nada a quem começa (o nome do
+     sem os avisos que acusariam código legítimo de quem começa: o nome do
      arquivo, o fim de linha, o parâmetro sem uso, a saída de instância
-     deixada sem ligação);
+     deixada sem ligação, o valor estendido com zeros (`acc + x`, com `x`
+     mais estreito) e os bits descartados de propósito (`soma[9:2]`). O
+     corte de bits e o sinal inteiro sem uso continuam;
    - o latch: a síntese do Yosys acha um `$dlatch` e a correção diz o sinal
      e a linha do `always`. Num circuito combinacional, é o `if` sem `else`
      ou o `case` sem `default`: simula às vezes certo e não é o circuito
@@ -245,7 +247,8 @@ Uma versão em inglês fica ao lado, em `prompt.en.md` (e `chapter.en.md`,
   `solution.v`, e compila: o `dev check` exige que ele não passe.
 - `solution.v` é Verilog-2001 que o Icarus aceita. Cada módulo que ela
   declara ganha `_ref` na cópia da referência, nas declarações e nas
-  instâncias.
+  instâncias; uma porta ou um fio com o mesmo nome de um módulo fica como
+  está.
 - Um módulo dado ao aluno (um somador para os exercícios de hierarquia) é
   um `.v` a mais na pasta. Ele vai para a pasta do aluno, entra no projeto e
   é usado pelo aluno e pela referência; nem `start.v` nem `solution.v` o

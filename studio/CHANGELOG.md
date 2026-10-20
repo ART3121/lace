@@ -12,6 +12,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   destaque), os avisos do lint do Verilator sobre o seu arquivo e o latch
   que a síntese achou, com um link para a linha. O console da correção
   também escreve a primeira amostra errada.
+- **Exercícios**: 26 exercícios novos na trilha de Verilog, em cinco
+  capítulos (combinacionais, circuitos com memória, máquinas de estado,
+  aritmética e memórias).
 
 ## [0.9.0] - 2026-10-20
 
