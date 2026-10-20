@@ -132,7 +132,7 @@ compilado (`lace build`).
 
 O Lace gera um módulo, `lace_board_top`, que tem como portas só os sinais
 da placa usados e instancia o topo do projeto com as ligações. É ele que
-vai para o Quartus, com um pino por sinal. `lace fpga check --show-top`
+vai para o Quartus, com um pino por bit de cada sinal. `lace fpga check --show-top`
 mostra o Verilog. Ele é gerado de novo a cada compilação: não edite.
 
 ## O Quartus Prime
@@ -338,8 +338,9 @@ OSS CAD Suite, nas três plataformas, no componente opcional
 - No Linux, o acesso ao cabo pede uma regra do udev, que precisa de root. O
   OSS CAD Suite não traz a do openFPGALoader.
 - No Windows, o driver do USB-Blaster que o Quartus instala não é o que o
-  openFPGALoader usa (libusb). Por isso, quando há Quartus, o Lace grava
-  pelo `quartus_pgm`. Falta testar com as placas.
+  openFPGALoader usa (libusb). Por isso o Lace grava só pelo `quartus_pgm`,
+  e sem o Quartus a gravação dá `quartus_missing`. Falta testar com as
+  placas.
 
 ## O que falta
 
@@ -354,5 +355,3 @@ OSS CAD Suite, nas três plataformas, no componente opcional
 - O fluxo aberto para o Cyclone V (Yosys e `nextpnr-mistral`), adiado: o
   `nextpnr-mistral` não vem no OSS CAD Suite 2026-09-29, em nenhuma
   plataforma, então teria de ser compilado pelo Lace.
-- No Studio, um console próprio da placa: a aba Placa FPGA monta o
-  `fpga.json`, compila e grava, com a saída no console da síntese.

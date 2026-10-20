@@ -35,7 +35,8 @@ está no [README do Lace](../../README.md#extensão-do-vs-code)).
 - **Build, Check, Sim, Wave e Synth** ficam na barra de status, ao lado do
   projeto ativo, e valem para o projeto inteiro (o Build só aparece num
   projeto com processador). Cada botão gira enquanto roda (o
-  clique cancela, com SIGTERM ao lace) e, depois de uma falha, fica com o
+  clique cancela, menos no Wave: com o `lace serve`, pelo `$/cancel`; com
+  `lace.transport` em `cli`, com SIGTERM ao lace) e, depois de uma falha, fica com o
   fundo de erro e o número de erros. A saída das ferramentas sai ao vivo no
   canal **Lace: ferramentas**. As variantes estão na paleta de comandos e no
   botão direito da vista e do explorador.
@@ -125,10 +126,14 @@ As cores da vista são do tema (`lace.topForeground`,
 
 ## Como fala com o Lace
 
-Só pela CLI, com `--json` e `--events` ([docs/CLI.md](../../docs/CLI.md)),
-sem shell e com `-C <.spf>`. Vistas e comandos dependem só do `LaceClient`
-(`src/lace/client.ts`); a implementação de hoje, `src/lace/cliClient.ts`, é
-o único módulo que cria processos, e o lint cobra isso. Os tipos de
+Pelo executável `lace`, sem shell, de um de dois jeitos, conforme
+`lace.transport`: um `lace serve` em segundo plano, com os pedidos em
+JSON-RPC 2.0 por stdin e stdout (`src/lace/serveClient.ts`), ou um processo
+por comando, com `--json`, `--events` e `-C <.spf>`
+(`src/lace/cliClient.ts`) ([docs/CLI.md](../../docs/CLI.md)). Vistas e
+comandos dependem só do `LaceClient` (`src/lace/client.ts`), e
+`src/connection.ts` escolhe a implementação. O `cliClient.ts` é o único
+módulo que cria processos, o do `lace serve` também, e o lint cobra isso. Os tipos de
 `src/lace/lace-types.ts` são gerados de `docs/schema/` por
 `npm run gen:types`, como os do Studio.
 
@@ -154,7 +159,7 @@ Para experimentar: `npm run watch` e
 Os testes não usam o Lace instalado. Um lace falso
 (`test/fixtures/fake-lace/lace.mjs`) devolve as respostas de
 `test/fixtures/responses/`. As de `cases.json` foram gravadas por
-`npm run record:fixtures` com o lace compilado deste repositório (a 0.6.0
+`npm run record:fixtures` com o lace compilado deste repositório (a 0.7.0
 da HEAD, que já escreve o `saved_layout` do `wave`) e o bundle instalado; o
 cabeçalho do script diz como. As de `synthetic.json` foram escritas à mão,
 para o que o lace não faz de propósito (pânico, saída que não é JSON). O

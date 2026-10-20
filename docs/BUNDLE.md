@@ -39,8 +39,8 @@ Bundle `2026.10.13`. Os pacotes, com as versões fixadas em
 
 Os componentes, que o instalador deixa escolher, estão em
 `bundle/components.json`, junto dos perfis de instalação (`profiles`), que
-juntam componentes por tipo de trabalho ([INSTALL.md](INSTALL.md), "Perfis
-e componentes"):
+juntam componentes por tipo de trabalho
+([INSTALL.md, Idioma, perfis e componentes](INSTALL.md#idioma-perfis-e-componentes)):
 
 | Componente | Pacote | Diretório |
 |---|---|---|
@@ -147,6 +147,9 @@ Um bundle só abre na plataforma para a qual foi montado.
     msys/                     só no Windows: ucrt64/ e usr/bin/ do bloco MSYS2
     surfer-aurora/            surfer-aurora[.exe], web/ (o cliente web: index.html, surfer.js, surfer_bg.wasm)
     graphviz/                 só no Windows
+    studio/                   o Lace Studio: lace-studio[.exe], ou Lace Studio.app no macOS
+    lace-learn/               as trilhas do lace learn
+    rtl-viewer/               rtl-viewer.html, o modelo do HTML do lace synth --open
 ```
 
 O Lace procura `toolchain/` ao lado de `bin/` (ou ao lado do executável,
@@ -165,7 +168,7 @@ Como cada ferramenta é executada:
 | YANC | o binário em `yanc/bin/`; da 7.1 em diante, cada um acha `SAPHO/`, `Macros/` e `Header/` em `../` a partir do próprio executável, então as quatro pastas andam juntas | `yanc/bin/*.exe`, idem |
 | Icarus | `/bin/bash oss-cad-suite/bin/<ferramenta>`: o lançador do pacote, que carrega o binário de `libexec/` com as bibliotecas do próprio pacote | o `.exe` de `msys/ucrt64/bin/`, com `PATH` nesse diretório, onde estão as DLLs |
 | Yosys, `dot` | como o Icarus | o `.exe` de `oss-cad-suite/bin/` (ou `graphviz/bin/dot.exe`) com `PATH` em `bin;lib` do pacote, como o `environment.bat` |
-| Verilator | Perl do sistema com o script `oss-cad-suite/bin/verilator`, que roda o `bin/verilator_bin` do pacote; o `make` e o compilador são os do sistema; o `make` gerado usa o Python do pacote (`PYTHON3=`) | o `msys/ucrt64/bin/perl.exe` com o script `msys/ucrt64/bin/verilator`, que roda o `verilator_bin.exe` ao lado (`VERILATOR_BIN=verilator_bin.exe`, com `--no-unlimited-stack`; ver [API.md, seção 5.2](API.md#52-simulatetoolchain-processor-simulationoptions-control---resultsimulationresult)); o `make` é o da camada MSYS (`msys/usr/bin/make.exe`), que roda o `verilated.mk` com o `sh` dela e compila com o `g++` de `ucrt64/bin`; o `make` gerado usa `msys/ucrt64/bin/python.exe` |
+| Verilator | Perl do sistema com o script `oss-cad-suite/bin/verilator`, que roda o `bin/verilator_bin` do pacote; o `make` e o compilador são os do sistema; o `make` gerado usa o Python do pacote (`PYTHON3=`) | o `msys/ucrt64/bin/verilator_bin.exe`, direto, sem o script Perl `msys/ucrt64/bin/verilator`, com o `VERILATOR_ROOT` em `msys/ucrt64/share/verilator` (pelo script, um caminho com espaço ou acento chegava trocado; ver [API.md, seção 5.2](API.md#52-simulatetoolchain-processor-simulationoptions-control---resultsimulationresult)); o `make` é o da camada MSYS (`msys/usr/bin/make.exe`), que roda o `verilated.mk` com o `sh` dela e compila com o `g++` de `ucrt64/bin`; o `make` gerado usa `msys/ucrt64/bin/python.exe` |
 | surfer-aurora | o binário, com as variáveis de display | o `.exe` |
 
 Todo processo parte de um ambiente vazio. Os lançadores recebem
@@ -205,7 +208,7 @@ síntese, a partir do modelo que o pacote traz (como fazem os lançadores do
 | `libc` (Linux e macOS) | o `lace` e o YANC são binários nativos ligados à `libc` do sistema; as ferramentas do OSS CAD Suite não, carregam as bibliotecas do pacote | sistema base |
 | fontes (macOS e Windows) | os pacotes dessas plataformas não trazem fontes; o `dot` usa as do sistema | as do sistema |
 | compilador C++, `make`, Perl (Linux e macOS) | exceção decidida pelo autor: o Verilator compila o modelo em C++, e o OSS CAD Suite não traz compilador. No Windows os três vêm no bundle, com o Verilator | locais fixos: `/usr/bin` (Linux); `/usr/bin` com as Command Line Tools do Xcode (macOS) |
-| Quartus Prime (Windows e Linux) | segunda exceção decidida pelo autor: o bitstream das placas Intel sai dele, que é proprietário, tem dezenas de GB e não pode ir no bundle. Só as placas FPGA o usam | `--quartus` ou `LACE_QUARTUS`; senão `QUARTUS_ROOTDIR`; senão `C:\intelFPGA_lite`, `C:\intelFPGA`, `C:\altera_lite`, `C:\altera` (Windows) e as mesmas na pasta do usuário e em `/opt` (Linux), a versão mais nova ([FPGA.md](FPGA.md)) |
+| Quartus Prime (Windows e Linux) | segunda exceção decidida pelo autor: o bitstream das placas Intel sai dele, que é proprietário, tem dezenas de GB e não pode ir no bundle. Só as placas FPGA o usam, um recurso experimental desligado por padrão (`lace experimental enable fpga`) | `--quartus` ou `LACE_QUARTUS`; senão `QUARTUS_ROOTDIR`; senão `C:\intelFPGA_lite`, `C:\intelFPGA`, `C:\altera_lite`, `C:\altera` (Windows) e as mesmas na pasta do usuário e em `/opt` (Linux), a versão mais nova ([FPGA.md](FPGA.md)) |
 | `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho; no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
 
 Sem o compilador, tudo funciona menos a simulação com Verilator, e
@@ -274,12 +277,13 @@ separa a parte de
 cada componente e grava o `bundle.json`, os `components/<nome>.json` com o
 hash de cada executável, e `dist/toolchain.contents.json`, o índice de que
 arquivo é de que componente, que os instaladores usam
-([RELEASE.md](RELEASE.md)). É o único lugar que baixa alguma coisa: em uso, o
-Lace só lê o bundle.
+([RELEASE.md](RELEASE.md)). É o único lugar que baixa um pacote de
+ferramenta: em uso, o Lace só lê o bundle, e o `lace install` e o
+`lace update` baixam da release do Lace os pedaços do bundle já montado.
 
 `--platform` monta a divisão de outra plataforma: os pacotes prontos se
-dividem em qualquer sistema; o YANC, e o surfer-aurora sem pré-compilado,
-precisam compilar para ela.
+dividem em qualquer sistema; o YANC, o Studio e o surfer-aurora sem
+pré-compilado precisam compilar para ela.
 
 `--surfer-prebuilt <pasta>` só compila o surfer-aurora e grava na pasta o
 pacote pré-compilado da plataforma (`surfer-aurora-<versão>-<plataforma>.tar.gz`,
@@ -307,9 +311,10 @@ O Studio entra na versão do `bundle/versions.json` (pacote `studio`), que
 tem que ser a do `studio/package.json` e a do `tauri.conf.json`. Para montar
 sem ele, `--only` com os outros componentes.
 
-O workflow `.github/workflows/installers.yml` monta o bundle e os
-instaladores nas três plataformas, instala por eles e roda os testes contra
-a instalação.
+O workflow `.github/workflows/installers.yml`, que o `release.yml` chama
+numa tag, monta o bundle e os instaladores nas três plataformas e confere o
+bundle com `lace tools --verify`, sem rodar os testes: os instaladores
+publicados se testam à mão.
 
 ### Atualizar uma versão
 

@@ -223,7 +223,9 @@ filho: a extensão do VS Code com o `lace serve`, por JSON-RPC, e um agente de
 IA com o `lace mcp`, o mesmo contrato como servidor MCP
 ([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
 O `lace chat` e a vista Assistente do Studio usam o `lace-agent`, que abre o
-Claude Code com o `lace mcp`.
+Claude Code com o `lace mcp`. O `lace mcp`, o `lace chat` e a vista
+Assistente são experimentais: só funcionam depois de
+`lace experimental enable assistant`.
 
 ## Documentação
 
@@ -234,11 +236,13 @@ Claude Code com o `lace mcp`.
 | [editors/vscode/README.md](editors/vscode/README.md) | a extensão do VS Code: o que faz, configurações, compilar e testar |
 | [docs/CLI.md](docs/CLI.md) | a linha de comando `lace` |
 | [docs/LEARN.md](docs/LEARN.md) | os exercícios do `lace learn`: fazer e escrever |
-| [docs/API.md](docs/API.md) | a API do `lace-core`, para a CLI e para interfaces futuras |
+| [docs/FPGA.md](docs/FPGA.md) | as placas FPGA pelo Quartus Prime, um componente experimental (`lace experimental enable fpga`) |
+| [docs/API.md](docs/API.md) | a API do `lace-core`, que a CLI, o Studio e o `lace serve` usam |
 | [docs/BUNDLE.md](docs/BUNDLE.md) | o que vem no bundle, como montá-lo e o que vem do sistema |
-| [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando |
+| [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando e o do protocolo do `lace serve` (`protocol-request.json`, `protocol-response.json`) |
 | [docs/RELEASE.md](docs/RELEASE.md) | as releases: que número cada uma recebe, quando lançar e o passo a passo |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | como contribuir: preparar a máquina, onde mudar o quê, o que conferir |
+| [docs/METODOLOGIA.md](docs/METODOLOGIA.md) | como o código se organiza e como a API muda sem quebrar quem a usa |
 | [CHANGELOG.md](CHANGELOG.md) | mudanças por versão |
 
 ## Compilar do fonte
