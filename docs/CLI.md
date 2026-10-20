@@ -2,7 +2,11 @@
 
 A CLI é uma casca fina sobre o `lace-core` (ver [API.md](API.md)): cada
 comando abre o projeto, chama uma função do Core e formata o resultado. O que
-a CLI faz, uma GUI faz chamando as mesmas funções.
+a CLI faz, uma GUI faz chamando as mesmas funções. Os comandos que rodam
+ferramentas (`build`, `check`, `hierarchy`, `sim`, `synth`, `fpga build` e
+`fpga program`) montam um `FlowRequest` e chamam `lace_core::flows::run`, e o
+`wave` chama `flows::open_wave` e `flows::choose_signals`; a coluna "Função
+do Core" das tabelas abaixo diz o que esses fluxos chamam por dentro.
 
 ```
 cargo install --path crates/lace-cli     # instala o binário `lace`
@@ -147,7 +151,9 @@ set -Ux LACE_COMPILER /opt/gcc/bin                   # fish: vale para as próxi
 ```
 
 `lace tools` mostra qual compilador foi encontrado e se ele é do bundle ou
-do sistema. Não há arquivo de configuração.
+do sistema. O compilador e o bundle não têm arquivo de configuração: o único
+arquivo de configuração do Lace é o `experimental.json`
+([Componentes experimentais](#componentes-experimentais-lace-experimental)).
 
 A segunda exceção é o Quartus Prime, que compila para as placas Intel e não
 pode ir no bundle. O Lace usa o de `--quartus <DIR>` (ou `LACE_QUARTUS`),
@@ -161,11 +167,13 @@ mais nova ([FPGA.md](FPGA.md)). `lace tools` mostra o que achou.
 
 | Comando | Faz | Função do Core |
 |---|---|---|
-| `lace new <NOME> [--dir DIR]` | cria `<DIR>/<NOME>/<NOME>.spf`. O nome usa só letras sem acento, dígitos, `_` e `-`, começando por letra, até 64 caracteres, e não pode diferir só na caixa de outro da mesma pasta. Criado dentro da pasta de outro projeto, avisa | `Project::create`, `Project::issues` |
-| `lace status` | os avisos do `.spf` (`warning: ...`), os módulos registrados (o topo marcado com o nome do módulo), os testbenches (o simulado marcado), os `.v` da pasta que não estão registrados, com a dica `lace add <arquivo>`, e os processadores (linguagem, frequência, clocks, arrays, se está compilado, e `(this folder)` no da pasta atual). Num projeto vazio, os primeiros passos dos dois fluxos | `Project::open`, `Project::issues`, `Project::files`, `Project::top_module`, `Project::unregistered_verilog`, `Processor::is_built`, `Project::processor_at` |
+| `lace new <NOME> [--dir DIR]` | cria `<DIR>/<NOME>/<NOME>.spf`. O nome usa só letras sem acento, dígitos, `_` e `-`, começando por letra, até 64 caracteres, fora os nomes reservados do Windows (`CON`, `PRN`, `AUX`, `NUL`, `COM0` a `COM9`, `LPT0` a `LPT9`, recusados em todo sistema), e não pode diferir só na caixa de outro da mesma pasta. Criado dentro da pasta de outro projeto, avisa | `Project::create`, `Project::issues` |
+| `lace status` | os avisos do `.spf` (`warning: ...`), os módulos registrados (o topo marcado com o nome do módulo), os testbenches (o simulado marcado), os `.v`, os `.sv` e os testbenches cocotb (`.py` com `@cocotb.test`) da pasta que não estão registrados, com a dica `lace add <arquivo>`, e os processadores (linguagem, frequência, clocks, arrays, se está compilado, e `(this folder)` no da pasta atual). Num projeto vazio, os primeiros passos dos dois fluxos | `Project::open`, `Project::issues`, `Project::files`, `Project::top_module`, `Project::unregistered_verilog`, `Processor::is_built`, `Project::processor_at` |
 
-Os `.v` não registrados são procurados na pasta do projeto e nas subpastas,
-menos `.lace/`, as pastas dos processadores e as ocultas.
+Os arquivos não registrados são procurados na pasta do projeto e nas
+subpastas, até 4 níveis, menos `.lace/`, as ocultas, as pastas dos
+processadores, a `TopLevel/` legada da AURORA e as de outro projeto, com
+`.spf` próprio.
 
 Os avisos do `.spf` (`issues` no JSON) são o que está estranho sem impedir
 de abrir: um caminho de outra máquina (`C:\...`) achado pela cauda dentro da
@@ -236,7 +244,9 @@ só `--nbmant` ou `--nbexpo`, `--nubits` acompanha (`#NBMANT + #NBEXPO + 1`,
 o único que o `asmcomp` aceita). O Core recusa, antes de criar qualquer
 coisa, nome que o YANC 7.1 recusa como módulo (palavra do Verilog ou do
 SystemVerilog, começo com dígito ou com `__`), módulo da biblioteca SAPHO,
-nome reservado do Windows, mais de 64 caracteres, e parâmetro fora do que o YANC
+nome reservado do Windows, nome de uma pasta do Lace (`synth`, `hierarchy`,
+`lint`, `wave`, `surfer`, `cocotb`, em qualquer caixa), mais de 64
+caracteres, e parâmetro fora do que o YANC
 compila (`invalid_parameter`: `#NUBITS` diferente da soma ou acima de 32,
 `#NBEXPO` fora de 2 a 8, `#NUGAIN` que não é potência de dois, pilha 0, mais
 de 256 portas). `proc set` recusa `--freq` fora de 1 a 500000 e `--clocks`
@@ -273,8 +283,8 @@ projeto já convertido, não faz nada. Com `--json`, o `convert.json`.
 | `lace check -p NOME [--lint]` | verifica só o Verilog do processador e o testbench gerado pelo YANC, sem recompilá-lo | `check` (`CheckOptions::processor`) |
 | `lace sim [TESTBENCH] [--verilator] [--fast] [--timeout S] [--open]` | compila os processadores que têm fonte e simula o testbench do projeto. Com `TESTBENCH`, ele passa a ser o testbench simulado (e é registrado, se não estava). Dentro da pasta de um processador, sem `TESTBENCH`, é o mesmo que `-p` com ele | `set_testbench`, `buildable_processors`, `build_processors` (`Stop`), `simulate_project` |
 | `lace sim -p NOME [--verilator] [--fast] [--timeout S] [--open]` | compila o processador e o simula com o testbench gerado pelo YANC | `build_processors` (`Stop`), `simulate` |
-| `lace synth [--svg] [--module M] [--open]` | compila os processadores e sintetiza o módulo de topo do projeto; com `--svg`, desenha o esquemático (Yosys `show` + `dot`); com `--open`, abre o RTL viewer no navegador (veja abaixo). Dentro da pasta de um processador, é o mesmo que `-p` com ele | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
-| `lace synth -p NOME [--svg] [--module M] [--open]` | compila o processador e o sintetiza sozinho | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
+| `lace synth [--svg [--module M]] [--open]` | compila os processadores e sintetiza o módulo de topo do projeto; com `--svg`, desenha o esquemático (Yosys `show` + `dot`); com `--open`, abre o RTL viewer no navegador (veja abaixo). Dentro da pasta de um processador, é o mesmo que `-p` com ele | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
+| `lace synth -p NOME [--svg [--module M]] [--open]` | compila o processador e o sintetiza sozinho | `build_processors` (`Stop`), `synthesize`, `render_schematic`, `rtl_viewer::write` |
 
 Depois de compilar, `build`, `sim`, `synth` e `fpga build` põem no `.spf`
 o que cada processador gerou e o projeto ainda não tem, como a AURORA: o
@@ -392,7 +402,8 @@ verificados.
 
 A saída lista os módulos elaborados como raiz e os diagnósticos de cada
 passo. Avisos, do Icarus ou do Verilator, não fazem o `check` falhar. O
-`check` não gera arquivo nenhum e sai com 1 se algum passo falhou.
+`check` não gera artefato, só o relatório do histórico
+([Relatórios](#relatórios)), e sai com 1 se algum passo falhou.
 
 #### O que `sim` mostra
 
@@ -546,7 +557,8 @@ arquivo e linha.
 
 Numa onda com processador SAPHO, o Surfer abre com o layout da AURORA: as
 variáveis do programa, a instrução de assembly e a linha do C± de cada
-ciclo, em grupos por processador (`prepare_wave_layout`, API.md 5.7.1). O
+ciclo, em grupos por processador (`wave_layout` e `prepare_wave_layout`,
+API.md 5.7.1 e 5.7.2). O
 texto lista cada processador do layout. `lace sim --open` faz o mesmo.
 
 **O layout salvo.** Numa onda de testbench do projeto, o layout fica em
@@ -755,8 +767,9 @@ depois. A hora da última consulta, a versão achada e a do último aviso
 ficam em `lace/update-check.json` na pasta de cache do usuário
 (`$XDG_CACHE_HOME` ou `~/.cache` no Linux e no macOS, `%LOCALAPPDATA%` no
 Windows); o `lace update` também grava ali o que consultou. Não há consulta
-nem aviso com `--json` ou `--events`, fora de um terminal, no `lace update`
-e no `lace uninstall`, num `lace` que não veio do instalador, com a
+nem aviso com `--json` ou `--events`, fora de um terminal, no `lace update`,
+no `lace uninstall`, no `lace setup`, no `lace serve`, no `lace mcp`, no
+`lace chat` e no `lace completions`, num `lace` que não veio do instalador, com a
 variável `CI` definida ou com `LACE_NO_UPDATE_CHECK=1`.
 
 `lace setup --payload <pasta> --prefix <pasta> [--components a,b]` instala
@@ -784,7 +797,7 @@ contrato ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busc
 | Comando | Faz |
 |---|---|
 | `lace serve [--schema]` | atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
-| `lace mcp [--allow-update]` | o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/cancelled`. Uma ferramenta por método (`project_status`, `build`, `check`, `sim`, `synth`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo, mais `project_find`. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
+| `lace mcp [--allow-update]` | o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/cancelled`. Uma ferramenta por método que serve a um agente (`project_status`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo, e o `flow.run` desdobrado em `build`, `check`, `hierarchy`, `sim` e `synth`, mais `project_find`. Não viram ferramenta o `project.check_name`, o `processor.check_name`, o `wave.open`, o `wave.reset_layout`, o `history.plan_cleanup`, o `history.clean`, o `experimental.set` e o `fpga.cables`, nem os fluxos `schematic`, `fpga_build` e `fpga_program`. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
 | `lace mcp setup <claude-code\|claude-desktop\|print> [--scope local\|user\|project] [--allow-update] [--default-project PATH]` | registra o servidor no cliente, com o caminho deste `lace` e, se o bundle não é o instalado ao lado dele, a variável `LACE_TOOLCHAIN`. `claude-code` roda `claude mcp add` (ou grava o `.mcp.json` da pasta com `--scope project`; sem o `claude` no `PATH`, imprime o comando); `claude-desktop` mescla a entrada no `claude_desktop_config.json`, mantendo o resto do arquivo; `print` só imprime o trecho JSON |
 | `lace chat [--model M] [--resume ID] [--allow-edits] [--allow-update] [--claude PATH]` | o assistente do Lace no terminal: uma tela com a conversa, o que o assistente faz (cada ferramenta chamada, com o resultado) e o campo de texto. Quem responde é o Claude Code instalado na máquina, aberto como processo filho com o `lace mcp` desta pasta (ou do `-C`) como ferramentas; quem autentica é ele (a conta, ou `ANTHROPIC_API_KEY`), e o Lace não guarda chave. Sem o Claude Code, diz como instalar. `--allow-edits` deixa o assistente editar e criar arquivos na pasta do projeto, além de usar as ferramentas do Lace e ler; `--allow-update` expõe `update_apply` e `install_add`. No fim imprime o `session_id`, que `--resume` retoma. Enter envia, Esc interrompe a resposta, PgUp e PgDn rolam, Ctrl+Q sai |
 
@@ -802,7 +815,7 @@ Uma sessão do `serve`:
 
 ```
 → {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"client":"meu-script 1.0"}}
-← {"jsonrpc":"2.0","id":1,"result":{"lace":"0.9.0","protocol":1,"prefix":"/opt/lace","experimental":{"fpga":false},"methods":["initialize","shutdown","project.create",...]}}
+← {"jsonrpc":"2.0","id":1,"result":{"lace":"0.9.0","protocol":1,"prefix":"/opt/lace","experimental":{"assistant":false,"fpga":false},"methods":["initialize","shutdown","project.create",...]}}
 → {"jsonrpc":"2.0","id":2,"method":"flow.run","params":{"project":"/home/eu/soma/soma.spf","request":{"flow":"simulate","simulator":"icarus"}}}
 ← {"jsonrpc":"2.0","method":"phase","params":{"id":2,"phase":"build"}}
 ← {"jsonrpc":"2.0","method":"events","params":{"id":2,"events":[{"event":"step_started",...},...]}}
@@ -887,7 +900,7 @@ O `lace mcp`, para um agente:
   global (`lace -C <projeto> mcp`). Sem padrão e sem o campo, a ferramenta
   responde um erro que diz isso; `project_find` lista os `.spf` abaixo de
   uma pasta (3 níveis por padrão, fora `.lace`, `.git`, `node_modules`,
-  `target`). O `initialize` diz qual é o padrão.
+  `target` e `.claude`). O `initialize` diz qual é o padrão.
 - **O resultado.** `content` traz um resumo em texto para o agente: o
   fluxo e o status, cada processador compilado, os erros como
   `arquivo:linha: mensagem`, a simulação (topo, simulador, onda, saídas,
@@ -1009,14 +1022,20 @@ CLI acrescenta o comando que resolve:
 | `invalid_board` | `This is a bug in Lace; please report it` |
 | `no_bitstream` | `Build for the board first with: lace fpga build` |
 | `stale_bitstream` | `Build for the board again with: lace fpga build, then program` |
-| `no_cable` | ligar a placa pela porta do USB-Blaster, com a chave RUN/PROG em RUN, e o driver do USB-Blaster (na pasta `drivers` do Quartus, no Windows) |
+| `no_cable` | `Connect the board through its USB-Blaster port, turn it on and set its RUN/PROG switch to RUN; on Windows the USB-Blaster driver is in the drivers folder of Quartus, and on Linux the cable needs a udev rule (see docs/FPGA.md)` |
 | `quartus_missing` | `Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS` |
 | `experimental_disabled` | `Enable it with: lace experimental enable <componente> (in Lace Studio: Settings > Experimental)` |
+| `non_ascii_path` | `Move the project to a folder without accents or other non-ASCII characters` |
+| `no_waveform` | `Simulate first with: lace sim`; na onda de um processador, `Simulate first with: lace sim -p <processador>` |
+| `signal_not_found` | sem caminho parecido no design, `List them with: lace wave signals`; com, nenhuma: a mensagem sugere os caminhos |
+| `testbench_not_elaborated` | `See the errors with: lace check` |
+| `process_exited_early` | no `lace sim --open`, `See the end of the log: <log>`; no `lace wave`, nenhuma: a mensagem já traz o fim do log |
 
 ### JSON
 
-Com `--json`, o stdout tem exatamente um objeto JSON e nada mais. Cada
-comando escreve um tipo só, com JSON Schema em `docs/schema/`, gerado dos
+Com `--json`, o stdout tem exatamente um objeto JSON e nada mais. O `serve`
+e o `mcp` são a exceção, com o stdout do protocolo, e o `chat` e o
+`mcp setup` não leem o `--json`. Cada comando escreve um tipo só, com JSON Schema em `docs/schema/`, gerado dos
 tipos e conferido por teste. Os campos estão
 no schema; os resultados de operação são os tipos do Core serializados
 ([API.md, seção 6](API.md#6-resultados)).
@@ -1034,16 +1053,19 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `proc remove` | `proc-remove.json` | o que saiu (`removed`: `name`, `dir` e os arquivos tirados das listas em `unregistered`) e se a pasta foi para a lixeira (`trashed`) |
 | `convert` | `convert.json` | o `.spf` e o `LayoutConversion`: os processadores convertidos, o que mudou de lugar, o que ficou e por quê, os fontes que perderam a linha do nome, os nomes que não servem e as subpastas que ficaram |
 | `build` | `build.json` | o `.spf` e um `BuildResult` por processador compilado; nenhum num projeto sem processadores |
-| `check` | `check.json` | o `CheckResult` |
+| `check` | `check.json` | o `CheckResult` em `check` e o relatório gravado em `report` |
 | `hierarchy` | `hierarchy.json` | o `HierarchyResult`: o design e cada testbench, com a árvore de instâncias e o status de cada elaboração |
 | `sim` | `sim.json` | os builds feitos antes, o `SimulationResult`, os valores das portas de saída (com `-p`, depois de uma simulação que deu certo; uma porta que não pôde ser lida, como o `x` de uma divisão por zero, vem com `values` vazio e o motivo em `error`) e o PID do surfer-aurora (com `--open`) |
-| `wave` | `wave.json` | a onda aberta, o PID do surfer-aurora e o log dele; o `.surf.ron` gerado (`layout`, `null` sem processador ou com `--no-layout`) e os processadores dele (`processors`) |
+| `wave` | `wave.json` | a onda aberta, o PID do surfer-aurora e o log dele; o `.surf.ron` com que a onda abriu, o salvo no projeto ou o gerado (`layout`, `null` com `--no-layout`, numa onda sem sinal para mostrar ou que não é VCD nem FST), o layout salvo no projeto (`saved_layout`, `null` numa onda fora de projeto) e os processadores do layout (`processors`) |
+| `wave signals` | `wave-signals.json` | a árvore de sinais do testbench do projeto, a escolha gravada e os itens dela que o design não tem mais |
+| `wave select`, `wave unselect` | `wave-select.json` | o arquivo da escolha e a escolha depois da mudança |
 | `synth` | `synth.json` | os builds feitos antes, o `SynthesisResult` (com as estatísticas do Yosys em `statistics`), com `--svg`, o `SchematicResult` e, com `--open`, o HTML do RTL viewer (`rtl_viewer`) |
 | `report`, `report show` | `report.json` | o identificador, o caminho do `report.txt`, o que a comparação usa (`record`: contexto, estatísticas e tempos) e o texto |
 | `report list` | `report-list.json` | um resumo por relatório, do mais novo para o mais antigo |
 | `report compare` | `report-compare.json` | os dois relatórios, a síntese e a simulação comparadas (`null` quando não se comparam) e os avisos de contexto |
 | `report clean` | `report-clean.json` | os relatórios apagados, do mais antigo para o mais novo, e quantos ficaram |
 | `tools` | `tools.json` | o bundle, os componentes instalados e os que faltam, cada ferramenta (o caminho ou o erro), o compilador do Verilator (`system_compiler`, com `bundled` verdadeiro no Windows), o Quartus Prime (`quartus`, `null` se não encontrado) e, com `--verify`, os executáveis que não conferem |
+| `learn` e os subcomandos | `learn-*.json` | ver [LEARN.md](LEARN.md) |
 | `fpga boards` | `fpga-boards.json` | as placas, cada uma com o FPGA, o cabo e os sinais com os pinos |
 | `fpga check` | `fpga-check.json` | o `fpga.json`, as ligações bit a bit (`resolved`, com as notas de ajuste) e o Verilog do topo da placa (`board_top`) |
 | `fpga build` | `fpga-build.json` | os processadores compilados antes (`builds`) e a compilação para a placa (`fpga`, `null` se um processador falhou): os passos do Quartus, os diagnósticos, os artefatos (o `.sof`, o `.rbf`, o `.svf`), os recursos (`resources`) e o tempo de cada clock (`timing`) |
@@ -1077,8 +1099,16 @@ O que o schema não mostra:
 [API.md, seção 8](API.md#8-erros)), ou `"cli"` para erros da própria linha de
 comando (`--compiler` sem os três programas, `remove` sem nenhum arquivo
 registrado, `proc set` sem nada para mudar), ou `"cancelled"` para um
-`install`, `update`, `uninstall` ou `setup` interrompido pelo Ctrl+C antes
-de mudar a instalação.
+`install`, `update` ou `uninstall` interrompido pelo Ctrl+C antes de mudar a
+instalação. Um erro da biblioteca do instalador, no `install`, no `update`,
+no `uninstall` ou no `setup`, traz o código dela (`no_installation`,
+`install_in_progress`, `interrupted_update_undone`, `network`,
+`curl_missing`, `no_latest_version`, `checksum_mismatch`,
+`installer_failed`, `wizard_failed`, `invalid_mirror` ou `install`), e um do
+`lace learn`, o do `lace-learn` (`no_learn_workspace`,
+`learn_workspace_exists`, `unknown_exercise`, `track_not_found`,
+`invalid_track`, `invalid_learn_state`, `learn_component_missing`,
+`no_waveform` ou `io`).
 
 A exceção são os erros de argumento (opção desconhecida, valor inválido): o
 `clap` os detecta antes de o comando começar e escreve a mensagem no stderr,
@@ -1126,20 +1156,23 @@ cortado):
 Ctrl+C (SIGINT), SIGTERM e, no Unix, SIGHUP (o do terminal que fecha)
 cancelam o comando: o Lace encerra a ferramenta que está rodando, com tudo
 o que ela iniciou, não começa os passos seguintes e mostra o que chegou a
-rodar, com o título `Cancelled, <tool> stopped`. O código
+rodar, com o título `cancelled after <tempo>, <ferramenta> stopped`. O código
 de saída é 130. Com `--json` e `--events`, o objeto do resultado sai do
-mesmo jeito. Um segundo sinal sai na hora, também com 130.
+mesmo jeito. Um segundo sinal sai na hora, também com 130. No `lace serve`,
+no `lace mcp` e no `lace chat`, o segundo sinal não sai na hora; o `serve` e
+o `mcp`, no primeiro, cancelam o que roda, esperam até 3 s e saem com 0.
 
-`install`, `update`, `uninstall` e `setup` param no primeiro sinal antes de
+`install`, `update` e `uninstall` param no primeiro sinal antes de
 mudar a instalação (entre um download e outro, ou depois da pergunta),
 com `Cancelled with Ctrl+C; nothing was changed` e código 130; o download
 que o sinal interrompeu não leva o `update` ao instalador inteiro. Sem
 `--yes`, o `update` pergunta de novo antes de passar ao instalador inteiro
-quando a atualização por partes falha.
+quando a atualização por partes falha. O `setup` não confere o sinal:
+termina o que começou e sai com 130, e um segundo sinal o encerra na hora.
 
 ```
   | comecou
-Simulation infinito_tb: Cancelled, vvp stopped (icarus)
+Simulation of infinito_tb (Icarus): cancelled after 2.31 s, vvp stopped
 ```
 
 Quem roda o `lace` a partir de outro programa e precisa pará-lo deve
@@ -1156,7 +1189,7 @@ preso a ele, e nenhuma ferramenta abre janela de console.
 | 0 | deu certo |
 | 1 | a operação rodou e falhou: erro de compilação, Verilog que não elabora, simulação que falhou (inclusive por `$error`) ou que passou do `--timeout` |
 | 2 | o Lace não conseguiu rodar: bundle, projeto, arquivo, opção inválida |
-| 130 | cancelado: o Lace recebeu Ctrl+C, SIGTERM ou, no Unix, SIGHUP durante o comando |
+| 130 | cancelado: o Lace recebeu Ctrl+C, SIGTERM ou, no Unix, SIGHUP durante o comando; o `lace serve` e o `lace mcp` encerram pelo sinal e saem com 0 |
 
 ### Log
 
