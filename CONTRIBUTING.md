@@ -140,6 +140,9 @@ Claude Code com o `lace mcp`, experimental. `lace-cli` é o binário `lace`,
 uma casca fina sobre os outros quatro. A regra de quem pode depender de
 quem está em [docs/METODOLOGIA.md](docs/METODOLOGIA.md), seção 1.
 
+O desenho das partes, com as ferramentas e os arquivos que cada uma usa,
+está no [README](README.md#como-as-partes-se-ligam).
+
 ### `crates/lace-core/src/`
 
 | Arquivo | O que mora lá |
