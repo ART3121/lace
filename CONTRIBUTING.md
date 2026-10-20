@@ -10,6 +10,11 @@ código (`cargo doc -p lace-core --no-deps --open`). A da linha de comando,
 em [docs/CLI.md](docs/CLI.md). O bundle de ferramentas, em
 [docs/BUNDLE.md](docs/BUNDLE.md).
 
+Antes de acrescentar uma função nova ou mudar a forma de uma existente, leia
+[docs/METODOLOGIA.md](docs/METODOLOGIA.md): a regra das camadas, o que é um
+método do protocolo, os nomes, o que conta como mudança compatível e o
+passo a passo de um método novo.
+
 ## Preparar a máquina
 
 ### Rust
@@ -125,11 +130,15 @@ bundle.
 
 ## Mapa do código
 
-O workspace tem quatro crates. `lace-core` é a biblioteca, com toda a
-regra de negócio. `lace-learn` são os exercícios do `lace learn`, sobre o
-Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
-`lace-installer` é o instalador em terminal (Linux, macOS) e o empacotador
-`lace-pack`.
+O workspace tem cinco crates. `lace-core` é a biblioteca, com toda a
+regra de negócio, os fluxos compostos e o contrato do protocolo.
+`lace-learn` são os exercícios do `lace learn`, sobre o Core.
+`lace-installer` é a biblioteca de instalar, atualizar e desinstalar, que a
+CLI e o Studio chamam, mais o instalador em terminal (Linux, macOS) e o
+empacotador `lace-pack`. `lace-agent` é o assistente de IA, uma sessão do
+Claude Code com o `lace mcp`, experimental. `lace-cli` é o binário `lace`,
+uma casca fina sobre os outros quatro. A regra de quem pode depender de
+quem está em [docs/METODOLOGIA.md](docs/METODOLOGIA.md), seção 1.
 
 ### `crates/lace-core/src/`
 
@@ -160,6 +169,12 @@ Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 | `fpga/` | módulo público `lace_core::fpga` ([docs/FPGA.md](docs/FPGA.md)): as placas (`board.rs`, com os JSONs de `crates/lace-core/boards/` embutidos), o `fpga.json` e a resolução das ligações bit a bit (`config.rs`), o topo da placa gerado (`wrapper.rs`), o Quartus do sistema e a invocação dos programas dele (`quartus.rs`), o `.qsf` e o `.sdc` (`qsf.rs`), a leitura dos resumos de recursos e de tempo (`summary.rs`), a compilação para a placa (`build.rs`) e `prepare`, que junta tudo para um projeto |
 | `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho do VCD e das tabelas do YANC |
 | `paths.rs` | `YANC_PATH_LIMIT`, `canonicalize` sem o prefixo `\\?\` do Windows, normalização de caminhos |
+| `flows/` | módulo público `lace_core::flows`: os fluxos compostos que a CLI, o Studio e o `lace serve` chamam (`run`, `FlowRequest`, `FlowOutcome` com `status`), a onda (`open_wave`) e a escolha de sinais (`choose_signals`) |
+| `protocol.rs` | módulo público `lace_core::protocol`: o contrato do orquestrador, com `Request`, `Response`, `METHODS`, `PROTOCOL_VERSION` e o schema em duas vistas; é onde nasce um método novo ([docs/METODOLOGIA.md](docs/METODOLOGIA.md)) |
+| `status.rs` | `Project::status` e `ProjectStatus`: o retrato do projeto, que o `lace status`, o Studio e o `project.status` mostram |
+| `delivery.rs` | módulo público `lace_core::delivery`: a entrega do progresso em lotes, com teto de linhas (`Dispatcher`, `Notification`) |
+| `locate.rs` | módulo público `lace_core::locate`: a busca do bundle para quem não é a CLI instalada ao lado dele |
+| `experimental.rs` | módulo público `lace_core::experimental`: os recursos desligados por padrão (`Feature::Fpga`, `Feature::Assistant`), o `experimental.json` e `require` |
 
 ### `crates/lace-cli/src/`
 
@@ -171,11 +186,14 @@ Core. `lace-cli` é o binário `lace`, uma casca fina sobre os dois.
 | `report.rs` | um tipo por saída do `--json` (`SimReport`, `StatusReport`, ...), o trait `Report` que `Output::json` exige, a macro `reports!` que registra cada um, e o teste que confere `docs/schema/` ([Contrato do `--json`](#contrato-do---json)) |
 | `installation.rs` | a instalação de onde este `lace` roda: a pasta (`prefix`), o recibo `install.json` (`Receipt`) e o desinstalador do Windows |
 | `install.rs` | `lace install`: a lista (a TUI de `lace-installer`) ou os nomes, e de onde vêm os pedaços dos aplicativos (`--from`, ou a release, por `ReleasePayload`); quem extrai é `lace_installer::add` |
-| `update.rs` | `lace update`: as versões instaladas, as da última release e as upstream (atrás do trait `Sources`, para testar sem rede), e a reinstalação pela release nova |
-| `release.rs` | as releases no GitHub: a última versão, baixar um arquivo conferindo o `SHA256SUMS`, `LACE_REPO` e `LACE_RELEASE_URL` |
+| `update.rs` | `lace update`: a casca sobre `lace_installer::update`, com as tabelas, as confirmações e a barra; as versões, as releases (`lace_installer::release`, atrás do trait `Sources`, para testar sem rede) e a troca dos arquivos são da biblioteca |
 | `uninstall.rs` | `lace uninstall`: acha a instalação ao redor do executável e roda o desinstalador que o instalador deixou (`uninstall.sh`, ou o do Inno no Windows) |
 | `settings.rs` | de onde vem o bundle (`ToolchainArgs::resolve`: `--toolchain`, `LACE_TOOLCHAIN` ou ao lado do executável), o compilador declarado (`--compiler`, `LACE_COMPILER`, `compiler_in`), o Quartus (`ToolchainArgs::quartus`: `--quartus`, `LACE_QUARTUS`, `QUARTUS_ROOTDIR`, pastas padrão) e `absolute` |
 | `fpga.rs` | `lace fpga boards`, `lace fpga check` e `lace fpga build` |
+| `serve.rs` | `lace serve`: o protocolo por JSON-RPC 2.0 sobre stdio; `Server::handle_with` é o despacho de cada método para o Core, que o `lace mcp` também usa |
+| `mcp/` | `lace mcp`: as ferramentas para um agente de IA (`TOOLS`, em `mod.rs`), o resumo em texto de cada resultado (`summary.rs`) e o `lace mcp setup` (`setup.rs`) |
+| `chat.rs` | `lace chat`: a tela do assistente no terminal, sobre o `lace-agent` |
+| `experimental.rs` | `lace experimental`: lista, liga e desliga os recursos experimentais |
 
 ### `crates/lace-learn/src/`
 
@@ -244,6 +262,14 @@ O caminho de `lace check`, que é o de toda operação que roda ferramentas:
 
 Cada receita diz os arquivos, as funções e o teste a rodar. Os nomes de
 teste são os de hoje; procure-os com `grep -rn "fn <nome>" crates`.
+
+### Acrescentar um método à API
+
+Uma capacidade nova do Lace, que um cliente vai pedir pelo `lace serve`,
+pelo `lace mcp` ou pelo Studio, é um método do protocolo. O passo a passo,
+com os arquivos e a lista de "pronto quando", está em
+[docs/METODOLOGIA.md](docs/METODOLOGIA.md), seção 6. Mudar a forma de um
+método existente segue a tabela de compatibilidade da seção 5 de lá.
 
 ### Acrescentar uma flag a uma ferramenta
 
@@ -566,8 +592,8 @@ um, em geral, não quebra.
 
 ## Antes de mandar a mudança
 
-Rode as verificações (não há CI a cada push; os testes completos rodam na
-release):
+Rode as verificações. Nenhuma delas roda sozinha no GitHub hoje, nem na
+release:
 
 ```sh
 cargo fmt --check
@@ -579,6 +605,12 @@ cargo test --workspace --doc
 
 No PowerShell, o `cargo doc` é
 `$env:RUSTDOCFLAGS = "-D warnings"; cargo doc --no-deps`.
+
+Hoje o `cargo fmt --check` acusa arquivos que já estavam fora do `rustfmt`
+antes da sua mudança. Até eles serem formatados de uma vez (seção 8 da
+[metodologia](docs/METODOLOGIA.md)), formate só os arquivos que você
+criou ou mexeu, com `rustfmt --edition 2024 <arquivo>`, e não misture a
+formatação de outros arquivos na sua mudança.
 
 Depois confira:
 
@@ -592,6 +624,10 @@ Depois confira:
       para o bundle e a documentação do código para todo item público.
 - [ ] Se o usuário percebe a mudança, há uma linha no `CHANGELOG.md`, na
       seção da versão não publicada.
+- [ ] Se a mudança toca o contrato (`protocol.rs`, os códigos de
+      `error.rs` ou `docs/schema/`), ela segue
+      [docs/METODOLOGIA.md](docs/METODOLOGIA.md): o diff de `docs/schema/`
+      foi lido e classificado como compatível ou não.
 - [ ] Você leu o diff inteiro (`git diff`) antes de mandar.
 
 Toda mudança precisa ser explicável por quem a submete: o que ela faz, por
@@ -601,6 +637,8 @@ explicar uma, ela não está pronta. Instruções locais para assistentes de IA
 ficam em `AGENTS*.md` na raiz, que o `.gitignore` deixa fora do
 repositório.
 
-O CI roda a cada push e em todo pull request: os comandos acima nas três
-plataformas e, pelo `installers.yml`, a montagem do bundle e dos
-instaladores, a instalação e todos os testes contra ela.
+Hoje a CI não roda esses comandos. O `release.yml` só monta o bundle e os
+instaladores numa tag, e o `vscode.yml` só testa a extensão e o RTL viewer.
+Por isso as verificações acima ficam com quem submete, nos sistemas que
+tiver. A CI a cada push e pull request, nas três plataformas, é a fase 1 da
+proposta em [docs/METODOLOGIA.md](docs/METODOLOGIA.md), seção 8.

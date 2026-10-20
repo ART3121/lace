@@ -155,12 +155,21 @@ de 10 s. Um script que espera a janela (o `smoke.sh` da seção anterior, o
 
 ### Um comando novo no backend
 
+Se o comando expõe uma operação do Lace, e não algo que só existe no
+Studio, ela nasce antes como método do protocolo, com o passo a passo de
+[docs/METODOLOGIA.md](../../docs/METODOLOGIA.md), seção 6. O comando do
+Studio chama a mesma função do Core que o despacho do `lace serve` chama, e
+leva o mesmo nome da ferramenta do `lace mcp` (`history_compare` para
+`history.compare`).
+
 1. Escreva a função em `src-tauri/src/commands/<assunto>.rs`, com
    `#[tauri::command]`, `async` e o trabalho dentro de `state::blocking`.
    Devolva `IpcResult<T>`; erro do Core vira `IpcError` com `?`.
 2. Registre em `tauri::generate_handler!` (`src-tauri/src/lib.rs`).
-3. Espelhe o tipo de retorno em `src/ipc/types.ts` e acrescente a função em
-   `src/ipc/api.ts`.
+3. Acrescente a função em `src/ipc/api.ts`. Um tipo que vem do Core já
+   está em `src/ipc/lace-types.ts`, gerado (veja "Um tipo do Core mudou",
+   abaixo); só um tipo que existe apenas no Studio vai à mão em
+   `src/ipc/types.ts`.
 4. Documente em [IPC.md](IPC.md).
 5. Lógica de orquestração (que ferramenta rodar, em que ordem) não entra
    aqui: vai para o Lace. Se precisar mesmo, isole-a em
