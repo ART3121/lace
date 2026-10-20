@@ -56,7 +56,7 @@ function setter(update: Update) {
 export function SettingsView() {
   const t = useT();
   const settings = useApp((s) => s.settings);
-  const page = useSettingsPage((s) => s.page);
+  const current = useSettingsPage((s) => s.page);
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const [compact, setCompact] = useState(false);
 
@@ -67,19 +67,25 @@ export function SettingsView() {
     return () => observer.disconnect();
   }, [root]);
 
+  // A página Assistente é do assistente de IA, experimental: desligado, ela
+  // some da lista, e quem estava nela cai na Geral.
+  const assistant = useFeature('assistant');
+  const pages = SETTINGS_PAGES.filter((id) => id !== 'assistant' || assistant);
+  const page = pages.includes(current) ? current : 'general';
+
   if (!settings) return null;
 
   // As setas andam pela lista, como nas abas.
   const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
-    const index = SETTINGS_PAGES.indexOf(page);
+    const index = pages.indexOf(page);
     const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
-    let next: number | null = step === undefined ? null : (index + step + SETTINGS_PAGES.length) % SETTINGS_PAGES.length;
+    let next: number | null = step === undefined ? null : (index + step + pages.length) % pages.length;
     if (e.key === 'Home') next = 0;
-    if (e.key === 'End') next = SETTINGS_PAGES.length - 1;
+    if (e.key === 'End') next = pages.length - 1;
     if (next === null) return;
     e.preventDefault();
-    useSettingsPage.getState().setPage(SETTINGS_PAGES[next]);
-    document.getElementById(`settings-tab-${SETTINGS_PAGES[next]}`)?.focus();
+    useSettingsPage.getState().setPage(pages[next]);
+    document.getElementById(`settings-tab-${pages[next]}`)?.focus();
   };
 
   return (
@@ -87,7 +93,7 @@ export function SettingsView() {
       <div className="settings__side">
         <h1 className="settings__title">{t('settings.title')}</h1>
         <div className="settings__nav" role="tablist" aria-orientation={compact ? 'horizontal' : 'vertical'} aria-label={t('settings.pages')}>
-          {SETTINGS_PAGES.map((id) => {
+          {pages.map((id) => {
             const { label, icon: Icon } = PAGES[id];
             return (
               <button

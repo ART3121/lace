@@ -709,8 +709,9 @@ A compilação e a gravação para a placa não entram no histórico
 ### Componentes experimentais: `lace experimental`
 
 Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
-Hoje há uma, `fpga` (as placas FPGA: `lace fpga` e, no Studio, a aba Placa
-FPGA).
+Hoje há dois: `fpga` (as placas FPGA: `lace fpga` e, no Studio, a aba Placa
+FPGA) e `assistant` (o assistente de IA: `lace chat`, `lace mcp` e, no
+Studio, a vista Assistente).
 
 | Comando | Faz |
 |---|---|
@@ -791,6 +792,11 @@ Os dois são processos filhos que o cliente abre quando precisa e fecha
 quando termina, como um editor faz com um servidor de linguagem: sem
 serviço do sistema, porta ou arquivo de pid. Só stdio. O stdout é só do
 protocolo; o log vai para o stderr, como nos outros comandos.
+
+O `lace mcp` e o `lace chat` são o componente experimental `assistant`,
+desligado por padrão: sem ligar, os dois param com `experimental_disabled`
+e a dica para ligar (`lace experimental enable assistant`, ou Preferências
+> Experimental no Studio). O `lace serve` não é experimental.
 
 Uma sessão do `serve`:
 

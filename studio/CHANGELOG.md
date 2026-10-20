@@ -15,7 +15,11 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   interrompe. Precisa do Claude Code instalado na máquina, com o login da
   conta ou a chave dele: o Studio não guarda chave. Preferências >
   Assistente: o executável do Claude Code, o modelo, se ele pode editar os
-  arquivos do projeto, e o `lace` das ferramentas.
+  arquivos do projeto, e o `lace` das ferramentas. É um recurso
+  experimental, desligado por padrão: ligue em Preferências >
+  Experimental > **Assistente de IA** (ou `lace experimental enable
+  assistant`); desligado, a vista e a página de Preferências dele nem
+  aparecem.
 
 ### Alterado
 

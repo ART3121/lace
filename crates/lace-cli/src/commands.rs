@@ -107,10 +107,14 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Serve(args) => {
             return crate::serve::run(&cli.toolchain, args, control.cancel_token());
         }
+        // O assistente de IA (o lace-agent) é experimental: desligado, nem
+        // o chat nem o servidor MCP abrem.
         Command::Chat(args) => {
+            lace_core::experimental::require(lace_core::experimental::Feature::Assistant)?;
             return crate::chat::run(&cli.project, &cli.toolchain, args, control.cancel_token());
         }
         Command::Mcp(args) => {
+            lace_core::experimental::require(lace_core::experimental::Feature::Assistant)?;
             return crate::mcp::run(&cli.project, &cli.toolchain, args, control.cancel_token());
         }
         Command::Install(args) => {

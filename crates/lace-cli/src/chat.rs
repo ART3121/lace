@@ -6,6 +6,9 @@
 //! O projeto é o da pasta atual (ou do `-C`), passado ao assistente como
 //! padrão das ferramentas. Quem autentica é o Claude Code: a conta ou a
 //! `ANTHROPIC_API_KEY`. O `session_id` sai no fim, para `--resume`.
+//!
+//! É parte do recurso experimental `assistant` (`lace_core::experimental`):
+//! `commands.rs` só chega aqui com ele ligado.
 
 use std::io::IsTerminal;
 use std::sync::mpsc::{Receiver, TryRecvError};

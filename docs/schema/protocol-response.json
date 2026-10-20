@@ -4759,12 +4759,17 @@
       ]
     },
     "Feature": {
-      "description": "Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`).",
+      "description": "Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,\n`assistant`).",
       "oneOf": [
         {
           "description": "A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus\nPrime e a gravação na placa (`lace fpga`, a aba Placa FPGA do\nStudio).",
           "type": "string",
           "const": "fpga"
+        },
+        {
+          "description": "O assistente de IA: o `lace mcp` (as ferramentas do Lace para um\nagente), o `lace chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `lace-agent`).",
+          "type": "string",
+          "const": "assistant"
         }
       ]
     },

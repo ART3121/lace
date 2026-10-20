@@ -57,7 +57,7 @@ export const VIEW_INFO: Record<ViewId, ViewInfo> = {
   search: { label: 'sidebar.search', region: 'left', action: 'findInFiles' },
   reports: { label: 'sidebar.reports', region: 'left', action: 'viewReports' },
   learn: { label: 'sidebar.learn', region: 'left', action: 'viewLearn' },
-  assistant: { label: 'sidebar.assistant', region: 'right', action: 'viewAssistant' },
+  assistant: { label: 'sidebar.assistant', region: 'right', action: 'viewAssistant', feature: 'assistant' },
   info: { label: 'panel.info', region: 'panel', action: 'viewConsoleInfo' },
   cmm: { label: 'panel.cmm', region: 'panel', action: 'viewConsoleCmm' },
   asm: { label: 'panel.asm', region: 'panel', action: 'viewConsoleAsm' },

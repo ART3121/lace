@@ -975,6 +975,9 @@ export const pt = {
   'experimental.fpga': 'Placa FPGA',
   'experimental.fpga.hint':
     'Compilar pelo Quartus Prime e gravar na placa. Ligada, aparecem a aba Placa FPGA, o botão FPGA da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle do Lace; na CLI, o lace fpga.',
+  'experimental.assistant': 'Assistente de IA',
+  'experimental.assistant.hint':
+    'Uma conversa com o Claude Code instalado na máquina, com as ferramentas do Lace. Ligado, aparecem a vista Assistente (menu Exibir) e a página Assistente das Preferências; na CLI, o lace chat e o lace mcp.',
 
   // Busca
   'search.placeholder': 'Buscar no projeto',

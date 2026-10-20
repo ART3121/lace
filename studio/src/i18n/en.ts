@@ -943,6 +943,9 @@ export const en: Record<Key, string> = {
   'experimental.fpga': 'FPGA board',
   'experimental.fpga.hint':
     'Compile with Quartus Prime and program the board. When on, the FPGA board tab, the FPGA toolbar button, the Flow menu actions, the Board console and Quartus Prime in the Lace bundle settings appear; in the CLI, lace fpga.',
+  'experimental.assistant': 'AI assistant',
+  'experimental.assistant.hint':
+    'A conversation with the Claude Code installed on this machine, with the Lace tools. When on, the Assistant view (View menu) and the Assistant settings page appear; in the CLI, lace chat and lace mcp.',
 
   'search.placeholder': 'Search the project',
   'search.regex': 'Regular expression',

@@ -11,7 +11,8 @@
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, compilação para a placa: operações canceláveis com saída ao vivo |
 //! | [`commands::fpga`] | as placas, o `fpga.json` e a conferência das ligações; só com a placa FPGA ligada |
-//! | [`commands::experimental`] | os recursos experimentais do Lace (a placa FPGA): quais estão ligados, ligar e desligar |
+//! | [`commands::experimental`] | os recursos experimentais do Lace (a placa FPGA, o assistente de IA): quais estão ligados, ligar e desligar |
+//! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
 //! | [`commands::history`] | relatórios do `.lace/reports`: listar, mostrar, comparar, apagar |
 //! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |

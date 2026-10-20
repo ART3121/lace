@@ -1820,9 +1820,11 @@ Prime 17.1, 18.0 e 18.1.
 ### 5.10.1 Recursos experimentais: o módulo `experimental`
 
 Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
-`Feature` lista os recursos (hoje, `Feature::Fpga`, a placa FPGA), com
-`id()` (`"fpga"`, o identificador do arquivo e da CLI), `name()` e
-`description()`, em inglês; `Feature::ALL` tem todos.
+`Feature` lista os recursos (hoje, `Feature::Fpga`, a placa FPGA, e
+`Feature::Assistant`, o assistente de IA: `lace chat`, `lace mcp` e a vista
+Assistente do Studio), com `id()` (`"fpga"`, `"assistant"`, o identificador
+do arquivo e da CLI), `name()` e `description()`, em inglês; `Feature::ALL`
+tem todos.
 
 O que está ligado fica em `experimental.json`, na pasta de configuração do
 Lace do usuário (`%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace` ou

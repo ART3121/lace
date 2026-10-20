@@ -138,7 +138,7 @@ interface EditorState {
 export const fileTabId = (path: string) => `file:${path}`;
 
 /** As vistas de recurso experimental (state/experimental.ts). */
-const VIEW_FEATURE: Partial<Record<ViewKind, Feature>> = { board: 'fpga' };
+const VIEW_FEATURE: Partial<Record<ViewKind, Feature>> = { board: 'fpga', assistant: 'assistant' };
 
 /** A vista existe nesta sessão: não é de recurso experimental, ou o dela
  * está ligado. */

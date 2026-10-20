@@ -1,4 +1,7 @@
-//! O assistente: uma sessão do Claude Code com as ferramentas do `lace mcp`
+//! O assistente: uma sessão do Claude Code com as ferramentas do `lace mcp`.
+//! É o recurso experimental `assistant` do Lace: desligado, a vista nem
+//! aparece, e `assistant_start` recusa com `experimental_disabled`.
+//!
 //! (`lace_agent`), aberta pela vista Assistente. Cada sessão é um processo
 //! filho; os eventos dele chegam à interface por um `Channel`, e a sessão
 //! vive até a interface pedir para fechar ou o Studio sair.
@@ -70,6 +73,7 @@ pub async fn assistant_start(
     channel: Channel<AgentEvent>,
 ) -> IpcResult<u32> {
     blocking(app, move |app, state| {
+        lace_core::experimental::require(lace_core::experimental::Feature::Assistant)?;
         let settings = state.settings.get();
         let claude = find_claude(&settings).ok_or_else(|| {
             IpcError::new(

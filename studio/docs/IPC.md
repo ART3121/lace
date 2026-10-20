@@ -245,7 +245,7 @@ fim; o que foi cortado já chegou linha a linha pelos eventos.
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
 | `experimental_list` | | `{ path, components }`: o `experimental.json` (`null` sem pasta de configuração) e cada recurso (`feature`, `enabled`, `description`), lidos do disco a cada chamada | `lace experimental --json` |
-| `experimental_set` | `feature` (`"fpga"`), `enabled` | o mesmo, já com a mudança | `lace experimental enable\|disable <recurso>` |
+| `experimental_set` | `feature` (`"fpga"`, `"assistant"`), `enabled` | o mesmo, já com a mudança | `lace experimental enable\|disable <recurso>` |
 
 O arquivo é o do Core, na pasta de configuração do Lace, e não o
 `settings.json` do Studio: ligar aqui vale também para a CLI, e o contrário.
@@ -411,6 +411,10 @@ escreve no terminal espera. O shell é o do usuário
 da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
 
 ## Assistente (`assistant.rs`)
+
+O assistente é o recurso experimental `assistant`: desligado, a vista, as
+ações e a página de Preferências dele somem da janela, e `assistant_start`
+responde `experimental_disabled`.
 
 | Comando | Argumentos | Devolve |
 |---|---|---|

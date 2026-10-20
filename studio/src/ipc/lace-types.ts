@@ -362,12 +362,13 @@ export type Stream = 'stdout' | 'stderr';
  */
 export type ResultTag = 'result';
 /**
- * Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`).
+ * Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,
+ * `assistant`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "Feature".
  */
-export type Feature = 'fpga';
+export type Feature = 'fpga' | 'assistant';
 /**
  * O cabo de gravação embutido na placa.
  *
@@ -2183,7 +2184,7 @@ export interface FeatureState {
   /**
    * O recurso.
    */
-  feature: 'fpga';
+  feature: 'fpga' | 'assistant';
   /**
    * Ligado.
    */

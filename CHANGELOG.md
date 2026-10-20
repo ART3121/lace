@@ -40,6 +40,12 @@
   padrão só usa as ferramentas do Lace e lê arquivos; `--allow-edits` (ou
   a preferência do Studio) deixa editar os arquivos do projeto. O motor é
   o crate novo `lace-agent`.
+- O assistente de IA é o componente experimental `assistant`, desligado
+  por padrão como a placa FPGA: `lace mcp`, `lace chat` e a vista
+  Assistente do Studio só existem depois de `lace experimental enable
+  assistant` (ou Preferências > Experimental > Assistente de IA, no
+  Studio). Tudo o que passa pelo `lace-agent` ainda vai mudar até a 1.0.
+  O `lace serve` não é experimental.
 - O `lace update`, o `lace install` e o `lace uninstall` viraram
   biblioteca (`lace-installer`: `update::run`, `add`, `uninstall`, com os
   erros com código `network`, `no_installation`, `install_in_progress`,

@@ -1,5 +1,7 @@
 //! `lace mcp`: o orquestrador para um agente, como servidor MCP (Model
-//! Context Protocol) por stdin e stdout.
+//! Context Protocol) por stdin e stdout. É parte do recurso experimental
+//! `assistant` (`lace_core::experimental`): `commands.rs` só chega aqui com
+//! ele ligado.
 //!
 //! O MCP também é JSON-RPC 2.0 com uma mensagem por linha, então este é um
 //! adaptador fino sobre o despacho do `lace serve`
