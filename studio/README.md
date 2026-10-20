@@ -12,7 +12,7 @@ operação.
 é React com o editor Monaco. A regra de negócio continua toda no Lace; o
 Studio só pede e mostra.
 
-Estado: **0.1.0, em desenvolvimento.** O que já funciona e o que falta para
+Estado: **em desenvolvimento**, na versão do Lace. O que já funciona e o que falta para
 cobrir tudo o que a AURORA fazia está em
 [docs/AURORA_PARITY.md](docs/AURORA_PARITY.md).
 

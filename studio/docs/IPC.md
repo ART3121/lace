@@ -2,7 +2,7 @@
 
 Os comandos que a interface chama no backend com `invoke`, um por linha das
 tabelas abaixo, com o que recebem e o que devolvem. Na interface, cada um
-tem uma função em `src/ipc/api.ts`; os tipos estão em `src/ipc/types.ts`
+tem uma função em `src/ipc/api.ts`, menos `log_frontend` e `dev_smoke_script`, chamados com `invoke` direto; os tipos estão em `src/ipc/types.ts`
 (os do Studio) e `src/ipc/lace-types.ts` (os do Core, gerados).
 
 Convenções:
@@ -15,7 +15,7 @@ Convenções:
 - Todo comando pode falhar com `IpcError { code, message }`. Os códigos do
   Core são os de `LaceError::code()` (API.md do Lace, seção 8); os do
   Studio estão em `src-tauri/src/error.rs` e na última seção daqui.
-- "Bloqueio" quer dizer que o comando roda numa thread de bloqueio, fora da
+- Os comandos que tocam o disco ou rodam ferramenta rodam numa thread de bloqueio (`state::blocking`), fora da
   thread da interface; nenhum comando trava a janela.
 
 ## Aplicativo (`commands/app.rs`)
@@ -31,6 +31,7 @@ Convenções:
 | `log_frontend` | `level` (`error`, `warn`, `info`), `message` | | |
 | `dev_smoke_script` | | o roteiro de `LACE_STUDIO_SMOKE`, só na build de desenvolvimento; senão `null` | |
 | `app_exit` | `restart: boolean` | (não volta: o Studio sai) | |
+| `splash_close` | | (fecha o splash, a janela com o logo que fica na frente enquanto a principal abre escondida; a interface chama logo depois de mostrar a principal) | |
 
 `log_frontend` escreve no log do backend, com o alvo `lace_studio::ui`, o
 que a interface manda: erros de JavaScript, `console.error` e todo erro
@@ -84,11 +85,12 @@ usuário mexeu depois de aplicar um layout) não passa pelo backend: fica no
 
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
+| `project_default_parent` | | a pasta padrão para criar e abrir projetos (`Projetos` na pasta do usuário), criada se não existe | |
 | `project_open` | `path`: o `.spf` ou a pasta | `ProjectSnapshot` | |
 | `project_create` | `parent`, `name` | `ProjectSnapshot`; `invalid_name` se o nome não passar na regra do Core (letras sem acento, dígitos, `_` e `-`, começando por letra) | `lace new` |
 | `project_check_name` | `name` | `null` se o nome de projeto serve; senão o `IpcError` (`invalid_name`, com o motivo do Core) | `validate_project_name` |
 | `project_reorder` | `path`, `position` (`{ kind: 'first' \| 'last' }` ou `{ kind: 'before' \| 'after', path }`) | `ProjectFile[]`: a lista do arquivo, na ordem nova | `lace order` (`Project::reorder_file`) |
-| `processor_check_name` | `name` | `null` se o nome de processador serve; senão o `IpcError` (`invalid_name`, com o motivo: palavra do C± ou do Verilog, módulo da biblioteca SAPHO, nome longo) | `validate_processor_name` |
+| `processor_check_name` | `name` | `null` se o nome de processador serve; senão o `IpcError` (`invalid_name`, com o motivo: palavra do Verilog ou do SystemVerilog, módulo da biblioteca SAPHO, nome reservado do Windows, nome longo, nome de uma pasta do Lace como `synth` ou `wave`) | `validate_new_processor_name` |
 | `project_close` | | | |
 | `project_snapshot` | | `ProjectSnapshot` | `lace status --json` |
 | `project_add_verilog` | `path`, `testbench` | `AddedFile` do Core | `lace add [--tb]` |
@@ -123,7 +125,7 @@ compilado, elaborados pelo Icarus. Os tipos (`HierarchyResult`,
 do `hierarchy.json` do Lace; a descrição de cada campo, na API.md do Lace,
 seção 5.4.1. Não compila os processadores nem grava relatório.
 
-`ProjectSnapshot` é o `StatusReport` da CLI com campos a mais:
+`ProjectSnapshot` é o `ProjectStatus` do Core (`Project::status`), de onde a CLI monta o `StatusReport` do `lace status --json`:
 
 | Campo | Conteúdo |
 |---|---|
@@ -133,7 +135,7 @@ seção 5.4.1. Não compila os processadores nem grava relatório.
 | `selected_testbench`, `testbench_module` | o testbench simulado e o módulo dele |
 | `wave_selection` | a escolha de sinais da onda desse testbench (`wave/<testbench>.json`); vazia, a onda grava todos. Os botões Sinais mostram quantos itens ela tem |
 | `unregistered` | os `.v` e `.sv` da pasta fora do `.spf`, e os `.py` com `@cocotb.test` |
-| `processors` | `ProcessorStatus[]`: os campos do `Processor` do Core, mais `built`, `inputs` e `outputs` (`{ port, path }`), `missing_inputs`, `waveform` e `generated` (o que o build gerou e existe: `verilog`, `testbench`, `assembly`, `memories[]`, `intermediates[]`, os `.txt` e `.log` da pasta temporária) |
+| `processors` | `ProcessorStatus[]`: os campos do `Processor` do Core, mais `built`, `inputs` e `outputs` (`{ port, path }`), `missing_inputs`, `waveform` e `generated` (o que o build gerou e existe: `verilog`, `testbench`, `assembly`, `memories[]`, `intermediates[]`, os `.txt` e `.log` da pasta de saída `<proc>/<proc>/`, sem as saídas da simulação) |
 | `waveform` | a onda da simulação do projeto, se já existe |
 | `top_candidates` | os Verilog que podem ser o topo pela regra do Core (qualquer um, menos nome de testbench e testbench cocotb `.py`): registrados, o gerado de cada processador e os de fora do `.spf` |
 | `issues` | `ProjectIssue[]` do Core (`Project::issues`): `kind` (`rescued_path`, `selection_not_registered`, `testbench_as_top`, `invalid_processor_name`, `duplicate_file`, `nested_project`, `legacy_layout`), `path`, `detail`, `message`; o painel Problemas mostra como aviso, traduzido pelo `kind`. Com `legacy_layout`, o Studio oferece a conversão ao abrir o projeto |
@@ -158,7 +160,7 @@ Core recusa nome e parâmetro que o YANC não compila (`invalid_name`,
 | `fs_rename` | `from`, `to` | |
 | `fs_copy` | `from` (de qualquer lugar), `toDir`, `overwrite` | o caminho novo, dentro de `toDir` |
 | `fs_trash` | `path` | |
-| `fs_list_files` | | todos os arquivos do projeto (até 20 000), sem pastas ocultas, `node_modules`, `target`, `obj_dir` |
+| `fs_list_files` | | todos os arquivos do projeto (até 20 000), sem pastas ocultas, `node_modules`, `target`, `obj_dir` e `__pycache__` |
 | `fs_search` | `query`, `regex`, `caseSensitive`, `maxResults?` (padrão 2000) | `SearchMatch[]`: `path`, `line`, `column`, `length`, `text` |
 
 - `fs_write_text` com `expectedModifiedMs` recusa com `conflict` se o
@@ -190,17 +192,21 @@ Com o tipo no campo `flow`:
 |---|---|---|
 | `build` | `processors: string[]` (vazio: todos) | `lace build [-p NOME]...` |
 | `check` | `file?`, `processor?`, `lint?` | `lace check [ARQUIVO] [-p NOME] [--lint]` |
+| `hierarchy` | `processor?` | `lace hierarchy [-p NOME]`: a hierarquia elaborada pelo Icarus, sem compilar nem gravar relatório; a interface usa `project_hierarchy` |
 | `simulate` | `processor?`, `testbench?`, `simulator` (`icarus`, `verilator`), `fast?` (a simulação rápida: sem onda, com o testbench Verilog no Verilator; `simulator` só vale para um testbench cocotb), `timeout_s?`, `open_wave?` (ignorado com `fast`) | `lace sim [TESTBENCH] [-p NOME] [--verilator] [--fast] [--timeout S] [--open]` |
-| `synthesize` | `processor?`, `schematic?`, `module?` | `lace synth [-p NOME] [--svg] [--module M]` |
+| `synthesize` | `processor?`, `schematic?`, `module?`, `open_viewer?` (grava o HTML do RTL viewer ao lado do netlist e o abre no navegador; a interface não pede) | `lace synth [-p NOME] [--svg] [--module M] [--open]` |
 | `schematic` | `netlist`, `module`, `bus_widths?` (padrão `true`) | desenha outro módulo de um netlist que já existe; sem relatório |
 | `learn` | `root` (a pasta de exercícios, ou uma pasta dentro dela), `exercise` | `lace learn check NOME`: corrige o exercício e grava se está resolvido; sem relatório |
 | `fpga_build` | nenhum | `lace fpga build`: confere o `fpga.json`, a placa e o Quartus (`no_fpga_config`, `board_not_found`, `quartus_missing` antes de compilar), compila os processadores e depois o projeto para a placa; sem relatório, como na CLI |
 | `fpga_program` | `cable?` | `lace fpga program [--cable NOME]`: grava o `.sof` da última compilação (`no_bitstream`, `no_cable` antes de gravar); sem relatório |
 
-A composição é a da CLI (`flows.rs`): `check`, `simulate` e `synthesize`
-compilam antes os processadores que têm fonte e param no primeiro build que
-falhar; `build` compila todos mesmo que um falhe; cada fluxo, menos
-`schematic`, `learn` e `fpga_build`, grava um relatório no histórico.
+A composição é a do Core (`lace_core::flows::run`), a mesma da CLI;
+`flows.rs` só traduz o pedido e acrescenta a onda numa aba e a correção do
+exercício. `simulate`, `synthesize` e `fpga_build` compilam antes os
+processadores que têm fonte e param no primeiro build que falhar; `check`
+não compila, verifica o que está no disco; `build` compila todos mesmo que
+um falhe; só `build`, `check`, `simulate` e `synthesize` gravam um
+relatório no histórico.
 
 ### `JobMessage`
 
@@ -209,7 +215,7 @@ As mensagens chegam pelo `channel`, nesta ordem, com o tipo no campo `type`:
 | `type` | Campos | Quando |
 |---|---|---|
 | `started` | `job`, `command` | logo depois de `flow_start` |
-| `phase` | `phase`: `build`, `check`, `simulate`, `synthesize`, `schematic`, `wave`, `learn`, `fpga`, `program` | uma fase começou |
+| `phase` | `phase`: `build`, `check`, `hierarchy`, `simulate`, `synthesize`, `schematic`, `rtl_viewer`, `wave`, `learn`, `fpga`, `program` | uma fase começou |
 | `events` | `events: Event[]` | lotes de eventos do Core (`step_started`, `output`, `step_finished`; API.md do Lace, 5.8), no máximo a cada 30 ms ou 500 eventos |
 | `output_omitted` | `step`, `tool`, `lines` | linhas de `output` que ficaram de fora, no lugar delas: passam 20 000 de uma vez e depois 5 000 por segundo, em blocos, com um aviso a cada meio segundo (uma linha longa conta uma a mais a cada 1 KiB); o resultado final ainda traz o começo e o fim da saída de cada passo |
 | `build` | `result: BuildResult` | um processador terminou de compilar |
@@ -225,13 +231,18 @@ Toda operação termina com exatamente um `finished` ou um `failed`.
 | Campo | Conteúdo |
 |---|---|
 | `flow`, `command` | o fluxo e o comando equivalente (`lace-studio sim -p soma`) |
-| `succeeded` | tudo deu certo |
+| `status` | como terminou: o pior entre as fases que rodaram (`succeeded`, `failed`, `crashed`, `incomplete`, `timed_out`, `cancelled`) |
+| `succeeded` | tudo deu certo (`status` é `succeeded`) |
 | `builds` | `BuildResult[]` dos builds feitos antes (ou do próprio build) |
+| `registered` | `AddedFile[]`: o `.v` e o testbench que esses builds geraram e entraram no `.spf` agora |
+| `lint_missing` | com `lint`, o componente do Verilator que falta quando nenhum passo dele rodou |
+| `hierarchy`, `not_built` | a hierarquia do fluxo `hierarchy` e os processadores com fonte e sem build que ficaram de fora |
 | `check`, `simulation`, `synthesis`, `schematic` | o resultado de cada fase que rodou, ou `null`; com um testbench cocotb, `simulation.tests` traz os testes (`TestReport` do Core) |
 | `outputs` | `PortValues[]` (`port`, `path`, `values`, `error`), na simulação de um processador que deu certo |
 | `wave`, `wave_error` | a onda aberta em janela, ou por que não abriu |
 | `wave_tab` | a onda que a interface abre numa aba (`wave_viewer: tab`), no lugar da janela |
 | `schematic_error` | por que o esquemático não saiu depois da síntese (`module_not_found`: o módulo pedido não está no netlist); a síntese vale |
+| `rtl_viewer`, `rtl_viewer_error` | o HTML do RTL viewer, com `open_viewer`, ou por que não saiu; a síntese vale |
 | `report`, `report_error` | o relatório gravado (`run-000042`), ou por que não foi |
 | `learn` | a correção de um exercício (fluxo `learn`): o `Grade` do lace-learn |
 | `fpga` | a compilação para a placa (fluxo `fpga_build`): o `FpgaBuildResult` do Core, com os passos do Quartus, os recursos e o tempo |
@@ -273,6 +284,7 @@ A compilação é o fluxo `fpga_build` de `flow_start`; o resultado vem em
 
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
+| `learn_tracks` | | `LearnTracks`: `dir` (a pasta das trilhas) e `tracks` (as trilhas dela) | de onde vêm as trilhas, antes de criar ou abrir a pasta |
 | `learn_open` | `root` (a pasta de exercícios, ou uma pasta dentro dela), `lang?` | `LearnSnapshot` | abrir a pasta e pô-la em dia com a trilha, como o `lace learn` ao começar |
 | `learn_init` | `dir`, `track?` (padrão `verilog`), `lang?` | `LearnSnapshot` | `lace learn init` |
 | `learn_set_current` | `root`, `name`, `lang?` | `LearnSnapshot` | escolher o exercício atual |
@@ -312,10 +324,10 @@ não volta.
 | `lace_install` | `components: string[]`, `channel` | o identificador da operação | `lace install <componentes> --json` |
 | `lace_update` | `channel` | o identificador da operação | `lace update --yes --json` |
 
-`ToolchainInfo`: `found`, `error`, `origin` (`settings`, `environment`,
+`ToolchainInfo` (o `lace_core::locate::ToolchainInfo`): `found`, `error`, `origin` (`settings`, `environment`, `bundled`,
 `installation`, `path`, `beside`), `root`, `bundle`, `platform`,
 `components`, `not_installed`, `tools` (`name`, `component`, `path`,
-`system`, `error`), `system_compiler`, `compiler_error`, `lace_cli`,
+`system`, `error`), `system_compiler`, `compiler_error`, `quartus`, `quartus_error`, `lace_cli`,
 `surfer_web` (o cliente web do Surfer, `surfer-aurora/web/`, ou `null`).
 
 `lace_update_check`, `lace_install` e `lace_update` são a biblioteca do
@@ -407,7 +419,7 @@ a interface confirma com `terminal_ack`, em lotes menores que 16 Ki unidades
 UTF-16, o que o xterm já escreveu, e o backend para de ler o shell quando a
 interface fica 128 Ki atrás, até o atraso cair para 16 Ki; o programa que
 escreve no terminal espera. O shell é o do usuário
-(`$SHELL`) no Linux e no macOS e o PowerShell no Windows, com a pasta `bin/`
+(`$SHELL`) no Linux e no macOS e, no Windows, o PowerShell ou o `cmd.exe`, pela preferência `terminal_shell`, com a pasta `bin/`
 da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
 
 ## Assistente (`assistant.rs`)
@@ -460,19 +472,26 @@ e a próxima mensagem abre outra. Ao sair, o Studio encerra todas.
 | `conflict` | o arquivo mudou no disco desde que foi lido |
 | `exists` | o arquivo ou a pasta de destino já existe |
 | `invalid_argument` | argumento inválido (regex mal formada, componente que não existe) |
-
-Os erros do Core chegam com o código dele (`LaceError::code`, API.md do
-Lace, seção 8): por exemplo `invalid_name` (nome de projeto fora da regra),
-`cannot_move`, `path_exists` e `outside_project` (de `project_move`), e
-`experimental_disabled` (os comandos e os fluxos da placa FPGA com ela
-desligada; a interface relê os recursos e tira a placa da janela).
-| `no_waveform` | a onda pedida ainda não existe |
-| `compiler_invalid` | a pasta do compilador nas preferências não tem os três programas |
-| `bundle_not_found` | nenhuma instalação do Lace foi achada (mensagem com onde procurou) |
-| `cli` | a CLI `lace` não foi achada, falhou ou não escreveu JSON |
 | `terminal` | o pseudoterminal não abriu, ou o shell já terminou |
 | `unsafe_path` | `terminal_cd` com um caminho que tem caractere de controle: o shell o leria como tecla, e o `cd` não é digitado |
 | `terminal_busy` | `terminal_cd` com um programa em primeiro plano no terminal (Linux e macOS): a linha iria para ele, e o `cd` não é digitado |
 | `cannot_replace` | `project_move` com `overwrite` e, no destino, o que o Core mantém no lugar (o `.spf`, a pasta `.lace`, a pasta, a pasta de saída ou o fonte de um processador), a pasta do projeto ou uma pasta que contém a origem: nada vai para a lixeira |
 | `io` | leitura ou escrita do próprio Studio falhou |
+| `surfer_web_missing` | `wave_tab_open` num bundle sem o cliente web do Surfer: a interface oferece a janela |
+| `wave_too_large` | `wave_tab_open` com uma onda acima de 256 MiB (`MAX_TAB_WAVE`): a interface oferece a janela |
 | `internal` | uma thread caiu, ou JSON inválido |
+| `assistant` | o assistente: o Claude Code não foi achado, o `lace` das ferramentas não existe, ou a sessão já terminou |
+
+Os erros do Core chegam com o código dele (`LaceError::code`, API.md do
+Lace, seção 8): por exemplo `invalid_name` (nome de projeto fora da regra),
+`cannot_move`, `path_exists` e `outside_project` (de `project_move`),
+`no_waveform` (a onda pedida ainda não existe; `wave_open` e
+`wave_tab_open` devolvem o mesmo código), `bundle_not_found` (nenhuma
+instalação do Lace foi achada, com onde procurou) e `experimental_disabled`
+(os comandos e os fluxos da placa FPGA com ela desligada, e
+`assistant_start` com o assistente desligado; a interface relê os recursos
+e tira o recurso da janela). Os do `lace-learn` (`learn_component_missing`),
+da biblioteca do instalador (`network`, `no_installation`) e do
+`lace-agent` (`claude_not_found`, `ended`) também passam como estão. A pasta
+do compilador sem os três programas não é erro de comando: vem em
+`ToolchainInfo.compiler_error`, com o código `compiler_invalid`.
