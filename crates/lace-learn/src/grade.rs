@@ -545,14 +545,25 @@ fn lint(
     control: &Control,
 ) -> Vec<Diagnostic> {
     /// Os códigos que ficam de fora: o nome do arquivo e o do módulo já
-    /// batem no exercício, o fim de linha no fim do arquivo é estilo, e uma
-    /// saída de instância deixada sem ligação (`.cout()`) é de propósito.
-    const QUIET: [&str; 4] = [
+    /// batem no exercício, o fim de linha no fim do arquivo é estilo, uma
+    /// saída de instância deixada sem ligação (`.cout()`) é de propósito, e
+    /// o Verilog estende com zeros um valor mais estreito (`acc + x`, com
+    /// `x` de 8 bits e `acc` de 12) sem que isso seja erro. O que corta
+    /// bits (`WIDTHTRUNC`) fica.
+    const QUIET: [&str; 5] = [
         "[DECLFILENAME]",
         "[EOFNEWLINE]",
         "[UNUSEDPARAM]",
         "[PINCONNECTEMPTY]",
+        "[WIDTHEXPAND]",
     ];
+    // Bits que o aluno descarta de propósito (`soma[9:2]`, a divisão por
+    // 4): o aviso de parte do sinal sem uso fica de fora; o do sinal
+    // inteiro sem uso (uma entrada esquecida) fica.
+    let partly_unused = |d: &Diagnostic| {
+        d.message.starts_with("Bits of signal are not used")
+            && d.message.ends_with("[UNUSEDSIGNAL]")
+    };
     if toolchain.tool(Tool::Verilator).is_err() {
         return Vec::new();
     }
@@ -566,7 +577,7 @@ fn lint(
         .into_iter()
         .filter(|d| d.tool == Tool::Verilator && d.severity == Severity::Warning)
         .filter(|d| d.file.as_deref().is_some_and(|f| same_file(f, file)))
-        .filter(|d| !QUIET.iter().any(|q| d.message.ends_with(q)))
+        .filter(|d| !QUIET.iter().any(|q| d.message.ends_with(q)) && !partly_unused(d))
         .collect()
 }
 
