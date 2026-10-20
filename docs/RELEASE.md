@@ -163,8 +163,8 @@ A 1.0 promete que os contratos da seção 2.3 só quebram numa versão maior.
 A data dela, e de toda versão maior depois, é decisão da coordenação do
 projeto. Os critérios mínimos:
 
-1. Os testes do Rust e do TypeScript rodam na CI a cada push, nos três
-   sistemas ([METODOLOGIA.md](METODOLOGIA.md), seção 8, fase 1).
+1. Os testes do Rust e o typecheck do TypeScript rodam na CI a cada push,
+   nos três sistemas ([METODOLOGIA.md](METODOLOGIA.md), seção 8, fase 1).
 2. Os métodos estáveis do protocolo estão marcados
    ([METODOLOGIA.md](METODOLOGIA.md), seção 4).
 3. As duas últimas versões menores saíram sem quebra fora dos recursos
@@ -309,8 +309,10 @@ O exemplo é a `0.10.0`, depois da `0.9.0`.
    uma release publicada do lace-toolchain, com os dois SHA-256 preenchidos
    (do `SHA256SUMS` dela). Se o commit do surfer-aurora mudou, rode antes o
    `gh workflow run surfer-aurora.yml` e ponha as URLs e os SHA-256 do
-   resumo no `prebuilt` dele; sem isso, a release compila o surfer-aurora,
-   uns 14 minutos a mais por plataforma.
+   resumo no `prebuilt` dele, e o cliente web da mesma versão no `web`. O
+   `bundle.py` usa o `prebuilt` que estiver lá, sem conferir o commit: com o
+   antigo, a release leva o surfer-aurora antigo. Só sem `prebuilt` ela
+   compila o surfer-aurora, uns 14 minutos a mais por plataforma.
 4. **O commit da release**, com a mensagem `Lace 0.10.0` e nenhuma outra
    mudança dentro:
    - a versão nos seis lugares, todos iguais: o `Cargo.toml`
@@ -335,8 +337,9 @@ O exemplo é a `0.10.0`, depois da `0.9.0`.
 
 ### 6.2 Conferir
 
-Na `release/0.10`, com o commit da release. Nada disto roda sozinho no
-GitHub hoje: o `release.yml` só monta os instaladores, sem teste
+Na `release/0.10`, com o commit da release. Fora a extensão e o RTL
+viewer, que o `vscode.yml` confere a cada push que os muda, nada disto roda
+sozinho no GitHub hoje: o `release.yml` só monta os instaladores, sem teste
 (seção 11).
 
 - As verificações de "Antes de mandar a mudança", do
@@ -497,7 +500,8 @@ O `lace-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
 
 ## 9. Como os instaladores são feitos
 
-- `scripts/bundle.py` monta o bundle e grava `<bundle>.contents.json`: que
+- `scripts/bundle.py` monta o bundle e grava, ao lado da pasta dele, o
+  `<pasta>.contents.json` (`dist/toolchain.contents.json`): que
   arquivo é de que componente (`bundle/components.json` diz o que cada
   componente leva).
 - `lace-pack` (crate `lace-installer`) agrupa os arquivos pelo conjunto
@@ -537,8 +541,10 @@ estágio do Inno Setup: cada instalação fica com o da versão dela, em
 O instalador de Windows compila e instala no Wine. No Wine 11, o `dot.exe`
 do Graphviz 16.1.0 trava quando o ambiente não tem `LANG`, e o Lace roda as
 ferramentas com ambiente limpo: o esquemático não sai no Wine. Num Windows
-de verdade o `LANG` normalmente nem existe; quem confirma que o esquemático
-funciona lá é o teste do `installers.yml` no `windows-2022`.
+de verdade o `LANG` normalmente nem existe. O `installers.yml` não roda
+teste: quem confirma que o esquemático funciona lá é o
+`synthesis_and_schematic_of_processor_and_top_level`
+(`crates/lace-core/tests/tools.rs`), rodado à mão num Windows com o bundle.
 
 ## 11. O que falta
 

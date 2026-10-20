@@ -85,4 +85,4 @@ Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O La
 
 **Problema:** `--nbmant 30` dá 'the biggest integer this thing can hold is -2147483648!'; `--nbmant 0` aponta a linha do `#NUGAIN`; `#NDSTAC 0` só quebra no iverilog (`core.v:160`); `#NUIOIN 100000` gera testbench com portas aleatórias e 904 erros de sintaxe (estouro no asmcomp, dedução); `5/0` constante compila sem aviso e `2.5/0.0` dá 442360; `;` faltando aponta a linha seguinte (comum em yacc); nome de processador com 99 a 200 caracteres faz o cmmcomp morrer com sinal 11.
 **Reproduzir:** ver o relatório do agente SAPHO
-**Esperado/onde:** melhorias no YANC. Do lado do Lace, o `proc add` já recusa esses parâmetros e nomes (corrigido em 2026-10-04); um `.spf` editado à mão ainda chega ao YANC com eles.
+**Esperado/onde:** melhorias no YANC. Do lado do Lace, o `proc add` já recusa esses parâmetros e nomes (corrigido em 2026-10-04); o build recusa antes do YANC um nome inválido vindo de um `.spf` editado à mão (`validate_source`), mas um fonte editado à mão ainda chega ao YANC com esses parâmetros.

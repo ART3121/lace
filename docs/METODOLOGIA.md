@@ -61,7 +61,7 @@ mesmas. O exemplo é o `history.compare`, que compara dois relatórios.
 |---|---|---|
 | Nome | `METHODS` e o `#[serde(rename)]` da variante, em `crates/lace-core/src/protocol.rs` | `history.compare` |
 | Pedido | uma variante de `Request`, no mesmo arquivo | `Request::HistoryCompare { project, id, against }` |
-| Resposta | uma variante de `Response`, com um tipo do core | `Response::Comparison(RunComparison)` |
+| Resposta | uma variante de `Response`, com um tipo do core | `Response::Comparison(Box<RunComparison>)` |
 | Função | o módulo do domínio, no core | `history::compare_reports` |
 | Erros | as variantes de `LaceError` que a função devolve, cada uma com `code()` | |
 | Documentação | o `///` da variante e de cada campo | vira a descrição no schema e no `lace mcp` |
@@ -99,8 +99,9 @@ Um método está sempre num de três estados.
   dela, todo método novo começa aqui até uma versão o declarar estável.
   Uma área inteira que ainda vai mudar muito, como a placa FPGA e o
   assistente de IA, fica também atrás de um recurso de
-  `lace_core::experimental`: desligado, o Studio esconde a área e o core
-  recusa com `experimental_disabled`.
+  `lace_core::experimental`: desligado, o Studio esconde a área, e a CLI,
+  os comandos do Studio e os fluxos do core (`flows::run`) recusam com
+  `experimental_disabled`, pelo `experimental::require`.
 - **Estável.** Só muda de forma compatível, nos termos da seção 5.
 - **Obsoleto.** Continua respondendo por pelo menos uma versão menor
   inteira, com o substituto escrito na documentação e no CHANGELOG. Só sai
@@ -281,8 +282,8 @@ Esta seção é uma proposta. Nada dela está feito ainda.
 - **Faltar um braço do despacho não falha em nenhum teste.** O braço final
   `other =>` responde `unsupported` em tempo de execução.
 - **Os testes Rust não rodam no GitHub.** O `release.yml` só monta os
-  instaladores, e o `vscode.yml` só cobre a extensão. No Linux e no macOS,
-  os testes nunca rodaram.
+  instaladores, e o `vscode.yml` só cobre a extensão. O `ci.yml`, que os
+  rodava nos três sistemas, saiu em 2026-10-06.
 
 ### As fases
 
