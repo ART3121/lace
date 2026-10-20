@@ -94,12 +94,13 @@ de modelo.
 
 Um método está sempre num de três estados.
 
-- **Experimental.** Pode mudar ou sair em qualquer versão. Antes da 1.0,
-  todos os métodos estão aqui. Depois dela, todo método novo começa aqui
-  até uma versão o declarar estável. Uma área inteira que ainda vai mudar
-  muito, como a placa FPGA e o assistente de IA, fica também atrás de um
-  recurso de `lace_core::experimental`: desligado, o Studio esconde a área
-  e o core recusa com `experimental_disabled`.
+- **Experimental.** Pode mudar ou sair em qualquer versão menor, sem o
+  período de obsoleto. Antes da 1.0, todos os métodos estão aqui. Depois
+  dela, todo método novo começa aqui até uma versão o declarar estável.
+  Uma área inteira que ainda vai mudar muito, como a placa FPGA e o
+  assistente de IA, fica também atrás de um recurso de
+  `lace_core::experimental`: desligado, o Studio esconde a área e o core
+  recusa com `experimental_disabled`.
 - **Estável.** Só muda de forma compatível, nos termos da seção 5.
 - **Obsoleto.** Continua respondendo por pelo menos uma versão menor
   inteira, com o substituto escrito na documentação e no CHANGELOG. Só sai
@@ -115,7 +116,7 @@ Há três números de versão, e cada um diz uma coisa diferente.
 
 | Número | Onde | Quando sobe |
 |---|---|---|
-| Versão do Lace | os seis lugares de [RELEASE.md](RELEASE.md) | a cada release, em SemVer |
+| Versão do Lace | os seis lugares de [RELEASE.md](RELEASE.md), seção 6.1 | a cada release, pelas regras da seção 2 de [RELEASE.md](RELEASE.md) |
 | `PROTOCOL_VERSION` | `crates/lace-core/src/protocol.rs`, devolvido pelo `initialize` | só quando um cliente antigo deixaria de funcionar |
 | Versão da extensão | `editors/vscode/package.json` | a cada `.vsix` publicado com mudança, para o editor reconhecer a atualização |
 
@@ -133,10 +134,12 @@ O que conta como compatível:
 | Mudar o tipo de um campo, o significado dele ou um valor padrão | não |
 | Mudar um código de erro já publicado | nunca |
 
-Uma mudança compatível entra em qualquer versão, com uma linha no
-CHANGELOG. Uma incompatível, antes da 1.0, entra numa versão menor, com a
-linha no CHANGELOG dizendo o que quebra e o `PROTOCOL_VERSION` somado de um.
-Depois da 1.0, só numa versão maior, depois do período de obsoleto.
+As mudanças compatíveis da tabela acrescentam algo ao contrato, e por isso
+são novidade: entram numa versão menor, nunca numa versão de correção, com
+uma linha no CHANGELOG ([RELEASE.md](RELEASE.md), seção 2). Uma
+incompatível, antes da 1.0, também entra numa versão menor, com a linha no
+CHANGELOG dizendo o que quebra e o `PROTOCOL_VERSION` somado de um. Depois
+da 1.0, só numa versão maior, depois do período de obsoleto.
 
 **O portão é o diff de `docs/schema/`.** Os arquivos de lá saem dos tipos
 por geração e nunca são editados à mão. Toda revisão de uma mudança de
