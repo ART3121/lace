@@ -35,10 +35,22 @@ com o compilador C++, o `make` e o Perl do sistema. No Windows o Icarus e o
 Verilator, com o compilador, vêm do bloco MSYS2 do
 [lace-toolchain](https://github.com/ART3121/lace-toolchain).
 
-Plataformas: Linux x64 (glibc 2.35: Ubuntu 22.04, Debian 12, Fedora 36 ou
-mais novos), macOS 13 ou mais novo em Apple Silicon, Windows 10 e 11 x64.
+Plataformas: Linux x64 (glibc 2.35: Ubuntu 22.04, Debian 12, Fedora 36,
+Arch ou mais novos), macOS 13 ou mais novo em Apple Silicon, Windows 10 e
+11 x64.
 
 ## Instalar
+
+No Linux, o Lace Studio usa o webkit2gtk 4.1 do sistema, que o instalador
+não traz. O GNOME costuma já tê-lo; o KDE Plasma, o Arch e os ambientes
+leves, em geral, não. Sem ele, o Studio não abre. Instale antes, ou deixe o
+instalador oferecer no fim:
+
+```sh
+sudo apt install libwebkit2gtk-4.1-0     # Debian, Ubuntu, Mint
+sudo dnf install webkit2gtk4.1           # Fedora
+sudo pacman -S webkit2gtk-4.1            # Arch, Manjaro
+```
 
 Linux x64 e macOS Apple Silicon, em qualquer shell (bash, zsh, fish):
 

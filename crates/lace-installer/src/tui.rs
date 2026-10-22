@@ -1023,9 +1023,9 @@ fn studio_lines(shortcut: Option<&Path>, installed: bool) -> Vec<Line<'static>> 
     if let Some(shortcut) = shortcut {
         lines.push(kv("Lace Studio", &shortcut.to_string_lossy()));
     }
-    if installed && let Some(warning) = crate::desktop::missing_runtime() {
+    if installed && let Some(missing) = crate::desktop::missing_runtime() {
         lines.push(Line::from(Span::styled(
-            warning,
+            missing.message(),
             Style::default().fg(Color::Yellow),
         )));
     }

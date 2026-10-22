@@ -98,6 +98,11 @@ pub fn run(
                 .join(", ");
             println!("Installed in {}: {added}", prepared.index.bundle);
         }
+        let studio = report.added.iter().any(|c| c == component::STUDIO);
+        if studio && let Some(missing) = lace_installer::desktop::missing_runtime() {
+            println!("{}", missing.message());
+            lace_installer::desktop::offer_runtime_install(true);
+        }
     }
     out.json(&report)
 }
@@ -118,6 +123,9 @@ fn choose(out: &Output, prepared: &AddPrepared, prefix: &Utf8Path) -> anyhow::Re
     match &app.outcome {
         Some(Ok(tui::Finished::Added(report))) => {
             println!("{}", tui::plain(&tui::added_lines(report, &prepared.index)));
+            lace_installer::desktop::offer_runtime_install(
+                report.added.iter().any(|c| c == component::STUDIO),
+            );
         }
         Some(Ok(tui::Finished::Installed(_))) => {}
         Some(Err(e)) => bail!("{e}"),

@@ -2,6 +2,18 @@
 
 ## Não publicada
 
+- Linux: o instalador e o `lace install studio` dizem o comando que instala
+  o webkit2gtk 4.1 pelo gerenciador de pacotes do sistema (`apt`, `dnf` ou
+  `pacman`) quando ele falta, e a instalação guiada pergunta se o roda na
+  hora. Antes, o aviso citava só `apt` e `dnf` e passava despercebido no fim
+  da instalação, e o `lace install studio` nem avisava. O atalho do menu
+  abre o `lace-studio-launch`, que confere as bibliotecas antes do Studio e,
+  faltando alguma, mostra o que falta numa janela (`kdialog`, `zenity`,
+  `notify-send` ou `xmessage`); antes, o Studio fechava sem mensagem. O
+  README e o INSTALL.md dizem, antes do comando de instalação, que o KDE
+  Plasma, o Arch e os ambientes leves em geral não trazem o webkit2gtk. A
+  falta do compilador do Verilator diz também o comando do Arch.
+
 - A correção do `lace learn` mostra a primeira amostra errada: o instante
   (e o ciclo, num circuito sequencial), o valor de cada entrada e cada
   saída, com o esperado e o do aluno, em binário até 8 bits e em

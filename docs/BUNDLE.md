@@ -230,6 +230,7 @@ Instalar o compilador:
 |---|---|
 | Debian, Ubuntu | `sudo apt install build-essential perl` |
 | Fedora | `sudo dnf install gcc-c++ make perl` |
+| Arch | `sudo pacman -S --needed base-devel` |
 | macOS | `xcode-select --install` |
 | Windows | nada: vem com o componente verilator |
 

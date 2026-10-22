@@ -120,7 +120,7 @@ pub enum LaceError {
     /// [`LaceError::ToolchainIncomplete`].
     #[error(
         "Verilator needs a system C++ compiler, make and Perl, and they were not found \
-         (Linux: build-essential and perl in /usr/bin; macOS: Xcode Command Line Tools)"
+         (Linux: g++, make and perl in /usr/bin, from sudo apt install build-essential perl,          sudo dnf install gcc-c++ make perl or sudo pacman -S --needed base-devel;          macOS: Xcode Command Line Tools)"
     )]
     SystemCompilerMissing,
 

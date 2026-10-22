@@ -21,9 +21,24 @@ nele.
 
 | Sistema | Mínimo | O Lace Studio pede ainda |
 |---|---|---|
-| Linux x64 | glibc 2.35: Ubuntu 22.04, Debian 12, Fedora 36 ou mais novos | o webkit2gtk 4.1 e o GTK do sistema |
+| Linux x64 | glibc 2.35: Ubuntu 22.04, Debian 12, Fedora 36, Arch ou mais novos | o webkit2gtk 4.1 e o GTK do sistema |
 | macOS, Apple Silicon | macOS 13 | nada |
 | Windows x64 | Windows 10 ou 11 | o WebView2, que vem com o Windows 11 e com o Windows 10 atualizado |
+
+O webkit2gtk 4.1 não vem com o Lace. O GNOME costuma já tê-lo; o KDE
+Plasma, o Arch e os ambientes leves, em geral, não:
+
+```sh
+sudo apt install libwebkit2gtk-4.1-0     # Debian, Ubuntu, Mint
+sudo dnf install webkit2gtk4.1           # Fedora
+sudo pacman -S webkit2gtk-4.1            # Arch, Manjaro
+```
+
+O instalador confere a biblioteca quando o Studio entra (na instalação ou
+no `lace install studio`). Faltando, ele diz o comando do gerenciador de
+pacotes do sistema e, na instalação guiada, pergunta se o roda na hora. Com
+`--yes`, só avisa. Aberto pelo menu sem a biblioteca, o Studio mostra numa
+janela o que falta e o comando que a instala.
 
 Para compilar o Studio do código-fonte no Linux, instale as dependências do Tauri:
 
@@ -132,7 +147,9 @@ que cada componente dele exige, e o `bundle.py` recusa um que não traga.
 O Lace Studio fica no bundle, em `toolchain/studio/`, e usa o bundle em que
 está. O atalho
 dele vai para o menu de aplicativos: o `lace-studio.desktop` em
-`~/.local/share/applications` no Linux, o `Lace Studio.app` em
+`~/.local/share/applications` no Linux (que abre o `lace-studio-launch`, ao
+lado do Studio: ele confere as bibliotecas do sistema antes de abrir), o
+`Lace Studio.app` em
 `~/Applications` no macOS (um symlink para o do bundle), o menu Iniciar no
 Windows.
 
@@ -382,8 +399,8 @@ a AURORA também usam, as preferências do Studio, o `experimental.json` do
 
 **Verilator:** precisa de `g++` (ou `clang++`), `make` e `perl` do sistema:
 `sudo apt install build-essential perl` (Debian, Ubuntu),
-`sudo dnf install gcc-c++ make perl` (Fedora), `xcode-select --install`
-(macOS).
+`sudo dnf install gcc-c++ make perl` (Fedora), `sudo pacman -S --needed
+base-devel` (Arch), `xcode-select --install` (macOS).
 
 **macOS e o Gatekeeper:** o instalador não é assinado nem notarizado. Um
 `.tar.gz` baixado pelo navegador recebe a marca de quarentena, e o macOS

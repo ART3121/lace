@@ -12,6 +12,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, bail};
 use clap::Parser;
+use lace_installer::desktop;
 use lace_installer::install::{self, Event, Target};
 use lace_installer::payload::{Index, PAYLOAD_DIR};
 use lace_installer::plan::{self, Selection};
@@ -155,14 +156,21 @@ fn run(args: Args) -> anyhow::Result<()> {
     match &app.outcome {
         Some(Ok(tui::Finished::Installed(report))) => {
             println!("{}", tui::plain(&tui::report_lines(report, &index)));
+            desktop::offer_runtime_install(has_studio(&report.components));
         }
         Some(Ok(tui::Finished::Added(report))) => {
             println!("{}", tui::plain(&tui::added_lines(report, &index)));
+            desktop::offer_runtime_install(has_studio(&report.added));
         }
         Some(Err(e)) => bail!("{e}"),
         None => println!("Installation cancelled; nothing was changed."),
     }
     Ok(())
+}
+
+/// O Studio está entre os componentes instalados?
+fn has_studio(components: &[String]) -> bool {
+    components.iter().any(|c| c == lace_core::component::STUDIO)
 }
 
 fn list(index: &Index) {
