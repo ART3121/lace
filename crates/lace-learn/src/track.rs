@@ -146,6 +146,12 @@ pub struct Spec {
     /// Quanto a simulação pode durar, em segundos (padrão 10).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_s: Option<u64>,
+    /// Os avisos além do veredito, quando o componente está instalado: o
+    /// lint do Verilator e o latch que a síntese do Yosys acha (padrão
+    /// `true`). `false` num exercício que ensina justamente o que eles
+    /// apontariam.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub advice: Option<bool>,
 }
 
 /// O tipo de circuito.

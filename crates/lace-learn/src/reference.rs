@@ -23,6 +23,9 @@ fn rename(text: &str, names: &[String]) -> String {
     let mut out = String::with_capacity(text.len() + 16 * names.len());
     let mut i = 0;
     let mut copied = 0;
+    // A última palavra antes da atual, sem nada além de espaço e comentário
+    // entre elas: diz se a atual vem depois de `module`.
+    let mut previous: Option<&str> = None;
     while i < bytes.len() {
         match bytes[i] {
             b'/' if bytes.get(i + 1) == Some(&b'/') => {
@@ -38,6 +41,7 @@ fn rename(text: &str, names: &[String]) -> String {
                 i = (i + 2).min(bytes.len());
             }
             b'"' => {
+                previous = None;
                 i += 1;
                 while i < bytes.len() && bytes[i] != b'"' && bytes[i] != b'\n' {
                     if bytes[i] == b'\\' {
@@ -50,6 +54,7 @@ fn rename(text: &str, names: &[String]) -> String {
             // `define, `include, `nome_de_macro: o nome não é identificador
             // do Verilog, nem o da macro que `define e afins declaram.
             b'`' => {
+                previous = None;
                 i += 1;
                 let start = i;
                 while i < bytes.len() && is_ident(bytes[i]) {
@@ -73,17 +78,92 @@ fn rename(text: &str, names: &[String]) -> String {
                     i += 1;
                 }
                 let word = &text[start..i];
-                if names.iter().any(|n| n == word) {
+                // Só a declaração (`module x`) e as instâncias (`x u1 (...)`):
+                // uma porta ou um fio com o nome do módulo fica como está.
+                let declared = matches!(previous, Some("module" | "macromodule"));
+                if names.iter().any(|n| n == word) && (declared || is_instance(bytes, i)) {
                     out.push_str(&text[copied..i]);
                     out.push_str("_ref");
                     copied = i;
                 }
+                previous = Some(word);
+                continue;
             }
-            _ => i += 1,
+            b => {
+                if !b.is_ascii_whitespace() {
+                    previous = None;
+                }
+                i += 1;
+            }
         }
     }
     out.push_str(&text[copied..]);
     out
+}
+
+/// Depois do nome de um módulo em `i`, o resto de uma instância: os
+/// parâmetros opcionais (`#(...)`), o nome da instância, um vetor de
+/// instâncias opcional (`[3:0]`) e o `(` das ligações.
+fn is_instance(bytes: &[u8], i: usize) -> bool {
+    let mut i = skip_space(bytes, i);
+    if bytes.get(i) == Some(&b'#') {
+        i = skip_space(bytes, i + 1);
+        if bytes.get(i) != Some(&b'(') {
+            return false;
+        }
+        let mut depth = 0;
+        while i < bytes.len() {
+            match bytes[i] {
+                b'(' => depth += 1,
+                b')' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        i += 1;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        i = skip_space(bytes, i);
+    }
+    if !bytes.get(i).is_some_and(|b| is_ident_start(*b)) {
+        return false;
+    }
+    while i < bytes.len() && is_ident(bytes[i]) {
+        i += 1;
+    }
+    i = skip_space(bytes, i);
+    if bytes.get(i) == Some(&b'[') {
+        while i < bytes.len() && bytes[i] != b']' {
+            i += 1;
+        }
+        i = skip_space(bytes, i + 1);
+    }
+    bytes.get(i) == Some(&b'(')
+}
+
+/// Pula espaços e comentários a partir de `i`.
+fn skip_space(bytes: &[u8], mut i: usize) -> usize {
+    loop {
+        while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        if bytes.get(i) == Some(&b'/') && bytes.get(i + 1) == Some(&b'/') {
+            while i < bytes.len() && bytes[i] != b'\n' {
+                i += 1;
+            }
+        } else if bytes.get(i) == Some(&b'/') && bytes.get(i + 1) == Some(&b'*') {
+            i += 2;
+            while i < bytes.len() && !(bytes[i] == b'*' && bytes.get(i + 1) == Some(&b'/')) {
+                i += 1;
+            }
+            i = (i + 2).min(bytes.len());
+        } else {
+            return i;
+        }
+    }
 }
 
 fn is_ident_start(b: u8) -> bool {
@@ -105,6 +185,18 @@ mod tests {
         assert_eq!(
             text,
             "// soma4: quatro somadores (soma4 aqui no comentário fica)\nmodule soma4_ref(input [3:0] a, output [3:0] s);\n  meio_ref m0(.a(a[0]), .s(s[0]));\n  soma4_x x();\nendmodule\n\nmodule meio_ref(input a, output s);\n  assign s = a; // meio\n  initial $display(\"meio\");\nendmodule\n"
+        );
+    }
+
+    #[test]
+    fn a_port_or_wire_with_the_module_name_keeps_it() {
+        // A porta `gray` do módulo `gray` e o fio `top` do módulo `top`
+        // ficam; as instâncias, com parâmetros, vetor ou comentário, mudam.
+        let solution = "module gray(input [3:0] bin, output [3:0] gray);\n  assign gray = bin ^ (bin >> 1);\nendmodule\n\nmodule top(input a, output y);\n  wire top;\n  gray #(.N(4)) g [1:0] (.bin(a), .gray(top));\n  gray /* c */ h (.bin(a), .gray());\nendmodule\n";
+        let text = rename(solution, &["gray".into(), "top".into()]);
+        assert_eq!(
+            text,
+            "module gray_ref(input [3:0] bin, output [3:0] gray);\n  assign gray = bin ^ (bin >> 1);\nendmodule\n\nmodule top_ref(input a, output y);\n  wire top;\n  gray_ref #(.N(4)) g [1:0] (.bin(a), .gray(top));\n  gray_ref /* c */ h (.bin(a), .gray());\nendmodule\n"
         );
     }
 

@@ -163,10 +163,91 @@ fn a_wrong_answer_reports_each_output_and_the_first_mismatch() {
     // {a, b, sel} = 2: b = 1 e sel = 0, a amostra de 20 a 30 ns, comparada em 25.
     assert_eq!(result.outputs[0].first_ns, Some(25));
     assert!(result.findings.is_empty(), "{:?}", result.findings);
+    // O contraexemplo: as entradas e a saída da primeira amostra errada.
+    let first = result.counterexample.as_ref().expect("contraexemplo");
+    assert_eq!((first.time_ns, first.cycle), (25, None));
+    let inputs: Vec<(&str, &str)> = first
+        .inputs
+        .iter()
+        .map(|i| (i.name.as_str(), i.bits.as_str()))
+        .collect();
+    assert_eq!(inputs, [("a", "0"), ("b", "1"), ("sel", "0")]);
+    assert_eq!(first.outputs.len(), 1);
+    let y = &first.outputs[0];
+    assert!(y.wrong, "{y:?}");
+    assert_ne!(y.expected_bits, y.actual_bits);
     assert!(result.waveform.as_ref().is_some_and(|w| w.is_file()));
     let layout = std::fs::read_to_string(result.layout.as_ref().unwrap()).unwrap();
     assert!(layout.contains("variable_add tb_mux2.y_ref"), "{layout}");
     assert!(layout.contains("marker_set_at 25ns mismatch"), "{layout}");
+}
+
+#[test]
+fn a_sequential_counterexample_says_the_cycle() {
+    let Some(toolchain) = toolchain() else { return };
+    let (_tmp, workspace) = workspace();
+    let conta = workspace.track().require("conta").unwrap().clone();
+    // A solução, mas contando de dois em dois.
+    let solution = std::fs::read_to_string(conta.solution_file()).unwrap();
+    let wrong = solution.replacen("+ 4'd1", "+ 4'd2", 1);
+    assert_ne!(wrong, solution, "a solução do conta não soma `+ 4'd1`");
+    write_student(&workspace, "conta", &wrong);
+    let result = grade_of(&toolchain, &workspace, "conta");
+    assert_eq!(result.verdict, Verdict::Mismatch, "{result:#?}");
+    let first = result.counterexample.as_ref().expect("contraexemplo");
+    assert!(first.cycle.is_some(), "{first:?}");
+    assert!(first.outputs.iter().any(|o| o.wrong), "{first:?}");
+}
+
+#[test]
+fn a_latch_is_found_even_when_it_simulates_right_or_wrong() {
+    let Some(toolchain) = toolchain() else { return };
+    if toolchain.tool(lace_core::Tool::Yosys).is_err() {
+        eprintln!("PULADO: o bundle não tem o Yosys");
+        return;
+    }
+    let (_tmp, workspace) = workspace();
+    write_student(
+        &workspace,
+        "mux2",
+        "module mux2(input a, input b, input sel, output reg y);\n    always @(*)\n        if (sel) y = b;\nendmodule\n",
+    );
+    let result = grade_of(&toolchain, &workspace, "mux2");
+    assert!(
+        result.findings.iter().any(|f| matches!(
+            f,
+            Finding::LatchInferred { signal, line } if signal == "y" && line.is_some()
+        )),
+        "{:?}",
+        result.findings
+    );
+}
+
+#[test]
+fn the_lint_warns_about_the_student_file_without_changing_the_verdict() {
+    let Some(toolchain) = toolchain() else { return };
+    if toolchain.tool(lace_core::Tool::Verilator).is_err() {
+        eprintln!("PULADO: o bundle não tem o Verilator");
+        return;
+    }
+    let (_tmp, workspace) = workspace();
+    let mux2 = workspace.track().require("mux2").unwrap().clone();
+    let solution = std::fs::read_to_string(mux2.solution_file()).unwrap();
+    // A solução com um fio que não serve para nada.
+    let unused = solution.replacen(");", ");\n    wire sobra;", 1);
+    write_student(&workspace, "mux2", &unused);
+    let result = grade_of(&toolchain, &workspace, "mux2");
+    assert_eq!(result.verdict, Verdict::Solved, "{result:#?}");
+    assert!(
+        result
+            .diagnostics
+            .iter()
+            .any(|d| d.tool == lace_core::Tool::Verilator
+                && d.severity == Severity::Warning
+                && d.message.contains("UNUSED")),
+        "{:?}",
+        result.diagnostics
+    );
 }
 
 #[test]

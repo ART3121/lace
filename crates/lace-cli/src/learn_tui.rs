@@ -210,7 +210,8 @@ enum Check {
         cancel: CancelToken,
         started: Instant,
     },
-    Done(Grade),
+    /// Corrigido. Na caixa: o `Grade` é grande perto das outras variantes.
+    Done(Box<Grade>),
     /// Nem deu para corrigir (ferramenta que falta, projeto que não abre).
     Failed(String),
 }
@@ -391,7 +392,7 @@ impl App {
                 if let Err(e) = self.workspace.record(&grade) {
                     self.say(format!("Could not record the result: {e}"), self.pal.dim());
                 }
-                Check::Done(grade)
+                Check::Done(Box::new(grade))
             }
             Err(error) => Check::Failed(error),
         };
@@ -421,7 +422,7 @@ impl App {
                 let _ = self.workspace.record(grade);
                 // O atual foi corrigido a pedido: o resultado vale na tela.
                 if name == self.exercise.name {
-                    self.check = Check::Done(grade.clone());
+                    self.check = Check::Done(Box::new(grade.clone()));
                 }
             }
             if let Overlay::CheckAll(all) = &mut self.overlay {
@@ -1247,6 +1248,24 @@ fn grade_lines(
                 Span::raw(format!("  {first:>11}")),
                 Span::styled(format!("  {:>5}", o.unknown), pal.dim()),
             ]));
+        }
+    }
+
+    // O contraexemplo: o que entrou e o que saiu na primeira amostra errada.
+    if let Some(first) = &grade.counterexample {
+        lines.push(Line::default());
+        let mut text = crate::learn::counterexample_lines(first).into_iter();
+        if let Some(head) = text.next() {
+            lines.push(Line::from(Span::styled(head, pal.dim())));
+        }
+        for l in text {
+            let wrong = l.ends_with("<- wrong");
+            let style = if wrong {
+                Style::default().fg(pal.error)
+            } else {
+                Style::default()
+            };
+            lines.push(Line::from(Span::styled(l, style)));
         }
     }
 

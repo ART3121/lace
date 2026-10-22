@@ -4,8 +4,10 @@ O `lace learn` é uma trilha de exercícios curtos de Verilog, no estilo do
 rustlings: cada exercício pede um módulo, com as portas já escritas, e o
 Lace corrige a cada gravação, simulando o módulo ao lado de uma solução de
 referência com as mesmas entradas. Quando uma saída difere, ele diz em
-quantas amostras, em que instante foi o primeiro erro, e mostra a onda das
-duas versões lado a lado.
+quantas amostras, mostra a primeira amostra errada (as entradas, o valor
+esperado e o seu) e a onda das duas versões lado a lado. Com o Verilator e
+o Yosys instalados, também avisa do que simula certo mas não é o circuito
+pretendido: os avisos do lint e o latch inferido.
 
 O código está no Lace (o crate `lace-learn`, usado pela CLI e pelo Studio).
 Os exercícios vêm no componente `lace-learn` do bundle, que é opcional.
@@ -39,8 +41,8 @@ Ele não corrige ao abrir nem ao trocar de exercício: o resultado começa em
 qualquer editor) ou aperta `r`. A correção roda sem travar a tela, com uma
 animação enquanto dura, e o resultado mostra o veredito num selo colorido,
 uma linha por saída que errou (quantas amostras, o primeiro erro, quantas em
-X ou Z), os erros de compilação com arquivo e linha, a causa provável e o que
-fazer em seguida.
+X ou Z), a primeira amostra errada, os erros de compilação e os avisos com
+arquivo e linha, a causa provável e o que fazer em seguida.
 
 | Tecla | Faz |
 |---|---|
@@ -93,7 +95,8 @@ até você chamá-lo (Ctrl+J). Abrir outro projeto, ou fechar a pasta de
 exercícios, encerra a sessão, e o painel volta como estava.
 
 Na aba do enunciado ficam a correção (o veredito, uma linha por saída que
-errou, os erros de compilação, que levam à linha) e os botões: a próxima
+errou, a primeira amostra errada numa tabela, os erros e avisos, que levam
+à linha) e os botões: a próxima
 dica, a onda (na aba, já com as saídas lado a lado e o primeiro erro
 marcado), o esquemático do seu circuito no RTLViewer, restaurar o arquivo e,
 depois de resolvido, a solução de referência e o próximo exercício. Os
@@ -134,7 +137,32 @@ Studio inteiro funcionam nele.
    referência (`reference`) e compara cada saída a cada amostra.
 3. O resumo que o testbench escreve diz quantas amostras houve, quantas
    erraram e, por saída, os erros, o primeiro instante e quantas amostras
-   erradas estavam em X ou Z.
+   erradas estavam em X ou Z. Ele também escreve a primeira amostra errada:
+   o instante (e o ciclo, no sequencial), o valor de cada entrada e cada
+   saída, com o esperado e o seu. A correção mostra os valores em binário
+   até 8 bits e em hexadecimal acima, com o decimal ao lado (com sinal nas
+   portas `signed`):
+
+   ```
+   First wrong sample, at 15 ns:
+     inputs   a = 0, b = 0, c = 1
+     y        expected 0, yours 1  <- wrong
+   ```
+
+4. Com o código compilando e simulando (resolvido ou não), os avisos além
+   do veredito, que nunca reprovam:
+   - o lint do Verilator (`--lint-only -Wall`), só sobre o arquivo do aluno,
+     sem os avisos que acusariam código legítimo de quem começa: o nome do
+     arquivo, o fim de linha, o parâmetro sem uso, a saída de instância
+     deixada sem ligação, o valor estendido com zeros (`acc + x`, com `x`
+     mais estreito) e os bits descartados de propósito (`soma[9:2]`). O
+     corte de bits e o sinal inteiro sem uso continuam;
+   - o latch: a síntese do Yosys acha um `$dlatch` e a correção diz o sinal
+     e a linha do `always`. Num circuito combinacional, é o `if` sem `else`
+     ou o `case` sem `default`: simula às vezes certo e não é o circuito
+     pedido. Aparece também com o exercício resolvido.
+
+   Sem o componente instalado, o aviso correspondente fica de fora.
 
 Um bit em X na referência aceita qualquer valor; um bit seu em X ou Z com a
 referência em 0 ou 1 é erro. O veredito é um destes: `solved`,
@@ -143,7 +171,7 @@ combinacional que não estabiliza), `incomplete` (a simulação parou antes do
 fim do testbench) ou `cancelled`. Quando dá para dizer, a correção aponta a
 causa: o módulo ou uma porta com outro nome (o testbench não achou), uma
 saída sempre em X ou Z (não atribuída), ou um erro que só acontece com o
-reset ativo (síncrono no lugar de assíncrono, ou o contrário).
+reset ativo (síncrono no lugar de assíncrono, ou o contrário), ou um latch.
 
 Os avisos de `timescale` não aparecem: o testbench declara um, e o seu
 arquivo não precisa.
@@ -188,6 +216,7 @@ sem acento, único na trilha e que não seja palavra do Verilog.
 | `reset` | nenhum | sequencial: `{"name": "reset", "active": 1, "every": 16}`; o reset fica ativo nos dois primeiros ciclos e depois volta em média a cada `every` ciclos (0 desliga) |
 | `cycles` | 200 | sequencial: os ciclos |
 | `timeout_s` | 10 | o prazo da simulação |
+| `advice` | `true` | os avisos do lint e o do latch; `false` num exercício que ensina justamente o que eles apontariam |
 
 O testbench gerado lê as portas da `solution.v`. No combinacional, cada
 amostra aplica as entradas, espera 5 ns, compara e espera mais 5 ns. No
@@ -220,7 +249,8 @@ Uma versão em inglês fica ao lado, em `prompt.en.md` (e `chapter.en.md`,
   `solution.v`, e compila: o `dev check` exige que ele não passe.
 - `solution.v` é Verilog-2001 que o Icarus aceita. Cada módulo que ela
   declara ganha `_ref` na cópia da referência, nas declarações e nas
-  instâncias.
+  instâncias; uma porta ou um fio com o mesmo nome de um módulo fica como
+  está.
 - Um módulo dado ao aluno (um somador para os exercícios de hierarquia) é
   um `.v` a mais na pasta. Ele vai para a pasta do aluno, entra no projeto e
   é usado pelo aluno e pela referência; nem `start.v` nem `solution.v` o
@@ -242,8 +272,14 @@ LACE-LEARN samples <amostras>
 LACE-LEARN mismatched <amostras com alguma saída errada>
 LACE-LEARN output <saída> <erros> <primeiro erro em ns, ou -1> <erradas em X ou Z>
 LACE-LEARN reset <erradas com o reset ativo>       (opcional)
+LACE-LEARN first <ns> <ciclo, ou -1>                (opcional: a primeira amostra errada)
+LACE-LEARN first_in <entrada> <bits>                (uma por entrada, depois do first)
+LACE-LEARN first_out <saída> <bits esperados> <bits do aluno>
 LACE-LEARN end
 ```
+
+Os bits vão como o `%b` do Verilog os escreve, do mais significativo ao
+menos, com `x` e `z`. Só o primeiro `first` vale.
 
 O que ele escrever além disso aparece para o aluno na correção.
 
@@ -255,7 +291,8 @@ LACE_LEARN_DIR=lace-learn lace learn dev check lace-learn/verilog
 
 Para cada exercício: as portas de `start.v` e `solution.v` são as mesmas, o
 enunciado tem dica, o testbench sai, o `start.v` não passa e a `solution.v`
-passa. O teste `crates/lace-learn/tests/track.rs` faz o mesmo para todas as
+passa, sem latch e sem aviso (do Icarus e, com o Verilator instalado, do
+lint): a solução é o exemplo que o aluno vê depois de resolver. O teste `crates/lace-learn/tests/track.rs` faz o mesmo para todas as
 trilhas do repositório (com `LACE_TEST_BUNDLE`).
 
 `LACE_LEARN_DIR` aponta a pasta das trilhas no lugar do componente, para

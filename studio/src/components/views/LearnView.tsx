@@ -17,7 +17,7 @@ import {
 import { useMemo } from 'react';
 
 import { useT } from '../../i18n';
-import type { Finding, Grade } from '../../ipc/lace-types';
+import type { Counterexample, Finding, Grade } from '../../ipc/lace-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { currentExercise, useLearn } from '../../state/learn';
@@ -39,10 +39,65 @@ function findingText(t: ReturnType<typeof useT>, finding: Finding): string {
       return t('learn.finding.undriven', { output: finding.output });
     case 'reset_only':
       return t('learn.finding.reset');
+    case 'latch_inferred':
+      return t('learn.finding.latch', { signal: finding.signal });
   }
 }
 
-function Result({ grade, dir, solution }: { grade: Grade; dir: string; solution: string | null }) {
+// A primeira amostra errada: as entradas e cada saída, esperada e a do
+// aluno, com a que errou destacada.
+function CounterexampleTable({ first }: { first: Counterexample }) {
+  const t = useT();
+  return (
+    <div className="learn-result__counterexample">
+      <p className="learn-result__line">
+        {first.cycle === null
+          ? t('learn.counterexample', { time: first.time_ns })
+          : t('learn.counterexampleCycle', { time: first.time_ns, cycle: first.cycle })}
+      </p>
+      <div className="learn-result__tables">
+        {first.inputs.length > 0 && (
+          <table className="learn-result__outputs">
+            <thead>
+              <tr>
+                <th>{t('learn.input')}</th>
+                <th>{t('learn.value')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {first.inputs.map((i) => (
+                <tr key={i.name}>
+                  <td className="mono">{i.name}</td>
+                  <td className="mono">{i.text}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <table className="learn-result__outputs">
+          <thead>
+            <tr>
+              <th>{t('learn.output')}</th>
+              <th>{t('learn.expected')}</th>
+              <th>{t('learn.yours')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {first.outputs.map((o) => (
+              <tr key={o.name} className={o.wrong ? 'learn-result__wrong' : undefined}>
+                <td className="mono">{o.name}</td>
+                <td className="mono">{o.expected}</td>
+                <td className="mono">{o.actual}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Result({ grade, dir, file, solution }: { grade: Grade; dir: string; file: string; solution: string | null }) {
   const t = useT();
   const open = (file: string, line?: number | null, column?: number | null) =>
     void useEditor.getState().openFile(file, { line: line ?? undefined, column: column ?? undefined });
@@ -103,6 +158,7 @@ function Result({ grade, dir, solution }: { grade: Grade; dir: string; solution:
           </tbody>
         </table>
       )}
+      {grade.counterexample && <CounterexampleTable first={grade.counterexample} />}
       {grade.diagnostics.length > 0 && (
         <ul className="learn-result__diagnostics">
           {grade.diagnostics.map((d, i) => (
@@ -120,6 +176,13 @@ function Result({ grade, dir, solution }: { grade: Grade; dir: string; solution:
       )}
       {grade.findings.map((f, i) => (
         <p key={i} className="learn-result__finding">
+          {f.kind === 'latch_inferred' && f.line !== null && (
+            <>
+              <button type="button" className="link mono" onClick={() => open(file, f.line)}>
+                {t('learn.finding.latchLine', { line: f.line })}
+              </button>{' '}
+            </>
+          )}
           {findingText(t, f)}
         </p>
       ))}
@@ -236,7 +299,7 @@ export function LearnView() {
         </aside>
       ))}
 
-      {grade && <Result grade={grade} dir={dir} solution={exercise.solution} />}
+      {grade && <Result grade={grade} dir={dir} file={exercise.file} solution={exercise.solution} />}
       {allSolved && snapshot.farewell && (
         <section className="learn-result learn-result--ok">
           <Markdown text={snapshot.farewell} />

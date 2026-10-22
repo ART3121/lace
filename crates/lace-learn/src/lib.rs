@@ -34,8 +34,8 @@
 #![deny(missing_docs)]
 
 pub mod dev;
-pub mod flows;
 mod error;
+pub mod flows;
 pub mod grade;
 pub mod layout;
 mod reference;
@@ -46,7 +46,10 @@ pub mod workspace;
 
 pub use dev::{DevExercise, DevReport, check_track};
 pub use error::{LearnError, Result};
-pub use grade::{Finding, Grade, OutputCheck, Verdict, grade};
+pub use grade::{
+    Counterexample, Finding, Grade, OutputCheck, OutputValue, SignalValue, Verdict, grade,
+    value_text,
+};
 pub use track::{
     Chapter, DEFAULT_TRACK, Exercise, Kind, Reset, Spec, Stimulus, TRACKS_ENV, Track,
     available_tracks, load_track, tracks_dir,

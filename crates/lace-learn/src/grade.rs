@@ -11,8 +11,8 @@ use std::time::{Duration, Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::{
-    CheckOptions, Control, Diagnostic, Severity, SimulationOptions, Simulator, Status, Step,
-    Toolchain,
+    CheckOptions, Control, DesignTarget, Diagnostic, Severity, SimulationOptions, Simulator,
+    Status, Step, Tool, Toolchain,
 };
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -87,6 +87,62 @@ pub enum Finding {
     /// Só erra com o reset ativo: o reset não faz o que o enunciado pede
     /// (síncrono ou assíncrono, o valor depois dele).
     ResetOnly,
+    /// A síntese achou um latch: o sinal guarda o valor quando nenhum ramo
+    /// do `always` o atribui. Num circuito combinacional, faltou um `else`,
+    /// um `default` ou um valor antes do `if`. Pode aparecer com o exercício
+    /// resolvido: a simulação passa, e o circuito não é o que parece.
+    LatchInferred {
+        /// O sinal (`modulo.sinal` quando é de um submódulo).
+        signal: String,
+        /// A linha do `always` que gerou o latch, no arquivo do aluno.
+        line: Option<u32>,
+    },
+}
+
+/// A primeira amostra errada: o que entrou e o que saiu, para o aluno
+/// refazer o caso de cabeça. Vem das linhas `first` do resumo; um `tb.v`
+/// escrito à mão que não as escreve fica sem.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct Counterexample {
+    /// O instante da amostra, em ns.
+    pub time_ns: u64,
+    /// No sequencial, o ciclo (a partir de 0).
+    pub cycle: Option<u64>,
+    /// As entradas nessa amostra, sem o clock.
+    pub inputs: Vec<SignalValue>,
+    /// Cada saída nessa amostra: a esperada e a do aluno.
+    pub outputs: Vec<OutputValue>,
+}
+
+/// O valor de uma entrada no contraexemplo.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct SignalValue {
+    /// A porta.
+    pub name: String,
+    /// Os bits, do mais significativo ao menos, com `x` e `z`.
+    pub bits: String,
+    /// O valor para ler: `1`, `4'b0101 (5)`, `16'h00ff (255)`.
+    pub text: String,
+}
+
+/// Uma saída no contraexemplo.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct OutputValue {
+    /// A porta.
+    pub name: String,
+    /// Os bits que a referência deu.
+    pub expected_bits: String,
+    /// Os bits que o módulo do aluno deu.
+    pub actual_bits: String,
+    /// O esperado, para ler.
+    pub expected: String,
+    /// O do aluno, para ler.
+    pub actual: String,
+    /// Se esta saída errou nessa amostra.
+    pub wrong: bool,
 }
 
 /// O resultado da correção.
@@ -105,9 +161,13 @@ pub struct Grade {
     pub outputs: Vec<OutputCheck>,
     /// Com reset: quantas amostras erradas foram com ele ativo.
     pub reset_mismatches: Option<u64>,
-    /// O que se percebeu sobre a causa do erro.
+    /// A primeira amostra errada, com as entradas e as saídas.
+    pub counterexample: Option<Counterexample>,
+    /// O que se percebeu sobre a causa do erro, e o latch que a síntese
+    /// achou (este, também com o exercício resolvido).
     pub findings: Vec<Finding>,
-    /// Os erros e avisos dos compiladores sobre o código do aluno.
+    /// Os erros e avisos dos compiladores sobre o código do aluno, com os
+    /// avisos do lint do Verilator quando ele está instalado.
     pub diagnostics: Vec<Diagnostic>,
     /// O que o testbench escreveu, fora o resumo (um `tb.v` escrito à mão
     /// pode explicar o erro aqui).
@@ -158,6 +218,7 @@ pub fn grade(
         mismatched: 0,
         outputs: Vec::new(),
         reset_mismatches: None,
+        counterexample: None,
         findings: Vec::new(),
         diagnostics: Vec::new(),
         output: Vec::new(),
@@ -252,6 +313,26 @@ pub fn grade(
         {
             grade.findings.push(Finding::ResetOnly);
         }
+        grade.counterexample = summary
+            .first
+            .as_ref()
+            .map(|first| counterexample(first, exercise));
+    }
+
+    // Os avisos além do veredito, num código que compila e simula.
+    let simulated = matches!(grade.verdict, Verdict::Solved | Verdict::Mismatch);
+    if simulated && exercise.spec.advice != Some(false) {
+        let file = workspace.student_file(exercise);
+        let latches = latches(toolchain, &project, &file, control);
+        for d in lint(toolchain, &project, &file, control) {
+            // O latch que o Yosys achou já vem explicado nas constatações;
+            // o aviso do Verilator sobre ele seria a mesma coisa duas vezes.
+            if !latches.is_empty() && d.message.ends_with("[LATCH]") {
+                continue;
+            }
+            push_new(&mut grade.diagnostics, &d);
+        }
+        grade.findings.extend(latches);
     }
 
     if let Some(wave) = &grade.waveform {
@@ -348,12 +429,263 @@ struct Summary {
     mismatched: u64,
     outputs: Vec<OutputCheck>,
     reset: Option<u64>,
+    first: Option<First>,
     ended: bool,
     other: Vec<String>,
 }
 
+/// As linhas `first` do resumo, como vieram: os valores em binário.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct First {
+    time_ns: u64,
+    cycle: Option<u64>,
+    /// `(entrada, bits)`.
+    inputs: Vec<(String, String)>,
+    /// `(saída, bits esperados, bits do aluno)`.
+    outputs: Vec<(String, String, String)>,
+}
+
+/// O contraexemplo para o aluno: os bits lidos e o texto de cada valor,
+/// com o decimal com sinal nas portas `signed` da solução.
+fn counterexample(first: &First, exercise: &Exercise) -> Counterexample {
+    let signed: Vec<String> = exercise
+        .interface()
+        .map(|i| {
+            i.ports
+                .into_iter()
+                .filter(|p| p.signed)
+                .map(|p| p.name)
+                .collect()
+        })
+        .unwrap_or_default();
+    let is_signed = |name: &str| signed.iter().any(|s| s == name);
+    Counterexample {
+        time_ns: first.time_ns,
+        cycle: first.cycle,
+        inputs: first
+            .inputs
+            .iter()
+            .map(|(name, bits)| SignalValue {
+                name: name.clone(),
+                bits: bits.clone(),
+                text: value_text(bits, is_signed(name)),
+            })
+            .collect(),
+        outputs: first
+            .outputs
+            .iter()
+            .map(|(name, expected, actual)| OutputValue {
+                name: name.clone(),
+                expected_bits: expected.clone(),
+                actual_bits: actual.clone(),
+                expected: value_text(expected, is_signed(name)),
+                actual: value_text(actual, is_signed(name)),
+                wrong: differs(expected, actual),
+            })
+            .collect(),
+    }
+}
+
+/// Um valor em binário para ler: um bit como está; até 8 bits, o binário e
+/// o decimal (`4'b0101 (5)`); acima, o hexadecimal e o decimal
+/// (`16'h00ff (255)`). Com `x` ou `z`, só o binário. `signed` dá o decimal
+/// com sinal.
+pub fn value_text(bits: &str, signed: bool) -> String {
+    let bits = bits.trim().to_ascii_lowercase();
+    let width = bits.len();
+    if width <= 1 {
+        return bits;
+    }
+    let known = bits.chars().all(|c| c == '0' || c == '1');
+    if !known || width > 128 {
+        return format!("{width}'b{bits}");
+    }
+    let value = u128::from_str_radix(&bits, 2).unwrap_or(0);
+    let decimal = if signed && bits.starts_with('1') {
+        // O complemento de dois em `width` bits.
+        let magnitude = if width == 128 {
+            value.wrapping_neg()
+        } else {
+            (1u128 << width) - value
+        };
+        format!("-{magnitude}")
+    } else {
+        value.to_string()
+    };
+    if width <= 8 {
+        format!("{width}'b{bits} ({decimal})")
+    } else {
+        let digits = width.div_ceil(4);
+        format!("{width}'h{value:0digits$x} ({decimal})")
+    }
+}
+
+/// A saída do aluno difere da esperada, pela regra do testbench: um bit em
+/// X na referência aceita qualquer valor, e um bit do aluno em X ou Z com a
+/// referência em 0 ou 1 é erro.
+fn differs(expected: &str, actual: &str) -> bool {
+    let expected = expected.to_ascii_lowercase();
+    let actual = actual.to_ascii_lowercase();
+    if expected.len() != actual.len() {
+        return expected != actual;
+    }
+    expected
+        .chars()
+        .zip(actual.chars())
+        .any(|(e, a)| e != 'x' && e != a)
+}
+
+/// Os avisos do lint do Verilator sobre o arquivo do aluno, sem os de
+/// estilo que não ensinam nada a quem começa. O lint não muda o veredito:
+/// sem o Verilator, ou se ele falha, fica sem aviso.
+fn lint(
+    toolchain: &Toolchain,
+    project: &lace_core::Project,
+    file: &Utf8Path,
+    control: &Control,
+) -> Vec<Diagnostic> {
+    /// Os códigos que ficam de fora: o nome do arquivo e o do módulo já
+    /// batem no exercício, o fim de linha no fim do arquivo é estilo, uma
+    /// saída de instância deixada sem ligação (`.cout()`) é de propósito, e
+    /// o Verilog estende com zeros um valor mais estreito (`acc + x`, com
+    /// `x` de 8 bits e `acc` de 12) sem que isso seja erro. O que corta
+    /// bits (`WIDTHTRUNC`) fica.
+    const QUIET: [&str; 5] = [
+        "[DECLFILENAME]",
+        "[EOFNEWLINE]",
+        "[UNUSEDPARAM]",
+        "[PINCONNECTEMPTY]",
+        "[WIDTHEXPAND]",
+    ];
+    // Bits que o aluno descarta de propósito (`soma[9:2]`, a divisão por
+    // 4): o aviso de parte do sinal sem uso fica de fora; o do sinal
+    // inteiro sem uso (uma entrada esquecida) fica.
+    let partly_unused = |d: &Diagnostic| {
+        d.message.starts_with("Bits of signal are not used")
+            && d.message.ends_with("[UNUSEDSIGNAL]")
+    };
+    if toolchain.tool(Tool::Verilator).is_err() {
+        return Vec::new();
+    }
+    let mut options = CheckOptions::default();
+    options.lint = true;
+    let Ok(result) = lace_core::check(toolchain, project, &options, control) else {
+        return Vec::new();
+    };
+    result
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.tool == Tool::Verilator && d.severity == Severity::Warning)
+        .filter(|d| d.file.as_deref().is_some_and(|f| same_file(f, file)))
+        .filter(|d| !QUIET.iter().any(|q| d.message.ends_with(q)) && !partly_unused(d))
+        .collect()
+}
+
+/// Os latches que a síntese do Yosys achou no design do aluno. Sem o Yosys,
+/// ou se a síntese não termina, fica sem.
+fn latches(
+    toolchain: &Toolchain,
+    project: &lace_core::Project,
+    file: &Utf8Path,
+    control: &Control,
+) -> Vec<Finding> {
+    if toolchain.tool(Tool::Yosys).is_err() {
+        return Vec::new();
+    }
+    let Ok(result) = lace_core::synthesize(toolchain, project, &DesignTarget::TopLevel, control)
+    else {
+        return Vec::new();
+    };
+    let Some(netlist) = result
+        .netlist
+        .filter(|_| result.status == Status::Succeeded)
+    else {
+        return Vec::new();
+    };
+    let Ok(text) = std::fs::read_to_string(&netlist) else {
+        return Vec::new();
+    };
+    latches_in(&text, &result.top, file)
+}
+
+/// Os latches de um netlist do Yosys (`write_json`): as células `$dlatch`
+/// (e as variantes), com o sinal ligado à saída `Q` e a linha do `src`.
+fn latches_in(netlist: &str, top: &str, file: &Utf8Path) -> Vec<Finding> {
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(netlist) else {
+        return Vec::new();
+    };
+    let Some(modules) = json.get("modules").and_then(|m| m.as_object()) else {
+        return Vec::new();
+    };
+    let file_name = file.file_name().unwrap_or_default();
+    let mut found = Vec::new();
+    for (module, body) in modules {
+        let cells = body.get("cells").and_then(|c| c.as_object());
+        let netnames = body.get("netnames").and_then(|n| n.as_object());
+        for cell in cells.into_iter().flat_map(|c| c.values()) {
+            let kind = cell.get("type").and_then(|t| t.as_str()).unwrap_or("");
+            if !kind.to_ascii_lowercase().contains("dlatch") {
+                continue;
+            }
+            let q: Vec<u64> = cell
+                .pointer("/connections/Q")
+                .and_then(|q| q.as_array())
+                .map(|bits| bits.iter().filter_map(|b| b.as_u64()).collect())
+                .unwrap_or_default();
+            // O nome que o aluno deu ao sinal: o fio com nome que tem os
+            // bits da saída do latch.
+            let name = netnames
+                .into_iter()
+                .flat_map(|n| n.iter())
+                .filter(|(_, net)| net.get("hide_name").and_then(|h| h.as_u64()) != Some(1))
+                .find(|(_, net)| {
+                    net.get("bits")
+                        .and_then(|b| b.as_array())
+                        .is_some_and(|bits| {
+                            bits.iter()
+                                .any(|b| b.as_u64().is_some_and(|b| q.contains(&b)))
+                        })
+                })
+                .map(|(name, _)| name.clone());
+            let Some(name) = name else { continue };
+            let signal = if module == top {
+                name
+            } else {
+                format!("{module}.{name}")
+            };
+            // `src`: `arquivo.v:12.5-15.8`, às vezes várias separadas por `|`.
+            let line = cell
+                .pointer("/attributes/src")
+                .and_then(|s| s.as_str())
+                .and_then(|src| {
+                    src.split('|')
+                        .find(|s| s.contains(file_name))
+                        .or_else(|| src.split('|').next())
+                })
+                .and_then(|s| s.rsplit_once(':'))
+                .and_then(|(_, pos)| pos.split('.').next())
+                .and_then(|n| n.parse::<u32>().ok());
+            let finding = Finding::LatchInferred { signal, line };
+            if !found.contains(&finding) {
+                found.push(finding);
+            }
+        }
+    }
+    found
+}
+
+/// O mesmo arquivo, com as diferenças de grafia do Windows (`\` e `/`,
+/// maiúsculas).
+fn same_file(a: &Utf8Path, b: &Utf8Path) -> bool {
+    let norm = |p: &Utf8Path| p.as_str().replace('\\', "/").to_ascii_lowercase();
+    a == b || (cfg!(windows) && norm(a) == norm(b))
+}
+
 fn parse_summary(stdout: &str) -> Summary {
     let mut summary = Summary::default();
+    // Um `tb.v` escrito à mão pode escrever mais de um `first`: valem as
+    // linhas do primeiro.
+    let mut later_first = false;
     for line in stdout.lines() {
         let line = line.trim_end_matches('\r');
         let Some(rest) = line.trim().strip_prefix(PROTOCOL) else {
@@ -375,6 +707,31 @@ fn parse_summary(stdout: &str) -> Summary {
                 first_ns: number(3).filter(|t| *t >= 0).map(|t| t as u64),
                 unknown: number(4).unwrap_or(0).max(0) as u64,
             }),
+            // O contraexemplo: só o primeiro `first` vale.
+            Some("first") if summary.first.is_none() => {
+                summary.first = Some(First {
+                    time_ns: number(1).unwrap_or(0).max(0) as u64,
+                    cycle: number(2).filter(|c| *c >= 0).map(|c| c as u64),
+                    ..First::default()
+                });
+            }
+            Some("first") => later_first = true,
+            Some("first_in") if words.len() >= 3 => {
+                if let Some(first) = summary.first.as_mut().filter(|_| !later_first) {
+                    first
+                        .inputs
+                        .push((words[1].to_owned(), words[2].to_owned()));
+                }
+            }
+            Some("first_out") if words.len() >= 4 => {
+                if let Some(first) = summary.first.as_mut().filter(|_| !later_first) {
+                    first.outputs.push((
+                        words[1].to_owned(),
+                        words[2].to_owned(),
+                        words[3].to_owned(),
+                    ));
+                }
+            }
             _ => summary.other.push(line.to_owned()),
         }
     }
@@ -439,6 +796,83 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn the_first_mismatch_is_read_once() {
+        let stdout = "LACE-LEARN first 25 -1\nLACE-LEARN first_in a 1\nLACE-LEARN first_in b 0101\nLACE-LEARN first_out y 1 0\nLACE-LEARN first 35 -1\nLACE-LEARN first_in a 0\nLACE-LEARN samples 8\nLACE-LEARN end\n";
+        let summary = parse_summary(stdout);
+        let first = summary.first.unwrap();
+        assert_eq!(first.time_ns, 25);
+        assert_eq!(first.cycle, None);
+        assert_eq!(
+            first.inputs,
+            [("a".into(), "1".into()), ("b".into(), "0101".into())]
+        );
+        assert_eq!(first.outputs, [("y".into(), "1".into(), "0".into())]);
+        assert!(summary.other.is_empty(), "{:?}", summary.other);
+        let sequential = parse_summary("LACE-LEARN first 17 3\n").first.unwrap();
+        assert_eq!(sequential.cycle, Some(3));
+    }
+
+    #[test]
+    fn values_are_written_for_people() {
+        assert_eq!(value_text("1", false), "1");
+        assert_eq!(value_text("x", false), "x");
+        assert_eq!(value_text("0101", false), "4'b0101 (5)");
+        assert_eq!(value_text("11111110", true), "8'b11111110 (-2)");
+        assert_eq!(value_text("11111110", false), "8'b11111110 (254)");
+        assert_eq!(value_text("0000000011111111", false), "16'h00ff (255)");
+        assert_eq!(value_text("1000000000000000", true), "16'h8000 (-32768)");
+        assert_eq!(value_text("01xz", false), "4'b01xz");
+        assert_eq!(value_text("10X1", false), "4'b10x1");
+    }
+
+    #[test]
+    fn a_reference_x_accepts_anything_and_a_student_x_is_wrong() {
+        assert!(!differs("1x0", "100"));
+        assert!(!differs("1x0", "1z0"));
+        assert!(differs("10", "1x"));
+        assert!(differs("10", "11"));
+        assert!(!differs("0101", "0101"));
+    }
+
+    #[test]
+    fn latches_come_from_the_dlatch_cells_of_the_netlist() {
+        let netlist = r#"{"modules": {
+            "maioria": {
+                "cells": {
+                    "$procdff$1": {"type": "$dlatch", "attributes": {"src": "C:/x/maioria.v:7.5-12.8"},
+                                   "connections": {"D": [5], "EN": [6], "Q": [4]}},
+                    "$and$2": {"type": "$and", "connections": {"Y": [7]}}
+                },
+                "netnames": {
+                    "$auto$3": {"hide_name": 1, "bits": [4]},
+                    "y": {"hide_name": 0, "bits": [4]},
+                    "a": {"hide_name": 0, "bits": [5]}
+                }
+            },
+            "sub": {
+                "cells": {"$l": {"type": "$_DLATCH_P_", "attributes": {"src": "sub.v:3.1-4.2"},
+                                 "connections": {"Q": [9]}}},
+                "netnames": {"q": {"hide_name": 0, "bits": [8, 9]}}
+            }
+        }}"#;
+        let found = latches_in(netlist, "maioria", Utf8Path::new("C:/x/maioria.v"));
+        assert_eq!(
+            found,
+            [
+                Finding::LatchInferred {
+                    signal: "y".into(),
+                    line: Some(7)
+                },
+                Finding::LatchInferred {
+                    signal: "sub.q".into(),
+                    line: Some(3)
+                },
+            ]
+        );
+        assert!(latches_in("{}", "m", Utf8Path::new("m.v")).is_empty());
     }
 
     #[test]

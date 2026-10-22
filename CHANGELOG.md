@@ -1,5 +1,34 @@
 # Mudanças
 
+## Não publicada
+
+- A correção do `lace learn` mostra a primeira amostra errada: o instante
+  (e o ciclo, num circuito sequencial), o valor de cada entrada e cada
+  saída, com o esperado e o do aluno, em binário até 8 bits e em
+  hexadecimal acima, com o decimal ao lado. O testbench gerado escreve as
+  linhas novas `first`, `first_in` e `first_out` do resumo; um `tb.v`
+  escrito à mão pode escrevê-las também. O JSON do `lace learn check` traz
+  o `counterexample`.
+- Com o Verilator instalado, a correção acrescenta os avisos do lint sobre
+  o arquivo do aluno (sem os de estilo), e, com o Yosys, avisa do latch
+  inferido, com o sinal e a linha (`latch_inferred`), também num exercício
+  resolvido. Nenhum dos dois muda o veredito; `"advice": false` no
+  `exercise.json` desliga os dois. O `lace learn dev check` passa a exigir
+  a solução sem latch e sem aviso.
+- A trilha de Verilog do Lace Learn passa de 25 para 51 exercícios, em
+  cinco capítulos novos: circuitos combinacionais (multiplexador,
+  decodificador, codificador de prioridade, comparador, display de sete
+  segmentos, código Gray), circuitos com memória (flip-flop, reset síncrono
+  e assíncrono, registrador, contador, registrador de deslocamento,
+  detector de borda), máquinas de estado (paridade serial, detectores de
+  sequência de Moore e de Mealy, semáforo), aritmética (soma com saturação
+  e com estouro, multiplicador, contagem de uns, acumulador, média móvel) e
+  memórias (ROM, banco de registradores, RAM síncrona). Uma pasta de
+  exercícios criada antes recebe os novos na primeira vez que é aberta.
+- Na cópia da referência, uma porta ou um fio com o mesmo nome do módulo
+  deixa de ganhar `_ref`: só a declaração e as instâncias mudam. Antes, um
+  módulo `gray` com a saída `gray` não compilava no testbench.
+
 ## 0.9.0 (2026-10-20)
 
 - O core passa a ser a API do orquestrador de fato. A composição dos

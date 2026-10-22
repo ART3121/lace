@@ -40,6 +40,12 @@ module tb_conta;
                 if ((^q) === 1'bx) lace_q_unknown = lace_q_unknown + 1;
                 mismatch = 1;
             end
+            if (mismatch && lace_mismatched == 0) begin
+                $display("LACE-LEARN first %0d %0d", $time, lace_i);
+                $display("LACE-LEARN first_in en %b", en);
+                $display("LACE-LEARN first_in reset %b", reset);
+                $display("LACE-LEARN first_out q %b %b", q_ref, q);
+            end
             if (mismatch) lace_mismatched = lace_mismatched + 1;
             if (mismatch && reset === 1'b1) lace_reset_errors = lace_reset_errors + 1;
         end

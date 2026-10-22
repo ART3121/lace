@@ -3,6 +3,19 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Acrescentado
+
+- **Exercícios**: a correção mostra a primeira amostra errada numa tabela
+  (as entradas, e cada saída com o esperado e o seu, a que errou em
+  destaque), os avisos do lint do Verilator sobre o seu arquivo e o latch
+  que a síntese achou, com um link para a linha. O console da correção
+  também escreve a primeira amostra errada.
+- **Exercícios**: 26 exercícios novos na trilha de Verilog, em cinco
+  capítulos (combinacionais, circuitos com memória, máquinas de estado,
+  aritmética e memórias).
+
 ## [0.9.0] - 2026-10-20
 
 ### Acrescentado
