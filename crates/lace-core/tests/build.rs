@@ -261,6 +261,40 @@ fn a_name_line_left_from_yanc_6_is_the_compiler_error() {
     assert!(!processor.output_dir.join("outro.v").exists());
 }
 
+/// A lista de módulos SAPHO do Lace acompanha a do YANC do bundle: um
+/// processador com o nome de um módulo da biblioteca se instanciaria.
+#[test]
+fn no_processor_takes_the_name_of_a_sapho_module() {
+    let Some(toolchain) = common::toolchain() else {
+        return;
+    };
+    let sapho = toolchain.hdl_dir().unwrap();
+    let mut modules = Vec::new();
+    for entry in sapho.read_dir_utf8().unwrap() {
+        let path = entry.unwrap().into_path();
+        if path.extension() != Some("v") {
+            continue;
+        }
+        let text = String::from_utf8_lossy(&std::fs::read(&path).unwrap()).into_owned();
+        for line in text.lines() {
+            if let Some(rest) = line.trim_start().strip_prefix("module ") {
+                let name: String = rest
+                    .trim_start()
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .collect();
+                modules.push(name);
+            }
+        }
+    }
+    assert!(modules.len() > 20, "poucos módulos em {sapho}: {modules:?}");
+    let accepted: Vec<_> = modules
+        .iter()
+        .filter(|name| lace_core::validate_processor_name(name).is_ok())
+        .collect();
+    assert!(accepted.is_empty(), "nomes de módulo SAPHO aceitos: {accepted:?}");
+}
+
 #[test]
 fn the_source_must_carry_the_processor_name() {
     let Some(toolchain) = common::toolchain() else {

@@ -23,15 +23,15 @@ cocotb, e o cocotb precisa de simulador, compilador e Python que casem.
 
 ## 1. O que vem no bundle
 
-Bundle `2026.10.13`. Os pacotes, com as versões fixadas em
+Bundle `2026.10.22`. Os pacotes, com as versões fixadas em
 `bundle/versions.json`:
 
 | Pacote | Versão | O que traz | De onde vem |
 |---|---|---|---|
-| YANC | v7.1 (`6c32d94`) | `cmmcomp`, `asmcomp`, `cppcomp`, a biblioteca SAPHO, macros e headers (até a 6.x vinham também o `appcomp` e o `cpppp`, que a 7.1 juntou ao `asmcomp` e ao `cppcomp`) | compilado do fonte pelo empacotamento |
+| YANC | v9.1 (`bf3d0da`) | `cmmcomp`, `asmcomp`, `cppcomp`, a biblioteca SAPHO, macros e headers (até a 6.x vinham também o `appcomp` e o `cpppp`, que a 7.1 juntou ao `asmcomp` e ao `cppcomp`) | compilado do fonte pelo empacotamento |
 | surfer-aurora | v0.7.0-nips.10 (`d0af8a7`) | o fork do Surfer da AURORA e o cliente web (WASM) dele | o executável, pré-compilado do commit fixado pelo workflow `surfer-aurora.yml` numa pré-release deste repositório e conferido pelo SHA-256 fixado (`prebuilt`); sem ele, compilado do fonte pelo empacotamento; o cliente web, o zip que a CI do fork publica na mesma tag, conferido pelo SHA-256 fixado |
-| OSS CAD Suite | release 2026-09-29 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys, o `dot` do Graphviz e o openFPGALoader. Windows: o Yosys e o openFPGALoader | pacote oficial, conferido pelo SHA-256 publicado |
-| msys | `ucrt64-v1` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
+| OSS CAD Suite | release 2026-10-22 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys, o `dot` do Graphviz e o openFPGALoader. Windows: o Yosys e o openFPGALoader | pacote oficial, conferido pelo SHA-256 publicado |
+| msys | `ucrt64-v2` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
 | studio | a versão do Lace | o Lace Studio: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
 | lace-learn | a versão do Lace | as trilhas de exercícios do `lace learn` ([LEARN.md](LEARN.md)): textos, `.v` e `.json` | copiadas de `lace-learn/` deste repositório |
@@ -73,7 +73,7 @@ do udev do openFPGALoader, que o Linux exige para acessar o cabo sem root.
 O OSS CAD Suite inteiro tem 2,5 GB no Linux: traz também nextpnr, GHDL,
 GTKWave, bases de FPGA e um Python com dezenas de pacotes. O nextpnr dele
 cobre Lattice, Gowin e GateMate; o `nextpnr-mistral`, do Cyclone V, não vem
-na release 2026-09-29 em nenhuma plataforma, embora a regra de build exista
+na release 2026-10-22 em nenhuma plataforma, embora a regra de build exista
 no repositório do OSS CAD Suite. O empacotamento
 leva de cada ferramenta só o que ela executa (os lançadores de `bin/`, os
 binários de `libexec/`), os dados dela (`share/yosys`, `lib/ivl`,
@@ -86,9 +86,9 @@ falhar. O bundle completo fica com 300 MiB no Linux; a divisão do macOS dá
 141 MiB, sem o surfer-aurora (medidos na montagem local; o CI monta os
 completos). O cocotb não entra nessas contas: acrescenta 42 MiB no Linux e
 25 MiB no macOS a quem tem o Verilator, que já traz o mesmo Python, e 115 e
-76 MiB a quem não tem. No Windows, o bloco MSYS2 (`ucrt64-v1`) se divide em
-14 MiB para o Icarus, 630 MiB para o Verilator (quase tudo o g++ e o Perl)
-e 102 MiB para o cocotb (o Python, a libstdc++ e o cocotb).
+76 MiB a quem não tem. No Windows, o bloco MSYS2 (`ucrt64-v2`) se divide em
+12 MiB para o Icarus, 630 MiB para o Verilator (quase tudo o g++ e o Perl)
+e 100 MiB para o cocotb (o Python, a libstdc++ e o cocotb).
 
 O cocotb leva o Python do pacote com a biblioteca padrão, o egg do cocotb
 (as bibliotecas dele e a VPI de cada simulador), o `find_libpython` e o
@@ -112,17 +112,18 @@ do Python, e as cópias de depuração do Verilator.
 O OSS CAD Suite compila cada ferramenta do `master` e publica uma release por
 dia. Fixar a data e o hash do pacote é o que dá a versão exata. O bloco
 MSYS2 tem versões estáveis, travadas pelo lock do lace-toolchain: no
-`ucrt64-v1`, Icarus 13.0, Verilator 5.050, gcc 16.2, Perl 5.44, Python 3.14
-e cocotb 2.1.0. Na release 2026-09-29 do OSS CAD Suite as ferramentas se
+`ucrt64-v2`, Icarus 13.0, Verilator 5.050, gcc 16.2, Perl 5.44, Python 3.14
+e cocotb 2.1.0. Na release 2026-10-22 do OSS CAD Suite as ferramentas se
 identificam assim:
 
 | Ferramenta | Versão reportada (Linux x64) |
 |---|---|
-| Yosys | 0.69+156 (git 9d0c91b23) |
-| Icarus Verilog | 14.0 (devel) s20260301-500-g2e81fcccb |
-| Verilator | 5.053 devel rev v5.052-240-g640607a0d |
+| Yosys | 0.70+190 (git 485b63564) |
+| Icarus Verilog | 14.0 (devel) s20260301-638-ge072b3334 |
+| Verilator | 5.053 devel rev v5.052-528-gfd500fbb1 |
 | cocotb | 2.1.0.dev0+41564633, no Python 3.11.6 do pacote |
 | dot | Graphviz 2.43 (20190912) |
+| openFPGALoader | v1.2.0 |
 
 ## 2. Plataformas
 

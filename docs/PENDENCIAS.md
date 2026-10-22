@@ -15,18 +15,18 @@ deles.
 
 Ao corrigir um item, tire-o daqui e registre no CHANGELOG.
 
-## Fora do Lace (7)
+## Fora do Lace (6)
 
 Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O Lace só embrulha essas ferramentas; a correção é nelas.
 
-### Suspeita: no macOS, os compiladores do YANC 7.1 não acham `Macros/`, `SAPHO/` e `Header/`
+### Suspeita: no macOS, os compiladores do YANC (desde a 7.1) não acham `Macros/`, `SAPHO/` e `Header/`
 
 - **Área:** Externo (YANC)
 - **Gravidade:** alta (externo): sem isso, nenhum processador compila no macOS com a 7.1
 - **Chave:** `externo-yanc-exe-dir-macos`
 
-**Problema:** deduzido do código, não reproduzido num Mac. Na 7.1, cada ferramenta acha as pastas da biblioteca ao lado do próprio executável (`Compilers/common/exe_dir.c`, `exe_dir`), e as opções que as davam (`-m`, `-d`) saíram. Fora do Windows, `exe_dir` lê `/proc/self/exe`, que não existe no macOS; o caminho volta vazio, `exe_find_dir` devolve `NULL`, e o `cmmcomp` e o `asmcomp` param com o erro de pasta que falta ("instale o YANC de novo"). A CI do YANC não roda no macOS.
-**Reproduzir:** num Mac, `cmmcomp prog.cmm` com o YANC 7.1 instalado, ou `lace build` com o bundle `darwin-arm64` de 2026-10-13.
+**Problema:** deduzido do código, não reproduzido num Mac. Na 7.1, cada ferramenta acha as pastas da biblioteca ao lado do próprio executável (`Compilers/common/exe_dir.c`, `exe_dir`), e as opções que as davam (`-m`, `-d`) saíram. Fora do Windows, `exe_dir` lê `/proc/self/exe`, que não existe no macOS; o caminho volta vazio, `exe_find_dir` devolve `NULL`, e o `cmmcomp` e o `asmcomp` param com o erro de pasta que falta ("instale o YANC de novo"). A CI do YANC não roda no macOS. Conferido no fonte da v9.1 (2026-10-22): o `exe_dir` continua só com o `/proc/self/exe`.
+**Reproduzir:** num Mac, `cmmcomp prog.cmm` com o YANC 7.1 instalado, ou `lace build` com o bundle `darwin-arm64` de 2026-10-13 ou de 2026-10-22.
 **Esperado/onde:** um ramo `__APPLE__` em `exe_dir` com `_NSGetExecutablePath` (de `<mach-o/dyld.h>`) seguido de `realpath`, para resolver os symlinks como o `/proc/self/exe` resolve no Linux.
 
 ### Os dois .spf do repositório hits não listam rtl/noise/noise_gauss.v e não simulam no Lace nem na AURORA
@@ -37,16 +37,6 @@ Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O La
 
 **Problema:** `projects/aurora_simulador/simulador.spf` e `projects/aurora/sim_pulsos.spf` (nipscernlab/hits, commit e81e68e) não listam `rtl/noise/noise_gauss.v`, o módulo do ruído gaussiano padrão desde 2026-10-02; o Icarus para com `Unknown module type: noise_gauss`. A CI do HITS não pega porque `verification/regress.py` compila por glob (`rtl/*/*.v`). Com a linha acrescentada, a simulação do Lace sai idêntica às goldens.
 **Correção (no HITS, não no Lace):** acrescentar `..\\..\\rtl\\noise\\noise_gauss.v` em `synthesizableFiles` dos dois `.spf`; talvez a CI conferir os `.spf`.
-
-### Com 3 ou mais portas de saída e memória de dados pequena, a porta 0 nunca é escrita
-
-- **Área:** Externo (YANC/SAPHO)
-- **Gravidade:** alta (externo)
-- **Chave:** `externo-yanc-porta-0-sem-escrita`
-
-**Problema:** `lace proc add f --outputs 3` com o fonte-modelo (`out(0, 0);`): `Output 0: no values` (com 2 saídas funciona). Na onda, `addr_out` fica `bx0`/`bx1` e `out_en` em `x`. Causa: `SAPHO/core.v:442` faz `addr_out <= addr[NBIOOU-1:0]` com `addr` de MDATAW bits (1, para MDATAS 2) e NBIOOU 2, então o bit alto fica X.
-**Reproduzir:** `lace proc add f --outputs 3; lace sim -p f`
-**Esperado/onde:** corrigir na biblioteca SAPHO do YANC (estender `addr` ou dimensionar MDATAW pelo NBIOOU).
 
 ### `load_state` zera o arquivo escolhido de um surfer server e o cliente recarrega a onda, perdendo o layout
 
@@ -63,7 +53,7 @@ Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O La
 - **Gravidade:** média (externo)
 - **Chave:** `externo-yanc-array-fora-do-limite`
 
-**Problema:** `int v[2]; int w=5; int y=6; v[0]=1; v[2]=99; v[3]=98; out(0,w); out(0,y); out(0,v[0]);` dá `98 6 1`: `w` foi sobrescrito.
+**Problema:** `int v[2]; int w=5; int y=6; v[0]=1; v[2]=99; v[3]=98; out(0,w); out(0,y); out(0,v[0]);` dá `98 6 1`: `w` foi sobrescrito. Continua na v9.1 (2026-10-22).
 **Reproduzir:** o programa acima
 **Esperado/onde:** o cmmcomp acusar índice constante fora do tamanho.
 
@@ -73,7 +63,7 @@ Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O La
 - **Gravidade:** média (externo)
 - **Chave:** `externo-yanc-sem-main`
 
-**Problema:** Só `int f(int a){ return a+1; }`: o build dá sucesso, o `.asm` tem `JMP main` sem `@main`, e o asmcomp aceita o rótulo indefinido. `funcoes.c:364` marca `mainok = 1` na primeira função, então o erro de `variaveis.c:74` nunca dispara.
+**Problema:** Só `int f(int a){ return a+1; }`: o build dá sucesso, o `.asm` tem `JMP main` sem `@main`, e o asmcomp aceita o rótulo indefinido. `funcoes.c:364` marca `mainok = 1` na primeira função, então o erro de `variaveis.c:74` nunca dispara. Continua na v9.1 (2026-10-22): o `lace build` dá sucesso.
 **Reproduzir:** o programa acima; `lace build`
 **Esperado/onde:** corrigir o `mainok` no cmmcomp e o asmcomp recusar rótulo indefinido.
 
