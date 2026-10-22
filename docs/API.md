@@ -2373,7 +2373,7 @@ O Lace é escrito para Linux, macOS e Windows. O que foi conferido e como:
 | compila, `clippy -D warnings` | sim | sim (MSVC e GNU, cruzado) | sim (Intel e Apple Silicon, cruzado) |
 | testes de unidade | sim | sim, no Wine | não |
 | build com o YANC real, regressão do YANC (66 + 10 casos), CLI | sim | sim, no Wine, com o YANC compilado para Windows | não |
-| Icarus, Verilator, Yosys, `dot`, surfer-aurora do bundle | sim (bundle 2026.09.29, com o OSS CAD Suite 2026-09-29 e o surfer-aurora v0.7.0-nips.10, os mesmos do bundle atual, 2026.10.13: Icarus 14.0 devel, Verilator 5.053 devel, Yosys 0.69+156, Graphviz 2.43, surfer-aurora v0.7.0-nips.10) | não | não |
+| Icarus, Verilator, Yosys, `dot`, surfer-aurora do bundle | sim (bundle 2026.09.29, com o OSS CAD Suite 2026-09-29 e o surfer-aurora v0.7.0-nips.10: Icarus 14.0 devel, Verilator 5.053 devel, Yosys 0.69+156, Graphviz 2.43); o bundle atual, 2026.10.22, com o OSS CAD Suite 2026-10-22 (Yosys 0.70+190), ainda não foi rodado no Linux | não | não |
 
 O Wine executa a API do Windows (criação de processo, caminhos `C:\`,
 `.exe`, ambiente), mas não é o Windows. A verificação completa nos três

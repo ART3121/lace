@@ -122,7 +122,7 @@
         ]
       },
       "msys": {
-        "windows-x64": ["verilator", "perl", "gcc", "python", "make", "bash", "coreutils", "findutils", "msys2-runtime"]
+        "windows-x64": ["verilator", "perl", "gcc", "libatomic", "python", "make", "bash", "coreutils", "findutils", "msys2-runtime"]
       },
       "run": {
         "unix": ["bin/verilator", "bin/verilator_bin", "libexec/verilator_bin", "bin/tabbypy3", "libexec/python3.11"],
@@ -172,7 +172,7 @@
           "lib/python3.11/site-packages/py.py"
         ]
       },
-      "msys": { "windows-x64": ["cocotb", "mingw-w64-ucrt-x86_64-gcc-libs"] },
+      "msys": { "windows-x64": ["cocotb", "mingw-w64-ucrt-x86_64-cc-libs"] },
       "run": {
         "unix": ["bin/tabbypy3", "libexec/python3.11"],
         "windows-x64": ["ucrt64/bin/python.exe"]

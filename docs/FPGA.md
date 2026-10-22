@@ -353,5 +353,5 @@ OSS CAD Suite, nas três plataformas, no componente opcional
 - Gravar pelo openFPGALoader, sem o Quartus.
 - Guardar a compilação para a placa no histórico (`lace report`).
 - O fluxo aberto para o Cyclone V (Yosys e `nextpnr-mistral`), adiado: o
-  `nextpnr-mistral` não vem no OSS CAD Suite 2026-09-29, em nenhuma
+  `nextpnr-mistral` não vem no OSS CAD Suite 2026-10-22, em nenhuma
   plataforma, então teria de ser compilado pelo Lace.

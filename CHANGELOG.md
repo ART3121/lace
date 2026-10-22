@@ -2,6 +2,23 @@
 
 ## Não publicada
 
+- O bundle passa a 2026.10.22. O YANC vai da v7.1 à v9.1: a divisão leva 5
+  ciclos (4 em float), o que sobe o clock máximo do processador, a condição
+  em float segue o C nas duas linguagens, a biblioteca SAPHO traz o teclado
+  PS/2 (`myKeyPS2`) e a tela VGA de texto (`myVGAText`), e o C++ ganha
+  `<iostream>`, `<cstdio>` e `<cstring>`. O OSS CAD Suite vai de 2026-09-29
+  a 2026-10-22: Yosys 0.70+190 e openFPGALoader 1.2.0 em todos os sistemas,
+  e, no Linux e no macOS, Icarus e Verilator mais novos do `master`. No
+  Windows, o bloco MSYS2 passa ao `ucrt64-v2`, com as mesmas versões de
+  Icarus, Verilator, Perl, Python e cocotb e revisões do gcc 16.2 e das
+  bibliotecas. Um processador não pode mais ter o nome de um módulo novo da
+  biblioteca SAPHO (`myDCFIFO`, `myKeyPS2`, `myVGAText`, `div_array`,
+  `ula_idiv`, `ula_lzc`).
+- Com o YANC 9.1, um processador com três ou mais portas de saída e
+  memória de dados pequena volta a escrever na porta 0: o número da porta
+  saía cortado na largura do endereço de dados (era uma pendência externa
+  em docs/PENDENCIAS.md).
+
 - Linux: o instalador e o `lace install studio` dizem o comando que instala
   o webkit2gtk 4.1 pelo gerenciador de pacotes do sistema (`apt`, `dnf` ou
   `pacman`) quando ele falta, e a instalação guiada pergunta se o roda na

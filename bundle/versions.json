@@ -1,27 +1,27 @@
 {
-  "bundle": "2026.10.13",
+  "bundle": "2026.10.22",
   "packages": {
     "oss-cad-suite": {
-      "version": "2026-09-29",
+      "version": "2026-10-22",
       "assets": {
         "linux-x64": {
-          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-09-29/oss-cad-suite-linux-x64-20260929.tgz",
-          "sha256": "eba89154b46ca9829e90d4238ed28e85b25d6ce9b8eb331076a32f10c81d0aff"
+          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-10-22/oss-cad-suite-linux-x64-20261022.tgz",
+          "sha256": "45b7401d677f1e6cffb19dcaafb8e92c95a49dfc05b332ae4d00b84c94f62f6e"
         },
         "darwin-arm64": {
-          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-09-29/oss-cad-suite-darwin-arm64-20260929.tgz",
-          "sha256": "bf3677e41aa14da5e4b73e3fb0f40daf9e8962f4820885726c26a1cb7a6c2dcd"
+          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-10-22/oss-cad-suite-darwin-arm64-20261022.tgz",
+          "sha256": "378e87e60db8cb3d077c63613cbed75e52306cf5ebdfeb95596629f343e536c0"
         },
         "windows-x64": {
-          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-09-29/oss-cad-suite-windows-x64-20260929.tgz",
-          "sha256": "47e637fd61cde624a839a3d97197d1ecb1a0c556eef121c793a95575e2c83973"
+          "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-10-22/oss-cad-suite-windows-x64-20261022.tgz",
+          "sha256": "35fe136df7fd863d347379272a7aed7274d65b3ca5b6f45f300af7ff02435c7e"
         }
       }
     },
     "yanc": {
-      "version": "v7.1",
+      "version": "v9.1",
       "repository": "https://github.com/nipscernlab/yanc",
-      "commit": "6c32d94a00436d479b6cc2d7f7d3e4b106d3b1e1"
+      "commit": "bf3d0da1a8a6a0611694ea8a453759932bffc1e1"
     },
     "surfer-aurora": {
       "version": "v0.7.0-nips.10",
@@ -59,17 +59,17 @@
       }
     },
     "msys": {
-      "version": "ucrt64-v1",
+      "version": "ucrt64-v2",
       "repository": "https://github.com/ART3121/lace-toolchain",
       "platforms": [
         "windows-x64"
       ],
       "assets": {
         "windows-x64": {
-          "url": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v1/lace-msys-ucrt64-v1.zip",
-          "sha256": "bfc42547deb61b5d5708385c5e74a05b48b23946891d4ec405a7004e06dfa857",
-          "manifest": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v1/lace-msys-ucrt64-v1.json",
-          "manifest_sha256": "0002cf91f073b963928518ca73f6a0dc3963f0c23b364ab49a364b00f9d91261"
+          "url": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v2/lace-msys-ucrt64-v2.zip",
+          "sha256": "faf36128fbcc6b4b2e3df10088807062691efade35b411781541f18935f82777",
+          "manifest": "https://github.com/ART3121/lace-toolchain/releases/download/ucrt64-v2/lace-msys-ucrt64-v2.json",
+          "manifest_sha256": "7b7cbc2cbfa1c4e9e5ede6200ee341b3a5334964b74893346b90f6a3b315cb9b"
         }
       }
     },
