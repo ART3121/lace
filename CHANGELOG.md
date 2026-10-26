@@ -2,6 +2,15 @@
 
 ## Não publicada
 
+- `lace wave <arquivo>` abre a onda de um exercício do `lace learn` com o
+  layout da última correção, como o Studio já fazia, e um arquivo de onda que
+  não existe é `no_waveform`, e não mais `invalid_project`. O `wave.open` do
+  protocolo segue as duas regras.
+- Protocolo: `project.move` ganha `overwrite`, que manda o destino que
+  existe para a lixeira do sistema e move (menos o que o Lace mantém no
+  lugar, `cannot_replace`), e `wave.choose` ganha `{"kind": "set"}`, que
+  troca a escolha inteira, com os caminhos conferidos como no `add`. Eram
+  comandos só do Studio.
 - `lace serve` também fala MCP. O primeiro pedido diz o idioma: um cliente
   que se apresenta como MCP no `initialize`, com `protocolVersion`, recebe a
   mesma sessão do `lace mcp`, com as mesmas ferramentas, o projeto do `-C`

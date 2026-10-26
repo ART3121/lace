@@ -548,7 +548,7 @@ arquivo e linha.
 |---|---|---|
 | `lace wave` | abre no surfer-aurora a onda da simulação do projeto; dentro da pasta de um processador, a dele | `waveform_path`, `open_waveform` |
 | `lace wave -p NOME` | abre a onda da simulação do processador | `waveform_path`, `open_waveform` |
-| `lace wave <ONDA>` | abre um arquivo de onda (VCD, FST, GHW), relativo ao diretório atual | `open_waveform` |
+| `lace wave <ONDA>` | abre um arquivo de onda (VCD, FST, GHW), relativo ao diretório atual; a onda de um exercício do `lace learn` (em `.lace-learn/`) abre com o layout da última correção | `open_waveform`, `lace_learn::layout::with_exercise_layout` |
 | `lace wave --no-layout` | abre a onda crua, sem layout | `open_waveform` |
 | `lace wave --reset-layout` | apaga o layout salvo (`wave/<testbench>.surf.ron`) e abre com o gerado | `reset_saved_layout`, `prepare_wave_layout` |
 | `lace wave signals` | a árvore de sinais do testbench do projeto, com `*` no que a onda grava por escolha | `wave_signals` |

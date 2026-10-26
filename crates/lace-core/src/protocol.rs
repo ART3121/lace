@@ -229,6 +229,12 @@ pub enum Request {
         /// O movimento já aconteceu fora do Lace.
         #[serde(default)]
         after: bool,
+        /// Se o destino existe, ele vai para a lixeira do sistema e o
+        /// movimento acontece; sem isso, `path_exists`. O que o Lace mantém
+        /// no lugar, a pasta do projeto e uma pasta que contém a origem não
+        /// são substituídos (`cannot_replace`). Não vale com `after`.
+        #[serde(default)]
+        overwrite: bool,
     },
     /// Converte um projeto da estrutura do YANC 6.x. Resposta:
     /// [`LayoutConversion`].

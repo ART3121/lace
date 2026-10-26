@@ -290,10 +290,10 @@ pub enum LaceError {
     NoTestbench(Utf8PathBuf),
 
     /// A onda que se quer abrir ainda não existe no disco: a simulação do
-    /// projeto, ou a do processador, não rodou (ou não chegou ao fim). Vem
-    /// de [`flows::open_wave`](crate::flows) com uma onda do projeto. O texto
-    /// não diz como simular: cada interface tem o seu caminho (`lace sim
-    /// [-p X]`, o botão Simular do Studio).
+    /// projeto, ou a do processador, não rodou (ou não chegou ao fim), ou o
+    /// arquivo pedido não existe. Vem de [`flows::open_wave`](crate::flows).
+    /// O texto não diz como simular: cada interface tem o seu caminho (`lace
+    /// sim [-p X]`, o botão Simular do Studio).
     #[error("Waveform {path} does not exist yet{}; simulate first", processor.as_deref().map(|p| format!(" (processor {p})")).unwrap_or_default())]
     NoWaveform {
         /// Onde a onda ficaria.

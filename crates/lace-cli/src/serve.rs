@@ -893,12 +893,20 @@ impl Server {
                 from,
                 to,
                 after,
+                overwrite,
             } => {
                 let mut project = open_project(&project)?;
                 let moved = if after {
+                    if overwrite {
+                        return Err(ErrorInfo::new(
+                            "invalid_argument",
+                            "after and overwrite do not go together: the move already happened",
+                        )
+                        .into());
+                    }
                     project.record_move(&from, &to)?
                 } else {
-                    project.move_path(&from, &to)?
+                    move_replacing(&mut project, &from, &to, overwrite)?
                 };
                 Response::Moved(moved)
             }
@@ -993,6 +1001,9 @@ impl Server {
             Request::WaveOpen { project, request } => {
                 let toolchain = self.toolchain()?;
                 let project = project.map(|p| open_project(&p)).transpose()?;
+                // A onda de um exercício do lace learn abre com o layout da
+                // correção, como no `lace wave`.
+                let request = lace_learn::layout::with_exercise_layout(request);
                 Response::Wave(flows::open_wave(&toolchain, project.as_ref(), &request)?)
             }
             Request::WaveSignals { project } => {
@@ -1363,6 +1374,34 @@ fn name_check(result: Result<(), LaceError>) -> NameCheck {
             ok: false,
             error: Some(crate::output::error_info(&error)),
         },
+    }
+}
+
+/// Move `from` para `to` no projeto. Com `overwrite`, o que está no destino
+/// vai para a lixeira do sistema e o movimento é tentado de novo: o core
+/// nunca sobrescreve. Menos o que o core mantém no lugar, a pasta do projeto
+/// e uma pasta que contém a origem ([`Project::replace_refusal`]): aí o erro é
+/// `cannot_replace`, e nada vai para a lixeira.
+fn move_replacing(
+    project: &mut Project,
+    from: &Utf8Path,
+    to: &Utf8Path,
+    overwrite: bool,
+) -> Result<lace_core::MovedPath, Failure> {
+    match project.move_path(from, to) {
+        Err(LaceError::PathExists(target)) if overwrite => {
+            if let Some(reason) = project.replace_refusal(from, &target) {
+                return Err(ErrorInfo::new(
+                    "cannot_replace",
+                    format!("{target} is not replaced: {reason}"),
+                )
+                .into());
+            }
+            trash::delete(&target)
+                .map_err(|error| ErrorInfo::new("io", format!("{target}: {error}")))?;
+            Ok(project.move_path(from, to)?)
+        }
+        result => Ok(result?),
     }
 }
 
@@ -1953,6 +1992,44 @@ mod tests {
         );
         let reply = next(&rx);
         assert_eq!(reply["error"]["data"]["code"], "spf_missing", "{reply}");
+    }
+
+    #[test]
+    fn replacing_on_a_move_keeps_what_the_lace_keeps_in_place() {
+        let (server, rx) = initialized();
+        let dir = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dunce::canonicalize(dir.path()).unwrap()).unwrap();
+        let project = Project::create(&root, "demo").unwrap();
+        let spf = project.spf_path().to_owned();
+        let (a, b) = (root.join("demo/a.v"), root.join("demo/b.v"));
+        std::fs::write(&a, "").unwrap();
+        std::fs::write(&b, "").unwrap();
+        let ask = |id: u32, params: Value| {
+            let mut params = params;
+            params["project"] = json!(spf);
+            server.handle_line(
+                &json!({ "jsonrpc": "2.0", "id": id, "method": "project.move", "params": params })
+                    .to_string(),
+            );
+            next(&rx)
+        };
+        // Sem overwrite, o destino que existe é recusado.
+        let reply = ask(1, json!({ "from": a, "to": b }));
+        assert_eq!(reply["error"]["data"]["code"], "path_exists", "{reply}");
+        // O .spf é do que o Lace mantém no lugar: nada vai para a lixeira.
+        let reply = ask(2, json!({ "from": a, "to": spf, "overwrite": true }));
+        assert_eq!(reply["error"]["data"]["code"], "cannot_replace", "{reply}");
+        assert!(spf.is_file() && a.is_file());
+        // Um movimento já feito não substitui nada.
+        let reply = ask(
+            3,
+            json!({ "from": a, "to": b, "after": true, "overwrite": true }),
+        );
+        assert_eq!(
+            reply["error"]["data"]["code"], "invalid_argument",
+            "{reply}"
+        );
+        assert!(a.is_file() && b.is_file());
     }
 
     #[test]

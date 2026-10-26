@@ -662,6 +662,9 @@ pub enum WaveChoice {
     Add(Vec<String>),
     /// Tira sinais e escopos.
     Remove(Vec<String>),
+    /// Troca a escolha inteira por estes sinais e escopos; vazia, como
+    /// `All`.
+    Set(Vec<String>),
 }
 
 /// A escolha de sinais depois da mudança.

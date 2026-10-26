@@ -671,6 +671,10 @@ export type WaveChoice =
   | {
       kind: 'remove';
       paths: string[];
+    }
+  | {
+      kind: 'set';
+      paths: string[];
     };
 /**
  * Quais relatórios [`plan_cleanup`] escolhe para apagar. Em JSON:
@@ -1124,6 +1128,13 @@ export type Request =
          * O movimento já aconteceu fora do Lace.
          */
         after?: boolean;
+        /**
+         * Se o destino existe, ele vai para a lixeira do sistema e o
+         * movimento acontece; sem isso, `path_exists`. O que o Lace mantém
+         * no lugar, a pasta do projeto e uma pasta que contém a origem não
+         * são substituídos (`cannot_replace`). Não vale com `after`.
+         */
+        overwrite?: boolean;
       };
     }
   | {
@@ -1380,6 +1391,10 @@ export type Request =
             }
           | {
               kind: 'remove';
+              paths: string[];
+            }
+          | {
+              kind: 'set';
               paths: string[];
             };
       };

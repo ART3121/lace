@@ -195,6 +195,7 @@ dia; com `after`, só registra um movimento já feito. Resposta:
 | `from` | `string` | sim | De onde. |
 | `to` | `string` | sim | Para onde (o caminho final). |
 | `after` | `boolean` | não (padrão: `false`) | O movimento já aconteceu fora do Lace. |
+| `overwrite` | `boolean` | não (padrão: `false`) | Se o destino existe, ele vai para a lixeira do sistema e o movimento acontece; sem isso, `path_exists`. O que o Lace mantém no lugar, a pasta do projeto e uma pasta que contém a origem não são substituídos (`cannot_replace`). Não vale com `after`. |
 
 Resultado: [`MovedPath`](#tipo-movedpath).
 
@@ -2829,6 +2830,15 @@ Acrescenta sinais e escopos (caminhos como `tb.dut.q`).
 **`kind: "remove"`**
 
 Tira sinais e escopos.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `paths` | lista de `string` | sim |  |
+
+**`kind: "set"`**
+
+Troca a escolha inteira por estes sinais e escopos; vazia, como
+`All`.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|

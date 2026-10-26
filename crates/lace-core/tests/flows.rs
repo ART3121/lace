@@ -338,6 +338,15 @@ fn the_wave_of_an_unsimulated_processor_does_not_exist_yet() {
     assert_eq!(error.code(), "no_waveform");
     let info = lace_core::ErrorInfo::from(&error);
     assert_eq!(info.data.unwrap()["processor"], "soma");
+    // Um arquivo que não existe é o mesmo erro, sem processador.
+    let request = WaveRequest {
+        source: WaveSource::File {
+            path: root.join("nao_existe.vcd"),
+        },
+        layout: LayoutPolicy::Generated,
+    };
+    let error = open_wave(&toolchain, None, &request).unwrap_err();
+    assert_eq!(error.code(), "no_waveform", "{error}");
 }
 
 #[test]
@@ -391,6 +400,28 @@ fn choosing_signals_checks_the_paths_against_the_elaborated_testbench() {
     )
     .unwrap_err();
     assert_eq!(error.code(), "signal_not_chosen", "{error}");
+    let error = choose_signals(
+        &toolchain,
+        &project,
+        &WaveChoice::Set(vec!["nao.existe".into()]),
+        &control,
+    )
+    .unwrap_err();
+    assert_eq!(error.code(), "signal_not_found", "{error}");
+    // A lista vazia vale como All, sem elaborar.
+    let none = choose_signals(&toolchain, &project, &WaveChoice::Set(vec![]), &control).unwrap();
+    assert!(none.file.is_none() && none.selection.is_empty());
+    let tree = lace_core::wave_signals(&toolchain, &project, &control).unwrap();
+    let root_scope = tree.root.expect("o testbench elabora");
+    let set = choose_signals(
+        &toolchain,
+        &project,
+        &WaveChoice::Set(vec![root_scope.path.clone()]),
+        &control,
+    )
+    .unwrap();
+    assert_eq!(set.selection, [root_scope.path]);
+    assert!(set.file.is_some());
 }
 
 #[test]

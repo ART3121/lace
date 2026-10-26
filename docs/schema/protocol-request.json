@@ -301,6 +301,11 @@
               "description": "O movimento já aconteceu fora do Lace.",
               "type": "boolean",
               "default": false
+            },
+            "overwrite": {
+              "description": "Se o destino existe, ele vai para a lixeira do sistema e o\nmovimento acontece; sem isso, `path_exists`. O que o Lace mantém\nno lugar, a pasta do projeto e uma pasta que contém a origem não\nsão substituídos (`cannot_replace`). Não vale com `after`.",
+              "type": "boolean",
+              "default": false
             }
           },
           "required": [
@@ -1888,6 +1893,26 @@
             "kind": {
               "type": "string",
               "const": "remove"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "paths"
+          ]
+        },
+        {
+          "description": "Troca a escolha inteira por estes sinais e escopos; vazia, como\n`All`.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "set"
             },
             "paths": {
               "type": "array",

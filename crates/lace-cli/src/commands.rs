@@ -753,7 +753,8 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
     } else {
         LayoutPolicy::Generated
     };
-    let request = WaveRequest { source, layout };
+    // A onda de um exercício do lace learn abre com o layout da correção.
+    let request = lace_learn::layout::with_exercise_layout(WaveRequest { source, layout });
     let opened = flows::open_wave(&toolchain, project.as_ref(), &request)?;
     if let Some(testbench) = &opened.reset_deleted
         && out.is_text()
