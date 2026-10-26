@@ -2,20 +2,21 @@
 
 ## Não publicada
 
-- CLI: os comandos que têm método no protocolo (`new`, `status`, `add`,
-  `remove`, `top`, `move`, `order`, `convert`, `proc`, `build`, `check`,
-  `hierarchy`, `sim`, `synth`, `wave`, `report`, `tools`, `experimental` e
-  `fpga`) chamam o despacho do `lace serve` no próprio processo, como o
-  `lace mcp`, e montam o texto e o `--json` a partir da resposta. O
+- CLI e `lace serve`: as operações de mais de um passo viram funções do
+  core, e a CLI e o despacho do `lace serve` chamam as mesmas:
+  `Project::add_verilog_files` e `remove_verilog_files`, `flows::run_with`
+  e `flows::open_wave_with` (que conferem o pedido antes de procurar o
+  bundle), `history::view`, `history::clean` e `experimental::info`. O
   `--json` não muda. O que se vê de diferente: um processador que não
   existe é erro antes do bundle também no `check`, no `hierarchy`, no `sim`
   e no `synth` (era só no `build`); um arquivo de onda que não existe é
   `no_waveform` antes do bundle; o `lace add` escreve os arquivos depois de
   registrar todos; e a pasta que não foi para a lixeira no
   `lace proc remove --delete` é erro `io`, e não `cli`.
-- `lace serve`: o `flow.run` confere os processadores do pedido antes de
-  procurar o bundle, e um `build` num projeto sem processadores não precisa
-  dele; o `wave.open` confere a onda antes do bundle.
+- `lace serve`: o `flow.run` confere o recurso experimental e os
+  processadores do pedido antes de procurar o bundle, e um `build` num
+  projeto sem processadores não precisa dele; o `wave.open` confere a onda
+  antes do bundle.
 
 - Protocolo: métodos novos para o que o Studio ainda fazia linkando o core,
   o lace-learn e o instalador: `processor.defaults`, `flow.command`,
