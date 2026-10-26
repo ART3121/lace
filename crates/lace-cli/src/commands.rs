@@ -21,13 +21,11 @@ use lace_core::flows::{
 };
 use lace_core::history::{self, Cleanup};
 use lace_core::locate;
-use lace_core::protocol::Request;
 use lace_core::{
-    Control, Language, ListPosition, NewProcessorFields, Processor, ProcessorConfig, Project,
-    Simulator,
+    Control, ErrorInfo, Language, ListPosition, NewProcessorFields, Processor, ProcessorConfig,
+    Project, Simulator,
 };
 
-use crate::local::{Local, answer};
 use crate::output::Output;
 use crate::report::{
     AddReport, BuildReport, CheckReport, ConvertReport, MoveReport, OrderReport, PortValues,
@@ -335,9 +333,7 @@ fn move_paths(
 }
 
 fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
-    let spf = project.spf_path().to_owned();
-    let local = Local::new(cli);
+    let mut project = open(cli)?;
     match command {
         ProcCommand::Add(args) => {
             let language = match args.lang {
@@ -374,13 +370,9 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
                 output_ports: Some(args.outputs),
                 ..NewProcessorFields::new(&args.name, language)
             };
-            let request = Request::ProcessorAdd {
-                project: spf,
-                spec: spec.into(),
-            };
-            let processor = answer!(local.call(request)?, Processor);
+            let processor = project.add_processor(&spec.into())?;
             out.message("Processor created", &processor.source);
-            out.json(&*processor)?;
+            out.json(processor)?;
         }
         ProcCommand::Set {
             name,
@@ -404,14 +396,9 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
             config.frequency_mhz = *freq;
             config.clocks = *clocks;
             config.show_arrays = *arrays;
-            let request = Request::ProcessorSet {
-                project: spf,
-                name,
-                config,
-            };
-            let processor = answer!(local.call(request)?, Processor);
+            let processor = project.configure_processor(&name, &config)?.clone();
             if !out.is_text() {
-                out.json(&*processor)?;
+                out.json(&processor)?;
             } else {
                 println!(
                     "{}: {} MHz, {} clocks{} (applies from the next build)",
@@ -432,17 +419,23 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
             if *delete && !*yes && dir.exists() {
                 confirm_trash(name, &dir)?;
             }
-            let request = Request::ProcessorRemove {
-                project: spf,
-                name: name.clone(),
-                to_trash: *delete,
-            };
-            let removal = answer!(local.call(request)?, ProcessorRemoved);
-            out.processor_removed(&removal.removed, removal.trashed, project.root());
-            out.json(&ProcRemoveReport {
-                removed: removal.removed,
-                trashed: removal.trashed,
-            })?;
+            let removed = project.remove_processor(name)?;
+            // A lixeira é decisão da interface, e vem depois de o processador
+            // sair do projeto, como no processor.remove.
+            let trashed = *delete && removed.dir.exists();
+            if trashed {
+                trash::delete(&removed.dir).map_err(|error| {
+                    ErrorInfo::new(
+                        "io",
+                        format!(
+                            "{name} is out of the project, but its folder did not go to the trash ({error}): {}",
+                            removed.dir
+                        ),
+                    )
+                })?;
+            }
+            out.processor_removed(&removed, trashed, project.root());
+            out.json(&ProcRemoveReport { removed, trashed })?;
         }
     }
     Ok(())
