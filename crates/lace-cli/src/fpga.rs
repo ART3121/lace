@@ -8,10 +8,8 @@ use lace_core::Control;
 use lace_core::experimental::{self, Feature};
 use lace_core::flows::FlowRequest;
 use lace_core::fpga::{self, Cable, SignalDirection};
-use lace_core::protocol::Request;
 
 use crate::commands::{Printer, open, run_flow};
-use crate::local::{Local, answer};
 use crate::output::{BOLD, DIM, OK, Output, WARNING, paint};
 use crate::report::{FpgaBoardsReport, FpgaBuildReport, FpgaCablesReport, FpgaCheckReport};
 use crate::{Cli, FpgaCommand};
@@ -26,7 +24,7 @@ pub fn run(
 ) -> anyhow::Result<bool> {
     experimental::require(Feature::Fpga)?;
     match command {
-        FpgaCommand::Boards { board } => boards(cli, board.as_deref(), out),
+        FpgaCommand::Boards { board } => boards(board.as_deref(), out),
         FpgaCommand::Check { show_top } => check(cli, *show_top, out),
         FpgaCommand::Build => build(cli, out, control),
         FpgaCommand::Program { cable, list } => match list {
@@ -38,7 +36,8 @@ pub fn run(
 
 /// `lace fpga program --list`: os cabos de gravação ligados.
 fn cables(cli: &Cli, out: &Output) -> anyhow::Result<bool> {
-    let cables = answer!(Local::new(cli).call(Request::FpgaCables)?, Cables);
+    let toolchain = cli.toolchain.resolve()?;
+    let cables = fpga::cables(&toolchain)?;
     if out.is_text() {
         if cables.is_empty() {
             println(&paint(WARNING, "No programming cable found"));
@@ -102,11 +101,11 @@ fn build(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
 }
 
 /// `lace fpga boards [<placa>]`: a lista, ou os sinais e pinos de uma.
-fn boards(cli: &Cli, id: Option<&str>, out: &Output) -> anyhow::Result<bool> {
-    let request = Request::FpgaBoards {
-        board: id.map(str::to_owned),
+fn boards(id: Option<&str>, out: &Output) -> anyhow::Result<bool> {
+    let boards = match id {
+        Some(id) => vec![fpga::board(id)?],
+        None => fpga::boards()?,
     };
-    let boards = answer!(Local::new(cli).call(request)?, Boards);
     if out.is_text() {
         match (id, boards.first()) {
             (Some(_), Some(board)) => {
@@ -186,11 +185,10 @@ fn boards(cli: &Cli, id: Option<&str>, out: &Output) -> anyhow::Result<bool> {
 
 /// `lace fpga check`: confere o `fpga.json` e mostra as ligações.
 fn check(cli: &Cli, show_top: bool, out: &Output) -> anyhow::Result<bool> {
+    let project = open(cli)?;
     // Sem bundle, as portas do topo vêm do leitor embutido.
-    let request = Request::FpgaCheck {
-        project: open(cli)?.spf_path().to_owned(),
-    };
-    let prepared = answer!(Local::new(cli).call(request)?, Prepared);
+    let toolchain = cli.toolchain.resolve().ok();
+    let prepared = fpga::prepare(toolchain.as_ref(), &project)?;
     let resolved = &prepared.resolved;
     if out.is_text() {
         println(&format!(
