@@ -19,14 +19,14 @@ use anstyle::{AnsiColor, Style};
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::fpga::{FpgaBuildResult, FpgaProgramResult, ResourceUsage};
 use lace_core::history::{Availability, MetricComparison, RunComparison, RunMetadata, RunSummary};
+use lace_core::locate::ToolchainInfo;
+use lace_core::protocol::TopOutcome;
 use lace_core::{
     AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
     Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, LayoutConversion,
-    ModuleInstance, MovedPath, Platform, Processor, Project, ProjectFile,
-    RemovedProcessor, SchematicResult, Severity, SimulationResult, Simulator,
-    Status, Step,
-    StepReport, SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool, Toolchain,
-    component,
+    ModuleInstance, MovedPath, Platform, ProjectFile, ProjectStatus, RemovedProcessor,
+    SchematicResult, Severity, SimulationResult, Simulator, Status, Step, StepReport,
+    SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool,
 };
 use serde::Serialize;
 
@@ -206,17 +206,17 @@ impl Output {
     }
 
     /// O projeto novo.
-    pub fn created(&self, project: &Project) -> anyhow::Result<()> {
+    pub fn created(&self, status: &ProjectStatus) -> anyhow::Result<()> {
         if self.json {
             return self.json(&NewReport {
                 message: "Project created".into(),
-                path: project.spf_path().to_owned(),
-                root: project.root().to_owned(),
+                path: status.spf.clone(),
+                root: status.root.clone(),
             });
         }
-        println!("Project created: {}", project.spf_path());
+        println!("Project created: {}", status.spf);
         // Um projeto dentro da pasta de outro, por exemplo.
-        for issue in project.issues() {
+        for issue in &status.issues {
             self.warning(&issue.message);
         }
         Ok(())
@@ -500,39 +500,29 @@ impl Output {
     }
 
     /// O módulo de topo e o arquivo dele.
-    pub fn top(&self, project: &Project) -> anyhow::Result<()> {
-        let file = project.top_level();
-        let module = match &file {
-            Some(_) => project.top_module(),
-            None => Ok(None),
-        };
+    pub fn top(&self, top: &TopOutcome, root: &Utf8Path) -> anyhow::Result<()> {
         if self.json {
-            let (name, error) = match &module {
-                Ok(name) => (name.clone(), None),
-                Err(e) => (None, Some(error_info(e))),
-            };
             return self.json(&TopReport {
-                top_level: file,
-                module: name,
-                module_error: error,
+                top_level: top.top_level.clone(),
+                module: top.module.clone(),
+                module_error: top.module_error.clone(),
             });
         }
-        let root = project.root();
-        match (file, module) {
-            (None, _) => {
+        match (&top.top_level, &top.module, &top.module_error) {
+            (None, _, _) => {
                 println!("No top module");
                 println!("  {}", paint(DIM, "Choose it with: lace top <file|module>"));
             }
-            (Some(file), Ok(Some(name))) => {
-                println!("Top module: {name} ({})", relative(&file, root));
-            }
-            (Some(file), Ok(None)) => println!("Top file: {}", relative(&file, root)),
             // O arquivo continua sendo o topo; o nome do módulo é que não
             // dá para saber (vários módulos, nenhum com o nome do arquivo).
-            (Some(file), Err(e)) => {
-                println!("Top file: {}", relative(&file, root));
-                println!("  {}: {e}", paint(WARNING, "Warning"));
+            (Some(file), _, Some(error)) => {
+                println!("Top file: {}", relative(file, root));
+                println!("  {}: {}", paint(WARNING, "Warning"), error.message);
             }
+            (Some(file), Some(name), None) => {
+                println!("Top module: {name} ({})", relative(file, root));
+            }
+            (Some(file), None, None) => println!("Top file: {}", relative(file, root)),
         }
         Ok(())
     }
@@ -1104,62 +1094,57 @@ impl Output {
     }
 
     /// O bundle: versões, ferramentas, compilador do sistema e, com
-    /// `--verify`, os executáveis cujo hash não confere.
+    /// `--verify`, os executáveis cujo hash não confere. `info` é o
+    /// `toolchain.info` de um bundle que abriu (a CLI recusa antes um que
+    /// não abre).
     pub fn tools(
         &self,
-        toolchain: &Toolchain,
+        info: &ToolchainInfo,
         mismatches: Option<&[FileMismatch]>,
     ) -> anyhow::Result<()> {
-        let tools: Vec<_> = toolchain
-            .tools()
-            .into_iter()
-            .map(|t| (t, toolchain.tool(t)))
-            .collect();
-        let manifest = toolchain.manifest();
-        // O Perl do Verilator vem do sistema no Linux e no macOS, e do
-        // bundle no Windows; o Quartus, sempre do sistema.
-        let bundled = toolchain.system_compiler().is_some_and(|c| c.bundled);
-        let from_system = |tool: Tool| tool.is_system() && !(tool == Tool::Perl && bundled);
+        let root = info.root.clone().unwrap_or_default();
+        let bundle = info.bundle.clone().unwrap_or_default();
+        let platform = info.platform.clone().unwrap_or_default();
         if self.json {
-            let tools = tools
+            let tools = info
+                .tools
                 .iter()
-                .map(|(tool, path)| {
-                    let entry = match path {
-                        Ok(path) => ToolEntry::Found {
+                .filter_map(|tool| {
+                    let entry = match (&tool.path, &tool.error) {
+                        (Some(path), _) => ToolEntry::Found {
                             path: path.clone(),
-                            system: from_system(*tool),
+                            system: tool.system,
                         },
-                        Err(e) => ToolEntry::Missing {
-                            error: error_info(e),
+                        (None, Some(error)) => ToolEntry::Missing {
+                            error: with_hint(error.clone()),
                         },
+                        // O `toolchain.info` sempre traz um dos dois.
+                        (None, None) => return None,
                     };
-                    (tool.binary_name().to_owned(), entry)
+                    Some((tool.name.clone(), entry))
                 })
                 .collect();
             return self.json(&ToolsReport {
-                root: toolchain.root().to_owned(),
-                bundle: manifest.bundle.clone(),
-                platform: manifest.platform.clone(),
-                components: manifest.components.clone(),
-                not_installed: component::ALL
-                    .iter()
-                    .filter(|c| toolchain.component(c).is_none())
-                    .map(|c| (*c).to_owned())
-                    .collect(),
+                root,
+                bundle,
+                platform,
+                components: info.components.clone(),
+                not_installed: info.not_installed.clone(),
                 tools,
-                system_compiler: toolchain.system_compiler().cloned(),
-                quartus: toolchain.quartus().cloned(),
+                system_compiler: info.system_compiler.clone(),
+                quartus: info.quartus.clone(),
                 verify: mismatches.map(<[FileMismatch]>::to_vec),
             });
         }
+        let platform_kind = Platform::from_name(&platform);
         println!(
             "{} {} ({}) in {}",
             paint(BOLD, "Bundle"),
-            manifest.bundle,
-            manifest.platform,
-            toolchain.root()
+            bundle,
+            platform,
+            root
         );
-        for c in &manifest.components {
+        for c in &info.components {
             println!(
                 "  {:<14} {:<16} {}",
                 c.name,
@@ -1167,39 +1152,47 @@ impl Output {
                 paint(DIM, &c.source)
             );
         }
-        for name in component::ALL {
-            if toolchain.component(name).is_none() {
-                println!("  {:<14} {}", name, paint(DIM, "not installed"));
-            }
+        for name in &info.not_installed {
+            println!("  {:<14} {}", name, paint(DIM, "not installed"));
         }
         println!("{}", paint(BOLD, "Tools"));
-        for (tool, path) in tools {
-            let name = tool.binary_name();
-            match path {
-                Ok(path) if from_system(tool) => println!(
+        for tool in &info.tools {
+            let name = &tool.name;
+            match (&tool.path, &tool.error) {
+                (Some(path), _) if tool.system => println!(
                     "  {} {name:<14} {path}  {}",
                     paint(OK, "OK"),
                     paint(DIM, "(system)")
                 ),
-                Ok(path) => println!("  {} {name:<14} {path}", paint(OK, "OK")),
-                Err(LaceError::ComponentMissing(c)) => {
+                (Some(path), _) => println!("  {} {name:<14} {path}", paint(OK, "OK")),
+                (None, Some(error)) if error.code == "component_missing" => {
+                    let component = error
+                        .data
+                        .as_ref()
+                        .and_then(|d| d.get("component"))
+                        .and_then(|c| c.as_str())
+                        .or(tool.component.as_deref())
+                        .unwrap_or("?");
                     println!(
                         "  {} {name:<14} {}",
                         paint(DIM, "--"),
-                        paint(DIM, format!("{c} not installed"))
+                        paint(DIM, format!("{component} not installed"))
                     )
                 }
                 // Só as placas Intel precisam dele; a linha do Quartus
                 // abaixo diz como apontar um.
-                Err(LaceError::QuartusMissing) => println!(
+                (None, Some(error)) if error.code == "quartus_missing" => println!(
                     "  {} {name:<14} {}",
                     paint(DIM, "--"),
                     paint(DIM, "not found on the system")
                 ),
-                Err(error) => println!("  {} {name:<14} {error}", paint(ERROR, "!!")),
+                (None, Some(error)) => {
+                    println!("  {} {name:<14} {}", paint(ERROR, "!!"), error.message)
+                }
+                (None, None) => {}
             }
         }
-        match toolchain.system_compiler() {
+        match &info.system_compiler {
             Some(c) => println!(
                 "{} {} (make {}, perl {}){}",
                 paint(BOLD, "Verilator compiler"),
@@ -1217,7 +1210,7 @@ impl Output {
             ),
             // No Windows o compilador vem com o componente verilator: sem
             // ele, a linha do verilator acima já diz o que falta.
-            None if toolchain.platform() == Platform::WindowsX64 => {}
+            None if platform_kind == Some(Platform::WindowsX64) => {}
             None => println!(
                 "{} {}",
                 paint(BOLD, "Verilator compiler"),
@@ -1227,7 +1220,7 @@ impl Output {
                 )
             ),
         }
-        match toolchain.quartus() {
+        match &info.quartus {
             Some(q) => println!(
                 "{} {} {}{}",
                 paint(BOLD, "Quartus Prime"),
@@ -1236,7 +1229,7 @@ impl Output {
                 paint(DIM, "  (system)")
             ),
             // O Quartus não existe para macOS.
-            None if toolchain.platform() == Platform::MacosArm64 => {}
+            None if platform_kind == Some(Platform::MacosArm64) => {}
             None => println!(
                 "{} {}",
                 paint(BOLD, "Quartus Prime"),
@@ -1248,10 +1241,10 @@ impl Output {
         }
         if let Some(mismatches) = mismatches {
             if mismatches.is_empty() {
+                let verified: usize = info.components.iter().map(|c| c.files.len()).sum();
                 println!(
-                    "{} {} executables match the manifest",
-                    paint(OK, "OK"),
-                    toolchain.verified_files()
+                    "{} {verified} executables match the manifest",
+                    paint(OK, "OK")
                 );
             }
             for m in mismatches {
@@ -1275,67 +1268,76 @@ impl Output {
     /// os `.v` da pasta que não estão registrados e os processadores. Num
     /// projeto vazio, como começar nos dois fluxos.
     /// `here`: o processador da pasta em que o comando rodou.
-    pub fn status(&self, project: &Project, here: Option<&Processor>) -> anyhow::Result<()> {
-        let synth = project.files(FileRole::Synthesizable);
-        let tbs = project.files(FileRole::Testbench);
-        let unregistered = project.unregistered_verilog();
-        // Um arquivo de topo sem módulo identificável não impede o resumo; o
-        // erro aparece em `lace top` e em quem precisa do nome.
-        let top_module = project.top_module().ok().flatten();
+    pub fn status(&self, status: &ProjectStatus, here: Option<&str>) -> anyhow::Result<()> {
         if self.json {
             // O retrato do Core, no formato que o `status.json` sempre teve.
-            let status = project.status();
             return self.json(&StatusReport {
-                name: status.name,
-                spf: status.spf,
-                root: status.root,
-                synthesizable: status.synthesizable,
-                testbench: status.testbenches,
-                top_level: status.top_level,
-                top_module: status.top_module,
-                selected_testbench: status.selected_testbench,
-                testbench_module: status.testbench_module,
-                unregistered: status.unregistered,
-                here: here.map(|p| p.name.clone()),
+                name: status.name.clone(),
+                spf: status.spf.clone(),
+                root: status.root.clone(),
+                synthesizable: status.synthesizable.clone(),
+                testbench: status.testbenches.clone(),
+                top_level: status.top_level.clone(),
+                top_module: status.top_module.clone(),
+                selected_testbench: status.selected_testbench.clone(),
+                testbench_module: status.testbench_module.clone(),
+                unregistered: status.unregistered.clone(),
+                here: here.map(str::to_owned),
                 processors: status
                     .processors
-                    .into_iter()
+                    .iter()
                     .map(|p| ProcessorStatus {
-                        processor: p.processor,
+                        processor: p.processor.clone(),
                         built: p.built,
                     })
                     .collect(),
-                issues: status.issues,
+                issues: status.issues.clone(),
             });
         }
-        let root = project.root();
-        println!("{} {}", paint(BOLD, "Project"), project.name());
-        println!("  {}", project.spf_path());
-        for issue in project.issues() {
+        let root = &status.root;
+        println!("{} {}", paint(BOLD, "Project"), status.name);
+        println!("  {}", status.spf);
+        for issue in &status.issues {
             println!(
                 "  {}",
                 paint(WARNING, format!("warning: {}", issue.message))
             );
         }
-        let empty = synth.is_empty() && tbs.is_empty() && project.processors().is_empty();
+        let empty = status.synthesizable.is_empty()
+            && status.testbenches.is_empty()
+            && status.processors.is_empty();
         if !empty {
-            let top_mark = match &top_module {
+            // Um arquivo de topo sem módulo identificável não impede o
+            // resumo; o erro aparece em `lace top` e em quem precisa do nome.
+            let top_mark = match &status.top_module {
                 Some(module) => format!("top: {module}"),
                 None => "top".to_owned(),
             };
-            file_section("Modules", &synth, project.top_level(), &top_mark, root);
-            file_section("Testbenches", &tbs, project.testbench(), "selected", root);
+            file_section(
+                "Modules",
+                &status.synthesizable,
+                status.top_level.clone(),
+                &top_mark,
+                root,
+            );
+            file_section(
+                "Testbenches",
+                &status.testbenches,
+                status.selected_testbench.clone(),
+                "selected",
+                root,
+            );
         }
-        if !unregistered.is_empty() {
+        if !status.unregistered.is_empty() {
             println!("{}", paint(BOLD, "Untracked files"));
-            for file in &unregistered {
+            for file in &status.unregistered {
                 println!("  {}", relative(file, root));
             }
             println!("  {}", paint(DIM, "Add one with: lace add <file>"));
         }
-        if !project.processors().is_empty() {
+        if !status.processors.is_empty() {
             println!("{}", paint(BOLD, "Processors"));
-            processors_text(project, here);
+            processors_text(&status.processors, here);
         }
         if empty {
             println!("{}", paint(BOLD, "Empty project"));
@@ -1562,6 +1564,12 @@ fn chain_text(error: &anyhow::Error) -> String {
 /// "e mais N" (um projeto de 1500 módulos soltos não ocupa uma tela).
 const TITLE_TARGETS: usize = 5;
 
+/// A dica de um compilador do Verilator que não foi achado.
+const COMPILER_HINT: &str = "Or set its location with --compiler <DIR> or LACE_COMPILER";
+
+/// A dica de um Quartus que não foi achado.
+const QUARTUS_HINT: &str = "Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS";
+
 /// O que fazer depois de um erro, quando o código diz. As mensagens do Core
 /// são neutras; os nomes de comando ficam aqui.
 fn hint(error: &LaceError) -> Option<String> {
@@ -1606,9 +1614,7 @@ fn hint(error: &LaceError) -> Option<String> {
         LaceError::ProcessorNotFound { name, available } if available.is_empty() => {
             format!("Create it with: lace proc add {name}")
         }
-        LaceError::SystemCompilerMissing => {
-            "Or set its location with --compiler <DIR> or LACE_COMPILER".into()
-        }
+        LaceError::SystemCompilerMissing => COMPILER_HINT.into(),
         LaceError::ProjectNotFound(_) => {
             "Create one with: lace new <name>, or point to it with -C <folder>".into()
         }
@@ -1626,9 +1632,7 @@ fn hint(error: &LaceError) -> Option<String> {
         LaceError::NoCable => {
             "Connect the board through its USB-Blaster port, turn it on and set its RUN/PROG switch to RUN; on Windows the USB-Blaster driver is in the drivers folder of Quartus, and on Linux the cable needs a udev rule (see docs/FPGA.md)".into()
         }
-        LaceError::QuartusMissing => {
-            "Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS".into()
-        }
+        LaceError::QuartusMissing => QUARTUS_HINT.into(),
         LaceError::ExperimentalDisabled { feature } => format!(
             "Enable it with: lace experimental enable {feature} (in Lace Studio: Settings > Experimental)"
         ),
@@ -1651,6 +1655,8 @@ fn hint_for_info(info: &lace_core::ErrorInfo) -> Option<String> {
     let field = |name: &str| data.and_then(|d| d.get(name)).and_then(|v| v.as_str());
     Some(match info.code.as_str() {
         "component_missing" => format!("Install it with: lace install {}", field("component")?),
+        "system_compiler_missing" => COMPILER_HINT.into(),
+        "quartus_missing" => QUARTUS_HINT.into(),
         "module_not_found" => return None,
         "process_exited_early" => format!("See the end of the log: {}", field("log")?),
         "no_waveform" => match field("processor") {
@@ -1663,6 +1669,13 @@ fn hint_for_info(info: &lace_core::ErrorInfo) -> Option<String> {
         ),
         _ => return None,
     })
+}
+
+/// Um erro que chegou de uma resposta do despacho, com a dica da CLI, como
+/// o [`error_info`] de um erro do Core.
+fn with_hint(mut info: ErrorInfo) -> ErrorInfo {
+    info.hint = hint_for_info(&info);
+    info
 }
 
 /// `run-000042` como o usuário pode digitar: `42`.
@@ -1946,14 +1959,15 @@ fn file_section(
     }
 }
 
-fn processors_text(project: &Project, here: Option<&Processor>) {
-    for p in project.processors() {
-        let built = if p.is_built() {
+fn processors_text(processors: &[lace_core::ProcessorStatus], here: Option<&str>) {
+    for status in processors {
+        let p = &status.processor;
+        let built = if status.built {
             paint(OK, "built")
         } else {
             paint(DIM, "not built")
         };
-        let mark = if here.is_some_and(|h| h.name == p.name) {
+        let mark = if here == Some(p.name.as_str()) {
             format!("  {}", paint(BOLD, "(this folder)"))
         } else {
             String::new()
@@ -1972,10 +1986,7 @@ fn processors_text(project: &Project, here: Option<&Processor>) {
             "  {}",
             paint(
                 DIM,
-                format!(
-                    "Here, build, check, sim, wave, synth and proc set act on {}",
-                    here.name
-                )
+                format!("Here, build, check, sim, wave, synth and proc set act on {here}")
             )
         );
     }

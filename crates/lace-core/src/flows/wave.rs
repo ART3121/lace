@@ -33,37 +33,7 @@ pub fn open_wave(
     project: Option<&Project>,
     request: &WaveRequest,
 ) -> Result<WaveOpened> {
-    let waveform = match &request.source {
-        WaveSource::File { path } => {
-            if !path.is_file() {
-                return Err(LaceError::NoWaveform {
-                    path: path.clone(),
-                    processor: None,
-                });
-            }
-            path.clone()
-        }
-        WaveSource::Project { processor } => {
-            let Some(project) = project else {
-                return Err(LaceError::InvalidProject {
-                    path: Utf8PathBuf::new(),
-                    reason: "a project is needed to find its waveform".to_owned(),
-                });
-            };
-            let processor = processor
-                .as_deref()
-                .map(|name| project.require_processor(name))
-                .transpose()?;
-            let path = crate::waveform_path(project, processor)?;
-            if !path.is_file() {
-                return Err(LaceError::NoWaveform {
-                    path,
-                    processor: processor.map(|p| p.name.clone()),
-                });
-            }
-            path
-        }
-    };
+    let waveform = wave_file(project, &request.source)?;
 
     // O layout salvo no projeto sai antes: a onda abre com o gerado, que
     // passa a ser o salvo. O projeto é o da onda, não o de quem chamou.
@@ -138,6 +108,45 @@ pub fn open_wave(
             let _ = surfer.wait();
         });
     Ok(opened)
+}
+
+/// O arquivo da onda de `source`, que precisa existir: um arquivo, ou a
+/// onda da simulação do processador ou do projeto
+/// ([`waveform_path`](crate::waveform_path)). Uma onda que não existe é
+/// [`LaceError::NoWaveform`], com o processador quando é a dele. Não precisa
+/// do bundle: quem abre a onda pode conferir antes de procurar o Surfer.
+pub fn wave_file(project: Option<&Project>, source: &WaveSource) -> Result<Utf8PathBuf> {
+    match source {
+        WaveSource::File { path } => {
+            if !path.is_file() {
+                return Err(LaceError::NoWaveform {
+                    path: path.clone(),
+                    processor: None,
+                });
+            }
+            Ok(path.clone())
+        }
+        WaveSource::Project { processor } => {
+            let Some(project) = project else {
+                return Err(LaceError::InvalidProject {
+                    path: Utf8PathBuf::new(),
+                    reason: "a project is needed to find its waveform".to_owned(),
+                });
+            };
+            let processor = processor
+                .as_deref()
+                .map(|name| project.require_processor(name))
+                .transpose()?;
+            let path = crate::waveform_path(project, processor)?;
+            if !path.is_file() {
+                return Err(LaceError::NoWaveform {
+                    path,
+                    processor: processor.map(|p| p.name.clone()),
+                });
+            }
+            Ok(path)
+        }
+    }
 }
 
 /// Muda a escolha de sinais da onda do testbench do projeto

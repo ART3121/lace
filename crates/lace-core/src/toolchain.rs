@@ -125,6 +125,16 @@ pub mod component {
         LACE_LEARN,
         RTL_VIEWER,
     ];
+
+    /// O primeiro de `names` que não é um componente do bundle, com a
+    /// mensagem que quem instala mostra antes de qualquer download:
+    /// `Unknown app: nope (bundle apps: yanc, icarus, ...)`.
+    pub fn unknown_message(names: &[String]) -> Option<String> {
+        names
+            .iter()
+            .find(|name| !ALL.contains(&name.as_str()))
+            .map(|name| format!("Unknown app: {name} (bundle apps: {})", ALL.join(", ")))
+    }
 }
 
 /// Uma plataforma suportada, com o nome que o OSS CAD Suite usa nos pacotes.

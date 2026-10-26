@@ -265,6 +265,25 @@ impl Workspace {
         Ok(workspace)
     }
 
+    /// A pasta de exercícios que contém `start` ([`Workspace::discover`]),
+    /// aberta e em dia com a trilha ([`Workspace::open`]), com as trilhas de
+    /// onde o Lace as acha ([`track::tracks_dir`]): o começo de cada
+    /// operação, na CLI e no servidor.
+    ///
+    /// # Erros
+    ///
+    /// Os de [`Workspace::discover`], de [`track::tracks_dir`] e de
+    /// [`Workspace::open`], nessa ordem.
+    pub fn find(
+        start: &Utf8Path,
+        toolchain: Option<&lace_core::Toolchain>,
+        lang: Option<&str>,
+    ) -> Result<Workspace> {
+        let root = Workspace::discover(start)?;
+        let tracks = track::tracks_dir(toolchain)?;
+        Workspace::open(&root, &tracks, lang)
+    }
+
     /// A pasta de exercícios que contém `start`: a primeira, de `start` para
     /// cima, com o `.lace-learn.json`.
     ///
@@ -308,6 +327,18 @@ impl Workspace {
             .and_then(|c| self.track.find(c))
             .or_else(|| self.track.exercises().next())
             .expect("a loaded track has exercises")
+    }
+
+    /// O exercício `name`, ou o atual quando não há nome.
+    ///
+    /// # Erros
+    ///
+    /// [`LearnError::UnknownExercise`].
+    pub fn exercise(&self, name: Option<&str>) -> Result<Exercise> {
+        Ok(match name {
+            Some(name) => self.track.require(name)?.clone(),
+            None => self.current().clone(),
+        })
     }
 
     /// Torna atual o exercício `name` e grava o estado.

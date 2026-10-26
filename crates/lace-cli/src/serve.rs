@@ -416,6 +416,11 @@ type Job = Box<dyn FnOnce() + Send>;
 pub(crate) enum Failure {
     Lace(Box<LaceError>),
     Info(Box<ErrorInfo>),
+    /// Um erro da CLI (o bundle resolvido como na linha de comando, a rede
+    /// do instalador), guardado como veio: quem chama no mesmo processo o
+    /// mostra como a CLI sempre mostrou, e o servidor o converte ao
+    /// responder.
+    Cli(anyhow::Error),
 }
 
 impl From<LaceError> for Failure {
@@ -441,6 +446,18 @@ impl Failure {
         match self {
             Failure::Lace(error) => crate::output::error_info(&error),
             Failure::Info(info) => *info,
+            Failure::Cli(error) => to_info(&error),
+        }
+    }
+
+    /// O erro como a CLI o mostra: o `LaceError`, o `ErrorInfo` ou o erro
+    /// da CLI, cada um com o tipo de antes, para o código, a dica e o
+    /// `--json` não mudarem.
+    pub(crate) fn into_anyhow(self) -> anyhow::Error {
+        match self {
+            Failure::Lace(error) => anyhow::Error::new(*error),
+            Failure::Info(info) => anyhow::Error::new(*info),
+            Failure::Cli(error) => error,
         }
     }
 }
@@ -450,6 +467,27 @@ pub(crate) type Handled = Result<Response, Failure>;
 /// Para onde vão as notificações de um pedido enquanto ele roda: no `serve`,
 /// o stdout com o `id` do pedido; no `lace mcp`, o progresso do MCP.
 pub(crate) type Emit = Arc<dyn Fn(Notification) + Send + Sync>;
+
+/// Para onde vai o que um pedido diz enquanto roda.
+pub(crate) enum Sink<'a> {
+    /// O stdout do `lace serve`: as notificações com o `id` do pedido.
+    Stdout,
+    /// As mesmas notificações para outro destino (o `lace mcp`).
+    Notify(Emit),
+    /// Quem chama no mesmo processo (o CLI): o progresso do core e a saída
+    /// das ferramentas como o core os entrega, sem lotes nem teto de linhas.
+    Direct(Direct<'a>),
+}
+
+/// O que o CLI recebe enquanto um pedido roda no mesmo processo.
+pub(crate) struct Direct<'a> {
+    /// A saída das ferramentas e o cancelamento: o `Control` do CLI, com o
+    /// Ctrl+C dele.
+    pub(crate) control: &'a Control,
+    /// O que um fluxo diz entre um passo e outro (`Progress`), para o texto
+    /// que a CLI escreve na ordem em que acontece.
+    pub(crate) progress: lace_core::flows::ProgressFn<'a>,
+}
 
 /// O servidor: o estado da sessão e as filas.
 pub(crate) struct Server {
@@ -469,6 +507,10 @@ pub(crate) struct Server {
     /// Se um recurso experimental está ligado: o `experimental.json` do
     /// usuário, ou o que o teste disser.
     features: fn(Feature) -> bool,
+    /// O bundle resolvido como na linha de comando: um `--compiler` ou um
+    /// `--quartus` que não serve é erro, e não segue sem ele
+    /// ([`Server::strict`]).
+    strict: bool,
 }
 
 impl Server {
@@ -483,7 +525,16 @@ impl Server {
             pending: Mutex::new(HashMap::new()),
             workers: Mutex::new(HashMap::new()),
             features: lace_core::experimental::is_enabled,
+            strict: false,
         }
+    }
+
+    /// O mesmo servidor com o bundle resolvido como na linha de comando: é
+    /// o despacho que o CLI chama no próprio processo, em que um
+    /// `--compiler` ou um `--quartus` que não serve é erro do comando.
+    pub(crate) fn strict(mut self) -> Self {
+        self.strict = true;
+        self
     }
 
     /// O mesmo servidor, com outra regra para os recursos experimentais.
@@ -805,34 +856,42 @@ impl Server {
     /// (`--compiler`, `--quartus`) que não serve não derruba o bundle, como
     /// no Studio: a sessão segue sem ele, a operação que o exige falha com o
     /// erro dela (`quartus_missing`), e o `toolchain.info` mostra o motivo.
-    /// A CLI, que roda um comando só, recusa logo
-    /// ([`ToolchainArgs::resolve`]).
+    /// A CLI, que roda um comando só e chama este despacho no modo estrito
+    /// ([`Server::strict`]), recusa logo ([`ToolchainArgs::resolve`]).
     fn toolchain(&self) -> Result<Toolchain, Failure> {
-        let lookup = self.toolchain.lookup().map_err(|e| to_info(&e))?;
+        if self.strict {
+            return self.toolchain.resolve().map_err(Failure::Cli);
+        }
+        let lookup = self.toolchain.lookup().map_err(Failure::Cli)?;
         Ok(locate::resolve(&lookup)?.toolchain)
     }
 
     /// Atende um pedido. `Err` é o Lace não conseguir rodar.
     pub(crate) fn handle(&self, id: &Value, request: Request, cancel: CancelToken) -> Handled {
-        self.handle_with(id, request, cancel, None)
+        self.handle_with(id, request, cancel, Sink::Stdout)
     }
 
-    /// [`Server::handle`] com as notificações do pedido indo para `sink` em
-    /// vez do stdout (o `lace mcp`).
+    /// [`Server::handle`] com o que o pedido diz enquanto roda indo para
+    /// `sink`: o stdout, outro destino das notificações (o `lace mcp`), ou o
+    /// CLI, no mesmo processo.
     pub(crate) fn handle_with(
         &self,
         id: &Value,
         request: Request,
         cancel: CancelToken,
-        sink: Option<Emit>,
+        sink: Sink<'_>,
     ) -> Handled {
-        let emit: Emit = match sink {
-            Some(sink) => sink,
-            None => {
+        let (emit, direct): (Emit, Option<Direct<'_>>) = match sink {
+            Sink::Stdout => {
                 let writer = self.writer.clone();
                 let id = id.clone();
-                Arc::new(move |notification| writer.notify_for(&id, &notification))
+                (
+                    Arc::new(move |notification| writer.notify_for(&id, &notification)),
+                    None,
+                )
             }
+            Sink::Notify(emit) => (emit, None),
+            Sink::Direct(direct) => (Arc::new(|_| {}), Some(direct)),
         };
         Ok(match request {
             Request::Initialize { .. } | Request::Shutdown => Response::Nothing(()),
@@ -999,14 +1058,40 @@ impl Server {
                 // A correção de um exercício é do lace-learn, que o core não
                 // conhece: roda aqui, com o resultado de um fluxo.
                 if let FlowRequest::Learn { root, exercise } = &request {
-                    emit(Notification::Phase {
-                        phase: lace_core::flows::Phase::Learn,
-                    });
+                    let phase = lace_core::flows::Phase::Learn;
+                    match &direct {
+                        Some(direct) => (direct.progress)(lace_core::flows::Progress::Phase(phase)),
+                        None => emit(Notification::Phase { phase }),
+                    }
                     let outcome = self.learn_flow(root, exercise, &options.command, cancel)?;
                     return Ok(Response::Flow(Box::new(outcome)));
                 }
-                let toolchain = self.toolchain()?;
                 let mut project = open_project(&project)?;
+                // Um processador que não existe é erro antes do bundle.
+                for name in request.processors() {
+                    project.require_processor(name)?;
+                }
+                // Um projeto só de Verilog não tem o que compilar, e isso não
+                // é erro; nem o bundle é preciso.
+                if let FlowRequest::Build { processors } = &request
+                    && processors.is_empty()
+                    && project.processors().is_empty()
+                {
+                    let outcome = lace_core::flows::FlowOutcome::new("build", &options.command);
+                    return Ok(Response::Flow(Box::new(outcome)));
+                }
+                let toolchain = self.toolchain()?;
+                if let Some(direct) = direct {
+                    let outcome = flows::run(
+                        &toolchain,
+                        &mut project,
+                        &request,
+                        &options,
+                        direct.progress,
+                        direct.control,
+                    )?;
+                    return Ok(Response::Flow(Box::new(outcome)));
+                }
                 let deliver = Arc::clone(&emit);
                 let dispatcher =
                     Dispatcher::start(Limits::default(), move |notification| deliver(notification));
@@ -1040,27 +1125,31 @@ impl Server {
                 Response::Text(request.command_line(program.as_deref().unwrap_or("lace")))
             }
             Request::WaveOpen { project, request } => {
-                let toolchain = self.toolchain()?;
                 let project = project.map(|p| open_project(&p)).transpose()?;
+                // A onda que ainda não existe é erro antes do bundle.
+                flows::wave_file(project.as_ref(), &request.source)?;
+                let toolchain = self.toolchain()?;
                 // A onda de um exercício do lace learn abre com o layout da
                 // correção, como no `lace wave`.
                 let request = lace_learn::layout::with_exercise_layout(request);
                 Response::Wave(flows::open_wave(&toolchain, project.as_ref(), &request)?)
             }
             Request::WaveSignals { project } => {
-                let toolchain = self.toolchain()?;
                 let project = open_project(&project)?;
-                let control = Control::new().with_cancel(cancel);
+                let toolchain = self.toolchain()?;
+                let own = Control::new().with_cancel(cancel);
+                let control = direct.as_ref().map_or(&own, |d| d.control);
                 Response::Signals(Box::new(lace_core::wave_signals(
-                    &toolchain, &project, &control,
+                    &toolchain, &project, control,
                 )?))
             }
             Request::WaveChoose { project, choice } => {
-                let toolchain = self.toolchain()?;
                 let project = open_project(&project)?;
-                let control = Control::new().with_cancel(cancel);
+                let toolchain = self.toolchain()?;
+                let own = Control::new().with_cancel(cancel);
+                let control = direct.as_ref().map_or(&own, |d| d.control);
                 Response::Choice(flows::choose_signals(
-                    &toolchain, &project, &choice, &control,
+                    &toolchain, &project, &choice, control,
                 )?)
             }
             Request::WaveLayoutGet { waveform } => {
@@ -1147,7 +1236,14 @@ impl Server {
                 Response::Cleaned(CleanOutcome { removed, kept })
             }
             Request::ToolchainInfo => {
-                let lookup = self.toolchain.lookup().map_err(|e| to_info(&e))?;
+                // Na linha de comando, um bundle que não abre (ou um
+                // compilador ou Quartus declarado que não serve) é erro do
+                // comando; no servidor, vem em `found: false` e nos campos de
+                // erro.
+                if self.strict {
+                    self.toolchain()?;
+                }
+                let lookup = self.toolchain.lookup().map_err(Failure::Cli)?;
                 let info = match locate::resolve(&lookup) {
                     Ok(found) => locate::describe(&found),
                     Err(error) => locate::describe_error(&error),
@@ -1242,18 +1338,8 @@ impl Server {
                 if components.is_empty() {
                     return Err(ErrorInfo::new("invalid_argument", "No app to install").into());
                 }
-                if let Some(unknown) = components
-                    .iter()
-                    .find(|c| !lace_core::component::ALL.contains(&c.as_str()))
-                {
-                    return Err(ErrorInfo::new(
-                        "invalid_argument",
-                        format!(
-                            "Unknown app: {unknown} (bundle apps: {})",
-                            lace_core::component::ALL.join(", ")
-                        ),
-                    )
-                    .into());
+                if let Some(message) = lace_core::component::unknown_message(&components) {
+                    return Err(ErrorInfo::new("invalid_argument", message).into());
                 }
                 let network = crate::update::network().map_err(cli_error)?;
                 let remote = std::sync::Arc::new(Remote(network.clone()));
@@ -1284,23 +1370,16 @@ impl Server {
                 all,
             } => {
                 let toolchain = self.toolchain()?;
-                let root = lace_learn::Workspace::discover(&root).map_err(|e| learn_info(&e))?;
-                let tracks =
-                    lace_learn::tracks_dir(Some(&toolchain)).map_err(|e| learn_info(&e))?;
-                let mut workspace = lace_learn::Workspace::open(&root, &tracks, None)
+                let mut workspace = lace_learn::Workspace::find(&root, Some(&toolchain), None)
                     .map_err(|e| learn_info(&e))?;
                 let exercises: Vec<lace_learn::Exercise> = if all {
                     workspace.track().exercises().cloned().collect()
                 } else {
-                    let exercise = match exercise {
-                        Some(name) => workspace
-                            .track()
-                            .require(&name)
-                            .map_err(|e| learn_info(&e))?
-                            .clone(),
-                        None => workspace.current().clone(),
-                    };
-                    vec![exercise]
+                    vec![
+                        workspace
+                            .exercise(exercise.as_deref())
+                            .map_err(|e| learn_info(&e))?,
+                    ]
                 };
                 let control = Control::new().with_cancel(cancel);
                 let outcome = lace_learn::flows::check(
@@ -1431,9 +1510,8 @@ impl Server {
         lang: Option<&str>,
     ) -> Result<lace_learn::Workspace, Failure> {
         let toolchain = self.toolchain().ok();
-        let tracks = lace_learn::tracks_dir(toolchain.as_ref()).map_err(|e| learn_info(&e))?;
-        let root = lace_learn::Workspace::discover(root).map_err(|e| learn_info(&e))?;
-        lace_learn::Workspace::open(&root, &tracks, lang).map_err(|e| learn_info(&e).into())
+        lace_learn::Workspace::find(root, toolchain.as_ref(), lang)
+            .map_err(|e| learn_info(&e).into())
     }
 
     /// A correção de um exercício como fluxo (`flow.run` com `learn`): o
@@ -1448,15 +1526,11 @@ impl Server {
         cancel: CancelToken,
     ) -> Result<lace_core::flows::FlowOutcome, Failure> {
         let toolchain = self.toolchain()?;
-        let tracks = lace_learn::tracks_dir(Some(&toolchain)).map_err(|e| learn_info(&e))?;
-        let root = lace_learn::Workspace::discover(root).map_err(|e| learn_info(&e))?;
-        let mut workspace =
-            lace_learn::Workspace::open(&root, &tracks, None).map_err(|e| learn_info(&e))?;
+        let mut workspace = lace_learn::Workspace::find(root, Some(&toolchain), None)
+            .map_err(|e| learn_info(&e))?;
         let exercise = workspace
-            .track()
-            .require(exercise)
-            .map_err(|e| learn_info(&e))?
-            .clone();
+            .exercise(Some(exercise))
+            .map_err(|e| learn_info(&e))?;
         let control = Control::new().with_cancel(cancel);
         let checked = lace_learn::flows::check(
             &toolchain,
@@ -1519,7 +1593,7 @@ impl Hooks for Labels {
 /// Um erro da CLI (`anyhow`) como [`Failure`], com o código da biblioteca
 /// do instalador quando é dela.
 fn cli_error(error: anyhow::Error) -> Failure {
-    Failure::Info(Box::new(to_info(&error)))
+    Failure::Cli(error)
 }
 
 /// O [`Request`] de um método e seus parâmetros. Um método sem parâmetros
@@ -2285,6 +2359,70 @@ mod tests {
         );
         let message = reply["error"]["data"]["message"].as_str().unwrap();
         assert!(message.contains("Unknown app: nope"), "{message}");
+    }
+
+    #[test]
+    fn what_is_wrong_in_the_request_comes_before_the_bundle() {
+        // Um bundle que não existe: o erro do pedido aparece antes dele.
+        let (writer, rx) = Writer::channel();
+        let args = ToolchainArgs {
+            toolchain: Some(Utf8PathBuf::from("/lace/nao/existe")),
+            compiler: None,
+            quartus: None,
+        };
+        let server = Arc::new(Server::new(args, writer).with_features(|_| true));
+        server.handle_line(r#"{"jsonrpc":"2.0","id":0,"method":"initialize"}"#);
+        next(&rx);
+        let dir = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dunce::canonicalize(dir.path()).unwrap()).unwrap();
+        let mut project = Project::create(&root, "demo").unwrap();
+        project
+            .add_verilog(None, root.join("demo").join("demo_tb.v"), true)
+            .unwrap();
+        let spf = project.spf_path().to_owned();
+        let ask = |id: u32, method: &str, params: Value| {
+            server.handle_line(
+                &json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params })
+                    .to_string(),
+            );
+            next(&rx)
+        };
+        // Um processador que não existe, em todo fluxo que o nomeia.
+        for (id, request) in [
+            (1, json!({ "flow": "build", "processors": ["nada"] })),
+            (2, json!({ "flow": "check", "processor": "nada" })),
+        ] {
+            let reply = ask(
+                id,
+                "flow.run",
+                json!({ "project": spf, "request": request }),
+            );
+            assert_eq!(
+                reply["error"]["data"]["code"], "processor_not_found",
+                "{reply}"
+            );
+        }
+        // Um build sem processadores não tem o que compilar, nem bundle.
+        let reply = ask(
+            3,
+            "flow.run",
+            json!({ "project": spf, "request": { "flow": "build" } }),
+        );
+        assert_eq!(reply["result"]["status"], "succeeded", "{reply}");
+        // A onda que a simulação ainda não gravou.
+        let reply = ask(
+            4,
+            "wave.open",
+            json!({ "project": spf, "request": { "source": { "kind": "project" } } }),
+        );
+        assert_eq!(reply["error"]["data"]["code"], "no_waveform", "{reply}");
+        // Com o pedido certo, o que falta é o bundle.
+        let reply = ask(
+            5,
+            "flow.run",
+            json!({ "project": spf, "request": { "flow": "check" } }),
+        );
+        assert_eq!(reply["error"]["data"]["code"], "invalid_bundle", "{reply}");
     }
 
     #[test]

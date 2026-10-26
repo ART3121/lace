@@ -36,7 +36,7 @@ mod run;
 mod wave;
 
 pub use run::run;
-pub use wave::{choose_signals, open_wave};
+pub use wave::{choose_signals, open_wave, wave_file};
 
 /// O que o cliente pede. Os alvos são sempre explícitos: a CLI resolve o
 /// processador da pasta atual antes de montar o pedido.
@@ -183,6 +183,25 @@ impl FlowRequest {
                 Some(crate::experimental::Feature::Fpga)
             }
             _ => None,
+        }
+    }
+
+    /// Os processadores que o pedido nomeia. Quem atende confere cada um no
+    /// projeto antes de procurar o bundle: um nome errado é o erro do
+    /// pedido, e não um bundle que falta.
+    pub fn processors(&self) -> Vec<&str> {
+        match self {
+            FlowRequest::Build { processors } => processors.iter().map(String::as_str).collect(),
+            FlowRequest::Check { processor, .. }
+            | FlowRequest::Hierarchy { processor }
+            | FlowRequest::Simulate { processor, .. }
+            | FlowRequest::Synthesize { processor, .. } => {
+                processor.as_deref().into_iter().collect()
+            }
+            FlowRequest::Schematic { .. }
+            | FlowRequest::FpgaBuild
+            | FlowRequest::FpgaProgram { .. }
+            | FlowRequest::Learn { .. } => Vec::new(),
         }
     }
 
