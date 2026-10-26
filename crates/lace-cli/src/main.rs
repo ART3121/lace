@@ -15,6 +15,8 @@ mod mcp;
 mod meter;
 mod output;
 mod progress;
+#[cfg(test)]
+mod protocol_doc;
 mod report;
 mod serve;
 mod settings;

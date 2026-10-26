@@ -68,7 +68,7 @@ use crate::settings::ToolchainArgs;
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(3);
 
 /// Os códigos de erro do JSON-RPC que o servidor usa.
-mod rpc {
+pub(crate) mod rpc {
     pub const PARSE: i64 = -32700;
     pub const INVALID_REQUEST: i64 = -32600;
     pub const METHOD_NOT_FOUND: i64 = -32601;
@@ -77,6 +77,22 @@ mod rpc {
     pub const CANCELLED: i64 = -32001;
     pub const NOT_INITIALIZED: i64 = -32002;
     pub const SHUTTING_DOWN: i64 = -32003;
+
+    /// Cada código e quando sai, para o docs/PROTOCOL.md.
+    #[cfg(test)]
+    pub const ALL: &[(i64, &str)] = &[
+        (PARSE, "a linha não é JSON"),
+        (INVALID_REQUEST, "o JSON não é um pedido JSON-RPC 2.0"),
+        (METHOD_NOT_FOUND, "método desconhecido"),
+        (INVALID_PARAMS, "parâmetros que o método não aceita"),
+        (
+            LACE,
+            "o Lace não conseguiu atender: o `ErrorInfo` vai em `error.data`",
+        ),
+        (CANCELLED, "cancelado com `$/cancel` antes de começar"),
+        (NOT_INITIALIZED, "pedido antes do `initialize`"),
+        (SHUTTING_DOWN, "pedido depois do `shutdown`"),
+    ];
 }
 
 /// As opções de `lace serve`.
@@ -1265,6 +1281,122 @@ mod tests {
             thread::sleep(Duration::from_millis(10));
         }
         assert!(server.pending.lock().unwrap().is_empty());
+    }
+
+    /// Manda o pedido, espera a resposta e confere o `result` contra o tipo
+    /// que `protocol::result_schema` declara para o método.
+    fn call_conforming(
+        server: &Arc<Server>,
+        rx: &mpsc::Receiver<String>,
+        schema: &Value,
+        method: &str,
+        params: Value,
+    ) -> Value {
+        let id = format!("{method} {params}");
+        server.handle_line(
+            &json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params}).to_string(),
+        );
+        let reply = loop {
+            let line = next(rx);
+            if line["id"] == id.as_str() {
+                break line;
+            }
+        };
+        let result = reply
+            .get("result")
+            .unwrap_or_else(|| panic!("{method}: {reply}"))
+            .clone();
+        let validator = jsonschema::validator_for(&json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$defs": schema["$defs"],
+            "allOf": [schema["properties"][method]],
+        }))
+        .unwrap();
+        let errors: Vec<String> = validator
+            .iter_errors(&result)
+            .map(|e| format!("{}: {e}", e.instance_path()))
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "{method} não devolve o tipo declarado em protocol.rs:\n{}\n\n{result:#}",
+            errors.join("\n")
+        );
+        result
+    }
+
+    /// O resultado de cada método é o tipo que `protocol::result_schema`
+    /// declara, que é o que o docs/PROTOCOL.md mostra. Roda, num projeto
+    /// temporário, os métodos que não precisam de simulação, de síntese, de
+    /// relatório guardado, do Quartus nem da rede.
+    #[test]
+    fn results_conform_to_the_declared_schema() {
+        let schema = serde_json::to_value(lace_core::protocol::result_schema()).unwrap();
+        let (server, rx) = server();
+        let call =
+            |method: &str, params: Value| call_conforming(&server, &rx, &schema, method, params);
+        let dir = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dunce::canonicalize(dir.path()).unwrap()).unwrap();
+        let project = root.join("demo");
+        let (top, tb) = (project.join("top.v"), project.join("top_tb.v"));
+
+        call("initialize", json!({"client": "test"}));
+        call("project.check_name", json!({"name": "demo"}));
+        call("processor.check_name", json!({"name": "x-y"}));
+        call("project.create", json!({"parent": root, "name": "demo"}));
+        call("project.status", json!({"project": project}));
+        call(
+            "project.add",
+            json!({"project": project, "files": [top, tb]}),
+        );
+        call("project.top", json!({"project": project}));
+        call("project.testbench", json!({"project": project, "path": tb}));
+        call(
+            "project.order",
+            json!({"project": project, "file": top, "position": {"kind": "first"}}),
+        );
+        let moved = project.join("rtl/top.v");
+        call(
+            "project.move",
+            json!({"project": project, "from": top, "to": moved}),
+        );
+        call(
+            "project.remove",
+            json!({"project": project, "files": [moved]}),
+        );
+        call("project.convert", json!({"project": project}));
+        call(
+            "processor.add",
+            json!({"project": project, "spec": {"name": "soma", "language": "cmm"}}),
+        );
+        call(
+            "processor.set",
+            json!({"project": project, "name": "soma", "config": {"frequency_mhz": 50}}),
+        );
+        std::fs::create_dir_all(project.join("soma/soma")).unwrap();
+        std::fs::write(project.join("soma/soma/output_0.txt"), "1\n-2\n").unwrap();
+        let values = call(
+            "processor.outputs",
+            json!({"project": project, "processor": "soma", "port": 0}),
+        );
+        assert_eq!(values, json!([1, -2]));
+        call("history.list", json!({"project": project}));
+        call("experimental.list", json!({}));
+        call("fpga.boards", json!({}));
+        assert!(call("fpga.config", json!({"project": project})).is_null());
+        call(
+            "fpga.config_set",
+            json!({"project": project, "config": {"board": "de10-nano"}}),
+        );
+        call("fpga.config", json!({"project": project}));
+        call(
+            "wave.reset_layout",
+            json!({"waveform": project.join("top_tb.fst")}),
+        );
+        call(
+            "processor.remove",
+            json!({"project": project, "name": "soma"}),
+        );
+        call("shutdown", json!({}));
     }
 
     #[test]

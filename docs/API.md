@@ -1937,7 +1937,12 @@ resposta que não existiam (`TopOutcome`, `RemoveOutcome`, `NameCheck`,
 (um campo com padrão é opcional) e `response_schema()` o das respostas e
 notificações; a CLI os grava em `docs/schema/protocol-request.json` e
 `protocol-response.json`, e os dois `gen-lace-types` (Studio, VS Code)
-geram os tipos TypeScript deles. `METHODS` lista os métodos. O `lace
+geram os tipos TypeScript deles. A macro `methods!` declara cada método
+uma vez, com o nome e o tipo do resultado: dela saem `METHODS`, a lista
+dos métodos, e `result_schema()`, o schema do `result` de cada um, que um
+teste do `lace serve` confere contra o que o servidor devolve; uma
+variante de `Request` sem linha nela não compila. Os três schemas geram a
+referência legível, [PROTOCOL.md](PROTOCOL.md). O `lace
 serve` é o transporte deste contrato por stdio, e o `lace mcp` o
 adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
 

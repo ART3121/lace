@@ -2,6 +2,18 @@
 
 ## Não publicada
 
+- `docs/PROTOCOL.md`: a referência do protocolo do `lace serve` e do
+  `lace mcp`, com cada método, os parâmetros, o resultado, as
+  notificações, os erros e os tipos. É gerada dos tipos de
+  `lace_core::protocol` pelo mesmo comando do `docs/schema/`
+  (`LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli schema`), e um teste falha
+  quando ela não confere.
+- `lace_core::protocol`: a macro `methods!` declara cada método com o tipo
+  do resultado, de onde saem `METHODS` e o novo `result_schema()`; uma
+  variante de `Request` sem declaração não compila. Um teste do `lace
+  serve` roda 23 dos 42 métodos num projeto temporário e confere cada
+  resultado contra o tipo declarado. Os arquivos de `docs/schema/` não
+  mudam.
 - O bundle passa a 2026.10.22. O YANC vai da v7.1 à v9.1: a divisão leva 5
   ciclos (4 em float), o que sobe o clock máximo do processador, a condição
   em float segue o C nas duas linguagens, a biblioteca SAPHO traz o teclado
