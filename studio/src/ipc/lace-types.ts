@@ -750,9 +750,11 @@ export type Response =
   | Prepared
   | BitstreamState
   | null
-  | {
-      [k: string]: unknown | undefined;
-    };
+  | UpdateReport
+  | InstallReport
+  | LearnCheckOutcome
+  | LearnTracks
+  | WorkspaceSnapshot;
 /**
  * Direção de uma porta.
  *
@@ -767,6 +769,13 @@ export type PortDirection = 'input' | 'output' | 'inout';
  * via the `definition` "Origin".
  */
 export type Origin = 'settings' | 'environment' | 'bundled' | 'installation' | 'path' | 'beside';
+/**
+ * Como `lace update` atualizou.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "UpdateMethod".
+ */
+export type UpdateMethod = 'components' | 'installer';
 /**
  * O tipo de um [`ProjectIssue`]. Em JSON, `snake_case`.
  *
@@ -843,6 +852,13 @@ export type SynthesisMetric =
  */
 export type Change =
   'unchanged' | 'increased' | 'decreased' | 'added' | 'removed' | 'not_comparable';
+/**
+ * O que `lace update` fez.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "UpdateAction".
+ */
+export type UpdateAction = 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
 /**
  * O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.
  * Os nomes são os que o Lace Studio manda à interface dele.
@@ -987,20 +1003,6 @@ export type ToolEntry =
   | {
       error: ErrorInfo1;
     };
-/**
- * O que `lace update` fez.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "UpdateAction".
- */
-export type UpdateAction = 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
-/**
- * Como `lace update` atualizou.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "UpdateMethod".
- */
-export type UpdateMethod = 'components' | 'installer';
 /**
  * O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
  * um método sem parâmetros vai sem `params`. Os caminhos são absolutos.
@@ -5953,6 +5955,298 @@ export interface BitstreamState {
   reasons: string[];
 }
 /**
+ * `update.check`, `update.apply`.
+ */
+export interface UpdateReport {
+  lace: LaceVersions;
+  bundle: BundleVersions;
+  /**
+   * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
+   * bundle.
+   */
+  components: ComponentVersions[];
+  /**
+   * A pasta da instalação; `null` se este `lace` não foi instalado pelo
+   * instalador (um build em `target/`, por exemplo).
+   */
+  prefix: string | null;
+  /**
+   * O que o comando fez.
+   */
+  action: 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
+  /**
+   * Como atualizou; `null` quando não atualizou.
+   */
+  method: UpdateMethod | null;
+  /**
+   * O que a atualização por componentes trocou, ou vai trocar com
+   * `--check --from`; `null` quando ela não rodou.
+   */
+  changes: UpdateChanges | null;
+}
+/**
+ * O Lace: este e o da última release.
+ */
+export interface LaceVersions {
+  /**
+   * A versão deste `lace`.
+   */
+  installed: string;
+  /**
+   * A versão da última release no GitHub.
+   */
+  latest: string;
+  /**
+   * `latest` é mais nova que `installed`.
+   */
+  newer: boolean;
+}
+/**
+ * O bundle de ferramentas: o instalado e o da última release.
+ */
+export interface BundleVersions {
+  /**
+   * O bundle instalado; `null` sem bundle.
+   */
+  installed: string | null;
+  /**
+   * O bundle da última release; `null` se o `bundle/versions.json` dela
+   * não pôde ser lido.
+   */
+  latest: string | null;
+  /**
+   * `latest` é mais novo que `installed`.
+   */
+  newer: boolean;
+}
+/**
+ * Um componente instalado em `lace update`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ComponentVersions".
+ */
+export interface ComponentVersions {
+  /**
+   * O componente (`yanc`, `icarus`, `verilator`, `yosys`, `graphviz`,
+   * `surfer-aurora`).
+   */
+  name: string;
+  /**
+   * O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,
+   * `yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que
+   * este Lace não conhece.
+   */
+  package: string | null;
+  /**
+   * A versão instalada.
+   */
+  installed: string;
+  /**
+   * A versão no bundle da última release; `null` se não pôde ser lida.
+   */
+  release: string | null;
+  /**
+   * `release` é mais nova que `installed`: chega atualizando o Lace.
+   */
+  release_newer: boolean;
+  /**
+   * A última versão upstream; `null` se a consulta falhou.
+   */
+  upstream: string | null;
+  /**
+   * `upstream` é mais nova que `installed` e que `release`: só chega num
+   * bundle novo, numa release nova do Lace. Sem `release`, `false` quando
+   * há Lace mais novo, cujo bundle pode já trazê-la.
+   */
+  upstream_newer: boolean;
+}
+/**
+ * O que a atualização por componentes trocou.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "UpdateChanges".
+ */
+export interface UpdateChanges {
+  /**
+   * Os componentes com arquivos que entraram ou saíram, na ordem do
+   * bundle; `lace` é o próprio Lace e o cabeçalho do bundle.
+   */
+  components: string[];
+  /**
+   * Bytes baixados.
+   */
+  download_bytes: number;
+  /**
+   * Arquivos que entraram (novos ou trocados).
+   */
+  files: number;
+  /**
+   * Arquivos que saíram.
+   */
+  removed: number;
+}
+/**
+ * `install.add`.
+ */
+export interface InstallReport {
+  /**
+   * A pasta da instalação.
+   */
+  prefix: string;
+  /**
+   * Os aplicativos do bundle instalados agora.
+   */
+  components: string[];
+  /**
+   * Os que entraram nesta chamada (com os que eles exigem).
+   */
+  added: string[];
+}
+/**
+ * `learn.check`.
+ */
+export interface LearnCheckOutcome {
+  /**
+   * A correção de cada exercício pedido, na ordem; termina no primeiro
+   * cancelado.
+   */
+  results: Grade[];
+  /**
+   * Quantos exercícios da trilha estão resolvidos depois da rodada.
+   */
+  solved: number;
+  /**
+   * Quantos exercícios a trilha tem.
+   */
+  total: number;
+}
+/**
+ * `learn.tracks`.
+ */
+export interface LearnTracks {
+  /**
+   * A pasta das trilhas.
+   */
+  dir: string;
+  /**
+   * As trilhas dela.
+   */
+  tracks: string[];
+}
+/**
+ * `learn.status`, `learn.init`, `learn.set_current`.
+ */
+export interface WorkspaceSnapshot {
+  /**
+   * A pasta de exercícios.
+   */
+  root: string;
+  /**
+   * A trilha (`verilog`).
+   */
+  track: string;
+  /**
+   * O título da trilha.
+   */
+  title: string;
+  /**
+   * As boas-vindas, em markdown.
+   */
+  welcome: string;
+  /**
+   * A mensagem do fim, em markdown.
+   */
+  farewell: string | null;
+  /**
+   * Os capítulos, na ordem.
+   */
+  chapters: ChapterSnapshot[];
+  /**
+   * O exercício atual.
+   */
+  current: string;
+  /**
+   * Quantos resolvidos.
+   */
+  solved: number;
+  /**
+   * Quantos exercícios.
+   */
+  total: number;
+}
+/**
+ * Um capítulo de [`WorkspaceSnapshot`].
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ChapterSnapshot".
+ */
+export interface ChapterSnapshot {
+  /**
+   * A pasta do capítulo (`01_primeiros_passos`).
+   */
+  id: string;
+  /**
+   * O título.
+   */
+  title: string;
+  /**
+   * A introdução, em markdown.
+   */
+  intro: string;
+  /**
+   * Os exercícios, na ordem.
+   */
+  exercises: ExerciseSnapshot[];
+}
+/**
+ * Um exercício de [`WorkspaceSnapshot`], com o que o aluno já fez.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ExerciseSnapshot".
+ */
+export interface ExerciseSnapshot {
+  /**
+   * O nome.
+   */
+  name: string;
+  /**
+   * O título.
+   */
+  title: string;
+  /**
+   * O enunciado, em markdown.
+   */
+  prompt: string;
+  /**
+   * As dicas, em markdown.
+   */
+  hints: string[];
+  /**
+   * O módulo que o aluno escreve.
+   */
+  module: string;
+  /**
+   * O arquivo que o aluno edita.
+   */
+  file: string;
+  /**
+   * O `.spf` do projeto do exercício.
+   */
+  spf: string;
+  /**
+   * A onda da última correção.
+   */
+  waveform: string;
+  /**
+   * Resolvido.
+   */
+  solved: boolean;
+  /**
+   * A solução liberada, depois de resolvido.
+   */
+  solution: string | null;
+}
+/**
  * O que `initialize` devolve.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -6861,6 +7155,184 @@ export interface BitstreamState1 {
   reasons: string[];
 }
 /**
+ * O relatório do `lace update` (`docs/schema/update.json`).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "UpdateReport".
+ */
+export interface UpdateReport1 {
+  lace: LaceVersions;
+  bundle: BundleVersions;
+  /**
+   * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
+   * bundle.
+   */
+  components: ComponentVersions[];
+  /**
+   * A pasta da instalação; `null` se este `lace` não foi instalado pelo
+   * instalador (um build em `target/`, por exemplo).
+   */
+  prefix: string | null;
+  /**
+   * O que o comando fez.
+   */
+  action: 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
+  /**
+   * Como atualizou; `null` quando não atualizou.
+   */
+  method: UpdateMethod | null;
+  /**
+   * O que a atualização por componentes trocou, ou vai trocar com
+   * `--check --from`; `null` quando ela não rodou.
+   */
+  changes: UpdateChanges | null;
+}
+/**
+ * As versões do Lace em `lace update`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LaceVersions".
+ */
+export interface LaceVersions1 {
+  /**
+   * A versão deste `lace`.
+   */
+  installed: string;
+  /**
+   * A versão da última release no GitHub.
+   */
+  latest: string;
+  /**
+   * `latest` é mais nova que `installed`.
+   */
+  newer: boolean;
+}
+/**
+ * As versões do bundle em `lace update`.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "BundleVersions".
+ */
+export interface BundleVersions1 {
+  /**
+   * O bundle instalado; `null` sem bundle.
+   */
+  installed: string | null;
+  /**
+   * O bundle da última release; `null` se o `bundle/versions.json` dela
+   * não pôde ser lido.
+   */
+  latest: string | null;
+  /**
+   * `latest` é mais novo que `installed`.
+   */
+  newer: boolean;
+}
+/**
+ * `lace install` (`docs/schema/install.json`).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "InstallReport".
+ */
+export interface InstallReport1 {
+  /**
+   * A pasta da instalação.
+   */
+  prefix: string;
+  /**
+   * Os aplicativos do bundle instalados agora.
+   */
+  components: string[];
+  /**
+   * Os que entraram nesta chamada (com os que eles exigem).
+   */
+  added: string[];
+}
+/**
+ * O resultado de uma rodada de correção (e do `learn.check` do protocolo).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnCheckOutcome".
+ */
+export interface LearnCheckOutcome1 {
+  /**
+   * A correção de cada exercício pedido, na ordem; termina no primeiro
+   * cancelado.
+   */
+  results: Grade[];
+  /**
+   * Quantos exercícios da trilha estão resolvidos depois da rodada.
+   */
+  solved: number;
+  /**
+   * Quantos exercícios a trilha tem.
+   */
+  total: number;
+}
+/**
+ * De onde vêm as trilhas e quais há (o resultado do `learn.tracks` do
+ * protocolo).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "LearnTracks".
+ */
+export interface LearnTracks1 {
+  /**
+   * A pasta das trilhas.
+   */
+  dir: string;
+  /**
+   * As trilhas dela.
+   */
+  tracks: string[];
+}
+/**
+ * A pasta de exercícios como uma interface a mostra: a trilha, os
+ * capítulos com os enunciados e o que o aluno já fez
+ * ([`Workspace::snapshot`]). É o resultado do `learn.status` do protocolo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WorkspaceSnapshot".
+ */
+export interface WorkspaceSnapshot1 {
+  /**
+   * A pasta de exercícios.
+   */
+  root: string;
+  /**
+   * A trilha (`verilog`).
+   */
+  track: string;
+  /**
+   * O título da trilha.
+   */
+  title: string;
+  /**
+   * As boas-vindas, em markdown.
+   */
+  welcome: string;
+  /**
+   * A mensagem do fim, em markdown.
+   */
+  farewell: string | null;
+  /**
+   * Os capítulos, na ordem.
+   */
+  chapters: ChapterSnapshot[];
+  /**
+   * O exercício atual.
+   */
+  current: string;
+  /**
+   * Quantos resolvidos.
+   */
+  solved: number;
+  /**
+   * Quantos exercícios.
+   */
+  total: number;
+}
+/**
  * O resultado de [`build`]. Ver o módulo `pipeline` para os campos comuns a
  * toda operação.
  *
@@ -6996,113 +7468,6 @@ export interface ErrorInfo1 {
   data?: {
     [k: string]: unknown | undefined;
   };
-}
-/**
- * As versões do Lace em `lace update`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "LaceVersions".
- */
-export interface LaceVersions {
-  /**
-   * A versão deste `lace`.
-   */
-  installed: string;
-  /**
-   * A versão da última release no GitHub.
-   */
-  latest: string;
-  /**
-   * `latest` é mais nova que `installed`.
-   */
-  newer: boolean;
-}
-/**
- * As versões do bundle em `lace update`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "BundleVersions".
- */
-export interface BundleVersions {
-  /**
-   * O bundle instalado; `null` sem bundle.
-   */
-  installed: string | null;
-  /**
-   * O bundle da última release; `null` se o `bundle/versions.json` dela
-   * não pôde ser lido.
-   */
-  latest: string | null;
-  /**
-   * `latest` é mais novo que `installed`.
-   */
-  newer: boolean;
-}
-/**
- * Um componente instalado em `lace update`.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "ComponentVersions".
- */
-export interface ComponentVersions {
-  /**
-   * O componente (`yanc`, `icarus`, `verilator`, `yosys`, `graphviz`,
-   * `surfer-aurora`).
-   */
-  name: string;
-  /**
-   * O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,
-   * `yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que
-   * este Lace não conhece.
-   */
-  package: string | null;
-  /**
-   * A versão instalada.
-   */
-  installed: string;
-  /**
-   * A versão no bundle da última release; `null` se não pôde ser lida.
-   */
-  release: string | null;
-  /**
-   * `release` é mais nova que `installed`: chega atualizando o Lace.
-   */
-  release_newer: boolean;
-  /**
-   * A última versão upstream; `null` se a consulta falhou.
-   */
-  upstream: string | null;
-  /**
-   * `upstream` é mais nova que `installed` e que `release`: só chega num
-   * bundle novo, numa release nova do Lace. Sem `release`, `false` quando
-   * há Lace mais novo, cujo bundle pode já trazê-la.
-   */
-  upstream_newer: boolean;
-}
-/**
- * O que a atualização por componentes trocou.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "UpdateChanges".
- */
-export interface UpdateChanges {
-  /**
-   * Os componentes com arquivos que entraram ou saíram, na ordem do
-   * bundle; `lace` é o próprio Lace e o cabeçalho do bundle.
-   */
-  components: string[];
-  /**
-   * Bytes baixados.
-   */
-  download_bytes: number;
-  /**
-   * Arquivos que entraram (novos ou trocados).
-   */
-  files: number;
-  /**
-   * Arquivos que saíram.
-   */
-  removed: number;
 }
 /**
  * O layout salvo no projeto para a onda aberta.
@@ -7431,26 +7796,6 @@ export interface Resolved2 {
    * Os ajustes feitos: larguras completadas ou cortadas, entradas soltas.
    */
   notes: string[];
-}
-/**
- * `lace install` (`docs/schema/install.json`).
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "InstallReport".
- */
-export interface InstallReport {
-  /**
-   * A pasta da instalação.
-   */
-  prefix: string;
-  /**
-   * Os aplicativos do bundle instalados agora.
-   */
-  components: string[];
-  /**
-   * Os que entraram nesta chamada (com os que eles exigem).
-   */
-  added: string[];
 }
 /**
  * `lace learn check`: a correção de cada exercício pedido, que também
@@ -8148,74 +8493,6 @@ export interface UninstallReport {
    * sai.
    */
   removed: boolean;
-}
-/**
- * O relatório do `lace update` (`docs/schema/update.json`).
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "UpdateReport".
- */
-export interface UpdateReport {
-  lace: LaceVersions1;
-  bundle: BundleVersions1;
-  /**
-   * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
-   * bundle.
-   */
-  components: ComponentVersions[];
-  /**
-   * A pasta da instalação; `null` se este `lace` não foi instalado pelo
-   * instalador (um build em `target/`, por exemplo).
-   */
-  prefix: string | null;
-  /**
-   * O que o comando fez.
-   */
-  action: 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
-  /**
-   * Como atualizou; `null` quando não atualizou.
-   */
-  method: UpdateMethod | null;
-  /**
-   * O que a atualização por componentes trocou, ou vai trocar com
-   * `--check --from`; `null` quando ela não rodou.
-   */
-  changes: UpdateChanges | null;
-}
-/**
- * O Lace: este e o da última release.
- */
-export interface LaceVersions1 {
-  /**
-   * A versão deste `lace`.
-   */
-  installed: string;
-  /**
-   * A versão da última release no GitHub.
-   */
-  latest: string;
-  /**
-   * `latest` é mais nova que `installed`.
-   */
-  newer: boolean;
-}
-/**
- * O bundle de ferramentas: o instalado e o da última release.
- */
-export interface BundleVersions1 {
-  /**
-   * O bundle instalado; `null` sem bundle.
-   */
-  installed: string | null;
-  /**
-   * O bundle da última release; `null` se o `bundle/versions.json` dela
-   * não pôde ser lido.
-   */
-  latest: string | null;
-  /**
-   * `latest` é mais novo que `installed`.
-   */
-  newer: boolean;
 }
 /**
  * `lace wave select` e `lace wave unselect`: a escolha de sinais depois da

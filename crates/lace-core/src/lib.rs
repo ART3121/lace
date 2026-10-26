@@ -152,7 +152,6 @@ mod paths;
 mod pipeline;
 mod process;
 mod project;
-pub mod protocol;
 pub mod rtl_viewer;
 mod simulate;
 mod source;
@@ -172,7 +171,9 @@ pub use cocotb::{TestCase, TestReport, TestStatus};
 pub use control::{CancelToken, Control, Event, Stream};
 pub use diagnostics::{Diagnostic, Severity};
 pub use error::{ErrorInfo, LaceError, Result};
-pub use files::{AddedFile, FileRole, ListPosition, MovedPath, ProjectFile, read_data_file};
+pub use files::{
+    AddedFile, FileRole, ListPosition, MovedPath, ProjectFile, RemoveOutcome, read_data_file,
+};
 pub use hierarchy::{Elaboration, HierarchyOptions, HierarchyResult, ModuleInstance, hierarchy};
 pub use layout::{ConvertedPath, LayoutConversion, RemovedNameLine, SkippedPath};
 pub use paths::YANC_PATH_LIMIT;

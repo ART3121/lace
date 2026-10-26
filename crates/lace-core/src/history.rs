@@ -773,6 +773,20 @@ pub fn report_path(project: &Project, id: &str) -> Result<Utf8PathBuf> {
     Ok(reports_dir(project).join(id).join(TEXT_FILE))
 }
 
+/// `history.show`.
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
+pub struct ReportView {
+    /// O identificador (`run-000042`).
+    pub id: String,
+    /// O `report.txt`.
+    #[schemars(with = "String")]
+    pub path: Utf8PathBuf,
+    /// O que a comparação usa.
+    pub record: RunRecord,
+    /// O `report.txt`, sem mudança.
+    pub text: String,
+}
+
 /// O relatório `id`, ou o mais novo sem `id`, com o texto e o caminho do
 /// `report.txt`: o que o `lace report show` e o `history.show` mostram.
 ///
@@ -780,14 +794,14 @@ pub fn report_path(project: &Project, id: &str) -> Result<Utf8PathBuf> {
 ///
 /// [`LaceError::NoReports`] sem relatório nenhum; os de [`load`] e de
 /// [`report_text`].
-pub fn view(project: &Project, id: Option<&str>) -> Result<crate::protocol::ReportView> {
+pub fn view(project: &Project, id: Option<&str>) -> Result<ReportView> {
     let record = match id {
         Some(id) => load(project, id)?,
         None => latest(project)?,
     };
     let text = report_text(project, &record.id)?;
     let path = report_path(project, &record.id)?;
-    Ok(crate::protocol::ReportView {
+    Ok(ReportView {
         id: record.id.clone(),
         path,
         record,
@@ -922,6 +936,15 @@ pub fn remove(project: &Project, ids: &[String]) -> Result<Vec<String>> {
     Ok(removed)
 }
 
+/// `history.clean`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+pub struct CleanOutcome {
+    /// Os apagados, do mais antigo para o mais novo.
+    pub removed: Vec<String>,
+    /// Quantos ficaram.
+    pub kept: usize,
+}
+
 /// Apaga os relatórios `ids` ([`remove`]) e conta os que ficaram: o
 /// `lace report clean` e o `history.clean`, depois do plano
 /// ([`plan_cleanup`]).
@@ -929,10 +952,10 @@ pub fn remove(project: &Project, ids: &[String]) -> Result<Vec<String>> {
 /// # Erros
 ///
 /// Os de [`remove`] e de [`list`].
-pub fn clean(project: &Project, ids: &[String]) -> Result<crate::protocol::CleanOutcome> {
+pub fn clean(project: &Project, ids: &[String]) -> Result<CleanOutcome> {
     let removed = remove(project, ids)?;
     let kept = list(project)?.len();
-    Ok(crate::protocol::CleanOutcome { removed, kept })
+    Ok(CleanOutcome { removed, kept })
 }
 
 // --------------------------------------------------------------- comparar

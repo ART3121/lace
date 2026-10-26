@@ -14,6 +14,7 @@ path = "src/main.rs"
 lace-core.workspace = true
 lace-installer.workspace = true
 lace-learn.workspace = true
+lace-protocol.workspace = true
 # O assistente do lace chat: uma sessão do Claude Code com o lace mcp.
 lace-agent.workspace = true
 anyhow.workspace = true

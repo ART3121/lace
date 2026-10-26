@@ -406,6 +406,29 @@ pub fn available_tracks(tracks: &Utf8Path) -> Result<Vec<String>> {
     Ok(ids)
 }
 
+/// De onde vêm as trilhas e quais há (o resultado do `learn.tracks` do
+/// protocolo).
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct LearnTracks {
+    /// A pasta das trilhas.
+    #[schemars(with = "String")]
+    pub dir: Utf8PathBuf,
+    /// As trilhas dela.
+    pub tracks: Vec<String>,
+}
+
+/// A pasta das trilhas ([`tracks_dir`]) e as trilhas dela
+/// ([`available_tracks`]).
+///
+/// # Erros
+///
+/// Os de [`tracks_dir`] e de [`available_tracks`].
+pub fn tracks(toolchain: Option<&Toolchain>) -> Result<LearnTracks> {
+    let dir = tracks_dir(toolchain)?;
+    let tracks = available_tracks(&dir)?;
+    Ok(LearnTracks { dir, tracks })
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct TrackFile {

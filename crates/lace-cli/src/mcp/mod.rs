@@ -7,7 +7,7 @@
 //! adaptador fino sobre o despacho do `lace serve`
 //! ([`Server::handle_with`]): uma ferramenta por método do protocolo que faz
 //! sentido para um agente, com o `inputSchema` tirado do mesmo schema dos
-//! pedidos (`lace_core::protocol::request_schema`) e a descrição tirada
+//! pedidos (`lace_protocol::request_schema`) e a descrição tirada
 //! das docs. `flow.run` é desdobrado em `build`, `check`, `hierarchy`,
 //! `sim` e `synth`, cada um com os campos do próprio fluxo.
 //!
@@ -46,8 +46,8 @@ use std::time::{Duration, Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::delivery::{Notification, trim_step_output};
-use lace_core::protocol::{Agent, method_info, request_schema};
 use lace_core::{CancelToken, Project};
+use lace_protocol::{Agent, method_info, request_schema};
 use serde_json::{Map, Value, json};
 
 use crate::serve::{
@@ -1017,7 +1017,7 @@ mod tests {
         // Cada método com a marcação `agent` ou `agent_update` no protocolo
         // vira ferramenta (o flow.run, uma por fluxo), e nenhuma ferramenta
         // usa um método sem ela.
-        let marked: BTreeSet<&str> = lace_core::protocol::METHOD_INFO
+        let marked: BTreeSet<&str> = lace_protocol::METHOD_INFO
             .iter()
             .filter(|info| info.agent != Agent::No)
             .map(|info| info.name)

@@ -10,16 +10,19 @@ import type {
   AddedFile,
   BuildResult,
   BundleComponent,
+  ChapterSnapshot,
   CheckResult,
   Connection,
   Elaboration,
   Event,
+  ExerciseSnapshot,
   FileRole,
   FpgaBuildResult,
   FpgaProgramResult,
   Grade,
   HierarchyResult,
   Language,
+  LearnTracks,
   ModuleInstance,
   MovedPath,
   Processor,
@@ -34,6 +37,7 @@ import type {
   SynthesisResult,
   SystemCompiler,
   WaveProcessor,
+  WorkspaceSnapshot,
 } from './lace-types';
 
 export type {
@@ -41,6 +45,7 @@ export type {
   Elaboration,
   HierarchyResult,
   Language,
+  LearnTracks,
   ModuleInstance,
   MovedPath,
   Processor,
@@ -537,51 +542,11 @@ export interface FsChanged {
   paths: string[];
 }
 
-/** `commands/learn.rs`: LearnExercise. */
-export interface LearnExercise {
-  name: string;
-  title: string;
-  /** O enunciado, em markdown. */
-  prompt: string;
-  /** As dicas, em markdown. */
-  hints: string[];
-  module: string;
-  /** O arquivo que o aluno edita. */
-  file: string;
-  /** O `.spf` do projeto do exercício. */
-  spf: string;
-  /** A onda da última correção. */
-  waveform: string;
-  solved: boolean;
-  /** A solução liberada, depois de resolvido. */
-  solution: string | null;
-}
-
-/** `commands/learn.rs`: LearnChapter. */
-export interface LearnChapter {
-  id: string;
-  title: string;
-  intro: string;
-  exercises: LearnExercise[];
-}
-
-/** `commands/learn.rs`: LearnSnapshot. */
-export interface LearnSnapshot {
-  root: string;
-  track: string;
-  title: string;
-  welcome: string;
-  farewell: string | null;
-  chapters: LearnChapter[];
-  current: string;
-  solved: number;
-  total: number;
-}
-
-/** `commands/learn.rs`: LearnTracks. */
-export interface LearnTracks {
-  /** A pasta das trilhas. */
-  dir: string;
-  /** As trilhas dela. */
-  tracks: string[];
-}
+/** O retrato da pasta de exercícios, que `learn.status`, `learn.init` e
+ * `learn.set_current` devolvem: o `WorkspaceSnapshot` do lace-learn, gerado
+ * do protocolo. */
+export type LearnSnapshot = WorkspaceSnapshot;
+/** Um capítulo de {@link LearnSnapshot}. */
+export type LearnChapter = ChapterSnapshot;
+/** Um exercício de {@link LearnChapter}. */
+export type LearnExercise = ExerciseSnapshot;

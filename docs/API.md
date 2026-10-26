@@ -1945,23 +1945,28 @@ tela dele a partir daqui).
 `lace status` e a árvore do Studio) e `Processor::output_ports` as portas
 de saída lidas pelo nome do arquivo.
 
-**`lace_core::protocol`.** O contrato do orquestrador em tipos com schema:
-[`Request`] (um método por operação, com grupo e ponto: `project.status`,
-`flow.run`, `history.list`, `update.check`, ...), [`Response`] (o valor em
-si, sem etiqueta; o de `update.*`, `install.add` e `learn.*` vem do
-`lace-installer` (`update::run`, `add::add`) e do `lace-learn`, que o
-servidor linka, como `Response::Other`, com o schema do crate de origem), [`ServerInfo`], [`ShutdownReason`] e os tipos de
-resposta que não existiam (`TopOutcome`, `RemoveOutcome`, `NameCheck`,
-`ProcessorRemoval`, `ReportView`, `CleanOutcome`, `ExperimentalInfo`).
+**O contrato, no crate `lace-protocol`.** Os pedidos e as respostas do
+`lace serve` moram num crate próprio, acima do core, do `lace-learn` e do
+`lace-installer`; o core não conhece o protocolo. O crate tem [`Request`]
+(um método por operação, com grupo e ponto: `project.status`, `flow.run`,
+`history.list`, `update.check`, ...), [`Response`] (o valor em si, sem
+etiqueta: os tipos do core, o `UpdateReport` e o `InstallReport` do
+instalador e os tipos do `lace-learn`), [`ServerInfo`], [`ShutdownReason`]
+e os tipos de resposta que nenhuma função do core devolve (`TopOutcome`,
+`NameCheck`, `ProcessorRemoval`, `WaveLayoutInfo`). Os resultados de
+funções do core ficam no core, ao lado delas: `RemoveOutcome` em `files`,
+`ReportView` e `CleanOutcome` em `history`, `ExperimentalInfo` em
+`experimental`.
 `request_schema()` gera o schema dos pedidos na vista de quem desserializa
 (um campo com padrão é opcional) e `response_schema()` o das respostas e
 notificações; a CLI os grava em `docs/schema/protocol-request.json` e
 `protocol-response.json`, e os dois `gen-lace-types` (Studio, VS Code)
 geram os tipos TypeScript deles. A macro `methods!` declara cada método
-uma vez, com o nome e o tipo do resultado: dela saem `METHODS`, a lista
-dos métodos, e `result_schema()`, o schema do `result` de cada um, que um
-teste do `lace serve` confere contra o que o servidor devolve; uma
-variante de `Request` sem linha nela não compila. Os três schemas geram a
+uma vez, com o nome, o tipo do resultado e as marcações (se só lê, se mexe
+na instalação, se vira ferramenta de agente): dela saem `METHODS`, a lista
+dos métodos, `METHOD_INFO` e `result_schema()`, o schema do `result` de
+cada um, que um teste do `lace serve` confere contra o que o servidor
+devolve; uma variante de `Request` sem linha nela não compila. Os três schemas geram a
 referência legível, [PROTOCOL.md](PROTOCOL.md). O `lace
 serve` é o transporte deste contrato por stdio, e o `lace mcp` o
 adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
@@ -2360,11 +2365,10 @@ Garantias:
 - **FFI.** A superfície pública só expõe tipos do Lace, da `std`, de
   `camino` (caminhos), de `serde`, de `serde_json` (o `Value` de
   `ErrorInfo::data`, `LaceError::data`, `Notification::Install` e
-  `protocol::Response::Other`) e de `schemars` (derive e os schemas de
-  `protocol`). Os enums são `#[non_exhaustive]`, menos os da 0.9.0 em
-  `flows`, `delivery`, `locate` e `protocol` (`FlowRequest`, `WavePolicy`,
-  `Progress`, `WaveSource`, `LayoutPolicy`, `WaveChoice`, `Notification`,
-  `Origin`, `ShutdownReason`).
+  `FlowOutcome::learn`) e de `schemars` (derive). Os enums são
+  `#[non_exhaustive]`, menos os da 0.9.0 em `flows`, `delivery` e `locate`
+  (`FlowRequest`, `WavePolicy`, `Progress`, `WaveSource`, `LayoutPolicy`,
+  `WaveChoice`, `Notification`, `Origin`).
 
 Limites desta versão:
 

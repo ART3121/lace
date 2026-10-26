@@ -15,7 +15,7 @@ instalação e o bundle.
 |---|---|---|---|
 | Lace | `X.Y.Z`, em [SemVer](https://semver.org/lang/pt-BR/) | os seis lugares da seção 6.1 | a cada release, pela seção 2 |
 | Extensão do VS Code | `X.Y.Z`, em SemVer, própria | `editors/vscode/package.json` | quando o `.vsix` muda (seção 2.7) |
-| `PROTOCOL_VERSION` | inteiro | `crates/lace-core/src/protocol.rs` | quando um cliente antigo do `lace serve` deixaria de funcionar ([METODOLOGIA.md](METODOLOGIA.md), seção 5) |
+| `PROTOCOL_VERSION` | inteiro | `crates/lace-protocol/src/lib.rs` | quando um cliente antigo do `lace serve` deixaria de funcionar ([METODOLOGIA.md](METODOLOGIA.md), seção 5) |
 | Bundle | data, `AAAA.MM.DD` | o campo `bundle` de `bundle/versions.json` | quando qualquer ferramenta do bundle muda ([CONTRIBUTING.md](../CONTRIBUTING.md), "Atualizar a versão de uma ferramenta do bundle") |
 | surfer-aurora pré-compilado | a versão do fork, `vA.B.C-nips.N` | a tag `surfer-aurora-<versão>`, uma pré-release deste repositório | quando o commit do surfer-aurora em `bundle/versions.json` muda (`.github/workflows/surfer-aurora.yml`) |
 | Pacote msys do Windows | `ucrt64-vN` | uma release do repositório `lace-toolchain`, apontada em `bundle/versions.json` | quando o Icarus, o Verilator ou o resto do bloco MSYS2 mudam no Windows ([BUNDLE.md](BUNDLE.md), seção 6) |
@@ -110,7 +110,7 @@ Os contratos do Lace, e o que quebra cada um:
 |---|---|---|
 | Linha de comando | `crates/lace-cli/src/main.rs`, [CLI.md](CLI.md) | tirar ou renomear um comando ou uma flag; mudar o significado de um código de saída (0, 1, 2 e 130) |
 | `--json` e `--events` | `docs/schema/` | tirar ou renomear um campo, mudar o tipo ou o significado dele ([CONTRIBUTING.md](../CONTRIBUTING.md), "Contrato do `--json`") |
-| Protocolo do `lace serve` | `crates/lace-core/src/protocol.rs` | a tabela de [METODOLOGIA.md](METODOLOGIA.md), seção 5 |
+| Protocolo do `lace serve` | `crates/lace-protocol/src/lib.rs` | a tabela de [METODOLOGIA.md](METODOLOGIA.md), seção 5 |
 | Códigos de erro | `LaceError::code()`, em `crates/lace-core/src/error.rs` | mudar um código publicado, o que nunca se faz |
 | Projeto | o `.spf` (o mesmo da AURORA), o `fpga.json`, a pasta `wave/`, a pasta `.lace/` | um projeto que abria deixa de abrir, ou passa a precisar de conversão, como a da estrutura do YANC 6.x para a do 7.1 |
 | Instalação e atualização | os nomes dos arquivos da release, o `index.json` e o `files.json` de cada plataforma, o recibo `install.json`, a pasta da instalação | o `lace update` de uma versão publicada deixa de conseguir atualizar |

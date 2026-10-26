@@ -1,5 +1,5 @@
 //! O servidor do Lace no Studio: um `lace serve` filho que atende, para a
-//! interface, os métodos do protocolo do Lace (`lace_core::protocol`). O
+//! interface, os métodos do protocolo do Lace (`lace_protocol`). O
 //! Studio não tem despacho próprio desses métodos: manda o pedido ao
 //! servidor e devolve a resposta, como a extensão do VS Code faz. A
 //! interface chama [`lace_call`] com o método e os parâmetros do protocolo.
@@ -39,7 +39,7 @@ use crate::state::{AppState, blocking};
 use crate::toolchain;
 
 /// A versão do protocolo do Lace que este Studio fala
-/// (`lace_core::protocol::PROTOCOL_VERSION`).
+/// (`lace_protocol::PROTOCOL_VERSION`).
 const PROTOCOL_VERSION: u64 = 1;
 
 /// O schema dos pedidos do protocolo, gerado do código do Lace
@@ -694,12 +694,9 @@ mod tests {
 
     #[test]
     fn the_protocol_and_the_schema_are_the_lace_ones() {
-        assert_eq!(
-            PROTOCOL_VERSION,
-            u64::from(lace_core::protocol::PROTOCOL_VERSION)
-        );
+        assert_eq!(PROTOCOL_VERSION, u64::from(lace_protocol::PROTOCOL_VERSION));
         let embedded: Value = serde_json::from_str(REQUEST_SCHEMA).unwrap();
-        let generated = serde_json::to_value(lace_core::protocol::request_schema()).unwrap();
+        let generated = serde_json::to_value(lace_protocol::request_schema()).unwrap();
         assert_eq!(
             embedded, generated,
             "docs/schema/protocol-request.json está velho: LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli"

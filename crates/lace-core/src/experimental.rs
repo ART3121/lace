@@ -110,6 +110,16 @@ pub struct FeatureState {
     pub description: String,
 }
 
+/// `experimental.list` e `experimental.set`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+pub struct ExperimentalInfo {
+    /// O `experimental.json`; `None` sem pasta de configuração.
+    #[schemars(with = "Option<String>")]
+    pub path: Option<Utf8PathBuf>,
+    /// Cada recurso e se está ligado.
+    pub components: Vec<FeatureState>,
+}
+
 /// O arquivo do que está ligado: `experimental.json` na pasta de
 /// configuração do Lace. `None` se o sistema não diz onde ela fica (sem
 /// `APPDATA` no Windows, sem `HOME` nos outros).
@@ -144,8 +154,8 @@ pub fn states() -> Vec<FeatureState> {
 
 /// O arquivo e cada recurso: o que o `lace experimental` e o
 /// `experimental.list` mostram.
-pub fn info() -> crate::protocol::ExperimentalInfo {
-    crate::protocol::ExperimentalInfo {
+pub fn info() -> ExperimentalInfo {
+    ExperimentalInfo {
         path: settings_path(),
         components: states(),
     }

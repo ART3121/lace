@@ -43,7 +43,7 @@ import type {
   WaveReport,
 } from './lace-types';
 
-/** A versão do protocolo que este cliente fala (`lace_core::protocol::PROTOCOL_VERSION`). */
+/** A versão do protocolo que este cliente fala (`lace_protocol::PROTOCOL_VERSION`). */
 export const PROTOCOL_VERSION = 1;
 
 // Os códigos do JSON-RPC que o lace serve usa (crates/lace-cli/src/serve.rs).

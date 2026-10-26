@@ -131,14 +131,16 @@ bundle.
 
 ## Mapa do código
 
-O workspace tem cinco crates. `lace-core` é a biblioteca, com toda a
-regra de negócio, os fluxos compostos e o contrato do protocolo.
+O workspace tem seis crates. `lace-core` é a biblioteca, com toda a
+regra de negócio e os fluxos compostos.
 `lace-learn` são os exercícios do `lace learn`, sobre o Core.
 `lace-installer` é a biblioteca de instalar, atualizar e desinstalar, que a
 CLI e o `lace serve` chamam, mais o instalador em terminal (Linux, macOS) e o
-empacotador `lace-pack`. `lace-agent` é o assistente de IA, uma sessão do
+empacotador `lace-pack`. `lace-protocol` é o contrato do `lace serve` e do
+`lace mcp`, sobre o Core, o `lace-learn` e o instalador, de onde vêm os
+tipos dos resultados. `lace-agent` é o assistente de IA, uma sessão do
 Claude Code com o `lace mcp`, experimental. `lace-cli` é o binário `lace`,
-uma casca fina sobre os outros quatro. A regra de quem pode depender de
+uma casca fina sobre os outros cinco. A regra de quem pode depender de
 quem está em [docs/METODOLOGIA.md](docs/METODOLOGIA.md), seção 1.
 
 O desenho das partes, com as ferramentas e os arquivos que cada uma usa,
@@ -176,11 +178,16 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho da onda (VCD ou FST) e das tabelas do YANC |
 | `paths.rs` | `YANC_PATH_LIMIT`, `canonicalize` sem o prefixo `\\?\` do Windows, normalização de caminhos |
 | `flows/` | módulo público `lace_core::flows`: os fluxos compostos que a CLI e o `lace serve` chamam (o Studio, pelo `lace serve`) (`run`, `FlowRequest`, `FlowOutcome` com `status`), a onda (`open_wave`) e a escolha de sinais (`choose_signals`) |
-| `protocol.rs` | módulo público `lace_core::protocol`: o contrato do orquestrador, com `Request`, `Response`, `PROTOCOL_VERSION`, a macro `methods!` (o nome e o tipo do resultado de cada método, de onde saem `METHODS` e `result_schema`) e o schema em duas vistas; é onde nasce um método novo ([docs/METODOLOGIA.md](docs/METODOLOGIA.md)) |
 | `status.rs` | `Project::status` e `ProjectStatus`: o retrato do projeto, que o `lace status`, o Studio e o `project.status` mostram |
 | `delivery.rs` | módulo público `lace_core::delivery`: a entrega do progresso em lotes, com teto de linhas (`Dispatcher`, `Notification`) |
 | `locate.rs` | módulo público `lace_core::locate`: a busca do bundle para quem não é a CLI instalada ao lado dele |
 | `experimental.rs` | módulo público `lace_core::experimental`: os recursos desligados por padrão (`Feature::Fpga`, `Feature::Assistant`), o `experimental.json` e `require` |
+
+### `crates/lace-protocol/src/`
+
+| Arquivo | O que mora lá |
+|---|---|
+| `lib.rs` | o contrato do `lace serve` e do `lace mcp`: `Request`, `Response`, `PROTOCOL_VERSION`, a macro `methods!` (o nome, o tipo do resultado e as marcações de cada método, de onde saem `METHODS`, `METHOD_INFO` e `result_schema`) e o schema em duas vistas; é onde nasce um método novo ([docs/METODOLOGIA.md](docs/METODOLOGIA.md)). Os tipos dos resultados vêm do Core, do `lace-learn` e do instalador, e nenhum deles conhece o protocolo |
 
 ### `crates/lace-cli/src/`
 
@@ -270,7 +277,7 @@ a onda.
 | `crates/lace-learn/tests/` | `grading.rs` (a pasta de exercícios e a correção, com a trilha de `fixtures/teste`), `track.rs` (as trilhas de `lace-learn/` passam no `dev check`) |
 | `lace-learn/` | as trilhas de exercícios, que viram o componente `lace-learn` ([docs/LEARN.md](docs/LEARN.md)) |
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
-| `docs/PROTOCOL.md` | a referência do protocolo do `lace serve`, gerada dos tipos de `protocol.rs` por `crates/lace-cli/src/protocol_doc.rs`; não edite à mão |
+| `docs/PROTOCOL.md` | a referência do protocolo do `lace serve`, gerada dos tipos do `lace-protocol` por `crates/lace-cli/src/protocol_doc.rs`; não edite à mão |
 | `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `lace synth --open`, que vira o componente `rtl-viewer` |
 | `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pelo `lace serve` ou, com um Lace sem ele (ou `lace.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
 | `crates/lace-installer/tests/` | `install.rs` (empacota um bundle pequeno e instala de verdade) e `update.rs` (duas versões de um bundle pequeno: instala a primeira e atualiza para a segunda trocando só o que mudou) |
@@ -528,7 +535,7 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
   `eprintln!` no `lace-core` reprova o `cargo clippy`. O log sai por
   `tracing` (`tracing::info!`, `tracing::debug!`). O Core também não chama
   `exit` e não entra em pânico em erro esperado: devolve `LaceError`.
-- **Sem `unsafe`.** `lace-core`, `lace-learn`, `lace-installer` e `lace-agent` têm
+- **Sem `unsafe`.** `lace-core`, `lace-learn`, `lace-installer`, `lace-protocol` e `lace-agent` têm
   `#![forbid(unsafe_code)]`. A CLI não tem o atributo, e também não usa
   `unsafe`.
 - **Todo item público do Core é documentado.** `#![deny(missing_docs)]` em
@@ -706,7 +713,7 @@ Depois confira:
       para o bundle e a documentação do código para todo item público.
 - [ ] Se o usuário percebe a mudança, há uma linha no `CHANGELOG.md`, na
       seção da versão não publicada.
-- [ ] Se a mudança toca o contrato (`protocol.rs`, os códigos de
+- [ ] Se a mudança toca o contrato (o `lace-protocol`, os códigos de
       `error.rs` ou `docs/schema/`), ela segue
       [docs/METODOLOGIA.md](docs/METODOLOGIA.md): o diff de `docs/schema/`
       foi lido e classificado como compatível ou não.

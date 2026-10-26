@@ -121,7 +121,7 @@ Lace (CLI & Core) vem sempre.
 | Yosys | síntese; lê as portas para o testbench-modelo do `lace add` |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys |
 | surfer-aurora | visualizador de formas de onda |
-| openFPGALoader | grava as placas FPGA pelo cabo USB delas |
+| openFPGALoader | gravador de placas FPGA pelo cabo USB; o Lace ainda não o chama (as placas Intel são gravadas pelo `quartus_pgm` do Quartus) |
 | Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`lace learn`, e a vista Exercícios do Studio); precisa do Icarus |
 | RTL viewer | o esquemático interativo do netlist da síntese, no navegador (`lace synth --open`); precisa do Yosys |
 
@@ -224,7 +224,7 @@ as ferramentas rodam. O formato de cada um está em
   <a href="docs/img/mapa.svg">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/img/mapa-escuro.svg">
-      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o lace-core; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
+      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o lace-protocol por cima do lace-core, do lace-learn e do lace-installer; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
     </picture>
   </a>
 </p>
@@ -232,9 +232,10 @@ as ferramentas rodam. O formato de cada um está em
 A linha de comando `lace` linka as bibliotecas e chama as funções do
 `lace-core`. Os outros programas falam com um processo filho, o servidor do
 Lace (`lace serve`), por JSON-RPC: o Lace Studio, que o abre sozinho, a
-extensão do VS Code e scripts. Um agente de IA fala com o mesmo servidor em
-MCP: o `lace serve` reconhece o idioma pelo primeiro pedido, e o `lace mcp`
-é o mesmo servidor, sempre em MCP
+extensão do VS Code e scripts. Os pedidos e as respostas são os do crate
+`lace-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA
+fala com o mesmo servidor em MCP: o `lace serve` reconhece o idioma pelo
+primeiro pedido, e o `lace mcp` é o mesmo servidor, sempre em MCP
 ([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
 O `lace chat` e a vista Assistente do Studio usam o `lace-agent`, que abre o
 Claude Code com o `lace mcp`. O `lace mcp`, o `lace chat` e a vista
@@ -251,7 +252,7 @@ Assistente são experimentais: só funcionam depois de
 | [docs/CLI.md](docs/CLI.md) | a linha de comando `lace` |
 | [docs/LEARN.md](docs/LEARN.md) | os exercícios do `lace learn`: fazer e escrever |
 | [docs/FPGA.md](docs/FPGA.md) | as placas FPGA pelo Quartus Prime, um componente experimental (`lace experimental enable fpga`) |
-| [docs/API.md](docs/API.md) | a API do `lace-core`, que a CLI, o Studio e o `lace serve` usam |
+| [docs/API.md](docs/API.md) | a API do `lace-core`, que a CLI e o `lace serve` usam |
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | cada método do `lace serve` e do `lace mcp`, com os parâmetros, o resultado, as notificações, os erros e os tipos; gerado dos tipos |
 | [docs/BUNDLE.md](docs/BUNDLE.md) | o que vem no bundle, como montá-lo e o que vem do sistema |
 | [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando e o do protocolo do `lace serve` (`protocol-request.json`, `protocol-response.json`) |

@@ -2,7 +2,7 @@
 
 <!-- Gerado por crates/lace-cli/src/protocol_doc.rs. Não edite à mão: LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli schema -->
 
-Cada método do `lace serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `lace mcp` usa o mesmo contrato. Esta página sai dos tipos de `lace_core::protocol` (`crates/lace-core/src/protocol.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
+Cada método do `lace serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `lace mcp` usa o mesmo contrato. Esta página sai dos tipos de `lace_protocol` (`crates/lace-protocol/src/lib.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
 
 Como abrir o servidor, a fila por projeto, o cancelamento e o encerramento: [CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp).
 
@@ -58,14 +58,14 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`fpga.status`](#metodo-fpga-status) | [`BitstreamState`](#tipo-bitstreamstate) | O arquivo de gravação da última compilação e se serve. |
 | [`fpga.cables`](#metodo-fpga-cables) | lista de `string` | Os cabos de gravação ligados. |
 | [`fpga.top`](#metodo-fpga-top) | [`ModuleInterface`](#tipo-moduleinterface) | O módulo que vai para a placa e as portas dele, para montar as ligações antes de estarem certas. |
-| [`update.check`](#metodo-update-check) | qualquer JSON | As versões: este Lace, a última release, o bundle, cada componente. |
-| [`update.apply`](#metodo-update-apply) | qualquer JSON | Atualiza a instalação. |
-| [`install.add`](#metodo-install-add) | qualquer JSON | Instala componentes do bundle. |
-| [`learn.check`](#metodo-learn-check) | qualquer JSON | Corrige um exercício do `lace learn` (ou todos). |
-| [`learn.tracks`](#metodo-learn-tracks) | qualquer JSON | De onde vêm as trilhas do `lace learn` e quais há. |
-| [`learn.status`](#metodo-learn-status) | qualquer JSON | Abre a pasta de exercícios que contém `root` e a põe em dia com a trilha. |
-| [`learn.init`](#metodo-learn-init) | qualquer JSON | Cria a pasta de exercícios (`lace learn init`). |
-| [`learn.set_current`](#metodo-learn-set-current) | qualquer JSON | Torna atual um exercício. |
+| [`update.check`](#metodo-update-check) | [`UpdateReport`](#tipo-updatereport) | As versões: este Lace, a última release, o bundle, cada componente. |
+| [`update.apply`](#metodo-update-apply) | [`UpdateReport`](#tipo-updatereport) | Atualiza a instalação. |
+| [`install.add`](#metodo-install-add) | [`InstallReport`](#tipo-installreport) | Instala componentes do bundle. |
+| [`learn.check`](#metodo-learn-check) | [`LearnCheckOutcome`](#tipo-learncheckoutcome) | Corrige um exercício do `lace learn` (ou todos). |
+| [`learn.tracks`](#metodo-learn-tracks) | [`LearnTracks`](#tipo-learntracks) | De onde vêm as trilhas do `lace learn` e quais há. |
+| [`learn.status`](#metodo-learn-status) | [`WorkspaceSnapshot`](#tipo-workspacesnapshot) | Abre a pasta de exercícios que contém `root` e a põe em dia com a trilha. |
+| [`learn.init`](#metodo-learn-init) | [`WorkspaceSnapshot`](#tipo-workspacesnapshot) | Cria a pasta de exercícios (`lace learn init`). |
+| [`learn.set_current`](#metodo-learn-set-current) | [`WorkspaceSnapshot`](#tipo-workspacesnapshot) | Torna atual um exercício. |
 | [`learn.reset`](#metodo-learn-reset) | `null` | Volta o arquivo de um exercício ao começo (`lace learn reset`). |
 
 ### Sessão
@@ -682,7 +682,7 @@ Resposta: o relatório do instalador.
 
 Sem parâmetros.
 
-Resultado: qualquer JSON.
+Resultado: [`UpdateReport`](#tipo-updatereport).
 
 <a id="metodo-update-apply"></a>
 
@@ -698,7 +698,7 @@ seguida: o binário dele foi trocado.
 | `from` | `string` \| `null` | não (padrão: `null`) | Um instalador no disco, sem rede. |
 | `reopen_studio` | `boolean` | não (padrão: `false`) | No Windows, quando o assistente de instalação roda: abrir o Lace Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio pede isso e fecha, para o assistente trocar os arquivos dele. |
 
-Resultado: qualquer JSON.
+Resultado: [`UpdateReport`](#tipo-updatereport).
 
 ### `install.*`
 
@@ -714,7 +714,7 @@ antes de qualquer download.
 |---|---|---|---|
 | `components` | lista de `string` | sim | Os componentes (pelo menos um). |
 
-Resultado: qualquer JSON.
+Resultado: [`InstallReport`](#tipo-installreport).
 
 ### `learn.*`
 
@@ -731,7 +731,7 @@ relatório da correção do lace-learn.
 | `exercise` | `string` \| `null` | não (padrão: `null`) | O exercício; `None`, o atual. |
 | `all` | `boolean` | não (padrão: `false`) | Todos os exercícios. |
 
-Resultado: qualquer JSON.
+Resultado: [`LearnCheckOutcome`](#tipo-learncheckoutcome).
 
 <a id="metodo-learn-tracks"></a>
 
@@ -742,7 +742,7 @@ tracks}`.
 
 Sem parâmetros.
 
-Resultado: qualquer JSON.
+Resultado: [`LearnTracks`](#tipo-learntracks).
 
 <a id="metodo-learn-status"></a>
 
@@ -757,7 +757,7 @@ lace-learn).
 | `root` | `string` | sim | A pasta de exercícios, ou uma pasta dentro dela. |
 | `lang` | `string` \| `null` | não (padrão: `null`) | O idioma dos enunciados, quando a trilha tem tradução. |
 
-Resultado: qualquer JSON.
+Resultado: [`WorkspaceSnapshot`](#tipo-workspacesnapshot).
 
 <a id="metodo-learn-init"></a>
 
@@ -772,7 +772,7 @@ da pasta.
 | `track` | `string` \| `null` | não (padrão: `null`) | A trilha; `None`, a padrão. |
 | `lang` | `string` \| `null` | não (padrão: `null`) | O idioma dos enunciados. |
 
-Resultado: qualquer JSON.
+Resultado: [`WorkspaceSnapshot`](#tipo-workspacesnapshot).
 
 <a id="metodo-learn-set-current"></a>
 
@@ -786,7 +786,7 @@ Torna atual um exercício. Resposta: o retrato da pasta.
 | `name` | `string` | sim | O exercício. |
 | `lang` | `string` \| `null` | não (padrão: `null`) | O idioma dos enunciados. |
 
-Resultado: qualquer JSON.
+Resultado: [`WorkspaceSnapshot`](#tipo-workspacesnapshot).
 
 <a id="metodo-learn-reset"></a>
 
@@ -1079,6 +1079,18 @@ Um componente instalado (`components/<nome>.json`).
 | `sha256` | `string` \| `null` | sim (padrão: `null`) | SHA-256 do pacote de origem, quando foi baixado pronto. |
 | `files` | mapa de `string` para `string` | sim (padrão: `{}`) | SHA-256 dos executáveis do componente que o Lace roda, por caminho relativo ao bundle, conferido por `Toolchain::verify`. |
 
+<a id="tipo-bundleversions"></a>
+
+### `BundleVersions`
+
+As versões do bundle em `lace update`.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `installed` | `string` \| `null` | sim | O bundle instalado; `null` sem bundle. |
+| `latest` | `string` \| `null` | sim | O bundle da última release; `null` se o `bundle/versions.json` dela não pôde ser lido. |
+| `newer` | `boolean` | sim | `latest` é mais novo que `installed`. |
+
 <a id="tipo-cable"></a>
 
 ### `Cable`
@@ -1126,6 +1138,19 @@ O que aconteceu com um número de um relatório para o outro.
 | `"added"` | Só existe no atual (um tipo de célula novo). |
 | `"removed"` | Só existe na referência (um tipo de célula que sumiu). |
 | `"not_comparable"` | Falta de um dos lados. |
+
+<a id="tipo-chaptersnapshot"></a>
+
+### `ChapterSnapshot`
+
+Um capítulo de [`WorkspaceSnapshot`](#tipo-workspacesnapshot).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `id` | `string` | sim | A pasta do capítulo (`01_primeiros_passos`). |
+| `title` | `string` | sim | O título. |
+| `intro` | `string` | sim | A introdução, em markdown. |
+| `exercises` | lista de [`ExerciseSnapshot`](#tipo-exercisesnapshot) | sim | Os exercícios, na ordem. |
 
 <a id="tipo-checkresult"></a>
 
@@ -1213,6 +1238,22 @@ temperatura) que o Timing Analyzer analisa.
 | `setup_slack_ns` | `number` \| `null` | sim | A folga de setup, em ns. Negativa: o design não alcança a frequência do clock. |
 | `hold_slack_ns` | `number` \| `null` | sim | A folga de hold, em ns. |
 
+<a id="tipo-componentversions"></a>
+
+### `ComponentVersions`
+
+Um componente instalado em `lace update`.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | O componente (`yanc`, `icarus`, `verilator`, `yosys`, `graphviz`, `surfer-aurora`). |
+| `package` | `string` \| `null` | sim | O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`, `yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que este Lace não conhece. |
+| `installed` | `string` | sim | A versão instalada. |
+| `release` | `string` \| `null` | sim | A versão no bundle da última release; `null` se não pôde ser lida. |
+| `release_newer` | `boolean` | sim | `release` é mais nova que `installed`: chega atualizando o Lace. |
+| `upstream` | `string` \| `null` | sim | A última versão upstream; `null` se a consulta falhou. |
+| `upstream_newer` | `boolean` | sim | `upstream` é mais nova que `installed` e que `release`: só chega num bundle novo, numa release nova do Lace. Sem `release`, `false` quando há Lace mais novo, cujo bundle pode já trazê-la. |
+
 <a id="tipo-connection"></a>
 
 ### `Connection`
@@ -1236,6 +1277,21 @@ Um arquivo ou pasta que a conversão moveu.
 | `from` | `string` | sim | Onde estava, absoluto. |
 | `to` | `string` | sim | Onde ficou, absoluto. |
 | `generated` | `boolean` | sim | É algo que o YANC gera (foi para a pasta de saída). |
+
+<a id="tipo-counterexample"></a>
+
+### `Counterexample`
+
+A primeira amostra errada: o que entrou e o que saiu, para o aluno
+refazer o caso de cabeça. Vem das linhas `first` do resumo; um `tb.v`
+escrito à mão que não as escreve fica sem.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `time_ns` | `integer` | sim | O instante da amostra, em ns. |
+| `cycle` | `integer` \| `null` | sim | No sequencial, o ciclo (a partir de 0). |
+| `inputs` | lista de [`SignalValue`](#tipo-signalvalue) | sim | As entradas nessa amostra, sem o clock. |
+| `outputs` | lista de [`OutputValue`](#tipo-outputvalue) | sim | Cada saída nessa amostra: a esperada e a do aluno. |
 
 <a id="tipo-device"></a>
 
@@ -1405,6 +1461,25 @@ O processo do passo terminou.
 | `termination` | [`Termination`](#tipo-termination) | sim | Como terminou. |
 | `duration_ms` | `integer` | sim | Duração, em milissegundos. |
 
+<a id="tipo-exercisesnapshot"></a>
+
+### `ExerciseSnapshot`
+
+Um exercício de [`WorkspaceSnapshot`](#tipo-workspacesnapshot), com o que o aluno já fez.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | O nome. |
+| `title` | `string` | sim | O título. |
+| `prompt` | `string` | sim | O enunciado, em markdown. |
+| `hints` | lista de `string` | sim | As dicas, em markdown. |
+| `module` | `string` | sim | O módulo que o aluno escreve. |
+| `file` | `string` | sim | O arquivo que o aluno edita. |
+| `spf` | `string` | sim | O `.spf` do projeto do exercício. |
+| `waveform` | `string` | sim | A onda da última correção. |
+| `solved` | `boolean` | sim | Resolvido. |
+| `solution` | `string` \| `null` | sim | A solução liberada, depois de resolvido. |
+
 <a id="tipo-experimentalinfo"></a>
 
 ### `ExperimentalInfo`
@@ -1468,6 +1543,49 @@ papel de quem chama. Um arquivo fica numa lista só.
 |---|---|
 | `"synthesizable"` | Entra na síntese e na simulação. |
 | `"testbench"` | Só entra na simulação. |
+
+<a id="tipo-finding"></a>
+
+### `Finding`
+
+O que a correção percebeu sobre a causa do erro.
+
+Uma das formas:
+
+**`kind: "interface_changed"`**
+
+O erro de compilação é no testbench: o nome do módulo ou o de uma
+porta mudou.
+
+Sem campos.
+
+**`kind: "undriven_output"`**
+
+Todas as amostras erradas desta saída estão em X ou Z: ela não é
+atribuída, ou depende de algo que não é.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `output` | `string` | sim | A saída. |
+
+**`kind: "reset_only"`**
+
+Só erra com o reset ativo: o reset não faz o que o enunciado pede
+(síncrono ou assíncrono, o valor depois dele).
+
+Sem campos.
+
+**`kind: "latch_inferred"`**
+
+A síntese achou um latch: o sinal guarda o valor quando nenhum ramo
+do `always` o atribui. Num circuito combinacional, faltou um `else`,
+um `default` ou um valor antes do `if`. Pode aparecer com o exercício
+resolvido: a simulação passa, e o circuito não é o que parece.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `signal` | `string` | sim | O sinal (`modulo.sinal` quando é de um submódulo). |
+| `line` | `integer` \| `null` | sim | A linha do `always` que gerou o latch, no arquivo do aluno. |
 
 <a id="tipo-flowoptions"></a>
 
@@ -1706,6 +1824,28 @@ que existem.
 | `memories` | lista de `string` | sim | `*.mif`: as memórias de dados e de instruções. |
 | `intermediates` | lista de `string` | sim | As tabelas e os logs do YANC (`prog_log.txt`, `src_lines.txt`, `trad_opcode.txt`, `app_log.txt`, `pc_<nome>_mem.txt`); as saídas da simulação (`output_<n>.txt`, `toma_<n>.txt`) ficam de fora. |
 
+<a id="tipo-grade"></a>
+
+### `Grade`
+
+O resultado da correção.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `exercise` | `string` | sim | O exercício. |
+| `verdict` | [`Verdict`](#tipo-verdict) | sim | Como terminou. |
+| `samples` | `integer` | sim | Quantas amostras o testbench comparou. |
+| `mismatched` | `integer` | sim | Em quantas amostras alguma saída errou. |
+| `outputs` | lista de [`OutputCheck`](#tipo-outputcheck) | sim | Cada saída, na ordem das portas. |
+| `reset_mismatches` | `integer` \| `null` | sim | Com reset: quantas amostras erradas foram com ele ativo. |
+| `counterexample` | [`Counterexample`](#tipo-counterexample) \| `null` | sim | A primeira amostra errada, com as entradas e as saídas. |
+| `findings` | lista de [`Finding`](#tipo-finding) | sim | O que se percebeu sobre a causa do erro, e o latch que a síntese achou (este, também com o exercício resolvido). |
+| `diagnostics` | lista de [`Diagnostic`](#tipo-diagnostic) | sim | Os erros e avisos dos compiladores sobre o código do aluno, com os avisos do lint do Verilator quando ele está instalado. |
+| `output` | lista de `string` | sim | O que o testbench escreveu, fora o resumo (um `tb.v` escrito à mão pode explicar o erro aqui). |
+| `waveform` | `string` \| `null` | sim | A onda da simulação. |
+| `layout` | `string` \| `null` | sim | O arquivo de comandos do Surfer que mostra a onda com as entradas, as saídas lado a lado com as da referência e o primeiro erro marcado. |
+| `duration_ms` | `integer` | sim | Quanto a correção levou, em milissegundos. |
+
 <a id="tipo-hierarchyresult"></a>
 
 ### `HierarchyResult`
@@ -1722,6 +1862,18 @@ O resultado de `hierarchy`.
 | `diagnostics` | lista de [`Diagnostic`](#tipo-diagnostic) | sim | Os erros e avisos de todas as elaborações, com arquivo e linha. |
 | `artifacts` | lista de [`Artifact`](#tipo-artifact) | sim | Os `.vvp` de cada elaboração. |
 | `duration_ms` | `integer` | sim | Quanto as elaborações levaram juntas, em milissegundos. |
+
+<a id="tipo-installreport"></a>
+
+### `InstallReport`
+
+`lace install` (`docs/schema/install.json`).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `prefix` | `string` | sim | A pasta da instalação. |
+| `components` | lista de `string` | sim | Os aplicativos do bundle instalados agora. |
+| `added` | lista de `string` | sim | Os que entraram nesta chamada (com os que eles exigem). |
 
 <a id="tipo-invocation"></a>
 
@@ -1796,6 +1948,18 @@ Como gravar a placa pela USB dela.
 | `position` | `integer` | sim | A posição do FPGA na cadeia JTAG, a partir de 1. Na DE10-Nano o FPGA vem depois do processador ARM (HPS). |
 | `openfpgaloader` | `string` \| `null` | não | O nome da placa no openFPGALoader (`-b`), se ele a conhece. |
 
+<a id="tipo-laceversions"></a>
+
+### `LaceVersions`
+
+As versões do Lace em `lace update`.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `installed` | `string` | sim | A versão deste `lace`. |
+| `latest` | `string` | sim | A versão da última release no GitHub. |
+| `newer` | `boolean` | sim | `latest` é mais nova que `installed`. |
+
 <a id="tipo-language"></a>
 
 ### `Language`
@@ -1856,6 +2020,30 @@ exercício do lace-learn).
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `path` | `string` | sim | O arquivo (`.surf.ron` ou `.sucl`). |
+
+<a id="tipo-learncheckoutcome"></a>
+
+### `LearnCheckOutcome`
+
+O resultado de uma rodada de correção (e do `learn.check` do protocolo).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `results` | lista de [`Grade`](#tipo-grade) | sim | A correção de cada exercício pedido, na ordem; termina no primeiro cancelado. |
+| `solved` | `integer` | sim | Quantos exercícios da trilha estão resolvidos depois da rodada. |
+| `total` | `integer` | sim | Quantos exercícios a trilha tem. |
+
+<a id="tipo-learntracks"></a>
+
+### `LearnTracks`
+
+De onde vêm as trilhas e quais há (o resultado do `learn.tracks` do
+protocolo).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `dir` | `string` | sim | A pasta das trilhas. |
+| `tracks` | lista de `string` | sim | As trilhas dela. |
 
 <a id="tipo-listposition"></a>
 
@@ -2014,6 +2202,34 @@ Como o bundle foi achado.
 | `"installation"` | Uma pasta padrão do instalador. |
 | `"path"` | O `lace` do `PATH`. |
 | `"beside"` | Ao lado do executável. |
+
+<a id="tipo-outputcheck"></a>
+
+### `OutputCheck`
+
+O resultado de uma saída do módulo.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | O nome da porta. |
+| `mismatches` | `integer` | sim | Em quantas amostras ela diferiu da referência. |
+| `first_ns` | `integer` \| `null` | sim | O instante do primeiro erro, em ns. |
+| `unknown` | `integer` | sim | Das amostras erradas, quantas tinham bit em X ou Z. |
+
+<a id="tipo-outputvalue"></a>
+
+### `OutputValue`
+
+Uma saída no contraexemplo.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | A porta. |
+| `expected_bits` | `string` | sim | Os bits que a referência deu. |
+| `actual_bits` | `string` | sim | Os bits que o módulo do aluno deu. |
+| `expected` | `string` | sim | O esperado, para ler. |
+| `actual` | `string` | sim | O do aluno, para ler. |
+| `wrong` | `boolean` | sim | Se esta saída errou nessa amostra. |
 
 <a id="tipo-phase"></a>
 
@@ -2547,6 +2763,18 @@ Um escopo da árvore: uma instância de módulo, ou um bloco `generate` ou
 | `signals` | lista de [`WaveSignal`](#tipo-wavesignal) | sim | Os sinais, na ordem do Icarus. |
 | `scopes` | lista de [`SignalScope`](#tipo-signalscope) | sim | Os escopos de dentro. |
 
+<a id="tipo-signalvalue"></a>
+
+### `SignalValue`
+
+O valor de uma entrada no contraexemplo.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | A porta. |
+| `bits` | `string` | sim | Os bits, do mais significativo ao menos, com `x` e `z`. |
+| `text` | `string` | sim | O valor para ler: `1`, `4'b0101 (5)`, `16'h00ff (255)`. |
+
 <a id="tipo-simulationcontext"></a>
 
 ### `SimulationContext`
@@ -3035,6 +3263,74 @@ Uma porta do topo.
 | `input` | `boolean` | sim | `true` para entrada, `false` para saída. |
 | `width` | `integer` | sim | A largura. |
 
+<a id="tipo-updateaction"></a>
+
+### `UpdateAction`
+
+O que `lace update` fez.
+
+| Valor | Descrição |
+|---|---|
+| `"checked"` | `--check`: só comparou as versões. |
+| `"up_to_date"` | Não há Lace mais novo publicado: nada mudou. |
+| `"updated"` | A instalação foi trocada (por componentes, ou pelo instalador no Linux e no macOS). O `lace` em uso é o antigo: quem chamou termina e reinicia. |
+| `"wizard_opened"` | O assistente de instalação do Windows foi aberto e termina depois que quem chamou sai. |
+
+<a id="tipo-updatechanges"></a>
+
+### `UpdateChanges`
+
+O que a atualização por componentes trocou.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `components` | lista de `string` | sim | Os componentes com arquivos que entraram ou saíram, na ordem do bundle; `lace` é o próprio Lace e o cabeçalho do bundle. |
+| `download_bytes` | `integer` | sim | Bytes baixados. |
+| `files` | `integer` | sim | Arquivos que entraram (novos ou trocados). |
+| `removed` | `integer` | sim | Arquivos que saíram. |
+
+<a id="tipo-updatemethod"></a>
+
+### `UpdateMethod`
+
+Como `lace update` atualizou.
+
+| Valor | Descrição |
+|---|---|
+| `"components"` | Só os arquivos que mudaram, dos pedaços que a release publica. |
+| `"installer"` | O instalador inteiro da versão nova. |
+
+<a id="tipo-updatereport"></a>
+
+### `UpdateReport`
+
+O relatório do `lace update` (`docs/schema/update.json`).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `lace` | [`LaceVersions`](#tipo-laceversions) | sim | O Lace: este e o da última release. |
+| `bundle` | [`BundleVersions`](#tipo-bundleversions) | sim | O bundle de ferramentas: o instalado e o da última release. |
+| `components` | lista de [`ComponentVersions`](#tipo-componentversions) | sim | Cada componente instalado, na ordem do manifesto do bundle. Vazio sem bundle. |
+| `prefix` | `string` \| `null` | sim | A pasta da instalação; `null` se este `lace` não foi instalado pelo instalador (um build em `target/`, por exemplo). |
+| `action` | [`UpdateAction`](#tipo-updateaction) | sim | O que o comando fez. |
+| `method` | [`UpdateMethod`](#tipo-updatemethod) \| `null` | sim | Como atualizou; `null` quando não atualizou. |
+| `changes` | [`UpdateChanges`](#tipo-updatechanges) \| `null` | sim | O que a atualização por componentes trocou, ou vai trocar com `--check --from`; `null` quando ela não rodou. |
+
+<a id="tipo-verdict"></a>
+
+### `Verdict`
+
+Como terminou a correção.
+
+| Valor | Descrição |
+|---|---|
+| `"solved"` | Compilou e nenhuma saída errou. |
+| `"compile_error"` | O Verilog não compila: os erros estão em `diagnostics`. |
+| `"mismatch"` | Simulou, e alguma saída diferiu da referência. |
+| `"incomplete"` | A simulação terminou sem o resumo do testbench, ou parou com erro. |
+| `"timed_out"` | A simulação passou do prazo: um laço sem fim, ou um laço combinacional que não estabiliza. |
+| `"cancelled"` | A correção foi cancelada. |
+
 <a id="tipo-wavechoice"></a>
 
 ### `WaveChoice`
@@ -3256,3 +3552,23 @@ testbench der.
 |---|---|
 | `"vcd"` | Value Change Dump, texto. |
 | `"fst"` | Fast Signal Trace, binário e comprimido. |
+
+<a id="tipo-workspacesnapshot"></a>
+
+### `WorkspaceSnapshot`
+
+A pasta de exercícios como uma interface a mostra: a trilha, os
+capítulos com os enunciados e o que o aluno já fez
+(`Workspace::snapshot`). É o resultado do `learn.status` do protocolo.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `root` | `string` | sim | A pasta de exercícios. |
+| `track` | `string` | sim | A trilha (`verilog`). |
+| `title` | `string` | sim | O título da trilha. |
+| `welcome` | `string` | sim | As boas-vindas, em markdown. |
+| `farewell` | `string` \| `null` | sim | A mensagem do fim, em markdown. |
+| `chapters` | lista de [`ChapterSnapshot`](#tipo-chaptersnapshot) | sim | Os capítulos, na ordem. |
+| `current` | `string` | sim | O exercício atual. |
+| `solved` | `integer` | sim | Quantos resolvidos. |
+| `total` | `integer` | sim | Quantos exercícios. |

@@ -21,10 +21,11 @@ O repositório tem uma biblioteca com toda a regra de negócio e várias
 interfaces em volta dela. Cada camada só conhece a de baixo.
 
 ```
-lace-core          a regra: projeto, fluxos, ferramentas, erros e o contrato (protocol)
+lace-core          a regra: projeto, fluxos, ferramentas e erros
   lace-learn       os exercícios do lace learn, sobre o core
   lace-installer   instalar, atualizar e desinstalar, sobre o core
   lace-agent       o assistente de IA, sobre o core (experimental)
+lace-protocol      o contrato: pedidos, respostas e schemas, sobre o core, o lace-learn e o instalador
 lace-cli           o binário lace: os comandos de texto, o lace serve (que fala também MCP), o lace mcp e o lace chat
 studio/src-tauri   o backend do Lace Studio: cliente do lace serve, mais o que é só do Studio
 studio/src         a interface do Studio, em TypeScript
@@ -42,15 +43,15 @@ Cinco regras seguem dessa figura.
    pedem ao `lace serve` e mostram a resposta. Elas escolhem como mostrar,
    nunca o que fazer. O Studio não linka o core: o único crate do Lace que
    ele linka é o `lace-agent`, do assistente, até a 1.0.
-3. **Uma camada não conhece a de cima.** O core não sabe que existe CLI nem
-   Studio. As mensagens dele não citam comandos: a dica com o comando que
-   resolve é posta pela CLI, no campo `hint`.
+3. **Uma camada não conhece a de cima.** O core não sabe que existe
+   protocolo, CLI nem Studio. As mensagens dele não citam comandos: a dica
+   com o comando que resolve é posta pela CLI, no campo `hint`.
 4. **Uma capacidade nova nasce como método do protocolo.** Mesmo quando o
-   primeiro cliente é o Studio, ela entra em `lace_core::protocol` e no
+   primeiro cliente é o Studio, ela entra no `lace-protocol` e no
    `lace serve`. Assim chega à extensão, ao `lace mcp` e a scripts sem ser
    escrita de novo.
 5. **O TypeScript não copia tipo do Rust à mão.** Os tipos vêm de
-   `docs/schema/`, gerados dos tipos do core. O `lace-types.ts` do Studio e
+   `docs/schema/`, gerados dos tipos Rust. O `lace-types.ts` do Studio e
    o da extensão são gerados; o que se escreve à mão é só o que existe
    apenas numa interface.
 
@@ -61,10 +62,10 @@ mesmas. O exemplo é o `history.compare`, que compara dois relatórios.
 
 | Peça | Onde mora | No exemplo |
 |---|---|---|
-| Nome | a linha em `methods!` e o `#[serde(rename)]` da variante, em `crates/lace-core/src/protocol.rs` | `history.compare` |
+| Nome | a linha em `methods!` e o `#[serde(rename)]` da variante, em `crates/lace-protocol/src/lib.rs` | `history.compare` |
 | Pedido | uma variante de `Request`, no mesmo arquivo | `Request::HistoryCompare { project, id, against }` |
 | Resposta | o tipo na linha de `methods!` e uma variante de `Response` que o carrega | `RunComparison`, em `Response::Comparison(Box<RunComparison>)` |
-| Função | o módulo do domínio, no core | `history::compare_reports` |
+| Função | o módulo do domínio, no core (no `lace-learn` ou no instalador, para `learn.*`, `update.*` e `install.*`) | `history::compare_reports` |
 | Erros | as variantes de `LaceError` que a função devolve, cada uma com `code()` | |
 | Documentação | o `///` da variante e de cada campo | vira a descrição no schema e no `lace mcp` |
 
@@ -119,7 +120,7 @@ Há três números de versão, e cada um diz uma coisa diferente.
 | Número | Onde | Quando sobe |
 |---|---|---|
 | Versão do Lace | os seis lugares de [RELEASE.md](RELEASE.md), seção 6.1 | a cada release, pelas regras da seção 2 de [RELEASE.md](RELEASE.md) |
-| `PROTOCOL_VERSION` | `crates/lace-core/src/protocol.rs`, devolvido pelo `initialize` | só quando um cliente antigo deixaria de funcionar |
+| `PROTOCOL_VERSION` | `crates/lace-protocol/src/lib.rs`, devolvido pelo `initialize` | só quando um cliente antigo deixaria de funcionar |
 | Versão da extensão | `editors/vscode/package.json` | a cada `.vsix` publicado com mudança, para o editor reconhecer a atualização |
 
 O que conta como compatível:
@@ -169,7 +170,7 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    campo documentado. O teste fica no próprio módulo ou em
    `crates/lace-core/tests/`. As regras do código do core estão no
    CONTRIBUTING.md, em "Regras do código".
-3. **O protocolo.** Em `crates/lace-core/src/protocol.rs`: a variante de
+3. **O protocolo.** Em `crates/lace-protocol/src/lib.rs`: a variante de
    `Request`, com o `#[serde(rename = "domínio.verbo")]` e o `///` em cada
    campo; a variante de `Response`, se o tipo da resposta é novo; a linha
    em `methods!`, com a variante, o nome, o tipo do resultado e, entre
@@ -177,9 +178,11 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    instalação, `agent` se vira ferramenta de agente e `agent_update` se vira
    ferramenta só com `--allow-update`. Dela saem `METHODS`, `METHOD_INFO`,
    `result_schema`, `is_read_only` e `is_installation`. Sem essa linha, o
-   `protocol.rs` não compila. O teste
+   crate não compila. O tipo do resultado vem do core, do `lace-learn` ou do
+   instalador, com `Serialize` e `JsonSchema`. O teste
    `the_method_list_matches_the_request_enum` confere `METHODS` contra o
-   enum.
+   enum, e `every_result_has_a_shape_in_the_schema` recusa um resultado sem
+   formato no schema (um `serde_json::Value`).
 4. **O despacho.** Um braço em `Server::handle_with`, em
    `crates/lace-cli/src/serve.rs`: abrir o projeto, chamar a função do core
    e embrulhar o resultado na `Response`. Nenhuma regra entra aqui: uma
@@ -271,7 +274,7 @@ custo disso cai em quem não participou da decisão.
   `docs/schema/` ser lido sozinho.
 - **Descrição do pull request.** O que muda, por quê, como foi testado e se
   muda o contrato: nenhuma mudança, compatível ou incompatível.
-- **Quem revisa o contrato.** Uma mudança em `protocol.rs`, nos códigos de
+- **Quem revisa o contrato.** Uma mudança no `lace-protocol`, nos códigos de
   `error.rs` ou em `docs/schema/` passa pela revisão de quem cuida do
   contrato. Até o `CODEOWNERS` da seção 8 existir, isso é combinado no pull
   request.
@@ -289,9 +292,9 @@ proposto aqui; as outras, não.
   arquivos, fora os tipos gerados. Um método usado por todos os clientes
   passa por uns 15: core, protocolo, despacho, `lace mcp`, CLI, Studio,
   extensão e documentação.
-- **Algumas respostas não têm tipo.** `update.check`, `update.apply`,
-  `install.add` e `learn.check` respondem `Response::Other`, um JSON solto,
-  porque o core não pode depender do `lace-installer` nem do `lace-learn`.
+- **Um campo de resposta ainda sem tipo.** O `learn` do `FlowOutcome`, a
+  correção que o `flow.run` do fluxo `learn` devolve, é um JSON solto: o
+  `FlowOutcome` é do core, e o core não conhece o `Grade` do `lace-learn`.
 - **Os testes Rust não rodam no GitHub.** O `release.yml` só monta os
   instaladores, e o `vscode.yml` só cobre a extensão. O `ci.yml`, que os
   rodava nos três sistemas, saiu em 2026-10-06.
@@ -306,7 +309,7 @@ Cada fase vale sozinha e pode parar ali.
    sistemas: `cargo fmt --check`, `clippy`, os testes sem bundle, o
    `cargo doc`, a conferência de `docs/schema/` e o typecheck dos dois
    projetos TypeScript. Um `CODEOWNERS`
-   para `protocol.rs`, `error.rs` e `docs/schema/`, e um modelo de pull
+   para o `lace-protocol`, `error.rs` e `docs/schema/`, e um modelo de pull
    request com as perguntas da seção 7.
 2. **Um despacho só.** Feita em 2026-10-26, sem o crate `lace-service`
    que esta seção propunha: o Studio virou cliente do `lace serve`, como a
@@ -320,13 +323,13 @@ Cada fase vale sozinha e pode parar ali.
    mesmas funções do core que o despacho chama; as operações de mais de um
    passo (registrar arquivos, conferir um fluxo antes do bundle, a visão de
    um relatório) são funções do core, para a CLI e o despacho não as
-   repetirem. Falta dar tipo às
-   respostas do update, do install e do learn, que ainda são
-   `Response::Other`.
+   repetirem. Depois, o protocolo saiu do core para um crate próprio, o
+   `lace-protocol`, acima do core, do `lace-learn` e do instalador, e as
+   respostas do update, do install e do learn ganharam tipo no schema.
 3. **O método declarado num lugar só.** Uma macro, como a `reports!` da
    CLI, em que cada método declara uma vez o nome, o estado da seção 4, se
    só lê, se é da instalação, se vai para o `lace mcp` e o resumo.
-   Começada: a `methods!` de `protocol.rs` declara o nome, o tipo do
+   Começada: a `methods!` do `lace-protocol` declara o nome, o tipo do
    resultado e as marcações (`read`, `install`, `agent`, `agent_update`);
    `METHODS`, `METHOD_INFO`, `result_schema`, `is_read_only` e
    `is_installation` saem dela; uma variante de `Request` sem linha não
