@@ -224,7 +224,7 @@ as ferramentas rodam. O formato de cada um está em
   <a href="docs/img/mapa.svg">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/img/mapa-escuro.svg">
-      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o lace-core; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
+      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o lace-protocol por cima do lace-core, do lace-learn e do lace-installer; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
     </picture>
   </a>
 </p>
@@ -233,9 +233,9 @@ A linha de comando `lace` linka as bibliotecas e chama as funções do
 `lace-core`. Os outros programas falam com um processo filho, o servidor do
 Lace (`lace serve`), por JSON-RPC: o Lace Studio, que o abre sozinho, a
 extensão do VS Code e scripts. Os pedidos e as respostas são os do crate
-`lace-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA fala com o mesmo servidor em
-MCP: o `lace serve` reconhece o idioma pelo primeiro pedido, e o `lace mcp`
-é o mesmo servidor, sempre em MCP
+`lace-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA
+fala com o mesmo servidor em MCP: o `lace serve` reconhece o idioma pelo
+primeiro pedido, e o `lace mcp` é o mesmo servidor, sempre em MCP
 ([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
 O `lace chat` e a vista Assistente do Studio usam o `lace-agent`, que abre o
 Claude Code com o `lace mcp`. O `lace mcp`, o `lace chat` e a vista
