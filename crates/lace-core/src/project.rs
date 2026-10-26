@@ -324,28 +324,60 @@ fn default_port() -> u32 {
     1
 }
 
-/// Os campos de um [`NewProcessor`] como chegam em JSON: só o nome e a
-/// linguagem são obrigatórios.
-#[derive(Deserialize)]
-struct NewProcessorFields {
-    name: String,
-    language: Language,
+/// Os campos de um [`NewProcessor`] como chegam de quem pede (o JSON do
+/// protocolo, as opções do `lace proc add`): só o nome e a linguagem são
+/// obrigatórios. Um campo ausente fica com o padrão de [`NewProcessor::new`],
+/// e, sem `nubits`, com `nbmant` ou `nbexpo` dados, `nubits` vira
+/// `nbmant + nbexpo + 1` ([`NewProcessor::nubits_for`]): a regra mora no
+/// `From` daqui, e quem monta um processador novo passa por ele.
+#[derive(Debug, Clone, Deserialize)]
+pub struct NewProcessorFields {
+    /// Nome do processador.
+    pub name: String,
+    /// Linguagem do fonte-modelo.
+    pub language: Language,
+    /// `#NUBITS`.
     #[serde(default)]
-    nubits: Option<u32>,
+    pub nubits: Option<u32>,
+    /// `#NBMANT`.
     #[serde(default)]
-    nbmant: Option<u32>,
+    pub nbmant: Option<u32>,
+    /// `#NBEXPO`.
     #[serde(default)]
-    nbexpo: Option<u32>,
+    pub nbexpo: Option<u32>,
+    /// `#NUGAIN`.
     #[serde(default)]
-    nugain: Option<u32>,
+    pub nugain: Option<u32>,
+    /// `#NDSTAC`; ausente, o `asmcomp` calcula pelo programa.
     #[serde(default)]
-    ndstac: Option<u32>,
+    pub ndstac: Option<u32>,
+    /// `#SDEPTH`; ausente, calculada pelo programa.
     #[serde(default)]
-    sdepth: Option<u32>,
+    pub sdepth: Option<u32>,
+    /// Portas de entrada.
     #[serde(default)]
-    input_ports: Option<u32>,
+    pub input_ports: Option<u32>,
+    /// Portas de saída.
     #[serde(default)]
-    output_ports: Option<u32>,
+    pub output_ports: Option<u32>,
+}
+
+impl NewProcessorFields {
+    /// Só o nome e a linguagem; o resto com o padrão.
+    pub fn new(name: impl Into<String>, language: Language) -> Self {
+        NewProcessorFields {
+            name: name.into(),
+            language,
+            nubits: None,
+            nbmant: None,
+            nbexpo: None,
+            nugain: None,
+            ndstac: None,
+            sdepth: None,
+            input_ports: None,
+            output_ports: None,
+        }
+    }
 }
 
 impl From<NewProcessorFields> for NewProcessor {
