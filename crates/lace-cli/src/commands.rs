@@ -45,12 +45,8 @@ use crate::{
 pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
     match &cli.command {
         Command::New { name, dir } => {
-            let request = Request::ProjectCreate {
-                parent: settings::absolute(dir)?,
-                name: name.clone(),
-            };
-            let status = answer!(Local::new(cli).call(request)?, Status);
-            out.created(&status)?;
+            let project = Project::create(settings::absolute(dir)?, name)?;
+            out.created(&project.status())?;
         }
         Command::Status => status(cli, out)?,
         Command::Add { files, tb } => add(cli, files, *tb, out)?,
@@ -77,14 +73,9 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
                     ListPosition::Last
                 }
             };
-            let project = open(cli)?;
+            let mut project = open(cli)?;
             let path = settings::absolute(file)?;
-            let request = Request::ProjectOrder {
-                project: project.spf_path().to_owned(),
-                file: path.clone(),
-                position,
-            };
-            let files = answer!(Local::new(cli).call(request)?, Files);
+            let files = project.reorder_file(&path, &position)?;
             let moved = files
                 .iter()
                 .find(|f| f.path.file_name() == path.file_name())
@@ -97,11 +88,8 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         }
         Command::Proc(command) => proc_command(cli, command, out)?,
         Command::Convert => {
-            let project = open(cli)?;
-            let request = Request::ProjectConvert {
-                project: project.spf_path().to_owned(),
-            };
-            let conversion = answer!(Local::new(cli).call(request)?, Converted);
+            let mut project = open(cli)?;
+            let conversion = project.convert_layout()?;
             out.converted(&conversion, project.root());
             out.json(&ConvertReport {
                 project: project.spf_path().to_owned(),
@@ -210,11 +198,7 @@ pub(crate) fn from_shell(path: &Utf8Path) -> Utf8PathBuf {
 fn status(cli: &Cli, out: &Output) -> anyhow::Result<()> {
     let project = open(cli)?;
     let here = processor_here(cli, &project)?.map(|p| p.name.clone());
-    let request = Request::ProjectStatus {
-        project: project.spf_path().to_owned(),
-    };
-    let status = answer!(Local::new(cli).call(request)?, Status);
-    out.status(&status, here.as_deref())
+    out.status(&project.status(), here.as_deref())
 }
 
 fn add(cli: &Cli, files: &[Utf8PathBuf], testbench: bool, out: &Output) -> anyhow::Result<()> {
@@ -277,27 +261,20 @@ fn remove(cli: &Cli, files: &[Utf8PathBuf], out: &Output) -> anyhow::Result<()> 
 }
 
 fn top(cli: &Cli, target: Option<&str>, out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
-    // Um arquivo que existe a partir do diretório atual vai absoluto; o
-    // resto vai como está, e o Core tenta como caminho a partir da raiz e
-    // depois como nome de módulo.
-    let target = match target {
-        Some(target) => {
-            let path = settings::absolute(Utf8Path::new(target))?;
-            Some(if path.is_file() {
-                path.into_string()
-            } else {
-                target.to_owned()
-            })
-        }
-        None => None,
-    };
-    let request = Request::ProjectTop {
-        project: project.spf_path().to_owned(),
-        target,
-    };
-    let top = answer!(Local::new(cli).call(request)?, Top);
-    out.top(&top, project.root())
+    let mut project = open(cli)?;
+    if let Some(target) = target {
+        // Um arquivo que existe a partir do diretório atual vai absoluto; o
+        // resto vai como está, e o Core tenta como caminho a partir da raiz
+        // e depois como nome de módulo.
+        let path = settings::absolute(Utf8Path::new(target))?;
+        let target = if path.is_file() {
+            path.as_str()
+        } else {
+            target
+        };
+        project.set_top(target)?;
+    }
+    out.top(&crate::output::top_outcome(&project), project.root())
 }
 
 /// `lace move`, com os argumentos do `mv`: para uma pasta que existe (ou um
@@ -316,7 +293,7 @@ fn move_paths(
     after: bool,
     out: &Output,
 ) -> anyhow::Result<()> {
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let folder = dest.as_str().ends_with(['/', '\\']);
     let dest = settings::absolute(dest)?;
     let into = folder
@@ -336,7 +313,6 @@ fn move_paths(
             from_shell(&dest)
         );
     }
-    let local = Local::new(cli);
     let mut moved = Vec::new();
     for source in sources {
         let from = settings::absolute(source)?;
@@ -344,14 +320,11 @@ fn move_paths(
             Some(name) if into => dest.join(name),
             _ => dest.clone(),
         };
-        let request = Request::ProjectMove {
-            project: project.spf_path().to_owned(),
-            from,
-            to,
-            after,
-            overwrite: false,
+        let result = if after {
+            project.record_move(&from, &to)?
+        } else {
+            project.move_path(&from, &to)?
         };
-        let result = answer!(local.call(request)?, Moved);
         out.moved(&result, project.root(), after);
         moved.push(result);
     }

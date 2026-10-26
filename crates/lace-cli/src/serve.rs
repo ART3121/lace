@@ -63,7 +63,7 @@ use lace_core::history;
 use lace_core::locate;
 use lace_core::protocol::{
     METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response, ServerInfo,
-    ShutdownReason, TopOutcome, WaveLayoutInfo,
+    ShutdownReason, WaveLayoutInfo,
 };
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, NewProcessor, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
@@ -917,15 +917,7 @@ impl Server {
                 if let Some(target) = target {
                     project.set_top(&target)?;
                 }
-                let (module, module_error) = match project.top_module() {
-                    Ok(module) => (module, None),
-                    Err(error) => (None, Some(crate::output::error_info(&error))),
-                };
-                Response::Top(TopOutcome {
-                    top_level: project.top_level(),
-                    module,
-                    module_error,
-                })
+                Response::Top(crate::output::top_outcome(&project))
             }
             Request::ProjectTestbench { project, path } => {
                 let mut project = open_project(&project)?;

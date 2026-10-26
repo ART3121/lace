@@ -24,7 +24,7 @@ use lace_core::protocol::TopOutcome;
 use lace_core::{
     AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
     Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, LayoutConversion,
-    ModuleInstance, MovedPath, Platform, ProjectFile, ProjectStatus, RemovedProcessor,
+    ModuleInstance, MovedPath, Platform, Project, ProjectFile, ProjectStatus, RemovedProcessor,
     SchematicResult, Severity, SimulationResult, Simulator, Status, Step, StepReport,
     SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool,
 };
@@ -1989,6 +1989,21 @@ fn processors_text(processors: &[lace_core::ProcessorStatus], here: Option<&str>
                 format!("Here, build, check, sim, wave, synth and proc set act on {here}")
             )
         );
+    }
+}
+
+/// O topo do projeto como o `lace top` e o `project.top` o mostram: o
+/// arquivo, o módulo e, quando o módulo não dá para saber (vários módulos,
+/// nenhum com o nome do arquivo), o erro com a dica da CLI.
+pub(crate) fn top_outcome(project: &Project) -> TopOutcome {
+    let (module, module_error) = match project.top_module() {
+        Ok(module) => (module, None),
+        Err(error) => (None, Some(error_info(&error))),
+    };
+    TopOutcome {
+        top_level: project.top_level(),
+        module,
+        module_error,
     }
 }
 
