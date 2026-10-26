@@ -911,14 +911,7 @@ impl Server {
                 // Sem bundle o arquivo é criado do mesmo jeito, com o leitor
                 // de portas embutido.
                 let toolchain = self.toolchain().ok();
-                for file in &files {
-                    project.check_add_verilog(file)?;
-                }
-                let mut added = Vec::with_capacity(files.len());
-                for file in files {
-                    added.push(project.add_verilog(toolchain.as_ref(), file, testbench)?);
-                }
-                Response::Added(added)
+                Response::Added(project.add_verilog_files(toolchain.as_ref(), &files, testbench)?)
             }
             Request::ProjectRemove { project, files } => {
                 let mut project = open_project(&project)?;

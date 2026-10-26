@@ -217,20 +217,19 @@ fn status(cli: &Cli, out: &Output) -> anyhow::Result<()> {
 }
 
 fn add(cli: &Cli, files: &[Utf8PathBuf], testbench: bool, out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
-    // O despacho confere todos antes de registrar o primeiro (um nome ruim no
-    // meio da lista não deixa metade registrada) e, sem bundle, cria o
-    // arquivo do mesmo jeito, lendo as portas com o leitor embutido.
+    let mut project = open(cli)?;
+    // Sem bundle o arquivo é criado do mesmo jeito: o Core lê as portas do
+    // módulo testado com o leitor embutido em vez do Yosys.
+    let toolchain = cli
+        .toolchain
+        .resolve()
+        .inspect_err(|e| tracing::info!("No bundle, reading ports with the built-in parser: {e:#}"))
+        .ok();
     let files = files
         .iter()
         .map(|file| settings::absolute(file))
         .collect::<anyhow::Result<Vec<_>>>()?;
-    let request = Request::ProjectAdd {
-        project: project.spf_path().to_owned(),
-        files,
-        testbench,
-    };
-    let added = answer!(Local::new(cli).call(request)?, Added);
+    let added = project.add_verilog_files(toolchain.as_ref(), &files, testbench)?;
     for file in &added {
         out.added(file, project.root());
     }
