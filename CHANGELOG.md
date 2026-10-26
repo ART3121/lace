@@ -2,6 +2,11 @@
 
 ## Não publicada
 
+- `lace serve`: um `--compiler` ou um `--quartus` que não serve não
+  derruba mais o bundle da sessão. Antes, todo pedido que usa o bundle
+  falhava com o erro da CLI; agora só a operação que precisa dele falha,
+  com o erro dela, e o `toolchain.info` mostra o motivo, a regra que o
+  Studio já seguia.
 - `lace serve`: o `update.apply` ganha `reopen_studio`, o `--reopen-studio`
   da CLI, para o Studio pedir a atualização ao servidor; o `update.check`
   tem prazo de 90 s em cada consulta de versão, o que o Studio usava; o

@@ -843,6 +843,12 @@ Uma sessão do `serve`:
   Os schemas: `docs/schema/protocol-request.json` (os pedidos, com os
   campos com padrão opcionais) e `protocol-response.json` (as respostas,
   as notificações, o `ErrorInfo`).
+- **Bundle.** O `--toolchain`, o `--compiler` e o `--quartus` valem para a
+  sessão inteira. Um compilador ou um Quartus declarado que não serve não
+  derruba o bundle, ao contrário de um comando da CLI: a sessão segue sem
+  ele, a operação que o exige falha com o erro dela (`quartus_missing`, por
+  exemplo), e o `toolchain.info` mostra o motivo (`compiler_error`,
+  `quartus_error`).
 - **Notificações**, enquanto um pedido roda, com o `id` dele em
   `params.id`: `phase` (a fase que começou), `events` (os eventos do Core
   em lotes, no máximo a cada 30 ms ou 500), `output_omitted` (linhas que

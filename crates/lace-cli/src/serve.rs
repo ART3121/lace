@@ -800,8 +800,15 @@ impl Server {
         }
     }
 
+    /// O bundle, para as operações. Um compilador ou um Quartus declarado
+    /// (`--compiler`, `--quartus`) que não serve não derruba o bundle, como
+    /// no Studio: a sessão segue sem ele, a operação que o exige falha com o
+    /// erro dela (`quartus_missing`), e o `toolchain.info` mostra o motivo.
+    /// A CLI, que roda um comando só, recusa logo
+    /// ([`ToolchainArgs::resolve`]).
     fn toolchain(&self) -> Result<Toolchain, Failure> {
-        self.toolchain.resolve().map_err(|e| to_info(&e).into())
+        let lookup = self.toolchain.lookup().map_err(|e| to_info(&e))?;
+        Ok(locate::resolve(&lookup)?.toolchain)
     }
 
     /// Atende um pedido. `Err` é o Lace não conseguir rodar.
@@ -1278,7 +1285,7 @@ impl Server {
             network.timeout = Some(CHECK_TIMEOUT);
         }
         let remote = std::sync::Arc::new(Remote(network));
-        let toolchain = self.toolchain.resolve().ok();
+        let toolchain = self.toolchain().ok();
         let reg = crate::update::reg_exe();
         let options = RunOptions {
             check,
