@@ -1162,6 +1162,11 @@
                 "null"
               ],
               "default": null
+            },
+            "reopen_studio": {
+              "description": "No Windows, quando o assistente de instalação roda: abrir o Lace\nStudio quando ele terminar (o `--reopen-studio` da CLI). O Studio\npede isso e fecha, para o assistente trocar os arquivos dele.",
+              "type": "boolean",
+              "default": false
             }
           }
         }
@@ -1172,7 +1177,7 @@
       ]
     },
     {
-      "description": "Instala componentes do bundle. Enquanto roda, `install`; no fim, o\nrelatório do instalador.",
+      "description": "Instala componentes do bundle. Enquanto roda, `install`; no fim, o\nrelatório do instalador. Um nome que não é do bundle é recusado\nantes de qualquer download.",
       "type": "object",
       "properties": {
         "method": {
@@ -1183,7 +1188,7 @@
           "type": "object",
           "properties": {
             "components": {
-              "description": "Os componentes.",
+              "description": "Os componentes (pelo menos um).",
               "type": "array",
               "items": {
                 "type": "string"

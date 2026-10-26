@@ -2,6 +2,13 @@
 
 ## Não publicada
 
+- `lace serve`: o `update.apply` ganha `reopen_studio`, o `--reopen-studio`
+  da CLI, para o Studio pedir a atualização ao servidor; o `update.check`
+  tem prazo de 90 s em cada consulta de versão, o que o Studio usava; o
+  `install.add` recusa a lista vazia e um nome que não é do bundle antes de
+  qualquer download, como o `lace install`; e a notificação `install` leva
+  a linha do console em `line`, com os nomes dos aplicativos, que o
+  `lace mcp` usa como mensagem de progresso.
 - `lace wave <arquivo>` abre a onda de um exercício do `lace learn` com o
   layout da última correção, como o Studio já fazia, e um arquivo de onda que
   não existe é `no_waveform`, e não mais `invalid_project`. O `wave.open` do

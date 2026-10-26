@@ -848,7 +848,8 @@ Uma sessão do `serve`:
   em lotes, no máximo a cada 30 ms ou 500), `output_omitted` (linhas que
   passaram do teto: 20 000 de uma vez e depois 5 000 por segundo), `build`
   (um processador compilou) e `install` (o progresso de `update.*` e
-  `install.add`, o evento do instalador). Elas saem antes da resposta. Com
+  `install.add`: o evento do instalador e, quando há, a linha do console em
+  `line`, com os nomes dos aplicativos). Elas saem antes da resposta. Com
   `"output": false` no `flow.run`, não há `events`, e o `vvp` roda com
   buffer, que é mais rápido.
 - **Filas.** Os pedidos do mesmo projeto rodam um de cada vez, na ordem

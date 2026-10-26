@@ -232,12 +232,7 @@ pub(crate) fn reg_exe() -> Option<Utf8PathBuf> {
 
 /// O nome de um componente para mostrar, com os rótulos do índice novo.
 fn label_of(index: &Index, name: &str) -> String {
-    if name == lace_installer::update::LACE {
-        return "Lace".to_owned();
-    }
-    index
-        .component(name)
-        .map_or_else(|| name.to_owned(), |c| c.label.clone())
+    lace_installer::install::label(Some(index), name)
 }
 
 /// O que a atualização por componentes vai fazer, antes de perguntar.

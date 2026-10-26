@@ -500,12 +500,18 @@ pub enum Request {
         #[serde(default)]
         #[schemars(with = "Option<String>")]
         from: Option<Utf8PathBuf>,
+        /// No Windows, quando o assistente de instalação roda: abrir o Lace
+        /// Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio
+        /// pede isso e fecha, para o assistente trocar os arquivos dele.
+        #[serde(default)]
+        reopen_studio: bool,
     },
     /// Instala componentes do bundle. Enquanto roda, `install`; no fim, o
-    /// relatório do instalador.
+    /// relatório do instalador. Um nome que não é do bundle é recusado
+    /// antes de qualquer download.
     #[serde(rename = "install.add")]
     InstallAdd {
-        /// Os componentes.
+        /// Os componentes (pelo menos um).
         components: Vec<String>,
     },
 
@@ -865,7 +871,8 @@ mod tests {
         assert!(
             Request::UpdateApply {
                 full: false,
-                from: None
+                from: None,
+                reopen_studio: false,
             }
             .is_installation()
         );

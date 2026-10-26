@@ -815,6 +815,10 @@ fn progress_message(notification: &Notification) -> Option<String> {
             ))
         }
         "install" => {
+            // A linha do console, quando o servidor a mandou.
+            if let Some(line) = value.get("line").and_then(Value::as_str) {
+                return Some(line.trim().to_owned());
+            }
             let event = value.get("event")?;
             match event.get("event").and_then(Value::as_str)? {
                 "chunk" => Some(format!(
@@ -1185,10 +1189,19 @@ mod tests {
         );
         assert_eq!(
             progress_message(&Notification::Install {
-                event: json!({ "event": "chunk", "index": 1, "count": 3, "components": ["yanc"] })
+                event: json!({ "event": "chunk", "index": 1, "count": 3, "components": ["yanc"] }),
+                line: None,
             })
             .as_deref(),
             Some("chunk 1/3: yanc")
+        );
+        assert_eq!(
+            progress_message(&Notification::Install {
+                event: json!({ "event": "verifying" }),
+                line: Some("  Verifying the executables".into()),
+            })
+            .as_deref(),
+            Some("Verifying the executables")
         );
         assert_eq!(
             progress_message(&Notification::Events { events: Vec::new() }),

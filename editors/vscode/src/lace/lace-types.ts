@@ -916,6 +916,11 @@ export type Notification =
       event: {
         [k: string]: unknown | undefined;
       };
+      /**
+       * A linha do console para o evento, com os nomes dos componentes;
+       * ausente no que é só barra de progresso.
+       */
+      line?: string | null;
       type: 'install';
     };
 /**
@@ -1582,13 +1587,19 @@ export type Request =
          * Um instalador no disco, sem rede.
          */
         from?: string | null;
+        /**
+         * No Windows, quando o assistente de instalação roda: abrir o Lace
+         * Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio
+         * pede isso e fecha, para o assistente trocar os arquivos dele.
+         */
+        reopen_studio?: boolean;
       };
     }
   | {
       method: 'install.add';
       params: {
         /**
-         * Os componentes.
+         * Os componentes (pelo menos um).
          */
         components: string[];
       };

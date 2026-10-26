@@ -44,8 +44,10 @@
 //! `-32001` cancelado antes de começar, `-32002` sessão não inicializada,
 //! `-32003` servidor encerrando.
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::io::{BufRead, Write};
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender, SyncSender};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -66,8 +68,11 @@ use lace_core::protocol::{
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
 use lace_installer::install::Event as InstallEvent;
+use lace_installer::payload::Index;
 use lace_installer::release::{Bar, Remote};
-use lace_installer::update::{ChildOutput, RunOptions, Silent, UpdateAction};
+use lace_installer::update::{
+    AppliedUpdate, ChildOutput, Hooks, Prepared as UpdatePrepared, Reopen, RunOptions, UpdateAction,
+};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
@@ -76,6 +81,10 @@ use crate::settings::ToolchainArgs;
 /// Quanto esperar os pedidos em andamento depois de cancelá-los, ao
 /// encerrar.
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(3);
+
+/// O prazo de cada consulta de versão do `update.check`, o mesmo que o Studio
+/// usava: uma rede parada não segura a resposta.
+const CHECK_TIMEOUT: Duration = Duration::from_secs(90);
 
 /// Os códigos de erro do JSON-RPC que o servidor usa.
 pub(crate) mod rpc {
@@ -1143,14 +1152,37 @@ impl Server {
                 let toolchain = self.toolchain()?;
                 Response::Cables(fpga::cables(&toolchain)?)
             }
-            Request::UpdateCheck => Response::Other(self.update(id, &emit, false, None, &cancel)?),
-            Request::UpdateApply { full, from } => {
-                let result =
-                    self.update(id, &emit, full, from.as_deref().map(|f| (f, true)), &cancel)?;
-                let _ = full;
+            Request::UpdateCheck => {
+                Response::Other(self.update(id, &emit, false, None, None, &cancel)?)
+            }
+            Request::UpdateApply {
+                full,
+                from,
+                reopen_studio,
+            } => {
+                let reopen = reopen_studio.then_some(Reopen::Studio);
+                let result = self.update(id, &emit, full, from.as_deref(), reopen, &cancel)?;
                 Response::Other(result)
             }
             Request::InstallAdd { components } => {
+                // Um nome errado aparece antes de qualquer download, como no
+                // `lace install`.
+                if components.is_empty() {
+                    return Err(ErrorInfo::new("invalid_argument", "No app to install").into());
+                }
+                if let Some(unknown) = components
+                    .iter()
+                    .find(|c| !lace_core::component::ALL.contains(&c.as_str()))
+                {
+                    return Err(ErrorInfo::new(
+                        "invalid_argument",
+                        format!(
+                            "Unknown app: {unknown} (bundle apps: {})",
+                            lace_core::component::ALL.join(", ")
+                        ),
+                    )
+                    .into());
+                }
                 let network = crate::update::network().map_err(cli_error)?;
                 let remote = std::sync::Arc::new(Remote(network.clone()));
                 let prefix = crate::installation::prefix_result()?;
@@ -1169,7 +1201,7 @@ impl Server {
                     &prepared,
                     &prefix,
                     &components,
-                    &mut |event| emit(install_notification(&event)),
+                    &mut |event| emit(install_notification(&event, Some(&prepared.index))),
                     &cancel,
                 )?;
                 Response::Other(serde_json::to_value(report).unwrap_or(Value::Null))
@@ -1234,22 +1266,32 @@ impl Server {
         id: &Value,
         emit: &Emit,
         full: bool,
-        from: Option<(&Utf8Path, bool)>,
+        from: Option<&Utf8Path>,
+        reopen: Option<Reopen>,
         cancel: &CancelToken,
     ) -> Result<Value, Failure> {
         let check = from.is_none() && !full && self.check_only(id);
-        let network = crate::update::network().map_err(cli_error)?;
+        let mut network = crate::update::network().map_err(cli_error)?;
+        if check {
+            // Só consulta versões: cada transferência tem prazo, para uma
+            // rede parada não segurar a resposta.
+            network.timeout = Some(CHECK_TIMEOUT);
+        }
         let remote = std::sync::Arc::new(Remote(network));
         let toolchain = self.toolchain.resolve().ok();
         let reg = crate::update::reg_exe();
         let options = RunOptions {
             check,
             full,
-            from: from.map(|(path, _)| path),
-            reopen: None,
+            from,
+            reopen,
             bar: Bar::Quiet,
             child_output: ChildOutput::Capture,
             reg: reg.as_deref(),
+        };
+        let index: Rc<RefCell<Option<Index>>> = Rc::default();
+        let mut labels = Labels {
+            index: Rc::clone(&index),
         };
         let report = lace_installer::update::run(
             &remote,
@@ -1257,8 +1299,8 @@ impl Server {
             toolchain.as_ref().map(Toolchain::manifest),
             crate::installation::prefix_result(),
             &options,
-            &mut Silent,
-            &mut |event| emit(install_notification(&event)),
+            &mut labels,
+            &mut |event| emit(install_notification(&event, index.borrow().as_ref())),
             cancel,
         )?;
         if matches!(
@@ -1284,10 +1326,29 @@ impl Server {
     }
 }
 
-/// A notificação `install` com o evento do instalador.
-fn install_notification(event: &InstallEvent) -> Notification {
+/// A notificação `install` com o evento do instalador e a linha do console,
+/// com os rótulos de `index` quando já se sabe a versão.
+fn install_notification(event: &InstallEvent, index: Option<&Index>) -> Notification {
     Notification::Install {
         event: serde_json::to_value(event).unwrap_or(Value::Null),
+        line: event.console_line(&|name| lace_installer::install::label(index, name)),
+    }
+}
+
+/// Guarda o índice da versão nova, para os rótulos das linhas do console.
+struct Labels {
+    index: Rc<RefCell<Option<Index>>>,
+}
+
+impl Hooks for Labels {
+    fn plan(&mut self, prepared: &UpdatePrepared) {
+        *self.index.borrow_mut() = Some(prepared.index.clone());
+    }
+
+    fn applied(&mut self, _prepared: &UpdatePrepared, applied: &AppliedUpdate, _prefix: &Utf8Path) {
+        if let Some(warning) = &applied.registry_warning {
+            tracing::info!("{warning}");
+        }
     }
 }
 
@@ -1978,6 +2039,29 @@ mod tests {
             reply["error"]["data"]["code"], "experimental_disabled",
             "{reply}"
         );
+    }
+
+    #[test]
+    fn an_app_that_is_not_in_the_bundle_is_refused_before_any_download() {
+        let (server, rx) = initialized();
+        server.handle_line(
+            r#"{"jsonrpc":"2.0","id":1,"method":"install.add","params":{"components":[]}}"#,
+        );
+        let reply = next(&rx);
+        assert_eq!(
+            reply["error"]["data"]["code"], "invalid_argument",
+            "{reply}"
+        );
+        server.handle_line(
+            r#"{"jsonrpc":"2.0","id":2,"method":"install.add","params":{"components":["nope"]}}"#,
+        );
+        let reply = next(&rx);
+        assert_eq!(
+            reply["error"]["data"]["code"], "invalid_argument",
+            "{reply}"
+        );
+        let message = reply["error"]["data"]["message"].as_str().unwrap();
+        assert!(message.contains("Unknown app: nope"), "{message}");
     }
 
     #[test]

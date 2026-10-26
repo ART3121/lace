@@ -110,6 +110,10 @@ pub enum Notification {
     Install {
         /// O evento, em JSON.
         event: Value,
+        /// A linha do console para o evento, com os nomes dos componentes;
+        /// ausente no que é só barra de progresso.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        line: Option<String>,
     },
 }
 
@@ -592,6 +596,7 @@ mod tests {
         }
         dispatcher.notify(Notification::Install {
             event: serde_json::json!({ "event": "verifying" }),
+            line: None,
         });
         dispatcher.finish();
         let received = received.lock().unwrap();

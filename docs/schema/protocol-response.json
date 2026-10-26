@@ -5421,6 +5421,13 @@
             "event": {
               "description": "O evento, em JSON."
             },
+            "line": {
+              "description": "A linha do console para o evento, com os nomes dos componentes;\nausente no que é só barra de progresso.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "type": {
               "type": "string",
               "const": "install"

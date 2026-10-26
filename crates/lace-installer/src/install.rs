@@ -219,6 +219,60 @@ pub enum Event {
     },
 }
 
+impl Event {
+    /// A linha do console para o evento, com os nomes dos componentes que
+    /// `label` dá; `None` para o que é só barra de progresso (`start`,
+    /// `progress`, `downloading`). É a linha que a notificação `install` do
+    /// `lace serve` leva e que o Studio mostra no console.
+    pub fn console_line(&self, label: &dyn Fn(&str) -> String) -> Option<String> {
+        Some(match self {
+            Event::Chunk {
+                index,
+                count,
+                components,
+                download,
+            } => {
+                let what = if components.is_empty() {
+                    "Lace".to_owned()
+                } else {
+                    components
+                        .iter()
+                        .map(|c| label(c))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                };
+                if *download > 0 {
+                    format!("  [{index}/{count}] {what} ({})", crate::mib(*download))
+                } else {
+                    format!("  [{index}/{count}] {what}")
+                }
+            }
+            Event::Replacing { files } => format!("  Replacing {files} files"),
+            Event::Verifying => "  Verifying the executables".to_owned(),
+            Event::Fallback { reason } | Event::Warning { message: reason } => reason.clone(),
+            Event::FallbackDownload { url, .. } => format!("Downloading {url}"),
+            Event::WizardSelection {
+                warning: Some(warning),
+                ..
+            } => format!("Warning: {warning}"),
+            Event::InstallerOutput { line } => line.clone(),
+            _ => return None,
+        })
+    }
+}
+
+/// O nome de um componente para mostrar: `Lace` para o próprio Lace, o
+/// rótulo do índice da versão, ou o nome, quando o índice não o tem ou ainda
+/// não se sabe.
+pub fn label(index: Option<&Index>, name: &str) -> String {
+    if name == crate::update::LACE {
+        return "Lace".to_owned();
+    }
+    index
+        .and_then(|i| i.component(name))
+        .map_or_else(|| name.to_owned(), |c| c.label.clone())
+}
+
 /// O atalho `lace`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LinkOutcome {

@@ -102,7 +102,7 @@ impl From<Notification> for JobMessage {
                 JobMessage::OutputOmitted { step, tool, lines }
             }
             Notification::Build { result } => JobMessage::Build { result },
-            Notification::Install { event } => JobMessage::Install { event },
+            Notification::Install { event, .. } => JobMessage::Install { event },
         }
     }
 }

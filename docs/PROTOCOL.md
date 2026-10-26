@@ -600,6 +600,7 @@ seguida: o binário dele foi trocado.
 |---|---|---|---|
 | `full` | `boolean` | não (padrão: `false`) | O instalador inteiro, sem tentar por componentes. |
 | `from` | `string` \| `null` | não (padrão: `null`) | Um instalador no disco, sem rede. |
+| `reopen_studio` | `boolean` | não (padrão: `false`) | No Windows, quando o assistente de instalação roda: abrir o Lace Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio pede isso e fecha, para o assistente trocar os arquivos dele. |
 
 Resultado: qualquer JSON.
 
@@ -610,11 +611,12 @@ Resultado: qualquer JSON.
 #### `install.add`
 
 Instala componentes do bundle. Enquanto roda, `install`; no fim, o
-relatório do instalador.
+relatório do instalador. Um nome que não é do bundle é recusado
+antes de qualquer download.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `components` | lista de `string` | sim | Os componentes. |
+| `components` | lista de `string` | sim | Os componentes (pelo menos um). |
 
 Resultado: qualquer JSON.
 
@@ -682,6 +684,7 @@ instalador, serializado por ele; o core não conhece o tipo).
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `event` | qualquer JSON | sim | O evento, em JSON. |
+| `line` | `string` \| `null` | não | A linha do console para o evento, com os nomes dos componentes; ausente no que é só barra de progresso. |
 
 ### `shutdown`
 
