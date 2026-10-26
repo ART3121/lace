@@ -565,11 +565,15 @@ fn build_adds_the_generated_files_to_the_project() {
 #[test]
 fn unknown_processor_lists_available_ones() {
     let (_guard, root) = example("soma");
-    lace()
-        .args(["-C", root.as_str(), "build", "-p", "nada"])
-        .assert()
-        .code(2)
-        .stderr(predicate::str::contains("soma, filtro"));
+    // O binário de teste não tem bundle: o nome errado é o erro, antes dele,
+    // em todo fluxo que nomeia um processador.
+    for command in ["build", "check", "hierarchy", "sim", "synth"] {
+        lace()
+            .args(["-C", root.as_str(), command, "-p", "nada"])
+            .assert()
+            .code(2)
+            .stderr(predicate::str::contains("soma, filtro"));
+    }
 }
 
 #[test]

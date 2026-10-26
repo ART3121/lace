@@ -41,14 +41,8 @@ pub fn run(
     cancel: &CancelToken,
 ) -> anyhow::Result<()> {
     // Um nome errado aparece antes de qualquer download.
-    if let Some(unknown) = components
-        .iter()
-        .find(|c| !component::ALL.contains(&c.as_str()))
-    {
-        bail!(
-            "Unknown app: {unknown} (bundle apps: {})",
-            component::ALL.join(", ")
-        );
+    if let Some(message) = component::unknown_message(components) {
+        bail!("{message}");
     }
     if components.is_empty() && !out.is_text() {
         bail!("With --json, name the apps to install: lace install <app>");

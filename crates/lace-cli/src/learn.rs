@@ -49,17 +49,16 @@ pub fn run(cli: &Cli, args: &LearnArgs, out: &Output, control: &Control) -> anyh
 /// A pasta de exercícios em que o comando roda (ou a do `-C`), aberta e em
 /// dia com a trilha.
 fn open(cli: &Cli, toolchain: Option<&Toolchain>) -> anyhow::Result<Workspace> {
-    let root = Workspace::discover(&settings::absolute(&cli.project)?)?;
-    let tracks = tracks_dir(toolchain)?;
-    Ok(Workspace::open(&root, &tracks, None)?)
+    Ok(Workspace::find(
+        &settings::absolute(&cli.project)?,
+        toolchain,
+        None,
+    )?)
 }
 
 /// O exercício pedido pelo nome, ou o atual.
 fn exercise(workspace: &Workspace, name: Option<&str>) -> anyhow::Result<Exercise> {
-    Ok(match name {
-        Some(name) => workspace.track().require(name)?.clone(),
-        None => workspace.current().clone(),
-    })
+    Ok(workspace.exercise(name)?)
 }
 
 fn init(cli: &Cli, dir: &Utf8Path, track: &str, out: &Output) -> anyhow::Result<bool> {
