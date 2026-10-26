@@ -62,8 +62,8 @@ use lace_core::fpga::{self, FpgaConfig};
 use lace_core::history;
 use lace_core::locate;
 use lace_core::protocol::{
-    CleanOutcome, ExperimentalInfo, METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval,
-    ReportView, Request, Response, ServerInfo, ShutdownReason, TopOutcome, WaveLayoutInfo,
+    ExperimentalInfo, METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response,
+    ServerInfo, ShutdownReason, TopOutcome, WaveLayoutInfo,
 };
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, NewProcessor, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
@@ -1151,18 +1151,7 @@ impl Server {
             }
             Request::HistoryShow { project, id } => {
                 let project = open_project(&project)?;
-                let record = match id {
-                    Some(id) => history::load(&project, &id)?,
-                    None => history::latest(&project)?,
-                };
-                let text = history::report_text(&project, &record.id)?;
-                let path = history::report_path(&project, &record.id)?;
-                Response::Report(Box::new(ReportView {
-                    id: record.id.clone(),
-                    path,
-                    record,
-                    text,
-                }))
+                Response::Report(Box::new(history::view(&project, id.as_deref())?))
             }
             Request::HistoryCompare {
                 project,
@@ -1181,10 +1170,7 @@ impl Server {
                 Response::Ids(history::plan_cleanup(&project, &cleanup)?)
             }
             Request::HistoryClean { project, ids } => {
-                let project = open_project(&project)?;
-                let removed = history::remove(&project, &ids)?;
-                let kept = history::list(&project)?.len();
-                Response::Cleaned(CleanOutcome { removed, kept })
+                Response::Cleaned(history::clean(&open_project(&project)?, &ids)?)
             }
             Request::ToolchainInfo => {
                 // Na linha de comando, um bundle que não abre (ou um

@@ -867,16 +867,14 @@ fn command_line() -> String {
 /// histórico; nenhuma ferramenta roda.
 fn report(cli: &Cli, args: &ReportArgs, out: &Output) -> anyhow::Result<()> {
     let project = open(cli)?;
-    let local = Local::new(cli);
     match &args.command {
-        None => show_report(&local, &project, None, out),
-        Some(ReportCommand::Show { id }) => show_report(&local, &project, Some(id.clone()), out),
+        None => show_report(&project, None, out),
+        Some(ReportCommand::Show { id }) => show_report(&project, Some(id), out),
         Some(ReportCommand::List { limit }) => {
-            let request = Request::HistoryList {
-                project: project.spf_path().to_owned(),
-                limit: limit.map(|n| usize::try_from(n).unwrap_or(usize::MAX)),
-            };
-            let reports = answer!(local.call(request)?, Reports);
+            let mut reports = history::list(&project)?;
+            if let Some(limit) = limit {
+                reports.truncate(usize::try_from(*limit).unwrap_or(usize::MAX));
+            }
             out.report_list(&reports);
             out.json(&ReportListReport { reports })
         }
@@ -885,17 +883,12 @@ fn report(cli: &Cli, args: &ReportArgs, out: &Output) -> anyhow::Result<()> {
             against,
             summary,
         }) => {
-            let request = Request::HistoryCompare {
-                project: project.spf_path().to_owned(),
-                id: id.clone(),
-                against: against.clone(),
-            };
-            let comparison = answer!(local.call(request)?, Comparison);
+            let comparison = history::compare_reports(&project, id.as_deref(), against.as_deref())?;
             out.report_comparison(&comparison, *summary);
-            out.json(&*comparison)
+            out.json(&comparison)
         }
         Some(ReportCommand::Clean { ids, keep, yes }) => {
-            clean_reports(&local, &project, ids, *keep, *yes, out)
+            clean_reports(&project, ids, *keep, *yes, out)
         }
     }
 }
@@ -903,7 +896,6 @@ fn report(cli: &Cli, args: &ReportArgs, out: &Output) -> anyhow::Result<()> {
 /// `lace report clean`. Apagar todos, ou todos menos os mais novos, pede
 /// confirmação; os relatórios pedidos pelo nome saem sem perguntar.
 fn clean_reports(
-    local: &Local,
     project: &Project,
     ids: &[String],
     keep: Option<u64>,
@@ -915,19 +907,11 @@ fn clean_reports(
         Some(n) => Cleanup::KeepLatest(usize::try_from(n).unwrap_or(usize::MAX)),
         None => Cleanup::All,
     };
-    let request = Request::HistoryPlanCleanup {
-        project: project.spf_path().to_owned(),
-        cleanup,
-    };
-    let targets = answer!(local.call(request)?, Ids);
+    let targets = history::plan_cleanup(project, &cleanup)?;
     if !targets.is_empty() && ids.is_empty() && !yes {
         confirm_cleanup(project, targets.len(), keep)?;
     }
-    let request = Request::HistoryClean {
-        project: project.spf_path().to_owned(),
-        ids: targets,
-    };
-    let cleaned = answer!(local.call(request)?, Cleaned);
+    let cleaned = history::clean(project, &targets)?;
     out.reports_removed(&cleaned.removed, cleaned.kept);
     out.json(&ReportCleanReport {
         removed: cleaned.removed,
@@ -958,17 +942,8 @@ fn confirm_cleanup(project: &Project, count: usize, keep: Option<u64>) -> anyhow
     }
 }
 
-fn show_report(
-    local: &Local,
-    project: &Project,
-    id: Option<String>,
-    out: &Output,
-) -> anyhow::Result<()> {
-    let request = Request::HistoryShow {
-        project: project.spf_path().to_owned(),
-        id,
-    };
-    let view = answer!(local.call(request)?, Report);
+fn show_report(project: &Project, id: Option<&str>, out: &Output) -> anyhow::Result<()> {
+    let view = history::view(project, id)?;
     out.report_text(&view.text);
     out.json(&ReportShowReport {
         id: view.id,

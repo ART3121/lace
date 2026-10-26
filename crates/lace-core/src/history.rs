@@ -773,6 +773,28 @@ pub fn report_path(project: &Project, id: &str) -> Result<Utf8PathBuf> {
     Ok(reports_dir(project).join(id).join(TEXT_FILE))
 }
 
+/// O relatório `id`, ou o mais novo sem `id`, com o texto e o caminho do
+/// `report.txt`: o que o `lace report show` e o `history.show` mostram.
+///
+/// # Erros
+///
+/// [`LaceError::NoReports`] sem relatório nenhum; os de [`load`] e de
+/// [`report_text`].
+pub fn view(project: &Project, id: Option<&str>) -> Result<crate::protocol::ReportView> {
+    let record = match id {
+        Some(id) => load(project, id)?,
+        None => latest(project)?,
+    };
+    let text = report_text(project, &record.id)?;
+    let path = report_path(project, &record.id)?;
+    Ok(crate::protocol::ReportView {
+        id: record.id.clone(),
+        path,
+        record,
+        text,
+    })
+}
+
 fn read_record(dir: &Utf8Path, id: &str) -> Result<RunRecord> {
     let folder = dir.join(id);
     if !folder.is_dir() {
@@ -898,6 +920,19 @@ pub fn remove(project: &Project, ids: &[String]) -> Result<Vec<String>> {
         }
     }
     Ok(removed)
+}
+
+/// Apaga os relatórios `ids` ([`remove`]) e conta os que ficaram: o
+/// `lace report clean` e o `history.clean`, depois do plano
+/// ([`plan_cleanup`]).
+///
+/// # Erros
+///
+/// Os de [`remove`] e de [`list`].
+pub fn clean(project: &Project, ids: &[String]) -> Result<crate::protocol::CleanOutcome> {
+    let removed = remove(project, ids)?;
+    let kept = list(project)?.len();
+    Ok(crate::protocol::CleanOutcome { removed, kept })
 }
 
 // --------------------------------------------------------------- comparar
