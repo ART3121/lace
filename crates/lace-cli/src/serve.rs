@@ -67,7 +67,8 @@ use lace_installer::install::Event as InstallEvent;
 use lace_installer::payload::Index;
 use lace_installer::release::{Bar, Remote};
 use lace_installer::update::{
-    AppliedUpdate, ChildOutput, Hooks, Prepared as UpdatePrepared, Reopen, RunOptions, UpdateAction,
+    AppliedUpdate, ChildOutput, Hooks, Prepared as UpdatePrepared, Reopen, RunOptions,
+    UpdateAction, UpdateReport,
 };
 use lace_protocol::{
     METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response, ServerInfo,
@@ -644,6 +645,14 @@ impl Server {
                 },
             );
         let lane = lane_of(&request);
+        // O corte da saída dos passos é do transporte, como no `lace mcp`: o
+        // resultado continua o `FlowOutcome`, e só o JSON sai mais curto.
+        let step_output_limit = match &request {
+            Request::FlowRun {
+                step_output_limit, ..
+            } => *step_output_limit,
+            _ => None,
+        };
         let server = Arc::clone(self);
         let job: Job = Box::new(move || {
             if cancel.is_cancelled() {
@@ -657,7 +666,10 @@ impl Server {
                 started.store(true, Ordering::SeqCst);
                 match server.handle(&id, request, cancel) {
                     Ok(response) => {
-                        let value = serde_json::to_value(&response).unwrap_or(Value::Null);
+                        let mut value = serde_json::to_value(&response).unwrap_or(Value::Null);
+                        if let Some(limit) = step_output_limit {
+                            trim_step_output(&mut value, limit);
+                        }
                         server.writer.respond(&id, value);
                     }
                     Err(failure) => {
@@ -963,7 +975,8 @@ impl Server {
                 request,
                 options,
                 output,
-                step_output_limit,
+                // Cortado ao escrever a resposta (`dispatch`).
+                step_output_limit: _,
             } => {
                 let options =
                     options.unwrap_or_else(|| FlowOptions::new(request.command_line("lace")));
@@ -998,15 +1011,7 @@ impl Server {
                 );
                 // Tudo que o fluxo disse sai antes do resultado.
                 dispatcher.finish();
-                let outcome = outcome?;
-                match step_output_limit {
-                    Some(limit) => {
-                        let mut value = serde_json::to_value(&outcome).unwrap_or(Value::Null);
-                        trim_step_output(&mut value, limit);
-                        Response::Other(value)
-                    }
-                    None => Response::Flow(Box::new(outcome)),
-                }
+                Response::Flow(Box::new(outcome?))
             }
             Request::FlowCommand { request, program } => {
                 Response::Text(request.command_line(program.as_deref().unwrap_or("lace")))
@@ -1187,17 +1192,17 @@ impl Server {
                     top.as_deref(),
                 )?))
             }
-            Request::UpdateCheck => {
-                Response::Other(self.update(id, &emit, false, None, None, &cancel)?)
-            }
+            Request::UpdateCheck => Response::Update(Box::new(
+                self.update(id, &emit, false, None, None, &cancel)?,
+            )),
             Request::UpdateApply {
                 full,
                 from,
                 reopen_studio,
             } => {
                 let reopen = reopen_studio.then_some(Reopen::Studio);
-                let result = self.update(id, &emit, full, from.as_deref(), reopen, &cancel)?;
-                Response::Other(result)
+                let report = self.update(id, &emit, full, from.as_deref(), reopen, &cancel)?;
+                Response::Update(Box::new(report))
             }
             Request::InstallAdd { components } => {
                 // Um nome errado aparece antes de qualquer download, como no
@@ -1229,7 +1234,7 @@ impl Server {
                     &mut |event| emit(install_notification(&event, Some(&prepared.index))),
                     &cancel,
                 )?;
-                Response::Other(serde_json::to_value(report).unwrap_or(Value::Null))
+                Response::Install(Box::new(report))
             }
             Request::LearnCheck {
                 root,
@@ -1257,21 +1262,17 @@ impl Server {
                     &mut |_| {},
                 )
                 .map_err(|e| learn_info(&e))?;
-                Response::Other(json!({
-                    "results": outcome.results,
-                    "solved": outcome.solved,
-                    "total": outcome.total,
-                }))
+                Response::LearnCheck(Box::new(outcome))
             }
             Request::LearnTracks => {
                 let toolchain = self.toolchain().ok();
-                let dir = lace_learn::tracks_dir(toolchain.as_ref()).map_err(|e| learn_info(&e))?;
-                let tracks = lace_learn::available_tracks(&dir).map_err(|e| learn_info(&e))?;
-                Response::Other(json!({ "dir": dir, "tracks": tracks }))
+                Response::Tracks(
+                    lace_learn::tracks(toolchain.as_ref()).map_err(|e| learn_info(&e))?,
+                )
             }
             Request::LearnStatus { root, lang } => {
                 let workspace = self.workspace(&root, lang.as_deref())?;
-                Response::Other(json!(workspace.snapshot()))
+                Response::Workspace(Box::new(workspace.snapshot()))
             }
             Request::LearnInit { dir, track, lang } => {
                 let toolchain = self.toolchain().ok();
@@ -1282,12 +1283,12 @@ impl Server {
                     .map_err(|e| learn_info(&e))?;
                 let workspace =
                     lace_learn::Workspace::init(&dir, track).map_err(|e| learn_info(&e))?;
-                Response::Other(json!(workspace.snapshot()))
+                Response::Workspace(Box::new(workspace.snapshot()))
             }
             Request::LearnSetCurrent { root, name, lang } => {
                 let mut workspace = self.workspace(&root, lang.as_deref())?;
                 workspace.set_current(&name).map_err(|e| learn_info(&e))?;
-                Response::Other(json!(workspace.snapshot()))
+                Response::Workspace(Box::new(workspace.snapshot()))
             }
             Request::LearnReset { root, name } => {
                 let workspace = self.workspace(&root, None)?;
@@ -1314,7 +1315,7 @@ impl Server {
         from: Option<&Utf8Path>,
         reopen: Option<Reopen>,
         cancel: &CancelToken,
-    ) -> Result<Value, Failure> {
+    ) -> Result<UpdateReport, Failure> {
         let check = from.is_none() && !full && self.check_only(id);
         let mut network = crate::update::network().map_err(cli_error)?;
         if check {
@@ -1357,7 +1358,7 @@ impl Server {
             self.shutting_down.store(true, Ordering::SeqCst);
             self.exit_when_done.store(true, Ordering::SeqCst);
         }
-        Ok(serde_json::to_value(report).unwrap_or(Value::Null))
+        Ok(report)
     }
 
     /// A pasta de exercícios que contém `root`, aberta e posta em dia com a

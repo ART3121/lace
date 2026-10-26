@@ -213,7 +213,24 @@
           "type": "null"
         },
         {
-          "description": "Um resultado de outro crate (`update.*`, `install.*`, `learn.*`),\njá em JSON; o schema dele é do crate de origem."
+          "description": "`update.check`, `update.apply`.",
+          "$ref": "#/$defs/UpdateReport"
+        },
+        {
+          "description": "`install.add`.",
+          "$ref": "#/$defs/InstallReport"
+        },
+        {
+          "description": "`learn.check`.",
+          "$ref": "#/$defs/LearnCheckOutcome"
+        },
+        {
+          "description": "`learn.tracks`.",
+          "$ref": "#/$defs/LearnTracks"
+        },
+        {
+          "description": "`learn.status`, `learn.init`, `learn.set_current`.",
+          "$ref": "#/$defs/WorkspaceSnapshot"
         }
       ]
     },
@@ -5627,6 +5644,848 @@
         "bitstream",
         "built_at_ms",
         "reasons"
+      ]
+    },
+    "UpdateReport": {
+      "description": "O relatório do `lace update` (`docs/schema/update.json`).",
+      "type": "object",
+      "properties": {
+        "lace": {
+          "description": "O Lace: este e o da última release.",
+          "$ref": "#/$defs/LaceVersions"
+        },
+        "bundle": {
+          "description": "O bundle de ferramentas: o instalado e o da última release.",
+          "$ref": "#/$defs/BundleVersions"
+        },
+        "components": {
+          "description": "Cada componente instalado, na ordem do manifesto do bundle. Vazio sem\nbundle.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentVersions"
+          }
+        },
+        "prefix": {
+          "description": "A pasta da instalação; `null` se este `lace` não foi instalado pelo\ninstalador (um build em `target/`, por exemplo).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "action": {
+          "description": "O que o comando fez.",
+          "$ref": "#/$defs/UpdateAction"
+        },
+        "method": {
+          "description": "Como atualizou; `null` quando não atualizou.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UpdateMethod"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "changes": {
+          "description": "O que a atualização por componentes trocou, ou vai trocar com\n`--check --from`; `null` quando ela não rodou.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UpdateChanges"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "lace",
+        "bundle",
+        "components",
+        "prefix",
+        "action",
+        "method",
+        "changes"
+      ]
+    },
+    "LaceVersions": {
+      "description": "As versões do Lace em `lace update`.",
+      "type": "object",
+      "properties": {
+        "installed": {
+          "description": "A versão deste `lace`.",
+          "type": "string"
+        },
+        "latest": {
+          "description": "A versão da última release no GitHub.",
+          "type": "string"
+        },
+        "newer": {
+          "description": "`latest` é mais nova que `installed`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "installed",
+        "latest",
+        "newer"
+      ]
+    },
+    "BundleVersions": {
+      "description": "As versões do bundle em `lace update`.",
+      "type": "object",
+      "properties": {
+        "installed": {
+          "description": "O bundle instalado; `null` sem bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "latest": {
+          "description": "O bundle da última release; `null` se o `bundle/versions.json` dela\nnão pôde ser lido.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "newer": {
+          "description": "`latest` é mais novo que `installed`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "installed",
+        "latest",
+        "newer"
+      ]
+    },
+    "ComponentVersions": {
+      "description": "Um componente instalado em `lace update`.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O componente (`yanc`, `icarus`, `verilator`, `yosys`, `graphviz`,\n`surfer-aurora`).",
+          "type": "string"
+        },
+        "package": {
+          "description": "O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,\n`yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que\neste Lace não conhece.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installed": {
+          "description": "A versão instalada.",
+          "type": "string"
+        },
+        "release": {
+          "description": "A versão no bundle da última release; `null` se não pôde ser lida.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "release_newer": {
+          "description": "`release` é mais nova que `installed`: chega atualizando o Lace.",
+          "type": "boolean"
+        },
+        "upstream": {
+          "description": "A última versão upstream; `null` se a consulta falhou.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream_newer": {
+          "description": "`upstream` é mais nova que `installed` e que `release`: só chega num\nbundle novo, numa release nova do Lace. Sem `release`, `false` quando\nhá Lace mais novo, cujo bundle pode já trazê-la.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "package",
+        "installed",
+        "release",
+        "release_newer",
+        "upstream",
+        "upstream_newer"
+      ]
+    },
+    "UpdateAction": {
+      "description": "O que `lace update` fez.",
+      "oneOf": [
+        {
+          "description": "`--check`: só comparou as versões.",
+          "type": "string",
+          "const": "checked"
+        },
+        {
+          "description": "Não há Lace mais novo publicado: nada mudou.",
+          "type": "string",
+          "const": "up_to_date"
+        },
+        {
+          "description": "A instalação foi trocada (por componentes, ou pelo instalador no\nLinux e no macOS). O `lace` em uso é o antigo: quem chamou termina e\nreinicia.",
+          "type": "string",
+          "const": "updated"
+        },
+        {
+          "description": "O assistente de instalação do Windows foi aberto e termina depois que\nquem chamou sai.",
+          "type": "string",
+          "const": "wizard_opened"
+        }
+      ]
+    },
+    "UpdateMethod": {
+      "description": "Como `lace update` atualizou.",
+      "oneOf": [
+        {
+          "description": "Só os arquivos que mudaram, dos pedaços que a release publica.",
+          "type": "string",
+          "const": "components"
+        },
+        {
+          "description": "O instalador inteiro da versão nova.",
+          "type": "string",
+          "const": "installer"
+        }
+      ]
+    },
+    "UpdateChanges": {
+      "description": "O que a atualização por componentes trocou.",
+      "type": "object",
+      "properties": {
+        "components": {
+          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `lace` é o próprio Lace e o cabeçalho do bundle.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "download_bytes": {
+          "description": "Bytes baixados.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "files": {
+          "description": "Arquivos que entraram (novos ou trocados).",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "removed": {
+          "description": "Arquivos que saíram.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "components",
+        "download_bytes",
+        "files",
+        "removed"
+      ]
+    },
+    "InstallReport": {
+      "description": "`lace install` (`docs/schema/install.json`).",
+      "type": "object",
+      "properties": {
+        "prefix": {
+          "description": "A pasta da instalação.",
+          "type": "string"
+        },
+        "components": {
+          "description": "Os aplicativos do bundle instalados agora.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "added": {
+          "description": "Os que entraram nesta chamada (com os que eles exigem).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "prefix",
+        "components",
+        "added"
+      ]
+    },
+    "LearnCheckOutcome": {
+      "description": "O resultado de uma rodada de correção (e do `learn.check` do protocolo).",
+      "type": "object",
+      "properties": {
+        "results": {
+          "description": "A correção de cada exercício pedido, na ordem; termina no primeiro\ncancelado.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Grade"
+          }
+        },
+        "solved": {
+          "description": "Quantos exercícios da trilha estão resolvidos depois da rodada.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "total": {
+          "description": "Quantos exercícios a trilha tem.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "results",
+        "solved",
+        "total"
+      ]
+    },
+    "Grade": {
+      "description": "O resultado da correção.",
+      "type": "object",
+      "properties": {
+        "exercise": {
+          "description": "O exercício.",
+          "type": "string"
+        },
+        "verdict": {
+          "description": "Como terminou.",
+          "$ref": "#/$defs/Verdict"
+        },
+        "samples": {
+          "description": "Quantas amostras o testbench comparou.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "mismatched": {
+          "description": "Em quantas amostras alguma saída errou.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "outputs": {
+          "description": "Cada saída, na ordem das portas.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OutputCheck"
+          }
+        },
+        "reset_mismatches": {
+          "description": "Com reset: quantas amostras erradas foram com ele ativo.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "counterexample": {
+          "description": "A primeira amostra errada, com as entradas e as saídas.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Counterexample"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "findings": {
+          "description": "O que se percebeu sobre a causa do erro, e o latch que a síntese\nachou (este, também com o exercício resolvido).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          }
+        },
+        "diagnostics": {
+          "description": "Os erros e avisos dos compiladores sobre o código do aluno, com os\navisos do lint do Verilator quando ele está instalado.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "output": {
+          "description": "O que o testbench escreveu, fora o resumo (um `tb.v` escrito à mão\npode explicar o erro aqui).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "waveform": {
+          "description": "A onda da simulação.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layout": {
+          "description": "O arquivo de comandos do Surfer que mostra a onda com as entradas, as\nsaídas lado a lado com as da referência e o primeiro erro marcado.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration_ms": {
+          "description": "Quanto a correção levou, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "exercise",
+        "verdict",
+        "samples",
+        "mismatched",
+        "outputs",
+        "reset_mismatches",
+        "counterexample",
+        "findings",
+        "diagnostics",
+        "output",
+        "waveform",
+        "layout",
+        "duration_ms"
+      ]
+    },
+    "Verdict": {
+      "description": "Como terminou a correção.",
+      "oneOf": [
+        {
+          "description": "Compilou e nenhuma saída errou.",
+          "type": "string",
+          "const": "solved"
+        },
+        {
+          "description": "O Verilog não compila: os erros estão em `diagnostics`.",
+          "type": "string",
+          "const": "compile_error"
+        },
+        {
+          "description": "Simulou, e alguma saída diferiu da referência.",
+          "type": "string",
+          "const": "mismatch"
+        },
+        {
+          "description": "A simulação terminou sem o resumo do testbench, ou parou com erro.",
+          "type": "string",
+          "const": "incomplete"
+        },
+        {
+          "description": "A simulação passou do prazo: um laço sem fim, ou um laço\ncombinacional que não estabiliza.",
+          "type": "string",
+          "const": "timed_out"
+        },
+        {
+          "description": "A correção foi cancelada.",
+          "type": "string",
+          "const": "cancelled"
+        }
+      ]
+    },
+    "OutputCheck": {
+      "description": "O resultado de uma saída do módulo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome da porta.",
+          "type": "string"
+        },
+        "mismatches": {
+          "description": "Em quantas amostras ela diferiu da referência.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "first_ns": {
+          "description": "O instante do primeiro erro, em ns.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "unknown": {
+          "description": "Das amostras erradas, quantas tinham bit em X ou Z.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "name",
+        "mismatches",
+        "first_ns",
+        "unknown"
+      ]
+    },
+    "Counterexample": {
+      "description": "A primeira amostra errada: o que entrou e o que saiu, para o aluno\nrefazer o caso de cabeça. Vem das linhas `first` do resumo; um `tb.v`\nescrito à mão que não as escreve fica sem.",
+      "type": "object",
+      "properties": {
+        "time_ns": {
+          "description": "O instante da amostra, em ns.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cycle": {
+          "description": "No sequencial, o ciclo (a partir de 0).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "inputs": {
+          "description": "As entradas nessa amostra, sem o clock.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SignalValue"
+          }
+        },
+        "outputs": {
+          "description": "Cada saída nessa amostra: a esperada e a do aluno.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OutputValue"
+          }
+        }
+      },
+      "required": [
+        "time_ns",
+        "cycle",
+        "inputs",
+        "outputs"
+      ]
+    },
+    "SignalValue": {
+      "description": "O valor de uma entrada no contraexemplo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A porta.",
+          "type": "string"
+        },
+        "bits": {
+          "description": "Os bits, do mais significativo ao menos, com `x` e `z`.",
+          "type": "string"
+        },
+        "text": {
+          "description": "O valor para ler: `1`, `4'b0101 (5)`, `16'h00ff (255)`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "bits",
+        "text"
+      ]
+    },
+    "OutputValue": {
+      "description": "Uma saída no contraexemplo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A porta.",
+          "type": "string"
+        },
+        "expected_bits": {
+          "description": "Os bits que a referência deu.",
+          "type": "string"
+        },
+        "actual_bits": {
+          "description": "Os bits que o módulo do aluno deu.",
+          "type": "string"
+        },
+        "expected": {
+          "description": "O esperado, para ler.",
+          "type": "string"
+        },
+        "actual": {
+          "description": "O do aluno, para ler.",
+          "type": "string"
+        },
+        "wrong": {
+          "description": "Se esta saída errou nessa amostra.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "expected_bits",
+        "actual_bits",
+        "expected",
+        "actual",
+        "wrong"
+      ]
+    },
+    "Finding": {
+      "description": "O que a correção percebeu sobre a causa do erro.",
+      "oneOf": [
+        {
+          "description": "O erro de compilação é no testbench: o nome do módulo ou o de uma\nporta mudou.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "interface_changed"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "Todas as amostras erradas desta saída estão em X ou Z: ela não é\natribuída, ou depende de algo que não é.",
+          "type": "object",
+          "properties": {
+            "output": {
+              "description": "A saída.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "undriven_output"
+            }
+          },
+          "required": [
+            "kind",
+            "output"
+          ]
+        },
+        {
+          "description": "Só erra com o reset ativo: o reset não faz o que o enunciado pede\n(síncrono ou assíncrono, o valor depois dele).",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "reset_only"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "A síntese achou um latch: o sinal guarda o valor quando nenhum ramo\ndo `always` o atribui. Num circuito combinacional, faltou um `else`,\num `default` ou um valor antes do `if`. Pode aparecer com o exercício\nresolvido: a simulação passa, e o circuito não é o que parece.",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal (`modulo.sinal` quando é de um submódulo).",
+              "type": "string"
+            },
+            "line": {
+              "description": "A linha do `always` que gerou o latch, no arquivo do aluno.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "latch_inferred"
+            }
+          },
+          "required": [
+            "kind",
+            "signal",
+            "line"
+          ]
+        }
+      ]
+    },
+    "LearnTracks": {
+      "description": "De onde vêm as trilhas e quais há (o resultado do `learn.tracks` do\nprotocolo).",
+      "type": "object",
+      "properties": {
+        "dir": {
+          "description": "A pasta das trilhas.",
+          "type": "string"
+        },
+        "tracks": {
+          "description": "As trilhas dela.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "dir",
+        "tracks"
+      ]
+    },
+    "WorkspaceSnapshot": {
+      "description": "A pasta de exercícios como uma interface a mostra: a trilha, os\ncapítulos com os enunciados e o que o aluno já fez\n([`Workspace::snapshot`]). É o resultado do `learn.status` do protocolo.",
+      "type": "object",
+      "properties": {
+        "root": {
+          "description": "A pasta de exercícios.",
+          "type": "string"
+        },
+        "track": {
+          "description": "A trilha (`verilog`).",
+          "type": "string"
+        },
+        "title": {
+          "description": "O título da trilha.",
+          "type": "string"
+        },
+        "welcome": {
+          "description": "As boas-vindas, em markdown.",
+          "type": "string"
+        },
+        "farewell": {
+          "description": "A mensagem do fim, em markdown.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "chapters": {
+          "description": "Os capítulos, na ordem.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChapterSnapshot"
+          }
+        },
+        "current": {
+          "description": "O exercício atual.",
+          "type": "string"
+        },
+        "solved": {
+          "description": "Quantos resolvidos.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "total": {
+          "description": "Quantos exercícios.",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "root",
+        "track",
+        "title",
+        "welcome",
+        "farewell",
+        "chapters",
+        "current",
+        "solved",
+        "total"
+      ]
+    },
+    "ChapterSnapshot": {
+      "description": "Um capítulo de [`WorkspaceSnapshot`].",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "A pasta do capítulo (`01_primeiros_passos`).",
+          "type": "string"
+        },
+        "title": {
+          "description": "O título.",
+          "type": "string"
+        },
+        "intro": {
+          "description": "A introdução, em markdown.",
+          "type": "string"
+        },
+        "exercises": {
+          "description": "Os exercícios, na ordem.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExerciseSnapshot"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "intro",
+        "exercises"
+      ]
+    },
+    "ExerciseSnapshot": {
+      "description": "Um exercício de [`WorkspaceSnapshot`], com o que o aluno já fez.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome.",
+          "type": "string"
+        },
+        "title": {
+          "description": "O título.",
+          "type": "string"
+        },
+        "prompt": {
+          "description": "O enunciado, em markdown.",
+          "type": "string"
+        },
+        "hints": {
+          "description": "As dicas, em markdown.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "module": {
+          "description": "O módulo que o aluno escreve.",
+          "type": "string"
+        },
+        "file": {
+          "description": "O arquivo que o aluno edita.",
+          "type": "string"
+        },
+        "spf": {
+          "description": "O `.spf` do projeto do exercício.",
+          "type": "string"
+        },
+        "waveform": {
+          "description": "A onda da última correção.",
+          "type": "string"
+        },
+        "solved": {
+          "description": "Resolvido.",
+          "type": "boolean"
+        },
+        "solution": {
+          "description": "A solução liberada, depois de resolvido.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "prompt",
+        "hints",
+        "module",
+        "file",
+        "spf",
+        "waveform",
+        "solved",
+        "solution"
       ]
     },
     "Notification": {

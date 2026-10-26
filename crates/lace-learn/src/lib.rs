@@ -51,8 +51,8 @@ pub use grade::{
     value_text,
 };
 pub use track::{
-    Chapter, DEFAULT_TRACK, Exercise, Kind, Reset, Spec, Stimulus, TRACKS_ENV, Track,
-    available_tracks, load_track, tracks_dir,
+    Chapter, DEFAULT_TRACK, Exercise, Kind, LearnTracks, Reset, Spec, Stimulus, TRACKS_ENV, Track,
+    available_tracks, load_track, tracks, tracks_dir,
 };
 pub use workspace::{
     ChapterSnapshot, ExerciseSnapshot, ExerciseStatus, Workspace, WorkspaceSnapshot,

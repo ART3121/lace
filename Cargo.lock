@@ -1018,6 +1018,8 @@ version = "0.9.0"
 dependencies = [
  "camino",
  "lace-core",
+ "lace-installer",
+ "lace-learn",
  "schemars",
  "serde",
  "serde_json",

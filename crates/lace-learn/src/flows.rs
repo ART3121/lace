@@ -5,12 +5,14 @@
 
 use lace_core::flows::{LayoutPolicy, WaveOpened, WaveRequest, WaveSource};
 use lace_core::{Control, Toolchain};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::layout::LAYOUT_FILE;
 use crate::{Exercise, Grade, LearnError, Result, Verdict, Workspace, grade};
 
-/// O resultado de uma rodada de correção.
-#[derive(Debug, Clone)]
+/// O resultado de uma rodada de correção (e do `learn.check` do protocolo).
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct LearnCheckOutcome {
     /// A correção de cada exercício pedido, na ordem; termina no primeiro
     /// cancelado.

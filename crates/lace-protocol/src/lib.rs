@@ -4,10 +4,10 @@
 //! Quem fala com o Lace por um processo usa este contrato em JSON: o
 //! `lace serve` (JSON-RPC 2.0 por linhas sobre stdio) e o `lace mcp`, para
 //! um agente. Aqui moram só os tipos; quem despacha um [`Request`] é o
-//! servidor, na CLI, que linka também o instalador e o lace-learn, de quem
-//! vêm os resultados de `update.*`, `install.*` e `learn.*`
-//! ([`Response::Other`]). O crate fica acima do `lace-core`: os tipos das
-//! operações são do core, e o core não conhece o protocolo.
+//! servidor, na CLI. O crate fica acima do `lace-core`, do `lace-installer`
+//! e do `lace-learn`, de quem vêm os tipos dos resultados (os de `update.*`
+//! e `install.*` são do instalador, os de `learn.*` do lace-learn), e
+//! nenhum deles conhece o protocolo.
 //!
 //! Os nomes dos métodos têm um grupo e um ponto (`project.status`,
 //! `flow.run`); os campos são os das operações do core. O schema sai de
@@ -38,6 +38,10 @@ use lace_core::{
     Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemoveOutcome, RemovedProcessor,
     SavedLayout, WaveLayout, WaveSignals,
 };
+use lace_installer::add::InstallReport;
+use lace_installer::update::UpdateReport;
+use lace_learn::flows::LearnCheckOutcome;
+use lace_learn::{LearnTracks, WorkspaceSnapshot};
 
 pub use lace_core::delivery::Notification;
 
@@ -219,16 +223,14 @@ methods! {
     FpgaStatus = "fpga.status" => BitstreamState [read, agent],
     FpgaCables = "fpga.cables" => Vec<String>,
     FpgaTop = "fpga.top" => ModuleInterface,
-    // O resultado vem do lace-installer e do lace-learn, que o core não
-    // conhece ([`Response::Other`]).
-    UpdateCheck = "update.check" => serde_json::Value [install, agent],
-    UpdateApply = "update.apply" => serde_json::Value [install, agent_update],
-    InstallAdd = "install.add" => serde_json::Value [install, agent_update],
-    LearnCheck = "learn.check" => serde_json::Value [agent],
-    LearnTracks = "learn.tracks" => serde_json::Value [read],
-    LearnStatus = "learn.status" => serde_json::Value,
-    LearnInit = "learn.init" => serde_json::Value,
-    LearnSetCurrent = "learn.set_current" => serde_json::Value,
+    UpdateCheck = "update.check" => UpdateReport [install, agent],
+    UpdateApply = "update.apply" => UpdateReport [install, agent_update],
+    InstallAdd = "install.add" => InstallReport [install, agent_update],
+    LearnCheck = "learn.check" => LearnCheckOutcome [agent],
+    LearnTracks = "learn.tracks" => LearnTracks [read],
+    LearnStatus = "learn.status" => WorkspaceSnapshot,
+    LearnInit = "learn.init" => WorkspaceSnapshot,
+    LearnSetCurrent = "learn.set_current" => WorkspaceSnapshot,
     LearnReset = "learn.reset" => (),
 }
 
@@ -878,9 +880,16 @@ pub enum Response {
     Cables(Vec<String>),
     /// `shutdown`, `fpga.config_set`, `learn.reset`: nada.
     Nothing(()),
-    /// Um resultado de outro crate (`update.*`, `install.*`, `learn.*`),
-    /// já em JSON; o schema dele é do crate de origem.
-    Other(serde_json::Value),
+    /// `update.check`, `update.apply`.
+    Update(Box<UpdateReport>),
+    /// `install.add`.
+    Install(Box<InstallReport>),
+    /// `learn.check`.
+    LearnCheck(Box<LearnCheckOutcome>),
+    /// `learn.tracks`.
+    Tracks(LearnTracks),
+    /// `learn.status`, `learn.init`, `learn.set_current`.
+    Workspace(Box<WorkspaceSnapshot>),
 }
 
 /// O que `initialize` devolve.
@@ -1100,8 +1109,42 @@ mod tests {
         let methods: Vec<&str> = results.keys().map(String::as_str).collect();
         assert_eq!(methods, METHODS, "um resultado por método, na ordem");
         assert_eq!(results["flow.run"]["$ref"], "#/$defs/FlowOutcome");
+        assert_eq!(results["update.check"]["$ref"], "#/$defs/UpdateReport");
+        assert_eq!(results["install.add"]["$ref"], "#/$defs/InstallReport");
+        assert_eq!(results["learn.check"]["$ref"], "#/$defs/LearnCheckOutcome");
+        assert_eq!(results["learn.tracks"]["$ref"], "#/$defs/LearnTracks");
+        assert_eq!(results["learn.status"]["$ref"], "#/$defs/WorkspaceSnapshot");
         assert_eq!(results["shutdown"]["type"], "null");
         assert_eq!(results["processor.outputs"]["type"], "array");
+    }
+
+    #[test]
+    fn every_result_has_a_shape_in_the_schema() {
+        // Nenhum método devolve JSON solto: o resultado de cada um tem um
+        // tipo no schema (um `serde_json::Value` sairia como `true`).
+        let schema = serde_json::to_value(result_schema()).unwrap();
+        for (method, result) in schema["properties"].as_object().expect("properties") {
+            let loose = *result == serde_json::Value::Bool(true)
+                || result
+                    .as_object()
+                    .is_some_and(|o| o.keys().all(|k| k == "description" || k == "title"));
+            assert!(!loose, "{method} devolve JSON sem formato: {result}");
+        }
+    }
+
+    #[test]
+    fn a_result_from_another_crate_serializes_as_that_crate_does() {
+        // O resultado tipado sai igual ao tipo do instalador serializado
+        // direto, que é o `--json` do `lace install`.
+        let report = InstallReport {
+            prefix: "/opt/lace".into(),
+            components: vec!["yanc".into(), "icarus".into()],
+            added: vec!["icarus".into()],
+        };
+        assert_eq!(
+            serde_json::to_value(Response::Install(Box::new(report.clone()))).unwrap(),
+            serde_json::to_value(&report).unwrap()
+        );
     }
 
     #[test]
