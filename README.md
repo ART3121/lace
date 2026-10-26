@@ -250,6 +250,7 @@ Assistente são experimentais: só funcionam depois de
 | [docs/LEARN.md](docs/LEARN.md) | os exercícios do `lace learn`: fazer e escrever |
 | [docs/FPGA.md](docs/FPGA.md) | as placas FPGA pelo Quartus Prime, um componente experimental (`lace experimental enable fpga`) |
 | [docs/API.md](docs/API.md) | a API do `lace-core`, que a CLI, o Studio e o `lace serve` usam |
+| [docs/PROTOCOL.md](docs/PROTOCOL.md) | cada método do `lace serve` e do `lace mcp`, com os parâmetros, o resultado, as notificações, os erros e os tipos; gerado dos tipos |
 | [docs/BUNDLE.md](docs/BUNDLE.md) | o que vem no bundle, como montá-lo e o que vem do sistema |
 | [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando e o do protocolo do `lace serve` (`protocol-request.json`, `protocol-response.json`) |
 | [docs/RELEASE.md](docs/RELEASE.md) | as releases: que número cada uma recebe, quando lançar e o passo a passo |

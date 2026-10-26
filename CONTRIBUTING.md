@@ -176,7 +176,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho da onda (VCD ou FST) e das tabelas do YANC |
 | `paths.rs` | `YANC_PATH_LIMIT`, `canonicalize` sem o prefixo `\\?\` do Windows, normalização de caminhos |
 | `flows/` | módulo público `lace_core::flows`: os fluxos compostos que a CLI, o Studio e o `lace serve` chamam (`run`, `FlowRequest`, `FlowOutcome` com `status`), a onda (`open_wave`) e a escolha de sinais (`choose_signals`) |
-| `protocol.rs` | módulo público `lace_core::protocol`: o contrato do orquestrador, com `Request`, `Response`, `METHODS`, `PROTOCOL_VERSION` e o schema em duas vistas; é onde nasce um método novo ([docs/METODOLOGIA.md](docs/METODOLOGIA.md)) |
+| `protocol.rs` | módulo público `lace_core::protocol`: o contrato do orquestrador, com `Request`, `Response`, `PROTOCOL_VERSION`, a macro `methods!` (o nome e o tipo do resultado de cada método, de onde saem `METHODS` e `result_schema`) e o schema em duas vistas; é onde nasce um método novo ([docs/METODOLOGIA.md](docs/METODOLOGIA.md)) |
 | `status.rs` | `Project::status` e `ProjectStatus`: o retrato do projeto, que o `lace status`, o Studio e o `project.status` mostram |
 | `delivery.rs` | módulo público `lace_core::delivery`: a entrega do progresso em lotes, com teto de linhas (`Dispatcher`, `Notification`) |
 | `locate.rs` | módulo público `lace_core::locate`: a busca do bundle para quem não é a CLI instalada ao lado dele |
@@ -270,6 +270,7 @@ a onda.
 | `crates/lace-learn/tests/` | `grading.rs` (a pasta de exercícios e a correção, com a trilha de `fixtures/teste`), `track.rs` (as trilhas de `lace-learn/` passam no `dev check`) |
 | `lace-learn/` | as trilhas de exercícios, que viram o componente `lace-learn` ([docs/LEARN.md](docs/LEARN.md)) |
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
+| `docs/PROTOCOL.md` | a referência do protocolo do `lace serve`, gerada dos tipos de `protocol.rs` por `crates/lace-cli/src/protocol_doc.rs`; não edite à mão |
 | `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `lace synth --open`, que vira o componente `rtl-viewer` |
 | `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pelo `lace serve` ou, com um Lace sem ele (ou `lace.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
 | `crates/lace-installer/tests/` | `install.rs` (empacota um bundle pequeno e instala de verdade) e `update.rs` (duas versões de um bundle pequeno: instala a primeira e atualiza para a segunda trocando só o que mudou) |
@@ -652,13 +653,16 @@ não edite à mão.
   `cargo test --bins`) falha quando `docs/schema/` não é o que os tipos
   geram. `crates/lace-cli/tests/schema.rs` roda os comandos e valida a
   saída contra os arquivos.
+- O `docs/PROTOCOL.md` segue a mesma regra: `protocol_doc_matches_the_schema`
+  (em `protocol_doc.rs`) falha quando ele não é o que os tipos do protocolo
+  geram, e o mesmo comando abaixo o grava de novo.
 
 Quando uma mudança altera o JSON (um campo novo num resultado do Core, um
 relatório novo), o teste falha e diz o que fazer:
 
 ```sh
 LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli schema
-git diff docs/schema/
+git diff docs/schema/ docs/PROTOCOL.md
 ```
 
 Leia o diff: ele é a mudança que quem lê o `--json` vai ver. Renomear ou

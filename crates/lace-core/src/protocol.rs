@@ -42,54 +42,83 @@ fn yes() -> bool {
     true
 }
 
-/// Os métodos do protocolo, como vão em JSON: o que um servidor anuncia em
-/// [`ServerInfo::methods`] e usa para distinguir um método desconhecido de
-/// um com parâmetros inválidos. Mais `$/cancel`, a notificação que não é
-/// pedido.
-pub const METHODS: &[&str] = &[
-    "initialize",
-    "shutdown",
-    "project.create",
-    "project.status",
-    "project.add",
-    "project.remove",
-    "project.top",
-    "project.testbench",
-    "project.order",
-    "project.move",
-    "project.convert",
-    "project.check_name",
-    "processor.check_name",
-    "processor.add",
-    "processor.set",
-    "processor.remove",
-    "processor.outputs",
-    "flow.run",
-    "wave.open",
-    "wave.signals",
-    "wave.choose",
-    "wave.reset_layout",
-    "history.list",
-    "history.show",
-    "history.compare",
-    "history.plan_cleanup",
-    "history.clean",
-    "toolchain.info",
-    "toolchain.verify",
-    "experimental.list",
-    "experimental.set",
-    "fpga.boards",
-    "fpga.config",
-    "fpga.config_set",
-    "fpga.check",
-    "fpga.modules",
-    "fpga.status",
-    "fpga.cables",
-    "update.check",
-    "update.apply",
-    "install.add",
-    "learn.check",
-];
+/// Declara os métodos num lugar só: a variante de [`Request`], o nome em
+/// JSON e o tipo do resultado (o `result` do JSON-RPC). Daqui saem
+/// [`METHODS`] e [`result_schema`]. Uma variante de [`Request`] que falte
+/// aqui não compila: o `match` de `declared` não tem `_`.
+macro_rules! methods {
+    ($($variant:ident = $name:literal => $result:ty,)*) => {
+        /// Os métodos do protocolo, como vão em JSON: o que um servidor anuncia
+        /// em [`ServerInfo::methods`] e usa para distinguir um método
+        /// desconhecido de um com parâmetros inválidos. Mais `$/cancel`, a
+        /// notificação que não é pedido.
+        pub const METHODS: &[&str] = &[$($name),*];
+
+        /// O resultado de cada método, uma propriedade por método.
+        #[derive(JsonSchema)]
+        #[allow(dead_code, non_snake_case)]
+        struct Results {
+            $(
+                #[serde(rename = $name)]
+                $variant: $result,
+            )*
+        }
+
+        #[allow(dead_code)]
+        fn declared(request: &Request) {
+            match request {
+                $(Request::$variant { .. } => {})*
+            }
+        }
+    };
+}
+
+methods! {
+    Initialize = "initialize" => ServerInfo,
+    Shutdown = "shutdown" => (),
+    ProjectCreate = "project.create" => ProjectStatus,
+    ProjectStatus = "project.status" => ProjectStatus,
+    ProjectAdd = "project.add" => Vec<AddedFile>,
+    ProjectRemove = "project.remove" => RemoveOutcome,
+    ProjectTop = "project.top" => TopOutcome,
+    ProjectTestbench = "project.testbench" => ProjectStatus,
+    ProjectOrder = "project.order" => Vec<ProjectFile>,
+    ProjectMove = "project.move" => MovedPath,
+    ProjectConvert = "project.convert" => LayoutConversion,
+    ProjectCheckName = "project.check_name" => NameCheck,
+    ProcessorCheckName = "processor.check_name" => NameCheck,
+    ProcessorAdd = "processor.add" => Processor,
+    ProcessorSet = "processor.set" => Processor,
+    ProcessorRemove = "processor.remove" => ProcessorRemoval,
+    ProcessorOutputs = "processor.outputs" => Vec<i64>,
+    FlowRun = "flow.run" => FlowOutcome,
+    WaveOpen = "wave.open" => WaveOpened,
+    WaveSignals = "wave.signals" => WaveSignals,
+    WaveChoose = "wave.choose" => WaveChoiceOutcome,
+    WaveResetLayout = "wave.reset_layout" => bool,
+    HistoryList = "history.list" => Vec<RunSummary>,
+    HistoryShow = "history.show" => ReportView,
+    HistoryCompare = "history.compare" => RunComparison,
+    HistoryPlanCleanup = "history.plan_cleanup" => Vec<String>,
+    HistoryClean = "history.clean" => CleanOutcome,
+    ToolchainInfo = "toolchain.info" => ToolchainInfo,
+    ToolchainVerify = "toolchain.verify" => Vec<FileMismatch>,
+    ExperimentalList = "experimental.list" => ExperimentalInfo,
+    ExperimentalSet = "experimental.set" => ExperimentalInfo,
+    FpgaBoards = "fpga.boards" => Vec<Board>,
+    FpgaConfigGet = "fpga.config" => Option<FpgaConfig>,
+    FpgaConfigSet = "fpga.config_set" => (),
+    FpgaCheck = "fpga.check" => Prepared,
+    FpgaModules = "fpga.modules" => Vec<String>,
+    FpgaStatus = "fpga.status" => BitstreamState,
+    FpgaCables = "fpga.cables" => Vec<String>,
+    // O resultado vem do lace-installer e do lace-learn, que o core não
+    // conhece ([`Response::Other`]).
+    UpdateCheck = "update.check" => serde_json::Value,
+    UpdateApply = "update.apply" => serde_json::Value,
+    InstallAdd = "install.add" => serde_json::Value,
+    LearnCheck = "learn.check" => serde_json::Value,
+}
 
 /// O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
 /// um método sem parâmetros vai sem `params`. Os caminhos são absolutos.
@@ -775,6 +804,17 @@ pub fn response_schema() -> schemars::Schema {
         .into_root_schema_for::<Responses>()
 }
 
+/// O schema do resultado de cada método, na vista de quem serializa: um
+/// objeto com uma propriedade por método (`project.status`), na ordem de
+/// [`METHODS`], que é o `result` que o servidor devolve a ele. Em `$defs`,
+/// os tipos dos resultados.
+pub fn result_schema() -> schemars::Schema {
+    schemars::generate::SchemaSettings::draft2020_12()
+        .for_serialize()
+        .into_generator()
+        .into_root_schema_for::<Results>()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -845,6 +885,17 @@ mod tests {
         let mut listed: Vec<String> = METHODS.iter().map(|m| (*m).to_owned()).collect();
         listed.sort();
         assert_eq!(listed, from_schema);
+    }
+
+    #[test]
+    fn every_method_has_a_result_in_the_schema() {
+        let schema = serde_json::to_value(result_schema()).unwrap();
+        let results = schema["properties"].as_object().expect("properties");
+        let methods: Vec<&str> = results.keys().map(String::as_str).collect();
+        assert_eq!(methods, METHODS, "um resultado por método, na ordem");
+        assert_eq!(results["flow.run"]["$ref"], "#/$defs/FlowOutcome");
+        assert_eq!(results["shutdown"]["type"], "null");
+        assert_eq!(results["processor.outputs"]["type"], "array");
     }
 
     #[test]

@@ -59,9 +59,9 @@ mesmas. O exemplo é o `history.compare`, que compara dois relatórios.
 
 | Peça | Onde mora | No exemplo |
 |---|---|---|
-| Nome | `METHODS` e o `#[serde(rename)]` da variante, em `crates/lace-core/src/protocol.rs` | `history.compare` |
+| Nome | a linha em `methods!` e o `#[serde(rename)]` da variante, em `crates/lace-core/src/protocol.rs` | `history.compare` |
 | Pedido | uma variante de `Request`, no mesmo arquivo | `Request::HistoryCompare { project, id, against }` |
-| Resposta | uma variante de `Response`, com um tipo do core | `Response::Comparison(Box<RunComparison>)` |
+| Resposta | o tipo na linha de `methods!` e uma variante de `Response` que o carrega | `RunComparison`, em `Response::Comparison(Box<RunComparison>)` |
 | Função | o módulo do domínio, no core | `history::compare_reports` |
 | Erros | as variantes de `LaceError` que a função devolve, cada uma com `code()` | |
 | Documentação | o `///` da variante e de cada campo | vira a descrição no schema e no `lace mcp` |
@@ -170,8 +170,10 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    CONTRIBUTING.md, em "Regras do código".
 3. **O protocolo.** Em `crates/lace-core/src/protocol.rs`: a variante de
    `Request`, com o `#[serde(rename = "domínio.verbo")]` e o `///` em cada
-   campo; a variante de `Response`, se o tipo da resposta é novo; o nome em
-   `METHODS`. Se o método só lê, ele entra em `is_read_only`; se mexe na
+   campo; a variante de `Response`, se o tipo da resposta é novo; a linha
+   em `methods!`, com a variante, o nome e o tipo do resultado, de onde
+   saem `METHODS` e `result_schema`. Sem essa linha, o `protocol.rs` não
+   compila. Se o método só lê, ele entra em `is_read_only`; se mexe na
    instalação, em `is_installation`. O teste
    `the_method_list_matches_the_request_enum` confere `METHODS` contra o
    enum.
@@ -180,13 +182,17 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    e embrulhar o resultado na `Response`. Nenhuma regra entra aqui. Atenção:
    o `match` termina num braço `other =>` que responde `unsupported`, então
    o compilador não avisa quando falta o braço. O teste de ponta a ponta vai
-   em `crates/lace-cli/tests/serve.rs`.
+   em `crates/lace-cli/tests/serve.rs`. Se o método roda sem bundle, ele
+   entra também em `results_conform_to_the_declared_schema`, nos testes de
+   `crates/lace-cli/src/serve.rs`, que confere o resultado contra o tipo da
+   linha de `methods!`.
 5. **O `lace mcp`.** Se o método serve a um agente de IA, ele ganha uma
    linha em `TOOLS`, em `crates/lace-cli/src/mcp/mod.rs`. Fica de fora o que
    abre janela, o que apaga sem um plano antes e o que só faz sentido numa
    interface com pessoa. O resumo em texto, em `mcp/summary.rs`, é
    opcional: sem ele, o agente recebe o JSON formatado.
-6. **Schemas e tipos gerados.** Gere de novo e leia o diff:
+6. **Schemas, referência e tipos gerados.** Gere de novo e leia o diff de
+   `docs/schema/` e do `docs/PROTOCOL.md`, que sai do mesmo comando:
 
    ```bash
    LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli --bin lace schema
@@ -206,20 +212,21 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
      (`editors/vscode/src/lace/client.ts`), em `serveClient.ts` e, se houver
      comando de CLI equivalente, em `cliClient.ts`.
 8. **Documentação.** A função em [API.md](API.md); o método na lista do
-   `lace serve` em [CLI.md](CLI.md); o comando do Studio em
+   `lace serve` em [CLI.md](CLI.md) (a referência dele, em
+   [PROTOCOL.md](PROTOCOL.md), saiu no passo 6); o comando do Studio em
    [IPC.md](../studio/docs/IPC.md), se houver; uma linha no `CHANGELOG.md`,
    e no `studio/CHANGELOG.md` se o Studio mudou.
 
 ### Pronto quando
 
 - [ ] A regra está no core, com teste que falha sem a mudança.
-- [ ] O método está em `METHODS`, no `Request`, no despacho e num teste de
+- [ ] O método está em `methods!`, no `Request`, no despacho e num teste de
       `crates/lace-cli/tests/serve.rs`.
 - [ ] A decisão sobre o `lace mcp` foi tomada: na lista, ou de fora por um
       dos motivos do passo 5.
-- [ ] `docs/schema/` e os dois `lace-types.ts` foram gerados de novo, e o
-      diff é compatível pela seção 5, ou a incompatibilidade está no
-      CHANGELOG.
+- [ ] `docs/schema/`, o `docs/PROTOCOL.md` e os dois `lace-types.ts` foram
+      gerados de novo, e o diff é compatível pela seção 5, ou a
+      incompatibilidade está no CHANGELOG.
 - [ ] Nenhuma interface decide o que o core já decide.
 - [ ] A documentação e o CHANGELOG acompanham.
 - [ ] As verificações de "Antes de mandar a mudança", do CONTRIBUTING.md,
@@ -311,7 +318,10 @@ Cada fase vale sozinha e pode parar ali.
    só lê, se é da instalação, se vai para o `lace mcp` e o resumo. `METHODS`,
    `is_read_only`, `is_installation` e a lista do `lace mcp` passam a sair
    dela. Um teste confere que cada método declarado tem braço no despacho,
-   e o braço `other =>` deixa de existir.
+   e o braço `other =>` deixa de existir. O começo já existe: a `methods!`
+   de `protocol.rs` declara o nome e o tipo do resultado, `METHODS` e
+   `result_schema` saem dela, e uma variante de `Request` sem linha não
+   compila. Falta o resto da declaração.
 4. **O contrato testado e a compatibilidade conferida pela máquina.** Casos
    de conformidade, pares de pedido e resposta em JSON, rodados contra o
    `lace serve` e contra os clientes em TypeScript. Na CI, uma comparação de
@@ -325,7 +335,7 @@ Depois da fase 3, um método novo custa isto:
 |---|---|---|
 | Função e teste no core | sim | sim |
 | Variante em `Request` e `Response` | sim | sim |
-| `METHODS`, `is_read_only`, `is_installation` | à mão | saem do registro |
+| `METHODS`, `is_read_only`, `is_installation` | `METHODS` sai de `methods!`; os outros, à mão | saem do registro |
 | Braço no despacho | no `lace serve`, sem aviso se faltar | no `lace-service`, com teste que exige |
 | Linha no `lace mcp` | à mão | sai do registro |
 | Comando no Studio | um por método | nenhum, pelo `lace_call` |

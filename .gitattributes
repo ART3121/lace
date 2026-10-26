@@ -2,6 +2,8 @@
 # tipos geram (report.rs, schema_files_match_the_types): em LF em qualquer
 # sistema, inclusive no checkout do Windows, que converteria para CRLF.
 docs/schema/*.json text eol=lf
+# A referência do protocolo, idem (protocol_doc.rs, protocol_doc_matches_the_schema).
+docs/PROTOCOL.md text eol=lf
 
 # A extensão do VS Code confere os tipos gerados byte a byte com o que
 # docs/schema gera (gen-lace-types.mjs --check), e o lace falso dos testes

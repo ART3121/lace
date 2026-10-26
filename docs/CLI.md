@@ -838,6 +838,8 @@ Uma sessão do `serve`:
   `toolchain.*` (`info`, `verify`), `experimental.*` (`list`, `set`),
   `fpga.*`, `update.check`, `update.apply`, `install.add`, `learn.check`,
   `initialize` e `shutdown`. O `initialize` lista os que o servidor atende.
+  Cada um, com os parâmetros, o resultado e os tipos:
+  [PROTOCOL.md](PROTOCOL.md), gerado dos tipos.
   Os schemas: `docs/schema/protocol-request.json` (os pedidos, com os
   campos com padrão opcionais) e `protocol-response.json` (as respostas,
   as notificações, o `ErrorInfo`).
