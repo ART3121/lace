@@ -46,6 +46,10 @@ pub struct Settings {
     /// CLI: é como quem escreve exercícios os testa no Studio. `None`: as do
     /// componente `lace-learn`.
     pub learn_dir: Option<String>,
+    /// O programa `lace` que o Studio abre como servidor (`lace serve`).
+    /// `None`: o da instalação do bundle. Para desenvolvimento, um build em
+    /// `target/`; a variável `LACE_STUDIO_LACE` vale antes desta preferência.
+    pub lace_path: Option<String>,
     /// Simulador padrão: `icarus` ou `verilator`.
     pub simulator: String,
     /// Abrir a onda no surfer-aurora quando a simulação terminar bem, como o
@@ -122,6 +126,7 @@ impl Default for Settings {
             language: "system".into(),
             theme: "atlas".into(),
             toolchain_dir: None,
+            lace_path: None,
             compiler_dir: None,
             quartus_dir: None,
             learn_dir: None,

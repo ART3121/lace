@@ -2,6 +2,59 @@
 
 ## Não publicada
 
+- Protocolo: métodos novos para o que o Studio ainda fazia linkando o core,
+  o lace-learn e o instalador: `processor.defaults`, `flow.command`,
+  `wave.layout` (o layout gerado, o salvo no projeto e o de um exercício,
+  para um visualizador próprio), `verilog.modules`,
+  `verilog.testbench_names`, `fpga.top` e os exercícios do `lace learn`
+  (`learn.tracks`, `learn.status`, `learn.init`, `learn.set_current`,
+  `learn.reset`). O `flow.run` corrige um exercício como fluxo
+  (`{"flow": "learn"}`, com a correção em `learn`) e corta a saída de cada
+  passo no resultado com `step_output_limit`. Os dois `PortDirection` do
+  core viram um só.
+- `lace serve`: um `--compiler` ou um `--quartus` que não serve não
+  derruba mais o bundle da sessão. Antes, todo pedido que usa o bundle
+  falhava com o erro da CLI; agora só a operação que precisa dele falha,
+  com o erro dela, e o `toolchain.info` mostra o motivo, a regra que o
+  Studio já seguia.
+- `lace serve`: o `update.apply` ganha `reopen_studio`, o `--reopen-studio`
+  da CLI, para o Studio pedir a atualização ao servidor; o `update.check`
+  tem prazo de 90 s em cada consulta de versão, o que o Studio usava; o
+  `install.add` recusa a lista vazia e um nome que não é do bundle antes de
+  qualquer download, como o `lace install`; e a notificação `install` leva
+  a linha do console em `line`, com os nomes dos aplicativos, que o
+  `lace mcp` usa como mensagem de progresso.
+- `lace wave <arquivo>` abre a onda de um exercício do `lace learn` com o
+  layout da última correção, como o Studio já fazia, e um arquivo de onda que
+  não existe é `no_waveform`, e não mais `invalid_project`. O `wave.open` do
+  protocolo segue as duas regras.
+- Protocolo: `project.move` ganha `overwrite`, que manda o destino que
+  existe para a lixeira do sistema e move (menos o que o Lace mantém no
+  lugar, `cannot_replace`), e `wave.choose` ganha `{"kind": "set"}`, que
+  troca a escolha inteira, com os caminhos conferidos como no `add`. Eram
+  comandos só do Studio.
+- `lace serve` também fala MCP. O primeiro pedido diz o idioma: um cliente
+  que se apresenta como MCP no `initialize`, com `protocolVersion`, recebe a
+  mesma sessão do `lace mcp`, com as mesmas ferramentas, o projeto do `-C`
+  como padrão e `--allow-update` para as que mudam a instalação. O idioma
+  MCP exige o recurso experimental `assistant`, como antes. O `lace mcp`
+  continua, como o mesmo servidor sempre em MCP, para as configurações dos
+  agentes que já o têm.
+- `lace serve`: fechar a entrada não cancela mais o que já foi pedido. O
+  servidor responde cada pedido que recebeu e só então sai, e espera a
+  última resposta ser escrita antes de sair; num `printf ... | lace serve`,
+  os pedidos depois do `initialize` voltavam cancelados. Se o cliente
+  fechou também a saída, o que roda é cancelado, como antes.
+- `lace serve` e `lace mcp`: um parâmetro que o método ou a ferramenta não
+  tem é recusado, com o nome mais parecido na mensagem, em vez de ignorado
+  em silêncio; no `flow.run`, também um campo que o fluxo pedido não tem.
+  Um BOM no começo de uma linha, que o PowerShell manda, é ignorado.
+- `lace serve`: o `processor.check_name` confere o nome com a mesma regra
+  do `processor.add`, que recusa os nomes das pastas do Lace (`wave`,
+  `synth`, ...); antes ele aceitava esses nomes e a criação falhava
+  depois. Os métodos `fpga.*` exigem o recurso experimental `fpga` ligado,
+  como a CLI e o Studio já exigiam. Um projeto cujo caminho não existe
+  responde o código `spf_missing`, o mesmo do Studio.
 - `docs/PROTOCOL.md`: a referência do protocolo do `lace serve` e do
   `lace mcp`, com cada método, os parâmetros, o resultado, as
   notificações, os erros e os tipos. É gerada dos tipos de

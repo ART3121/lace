@@ -31,11 +31,16 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`processor.set`](#metodo-processor-set) | [`Processor`](#tipo-processor) | Muda os parâmetros de simulação de um processador. |
 | [`processor.remove`](#metodo-processor-remove) | [`ProcessorRemoval`](#tipo-processorremoval) | Tira um processador do projeto. |
 | [`processor.outputs`](#metodo-processor-outputs) | lista de `integer` | Os valores de uma porta de saída da última simulação do processador. |
+| [`processor.defaults`](#metodo-processor-defaults) | [`NewProcessor`](#tipo-newprocessor) | Os padrões de um processador novo (os da AURORA), para um formulário começar preenchido. |
 | [`flow.run`](#metodo-flow-run) | [`FlowOutcome`](#tipo-flowoutcome) | Roda um fluxo ([`FlowRequest`](#tipo-flowrequest)). |
+| [`flow.command`](#metodo-flow-command) | `string` | O comando equivalente de um fluxo, como a CLI o escreveria e como ele vai para o histórico (`lace-studio sim -p soma`), para uma interface mostrar antes de rodar. |
 | [`wave.open`](#metodo-wave-open) | [`WaveOpened`](#tipo-waveopened) | Abre uma onda no surfer-aurora. |
 | [`wave.signals`](#metodo-wave-signals) | [`WaveSignals`](#tipo-wavesignals) | A árvore de sinais do testbench do projeto, com a escolha gravada. |
 | [`wave.choose`](#metodo-wave-choose) | [`WaveChoiceOutcome`](#tipo-wavechoiceoutcome) | Muda a escolha de sinais. |
 | [`wave.reset_layout`](#metodo-wave-reset-layout) | `boolean` | Apaga o layout salvo de uma onda. |
+| [`wave.layout`](#metodo-wave-layout) | [`WaveLayoutInfo`](#tipo-wavelayoutinfo) | O layout do Lace para uma onda, para um visualizador próprio (a aba de onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto da onda (que o gerado atualiza enquanto o usuário não salvar o dele) e o de um exercício do `lace learn`. |
+| [`verilog.modules`](#metodo-verilog-modules) | lista de `string` | Os módulos declarados num texto Verilog, sem os comentados, na ordem (o contorno de um editor). |
+| [`verilog.testbench_names`](#metodo-verilog-testbench-names) | lista de `boolean` | Quais nomes de arquivo são de testbench pela regra do Lace (`tb_<nome>.v`, `<nome>_tb.v`). |
 | [`history.list`](#metodo-history-list) | lista de [`RunSummary`](#tipo-runsummary) | Os relatórios do projeto, do mais novo para o mais antigo. |
 | [`history.show`](#metodo-history-show) | [`ReportView`](#tipo-reportview) | Um relatório (o mais novo sem `id`). |
 | [`history.compare`](#metodo-history-compare) | [`RunComparison`](#tipo-runcomparison) | Compara dois relatórios. |
@@ -52,10 +57,16 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`fpga.modules`](#metodo-fpga-modules) | lista de `string` | Os módulos do projeto que podem ir para a placa. |
 | [`fpga.status`](#metodo-fpga-status) | [`BitstreamState`](#tipo-bitstreamstate) | O arquivo de gravação da última compilação e se serve. |
 | [`fpga.cables`](#metodo-fpga-cables) | lista de `string` | Os cabos de gravação ligados. |
+| [`fpga.top`](#metodo-fpga-top) | [`ModuleInterface`](#tipo-moduleinterface) | O módulo que vai para a placa e as portas dele, para montar as ligações antes de estarem certas. |
 | [`update.check`](#metodo-update-check) | qualquer JSON | As versões: este Lace, a última release, o bundle, cada componente. |
 | [`update.apply`](#metodo-update-apply) | qualquer JSON | Atualiza a instalação. |
 | [`install.add`](#metodo-install-add) | qualquer JSON | Instala componentes do bundle. |
 | [`learn.check`](#metodo-learn-check) | qualquer JSON | Corrige um exercício do `lace learn` (ou todos). |
+| [`learn.tracks`](#metodo-learn-tracks) | qualquer JSON | De onde vêm as trilhas do `lace learn` e quais há. |
+| [`learn.status`](#metodo-learn-status) | qualquer JSON | Abre a pasta de exercícios que contém `root` e a põe em dia com a trilha. |
+| [`learn.init`](#metodo-learn-init) | qualquer JSON | Cria a pasta de exercícios (`lace learn init`). |
+| [`learn.set_current`](#metodo-learn-set-current) | qualquer JSON | Torna atual um exercício. |
+| [`learn.reset`](#metodo-learn-reset) | `null` | Volta o arquivo de um exercício ao começo (`lace learn reset`). |
 
 ### Sessão
 
@@ -195,6 +206,7 @@ dia; com `after`, só registra um movimento já feito. Resposta:
 | `from` | `string` | sim | De onde. |
 | `to` | `string` | sim | Para onde (o caminho final). |
 | `after` | `boolean` | não (padrão: `false`) | O movimento já aconteceu fora do Lace. |
+| `overwrite` | `boolean` | não (padrão: `false`) | Se o destino existe, ele vai para a lixeira do sistema e o movimento acontece; sem isso, `path_exists`. O que o Lace mantém no lugar, a pasta do projeto e uma pasta que contém a origem não são substituídos (`cannot_replace`). Não vale com `after`. |
 
 Resultado: [`MovedPath`](#tipo-movedpath).
 
@@ -294,6 +306,17 @@ Resposta: os valores.
 
 Resultado: lista de `integer`.
 
+<a id="metodo-processor-defaults"></a>
+
+#### `processor.defaults`
+
+Os padrões de um processador novo (os da AURORA), para um formulário
+começar preenchido. Resposta: o [`NewProcessor`](#tipo-newprocessor), com o nome vazio.
+
+Sem parâmetros.
+
+Resultado: [`NewProcessor`](#tipo-newprocessor).
+
 ### `flow.*`
 
 <a id="metodo-flow-run"></a>
@@ -310,8 +333,24 @@ Roda um fluxo ([`FlowRequest`](#tipo-flowrequest)). Enquanto roda, as notificaç
 | `request` | [`FlowRequest`](#tipo-flowrequest) | sim | O fluxo. |
 | `options` | [`FlowOptions`](#tipo-flowoptions) \| `null` | não (padrão: `null`) | As opções da interface; sem elas, o comando é o da CLI equivalente, a onda abre em janela e o RTL viewer no navegador. |
 | `output` | `boolean` | não (padrão: `true`) | Receber a saída das ferramentas ao vivo (`events`). Sem isso, o `vvp` roda com buffer, que é mais rápido. |
+| `step_output_limit` | `integer` \| `null` | não (padrão: `null`) | Quantos bytes do `stdout` e do `stderr` de cada passo voltam no resultado, do fim; sem isso, tudo. Com `output`, cada linha já foi pelas notificações `events`. |
 
 Resultado: [`FlowOutcome`](#tipo-flowoutcome).
+
+<a id="metodo-flow-command"></a>
+
+#### `flow.command`
+
+O comando equivalente de um fluxo, como a CLI o escreveria e como ele
+vai para o histórico (`lace-studio sim -p soma`), para uma interface
+mostrar antes de rodar. Resposta: o texto.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `request` | [`FlowRequest`](#tipo-flowrequest) | sim | O fluxo. |
+| `program` | `string` \| `null` | não (padrão: `null`) | O programa que começa o comando; sem ele, `lace`. |
+
+Resultado: `string`.
 
 ### `wave.*`
 
@@ -365,6 +404,50 @@ Apaga o layout salvo de uma onda. Resposta: se havia.
 | `waveform` | `string` | sim | A onda. |
 
 Resultado: `boolean`.
+
+<a id="metodo-wave-layout"></a>
+
+#### `wave.layout`
+
+O layout do Lace para uma onda, para um visualizador próprio (a aba de
+onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto
+da onda (que o gerado atualiza enquanto o usuário não salvar o dele)
+e o de um exercício do `lace learn`. Resposta: [`WaveLayoutInfo`](#tipo-wavelayoutinfo).
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `waveform` | `string` | sim | A onda. |
+
+Resultado: [`WaveLayoutInfo`](#tipo-wavelayoutinfo).
+
+### `verilog.*`
+
+<a id="metodo-verilog-modules"></a>
+
+#### `verilog.modules`
+
+Os módulos declarados num texto Verilog, sem os comentados, na ordem
+(o contorno de um editor). Resposta: os nomes.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `text` | `string` | sim | O texto. |
+
+Resultado: lista de `string`.
+
+<a id="metodo-verilog-testbench-names"></a>
+
+#### `verilog.testbench_names`
+
+Quais nomes de arquivo são de testbench pela regra do Lace
+(`tb_<nome>.v`, `<nome>_tb.v`). Resposta: um sim ou não por nome, na
+ordem.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `names` | lista de `string` | sim | Os nomes, sem pasta. |
+
+Resultado: lista de `boolean`.
 
 ### `history.*`
 
@@ -574,6 +657,20 @@ Sem parâmetros.
 
 Resultado: lista de `string`.
 
+<a id="metodo-fpga-top"></a>
+
+#### `fpga.top`
+
+O módulo que vai para a placa e as portas dele, para montar as
+ligações antes de estarem certas. Resposta: o [`ModuleInterface`](#tipo-moduleinterface).
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `project` | `string` | sim | O projeto. |
+| `top` | `string` \| `null` | não (padrão: `null`) | O módulo; `None`, o `top` do `fpga.json`, senão o do projeto. |
+
+Resultado: [`ModuleInterface`](#tipo-moduleinterface).
+
 ### `update.*`
 
 <a id="metodo-update-check"></a>
@@ -599,6 +696,7 @@ seguida: o binário dele foi trocado.
 |---|---|---|---|
 | `full` | `boolean` | não (padrão: `false`) | O instalador inteiro, sem tentar por componentes. |
 | `from` | `string` \| `null` | não (padrão: `null`) | Um instalador no disco, sem rede. |
+| `reopen_studio` | `boolean` | não (padrão: `false`) | No Windows, quando o assistente de instalação roda: abrir o Lace Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio pede isso e fecha, para o assistente trocar os arquivos dele. |
 
 Resultado: qualquer JSON.
 
@@ -609,11 +707,12 @@ Resultado: qualquer JSON.
 #### `install.add`
 
 Instala componentes do bundle. Enquanto roda, `install`; no fim, o
-relatório do instalador.
+relatório do instalador. Um nome que não é do bundle é recusado
+antes de qualquer download.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `components` | lista de `string` | sim | Os componentes. |
+| `components` | lista de `string` | sim | Os componentes (pelo menos um). |
 
 Resultado: qualquer JSON.
 
@@ -633,6 +732,75 @@ relatório da correção do lace-learn.
 | `all` | `boolean` | não (padrão: `false`) | Todos os exercícios. |
 
 Resultado: qualquer JSON.
+
+<a id="metodo-learn-tracks"></a>
+
+#### `learn.tracks`
+
+De onde vêm as trilhas do `lace learn` e quais há. Resposta: `{dir,
+tracks}`.
+
+Sem parâmetros.
+
+Resultado: qualquer JSON.
+
+<a id="metodo-learn-status"></a>
+
+#### `learn.status`
+
+Abre a pasta de exercícios que contém `root` e a põe em dia com a
+trilha. Resposta: o retrato da pasta (o `WorkspaceSnapshot` do
+lace-learn).
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `root` | `string` | sim | A pasta de exercícios, ou uma pasta dentro dela. |
+| `lang` | `string` \| `null` | não (padrão: `null`) | O idioma dos enunciados, quando a trilha tem tradução. |
+
+Resultado: qualquer JSON.
+
+<a id="metodo-learn-init"></a>
+
+#### `learn.init`
+
+Cria a pasta de exercícios (`lace learn init`). Resposta: o retrato
+da pasta.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `dir` | `string` | sim | A pasta, que pode existir vazia. |
+| `track` | `string` \| `null` | não (padrão: `null`) | A trilha; `None`, a padrão. |
+| `lang` | `string` \| `null` | não (padrão: `null`) | O idioma dos enunciados. |
+
+Resultado: qualquer JSON.
+
+<a id="metodo-learn-set-current"></a>
+
+#### `learn.set_current`
+
+Torna atual um exercício. Resposta: o retrato da pasta.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `root` | `string` | sim | A pasta de exercícios. |
+| `name` | `string` | sim | O exercício. |
+| `lang` | `string` \| `null` | não (padrão: `null`) | O idioma dos enunciados. |
+
+Resultado: qualquer JSON.
+
+<a id="metodo-learn-reset"></a>
+
+#### `learn.reset`
+
+Volta o arquivo de um exercício ao começo (`lace learn reset`).
+Resposta: nada.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `root` | `string` | sim | A pasta de exercícios. |
+| `name` | `string` | sim | O exercício. |
+
+Resultado: `null`.
 
 ## Notificações do servidor
 
@@ -681,6 +849,7 @@ instalador, serializado por ele; o core não conhece o tipo).
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `event` | qualquer JSON | sim | O evento, em JSON. |
+| `line` | `string` \| `null` | não | A linha do console para o evento, com os nomes dos componentes; ausente no que é só barra de progresso. |
 
 ### `shutdown`
 
@@ -1344,6 +1513,7 @@ ou vazios.
 | `report_error` | `string` \| `null` | sim | Por que o relatório não foi gravado (o fluxo não falha por isso). |
 | `fpga` | [`FpgaBuildResult`](#tipo-fpgabuildresult) \| `null` | sim | A compilação para a placa. |
 | `fpga_program` | [`FpgaProgramResult`](#tipo-fpgaprogramresult) \| `null` | sim | A gravação na placa. |
+| `learn` | qualquer JSON | sim | A correção de um exercício (`learn`): o `Grade` do lace-learn, em JSON (o core não conhece o tipo). |
 
 <a id="tipo-flowportvalues"></a>
 
@@ -1454,6 +1624,18 @@ sem relatório.
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `cable` | `string` \| `null` | não (padrão: `null`) | O cabo; `None`, o primeiro que o Quartus lista. |
+
+**`flow: "learn"`**
+
+Corrige um exercício do `lace learn` e grava se ele está resolvido;
+a correção vai em `FlowOutcome::learn`. Quem roda é o servidor do
+Lace, que linka o lace-learn: o `run` do core responde
+`unsupported`. Sem relatório.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `root` | `string` | sim | A pasta de exercícios (ou uma pasta dentro dela). |
+| `exercise` | `string` | sim | O exercício. |
 
 <a id="tipo-fpgabuildresult"></a>
 
@@ -1712,6 +1894,18 @@ Logo depois deste arquivo, da mesma lista.
 |---|---|---|---|
 | `path` | `string` | sim |  |
 
+<a id="tipo-mappingtranslator"></a>
+
+### `MappingTranslator`
+
+Um tradutor de valor do Surfer: um arquivo `Name = <nome>`, `Bits = <n>`
+e uma linha `<valor> <texto>` por valor.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | O nome, que é também o nome do arquivo e o `format` dos sinais. |
+| `content` | `string` | sim | O conteúdo do arquivo. |
+
 <a id="tipo-metriccomparison"></a>
 
 ### `MetricComparison`
@@ -1742,6 +1936,18 @@ Uma instância de módulo na hierarquia elaborada.
 | `instance_line` | `integer` \| `null` | sim | A linha da instância. |
 | `library` | `boolean` | sim | O módulo vem da biblioteca SAPHO (`Toolchain::sapho_library`). |
 | `children` | lista de [`ModuleInstance`](#tipo-moduleinstance) | sim | As instâncias de dentro, na ordem do fonte. |
+
+<a id="tipo-moduleinterface"></a>
+
+### `ModuleInterface`
+
+Um módulo e as portas dele, na ordem da declaração.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | Nome do módulo. |
+| `file` | `string` | sim | O arquivo que o declara. |
+| `ports` | lista de [`Port`](#tipo-port) | sim | As portas. |
 
 <a id="tipo-movedpath"></a>
 
@@ -1785,14 +1991,14 @@ com o padrão de `NewProcessor::new`, e, sem `nubits`, com `nbmant` ou
 |---|---|---|---|
 | `name` | `string` | sim | Nome do processador: letras, dígitos e `_`, começando por letra ou `_`. |
 | `language` | [`Language`](#tipo-language) | sim | Linguagem do fonte-modelo. |
-| `nubits` | `integer` | não (padrão: `23`) | `#NUBITS`: largura da palavra de dados, em bits. Só C±. |
-| `nbmant` | `integer` | não (padrão: `16`) | `#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE 754). Só C±. |
-| `nbexpo` | `integer` | não (padrão: `6`) | `#NBEXPO`: bits de expoente do ponto flutuante. Só C±. |
-| `nugain` | `integer` | não (padrão: `128`) | `#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o `cmmcomp` recusa (um divisor genérico viraria o caminho crítico da ULA). Só C±; o fonte só traz a diretiva quando difere de 128, o padrão do YANC. |
-| `ndstac` | `integer` \| `null` | não (padrão: `null`) | `#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão: sem a diretiva, e o `asmcomp` calcula a profundidade pelo programa. |
-| `sdepth` | `integer` \| `null` | não (padrão: `null`) | `#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±. `None`, o padrão: sem a diretiva, calculada pelo programa. |
-| `input_ports` | `integer` | não (padrão: `1`) | `#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada. |
-| `output_ports` | `integer` | não (padrão: `1`) | `#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída. |
+| `nubits` | `integer` | sim; opcional no pedido (padrão: `23`) | `#NUBITS`: largura da palavra de dados, em bits. Só C±. |
+| `nbmant` | `integer` | sim; opcional no pedido (padrão: `16`) | `#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE 754). Só C±. |
+| `nbexpo` | `integer` | sim; opcional no pedido (padrão: `6`) | `#NBEXPO`: bits de expoente do ponto flutuante. Só C±. |
+| `nugain` | `integer` | sim; opcional no pedido (padrão: `128`) | `#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o `cmmcomp` recusa (um divisor genérico viraria o caminho crítico da ULA). Só C±; o fonte só traz a diretiva quando difere de 128, o padrão do YANC. |
+| `ndstac` | `integer` \| `null` | sim; opcional no pedido (padrão: `null`) | `#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão: sem a diretiva, e o `asmcomp` calcula a profundidade pelo programa. |
+| `sdepth` | `integer` \| `null` | sim; opcional no pedido (padrão: `null`) | `#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±. `None`, o padrão: sem a diretiva, calculada pelo programa. |
+| `input_ports` | `integer` | sim; opcional no pedido (padrão: `1`) | `#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada. |
+| `output_ports` | `integer` | sim; opcional no pedido (padrão: `1`) | `#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída. |
 
 <a id="tipo-origin"></a>
 
@@ -1831,6 +2037,19 @@ com o mesmo tipo.
 | `"fpga"` | Compilando para a placa (Quartus). |
 | `"program"` | Gravando na placa (Quartus Programmer). |
 
+<a id="tipo-port"></a>
+
+### `Port`
+
+Uma porta de um módulo.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | Nome. |
+| `direction` | [`PortDirection`](#tipo-portdirection) | sim | Direção. |
+| `width` | `integer` | sim | Largura em bits, com os parâmetros nos valores padrão. |
+| `signed` | `boolean` | sim | `signed`. |
+
 <a id="tipo-portbit"></a>
 
 ### `PortBit`
@@ -1847,13 +2066,13 @@ Um bit de uma saída do topo.
 
 ### `PortDirection`
 
-A direção de uma porta. Em JSON, `"input"`, `"output"` ou `"inout"`.
+Direção de uma porta.
 
 | Valor | Descrição |
 |---|---|
-| `"input"` | Entrada. |
-| `"output"` | Saída. |
-| `"inout"` | Bidirecional. |
+| `"input"` | `input`. |
+| `"output"` | `output`. |
+| `"inout"` | `inout`. |
 
 <a id="tipo-portdrive"></a>
 
@@ -2179,6 +2398,19 @@ Uma linha de `list`.
 | `synthesis` | `boolean` | sim | Tem estatísticas de síntese. |
 | `simulation` | [`Availability`](#tipo-availability) | sim | Quanto dos tempos de simulação tem. |
 | `readable` | `boolean` | sim | O `record.json` pôde ser lido. |
+
+<a id="tipo-savedlayout"></a>
+
+### `SavedLayout`
+
+O layout salvo no projeto para a onda de um testbench:
+`wave/<testbench>.surf.ron` (`saved_layout`).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `path` | `string` | sim | O arquivo, onde o Surfer salva o estado (Ctrl+S). |
+| `state` | `string` | sim | O estado que vai para o Surfer: o que o usuário salvou, ou o gerado. |
+| `customized` | `boolean` | sim | O usuário salvou o estado depois da última vez que o Lace o gerou: o Lace o deixa como está. |
 
 <a id="tipo-savedlayoutinfo"></a>
 
@@ -2834,6 +3066,15 @@ Tira sinais e escopos.
 |---|---|---|---|
 | `paths` | lista de `string` | sim |  |
 
+**`kind: "set"`**
+
+Troca a escolha inteira por estes sinais e escopos; vazia, como
+`All`.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `paths` | lista de `string` | sim |  |
+
 <a id="tipo-wavechoiceoutcome"></a>
 
 ### `WaveChoiceOutcome`
@@ -2845,6 +3086,34 @@ A escolha de sinais depois da mudança.
 | `testbench` | `string` | sim | O módulo do testbench do projeto. |
 | `file` | `string` \| `null` | sim | O arquivo da escolha (`wave/<testbench>.json`); `None` quando ela ficou vazia e o arquivo saiu: a onda grava todos os sinais. |
 | `selection` | lista de `string` | sim | A escolha; vazia, todos os sinais. |
+
+<a id="tipo-wavelayout"></a>
+
+### `WaveLayout`
+
+O layout de uma onda, em memória.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `state` | `string` | sim | O conteúdo do `.surf.ron`. |
+| `mappings` | lista de [`MappingTranslator`](#tipo-mappingtranslator) | sim | Os tradutores de valor que o estado usa, pelo nome. |
+| `processors` | lista de [`WaveProcessor`](#tipo-waveprocessor) | sim | Os processadores achados na onda, na ordem do cabeçalho. |
+| `testbench` | `string` \| `null` | sim | O testbench da onda (o escopo de cima dela): o nome dos arquivos dele em `wave/`, a escolha de sinais e o layout salvo. |
+| `selection` | lista de `string` | sim | A escolha de sinais que o layout seguiu (`wave/<testbench>.json`); vazia sem escolha. |
+
+<a id="tipo-wavelayoutinfo"></a>
+
+### `WaveLayoutInfo`
+
+`wave.layout`: o que um visualizador próprio precisa para mostrar a
+onda com o layout do Lace.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `layout` | [`WaveLayout`](#tipo-wavelayout) \| `null` | sim | O layout dos processadores SAPHO, gerado da onda; `None` sem processador. |
+| `saved` | [`SavedLayout`](#tipo-savedlayout) \| `null` | sim | O layout salvo no projeto da onda (`wave/<testbench>.surf.ron`), onde o Surfer salva (Ctrl+S): o do usuário, se ele salvou depois da última geração, senão o gerado agora; `None` numa onda fora de projeto. |
+| `layout_error` | `string` \| `null` | sim | Por que o layout não foi gerado (a onda abre sem ele). |
+| `exercise_layout` | `string` \| `null` | sim | Os comandos do Surfer de um exercício do `lace learn` (o `.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um. |
 
 <a id="tipo-waveopened"></a>
 

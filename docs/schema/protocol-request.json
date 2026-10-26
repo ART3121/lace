@@ -301,6 +301,11 @@
               "description": "O movimento já aconteceu fora do Lace.",
               "type": "boolean",
               "default": false
+            },
+            "overwrite": {
+              "description": "Se o destino existe, ele vai para a lixeira do sistema e o\nmovimento acontece; sem isso, `path_exists`. O que o Lace mantém\nno lugar, a pasta do projeto e uma pasta que contém a origem não\nsão substituídos (`cannot_replace`). Não vale com `after`.",
+              "type": "boolean",
+              "default": false
             }
           },
           "required": [
@@ -535,6 +540,19 @@
       ]
     },
     {
+      "description": "Os padrões de um processador novo (os da AURORA), para um formulário\ncomeçar preenchido. Resposta: o [`NewProcessor`], com o nome vazio.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "processor.defaults"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
       "description": "Roda um fluxo ([`FlowRequest`]). Enquanto roda, as notificações\n(`phase`, `events`, `output_omitted`, `build`); no fim, o\n[`FlowOutcome`].",
       "type": "object",
       "properties": {
@@ -569,10 +587,54 @@
               "description": "Receber a saída das ferramentas ao vivo (`events`). Sem isso, o\n`vvp` roda com buffer, que é mais rápido.",
               "type": "boolean",
               "default": true
+            },
+            "step_output_limit": {
+              "description": "Quantos bytes do `stdout` e do `stderr` de cada passo voltam no\nresultado, do fim; sem isso, tudo. Com `output`, cada linha já\nfoi pelas notificações `events`.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint",
+              "minimum": 0,
+              "default": null
             }
           },
           "required": [
             "project",
+            "request"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "O comando equivalente de um fluxo, como a CLI o escreveria e como ele\nvai para o histórico (`lace-studio sim -p soma`), para uma interface\nmostrar antes de rodar. Resposta: o texto.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "flow.command"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "request": {
+              "description": "O fluxo.",
+              "$ref": "#/$defs/FlowRequest"
+            },
+            "program": {
+              "description": "O programa que começa o comando; sem ele, `lace`.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
             "request"
           ]
         }
@@ -691,6 +753,87 @@
           },
           "required": [
             "waveform"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "O layout do Lace para uma onda, para um visualizador próprio (a aba de\nonda do Studio): o gerado dos processadores SAPHO, o salvo no projeto\nda onda (que o gerado atualiza enquanto o usuário não salvar o dele)\ne o de um exercício do `lace learn`. Resposta: [`WaveLayoutInfo`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "wave.layout"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "waveform": {
+              "description": "A onda.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "waveform"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Os módulos declarados num texto Verilog, sem os comentados, na ordem\n(o contorno de um editor). Resposta: os nomes.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "verilog.modules"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "description": "O texto.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Quais nomes de arquivo são de testbench pela regra do Lace\n(`tb_<nome>.v`, `<nome>_tb.v`). Resposta: um sim ou não por nome, na\nordem.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "verilog.testbench_names"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "names": {
+              "description": "Os nomes, sem pasta.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "names"
           ]
         }
       },
@@ -1122,6 +1265,40 @@
       ]
     },
     {
+      "description": "O módulo que vai para a placa e as portas dele, para montar as\nligações antes de estarem certas. Resposta: o [`ModuleInterface`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.top"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "top": {
+              "description": "O módulo; `None`, o `top` do `fpga.json`, senão o do projeto.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
       "description": "As versões: este Lace, a última release, o bundle, cada componente.\nResposta: o relatório do instalador.",
       "type": "object",
       "properties": {
@@ -1157,6 +1334,11 @@
                 "null"
               ],
               "default": null
+            },
+            "reopen_studio": {
+              "description": "No Windows, quando o assistente de instalação roda: abrir o Lace\nStudio quando ele terminar (o `--reopen-studio` da CLI). O Studio\npede isso e fecha, para o assistente trocar os arquivos dele.",
+              "type": "boolean",
+              "default": false
             }
           }
         }
@@ -1167,7 +1349,7 @@
       ]
     },
     {
-      "description": "Instala componentes do bundle. Enquanto roda, `install`; no fim, o\nrelatório do instalador.",
+      "description": "Instala componentes do bundle. Enquanto roda, `install`; no fim, o\nrelatório do instalador. Um nome que não é do bundle é recusado\nantes de qualquer download.",
       "type": "object",
       "properties": {
         "method": {
@@ -1178,7 +1360,7 @@
           "type": "object",
           "properties": {
             "components": {
-              "description": "Os componentes.",
+              "description": "Os componentes (pelo menos um).",
               "type": "array",
               "items": {
                 "type": "string"
@@ -1226,6 +1408,165 @@
           },
           "required": [
             "root"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "De onde vêm as trilhas do `lace learn` e quais há. Resposta: `{dir,\ntracks}`.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "learn.tracks"
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    {
+      "description": "Abre a pasta de exercícios que contém `root` e a põe em dia com a\ntrilha. Resposta: o retrato da pasta (o `WorkspaceSnapshot` do\nlace-learn).",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "learn.status"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "root": {
+              "description": "A pasta de exercícios, ou uma pasta dentro dela.",
+              "type": "string"
+            },
+            "lang": {
+              "description": "O idioma dos enunciados, quando a trilha tem tradução.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "root"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Cria a pasta de exercícios (`lace learn init`). Resposta: o retrato\nda pasta.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "learn.init"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "dir": {
+              "description": "A pasta, que pode existir vazia.",
+              "type": "string"
+            },
+            "track": {
+              "description": "A trilha; `None`, a padrão.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "lang": {
+              "description": "O idioma dos enunciados.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "dir"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Torna atual um exercício. Resposta: o retrato da pasta.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "learn.set_current"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "root": {
+              "description": "A pasta de exercícios.",
+              "type": "string"
+            },
+            "name": {
+              "description": "O exercício.",
+              "type": "string"
+            },
+            "lang": {
+              "description": "O idioma dos enunciados.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "root",
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Volta o arquivo de um exercício ao começo (`lace learn reset`).\nResposta: nada.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "learn.reset"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "root": {
+              "description": "A pasta de exercícios.",
+              "type": "string"
+            },
+            "name": {
+              "description": "O exercício.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "root",
+            "name"
           ]
         }
       },
@@ -1660,6 +2001,29 @@
           "required": [
             "flow"
           ]
+        },
+        {
+          "description": "Corrige um exercício do `lace learn` e grava se ele está resolvido;\na correção vai em [`FlowOutcome::learn`]. Quem roda é o servidor do\nLace, que linka o lace-learn: o [`run`] do core responde\n`unsupported`. Sem relatório.",
+          "type": "object",
+          "properties": {
+            "root": {
+              "description": "A pasta de exercícios (ou uma pasta dentro dela).",
+              "type": "string"
+            },
+            "exercise": {
+              "description": "O exercício.",
+              "type": "string"
+            },
+            "flow": {
+              "type": "string",
+              "const": "learn"
+            }
+          },
+          "required": [
+            "flow",
+            "root",
+            "exercise"
+          ]
         }
       ]
     },
@@ -1888,6 +2252,26 @@
             "kind": {
               "type": "string",
               "const": "remove"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "paths"
+          ]
+        },
+        {
+          "description": "Troca a escolha inteira por estes sinais e escopos; vazia, como\n`All`.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "set"
             },
             "paths": {
               "type": "array",

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="866" viewBox="0 0 1000 866" role="img" aria-labelledby="titulo descricao">
 <title id="titulo">Mapa do Lace</title>
-<desc id="descricao">O Lace Studio e a linha de comando lace linkam as bibliotecas Rust do Lace: lace-core, lace-learn, lace-installer e lace-agent. A extensão do VS Code fala com o lace serve, por JSON-RPC; um agente de IA, como o Claude Code, fala com o lace mcp, que é um adaptador do serve. O lace-agent, do lace chat e da vista Assistente, abre o Claude Code com o lace mcp. O lace-core executa as ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora) e o Quartus Prime, e lê e grava os arquivos do projeto. O lace-installer baixa das releases do GitHub e instala e atualiza o bundle.</desc>
+<desc id="descricao">A linha de comando lace e o lace serve linkam as bibliotecas Rust do Lace: lace-core, lace-learn, lace-installer e lace-agent. O Lace Studio abre o lace serve como processo filho e fala com ele por JSON-RPC, como a extensão do VS Code; do Lace, o Studio só linka o lace-agent, do Assistente. Um agente de IA, como o Claude Code, fala com o mesmo servidor em MCP, pelo lace mcp. O lace-agent, do lace chat e da vista Assistente, abre o Claude Code com o lace mcp. O lace-core executa as ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora) e o Quartus Prime, e lê e grava os arquivos do projeto. O lace-installer baixa das releases do GitHub e instala e atualiza o bundle.</desc>
 <defs><marker id="seta" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/></marker></defs>
 <rect width="1000" height="866" rx="12" fill="#ffffff"/>
 <rect x="20" y="262" width="960" height="206" rx="12" fill="#f6f8fa" stroke="#d0d7de"/>
@@ -11,12 +11,13 @@
 <text x="425.059" y="542" font-size="11.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#57606a" text-anchor="start">toolchain/</text>
 <rect x="828" y="520" width="152" height="264" rx="12" fill="#f6f8fa" stroke="#d0d7de"/>
 <text x="842" y="542" font-size="11.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="start" font-weight="700" letter-spacing="0.08em">PROJETO</text>
+<path d="M440,104 L440,150" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M615,104 L615,150" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M807,104 L807,150" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M735,185 L705,185" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M130,104 L130,232 Q130,240 138,240 L370,240" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round"/>
-<path d="M615,220 L615,232 Q615,240 607,240 L370,240" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round"/>
-<path d="M370,104 L370,262" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
+<path d="M552,220 L552,232 Q552,240 544,240 L370,240" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M370,240 L370,262" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M186,358 L216,358" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M606,358 L576,358" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M903,318 L903,104" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
@@ -28,13 +29,13 @@
 <path d="M576,426 L896,426 Q904,426 904,434 L904,520" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <path d="M737.24,808 L767.24,808" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <rect x="20" y="24" width="220" height="80" rx="8" fill="#e7ecf8" stroke="#2e4374" stroke-width="1.5"/>
-<text x="130" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">Lace Studio</text>
-<text x="130" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#4b5563" text-anchor="middle">studio/</text>
-<text x="130" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">editor, fluxos, ondas, Assistente</text>
+<text x="130" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">lace</text>
+<text x="130" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#4b5563" text-anchor="middle">crates/lace-cli</text>
+<text x="130" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">linha de comando, lace chat</text>
 <rect x="260" y="24" width="220" height="80" rx="8" fill="#e7ecf8" stroke="#2e4374" stroke-width="1.5"/>
-<text x="370" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">lace</text>
-<text x="370" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#4b5563" text-anchor="middle">crates/lace-cli</text>
-<text x="370" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">linha de comando, lace chat</text>
+<text x="370" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">Lace Studio</text>
+<text x="370" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#4b5563" text-anchor="middle">studio/</text>
+<text x="370" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">editor, fluxos, ondas, Assistente</text>
 <rect x="500" y="24" width="230" height="80" rx="8" fill="#e7ecf8" stroke="#2e4374" stroke-width="1.5"/>
 <text x="615" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">Extensão do VS Code</text>
 <text x="615" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#4b5563" text-anchor="middle">editors/vscode</text>
@@ -43,14 +44,14 @@
 <text x="870" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#15171b" text-anchor="middle" font-weight="600">Agente de IA</text>
 <text x="870" y="69" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">Claude Code, Claude Desktop</text>
 <text x="870" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">ou outro cliente MCP</text>
-<rect x="525" y="150" width="180" height="70" rx="8" fill="#e7ecf8" stroke="#2e4374" stroke-width="1.5"/>
-<text x="615" y="171" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">lace serve</text>
-<text x="615" y="190" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">JSON-RPC 2.0</text>
-<text x="615" y="207" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">por stdin e stdout</text>
+<rect x="400" y="150" width="305" height="70" rx="8" fill="#e7ecf8" stroke="#2e4374" stroke-width="1.5"/>
+<text x="552.5" y="171" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">lace serve</text>
+<text x="552.5" y="190" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">JSON-RPC 2.0 por stdin e stdout;</text>
+<text x="552.5" y="207" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">fala MCP com um agente</text>
 <rect x="735" y="150" width="145" height="70" rx="8" fill="#e7ecf8" stroke="#2e4374" stroke-width="1.5"/>
 <text x="807.5" y="171" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#1d2b4d" text-anchor="middle" font-weight="600">lace mcp</text>
-<text x="807.5" y="190" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">servidor MCP</text>
-<text x="807.5" y="207" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">sobre o serve</text>
+<text x="807.5" y="190" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">o mesmo servidor,</text>
+<text x="807.5" y="207" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#4b5563" text-anchor="middle">sempre em MCP</text>
 <rect x="770.131" y="211" width="74.738" height="18" rx="9" fill="#fff8c5" stroke="#d4a72c"/>
 <text x="807.5" y="224" font-size="10" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#7d4e00" text-anchor="middle" font-weight="600">experimental</text>
 <rect x="36" y="318" width="150" height="80" rx="8" fill="#ffffff" stroke="#2e4374" stroke-width="2"/>
@@ -157,7 +158,8 @@
 <rect x="25.631" y="825" width="74.738" height="18" rx="9" fill="#fff8c5" stroke="#d4a72c"/>
 <text x="63" y="838" font-size="10" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#7d4e00" text-anchor="middle" font-weight="600">experimental</text>
 <text x="114" y="838" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="start">desligado por padrão: lace experimental enable &lt;componente&gt;, ou Preferências &gt; Experimental no Studio</text>
-<text x="250" y="244" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="middle" stroke="#ffffff" stroke-width="5" stroke-linejoin="round" paint-order="stroke">linkam as bibliotecas</text>
+<text x="448" y="132" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="start" stroke="#ffffff" stroke-width="5" stroke-linejoin="round" paint-order="stroke">abre</text>
+<text x="250" y="236" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="middle" stroke="#ffffff" stroke-width="5" stroke-linejoin="round" paint-order="stroke">linkam as bibliotecas</text>
 <text x="895" y="244" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="end" stroke="#ffffff" stroke-width="5" stroke-linejoin="round" paint-order="stroke">abre o Claude Code</text>
 <text x="103" y="505" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="end" stroke="#ffffff" stroke-width="5" stroke-linejoin="round" paint-order="stroke">baixa</text>
 <text x="119" y="657" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#57606a" text-anchor="start" stroke="#ffffff" stroke-width="5" stroke-linejoin="round" paint-order="stroke">na primeira vez</text>

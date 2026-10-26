@@ -39,10 +39,6 @@ pub mod codes {
     /// Um programa está em primeiro plano no terminal (no Linux e no macOS):
     /// o `cd` automático iria para ele e não é digitado.
     pub const TERMINAL_BUSY: &str = "terminal_busy";
-    /// O "Substituir" de um movimento encontrou no destino o que fica no
-    /// lugar (o `.spf`, a pasta de um processador, uma pasta com a origem):
-    /// nada foi para a lixeira.
-    pub const CANNOT_REPLACE: &str = "cannot_replace";
     /// Erro de leitura ou escrita do próprio Studio.
     pub const IO: &str = "io";
     /// O bundle não traz o cliente web do Surfer (a onda abre em janela).
@@ -53,6 +49,14 @@ pub mod codes {
     pub const INTERNAL: &str = "internal";
     /// O assistente: o Claude Code não foi achado, ou a sessão terminou.
     pub const ASSISTANT: &str = "assistant";
+    /// O programa `lace` que serve o Studio não foi achado ou não abriu.
+    pub const LACE_MISSING: &str = "lace_missing";
+    /// O `lace` achado fala outra versão do protocolo.
+    pub const LACE_INCOMPATIBLE: &str = "lace_incompatible";
+    /// O servidor do Lace saiu no meio de um pedido; o próximo o abre de novo.
+    pub const SERVER_GONE: &str = "server_gone";
+    /// O pedido foi cancelado antes de começar (`-32001` do protocolo).
+    pub const CANCELLED: &str = "cancelled";
 }
 
 /// O erro de um comando, como a interface o recebe.
@@ -89,39 +93,6 @@ impl std::fmt::Display for IpcError {
 }
 
 impl std::error::Error for IpcError {}
-
-impl From<lace_core::LaceError> for IpcError {
-    fn from(error: lace_core::LaceError) -> Self {
-        IpcError {
-            code: error.code().to_owned(),
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<lace_core::ErrorInfo> for IpcError {
-    fn from(error: lace_core::ErrorInfo) -> Self {
-        IpcError {
-            code: error.code,
-            message: error.message,
-        }
-    }
-}
-
-impl From<lace_learn::LearnError> for IpcError {
-    fn from(error: lace_learn::LearnError) -> Self {
-        IpcError {
-            code: error.code().to_owned(),
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<lace_installer::Error> for IpcError {
-    fn from(error: lace_installer::Error) -> Self {
-        IpcError::new(error.code(), error.to_string())
-    }
-}
 
 impl From<std::io::Error> for IpcError {
     fn from(error: std::io::Error) -> Self {

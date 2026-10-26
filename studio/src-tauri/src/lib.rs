@@ -1,25 +1,23 @@
 //! Lace Studio: o backend do ambiente gráfico do Lace.
 //!
-//! O backend é uma casca fina sobre o `lace-core`, como a CLI: cada comando
-//! Tauri abre o projeto, chama uma função do Core e devolve o resultado
-//! serializado. A interface (React, em `src/`) só mostra
-//! e pede.
+//! O backend é um cliente do servidor do Lace (`lace serve`), como a
+//! extensão do VS Code: o que é do Lace (o projeto, os fluxos, o histórico,
+//! instalar e atualizar) é um pedido do protocolo ao servidor, e o que fica
+//! aqui é do Studio: as janelas, os arquivos, o terminal, a vigia da pasta,
+//! as preferências e a onda numa aba. A interface (React, em `src/`) só
+//! mostra e pede.
 //!
 //! | Módulo | O que tem |
 //! |---|---|
-//! | [`commands::project`] | abrir, criar, retrato do projeto, arquivos Verilog, topo, testbench, processadores, mover arquivos, hierarquia |
+//! | [`commands::project`] | abrir, criar e fechar o projeto, a pasta padrão, a hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
-//! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, compilação para a placa: operações canceláveis com saída ao vivo |
-//! | [`commands::fpga`] | as placas, o `fpga.json` e a conferência das ligações; só com a placa FPGA ligada |
-//! | [`commands::experimental`] | os recursos experimentais do Lace (a placa FPGA, o assistente de IA): quais estão ligados, ligar e desligar |
+//! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, placa, correção, instalar e atualizar: pedidos ao servidor que rodam como operações canceláveis, com saída ao vivo |
 //! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
-//! | [`commands::history`] | relatórios do `.lace/reports`: listar, mostrar, comparar, apagar |
-//! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
-//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
+//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update` e `lace update --check` pelo servidor |
 //! | [`terminal`] | o terminal de shell |
-//! | [`commands::app`] | versão, preferências, recentes, abrir a onda, sair e reiniciar |
+//! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
-//! | [`commands::wave`] | a escolha dos sinais da onda e o layout salvo |
+//! | [`server`] | o servidor do Lace (`lace serve`) e o `lace_call`, por onde passam os métodos do protocolo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
 //! está em `docs/IPC.md`.
@@ -29,19 +27,15 @@
 pub mod commands {
     //! Os comandos que a interface chama com `invoke`.
     pub mod app;
-    pub mod experimental;
     pub mod files;
-    pub mod fpga;
-    pub mod history;
-    pub mod learn;
     pub mod project;
     pub mod toolchain;
-    pub mod wave;
 }
 pub mod assistant;
 pub mod error;
 pub mod flows;
 pub mod jobs;
+pub mod server;
 pub mod settings;
 pub mod state;
 pub mod terminal;
@@ -130,12 +124,12 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            server::lace_call,
             commands::app::app_info,
             commands::app::settings_get,
             commands::app::settings_set,
             commands::app::recent_projects,
             commands::app::recent_forget,
-            commands::app::wave_open,
             commands::app::log_frontend,
             commands::app::dev_smoke_script,
             commands::app::app_exit,
@@ -144,22 +138,6 @@ pub fn run() {
             commands::project::project_open,
             commands::project::project_create,
             commands::project::project_close,
-            commands::project::project_snapshot,
-            commands::project::project_add_verilog,
-            commands::project::project_remove_verilog,
-            commands::project::project_set_top,
-            commands::project::project_set_testbench,
-            commands::project::project_processor_defaults,
-            commands::project::project_add_processor,
-            commands::project::project_remove_processor,
-            commands::project::project_configure_processor,
-            commands::project::project_output_values,
-            commands::project::verilog_modules,
-            commands::project::project_check_name,
-            commands::project::processor_check_name,
-            commands::project::project_reorder,
-            commands::project::project_move,
-            commands::project::project_convert_layout,
             commands::project::project_hierarchy,
             commands::files::fs_read_dir,
             commands::files::fs_read_text,
@@ -172,28 +150,7 @@ pub fn run() {
             commands::files::fs_trash,
             commands::files::fs_list_files,
             commands::files::fs_search,
-            commands::history::history_list,
-            commands::history::history_show,
-            commands::history::history_compare,
-            commands::history::history_plan_cleanup,
-            commands::history::history_clean,
-            commands::learn::learn_tracks,
-            commands::learn::learn_open,
-            commands::learn::learn_init,
-            commands::learn::learn_set_current,
-            commands::learn::learn_reset,
-            commands::experimental::experimental_list,
-            commands::experimental::experimental_set,
-            commands::fpga::fpga_boards,
-            commands::fpga::fpga_config,
-            commands::fpga::fpga_config_set,
-            commands::fpga::fpga_top,
-            commands::fpga::fpga_check,
-            commands::fpga::fpga_modules,
-            commands::fpga::fpga_status,
-            commands::fpga::fpga_cables,
             commands::toolchain::toolchain_info,
-            commands::toolchain::toolchain_verify,
             commands::toolchain::lace_update_check,
             commands::toolchain::lace_install,
             commands::toolchain::lace_update,
@@ -213,9 +170,6 @@ pub fn run() {
             assistant::assistant_stop,
             wave_tab::wave_tab_open,
             wave_tab::wave_tab_close,
-            commands::wave::wave_signals,
-            commands::wave::wave_selection_set,
-            commands::wave::wave_layout_reset,
         ])
         .build(tauri::generate_context!())
         .expect("Lace Studio could not start");
@@ -253,6 +207,7 @@ fn shutdown(app: &AppHandle) {
     jobs::cancel_and_wait(app, SHUTDOWN_WAIT);
     terminal::kill_all(app);
     assistant::stop_all(app);
+    app.state::<AppState>().server.stop();
 }
 
 /// Log no stderr. `RUST_LOG` escolhe o nível (padrão: avisos, e `info` do

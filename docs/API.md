@@ -1896,9 +1896,16 @@ processadores; a simulação para no primeiro build que falhar
 (`simulation: null`); um módulo inexistente no esquemático é
 `schematic_error`, não falha do fluxo; a onda que não abre é `wave_error`.
 `flows::open_wave` abre uma onda com a política de layout
-(`generated`, `none`, `reset`, `file`) e devolve [`WaveOpened`];
-`flows::choose_signals` muda a escolha de sinais. O `lace learn` tem o
-seu em `lace_learn::flows`.
+(`generated`, `none`, `reset`, `file`) e devolve [`WaveOpened`]; uma onda
+que não existe, do projeto ou um arquivo, é `no_waveform`.
+`flows::choose_signals` muda a escolha de sinais: `all` a esvazia, `add` e
+`remove` acrescentam e tiram, `set` troca a escolha inteira; os caminhos
+são conferidos na árvore do testbench elaborado. O `lace learn` tem o seu
+em `lace_learn::flows`, e `lace_learn::layout::with_exercise_layout` dá à
+onda de um exercício o layout da correção, quando o pedido quer o gerado.
+`FlowRequest::Learn` é a correção de um exercício como fluxo, com o
+resultado em `FlowOutcome::learn`: quem a roda é o servidor do Lace, que
+linka o lace-learn, e o `flows::run` do core responde `unsupported`.
 
 **`lace_core::delivery`.** A entrega da saída ao vivo para uma interface
 com fila: o `Dispatcher` recebe os eventos do `Control` e o `Progress` e
@@ -1928,7 +1935,7 @@ de saída lidas pelo nome do arquivo.
 **`lace_core::protocol`.** O contrato do orquestrador em tipos com schema:
 [`Request`] (um método por operação, com grupo e ponto: `project.status`,
 `flow.run`, `history.list`, `update.check`, ...), [`Response`] (o valor em
-si, sem etiqueta; o de `update.*`, `install.add` e `learn.check` vem do
+si, sem etiqueta; o de `update.*`, `install.add` e `learn.*` vem do
 `lace-installer` (`update::run`, `add::add`) e do `lace-learn`, que o
 servidor linka, como `Response::Other`, com o schema do crate de origem), [`ServerInfo`], [`ShutdownReason`] e os tipos de
 resposta que não existiam (`TopOutcome`, `RemoveOutcome`, `NameCheck`,
@@ -2284,7 +2291,8 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `StaleBitstream` | `stale_bitstream` | `fpga::program` com um `.sof` que não descreve o projeto de agora: um fonte, uma memória, o `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi trocado, ou a compilação não terminou | `fpga::build` de novo |
 | `QuartusMissing` | `quartus_missing` | `fpga::build`, `fpga::program` ou `tool(Tool::Quartus)` sem Quartus (2.5) | instalar o Quartus Prime Lite com o suporte à família da placa, ou declarar a pasta dele |
 | `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `lace experimental enable <recurso>`, ou Preferências > Experimental no Studio |
-| `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe: a simulação não rodou, ou não chegou ao fim | simular antes (`lace sim [-p X]`, o botão Simular) |
+| `Unsupported` | `unsupported` | `flows::run` com `FlowRequest::Learn`: a correção de um exercício roda no servidor do Lace, que linka o lace-learn | pedir pelo `lace serve` (`flow.run`), ou corrigir com `lace learn check` |
+| `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe, porque a simulação não rodou ou não chegou ao fim, ou de um arquivo que não existe | simular antes (`lace sim [-p X]`, o botão Simular) |
 | `SignalNotFound` | `signal_not_found` | `flows::choose_signals` com um caminho que a árvore do testbench elaborado não tem; `similar` traz os parecidos | ver `similar`, ou `wave_signals` |
 | `SignalNotChosen` | `signal_not_chosen` | tirar da escolha um caminho que não está na escolha gravada nem no design | ver a escolha (`wave_signals`) |
 | `TestbenchNotElaborated` | `testbench_not_elaborated` | a escolha de sinais precisa da árvore do testbench, e a elaboração dele pelo Icarus falhou; `reason` é a primeira mensagem | corrigir o testbench (`lace check`) |

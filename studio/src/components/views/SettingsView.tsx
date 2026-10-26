@@ -335,6 +335,10 @@ function ToolchainPage({ settings }: { settings: Settings }) {
     const chosen = await open({ directory: true, multiple: false });
     if (typeof chosen === 'string') set(key, chosen);
   };
+  const browseLace = async () => {
+    const chosen = await open({ directory: false, multiple: false });
+    if (typeof chosen === 'string') set('lace_path', chosen);
+  };
 
   return (
     <SettingsGroup>
@@ -349,6 +353,14 @@ function ToolchainPage({ settings }: { settings: Settings }) {
               onChange={(e) => set('toolchain_dir', e.target.value || null)}
             />
             <Button onClick={() => void browse('toolchain_dir')}>{t('common.browse')}</Button>
+          </div>
+        )}
+      </SettingRow>
+      <SettingRow label={t('settings.lacePath')} hint={t('settings.lacePathHint')} stack>
+        {(id) => (
+          <div className="input-group">
+            <input id={id} className="input" value={settings.lace_path ?? ''} onChange={(e) => set('lace_path', e.target.value || null)} />
+            <Button onClick={() => void browseLace()}>{t('common.browse')}</Button>
           </div>
         )}
       </SettingRow>

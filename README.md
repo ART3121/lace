@@ -229,10 +229,12 @@ as ferramentas rodam. O formato de cada um está em
   </a>
 </p>
 
-O Lace Studio e a linha de comando `lace` linkam as bibliotecas e chamam as
-mesmas funções do `lace-core`. Os outros programas falam com um processo
-filho: a extensão do VS Code com o `lace serve`, por JSON-RPC, e um agente de
-IA com o `lace mcp`, o mesmo contrato como servidor MCP
+A linha de comando `lace` linka as bibliotecas e chama as funções do
+`lace-core`. Os outros programas falam com um processo filho, o servidor do
+Lace (`lace serve`), por JSON-RPC: o Lace Studio, que o abre sozinho, a
+extensão do VS Code e scripts. Um agente de IA fala com o mesmo servidor em
+MCP: o `lace serve` reconhece o idioma pelo primeiro pedido, e o `lace mcp`
+é o mesmo servidor, sempre em MCP
 ([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
 O `lace chat` e a vista Assistente do Studio usam o `lace-agent`, que abre o
 Claude Code com o `lace mcp`. O `lace mcp`, o `lace chat` e a vista

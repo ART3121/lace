@@ -1,6 +1,6 @@
 //! Abrir uma onda com o layout dos processadores SAPHO, e a escolha de
 //! sinais do testbench do projeto: o `lace wave` e o `lace wave select` da
-//! CLI, e o `wave_open` e o `wave_selection_set` do Studio, numa regra só.
+//! CLI e o `wave.open` e o `wave.choose` do protocolo, numa regra só.
 
 use std::time::Duration;
 
@@ -19,8 +19,9 @@ pub const SURFER_GRACE: Duration = Duration::from_millis(1500);
 /// Abre uma onda no surfer-aurora e confere que ele subiu.
 ///
 /// Com [`WaveSource::Project`], a onda é a da simulação do processador ou do
-/// projeto ([`waveform_path`](crate::waveform_path)); se ela ainda não
-/// existe, [`LaceError::NoWaveform`]. Com [`LayoutPolicy::Reset`], o layout
+/// projeto ([`waveform_path`](crate::waveform_path)). Uma onda que não existe,
+/// do projeto ou um arquivo, é [`LaceError::NoWaveform`]. Com
+/// [`LayoutPolicy::Reset`], o layout
 /// salvo no projeto da onda sai antes, e o testbench dele vai em
 /// [`WaveOpened::reset_deleted`]. Com `Generated` ou `Reset`, o layout dos
 /// processadores é gerado ([`prepare_wave_layout`](crate::prepare_wave_layout));
@@ -33,7 +34,15 @@ pub fn open_wave(
     request: &WaveRequest,
 ) -> Result<WaveOpened> {
     let waveform = match &request.source {
-        WaveSource::File { path } => path.clone(),
+        WaveSource::File { path } => {
+            if !path.is_file() {
+                return Err(LaceError::NoWaveform {
+                    path: path.clone(),
+                    processor: None,
+                });
+            }
+            path.clone()
+        }
         WaveSource::Project { processor } => {
             let Some(project) = project else {
                 return Err(LaceError::InvalidProject {
@@ -134,9 +143,10 @@ pub fn open_wave(
 /// Muda a escolha de sinais da onda do testbench do projeto
 /// (`wave/<testbench>.json`) e devolve como ficou.
 ///
-/// `All` esvazia a escolha sem elaborar nada. `Add` e `Remove` elaboram o
-/// testbench pelo Icarus ([`wave_signals`](crate::wave_signals)) para
-/// conferir os caminhos: um que a árvore não tem é
+/// `All`, e `Set` com a lista vazia, esvaziam a escolha sem elaborar nada.
+/// `Add`, `Remove` e `Set` elaboram o testbench pelo Icarus
+/// ([`wave_signals`](crate::wave_signals)) para conferir os caminhos: um que
+/// a árvore não tem é
 /// [`LaceError::SignalNotFound`] (com até cinco caminhos de mesmo nome
 /// final, para sugerir); em `Remove`, um que não está na escolha nem no
 /// design é [`LaceError::SignalNotChosen`], e um que está na escolha mas o
@@ -151,7 +161,8 @@ pub fn choose_signals(
     let module = crate::wave_testbench(project)?;
     let selection = match choice {
         WaveChoice::All => Vec::new(),
-        WaveChoice::Add(paths) => {
+        WaveChoice::Set(paths) if paths.is_empty() => Vec::new(),
+        WaveChoice::Add(paths) | WaveChoice::Set(paths) => {
             let tree = elaborated(toolchain, project, control)?;
             let root = tree.root.as_ref().expect("conferido em elaborated");
             for path in paths {
@@ -159,7 +170,10 @@ pub fn choose_signals(
                     return Err(not_found(root, path));
                 }
             }
-            let mut selection = tree.selection.clone();
+            let mut selection = match choice {
+                WaveChoice::Add(_) => tree.selection.clone(),
+                _ => Vec::new(),
+            };
             selection.extend(paths.iter().cloned());
             selection
         }

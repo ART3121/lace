@@ -8,6 +8,7 @@
 //! arquivo com `-c`, e o Studio, na aba da onda.
 
 use camino::{Utf8Path, Utf8PathBuf};
+use lace_core::flows::{LayoutPolicy, WaveRequest, WaveSource};
 use lace_core::verilog::{ModuleInterface, PortDirection};
 
 use crate::testbench::{MISMATCH_SIGNAL, testbench_module};
@@ -27,6 +28,19 @@ pub fn layout_of(waveform: &Utf8Path) -> Option<Utf8PathBuf> {
     }
     let layout = dir.join("wave.sucl");
     layout.is_file().then_some(layout)
+}
+
+/// O pedido de onda com o layout do exercício quando o arquivo é a onda de
+/// um exercício ([`layout_of`]) e o pedido quer o layout gerado: o `lace
+/// wave <arquivo>` e o `wave.open` do protocolo abrem a onda da correção
+/// arrumada, como o `lace learn wave`. Os outros pedidos ficam como vieram.
+pub fn with_exercise_layout(mut request: WaveRequest) -> WaveRequest {
+    if let (WaveSource::File { path }, LayoutPolicy::Generated) = (&request.source, &request.layout)
+        && let Some(layout) = layout_of(path)
+    {
+        request.layout = LayoutPolicy::File { path: layout };
+    }
+    request
 }
 
 /// O nome do marcador do primeiro erro.
@@ -83,5 +97,41 @@ fn finish(lines: &mut Vec<String>, first_ns: Option<u64>) {
     if let Some(ns) = first_ns {
         lines.push(format!("cursor_set {ns}ns"));
         lines.push(format!("marker_set_at {ns}ns {FIRST_MISMATCH_MARKER}"));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_wave_of_an_exercise_opens_with_its_layout() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let hidden = root.join(HIDDEN_DIR);
+        std::fs::create_dir_all(&hidden).unwrap();
+        let wave = hidden.join("wave.vcd");
+        std::fs::write(&wave, "").unwrap();
+        let request = |path: &Utf8Path, layout: LayoutPolicy| WaveRequest {
+            source: WaveSource::File {
+                path: path.to_owned(),
+            },
+            layout,
+        };
+        // Sem o wave.sucl ao lado, a onda fica como veio.
+        let plain = request(&wave, LayoutPolicy::Generated);
+        assert_eq!(with_exercise_layout(plain.clone()), plain);
+        std::fs::write(hidden.join("wave.sucl"), "").unwrap();
+        assert_eq!(
+            with_exercise_layout(plain).layout,
+            LayoutPolicy::File {
+                path: hidden.join("wave.sucl")
+            }
+        );
+        // Quem pediu outro layout, ou uma onda fora do .lace-learn, fica.
+        let none = request(&wave, LayoutPolicy::None);
+        assert_eq!(with_exercise_layout(none.clone()), none);
+        let outside = request(&root.join("wave.vcd"), LayoutPolicy::Generated);
+        assert_eq!(with_exercise_layout(outside.clone()), outside);
     }
 }

@@ -19,11 +19,13 @@
 //! A aba é identificada por um segredo aleatório: o servidor só entrega o
 //! que foi registrado para uma aba aberta.
 //!
-//! Numa onda de testbench do projeto, o layout é o salvo em
-//! `wave/<testbench>.surf.ron` ([`lace_core::saved_layout`]): os comandos de
-//! partida registram `state_save_url_set <origem>/save/<aba>`, e o "salvar
-//! estado" do Surfer (Ctrl+S, que fica com ele dentro da aba) manda o estado
-//! para o servidor, que o grava no arquivo.
+//! O layout vem do servidor do Lace (`wave.layout`): o gerado dos
+//! processadores SAPHO, o de um exercício do `lace learn` e, numa onda de
+//! testbench do projeto, o salvo em `wave/<testbench>.surf.ron`. Com o
+//! salvo, os comandos de partida registram `state_save_url_set
+//! <origem>/save/<aba>`, e o "salvar estado" do Surfer (Ctrl+S, que fica com
+//! ele dentro da aba) manda o estado para o servidor local, que o grava no
+//! arquivo.
 //!
 //! A AURORA ligava o cliente a um `surfer-aurora server`, que lê a onda e
 //! manda só os sinais pedidos. Com ele, o layout some de vez em quando: o
@@ -39,8 +41,8 @@ use std::hash::BuildHasher;
 use std::sync::{Arc, Mutex};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::{WaveLayout, WaveProcessor};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 use tauri::{AppHandle, Manager};
 use tiny_http::{Header, Method, Response, Server};
 
@@ -73,9 +75,46 @@ struct Shared {
     sessions: HashMap<String, Session>,
 }
 
+/// O `wave.layout` do servidor, com o que a aba usa.
+#[derive(Debug, Clone, Deserialize)]
+struct LayoutInfo {
+    layout: Option<Layout>,
+    saved: Option<Saved>,
+    layout_error: Option<String>,
+    exercise_layout: Option<Utf8PathBuf>,
+}
+
+/// O layout gerado dos processadores SAPHO.
+#[derive(Debug, Clone, Deserialize)]
+struct Layout {
+    /// O conteúdo do `.surf.ron`.
+    state: String,
+    /// Os tradutores de valor que o estado usa.
+    mappings: Vec<Mapping>,
+    /// Os processadores, como a interface os mostra.
+    processors: Vec<Value>,
+    /// A escolha de sinais que o layout seguiu.
+    selection: Vec<String>,
+}
+
+/// Um tradutor de valor do Surfer.
+#[derive(Debug, Clone, Deserialize)]
+struct Mapping {
+    name: String,
+    content: String,
+}
+
+/// O layout salvo no projeto da onda.
+#[derive(Debug, Clone, Deserialize)]
+struct Saved {
+    path: Utf8PathBuf,
+    state: String,
+    customized: bool,
+}
+
 struct Session {
     waveform: Utf8PathBuf,
-    layout: Option<WaveLayout>,
+    layout: Option<Layout>,
     /// O estado que `/layout` entrega: o salvo no projeto, ou o gerado.
     state: Option<String>,
     /// Onde o Surfer salva o estado (o layout do projeto).
@@ -91,7 +130,7 @@ pub struct WaveTab {
     /// A página do cliente web, para o iframe.
     pub url: String,
     /// Os processadores SAPHO do layout; vazio sem layout.
-    pub processors: Vec<WaveProcessor>,
+    pub processors: Vec<Value>,
     /// O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
     /// Ctrl+S da aba salva; `null` numa onda fora de projeto.
     pub saved_layout: Option<Utf8PathBuf>,
@@ -103,7 +142,7 @@ pub struct WaveTab {
 }
 
 /// Prepara `path` para uma aba e devolve a página do cliente web, com o
-/// layout dos processadores SAPHO quando houver ([`lace_core::wave_layout`]).
+/// layout do Lace quando houver (o `wave.layout` do servidor).
 ///
 /// Erros: `surfer_web_missing` quando o bundle não traz o cliente web, e
 /// `wave_too_large` acima de [`MAX_TAB_WAVE`]; nos dois, a interface oferece
@@ -128,23 +167,26 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
                 ),
             ));
         }
-        let toolchain = toolchain::require(&state.settings.get())?;
-        let web_dir = toolchain
-            .surfer_web_dir()
-            .map_err(|e| IpcError::new(codes::SURFER_WEB_MISSING, e.to_string()))?;
-        let layout = match lace_core::wave_layout(&waveform) {
-            Ok(layout) => layout,
-            Err(error) => {
-                tracing::warn!("No processor layout for {waveform}: {error}");
-                None
-            }
-        };
-        let saved = layout.as_ref().and_then(|layout| {
-            lace_core::saved_layout(&waveform, layout)
-                .inspect_err(|error| tracing::warn!("No saved layout for {waveform}: {error}"))
-                .ok()
-                .flatten()
-        });
+        let settings = state.settings.get();
+        let web_dir = toolchain::surfer_web(&state.server, &settings).ok_or_else(|| {
+            IpcError::new(
+                codes::SURFER_WEB_MISSING,
+                "The Lace bundle has no Surfer web client; open the waveform in a window",
+            )
+        })?;
+        let reply = state
+            .server
+            .call(&settings, "wave.layout", json!({ "waveform": waveform }))?;
+        let info: LayoutInfo = serde_json::from_value(reply).map_err(|e| {
+            IpcError::new(
+                codes::INTERNAL,
+                format!("The waveform layout from the lace server is not readable: {e}"),
+            )
+        })?;
+        if let Some(error) = &info.layout_error {
+            tracing::warn!("No processor layout for {waveform}: {error}");
+        }
+        let (layout, saved) = (info.layout, info.saved);
         let tabs = app.state::<WaveTabs>();
         let origin = tabs.ensure_server(web_dir)?;
 
@@ -152,7 +194,8 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
         let name = waveform.file_name().unwrap_or("wave.vcd");
         // A onda de um exercício do `lace learn` vem com os comandos da
         // correção: as saídas ao lado das da referência e o primeiro erro.
-        let learn = lace_learn::layout::layout_of(&waveform)
+        let learn = info
+            .exercise_layout
             .and_then(|path| std::fs::read_to_string(path).ok());
         let startup = startup_commands(
             &origin,
@@ -268,7 +311,7 @@ fn new_id() -> String {
 fn startup_commands(
     origin: &str,
     id: &str,
-    layout: Option<&WaveLayout>,
+    layout: Option<&Layout>,
     saved: bool,
     learn: Option<&str>,
 ) -> String {

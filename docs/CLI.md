@@ -548,7 +548,7 @@ arquivo e linha.
 |---|---|---|
 | `lace wave` | abre no surfer-aurora a onda da simulação do projeto; dentro da pasta de um processador, a dele | `waveform_path`, `open_waveform` |
 | `lace wave -p NOME` | abre a onda da simulação do processador | `waveform_path`, `open_waveform` |
-| `lace wave <ONDA>` | abre um arquivo de onda (VCD, FST, GHW), relativo ao diretório atual | `open_waveform` |
+| `lace wave <ONDA>` | abre um arquivo de onda (VCD, FST, GHW), relativo ao diretório atual; a onda de um exercício do `lace learn` (em `.lace-learn/`) abre com o layout da última correção | `open_waveform`, `lace_learn::layout::with_exercise_layout` |
 | `lace wave --no-layout` | abre a onda crua, sem layout | `open_waveform` |
 | `lace wave --reset-layout` | apaga o layout salvo (`wave/<testbench>.surf.ron`) e abre com o gerado | `reset_saved_layout`, `prepare_wave_layout` |
 | `lace wave signals` | a árvore de sinais do testbench do projeto, com `*` no que a onda grava por escolha | `wave_signals` |
@@ -796,8 +796,8 @@ contrato ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busc
 
 | Comando | Faz |
 |---|---|
-| `lace serve [--schema]` | atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
-| `lace mcp [--allow-update]` | o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/cancelled`. Uma ferramenta por método que serve a um agente (`project_status`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo, e o `flow.run` desdobrado em `build`, `check`, `hierarchy`, `sim` e `synth`, mais `project_find`. Não viram ferramenta o `project.check_name`, o `processor.check_name`, o `wave.open`, o `wave.reset_layout`, o `history.plan_cleanup`, o `history.clean`, o `experimental.set` e o `fpga.cables`, nem os fluxos `schematic`, `fpga_build` e `fpga_program`. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
+| `lace serve [--schema] [--allow-update]` | o servidor do Lace: atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. O primeiro pedido diz o idioma da sessão: um cliente MCP, cujo `initialize` traz `protocolVersion`, recebe a mesma sessão do `lace mcp`, com as mesmas ferramentas, o projeto do `-C` como padrão e `--allow-update` para as que mudam a instalação. Esse idioma é o do assistente de IA e exige o recurso experimental `assistant`; desligado, o `initialize` volta com o erro e a dica. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
+| `lace mcp [--allow-update]` | o mesmo servidor, sempre em MCP, e o nome que os agentes já têm na configuração: o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/cancelled`. Uma ferramenta por método que serve a um agente (`project_status`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo, e o `flow.run` desdobrado em `build`, `check`, `hierarchy`, `sim` e `synth`, mais `project_find`. Não viram ferramenta o `project.check_name`, o `processor.check_name`, o `wave.open`, o `wave.reset_layout`, o `history.plan_cleanup`, o `history.clean`, o `experimental.set` e o `fpga.cables`, nem os fluxos `schematic`, `fpga_build` e `fpga_program`. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
 | `lace mcp setup <claude-code\|claude-desktop\|print> [--scope local\|user\|project] [--allow-update] [--default-project PATH]` | registra o servidor no cliente, com o caminho deste `lace` e, se o bundle não é o instalado ao lado dele, a variável `LACE_TOOLCHAIN`. `claude-code` roda `claude mcp add` (ou grava o `.mcp.json` da pasta com `--scope project`; sem o `claude` no `PATH`, imprime o comando); `claude-desktop` mescla a entrada no `claude_desktop_config.json`, mantendo o resto do arquivo; `print` só imprime o trecho JSON |
 | `lace chat [--model M] [--resume ID] [--allow-edits] [--allow-update] [--claude PATH]` | o assistente do Lace no terminal: uma tela com a conversa, o que o assistente faz (cada ferramenta chamada, com o resultado) e o campo de texto. Quem responde é o Claude Code instalado na máquina, aberto como processo filho com o `lace mcp` desta pasta (ou do `-C`) como ferramentas; quem autentica é ele (a conta, ou `ANTHROPIC_API_KEY`), e o Lace não guarda chave. Sem o Claude Code, diz como instalar. `--allow-edits` deixa o assistente editar e criar arquivos na pasta do projeto, além de usar as ferramentas do Lace e ler; `--allow-update` expõe `update_apply` e `install_add`. No fim imprime o `session_id`, que `--resume` retoma. Enter envia, Esc interrompe a resposta, PgUp e PgDn rolam, Ctrl+Q sai |
 
@@ -830,25 +830,37 @@ Uma sessão do `serve`:
 - **Métodos.** Os de `lace_core::protocol`, com um grupo e um ponto:
   `project.*` (`create`, `status`, `add`, `remove`, `top`, `testbench`,
   `order`, `move`, `convert`, `check_name`), `processor.*` (`check_name`,
-  `add`, `set`, `remove`, `outputs`), `flow.run` (o fluxo em `request`:
-  `build`, `check`, `hierarchy`, `simulate`, `synthesize`, `schematic`,
-  `fpga_build`, `fpga_program`; o resultado é um `FlowOutcome` com
-  `status`), `wave.*` (`open`, `signals`, `choose`, `reset_layout`),
-  `history.*` (`list`, `show`, `compare`, `plan_cleanup`, `clean`),
-  `toolchain.*` (`info`, `verify`), `experimental.*` (`list`, `set`),
-  `fpga.*`, `update.check`, `update.apply`, `install.add`, `learn.check`,
+  `add`, `set`, `remove`, `outputs`, `defaults`), `flow.run` (o fluxo em
+  `request`: `build`, `check`, `hierarchy`, `simulate`, `synthesize`,
+  `schematic`, `fpga_build`, `fpga_program` e `learn`, a correção de um
+  exercício; o resultado é um `FlowOutcome` com `status`, e
+  `step_output_limit` corta o `stdout` e o `stderr` de cada passo no
+  resultado), `flow.command` (o comando de um fluxo, como vai para o
+  histórico), `wave.*` (`open`, `signals`, `choose`, `reset_layout`,
+  `layout`), `verilog.*` (`modules`, `testbench_names`), `history.*`
+  (`list`, `show`, `compare`, `plan_cleanup`, `clean`), `toolchain.*`
+  (`info`, `verify`), `experimental.*` (`list`, `set`), `fpga.*` (com
+  `top`), `update.check`, `update.apply`, `install.add`, `learn.*`
+  (`check`, `tracks`, `status`, `init`, `set_current`, `reset`),
   `initialize` e `shutdown`. O `initialize` lista os que o servidor atende.
   Cada um, com os parâmetros, o resultado e os tipos:
   [PROTOCOL.md](PROTOCOL.md), gerado dos tipos.
   Os schemas: `docs/schema/protocol-request.json` (os pedidos, com os
   campos com padrão opcionais) e `protocol-response.json` (as respostas,
   as notificações, o `ErrorInfo`).
+- **Bundle.** O `--toolchain`, o `--compiler` e o `--quartus` valem para a
+  sessão inteira. Um compilador ou um Quartus declarado que não serve não
+  derruba o bundle, ao contrário de um comando da CLI: a sessão segue sem
+  ele, a operação que o exige falha com o erro dela (`quartus_missing`, por
+  exemplo), e o `toolchain.info` mostra o motivo (`compiler_error`,
+  `quartus_error`).
 - **Notificações**, enquanto um pedido roda, com o `id` dele em
   `params.id`: `phase` (a fase que começou), `events` (os eventos do Core
   em lotes, no máximo a cada 30 ms ou 500), `output_omitted` (linhas que
   passaram do teto: 20 000 de uma vez e depois 5 000 por segundo), `build`
   (um processador compilou) e `install` (o progresso de `update.*` e
-  `install.add`, o evento do instalador). Elas saem antes da resposta. Com
+  `install.add`: o evento do instalador e, quando há, a linha do console em
+  `line`, com os nomes dos aplicativos). Elas saem antes da resposta. Com
   `"output": false` no `flow.run`, não há `events`, e o `vvp` roda com
   buffer, que é mais rápido.
 - **Filas.** Os pedidos do mesmo projeto rodam um de cada vez, na ordem
@@ -865,11 +877,21 @@ Uma sessão do `serve`:
   inválidos, `-32000` um erro do Lace, com o `ErrorInfo` (`code`,
   `message`, `hint`, `data`) em `error.data`, `-32001` cancelado antes de
   começar, `-32002` sessão não inicializada, `-32003` servidor encerrando.
-- **Encerrar.** Fechar a entrada, `shutdown`, ou um sinal: o servidor
-  cancela o que roda, espera até 3 s e sai, com a notificação `shutdown`
-  antes (`reason`: `requested`, `signal` ou `updated`). Depois de um
-  `update.apply` que trocou os arquivos, ele responde e encerra sozinho,
-  porque o binário dele é outro: o cliente o abre de novo.
+  Um parâmetro que o método não tem é `-32602`, com o nome mais parecido
+  na mensagem (`unknown field `form` (did you mean `from`?)`); no
+  `flow.run`, também um campo que o fluxo pedido não tem. Um projeto cujo
+  caminho não existe é `-32000` com o código `spf_missing`. Os métodos
+  `fpga.*` respondem `experimental_disabled` com o recurso `fpga` desligado.
+- **BOM.** Um BOM no começo de uma linha é ignorado: o PowerShell o põe na
+  primeira coisa que escreve para um programa.
+- **Encerrar.** Fechar a entrada: o que já foi pedido roda até o fim e é
+  respondido, e o servidor sai depois, com a notificação `shutdown`; se o
+  cliente fechou também a saída, o que roda é cancelado. Com `shutdown` ou
+  um sinal, o servidor cancela o que roda, espera até 3 s e sai, com a
+  notificação `shutdown` antes (`reason`: `requested`, `signal` ou
+  `updated`). Depois de um `update.apply` que trocou os arquivos, ele
+  responde e encerra sozinho, porque o binário dele é outro: o cliente o
+  abre de novo.
 
 Em Python, sem biblioteca:
 

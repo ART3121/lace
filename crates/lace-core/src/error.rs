@@ -290,10 +290,10 @@ pub enum LaceError {
     NoTestbench(Utf8PathBuf),
 
     /// A onda que se quer abrir ainda não existe no disco: a simulação do
-    /// projeto, ou a do processador, não rodou (ou não chegou ao fim). Vem
-    /// de [`flows::open_wave`](crate::flows) com uma onda do projeto. O texto
-    /// não diz como simular: cada interface tem o seu caminho (`lace sim
-    /// [-p X]`, o botão Simular do Studio).
+    /// projeto, ou a do processador, não rodou (ou não chegou ao fim), ou o
+    /// arquivo pedido não existe. Vem de [`flows::open_wave`](crate::flows).
+    /// O texto não diz como simular: cada interface tem o seu caminho (`lace
+    /// sim [-p X]`, o botão Simular do Studio).
     #[error("Waveform {path} does not exist yet{}; simulate first", processor.as_deref().map(|p| format!(" (processor {p})")).unwrap_or_default())]
     NoWaveform {
         /// Onde a onda ficaria.
@@ -580,6 +580,13 @@ pub enum LaceError {
         feature: crate::experimental::Feature,
     },
 
+    /// O pedido não é atendido aqui: a correção de um exercício
+    /// ([`FlowRequest::Learn`](crate::flows::FlowRequest::Learn)) chega ao
+    /// [`flows::run`](crate::flows::run), mas quem a roda é o servidor do
+    /// Lace, que linka o lace-learn.
+    #[error("{0}")]
+    Unsupported(String),
+
     /// Falha de I/O do próprio Lace: criar diretório, ler ou gravar arquivo.
     #[error("{context}: {path}: {source}")]
     Io {
@@ -658,6 +665,7 @@ impl LaceError {
             LaceError::NoFpgaConfig(_) => "no_fpga_config",
             LaceError::InvalidFpgaConfig { .. } => "invalid_fpga_config",
             LaceError::ExperimentalDisabled { .. } => "experimental_disabled",
+            LaceError::Unsupported(_) => "unsupported",
         }
     }
 
@@ -687,7 +695,10 @@ impl LaceError {
             LaceError::UnsupportedPlatform { os, arch } => json!({ "os": os, "arch": arch }),
             LaceError::ComponentMissing(component) => json!({ "component": component }),
             LaceError::ToolchainIncomplete { what, path } => json!({ "what": what, "path": path }),
-            LaceError::SystemCompilerMissing | LaceError::QuartusMissing | LaceError::NoCable => {
+            LaceError::SystemCompilerMissing
+            | LaceError::QuartusMissing
+            | LaceError::NoCable
+            | LaceError::Unsupported(_) => {
                 return None;
             }
             LaceError::NoBitstream(path) => json!({ "path": path }),

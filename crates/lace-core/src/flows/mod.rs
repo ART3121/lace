@@ -140,6 +140,17 @@ pub enum FlowRequest {
         #[serde(default)]
         cable: Option<String>,
     },
+    /// Corrige um exercício do `lace learn` e grava se ele está resolvido;
+    /// a correção vai em [`FlowOutcome::learn`]. Quem roda é o servidor do
+    /// Lace, que linka o lace-learn: o [`run`] do core responde
+    /// `unsupported`. Sem relatório.
+    Learn {
+        /// A pasta de exercícios (ou uma pasta dentro dela).
+        #[schemars(with = "String")]
+        root: Utf8PathBuf,
+        /// O exercício.
+        exercise: String,
+    },
 }
 
 fn yes() -> bool {
@@ -158,6 +169,7 @@ impl FlowRequest {
             FlowRequest::Schematic { .. } => "schematic",
             FlowRequest::FpgaBuild => "fpga_build",
             FlowRequest::FpgaProgram { .. } => "fpga_program",
+            FlowRequest::Learn { .. } => "learn",
         }
     }
 
@@ -263,6 +275,9 @@ impl FlowRequest {
                 if let Some(cable) = cable {
                     parts.extend(["--cable".into(), quoted(cable)]);
                 }
+            }
+            FlowRequest::Learn { exercise, .. } => {
+                parts.extend(["learn".into(), "check".into(), quoted(exercise)]);
             }
         }
         parts.join(" ")
@@ -480,6 +495,9 @@ pub struct FlowOutcome {
     pub fpga: Option<FpgaBuildResult>,
     /// A gravação na placa.
     pub fpga_program: Option<FpgaProgramResult>,
+    /// A correção de um exercício (`learn`): o `Grade` do lace-learn, em
+    /// JSON (o core não conhece o tipo).
+    pub learn: Option<serde_json::Value>,
 }
 
 impl FlowOutcome {
@@ -511,6 +529,7 @@ impl FlowOutcome {
             report_error: None,
             fpga: None,
             fpga_program: None,
+            learn: None,
         }
     }
 
@@ -662,6 +681,9 @@ pub enum WaveChoice {
     Add(Vec<String>),
     /// Tira sinais e escopos.
     Remove(Vec<String>),
+    /// Troca a escolha inteira por estes sinais e escopos; vazia, como
+    /// `All`.
+    Set(Vec<String>),
 }
 
 /// A escolha de sinais depois da mudança.

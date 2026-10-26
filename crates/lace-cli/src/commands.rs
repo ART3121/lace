@@ -105,7 +105,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Experimental(args) => crate::experimental::run(args, out)?,
         Command::Tools { verify } => return tools(cli, *verify, out),
         Command::Serve(args) => {
-            return crate::serve::run(&cli.toolchain, args, control.cancel_token());
+            return crate::serve::run(&cli.project, &cli.toolchain, args, control.cancel_token());
         }
         // O assistente de IA (o lace-agent) é experimental: desligado, nem
         // o chat nem o servidor MCP abrem.
@@ -753,7 +753,8 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
     } else {
         LayoutPolicy::Generated
     };
-    let request = WaveRequest { source, layout };
+    // A onda de um exercício do lace learn abre com o layout da correção.
+    let request = lace_learn::layout::with_exercise_layout(WaveRequest { source, layout });
     let opened = flows::open_wave(&toolchain, project.as_ref(), &request)?;
     if let Some(testbench) = &opened.reset_deleted
         && out.is_text()

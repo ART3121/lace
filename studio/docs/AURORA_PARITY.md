@@ -39,10 +39,10 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Frequência, número de clocks, arrays na onda, tempo estimado | Feito | aba do processador (duplo clique nele no explorador) |
 | Arquivos `input_<n>.txt` e `output_<n>.txt` | Feito | criar entrada, abrir, e os valores de cada saída depois da simulação |
 | "Processador ativo" pelo arquivo focado | Diferente | o alvo é escolhido na barra de ferramentas (projeto ou um processador) e lembrado por projeto |
-| Apagar processador | Feito | botão direito no processador > Remover processador, ou Projeto > Remover processador: sai do projeto, e a pasta fica no disco ou vai para a lixeira (`project_remove_processor`, `lace proc remove`) |
+| Apagar processador | Feito | botão direito no processador > Remover processador, ou Projeto > Remover processador: sai do projeto, e a pasta fica no disco ou vai para a lixeira (`processor.remove`, `lace proc remove`) |
 | Renomear processador | Depende do Lace | o Core cria, configura e remove processador, mas não renomeia |
 | Nome com `-` | Feito | o YANC 7.1 recusa o arquivo, e a AURORA 7.1 e o Lace recusam o nome na hora de criar |
-| Estrutura de pastas do YANC 7.1 (`<proc>/` e `<proc>/<proc>/`) | Feito | a mesma da AURORA; o projeto antigo é convertido ao abrir, perguntando antes (`project_convert_layout`) |
+| Estrutura de pastas do YANC 7.1 (`<proc>/` e `<proc>/<proc>/`) | Feito | a mesma da AURORA; o projeto antigo é convertido ao abrir, perguntando antes (`project.convert`) |
 
 ## Explorador
 

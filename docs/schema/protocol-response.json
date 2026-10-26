@@ -85,6 +85,29 @@
           }
         },
         {
+          "description": "`processor.defaults`.",
+          "$ref": "#/$defs/NewProcessor"
+        },
+        {
+          "description": "`flow.command`.",
+          "type": "string"
+        },
+        {
+          "description": "`wave.layout`.",
+          "$ref": "#/$defs/WaveLayoutInfo"
+        },
+        {
+          "description": "`verilog.testbench_names`.",
+          "type": "array",
+          "items": {
+            "type": "boolean"
+          }
+        },
+        {
+          "description": "`fpga.top`.",
+          "$ref": "#/$defs/ModuleInterface"
+        },
+        {
           "description": "`flow.run`.",
           "$ref": "#/$defs/FlowOutcome"
         },
@@ -168,7 +191,7 @@
           "$ref": "#/$defs/Prepared"
         },
         {
-          "description": "`fpga.modules`.",
+          "description": "`fpga.modules`, `verilog.modules`.",
           "type": "array",
           "items": {
             "type": "string"
@@ -186,7 +209,7 @@
           }
         },
         {
-          "description": "`shutdown`, `fpga.config_set`: nada.",
+          "description": "`shutdown`, `fpga.config_set`, `learn.reset`: nada.",
           "type": "null"
         },
         {
@@ -1066,6 +1089,344 @@
         "unregistered"
       ]
     },
+    "NewProcessor": {
+      "description": "Parâmetros do cabeçalho de um processador novo.\n\nOs padrões são os da AURORA (`js/project/processor_defaults.ts`): o float\nestreito do SAPHO, 23 = 16 + 6 + 1 bits. No fluxo C só as portas vão para\no fonte; o resto fica com o que o `cppcomp` foi compilado para assumir.\n\nEm JSON, só `name` e `language` são obrigatórios: um campo ausente fica\ncom o padrão de [`NewProcessor::new`], e, sem `nubits`, com `nbmant` ou\n`nbexpo` dados, `nubits` vira `nbmant + nbexpo + 1`\n([`NewProcessor::nubits_for`]), a única largura que o `asmcomp` aceita.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Nome do processador: letras, dígitos e `_`, começando por letra ou `_`.",
+          "type": "string"
+        },
+        "language": {
+          "description": "Linguagem do fonte-modelo.",
+          "$ref": "#/$defs/Language"
+        },
+        "nubits": {
+          "description": "`#NUBITS`: largura da palavra de dados, em bits. Só C±.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 23
+        },
+        "nbmant": {
+          "description": "`#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE\n754). Só C±.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 16
+        },
+        "nbexpo": {
+          "description": "`#NBEXPO`: bits de expoente do ponto flutuante. Só C±.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 6
+        },
+        "nugain": {
+          "description": "`#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o\n`cmmcomp` recusa (um divisor genérico viraria o caminho crítico da\nULA). Só C±; o fonte só traz a diretiva quando difere de 128, o\npadrão do YANC.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 128
+        },
+        "ndstac": {
+          "description": "`#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão:\nsem a diretiva, e o `asmcomp` calcula a profundidade pelo programa.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0,
+          "default": null
+        },
+        "sdepth": {
+          "description": "`#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±.\n`None`, o padrão: sem a diretiva, calculada pelo programa.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0,
+          "default": null
+        },
+        "input_ports": {
+          "description": "`#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 1
+        },
+        "output_ports": {
+          "description": "`#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 1
+        }
+      },
+      "required": [
+        "name",
+        "language",
+        "nubits",
+        "nbmant",
+        "nbexpo",
+        "nugain",
+        "ndstac",
+        "sdepth",
+        "input_ports",
+        "output_ports"
+      ]
+    },
+    "WaveLayoutInfo": {
+      "description": "`wave.layout`: o que um visualizador próprio precisa para mostrar a\nonda com o layout do Lace.",
+      "type": "object",
+      "properties": {
+        "layout": {
+          "description": "O layout dos processadores SAPHO, gerado da onda; `None` sem\nprocessador.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WaveLayout"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "saved": {
+          "description": "O layout salvo no projeto da onda (`wave/<testbench>.surf.ron`), onde\no Surfer salva (Ctrl+S): o do usuário, se ele salvou depois da última\ngeração, senão o gerado agora; `None` numa onda fora de projeto.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SavedLayout"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "layout_error": {
+          "description": "Por que o layout não foi gerado (a onda abre sem ele).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exercise_layout": {
+          "description": "Os comandos do Surfer de um exercício do `lace learn` (o\n`.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "layout",
+        "saved",
+        "layout_error",
+        "exercise_layout"
+      ]
+    },
+    "WaveLayout": {
+      "description": "O layout de uma onda, em memória.",
+      "type": "object",
+      "properties": {
+        "state": {
+          "description": "O conteúdo do `.surf.ron`.",
+          "type": "string"
+        },
+        "mappings": {
+          "description": "Os tradutores de valor que o estado usa, pelo nome.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MappingTranslator"
+          }
+        },
+        "processors": {
+          "description": "Os processadores achados na onda, na ordem do cabeçalho.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WaveProcessor"
+          }
+        },
+        "testbench": {
+          "description": "O testbench da onda (o escopo de cima dela): o nome dos arquivos dele\nem `wave/`, a escolha de sinais e o layout salvo.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selection": {
+          "description": "A escolha de sinais que o layout seguiu (`wave/<testbench>.json`);\nvazia sem escolha.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "state",
+        "mappings",
+        "processors",
+        "testbench",
+        "selection"
+      ]
+    },
+    "MappingTranslator": {
+      "description": "Um tradutor de valor do Surfer: um arquivo `Name = <nome>`, `Bits = <n>`\ne uma linha `<valor> <texto>` por valor.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome, que é também o nome do arquivo e o `format` dos sinais.",
+          "type": "string"
+        },
+        "content": {
+          "description": "O conteúdo do arquivo.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "content"
+      ]
+    },
+    "WaveProcessor": {
+      "description": "Um processador SAPHO achado na onda.",
+      "type": "object",
+      "properties": {
+        "instance": {
+          "description": "O escopo da instância na onda (`soma_tb.proc`).",
+          "type": "string"
+        },
+        "processor": {
+          "description": "O processador (o nome da pasta no projeto e do fonte).",
+          "type": "string"
+        },
+        "variables": {
+          "description": "Quantas variáveis do programa estão na onda (cada elemento de array\nconta).",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "assembly": {
+          "description": "O PC aparece como instrução de assembly (havia `trad_opcode.txt`).",
+          "type": "boolean"
+        },
+        "source": {
+          "description": "A linha do fonte aparece como texto (havia `src_lines.txt`).",
+          "type": "boolean"
+        },
+        "outdated": {
+          "description": "As tabelas são mais novas que a onda: o processador foi compilado de\nnovo depois da simulação, e o assembly e a linha do C± sairiam\ndeslocados. O PC e a linha aparecem como números até simular de novo;\nas interfaces avisam.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "instance",
+        "processor",
+        "variables",
+        "assembly",
+        "source",
+        "outdated"
+      ]
+    },
+    "SavedLayout": {
+      "description": "O layout salvo no projeto para a onda de um testbench:\n`wave/<testbench>.surf.ron` ([`saved_layout`]).",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "O arquivo, onde o Surfer salva o estado (Ctrl+S).",
+          "type": "string"
+        },
+        "state": {
+          "description": "O estado que vai para o Surfer: o que o usuário salvou, ou o gerado.",
+          "type": "string"
+        },
+        "customized": {
+          "description": "O usuário salvou o estado depois da última vez que o Lace o gerou: o\nLace o deixa como está.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "state",
+        "customized"
+      ]
+    },
+    "ModuleInterface": {
+      "description": "Um módulo e as portas dele, na ordem da declaração.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Nome do módulo.",
+          "type": "string"
+        },
+        "file": {
+          "description": "O arquivo que o declara.",
+          "type": "string"
+        },
+        "ports": {
+          "description": "As portas.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Port"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "file",
+        "ports"
+      ]
+    },
+    "Port": {
+      "description": "Uma porta de um módulo.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Nome.",
+          "type": "string"
+        },
+        "direction": {
+          "description": "Direção.",
+          "$ref": "#/$defs/PortDirection"
+        },
+        "width": {
+          "description": "Largura em bits, com os parâmetros nos valores padrão.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "signed": {
+          "description": "`signed`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "direction",
+        "width",
+        "signed"
+      ]
+    },
+    "PortDirection": {
+      "description": "Direção de uma porta.",
+      "oneOf": [
+        {
+          "description": "`input`.",
+          "type": "string",
+          "const": "input"
+        },
+        {
+          "description": "`output`.",
+          "type": "string",
+          "const": "output"
+        },
+        {
+          "description": "`inout`.",
+          "type": "string",
+          "const": "inout"
+        }
+      ]
+    },
     "FlowOutcome": {
       "description": "O resultado de um fluxo. Os campos de uma fase que não rodou ficam `None`\nou vazios.",
       "type": "object",
@@ -1262,6 +1623,9 @@
               "type": "null"
             }
           ]
+        },
+        "learn": {
+          "description": "A correção de um exercício (`learn`): o `Grade` do lace-learn, em\nJSON (o core não conhece o tipo)."
         }
       },
       "required": [
@@ -1287,7 +1651,8 @@
         "report",
         "report_error",
         "fpga",
-        "fpga_program"
+        "fpga_program",
+        "learn"
       ]
     },
     "Status": {
@@ -2942,46 +3307,6 @@
         "customized"
       ]
     },
-    "WaveProcessor": {
-      "description": "Um processador SAPHO achado na onda.",
-      "type": "object",
-      "properties": {
-        "instance": {
-          "description": "O escopo da instância na onda (`soma_tb.proc`).",
-          "type": "string"
-        },
-        "processor": {
-          "description": "O processador (o nome da pasta no projeto e do fonte).",
-          "type": "string"
-        },
-        "variables": {
-          "description": "Quantas variáveis do programa estão na onda (cada elemento de array\nconta).",
-          "type": "integer",
-          "format": "uint",
-          "minimum": 0
-        },
-        "assembly": {
-          "description": "O PC aparece como instrução de assembly (havia `trad_opcode.txt`).",
-          "type": "boolean"
-        },
-        "source": {
-          "description": "A linha do fonte aparece como texto (havia `src_lines.txt`).",
-          "type": "boolean"
-        },
-        "outdated": {
-          "description": "As tabelas são mais novas que a onda: o processador foi compilado de\nnovo depois da simulação, e o assembly e a linha do C± sairiam\ndeslocados. O PC e a linha aparecem como números até simular de novo;\nas interfaces avisam.",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "instance",
-        "processor",
-        "variables",
-        "assembly",
-        "source",
-        "outdated"
-      ]
-    },
     "FpgaBuildResult": {
       "description": "O resultado de [`build`].",
       "type": "object",
@@ -3514,26 +3839,6 @@
           "description": "`real`.",
           "type": "string",
           "const": "real"
-        }
-      ]
-    },
-    "PortDirection": {
-      "description": "A direção de uma porta. Em JSON, `\"input\"`, `\"output\"` ou `\"inout\"`.",
-      "oneOf": [
-        {
-          "description": "Entrada.",
-          "type": "string",
-          "const": "input"
-        },
-        {
-          "description": "Saída.",
-          "type": "string",
-          "const": "output"
-        },
-        {
-          "description": "Bidirecional.",
-          "type": "string",
-          "const": "inout"
         }
       ]
     },
@@ -5420,6 +5725,13 @@
           "properties": {
             "event": {
               "description": "O evento, em JSON."
+            },
+            "line": {
+              "description": "A linha do console para o evento, com os nomes dos componentes;\nausente no que é só barra de progresso.",
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "type": {
               "type": "string",

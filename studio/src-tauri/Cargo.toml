@@ -21,14 +21,10 @@ crate-type = ["rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-# O Core do Lace, do mesmo repositório. Ver docs/DEVELOPMENT.md.
-lace-core = { path = "../../crates/lace-core" }
-# Os exercícios do `lace learn` (a vista Exercícios e o fluxo `learn`).
-lace-learn = { path = "../../crates/lace-learn" }
-# Instalar componentes e atualizar o Lace, em processo (sem a interface de
-# terminal do instalador).
-lace-installer = { path = "../../crates/lace-installer", default-features = false }
-# O assistente: uma sessão do Claude Code com as ferramentas do lace mcp.
+# O assistente: uma sessão do Claude Code com as ferramentas do lace mcp. É
+# o único crate do Lace que o Studio linka, até a 1.0: o resto (o projeto,
+# os fluxos, o histórico, instalar e atualizar) é pedido ao servidor do Lace
+# (`lace serve`, src/server.rs). Ver docs/DEVELOPMENT.md.
 lace-agent = { path = "../../crates/lace-agent" }
 
 tauri = { version = "2", features = [] }
@@ -54,8 +50,15 @@ portable-pty = "0.9.0"
 # repassa os pedidos ao `surfer-aurora server` (wave_tab.rs).
 tiny_http = "0.12.0"
 
+[target.'cfg(windows)'.dependencies]
+# O Job Object que leva o servidor do Lace junto quando o Studio fecha.
+win32job = "2"
+
 [dev-dependencies]
 tempfile = "3"
+# Os testes conferem a versão do protocolo e o schema embutido contra os do
+# Lace.
+lace-core = { path = "../../crates/lace-core" }
 
 [profile.release]
 codegen-units = 1

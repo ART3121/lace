@@ -387,3 +387,36 @@ fn adds_bundle_apps_without_reinstalling_lace() {
     let err = add::installed(&other, &toolchain).unwrap_err();
     assert!(err.to_string().contains("update Lace"), "{err}");
 }
+
+#[test]
+fn install_events_have_the_console_line_with_the_labels() {
+    use lace_installer::install::{Event, label};
+    let label = |name: &str| label(None, name);
+    let chunk = Event::Chunk {
+        index: 2,
+        count: 5,
+        components: vec!["icarus".into(), "yosys".into()],
+        download: 0,
+    };
+    assert_eq!(
+        chunk.console_line(&label).as_deref(),
+        Some("  [2/5] icarus, yosys")
+    );
+    let lace = Event::Chunk {
+        index: 1,
+        count: 5,
+        components: Vec::new(),
+        download: 0,
+    };
+    assert_eq!(lace.console_line(&label).as_deref(), Some("  [1/5] Lace"));
+    assert_eq!(
+        Event::Verifying.console_line(&label).as_deref(),
+        Some("  Verifying the executables")
+    );
+    // O que é só barra não vira linha.
+    assert_eq!(Event::Progress { done: 10 }.console_line(&label), None);
+    assert_eq!(
+        lace_installer::install::label(None, lace_installer::update::LACE),
+        "Lace"
+    );
+}

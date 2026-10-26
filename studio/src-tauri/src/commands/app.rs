@@ -1,17 +1,13 @@
-//! Comandos do aplicativo: versão, preferências, recentes, abrir a onda,
-//! sair e reiniciar.
+//! Comandos do aplicativo: versão, preferências, recentes, sair e
+//! reiniciar.
 
 use camino::Utf8PathBuf;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-use crate::error::{IpcError, IpcResult};
-use lace_core::flows::WaveOpened;
-
-use crate::flows;
+use crate::error::IpcResult;
 use crate::settings::{RecentProject, Settings};
 use crate::state::{AppState, blocking};
-use crate::toolchain;
 
 /// O que a tela "Sobre" mostra.
 #[derive(Debug, Clone, Serialize)]
@@ -22,8 +18,8 @@ pub struct AppInfo {
     pub version: String,
     /// O sistema e a arquitetura (`linux-x86_64`).
     pub os: String,
-    /// A plataforma do Lace (`linux-x64`), se o Lace tem bundle para ela.
-    pub lace_platform: Option<&'static str>,
+    /// A plataforma do Lace (`linux-x64`): a do bundle, pelo servidor.
+    pub lace_platform: Option<String>,
     /// Onde ficam as preferências.
     pub config_dir: Option<Utf8PathBuf>,
     /// A versão do Tauri com que o Studio foi compilado.
@@ -35,14 +31,19 @@ pub struct AppInfo {
     pub debug: bool,
 }
 
-/// A versão e a plataforma.
+/// A versão e a plataforma. A do Lace vem do bundle, pelo servidor.
 #[tauri::command]
-pub fn app_info(app: AppHandle) -> AppInfo {
-    AppInfo {
+pub async fn app_info(app: AppHandle) -> IpcResult<AppInfo> {
+    let lace_platform = blocking(app.clone(), |_, state| {
+        let info = crate::toolchain::info(&state.server, &state.settings.get());
+        Ok(info["platform"].as_str().map(str::to_owned))
+    })
+    .await?;
+    Ok(AppInfo {
         name: app.package_info().name.clone(),
         version: app.package_info().version.to_string(),
         os: format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH),
-        lace_platform: lace_core::Platform::current().map(|p| p.as_str()),
+        lace_platform,
         config_dir: app
             .path()
             .app_config_dir()
@@ -51,7 +52,7 @@ pub fn app_info(app: AppHandle) -> AppInfo {
         tauri_version: tauri::VERSION,
         webview_version: tauri::webview_version().ok(),
         debug: cfg!(debug_assertions),
-    }
+    })
 }
 
 /// As preferências.
@@ -99,38 +100,6 @@ pub async fn recent_projects(app: AppHandle) -> IpcResult<Vec<RecentStatus>> {
 #[tauri::command]
 pub async fn recent_forget(app: AppHandle, spf: String) -> IpcResult<()> {
     blocking(app, move |_, state| state.settings.forget_recent(&spf)).await
-}
-
-/// Abre uma onda no surfer-aurora (`lace wave`). Com `path`, aquele arquivo;
-/// sem, a da simulação do processador ou, sem processador, a do projeto.
-#[tauri::command]
-pub async fn wave_open(
-    app: AppHandle,
-    processor: Option<String>,
-    path: Option<String>,
-) -> IpcResult<WaveOpened> {
-    blocking(app, move |_, state| {
-        let settings = state.settings.get();
-        let waveform = match path {
-            Some(path) => Utf8PathBuf::from(path),
-            None => {
-                let project = state.project()?;
-                let processor = processor
-                    .as_deref()
-                    .map(|name| project.require_processor(name))
-                    .transpose()?;
-                lace_core::waveform_path(&project, processor)?
-            }
-        };
-        if !waveform.is_file() {
-            return Err(IpcError::new(
-                "no_waveform",
-                format!("Waveform {waveform} does not exist yet; simulate first"),
-            ));
-        }
-        flows::open_wave(&toolchain::require(&settings)?, &waveform)
-    })
-    .await
 }
 
 /// Escreve no log do backend uma mensagem da interface: os erros de
