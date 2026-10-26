@@ -169,7 +169,7 @@ export const api = {
     setTop: (target: string) =>
       lace<TopOutcome>('project.top', { target }).then((r) => r.top_level ?? ''),
     setTestbench: (path: string) => lace<ProjectSnapshot>('project.testbench', { path }),
-    processorDefaults: () => call<NewProcessorDefaults>('project_processor_defaults'),
+    processorDefaults: () => lace<NewProcessorDefaults>('processor.defaults'),
     /** Campo ausente fica com o padrão da AURORA; sem `nubits`, com
      * `nbmant` ou `nbexpo` dados, ele vira `nbmant + nbexpo + 1`. */
     addProcessor: (request: NewProcessorRequest) => lace<Processor>('processor.add', { spec: request }),
@@ -191,7 +191,7 @@ export const api = {
       }),
     outputValues: (processor: string, port: number) =>
       lace<number[]>('processor.outputs', { processor, port }),
-    verilogModules: (text: string) => call<string[]>('verilog_modules', { text }),
+    verilogModules: (text: string) => lace<string[]>('verilog.modules', { text }),
     /** Move ou renomeia (`Project::move_path` do Core): `to` é o caminho
      * final. Erro `path_exists` se ele já existe, sem `overwrite`; com, o
      * destino vai para a lixeira, menos o que o Lace mantém no lugar
@@ -252,13 +252,15 @@ export const api = {
   },
   /** Os exercícios do `lace learn` (commands/learn.rs); a correção é o fluxo `learn`. */
   learn: {
-    tracks: () => call<LearnTracks>('learn_tracks'),
-    open: (root: string, lang?: string | null) => call<LearnSnapshot>('learn_open', { root, lang: lang ?? null }),
+    tracks: () => lace<LearnTracks>('learn.tracks'),
+    /** Abre a pasta de exercícios que contém `root` e a põe em dia com a
+     * trilha (`learn.status`). */
+    open: (root: string, lang?: string | null) => lace<LearnSnapshot>('learn.status', { root, lang: lang ?? null }),
     init: (dir: string, track?: string | null, lang?: string | null) =>
-      call<LearnSnapshot>('learn_init', { dir, track: track ?? null, lang: lang ?? null }),
+      lace<LearnSnapshot>('learn.init', { dir, track: track ?? null, lang: lang ?? null }),
     setCurrent: (root: string, name: string, lang?: string | null) =>
-      call<LearnSnapshot>('learn_set_current', { root, name, lang: lang ?? null }),
-    reset: (root: string, name: string) => call<void>('learn_reset', { root, name }),
+      lace<LearnSnapshot>('learn.set_current', { root, name, lang: lang ?? null }),
+    reset: (root: string, name: string) => lace<void>('learn.reset', { root, name }),
   },
 
   /** Os recursos experimentais do Lace, pelo servidor: o mesmo
@@ -270,15 +272,15 @@ export const api = {
   },
 
   /** A placa FPGA, experimental: desligada, cada método daqui responde
-   * `experimental_disabled`. Tudo passa pelo servidor, menos o `top`
-   * (commands/fpga.rs). A compilação é o fluxo `fpga_build`. */
+   * `experimental_disabled`. Tudo passa pelo servidor; a compilação é o
+   * fluxo `fpga_build`. */
   fpga: {
     boards: () => lace<Board[]>('fpga.boards'),
     /** O `fpga.json`; `null` se ainda não existe. */
     config: () => lace<FpgaConfig | null>('fpga.config'),
     setConfig: (config: FpgaConfig) => lace<void>('fpga.config_set', { config }),
     /** O topo que vai para a placa e as portas dele. */
-    top: (top?: string | null) => call<ModuleInterface>('fpga_top', { top: top ?? null }),
+    top: (top?: string | null) => lace<ModuleInterface>('fpga.top', { top: top ?? null }),
     check: () => lace<FpgaPrepared>('fpga.check'),
     /** Os módulos do projeto que podem ir para a placa. */
     modules: () => lace<string[]>('fpga.modules'),

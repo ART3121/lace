@@ -30,8 +30,6 @@ use std::sync::{Arc, Mutex, OnceLock, mpsc};
 use std::time::{Duration, Instant};
 
 use camino::Utf8PathBuf;
-use lace_core::ProcessJob;
-use lace_core::protocol::PROTOCOL_VERSION;
 use serde_json::{Value, json};
 use tauri::AppHandle;
 
@@ -39,6 +37,15 @@ use crate::error::{IpcError, IpcResult, codes};
 use crate::settings::Settings;
 use crate::state::{AppState, blocking};
 use crate::toolchain;
+
+/// A versão do protocolo do Lace que este Studio fala
+/// (`lace_core::protocol::PROTOCOL_VERSION`).
+const PROTOCOL_VERSION: u64 = 1;
+
+/// O schema dos pedidos do protocolo, gerado do código do Lace
+/// (`docs/schema/protocol-request.json`): é por ele que o Studio sabe quais
+/// métodos têm `project`.
+const REQUEST_SCHEMA: &str = include_str!("../../../docs/schema/protocol-request.json");
 
 /// Quanto esperar o `initialize` de um servidor que acabou de abrir.
 const START_WAIT: Duration = Duration::from_secs(30);
@@ -157,10 +164,8 @@ struct StartKey {
 impl StartKey {
     fn of(settings: &Settings) -> IpcResult<StartKey> {
         Ok(StartKey {
-            lace: lace_executable(settings)?,
-            toolchain: toolchain::resolve(settings)
-                .ok()
-                .map(|located| located.toolchain.root().to_owned()),
+            lace: toolchain::lace_executable(settings)?,
+            toolchain: toolchain::bundle_dir(settings),
             compiler: nonempty(&settings.compiler_dir),
             quartus: nonempty(&settings.quartus_dir),
             learn_dir: nonempty(&settings.learn_dir),
@@ -175,34 +180,64 @@ fn nonempty(value: &Option<String>) -> Option<String> {
         .map(str::to_owned)
 }
 
-/// O `lace` que o Studio usa como servidor: o de `LACE_STUDIO_LACE`, o da
-/// preferência `lace_path` ou o da instalação do bundle.
-pub fn lace_executable(settings: &Settings) -> IpcResult<Utf8PathBuf> {
-    let declared = std::env::var("LACE_STUDIO_LACE")
-        .ok()
-        .filter(|v| !v.trim().is_empty())
-        .or_else(|| nonempty(&settings.lace_path));
-    if let Some(path) = declared {
-        let path = Utf8PathBuf::from(path);
-        return if path.is_file() {
-            Ok(path)
-        } else {
-            Err(IpcError::new(
-                codes::LACE_MISSING,
-                format!("The lace program {path} does not exist"),
-            ))
-        };
+/// O `CREATE_NO_WINDOW` do Windows para o servidor: sem ele, o `lace`, um
+/// programa de console, abriria uma janela de console própria quando o
+/// Studio não tem console. As ferramentas que o servidor roda dividem esse
+/// console escondido. Fora do Windows não faz nada.
+fn hide_console(command: &mut Command) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // `CREATE_NO_WINDOW`, de `WinBase.h`.
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
     }
-    let located = toolchain::resolve(settings)?;
-    toolchain::lace_cli(&located.toolchain).ok_or_else(|| {
-        IpcError::new(
-            codes::LACE_MISSING,
-            format!(
-                "The lace program of the installation at {} was not found; set it in Preferences > Lace bundle",
-                located.toolchain.root()
-            ),
-        )
-    })
+    #[cfg(not(windows))]
+    let _ = command;
+}
+
+/// O Job Object do Windows que leva o servidor, e o que ele roda, junto
+/// quando o Studio fecha ou morre (`KILL_ON_JOB_CLOSE`). Um processo preso
+/// pode iniciar outro fora dele (`CREATE_BREAKAWAY_FROM_JOB`): o assistente
+/// de instalação. Fora do Windows, ou se o sistema recusar o job, não faz
+/// nada, e o `stop` mata o servidor.
+struct ProcessJob {
+    #[cfg(windows)]
+    job: Option<win32job::Job>,
+}
+
+impl ProcessJob {
+    fn new() -> ProcessJob {
+        #[cfg(windows)]
+        {
+            let mut limits = win32job::ExtendedLimitInfo::new();
+            limits.limit_kill_on_job_close();
+            limits.limit_breakaway_ok();
+            let job = win32job::Job::create_with_limit_info(&limits)
+                .inspect_err(|error| tracing::warn!(%error, "Creating the job object"))
+                .ok();
+            ProcessJob { job }
+        }
+        #[cfg(not(windows))]
+        ProcessJob {}
+    }
+
+    /// Prende `child` ao job; o que ele iniciar daqui em diante nasce preso
+    /// também.
+    fn adopt(&mut self, child: &Child) {
+        #[cfg(windows)]
+        {
+            use std::os::windows::io::AsRawHandle;
+            if let Some(job) = &self.job
+                && let Err(error) = job.assign_process(child.as_raw_handle() as isize)
+            {
+                tracing::warn!(%error, "Assigning the lace server to the job object");
+                self.job = None;
+            }
+        }
+        #[cfg(not(windows))]
+        let _ = child;
+    }
 }
 
 /// Um processo `lace serve` vivo.
@@ -243,8 +278,8 @@ impl Session {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        lace_core::hide_console(&mut command);
-        let mut job = ProcessJob::new(true);
+        hide_console(&mut command);
+        let mut job = ProcessJob::new();
         let mut child = command.spawn().map_err(|error| {
             IpcError::new(
                 codes::LACE_MISSING,
@@ -317,7 +352,7 @@ impl Session {
             }
         };
         let protocol = info["protocol"].as_u64();
-        if protocol != Some(u64::from(PROTOCOL_VERSION)) {
+        if protocol != Some(PROTOCOL_VERSION) {
             session.stop();
             return Err(IpcError::new(
                 codes::LACE_INCOMPATIBLE,
@@ -561,8 +596,7 @@ fn project_field(method: &str) -> ProjectField {
     static FIELDS: OnceLock<HashMap<String, ProjectField>> = OnceLock::new();
     FIELDS
         .get_or_init(|| {
-            let schema =
-                serde_json::to_value(lace_core::protocol::request_schema()).unwrap_or(Value::Null);
+            let schema: Value = serde_json::from_str(REQUEST_SCHEMA).unwrap_or(Value::Null);
             schema["oneOf"]
                 .as_array()
                 .into_iter()
@@ -655,6 +689,20 @@ mod tests {
         assert_eq!(
             ipc_error(&json!({ "code": -32001, "message": "Cancelled" })).code,
             "cancelled"
+        );
+    }
+
+    #[test]
+    fn the_protocol_and_the_schema_are_the_lace_ones() {
+        assert_eq!(
+            PROTOCOL_VERSION,
+            u64::from(lace_core::protocol::PROTOCOL_VERSION)
+        );
+        let embedded: Value = serde_json::from_str(REQUEST_SCHEMA).unwrap();
+        let generated = serde_json::to_value(lace_core::protocol::request_schema()).unwrap();
+        assert_eq!(
+            embedded, generated,
+            "docs/schema/protocol-request.json está velho: LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli"
         );
     }
 

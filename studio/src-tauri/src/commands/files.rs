@@ -42,7 +42,7 @@ pub struct DirEntry {
     /// Começa com `.`.
     pub hidden: bool,
     /// Arquivo com nome de testbench (`tb_<nome>.v`, `<nome>_tb.v`), que
-    /// não pode ser o topo (`verilog::is_testbench_name` do Core).
+    /// não pode ser o topo (o `verilog.testbench_names` do servidor).
     pub testbench_name: bool,
 }
 
@@ -50,7 +50,7 @@ pub struct DirEntry {
 /// ordem alfabética sem distinguir maiúsculas.
 #[tauri::command]
 pub async fn fs_read_dir(app: AppHandle, path: String) -> IpcResult<Vec<DirEntry>> {
-    blocking(app, move |_, _| {
+    blocking(app, move |_, state| {
         let dir = Utf8PathBuf::from(path);
         let mut entries: Vec<DirEntry> = dir
             .read_dir_utf8()
@@ -61,7 +61,7 @@ pub async fn fs_read_dir(app: AppHandle, path: String) -> IpcResult<Vec<DirEntry
                 let is_dir = entry.path().is_dir();
                 DirEntry {
                     hidden: name.starts_with('.'),
-                    testbench_name: !is_dir && lace_core::verilog::is_testbench_name(&name),
+                    testbench_name: false,
                     is_dir,
                     path: entry.path().to_owned(),
                     name,
@@ -73,9 +73,34 @@ pub async fn fs_read_dir(app: AppHandle, path: String) -> IpcResult<Vec<DirEntry
                 .cmp(&a.is_dir)
                 .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
         });
+        mark_testbenches(state, &mut entries);
         Ok(entries)
     })
     .await
+}
+
+/// Marca os arquivos com nome de testbench, pela regra do Lace, numa
+/// pergunta só ao servidor. Sem servidor, a lista sai sem a marca: a árvore
+/// funciona do mesmo jeito.
+fn mark_testbenches(state: &AppState, entries: &mut [DirEntry]) {
+    let files: Vec<usize> = (0..entries.len()).filter(|&i| !entries[i].is_dir).collect();
+    if files.is_empty() {
+        return;
+    }
+    let names: Vec<&str> = files.iter().map(|&i| entries[i].name.as_str()).collect();
+    let reply = state.server.call(
+        &state.settings.get(),
+        "verilog.testbench_names",
+        serde_json::json!({ "names": names }),
+    );
+    match reply {
+        Ok(flags) => {
+            for (&i, flag) in files.iter().zip(flags.as_array().into_iter().flatten()) {
+                entries[i].testbench_name = flag.as_bool().unwrap_or(false);
+            }
+        }
+        Err(error) => tracing::debug!("Testbench names not marked: {error}"),
+    }
 }
 
 /// Um arquivo de texto aberto.

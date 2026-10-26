@@ -9,12 +9,10 @@
 //!
 //! | Módulo | O que tem |
 //! |---|---|
-//! | [`commands::project`] | abrir, criar e fechar o projeto, a pasta padrão, os padrões de um processador novo, os módulos de um texto, a hierarquia |
+//! | [`commands::project`] | abrir, criar e fechar o projeto, a pasta padrão, a hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, placa, correção, instalar e atualizar: pedidos ao servidor que rodam como operações canceláveis, com saída ao vivo |
-//! | [`commands::fpga`] | o topo que vai para a placa e as portas dele (os outros métodos da placa passam pelo servidor); só com a placa FPGA ligada |
 //! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
-//! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update` e `lace update --check` pelo servidor |
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
@@ -30,8 +28,6 @@ pub mod commands {
     //! Os comandos que a interface chama com `invoke`.
     pub mod app;
     pub mod files;
-    pub mod fpga;
-    pub mod learn;
     pub mod project;
     pub mod toolchain;
 }
@@ -142,8 +138,6 @@ pub fn run() {
             commands::project::project_open,
             commands::project::project_create,
             commands::project::project_close,
-            commands::project::project_processor_defaults,
-            commands::project::verilog_modules,
             commands::project::project_hierarchy,
             commands::files::fs_read_dir,
             commands::files::fs_read_text,
@@ -156,12 +150,6 @@ pub fn run() {
             commands::files::fs_trash,
             commands::files::fs_list_files,
             commands::files::fs_search,
-            commands::learn::learn_tracks,
-            commands::learn::learn_open,
-            commands::learn::learn_init,
-            commands::learn::learn_set_current,
-            commands::learn::learn_reset,
-            commands::fpga::fpga_top,
             commands::toolchain::toolchain_info,
             commands::toolchain::lace_update_check,
             commands::toolchain::lace_install,

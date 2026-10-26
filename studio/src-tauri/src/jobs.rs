@@ -22,7 +22,6 @@ use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
 
 use crate::error::{IpcError, IpcResult, codes};
-use crate::flows::FlowRequest;
 use crate::server::Listener;
 use crate::state::{ActiveJob, AppState};
 
@@ -125,15 +124,13 @@ pub struct Operation {
 }
 
 /// Começa `operation` no servidor e devolve o identificador. O canal recebe
-/// `started`, o que `before` mandar, as notificações do pedido e, no fim, a
-/// mensagem que `finish` faz da resposta. A vaga é liberada antes dessa
-/// última mensagem, para a interface poder começar outra operação assim que
-/// a receber.
+/// `started`, as notificações do pedido e, no fim, a mensagem que `finish`
+/// faz da resposta. A vaga é liberada antes dessa última mensagem, para a
+/// interface poder começar outra operação assim que a receber.
 pub fn start(
     app: &AppHandle,
     operation: Operation,
     channel: Channel<Value>,
-    before: impl FnOnce(&Relay) + Send + 'static,
     finish: impl FnOnce(IpcResult<Value>) -> JobMessage + Send + 'static,
 ) -> IpcResult<u32> {
     let state = app.state::<AppState>();
@@ -149,7 +146,6 @@ pub fn start(
         .name(format!("job-{id}"))
         .spawn(move || {
             let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                before(&relay);
                 let notifications = relay.clone();
                 let listener: Listener = Box::new(move |method, params| {
                     notifications.notification(method, params);
@@ -226,31 +222,20 @@ fn attach(app: &AppHandle, id: u32, request: u64) {
 }
 
 /// Começa um fluxo (build, check, sim, synth, esquemático, placa, exercício)
-/// e devolve o identificador da operação. O progresso e o resultado chegam
-/// por `channel`, terminando sempre com `finished` ou `failed`.
+/// e devolve o identificador da operação. `request` é o `FlowRequest` do
+/// protocolo. O progresso e o resultado chegam por `channel`, terminando
+/// sempre com `finished` ou `failed`.
 #[tauri::command]
-pub async fn flow_start(
-    app: AppHandle,
-    request: FlowRequest,
-    channel: Channel<Value>,
-) -> IpcResult<u32> {
-    let state = app.state::<AppState>();
-    let spf = state.spf()?;
-    let (operation, finisher) = request.plan(&state.settings.get(), &spf);
-    let learn = finisher.is_learn();
-    start(
-        &app,
-        operation,
-        channel,
-        move |relay| {
-            // A correção não tem fase do core: a interface a mostra por
-            // esta, como antes.
-            if learn {
-                relay.notification("phase", serde_json::json!({ "phase": "learn" }));
-            }
-        },
-        move |reply| finisher.finish(reply),
-    )
+pub async fn flow_start(app: AppHandle, request: Value, channel: Channel<Value>) -> IpcResult<u32> {
+    let planned = crate::state::blocking(app.clone(), move |_, state| {
+        let spf = state.spf()?;
+        crate::flows::plan(&state.server, &state.settings.get(), &spf, request)
+    })
+    .await?;
+    let (operation, finisher) = planned;
+    start(&app, operation, channel, move |reply| {
+        finisher.finish(reply)
+    })
 }
 
 /// Cancela a operação que está rodando. Com `job`, só se for ela. O

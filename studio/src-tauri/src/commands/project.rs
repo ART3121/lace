@@ -1,21 +1,18 @@
 //! Comandos do projeto que são do Studio: abrir, criar e fechar (o projeto
-//! aberto, os recentes e a vigia da pasta), a pasta padrão, os padrões de um
-//! processador novo, os módulos de um texto e a hierarquia. O que muda o
-//! `.spf` (arquivos Verilog, topo, testbench, processadores, mover) são
-//! métodos do protocolo, que a interface chama pelo servidor do Lace
-//! ([`crate::server`]).
+//! aberto, os recentes e a vigia da pasta), a pasta padrão e a hierarquia.
+//! O resto (os arquivos Verilog, o topo, o testbench, os processadores,
+//! mover) são métodos do protocolo, que a interface chama pelo servidor do
+//! Lace ([`crate::server`]).
 //!
 //! O retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns
 //! campos a mais que a interface usa para habilitar botões.
 
 use camino::Utf8PathBuf;
-use lace_core::{Control, HierarchyOptions, HierarchyResult, Language, NewProcessor};
 use serde_json::{Value, json};
 use tauri::{AppHandle, Manager};
 
 use crate::error::{IpcError, IpcResult, codes};
 use crate::state::{AppState, blocking};
-use crate::toolchain;
 use crate::watcher;
 
 /// O projeto inteiro, como a interface o mostra: o retrato do protocolo
@@ -106,33 +103,24 @@ pub async fn project_close(app: AppHandle) -> IpcResult<()> {
     .await
 }
 
-/// Os padrões de um processador novo, para o formulário.
+/// A hierarquia do design e dos testbenches, elaborada pelo Icarus (o
+/// fluxo `hierarchy` do servidor, sem saída ao vivo). Não compila os
+/// processadores nem grava relatório.
 #[tauri::command]
-pub fn project_processor_defaults() -> NewProcessor {
-    NewProcessor::new("", Language::Cmm)
-}
-
-/// Os módulos declarados num texto Verilog, sem os comentados. A interface
-/// usa para o contorno do arquivo.
-#[tauri::command]
-pub fn verilog_modules(text: String) -> Vec<String> {
-    lace_core::verilog::modules_in(&text)
-}
-
-/// A hierarquia do design e dos testbenches, elaborada pelo Icarus
-/// (`lace_core::hierarchy`). Não compila os processadores nem grava
-/// relatório.
-#[tauri::command]
-pub async fn project_hierarchy(app: AppHandle) -> IpcResult<HierarchyResult> {
+pub async fn project_hierarchy(app: AppHandle) -> IpcResult<Value> {
     blocking(app, |_, state| {
-        let project = state.project()?;
-        let toolchain = toolchain::require(&state.settings.get())?;
-        Ok(lace_core::hierarchy(
-            &toolchain,
-            &project,
-            &HierarchyOptions::default(),
-            &Control::default(),
-        )?)
+        let settings = state.settings.get();
+        let outcome = state.server.call(
+            &settings,
+            "flow.run",
+            json!({
+                "project": state.spf()?,
+                "request": { "flow": "hierarchy" },
+                "options": { "command": "lace-studio hierarchy" },
+                "output": false,
+            }),
+        )?;
+        Ok(outcome["hierarchy"].clone())
     })
     .await
 }

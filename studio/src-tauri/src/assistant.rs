@@ -73,8 +73,8 @@ pub async fn assistant_start(
     channel: Channel<AgentEvent>,
 ) -> IpcResult<u32> {
     blocking(app, move |app, state| {
-        lace_core::experimental::require(lace_core::experimental::Feature::Assistant)?;
         let settings = state.settings.get();
+        require_assistant(state, &settings)?;
         let claude = find_claude(&settings).ok_or_else(|| {
             IpcError::new(
                 codes::ASSISTANT,
@@ -243,16 +243,36 @@ fn lace_for(settings: &Settings) -> IpcResult<Utf8PathBuf> {
         }
         return Ok(path);
     }
-    let toolchain = toolchain::require(settings)?;
-    toolchain::lace_cli(&toolchain).ok_or_else(|| {
+    toolchain::lace_executable(settings).map_err(|error| {
         IpcError::new(
             codes::ASSISTANT,
             format!(
-                "The lace command of the installation at {} was not found",
-                toolchain.root()
+                "The lace command for the assistant was not found: {}",
+                error.message
             ),
         )
     })
+}
+
+/// O assistente está ligado (`experimental.list` do servidor); desligado, o
+/// erro `experimental_disabled`, como o do Lace.
+fn require_assistant(state: &AppState, settings: &Settings) -> IpcResult<()> {
+    let report = state
+        .server
+        .call(settings, "experimental.list", serde_json::Value::Null)?;
+    let enabled = report["components"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|c| c["feature"] == "assistant" && c["enabled"] == true);
+    if enabled {
+        Ok(())
+    } else {
+        Err(IpcError::new(
+            "experimental_disabled",
+            "The experimental component assistant (AI assistant) is disabled",
+        ))
+    }
 }
 
 /// O bundle que o `lace mcp` deve usar, quando não é o da instalação dele:

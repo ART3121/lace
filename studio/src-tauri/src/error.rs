@@ -94,39 +94,6 @@ impl std::fmt::Display for IpcError {
 
 impl std::error::Error for IpcError {}
 
-impl From<lace_core::LaceError> for IpcError {
-    fn from(error: lace_core::LaceError) -> Self {
-        IpcError {
-            code: error.code().to_owned(),
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<lace_core::ErrorInfo> for IpcError {
-    fn from(error: lace_core::ErrorInfo) -> Self {
-        IpcError {
-            code: error.code,
-            message: error.message,
-        }
-    }
-}
-
-impl From<lace_learn::LearnError> for IpcError {
-    fn from(error: lace_learn::LearnError) -> Self {
-        IpcError {
-            code: error.code().to_owned(),
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<lace_installer::Error> for IpcError {
-    fn from(error: lace_installer::Error) -> Self {
-        IpcError::new(error.code(), error.to_string())
-    }
-}
-
 impl From<std::io::Error> for IpcError {
     fn from(error: std::io::Error) -> Self {
         IpcError::new(codes::IO, error.to_string())

@@ -2,17 +2,16 @@
 //! comandos com `app.state::<AppState>()`.
 //!
 //! O Studio guarda pouco: o caminho do `.spf` aberto, as preferências, a
-//! operação que está rodando, os terminais e o vigia de arquivos. O projeto
-//! em si é reaberto do disco a cada comando (`Project::open`), como a CLI
-//! faz a cada execução: o `.spf` pode mudar por fora (a CLI no terminal, um
-//! editor de texto), e um `Project` aberto não percebe isso (API.md, 3.2).
+//! operação que está rodando, os terminais, o vigia de arquivos e o servidor
+//! do Lace. O projeto em si é do servidor, que o reabre do disco a cada
+//! pedido, como a CLI faz a cada execução: o `.spf` pode mudar por fora (a
+//! CLI no terminal, um editor de texto).
 
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::Project;
+use camino::Utf8PathBuf;
 use notify::RecommendedWatcher;
 use tauri::{AppHandle, Manager};
 
@@ -85,31 +84,6 @@ impl AppState {
             .clone()
             .ok_or_else(|| IpcError::new(codes::NO_PROJECT, "No project is open"))
     }
-
-    /// O projeto aberto, relido do disco ([`open_project`]).
-    pub fn project(&self) -> IpcResult<Project> {
-        open_project(&self.spf()?)
-    }
-}
-
-/// Abre o projeto de `spf`. Se ele não abre porque o `.spf` não existe mais
-/// (apagado depois de aberto), o erro é `spf_missing`, e não o
-/// `invalid_project` do Core: a interface avisa que sem ele não há operação
-/// de projeto. A conferência vem depois da tentativa do Core, que já repete
-/// a abertura enquanto o arquivo some por um instante numa gravação.
-pub fn open_project(spf: &Utf8Path) -> IpcResult<Project> {
-    Project::open(spf).map_err(|error| {
-        if spf.exists() {
-            IpcError::from(error)
-        } else {
-            IpcError::new(
-                codes::SPF_MISSING,
-                format!(
-                    "The project file {spf} does not exist anymore: without it Lace cannot build, simulate or change the project"
-                ),
-            )
-        }
-    })
 }
 
 /// Roda `f` numa thread de bloqueio, fora da thread da interface e do
@@ -126,28 +100,4 @@ where
     })
     .await
     .map_err(|e| IpcError::new(codes::INTERNAL, format!("Worker thread failed: {e}")))?
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_deleted_spf_is_spf_missing() {
-        let dir = tempfile::tempdir().unwrap();
-        let parent = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
-        let spf = Project::create(&parent, "p").unwrap().spf_path().to_owned();
-        assert!(open_project(&spf).is_ok());
-        std::fs::remove_file(&spf).unwrap();
-        assert_eq!(open_project(&spf).unwrap_err().code, codes::SPF_MISSING);
-    }
-
-    #[test]
-    fn an_unreadable_spf_keeps_the_core_error() {
-        let dir = tempfile::tempdir().unwrap();
-        let parent = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
-        let spf = Project::create(&parent, "p").unwrap().spf_path().to_owned();
-        std::fs::write(&spf, "{ isto não é um .spf").unwrap();
-        assert_ne!(open_project(&spf).unwrap_err().code, codes::SPF_MISSING);
-    }
 }

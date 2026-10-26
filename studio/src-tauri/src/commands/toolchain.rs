@@ -16,12 +16,16 @@ use tauri::ipc::Channel;
 use crate::error::{IpcResult, codes};
 use crate::jobs::{self, JobMessage, Operation};
 use crate::state::blocking;
-use crate::toolchain::{self, ToolchainInfo};
+use crate::toolchain;
 
-/// O bundle, as ferramentas e o compilador do Verilator.
+/// O bundle, as ferramentas e o compilador do Verilator: o `toolchain.info`
+/// do servidor, ou `found: false` com o erro quando o servidor não abre.
 #[tauri::command]
-pub async fn toolchain_info(app: AppHandle) -> IpcResult<ToolchainInfo> {
-    blocking(app, |_, state| Ok(toolchain::info(&state.settings.get()))).await
+pub async fn toolchain_info(app: AppHandle) -> IpcResult<Value> {
+    blocking(app, |_, state| {
+        Ok(toolchain::info(&state.server, &state.settings.get()))
+    })
+    .await
 }
 
 /// `lace update --check`: o Lace, o bundle e cada aplicativo comparados com
@@ -54,13 +58,9 @@ pub async fn lace_install(
         method: "install.add",
         params: json!({ "components": components }),
     };
-    jobs::start(
-        &app,
-        operation,
-        channel,
-        |_| {},
-        |reply| installer_outcome("install", reply),
-    )
+    jobs::start(&app, operation, channel, |reply| {
+        installer_outcome("install", reply)
+    })
 }
 
 /// `lace update --yes`: troca a instalação pela da última release do Lace,
@@ -91,13 +91,9 @@ pub async fn lace_update(app: AppHandle, channel: Channel<Value>) -> IpcResult<u
         method: "update.apply",
         params: json!({ "reopen_studio": cfg!(windows) }),
     };
-    jobs::start(
-        &app,
-        operation,
-        channel,
-        |_| {},
-        |reply| installer_outcome("update", reply),
-    )
+    jobs::start(&app, operation, channel, |reply| {
+        installer_outcome("update", reply)
+    })
 }
 
 /// O resultado de uma instalação ou atualização como a interface o lê:

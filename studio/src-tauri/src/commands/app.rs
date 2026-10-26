@@ -18,8 +18,8 @@ pub struct AppInfo {
     pub version: String,
     /// O sistema e a arquitetura (`linux-x86_64`).
     pub os: String,
-    /// A plataforma do Lace (`linux-x64`), se o Lace tem bundle para ela.
-    pub lace_platform: Option<&'static str>,
+    /// A plataforma do Lace (`linux-x64`): a do bundle, pelo servidor.
+    pub lace_platform: Option<String>,
     /// Onde ficam as preferências.
     pub config_dir: Option<Utf8PathBuf>,
     /// A versão do Tauri com que o Studio foi compilado.
@@ -31,14 +31,19 @@ pub struct AppInfo {
     pub debug: bool,
 }
 
-/// A versão e a plataforma.
+/// A versão e a plataforma. A do Lace vem do bundle, pelo servidor.
 #[tauri::command]
-pub fn app_info(app: AppHandle) -> AppInfo {
-    AppInfo {
+pub async fn app_info(app: AppHandle) -> IpcResult<AppInfo> {
+    let lace_platform = blocking(app.clone(), |_, state| {
+        let info = crate::toolchain::info(&state.server, &state.settings.get());
+        Ok(info["platform"].as_str().map(str::to_owned))
+    })
+    .await?;
+    Ok(AppInfo {
         name: app.package_info().name.clone(),
         version: app.package_info().version.to_string(),
         os: format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH),
-        lace_platform: lace_core::Platform::current().map(|p| p.as_str()),
+        lace_platform,
         config_dir: app
             .path()
             .app_config_dir()
@@ -47,7 +52,7 @@ pub fn app_info(app: AppHandle) -> AppInfo {
         tauri_version: tauri::VERSION,
         webview_version: tauri::webview_version().ok(),
         debug: cfg!(debug_assertions),
-    }
+    })
 }
 
 /// As preferências.
