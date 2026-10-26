@@ -1,19 +1,17 @@
-//! Comandos do projeto: abrir, criar, fechar, o retrato do projeto e o que
-//! muda o `.spf` (arquivos Verilog, topo, testbench, processadores).
+//! Comandos do projeto que são do Studio: abrir, criar e fechar (o projeto
+//! aberto, os recentes e a vigia da pasta), a pasta padrão, os padrões de um
+//! processador novo, os módulos de um texto e a hierarquia. O que muda o
+//! `.spf` (arquivos Verilog, topo, testbench, processadores, mover) são
+//! métodos do protocolo, que a interface chama pelo servidor do Lace
+//! ([`crate::server`]).
 //!
-//! Cada comando chama uma função do Core e nada mais. O
-//! retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns campos a
-//! mais que a interface usa para habilitar botões.
+//! O retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns
+//! campos a mais que a interface usa para habilitar botões.
 
-use camino::Utf8PathBuf;
-use lace_core::{
-    AddedFile, Control, HierarchyOptions, HierarchyResult, LaceError, Language, MovedPath,
-    NewProcessor, Processor, Project,
-};
-use serde::Deserialize;
+use lace_core::{Control, HierarchyOptions, HierarchyResult, Language, NewProcessor, Project};
 use tauri::{AppHandle, Manager};
 
-use crate::error::{IpcError, IpcResult, codes};
+use crate::error::IpcResult;
 use crate::state::{AppState, blocking};
 use crate::toolchain;
 use crate::watcher;
@@ -95,110 +93,10 @@ pub async fn project_close(app: AppHandle) -> IpcResult<()> {
     .await
 }
 
-/// Registra um arquivo Verilog; cria a partir do modelo se não existir
-/// (`lace add`).
-#[tauri::command]
-pub async fn project_add_verilog(
-    app: AppHandle,
-    path: String,
-    testbench: bool,
-) -> IpcResult<AddedFile> {
-    blocking(app, move |_, state| {
-        let mut project = state.project()?;
-        // Sem bundle o arquivo é criado do mesmo jeito: o Core lê as portas
-        // com o leitor embutido em vez do Yosys, como na CLI.
-        let toolchain = toolchain::require(&state.settings.get()).ok();
-        Ok(project.add_verilog(toolchain.as_ref(), Utf8PathBuf::from(path), testbench)?)
-    })
-    .await
-}
-
-/// Tira um arquivo do projeto, sem apagar do disco (`lace remove`).
-#[tauri::command]
-pub async fn project_remove_verilog(app: AppHandle, path: String) -> IpcResult<bool> {
-    blocking(app, move |_, state| {
-        Ok(state.project()?.remove_verilog(Utf8PathBuf::from(path))?)
-    })
-    .await
-}
-
-/// Escolhe o topo por arquivo ou por nome de módulo (`lace top`).
-#[tauri::command]
-pub async fn project_set_top(app: AppHandle, target: String) -> IpcResult<Utf8PathBuf> {
-    blocking(app, move |_, state| {
-        Ok(state.project()?.set_top(&target)?)
-    })
-    .await
-}
-
-/// Escolhe o testbench da simulação do projeto (`lace sim <testbench>`).
-#[tauri::command]
-pub async fn project_set_testbench(app: AppHandle, path: String) -> IpcResult<()> {
-    blocking(app, move |_, state| {
-        Ok(state.project()?.set_testbench(Utf8PathBuf::from(path))?)
-    })
-    .await
-}
-
-/// O pedido de um processador novo (`lace proc add`). Campo ausente fica
-/// com o padrão da AURORA (`NewProcessor::new`).
-#[derive(Debug, Clone, Deserialize)]
-pub struct NewProcessorRequest {
-    /// Nome: `[A-Za-z_][A-Za-z0-9_]*`.
-    pub name: String,
-    /// `cmm` (C±) ou `cpp` (C).
-    pub language: Language,
-    /// `#NUIOIN`.
-    pub input_ports: Option<u32>,
-    /// `#NUIOOU`.
-    pub output_ports: Option<u32>,
-    /// `#NUBITS`.
-    pub nubits: Option<u32>,
-    /// `#NBMANT`.
-    pub nbmant: Option<u32>,
-    /// `#NBEXPO`.
-    pub nbexpo: Option<u32>,
-    /// `#NUGAIN`.
-    pub nugain: Option<u32>,
-    /// `#NDSTAC`; ausente, o YANC calcula pelo programa.
-    pub ndstac: Option<u32>,
-    /// `#SDEPTH`; ausente, o YANC calcula pelo programa.
-    pub sdepth: Option<u32>,
-}
-
 /// Os padrões de um processador novo, para o formulário.
 #[tauri::command]
 pub fn project_processor_defaults() -> NewProcessor {
     NewProcessor::new("", Language::Cmm)
-}
-
-/// Cria um processador: pastas, fonte-modelo e entrada no `.spf`.
-#[tauri::command]
-pub async fn project_add_processor(
-    app: AppHandle,
-    request: NewProcessorRequest,
-) -> IpcResult<Processor> {
-    blocking(app, move |_, state| {
-        let mut project = state.project()?;
-        let mut spec = NewProcessor::new(&request.name, request.language);
-        // Sem as duas, o YANC calcula as pilhas pelo programa.
-        spec.ndstac = request.ndstac;
-        spec.sdepth = request.sdepth;
-        for (value, field) in [
-            (request.input_ports, &mut spec.input_ports),
-            (request.output_ports, &mut spec.output_ports),
-            (request.nubits, &mut spec.nubits),
-            (request.nbmant, &mut spec.nbmant),
-            (request.nbexpo, &mut spec.nbexpo),
-            (request.nugain, &mut spec.nugain),
-        ] {
-            if let Some(value) = value {
-                *field = value;
-            }
-        }
-        Ok(project.add_processor(&spec)?.clone())
-    })
-    .await
 }
 
 /// Os módulos declarados num texto Verilog, sem os comentados. A interface
@@ -206,42 +104,6 @@ pub async fn project_add_processor(
 #[tauri::command]
 pub fn verilog_modules(text: String) -> Vec<String> {
     lace_core::verilog::modules_in(&text)
-}
-
-/// Move ou renomeia um arquivo ou pasta do projeto: o arrastar e o
-/// renomear da árvore (`Project::move_path`). `to` é o caminho final. O Core
-/// mantém o `.spf` em dia e recusa o que fica no lugar (`cannot_move`), o
-/// que está fora do projeto (`outside_project`) e o destino que existe
-/// (`path_exists`). Com `overwrite`, o que está no destino vai para a
-/// lixeira e o movimento é tentado de novo: substituir é do Studio, o Core
-/// nunca sobrescreve. Menos o que o Core mantém no lugar, a pasta do projeto
-/// e uma pasta que contém a origem (`Project::replace_refusal`): aí o erro é
-/// `cannot_replace`, e nada vai para a lixeira.
-#[tauri::command]
-pub async fn project_move(
-    app: AppHandle,
-    from: String,
-    to: String,
-    overwrite: bool,
-) -> IpcResult<MovedPath> {
-    blocking(app, move |_, state| {
-        let mut project = state.project()?;
-        match project.move_path(&from, &to) {
-            Err(LaceError::PathExists(target)) if overwrite => {
-                if let Some(reason) = project.replace_refusal(&from, &target) {
-                    return Err(IpcError::new(
-                        codes::CANNOT_REPLACE,
-                        format!("{target} is not replaced: {reason}"),
-                    ));
-                }
-                trash::delete(&target)
-                    .map_err(|e| IpcError::new(codes::IO, format!("{target}: {e}")))?;
-                Ok(project.move_path(&from, &to)?)
-            }
-            result => Ok(result?),
-        }
-    })
-    .await
 }
 
 /// A hierarquia do design e dos testbenches, elaborada pelo Icarus

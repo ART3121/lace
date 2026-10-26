@@ -15,6 +15,9 @@ import type {
   FileMismatch,
   NameCheck,
   ProcRemoveReport,
+  RemoveOutcome,
+  TopOutcome,
+  WaveChoiceOutcome,
   ProjectFile,
   RunComparison,
   RunRecord,
@@ -113,8 +116,17 @@ export const api = {
     saveSettings: (settings: Settings) => call<Settings>('settings_set', { settings }),
     recent: () => call<RecentStatus[]>('recent_projects'),
     forgetRecent: (spf: string) => call<void>('recent_forget', { spf }),
+    /** Abre uma onda no surfer-aurora: com `path`, aquele arquivo (a onda de
+     * um exercício do `lace learn` vem com o layout da correção); sem, a da
+     * simulação do processador ou, sem processador, a do projeto. Um arquivo
+     * vai com `project: null`, para não esperar na fila do projeto aberto. */
     openWave: (processor?: string | null, path?: string | null) =>
-      call<WaveOpened>('wave_open', { processor: processor ?? null, path: path ?? null }),
+      lace<WaveOpened>(
+        'wave.open',
+        path
+          ? { project: null, request: { source: { kind: 'file', path } } }
+          : { request: { source: { kind: 'project', processor: processor ?? null } } },
+      ),
     /** Fecha o Studio e, com `restart`, abre ele de novo (depois do `lace
      * update`). Quem chama grava os arquivos antes. */
     exit: (restart: boolean) => call<void>('app_exit', { restart }),
@@ -131,8 +143,12 @@ export const api = {
   wave: {
     /** A árvore de sinais do testbench do projeto, com a escolha gravada. */
     signals: () => lace<WaveSignals>('wave.signals'),
-    /** Grava a escolha (vazia: todos os sinais) e devolve como ficou. */
-    setSelection: (signals: string[]) => call<string[]>('wave_selection_set', { signals }),
+    /** Grava a escolha (vazia: todos os sinais) e devolve como ficou. Os
+     * caminhos são conferidos na árvore do testbench elaborado. */
+    setSelection: (signals: string[]) =>
+      lace<WaveChoiceOutcome>('wave.choose', { choice: { kind: 'set', paths: signals } }).then(
+        (outcome) => outcome.selection,
+      ),
     /** Apaga o layout salvo da onda; `false` se não havia. */
     resetLayout: (waveform: string) => lace<boolean>('wave.reset_layout', { waveform }),
   },
@@ -145,13 +161,18 @@ export const api = {
     close: () => call<void>('project_close'),
     snapshot: () => lace<ProjectSnapshot>('project.status'),
     addVerilog: (path: string, testbench: boolean) =>
-      call<AddedFile>('project_add_verilog', { path, testbench }),
-    removeVerilog: (path: string) => call<boolean>('project_remove_verilog', { path }),
-    setTop: (target: string) => call<string>('project_set_top', { target }),
-    setTestbench: (path: string) => call<void>('project_set_testbench', { path }),
+      lace<AddedFile[]>('project.add', { files: [path], testbench }).then((added) => added[0]),
+    /** `false` se o arquivo não estava no projeto. */
+    removeVerilog: (path: string) =>
+      lace<RemoveOutcome>('project.remove', { files: [path] }).then((r) => r.removed.length > 0),
+    /** Escolhe o topo por arquivo ou por módulo; devolve o arquivo de topo. */
+    setTop: (target: string) =>
+      lace<TopOutcome>('project.top', { target }).then((r) => r.top_level ?? ''),
+    setTestbench: (path: string) => lace<ProjectSnapshot>('project.testbench', { path }),
     processorDefaults: () => call<NewProcessorDefaults>('project_processor_defaults'),
-    addProcessor: (request: NewProcessorRequest) =>
-      call<Processor>('project_add_processor', { request }),
+    /** Campo ausente fica com o padrão da AURORA; sem `nubits`, com
+     * `nbmant` ou `nbexpo` dados, ele vira `nbmant + nbexpo + 1`. */
+    addProcessor: (request: NewProcessorRequest) => lace<Processor>('processor.add', { spec: request }),
     /** Tira o processador do projeto (`lace proc remove`); com `toTrash`, a
      * pasta dele vai para a lixeira, e sem, fica no disco. */
     removeProcessor: (name: string, toTrash: boolean) =>
@@ -172,9 +193,11 @@ export const api = {
       lace<number[]>('processor.outputs', { processor, port }),
     verilogModules: (text: string) => call<string[]>('verilog_modules', { text }),
     /** Move ou renomeia (`Project::move_path` do Core): `to` é o caminho
-     * final. Erro `path_exists` se ele já existe, sem `overwrite`. */
+     * final. Erro `path_exists` se ele já existe, sem `overwrite`; com, o
+     * destino vai para a lixeira, menos o que o Lace mantém no lugar
+     * (`cannot_replace`). */
     move: (from: string, to: string, overwrite = false) =>
-      call<MovedPath>('project_move', { from, to, overwrite }),
+      lace<MovedPath>('project.move', { from, to, overwrite }),
     /** Converte da estrutura de pastas do YANC 6.x para a do 7.1
      * (`Project::convert_layout`). */
     convertLayout: () => lace<LayoutConversion>('project.convert'),

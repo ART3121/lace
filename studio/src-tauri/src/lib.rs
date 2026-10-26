@@ -7,7 +7,7 @@
 //!
 //! | Módulo | O que tem |
 //! |---|---|
-//! | [`commands::project`] | abrir, criar, retrato do projeto, arquivos Verilog, topo, testbench, processadores, mover arquivos, hierarquia |
+//! | [`commands::project`] | abrir, criar e fechar o projeto, a pasta padrão, os padrões de um processador novo, os módulos de um texto, a hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, compilação para a placa: operações canceláveis com saída ao vivo |
 //! | [`commands::fpga`] | o topo que vai para a placa e as portas dele (os outros métodos da placa passam pelo servidor); só com a placa FPGA ligada |
@@ -15,9 +15,8 @@
 //! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
 //! | [`terminal`] | o terminal de shell |
-//! | [`commands::app`] | versão, preferências, recentes, abrir a onda, sair e reiniciar |
+//! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
-//! | [`commands::wave`] | a escolha dos sinais da onda e o layout salvo |
 //! | [`server`] | o servidor do Lace (`lace serve`) e o `lace_call`, por onde passam os métodos do protocolo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
@@ -33,7 +32,6 @@ pub mod commands {
     pub mod learn;
     pub mod project;
     pub mod toolchain;
-    pub mod wave;
 }
 pub mod assistant;
 pub mod error;
@@ -134,7 +132,6 @@ pub fn run() {
             commands::app::settings_set,
             commands::app::recent_projects,
             commands::app::recent_forget,
-            commands::app::wave_open,
             commands::app::log_frontend,
             commands::app::dev_smoke_script,
             commands::app::app_exit,
@@ -143,14 +140,8 @@ pub fn run() {
             commands::project::project_open,
             commands::project::project_create,
             commands::project::project_close,
-            commands::project::project_add_verilog,
-            commands::project::project_remove_verilog,
-            commands::project::project_set_top,
-            commands::project::project_set_testbench,
             commands::project::project_processor_defaults,
-            commands::project::project_add_processor,
             commands::project::verilog_modules,
-            commands::project::project_move,
             commands::project::project_hierarchy,
             commands::files::fs_read_dir,
             commands::files::fs_read_text,
@@ -189,7 +180,6 @@ pub fn run() {
             assistant::assistant_stop,
             wave_tab::wave_tab_open,
             wave_tab::wave_tab_close,
-            commands::wave::wave_selection_set,
         ])
         .build(tauri::generate_context!())
         .expect("Lace Studio could not start");

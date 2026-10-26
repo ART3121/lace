@@ -19,7 +19,7 @@
 //! morre junto com o Studio. Ao fechar, o Studio manda `shutdown`, espera
 //! até 3 s e mata o que sobrou.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -534,9 +534,20 @@ fn ipc_error(error: &Value) -> IpcError {
 }
 
 /// Os métodos cujo `project` é obrigatório, tirados do schema dos pedidos.
-fn takes_project(method: &str) -> bool {
-    static METHODS: OnceLock<HashSet<String>> = OnceLock::new();
-    METHODS
+/// Se um método do protocolo tem o campo `project`, e se o exige.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProjectField {
+    /// Não tem.
+    None,
+    /// Tem, opcional (`wave.open`, que também abre um arquivo).
+    Optional,
+    /// Exige.
+    Required,
+}
+
+fn project_field(method: &str) -> ProjectField {
+    static FIELDS: OnceLock<HashMap<String, ProjectField>> = OnceLock::new();
+    FIELDS
         .get_or_init(|| {
             let schema =
                 serde_json::to_value(lace_core::protocol::request_schema()).unwrap_or(Value::Null);
@@ -544,24 +555,37 @@ fn takes_project(method: &str) -> bool {
                 .as_array()
                 .into_iter()
                 .flatten()
-                .filter(|entry| {
-                    entry["properties"]["params"]["required"]
+                .filter_map(|entry| {
+                    let method = entry["properties"]["method"]["const"].as_str()?;
+                    let params = &entry["properties"]["params"];
+                    let field = if params["required"]
                         .as_array()
                         .is_some_and(|r| r.iter().any(|f| f == "project"))
+                    {
+                        ProjectField::Required
+                    } else if params["properties"].get("project").is_some() {
+                        ProjectField::Optional
+                    } else {
+                        return None;
+                    };
+                    Some((method.to_owned(), field))
                 })
-                .filter_map(|entry| entry["properties"]["method"]["const"].as_str())
-                .map(str::to_owned)
                 .collect()
         })
-        .contains(method)
+        .get(method)
+        .copied()
+        .unwrap_or(ProjectField::None)
 }
 
 /// Os parâmetros de `method` com o projeto aberto no `project`, quando o
-/// método o exige e o pedido não traz: a interface não lida com caminhos de
-/// `.spf`, como antes.
+/// método tem o campo e o pedido não o traz: a interface não lida com
+/// caminhos de `.spf`, como antes. Sem projeto aberto, um método que o exige
+/// é `no_project`; um que o tem opcional vai sem ele. Quem não quer o
+/// projeto num campo opcional manda `project: null`.
 fn with_project(state: &AppState, method: &str, params: Option<Value>) -> IpcResult<Value> {
     let mut params = params.unwrap_or(Value::Null);
-    if !takes_project(method) {
+    let field = project_field(method);
+    if field == ProjectField::None {
         return Ok(params);
     }
     if params.is_null() {
@@ -570,7 +594,13 @@ fn with_project(state: &AppState, method: &str, params: Option<Value>) -> IpcRes
     if let Some(fields) = params.as_object_mut()
         && !fields.contains_key("project")
     {
-        fields.insert("project".to_owned(), json!(state.spf()?));
+        match (state.spf(), field) {
+            (Ok(spf), _) => {
+                fields.insert("project".to_owned(), json!(spf));
+            }
+            (Err(error), ProjectField::Required) => return Err(error),
+            (Err(_), _) => {}
+        }
     }
     Ok(params)
 }
@@ -617,13 +647,13 @@ mod tests {
     }
 
     #[test]
-    fn the_project_goes_only_where_it_is_required() {
-        assert!(takes_project("project.status"));
-        assert!(takes_project("history.compare"));
-        assert!(!takes_project("toolchain.info"));
-        assert!(!takes_project("project.check_name"));
-        // A onda de um arquivo não tem projeto.
-        assert!(!takes_project("wave.open"));
+    fn the_project_goes_where_the_method_has_it() {
+        assert_eq!(project_field("project.status"), ProjectField::Required);
+        assert_eq!(project_field("history.compare"), ProjectField::Required);
+        assert_eq!(project_field("toolchain.info"), ProjectField::None);
+        assert_eq!(project_field("project.check_name"), ProjectField::None);
+        // A onda pode ser de um arquivo, sem projeto.
+        assert_eq!(project_field("wave.open"), ProjectField::Optional);
     }
 
     /// O servidor de verdade, com o `lace` de `LACE_STUDIO_LACE`: cria um
@@ -658,5 +688,53 @@ mod tests {
         assert!(server.info(&settings).unwrap()["methods"].is_array());
         server.stop();
         assert!(server.session.lock().unwrap().is_none());
+    }
+
+    /// Os pedidos com a forma que o `api.ts` manda, no servidor de verdade:
+    /// um nome de campo errado ali seria recusado aqui.
+    #[test]
+    fn the_interface_requests_reach_the_server() {
+        if std::env::var_os("LACE_STUDIO_LACE").is_none() {
+            eprintln!("PULADO: defina LACE_STUDIO_LACE com o lace a testar");
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
+        let settings = Settings::default();
+        let server = LaceServer::default();
+        let call = |method: &str, mut params: Value| {
+            params["project"] = json!(root.join("demo/demo.spf"));
+            server.call(&settings, method, params)
+        };
+        server
+            .call(
+                &settings,
+                "project.create",
+                json!({ "parent": root, "name": "demo" }),
+            )
+            .unwrap();
+        let (top, tb) = (root.join("demo/top.v"), root.join("demo/top_tb.v"));
+        let added = call("project.add", json!({ "files": [top], "testbench": false })).unwrap();
+        assert_eq!(added.as_array().map(Vec::len), Some(1), "{added}");
+        call("project.add", json!({ "files": [tb], "testbench": true })).unwrap();
+        let outcome = call("project.top", json!({ "target": top })).unwrap();
+        assert!(outcome["top_level"].as_str().unwrap().ends_with("top.v"));
+        call("project.testbench", json!({ "path": tb })).unwrap();
+        let moved = root.join("demo/rtl/top.v");
+        let result = call(
+            "project.move",
+            json!({ "from": top, "to": moved, "overwrite": false }),
+        )
+        .unwrap();
+        assert!(
+            result["to"].as_str().unwrap().ends_with("top.v"),
+            "{result}"
+        );
+        let removed = call("project.remove", json!({ "files": [moved] })).unwrap();
+        assert_eq!(removed["removed"].as_array().map(Vec::len), Some(1));
+        let spec = json!({ "name": "soma", "language": "cmm", "nbmant": 20, "nbexpo": 7 });
+        let processor = call("processor.add", json!({ "spec": spec })).unwrap();
+        assert_eq!(processor["name"], "soma", "{processor}");
+        server.stop();
     }
 }

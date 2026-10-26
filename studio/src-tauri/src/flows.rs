@@ -16,11 +16,8 @@ use std::ops::Deref;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::experimental::Feature;
-use lace_core::flows::{
-    self as core, FlowOptions, LayoutPolicy, ProgressFn, WaveOpened, WavePolicy, WaveRequest,
-    WaveSource,
-};
-use lace_core::{Control, Simulator, Status, Toolchain};
+use lace_core::flows::{self as core, FlowOptions, ProgressFn, WavePolicy};
+use lace_core::{Control, Simulator, Status};
 use lace_learn::{Grade, Verdict};
 use serde::{Deserialize, Serialize};
 
@@ -327,23 +324,4 @@ pub fn run(
         wave_tab,
         learn: None,
     })
-}
-
-/// Abre uma onda no surfer-aurora, como o `lace wave`: a onda de um
-/// exercício do `lace learn` abre com o layout da correção; as outras, com o
-/// layout dos processadores SAPHO quando têm processador. Confere que o
-/// Surfer não fechou logo, e uma thread espera ele fechar, para o processo
-/// não ficar zumbi.
-pub fn open_wave(toolchain: &Toolchain, waveform: &Utf8Path) -> IpcResult<WaveOpened> {
-    let layout = match lace_learn::layout::layout_of(waveform) {
-        Some(path) => LayoutPolicy::File { path },
-        None => LayoutPolicy::Generated,
-    };
-    let request = WaveRequest {
-        source: WaveSource::File {
-            path: waveform.to_owned(),
-        },
-        layout,
-    };
-    Ok(core::open_wave(toolchain, None, &request)?)
 }

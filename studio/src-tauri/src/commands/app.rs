@@ -1,17 +1,13 @@
-//! Comandos do aplicativo: versão, preferências, recentes, abrir a onda,
-//! sair e reiniciar.
+//! Comandos do aplicativo: versão, preferências, recentes, sair e
+//! reiniciar.
 
 use camino::Utf8PathBuf;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
-use crate::error::{IpcError, IpcResult};
-use lace_core::flows::WaveOpened;
-
-use crate::flows;
+use crate::error::IpcResult;
 use crate::settings::{RecentProject, Settings};
 use crate::state::{AppState, blocking};
-use crate::toolchain;
 
 /// O que a tela "Sobre" mostra.
 #[derive(Debug, Clone, Serialize)]
@@ -99,38 +95,6 @@ pub async fn recent_projects(app: AppHandle) -> IpcResult<Vec<RecentStatus>> {
 #[tauri::command]
 pub async fn recent_forget(app: AppHandle, spf: String) -> IpcResult<()> {
     blocking(app, move |_, state| state.settings.forget_recent(&spf)).await
-}
-
-/// Abre uma onda no surfer-aurora (`lace wave`). Com `path`, aquele arquivo;
-/// sem, a da simulação do processador ou, sem processador, a do projeto.
-#[tauri::command]
-pub async fn wave_open(
-    app: AppHandle,
-    processor: Option<String>,
-    path: Option<String>,
-) -> IpcResult<WaveOpened> {
-    blocking(app, move |_, state| {
-        let settings = state.settings.get();
-        let waveform = match path {
-            Some(path) => Utf8PathBuf::from(path),
-            None => {
-                let project = state.project()?;
-                let processor = processor
-                    .as_deref()
-                    .map(|name| project.require_processor(name))
-                    .transpose()?;
-                lace_core::waveform_path(&project, processor)?
-            }
-        };
-        if !waveform.is_file() {
-            return Err(IpcError::new(
-                "no_waveform",
-                format!("Waveform {waveform} does not exist yet; simulate first"),
-            ));
-        }
-        flows::open_wave(&toolchain::require(&settings)?, &waveform)
-    })
-    .await
 }
 
 /// Escreve no log do backend uma mensagem da interface: os erros de
