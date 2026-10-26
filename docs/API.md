@@ -1935,7 +1935,7 @@ de saída lidas pelo nome do arquivo.
 **`lace_core::protocol`.** O contrato do orquestrador em tipos com schema:
 [`Request`] (um método por operação, com grupo e ponto: `project.status`,
 `flow.run`, `history.list`, `update.check`, ...), [`Response`] (o valor em
-si, sem etiqueta; o de `update.*`, `install.add` e `learn.check` vem do
+si, sem etiqueta; o de `update.*`, `install.add` e `learn.*` vem do
 `lace-installer` (`update::run`, `add::add`) e do `lace-learn`, que o
 servidor linka, como `Response::Other`, com o schema do crate de origem), [`ServerInfo`], [`ShutdownReason`] e os tipos de
 resposta que não existiam (`TopOutcome`, `RemoveOutcome`, `NameCheck`,

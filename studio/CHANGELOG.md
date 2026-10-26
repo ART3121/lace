@@ -5,6 +5,21 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Alterado
+
+- O Studio passou a ser cliente do servidor do Lace (`lace serve`), como a
+  extensão do VS Code: abre o `lace` como processo filho e pede a ele o
+  projeto, os fluxos, o histórico, a placa FPGA, os exercícios, instalar e
+  atualizar. Não linka mais o core, o `lace-learn` e o instalador; o único
+  crate do Lace que ele linka é o do assistente, até a 1.0. Para quem usa,
+  nada muda de lugar.
+- Preferências > Bundle do Lace ganha **Programa lace**: o `lace` que o
+  Studio abre como servidor. Vazio, o da instalação; para desenvolvimento,
+  um build do repositório (ou a variável `LACE_STUDIO_LACE`).
+- O seletor de sinais confere os caminhos na árvore do testbench antes de
+  gravar a escolha, e a onda de um arquivo de exercício abre com o layout da
+  correção também pelo menu Abrir a onda.
+
 ### Acrescentado
 
 - **Exercícios**: a correção mostra a primeira amostra errada numa tabela

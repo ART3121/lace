@@ -135,7 +135,7 @@ O workspace tem cinco crates. `lace-core` é a biblioteca, com toda a
 regra de negócio, os fluxos compostos e o contrato do protocolo.
 `lace-learn` são os exercícios do `lace learn`, sobre o Core.
 `lace-installer` é a biblioteca de instalar, atualizar e desinstalar, que a
-CLI e o Studio chamam, mais o instalador em terminal (Linux, macOS) e o
+CLI e o `lace serve` chamam, mais o instalador em terminal (Linux, macOS) e o
 empacotador `lace-pack`. `lace-agent` é o assistente de IA, uma sessão do
 Claude Code com o `lace mcp`, experimental. `lace-cli` é o binário `lace`,
 uma casca fina sobre os outros quatro. A regra de quem pode depender de
@@ -150,7 +150,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 |---|---|
 | `lib.rs` | a lista de módulos, os `pub use` que formam a API pública, a documentação do crate (fluxo típico, garantias) e os atributos que valem para o crate todo |
 | `toolchain.rs` | o bundle: `Toolchain` (`open`, `locate`, `tool`, `verify`, `sapho_library`), `Tool` e o caminho fixo de cada executável (`Tool::location`), `Platform`, o manifesto (`BundleManifest`, `BundleComponent`), `SystemCompiler` e o ambiente de cada ferramenta (`Toolchain::invocation`) |
-| `process.rs` | o único módulo que cria processos: `Invocation`, `run` (lê a saída em blocos de linhas inteiras, confere cancelamento e prazo, encerra o grupo de processos no Unix e o Job Object no Windows), `Watch`, `spawn`, `RunningProcess`, `Termination`; o ambiente vazio (`INHERITED_ENV`, `GUI_ENV`); `ProcessJob` e `hide_console`, que o Studio também usa; `open_with_system`, o abridor do sistema para o HTML do RTL viewer |
+| `process.rs` | o único módulo que cria processos: `Invocation`, `run` (lê a saída em blocos de linhas inteiras, confere cancelamento e prazo, encerra o grupo de processos no Unix e o Job Object no Windows), `Watch`, `spawn`, `RunningProcess`, `Termination`; o ambiente vazio (`INHERITED_ENV`, `GUI_ENV`); `ProcessJob` e `hide_console`, que o `lace-agent` também usa; `open_with_system`, o abridor do sistema para o HTML do RTL viewer |
 | `rtl_viewer.rs` | módulo público `lace_core::rtl_viewer`: o modelo do HTML do RTL viewer (`template`, o componente `rtl-viewer` ou `LACE_RTL_VIEWER`) e o HTML preenchido com o netlist (`write`), que o `lace synth --open` abre |
 | `control.rs` | `Control`, `CancelToken`, `Event` e `Stream`: o que a interface passa a cada operação para cancelá-la e acompanhar a saída ([Cancelamento e saída ao vivo](#cancelamento-e-saída-ao-vivo)) |
 | `pipeline.rs` | o que todo resultado tem: `Step`, `Status`, `StepReport`, `Artifact`, `ArtifactKind`; por dentro, `PlannedStep`, `Runner` (roda os passos em sequência, emite os eventos do `Control` e para no primeiro que falha ou no cancelamento) e `ArtifactTracker` (o `fresh` dos artefatos) |
@@ -175,7 +175,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `fpga/` | módulo público `lace_core::fpga` ([docs/FPGA.md](docs/FPGA.md)): as placas (`board.rs`, com os JSONs de `crates/lace-core/boards/` embutidos), o `fpga.json` e a resolução das ligações bit a bit (`config.rs`), o topo da placa gerado (`wrapper.rs`), o Quartus do sistema e a invocação dos programas dele (`quartus.rs`), o `.qsf` e o `.sdc` (`qsf.rs`), a leitura dos resumos de recursos e de tempo (`summary.rs`), a compilação para a placa (`build.rs`), o registro da compilação (`manifest.rs`, o `lace-build.json`), a conferência dos pinos depois do Fitter (`pins.rs`), a gravação na placa pelo Quartus Programmer (`program.rs`) e `prepare`, que junta tudo para um projeto |
 | `wave_layout.rs` | `wave_layout` e `prepare_wave_layout`: o layout do Surfer dos processadores SAPHO (o `.surf.ron` e os tradutores do assembly, da linha do C± e dos complexos), lido do cabeçalho da onda (VCD ou FST) e das tabelas do YANC |
 | `paths.rs` | `YANC_PATH_LIMIT`, `canonicalize` sem o prefixo `\\?\` do Windows, normalização de caminhos |
-| `flows/` | módulo público `lace_core::flows`: os fluxos compostos que a CLI, o Studio e o `lace serve` chamam (`run`, `FlowRequest`, `FlowOutcome` com `status`), a onda (`open_wave`) e a escolha de sinais (`choose_signals`) |
+| `flows/` | módulo público `lace_core::flows`: os fluxos compostos que a CLI e o `lace serve` chamam (o Studio, pelo `lace serve`) (`run`, `FlowRequest`, `FlowOutcome` com `status`), a onda (`open_wave`) e a escolha de sinais (`choose_signals`) |
 | `protocol.rs` | módulo público `lace_core::protocol`: o contrato do orquestrador, com `Request`, `Response`, `PROTOCOL_VERSION`, a macro `methods!` (o nome e o tipo do resultado de cada método, de onde saem `METHODS` e `result_schema`) e o schema em duas vistas; é onde nasce um método novo ([docs/METODOLOGIA.md](docs/METODOLOGIA.md)) |
 | `status.rs` | `Project::status` e `ProjectStatus`: o retrato do projeto, que o `lace status`, o Studio e o `project.status` mostram |
 | `delivery.rs` | módulo público `lace_core::delivery`: a entrega do progresso em lotes, com teto de linhas (`Dispatcher`, `Notification`) |
@@ -226,7 +226,7 @@ a onda.
 | `grade.rs` | a correção: `grade`, `Grade`, `Verdict`, `Finding`; os diagnósticos que o aluno vê |
 | `layout.rs` | o `.sucl` que abre a onda arrumada (`commands`, `layout_of`) |
 | `dev.rs` | o `lace learn dev check` (`check_track`) |
-| `flows.rs` | os fluxos que a CLI e o Studio compartilham: corrigir (`check`, `LearnCheckOutcome`) e abrir a onda da última correção com o layout do exercício (`open_wave`) |
+| `flows.rs` | os fluxos que a CLI e o `lace serve` compartilham: corrigir (`check`, `LearnCheckOutcome`) e abrir a onda da última correção com o layout do exercício (`open_wave`) |
 | `error.rs` | `LearnError`, com o `code()` que as interfaces traduzem |
 
 ### `crates/lace-installer/src/`
@@ -235,9 +235,9 @@ a onda.
 |---|---|
 | `lib.rs` | os módulos, a forma do instalador de Linux e macOS (`install` e `payload/`) e a documentação do crate |
 | `install.rs` | instalar o payload num prefixo (`Target`), o recibo `install.json` (`Receipt`) e o `uninstall.sh` |
-| `installation.rs` | a instalação de onde um `lace` roda (`prefix_of`, `receipt`, `uninstaller_exe`): a base de `lace install`, `lace update`, `lace uninstall` e do Studio |
+| `installation.rs` | a instalação de onde um `lace` roda (`prefix_of`, `receipt`, `uninstaller_exe`): a base de `lace install`, `lace update`, `lace uninstall` e do `lace serve` |
 | `add.rs` | `lace install`: os aplicativos novos numa instalação (`prepare`, `add_components`), com os pedaços do disco ou da release (`Payload`) |
-| `update/` | `lace update`: o plano e a troca só dos arquivos que mudaram (`mod.rs`: `plan`, `apply`) e a orquestração que a CLI, o Studio e o `lace serve` compartilham (`flow.rs`: `check`, `run`, `Hooks`) |
+| `update/` | `lace update`: o plano e a troca só dos arquivos que mudaram (`mod.rs`: `plan`, `apply`) e a orquestração que a CLI e o `lace serve` compartilham (`flow.rs`: `check`, `run`, `Hooks`) |
 | `release.rs` | as releases na rede, pelo `curl` do sistema: `Network`, `Remote`, o trait `Sources` e `is_newer` |
 | `uninstall.rs` | `lace uninstall`: chama o desinstalador que o instalador deixou (`uninstall.sh`, ou o `unins000.exe` do Inno) |
 | `files.rs` | o manifesto de arquivos (`files.json`): o SHA-256 de cada arquivo, por pedaço |

@@ -22,38 +22,40 @@ Sumário:
 ## 1. Visão geral
 
 ```
-┌──────────────────────────── processo do Lace Studio ────────────────────────────┐
-│                                                                                 │
-│  WebView (React)                          Rust (src-tauri)                      │
-│  ┌────────────────────────┐   invoke    ┌─────────────────────────────┐         │
-│  │ componentes            │ ──────────▶ │ commands/*  (casca fina)    │         │
-│  │ stores (zustand)       │             │ flows.rs    (casca)         │──▶ lace-core
-│  │ Monaco, xterm.js       │ ◀────────── │ jobs.rs     (thread)        │   (flows, delivery,
-│  └────────────────────────┘   Channel   │ terminal.rs (PTY)           │    locate)
-│              ▲                          │ assistant.rs                │──▶ lace-agent ──▶ claude
-│              ▲                 + emit   │ watcher.rs  (notify)        │──▶ lace-installer
-│              └───────────────────────── │ toolchain.rs, settings.rs   │   (update, add)
-│                                         └──────────────┬──────────────┘         │
-└────────────────────────────────────────────────────────┼────────────────────────┘
-                                                         ▼
-                                  bundle do Lace: YANC, Icarus, Verilator, Yosys, dot, surfer-aurora
+┌─────────────────────── processo do Lace Studio ───────────────────────┐
+│                                                                       │
+│  WebView (React)                       Rust (src-tauri)               │
+│  ┌──────────────────────┐   invoke   ┌──────────────────────────┐     │
+│  │ componentes          │ ─────────▶ │ server.rs  (lace_call)   │─────┼──▶ lace serve ──▶ bundle do Lace
+│  │ stores (zustand)     │            │ jobs.rs, flows.rs        │     │    (filho, stdio,   (YANC, Icarus,
+│  │ Monaco, xterm.js     │ ◀───────── │ commands/*  (Studio)     │     │     JSON-RPC)       Verilator, Yosys,
+│  └──────────────────────┘  Channel   │ terminal.rs (PTY)        │     │                     dot, surfer-aurora)
+│             ▲                        │ wave_tab.rs (HTTP local) │     │
+│             └──────────── emit ───── │ watcher.rs  (notify)     │     │
+│                                      │ assistant.rs             │─────┼──▶ lace-agent ──▶ claude ──▶ lace mcp
+│                                      └──────────────────────────┘     │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
 Três regras orientam tudo:
 
-- **A regra mora no Lace.** O backend chama o `lace-core` como biblioteca
-  Rust, do jeito que o Lace prevê para uma GUI: abre o projeto,
-  chama a função, devolve o resultado serializado. O Studio não sabe montar
-  a linha de comando do `iverilog` nem ler a saída do `cmmcomp`; quem sabe é
-  o Core, inclusive a composição dos fluxos, que até a 0.8 era a
-  exceção ([seção 8](#8-pendências-no-lace)).
-- **O disco é a fonte da verdade.** O Studio guarda o caminho do `.spf` e
-  reabre o projeto a cada comando, como a CLI faz a cada execução. O `.spf`
-  pode mudar por fora (a CLI no terminal do próprio Studio, um editor de
-  texto), e um `Project` aberto não percebe (API.md do Lace, 3.2).
-- **A interface nunca bloqueia.** Todo comando que toca o disco roda numa
-  thread de bloqueio (`state::blocking`); as operações longas rodam numa
-  thread própria e mandam o progresso por um `Channel` (seção 5).
+- **A regra mora no Lace.** O backend é um cliente do servidor do Lace
+  (`lace serve`), como a extensão do VS Code: abre o `lace` como processo
+  filho e pede, pelo protocolo do Lace (JSON-RPC 2.0, uma mensagem por
+  linha), o retrato do projeto, os fluxos, o histórico, instalar e
+  atualizar. O Studio não sabe montar a linha de comando do `iverilog`, ler
+  a saída do `cmmcomp` nem compor um fluxo; não linka o `lace-core`, o
+  `lace-learn` nem o instalador. O que fica no backend é do Studio: as
+  janelas, os arquivos, o terminal, a vigia da pasta, as preferências e a
+  onda numa aba. O assistente (`lace-agent`) é a exceção até a 1.0.
+- **O disco é a fonte da verdade.** O Studio guarda o caminho do `.spf`, e
+  o servidor reabre o projeto a cada pedido, como a CLI faz a cada execução.
+  O `.spf` pode mudar por fora (a CLI no terminal do próprio Studio, um
+  editor de texto), e um `Project` aberto não percebe (API.md do Lace, 3.2).
+- **A interface nunca bloqueia.** Todo comando que toca o disco ou fala com
+  o servidor roda numa thread de bloqueio (`state::blocking`); as operações
+  longas rodam numa thread própria e mandam o progresso por um `Channel`
+  (seção 5).
 
 ## 2. Pastas
 
@@ -63,9 +65,9 @@ studio/
     main.tsx, App.tsx        entrada; a janela e as ligações globais
     actions.ts               todas as ações: menus, barra, paleta e atalhos leem daqui
     ipc/
-      api.ts                 uma função por comando Tauri
+      api.ts                 uma função por comando Tauri ou método do protocolo (lace())
       types.ts               os tipos do Studio (espelho dos structs Rust)
-      lace-types.ts          os tipos do Core, GERADOS dos JSON Schemas do Lace
+      lace-types.ts          os tipos do protocolo, GERADOS dos JSON Schemas do Lace
     state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic, assistant, experimental, learn, settingsPage, tour, updates, waves;
                              layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela); learnSession.ts, splash.ts e wideTabs.ts, sem store
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
@@ -78,17 +80,18 @@ studio/
     dev/smoke.ts             roteiro de fumaça, só na build de desenvolvimento
   src-tauri/                 o backend (Rust)
     src/lib.rs               registro dos plugins, do estado e dos comandos
-    src/commands/            app, project, files, history, learn, experimental, fpga, toolchain, wave
-    src/flows.rs             a casca sobre lace_core::flows (mais o fluxo learn)
-    src/jobs.rs              operações em thread; a entrega em lotes é lace_core::delivery
+    src/server.rs            o servidor do Lace (lace serve filho) e o lace_call
+    src/commands/            app, project, files, toolchain
+    src/flows.rs             as decisões da interface num fluxo (o comando, a onda numa aba)
+    src/jobs.rs              operações longas: o pedido ao servidor e as notificações para a interface
     src/terminal.rs          o terminal de shell (portable-pty)
     src/assistant.rs         o assistente: sessões do Claude Code (lace-agent)
     src/watcher.rs           vigia da pasta do projeto (notify)
     src/wave_tab.rs          a onda numa aba: o servidor local do cliente web do Surfer
-    src/toolchain.rs         onde está o bundle do Lace
+    src/toolchain.rs         onde está o lace do servidor e o bundle dele
     src/settings.rs          preferências e recentes (settings.json)
     src/state.rs, error.rs   estado do aplicativo e o erro dos comandos
-    tests/flows.rs           os fluxos rodando de verdade contra o bundle
+    tests/flows.rs           os fluxos rodando de verdade, pelo servidor, contra o bundle
     capabilities/            permissões da janela (Tauri)
     tauri.conf.json          janela, CSP, empacotamento
   scripts/gen-lace-types.mjs gera src/ipc/lace-types.ts
@@ -104,72 +107,105 @@ studio/
 | Campo | O que é |
 |---|---|
 | `settings` | as preferências e os recentes (`SettingsStore`, gravado em `settings.json` na pasta de configuração do aplicativo) |
-| `project` | o caminho do `.spf` aberto; o projeto em si é relido a cada comando (`AppState::project`) |
-| `job` | a operação rodando (identificador e `CancelToken`); uma por vez |
+| `project` | o caminho do `.spf` aberto; o projeto em si é do servidor, que o relê a cada pedido |
+| `job` | a operação rodando (identificador e o pedido ao servidor, para cancelar); uma por vez |
 | `terminals` | os pseudoterminais abertos |
 | `watcher` | o vigia da pasta do projeto |
 | `assistants` | as sessões do assistente abertas, por identificador (`assistant::Assistants`) |
+| `server` | o servidor do Lace (`server::LaceServer`): o processo `lace serve`, aberto no primeiro pedido |
 
-### 3.2 Comandos
+### 3.2 O servidor do Lace
 
-Cada comando Tauri é uma função curta em `commands/`: valida a entrada,
-chama o Core (ou o sistema de arquivos) e devolve `Result<T, IpcError>`. Os
-que tocam o disco passam por `state::blocking`, que roda o trabalho numa
-thread de bloqueio do runtime assíncrono do Tauri, fora da thread da
-interface.
+`server.rs` abre o `lace serve` como processo filho no primeiro pedido,
+manda `initialize` e confere a versão do protocolo (um `lace` de outro
+protocolo é `lace_incompatible`; de outra versão do Lace, com o mesmo
+protocolo, só um aviso no log). Um pedido é uma linha JSON no stdin dele, e
+uma thread lê o stdout: a resposta vai para quem a espera, pelo `id`, e uma
+notificação (`phase`, `events`, `output_omitted`, `build`, `install`) vai
+para quem ouve o pedido dela. Se o servidor cai, quem esperava recebe
+`server_gone`, e o pedido seguinte o abre de novo.
+
+O servidor recebe o bundle (`--toolchain`), o compilador do Verilator
+(`--compiler`), o Quartus (`--quartus`) e as trilhas do `lace learn`
+(`LACE_LEARN_DIR`); mudou uma dessas coisas nas preferências, o pedido
+seguinte fecha o servidor e abre outro. No Windows ele roda com
+`CREATE_NO_WINDOW` (o `lace` é um programa de console) e num Job Object que
+o leva junto quando o Studio fecha ou morre; o job deixa um processo sair
+dele, que é como o assistente de instalação, aberto pelo `update.apply`,
+sobrevive ao Studio. Ao fechar, o Studio manda `shutdown`, espera até 3 s e
+mata o que sobrou.
+
+O `lace_call` é a porta da interface para o protocolo: o método e os
+parâmetros, como o `lace serve` os recebe, e a resposta dele. O projeto
+aberto entra sozinho no campo `project`; quais métodos têm esse campo vem do
+schema dos pedidos (`docs/schema/protocol-request.json`, embutido no
+binário e conferido por teste contra o do Lace). Os métodos longos (os
+fluxos, a correção, instalar e atualizar) não passam por ele: são
+operações (seção 5).
+
+### 3.3 Comandos
+
+Cada comando Tauri é uma função curta em `commands/`, `jobs.rs`,
+`terminal.rs`, `wave_tab.rs` ou `assistant.rs`: valida a entrada, faz o
+que é do Studio (ou pede ao servidor) e devolve `Result<T, IpcError>`. Os
+que tocam o disco ou falam com o servidor passam por `state::blocking`, que
+roda o trabalho numa thread de bloqueio do runtime assíncrono do Tauri,
+fora da thread da interface.
 
 | Módulo | Comandos |
 |---|---|
-| `commands::app` | versão, preferências, recentes, abrir a onda (`lace wave`), sair e reiniciar, fechar o splash, o log da interface e o roteiro de fumaça |
-| `commands::project` | abrir, criar, fechar, retrato do projeto (`lace status`), `add`, `remove`, `order`, `top`, testbench, `proc add`, `proc set`, `proc remove`, valores de saída, `move`, `convert`, hierarquia, conferir nomes, a pasta padrão dos projetos |
+| `server` | `lace_call`: os métodos do protocolo (o projeto, os processadores, o histórico, os sinais da onda, a placa FPGA, os exercícios, os recursos experimentais) |
+| `commands::app` | versão, preferências, recentes, sair e reiniciar, fechar o splash, o log da interface e o roteiro de fumaça |
+| `commands::project` | abrir, criar e fechar o projeto (o projeto aberto, os recentes e a vigia), a pasta padrão dos projetos, a hierarquia |
 | `commands::files` | ler pasta, ler e gravar texto (com detecção de conflito), criar, renomear, copiar, lixeira, lista para o "abrir rápido", busca |
-| `commands::history` | `lace report list`, `show`, `compare`, `clean` |
-| `commands::learn` | os exercícios do `lace learn`: as trilhas, abrir e criar a pasta, o exercício atual, restaurar |
-| `commands::experimental` | `lace experimental`: listar, ligar e desligar |
-| `commands::fpga` | a placa FPGA, experimental: `lace fpga boards` e `check`, o `fpga.json`, o estado do `.sof`, os cabos |
-| `commands::wave` | `lace wave signals`, `select` e `--reset-layout` |
-| `commands::toolchain` | `lace tools [--verify]`, `lace update [--check]`, `lace install` (a biblioteca do instalador, em processo) |
+| `commands::toolchain` | a tela de ferramentas, `lace update [--check]` e `lace install`, pelo servidor |
 | `jobs` | começar, cancelar e consultar a operação (build, check, sim, synth, esquemático, exercício, placa) |
 | `terminal` | abrir, escrever, confirmar a saída, `cd`, redimensionar e encerrar o terminal de shell |
 | `assistant` | o assistente, experimental: abrir, mandar mensagem, interromper e encerrar uma sessão do Claude Code |
 | `wave_tab` | a onda numa aba: registra a onda e o layout no servidor local que serve o cliente web do Surfer |
 
-### 3.3 Erros
+### 3.4 Erros
 
 `IpcError` (`error.rs`) é `{ code, message }`. A separação da API do Lace se
 mantém:
 
 - `Err(IpcError)`: o Lace não conseguiu rodar (bundle, projeto, E/S). O
-  `code` é o `LaceError::code()` do Core, estável, ou um dos códigos do
-  Studio (`error::codes`: `no_project`, `spf_missing`, `busy`, `conflict`, `outside_project`, `exists`, `invalid_argument`,
-  `terminal`, `unsafe_path`, `terminal_busy`, `cannot_replace`, `io`, `surfer_web_missing`, `wave_too_large`, `internal`, `assistant`). A interface traduz pelo código
-  (`i18n`, chaves `error.<code>`) e mostra a mensagem original embaixo.
+  `code` é o do Lace (`LaceError::code()` ou um do servidor), estável, que
+  chega do servidor em `error.data.code`, ou um dos códigos do Studio
+  (`error::codes`: `no_project`, `spf_missing`, `busy`, `conflict`,
+  `outside_project`, `exists`, `invalid_argument`, `terminal`,
+  `unsafe_path`, `terminal_busy`, `io`, `surfer_web_missing`,
+  `wave_too_large`, `internal`, `assistant`, `lace_missing`,
+  `lace_incompatible`, `server_gone`, `cancelled`). A interface traduz pelo
+  código (`i18n`, chaves `error.<code>`) e mostra a mensagem original
+  embaixo.
 - Uma operação que rodou e falhou é `Ok`, com `succeeded: false` e os
   diagnósticos no resultado. Isso vai para os consoles, para o painel
   Problemas e para os marcadores do editor, não para um aviso de erro.
 
-### 3.4 Onde está o bundle
+### 3.5 Onde está o Lace
 
 A CLI acha o bundle ao lado do próprio executável. O Studio é outro
-programa, então procura a instalação do Lace, com a busca que mora no Core
-(`lace_core::locate`; `toolchain.rs` só monta o `Lookup` com as
-preferências e o ambiente), nesta ordem: a pasta das preferências,
-`LACE_TOOLCHAIN`, a pasta do próprio Studio, as pastas padrão do
-instalador, o `lace` do `PATH` (resolvendo o atalho até a instalação) e, por fim, ao lado do próprio executável, como a CLI.
-Uma pasta declarada e inválida é erro, sem cair para as outras, como o
-`--toolchain` da CLI. O `PATH` só serve para achar a instalação; as
-ferramentas continuam saindo do bundle.
+programa: acha o `lace` que vai servir e o bundle que ele recebe, como a
+extensão do VS Code acha o `lace` dela (`toolchain.rs`). O `lace` é o de
+`LACE_STUDIO_LACE` (para desenvolvimento), o da preferência `lace_path`, o
+da instalação do bundle das preferências (`<instalação>/bin/lace`), o da
+instalação em que o Studio está (`<instalação>/toolchain/studio/`) e o do
+`PATH`, nessa ordem. O bundle é o da preferência, o de `LACE_TOOLCHAIN` ou
+o da instalação achada; sem nenhum, o servidor procura o dele. O resto (as
+ferramentas, os componentes, o compilador, o Quartus, o cliente web do
+Surfer) é o `toolchain.info` do servidor, que a tela de ferramentas mostra.
 
 O compilador do Verilator segue o `--compiler` da CLI: preferência ou
 `LACE_COMPILER`. Uma pasta declarada sem `perl`, `make` e um compilador C++
-não derruba o bundle: o Studio abre sem compilador, a simulação com
-Verilator falha com `system_compiler_missing`, e a tela de ferramentas mostra
-o motivo.
+não derruba o bundle: o servidor segue sem compilador, a simulação com
+Verilator falha com `system_compiler_missing`, e a tela de ferramentas
+mostra o motivo. O Quartus, o mesmo.
 
-O bundle é reaberto a cada operação (ler meia dúzia de JSON pequenos), para
-um `lace install` feito pelo terminal valer na hora.
+O servidor reabre o bundle a cada pedido (ler meia dúzia de JSON pequenos),
+para um `lace install` feito pelo terminal valer na hora.
 
-### 3.5 Arquivos e vigia
+### 3.6 Arquivos e vigia
 
 Ler vale para qualquer caminho (o usuário pode abrir um arquivo de fora).
 Criar, renomear e apagar só valem dentro da pasta do projeto, conferido
@@ -189,40 +225,42 @@ isso fazia a interface reler o projeto em ciclo, porque reler o projeto abre
 o `.spf`.
 
 Copiar (`fs_copy`, o arrastar do gerenciador de arquivos) só vale com
-destino no projeto. Mover e renomear na árvore (`project_move`) são o
-`Project::move_path` do Core, que mantém o `.spf` em dia e recusa o que
-fica no lugar (o `.spf`, `.lace/`, as pastas e o fonte dos processadores).
-O Studio só acrescenta o substituir: com `overwrite`, se o Core responde
-`path_exists`, o que está no destino vai para a lixeira e o movimento é
-tentado de novo, menos quando o destino é o que o Core mantém no lugar, a pasta do projeto ou uma pasta que contém a origem (`Project::replace_refusal`): aí o erro é `cannot_replace`, e nada vai para a lixeira. O Core nunca sobrescreve.
+destino no projeto. Mover e renomear na árvore são o `project.move` do
+servidor (o `Project::move_path` do Lace), que mantém o `.spf` em dia e
+recusa o que fica no lugar (o `.spf`, `.lace/`, as pastas e o fonte dos
+processadores). Com `overwrite`, o que está no destino vai para a lixeira e
+o movimento é tentado de novo, menos quando o destino é o que o Lace mantém
+no lugar, a pasta do projeto ou uma pasta que contém a origem: aí o erro é
+`cannot_replace`, e nada vai para a lixeira. O Lace nunca sobrescreve sem
+`overwrite`.
 
-### 3.6 Hierarquia e nome de projeto
+### 3.7 Hierarquia e nome de projeto
 
-A hierarquia é a operação `lace_core::hierarchy` (API.md do Lace, seção
-5.4.1), chamada por `project_hierarchy` com o `Control` padrão: o Icarus
-elabora o design e cada testbench, e o Core lê a árvore do `.vvp`. É o
-Icarus qualquer que seja o simulador escolhido; sem ele, a vista mostra o
-erro do componente.
+A hierarquia é o fluxo `hierarchy` do servidor (o `lace_core::hierarchy`,
+API.md do Lace, seção 5.4.1), pedido por `project_hierarchy` sem saída ao
+vivo: o Icarus elabora o design e cada testbench, e o Lace lê a árvore do
+`.vvp`. É o Icarus qualquer que seja o simulador escolhido; sem ele, a
+vista mostra o erro do componente.
 
-A regra de nome de projeto também é do Core (`validate_project_name`): o
-`Project::create` recusa, e o diálogo de projeto novo chama
-`project_check_name` enquanto o usuário digita, para avisar antes. O de
-processador novo faz o mesmo com `processor_check_name`
-(`validate_new_processor_name`, que recusa também os nomes das pastas do Lace), e mantém o `#NUBITS` igual a `#NBMANT +
-#NBEXPO + 1` enquanto o usuário muda a mantissa ou o expoente; o resto dos
-parâmetros o Core confere ao criar (`invalid_parameter`).
+A regra de nome de projeto também é do Lace (`project.check_name`): o
+`project.create` recusa, e o diálogo de projeto novo confere enquanto o
+usuário digita, para avisar antes. O de processador novo faz o mesmo com
+`processor.check_name` (que recusa também os nomes das pastas do Lace), e
+mantém o `#NUBITS` igual a `#NBMANT + #NBEXPO + 1` enquanto o usuário muda
+a mantissa ou o expoente; o resto dos parâmetros o Lace confere ao criar
+(`invalid_parameter`).
 
-### 3.7 Encerrar
+### 3.8 Encerrar
 
 Ao sair (evento `RunEvent::Exit`) e ao receber SIGTERM, SIGINT ou SIGHUP
-(Unix), o Studio cancela a operação rodando, espera até 3 s, encerra as sessões do assistente e fecha os
-terminais. Sem isso, no Linux e no macOS, as ferramentas, que o Lace roda
-num grupo de processos próprio, continuariam rodando depois que o Studio
-saísse (API.md do Lace, seção 9, "Limites"). No Windows, cada passo roda
-num Job Object do Core e termina junto com o Studio mesmo se ele for
-derrubado, e nenhuma ferramenta abre janela de console; o `curl` e o
-instalador que a biblioteca do instalador roda (`lace install`, `lace
-update`) também.
+(Unix), o Studio cancela a operação rodando, espera até 3 s, encerra as
+sessões do assistente, fecha os terminais e fecha o servidor do Lace
+(`shutdown`, até 3 s, e depois mata). Sem isso, no Linux e no macOS, as
+ferramentas, que o Lace roda num grupo de processos próprio, continuariam
+rodando depois que o Studio saísse (API.md do Lace, seção 9, "Limites"). No
+Windows, o servidor roda num Job Object do Studio, e cada passo num do
+Lace, dentro dele: tudo termina junto com o Studio mesmo se ele for
+derrubado, e nenhuma ferramenta abre janela de console.
 
 ## 4. Interface
 
@@ -563,40 +601,56 @@ Exemplo: F8 (Wave) com o alvo no projeto.
    open_wave }` e chama `useJobs.run`.
 2. `useJobs.run` grava os arquivos abertos (compilar o que está na tela),
    marca a operação como rodando e chama `api.flow.start` com um `Channel`.
-3. `jobs::flow_start` reserva a vaga (`busy` se já houver uma), cria o
-   `CancelToken`, começa a thread de entrega e a thread de trabalho, e
-   devolve o identificador.
-4. Na thread de trabalho, `flows::run` chama `lace_core::flows::run`, a mesma composição do `lace sim`:
-   compila os processadores que têm fonte (`build_processors`, parando no
-   primeiro que falhar), simula o projeto (`simulate_project`), grava o
-   relatório (`history::record`) e, com `wave_viewer` em `window`, abre a onda em janela (`open_wave`); com `tab`, o padrão, e o cliente web no bundle, o Core não abre, e o resultado traz a onda em `wave_tab` para a interface abrir a aba.
-5. O Core avisa cada linha que as ferramentas escrevem pelo receptor do
-   `Control`. O receptor só manda o evento por um canal; a thread de entrega
-   junta os eventos em lotes de até 500 ou 30 ms e os manda para a interface.
-   Fases (`phase`) e resultados de build (`build`) vão na ordem, entre os
-   lotes.
+3. `jobs::flow_start` pede ao servidor o comando do fluxo (`flow.command`:
+   `lace-studio sim --open`), decide se a onda abre em janela ou numa aba
+   (preferência `wave_viewer` e o cliente web no bundle), reserva a vaga
+   (`busy` se já houver uma), manda `started` e, numa thread de trabalho,
+   pede o `flow.run` ao servidor. Devolve o identificador.
+4. No servidor, o `flow.run` chama `lace_core::flows::run`, a mesma
+   composição do `lace sim`: compila os processadores que têm fonte
+   (`build_processors`, parando no primeiro que falhar), simula o projeto
+   (`simulate_project`), grava o relatório (`history::record`) e, com
+   `wave_viewer` em `window`, abre a onda em janela (`open_wave`); com
+   `tab`, o padrão, e o cliente web no bundle, o servidor não abre, e o
+   Studio acrescenta ao resultado a onda em `wave_tab` para a interface
+   abrir a aba.
+5. O Lace avisa cada linha que as ferramentas escrevem, e o servidor junta
+   os eventos em lotes de até 500 ou 30 ms (`lace_core::delivery`) e os
+   manda como notificações do pedido. Fases (`phase`) e resultados de build
+   (`build`) vão na ordem, entre os lotes. O Studio repassa cada notificação
+   à interface pelo `Channel`, com o `type` que ela lê.
 6. A interface escreve cada linha no INFO, embaixo do nome da ferramenta, e
    no terminal da etapa, se ele estiver aberto. O INFO vem para a frente uma
    vez, no começo da rodada, e não troca de aba no meio dela.
 7. No fim, a mensagem `finished` traz o `FlowOutcome` (com a saída de cada
-   passo cortada em 256 KiB, guardando o fim: as linhas já chegaram pelos
-   eventos). A interface escreve o resumo, preenche Problemas e os
-   marcadores, relê o retrato do projeto e, numa síntese, abre o RTLViewer
-   (seção 4.7).
+   passo cortada em 256 KiB pelo servidor, guardando o fim: as linhas já
+   chegaram pelos eventos). A interface escreve o resumo, preenche Problemas
+   e os marcadores, relê o retrato do projeto e, numa síntese, abre o
+   RTLViewer (seção 4.7).
 
-Parar (Shift+F5) chama `flow_cancel`, que marca o `CancelToken`. O Core
-encerra o processo do passo com tudo o que ele iniciou e devolve o resultado
-com `status: cancelled`, que chega pelo mesmo caminho.
+Parar (Shift+F5) chama `flow_cancel`, que manda o `$/cancel` do pedido ao
+servidor (ou assim que ele sair, se o cancelamento vier antes). O Lace
+encerra o processo do passo com tudo o que ele iniciou e devolve o
+resultado com `status: cancelled`, que chega pelo mesmo caminho.
 
 ## 6. Contrato entre backend e interface
 
-- **Tipos do Core:** `src/ipc/lace-types.ts` é gerado por
-  `npm run gen:types` a partir de `docs/schema/*.json` da raiz, que o próprio
-  Lace gera dos tipos Rust e confere por teste. Mudou um
-  tipo público no Lace: rode de novo e confira o diff.
+- **Tipos do protocolo:** `src/ipc/lace-types.ts` é gerado por
+  `npm run gen:types` a partir de `docs/schema/*.json` da raiz, que o
+  próprio Lace gera dos tipos Rust e confere por teste. Mudou um tipo
+  público ou um método no Lace: rode de novo e confira o diff. O schema dos
+  pedidos também vai embutido no backend, que sabe por ele quais métodos
+  têm `project`.
+- **Versão do protocolo:** o backend fala a versão 1
+  (`server::PROTOCOL_VERSION`) e recusa um `lace` de outra; um teste confere
+  a constante contra a do Lace.
 - **Tipos do Studio:** os structs de `src-tauri/src` e as interfaces de
   `src/ipc/types.ts` são mantidos à mão, lado a lado, com o arquivo Rust
-  citado no comentário de cada interface. Desde a 0.9.0, vários tipos que o backend devolve são do Core e já vêm gerados em `lace-types.ts` (`ProjectStatus`, que é o `ProjectSnapshot`, `ToolchainInfo`, `FlowOutcome`, `Phase`, `WaveOpened`, `LayoutConversion`), mas `types.ts` ainda os copia à mão. Mudou um, mude o outro e o
+  citado no comentário de cada interface. Vários tipos que a interface
+  recebe são do protocolo e já vêm gerados em `lace-types.ts`
+  (`ProjectStatus`, que é o `ProjectSnapshot`, `ToolchainInfo`,
+  `FlowOutcome`, `Phase`, `WaveOpened`, `LayoutConversion`), mas
+  `types.ts` ainda os copia à mão. Mudou um, mude o outro e o
   [IPC.md](IPC.md).
 - **Nomes de argumento:** o Tauri converte os argumentos de primeiro nível
   de `camelCase` (JavaScript) para `snake_case` (Rust); os campos de structs
@@ -614,24 +668,36 @@ com `status: cancelled`, que chega pelo mesmo caminho.
   no sistema, título, zoom, mostrar a janela, tela cheia, os botões e o arraste da barra de título integrada (minimizar, maximizar, tirar a moldura, arrastar) e fechar a janela.
 - Criar, renomear e apagar só dentro da pasta do projeto; apagar vai para a
   lixeira.
-- O processo das ferramentas recebe o ambiente que o Core monta (vazio mais
-  o mínimo); o Studio não passa o próprio ambiente para elas.
+- O processo das ferramentas recebe o ambiente que o Lace monta (vazio
+  mais o mínimo), no servidor; o Studio não passa o próprio ambiente para
+  elas.
+- O servidor do Lace fala só pelo stdin e pelo stdout do processo filho:
+  não abre porta nenhuma.
 
 ## 8. Pendências no Lace
 
-Coisas que o Studio faz por conta própria e que deveriam ir para o Core,
-onde mora a regra de negócio. Ficam isoladas para sair inteiras quando isso
-acontecer. Hoje não há nenhuma: as quatro que estavam aqui foram para o
-Lace em 2026-10-19, e o Studio só as chama:
+Coisas que o Studio faz por conta própria e que deveriam ir para o Lace,
+onde mora a regra de negócio. Hoje não há nenhuma. Em 2026-10-26 o Studio
+virou cliente do servidor do Lace e deixou de linkar o `lace-core`, o
+`lace-learn` e o instalador; o que ele fazia com eles virou método do
+protocolo:
 
 | Era do Studio | Foi para |
 |---|---|
-| A composição dos fluxos: compilar antes, parar no primeiro build que falhar, ler as portas de saída, gravar o relatório, abrir a onda (`src-tauri/src/flows.rs`, cópia de `lace-cli/src/commands.rs`) | `lace_core::flows` (`run`, `open_wave`, `choose_signals`), com a entrega em lotes e o teto de linhas em `lace_core::delivery`; `flows.rs` e `jobs.rs` viraram cascas |
-| Achar a instalação do Lace a partir de outro programa (`src-tauri/src/toolchain.rs`) | `lace_core::locate` (`Lookup`, `resolve`, `describe`) |
-| Ler a porta de saída pelo nome do arquivo (`flows::port_values`) | `Processor::output_ports`, e `Project::status()` para o retrato do projeto |
-| Instalar e atualizar pela CLI (`lace install`, `lace update --json`) | `lace_installer::update::run` e `lace_installer::add`, chamados em processo (`commands/toolchain.rs`) |
+| Os comandos que repetiam um método (retrato, ordem, conversão, nomes, configurar e remover processador, saídas, histórico, recursos experimentais, placa FPGA, conferência do bundle, sinais e layout salvo da onda) | os métodos do protocolo, pelo `lace_call` |
+| Arquivos, topo, testbench, processador novo, mover com substituir, escolher sinais, abrir a onda | `project.add`, `project.remove`, `project.top`, `project.testbench`, `processor.add`, `project.move` com `overwrite`, `wave.choose` com `set`, `wave.open` (com o layout do exercício) |
+| Os fluxos, a correção de um exercício, a entrega em lotes e o corte da saída | `flow.run` (com o fluxo `learn` e `step_output_limit`) e `flow.command` |
+| Instalar, atualizar, as linhas do console do instalador | `install.add`, `update.apply` (com `reopen_studio`), `update.check` e o `line` da notificação `install` |
+| Os padrões de processador, os módulos de um texto, os nomes de testbench, o topo da placa, o layout da aba de onda, os exercícios do `lace learn` | `processor.defaults`, `verilog.modules`, `verilog.testbench_names`, `fpga.top`, `wave.layout`, `learn.tracks`, `learn.status`, `learn.init`, `learn.set_current`, `learn.reset` |
 
-Antes disso (2026-10-04) já tinham ido a hierarquia elaborada
-(`lace_core::hierarchy`, e `lace hierarchy` na CLI), mover e renomear com
-o `.spf` em dia (`Project::move_path`, e `lace move`) e a regra de nome de
-projeto (`validate_project_name`).
+O que ficou no Studio é dele: achar o `lace` que serve (como a extensão do
+VS Code), esconder o console e o Job Object do servidor no Windows, os
+arquivos, o terminal, a vigia, as preferências e a onda numa aba. O
+assistente ainda linka o `lace-agent`, que traz o core; ele vai para o
+protocolo na 1.0.
+
+Antes disso, em 2026-10-19, a composição dos fluxos, a busca da instalação,
+a leitura das portas de saída e instalar e atualizar tinham saído do Studio
+para o Lace, que o Studio chamava em processo; e em 2026-10-04, a
+hierarquia elaborada, mover e renomear com o `.spf` em dia e a regra de
+nome de projeto.

@@ -25,8 +25,8 @@ lace-core          a regra: projeto, fluxos, ferramentas, erros e o contrato (pr
   lace-learn       os exercícios do lace learn, sobre o core
   lace-installer   instalar, atualizar e desinstalar, sobre o core
   lace-agent       o assistente de IA, sobre o core (experimental)
-lace-cli           o binário lace: os comandos de texto, o lace serve, o lace mcp e o lace chat
-studio/src-tauri   o backend do Lace Studio: comandos Tauri sobre os crates acima
+lace-cli           o binário lace: os comandos de texto, o lace serve (que fala também MCP), o lace mcp e o lace chat
+studio/src-tauri   o backend do Lace Studio: cliente do lace serve, mais o que é só do Studio
 studio/src         a interface do Studio, em TypeScript
 editors/vscode     a extensão do VS Code, em TypeScript, pelo lace serve ou pela CLI
 ```
@@ -37,9 +37,11 @@ Cinco regras seguem dessa figura.
    teste lá: o que rodar, em que ordem, o que validar, que arquivo escolher.
    Se um `if` de uma interface muda o que o Lace faz, ele está no lugar
    errado.
-2. **As interfaces só traduzem.** A CLI, o `lace serve`, o `lace mcp`, os
-   comandos do Studio e a extensão abrem o projeto, chamam o core e mostram
-   o resultado. Elas escolhem como mostrar, nunca o que fazer.
+2. **As interfaces só traduzem.** A CLI e o `lace serve` abrem o projeto,
+   chamam o core e mostram ou devolvem o resultado; o Studio e a extensão
+   pedem ao `lace serve` e mostram a resposta. Elas escolhem como mostrar,
+   nunca o que fazer. O Studio não linka o core: o único crate do Lace que
+   ele linka é o `lace-agent`, do assistente, até a 1.0.
 3. **Uma camada não conhece a de cima.** O core não sabe que existe CLI nem
    Studio. As mensagens dele não citam comandos: a dica com o comando que
    resolve é posta pela CLI, no campo `hint`.
@@ -79,15 +81,14 @@ mas quem escreve um programa que fala com o Lace usa o protocolo.
 | Variante de `Request` | o método em CamelCase | `HistoryPlanCleanup` |
 | Função do core | `verbo_objeto`, no módulo do domínio | `history::compare_reports` |
 | Ferramenta do `lace mcp` | o método com `_` no lugar do ponto | `history_compare` |
-| Comando do Studio | igual à ferramenta do `lace mcp` | `history_compare` |
-| Função no frontend do Studio | `api.<domínio>.<verbo>`, em `studio/src/ipc/api.ts` | `api.history.compare` |
+| Função no frontend do Studio | `api.<domínio>.<verbo>`, em `studio/src/ipc/api.ts`, que pede o método pelo `lace_call` | `api.history.compare` |
 | Código de erro | `snake_case`, em inglês, e nunca muda depois de publicado | `experimental_disabled` |
 
-Os domínios de hoje são `project`, `processor`, `flow`, `wave`, `history`,
-`toolchain`, `experimental`, `fpga`, `update`, `install` e `learn`. Um
-domínio novo ganha um módulo próprio no core e um arquivo próprio em
-`studio/src-tauri/src/commands/`. Há exceções antigas à tabela, como
-`fpga.config`, cuja variante é `FpgaConfigGet`. Elas ficam, mas não servem
+Os domínios de hoje são `project`, `processor`, `flow`, `wave`,
+`verilog`, `history`, `toolchain`, `experimental`, `fpga`, `update`,
+`install` e `learn`. Um domínio novo ganha um módulo próprio no core. Há
+exceções antigas à tabela, como `fpga.config` e `wave.layout`, cujas
+variantes são `FpgaConfigGet` e `WaveLayoutGet`. Elas ficam, mas não servem
 de modelo.
 
 ## 4. O ciclo de vida de um método
@@ -100,7 +101,7 @@ Um método está sempre num de três estados.
   Uma área inteira que ainda vai mudar muito, como a placa FPGA e o
   assistente de IA, fica também atrás de um recurso de
   `lace_core::experimental`: desligado, o Studio esconde a área, e a CLI,
-  os comandos do Studio e os fluxos do core (`flows::run`) recusam com
+  o `lace serve` e os fluxos do core (`flows::run`) recusam com
   `experimental_disabled`, pelo `experimental::require`.
 - **Estável.** Só muda de forma compatível, nos termos da seção 5.
 - **Obsoleto.** Continua respondendo por pelo menos uma versão menor
@@ -205,17 +206,18 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
 7. **As interfaces que vão usar o método.** Só as que precisam dele agora.
    - CLI: a receita "Acrescentar um comando ou uma opção à CLI" do
      CONTRIBUTING.md.
-   - Studio: a receita "Um comando novo no backend" do DEVELOPMENT.md. O
-     comando chama a mesma função do core que o braço do despacho chama, e
-     nunca a reescreve.
+   - Studio: a receita "Uma operação do Lace na interface" do
+     DEVELOPMENT.md. A função do `api.ts` pede o método pelo `lace_call`, e
+     o backend não ganha comando.
    - Extensão do VS Code: o método na interface `LaceClient`
      (`editors/vscode/src/lace/client.ts`), em `serveClient.ts` e, se houver
      comando de CLI equivalente, em `cliClient.ts`.
 8. **Documentação.** A função em [API.md](API.md); o método na lista do
    `lace serve` em [CLI.md](CLI.md) (a referência dele, em
-   [PROTOCOL.md](PROTOCOL.md), saiu no passo 6); o comando do Studio em
-   [IPC.md](../studio/docs/IPC.md), se houver; uma linha no `CHANGELOG.md`,
-   e no `studio/CHANGELOG.md` se o Studio mudou.
+   [PROTOCOL.md](PROTOCOL.md), saiu no passo 6); a função do Studio na
+   tabela do `lace_call` em [IPC.md](../studio/docs/IPC.md), se o Studio a
+   usa; uma linha no `CHANGELOG.md`, e no `studio/CHANGELOG.md` se o Studio
+   mudou.
 
 ### Pronto quando
 
@@ -271,7 +273,8 @@ custo disso cai em quem não participou da decisão.
 
 ## 8. O que muda no código até a 1.0
 
-Esta seção é uma proposta. Nada dela está feito ainda.
+Esta seção é uma proposta. A fase 2 está feita, de outro jeito que o
+proposto aqui; as outras, não.
 
 ### Onde está o custo hoje
 
@@ -279,10 +282,6 @@ Esta seção é uma proposta. Nada dela está feito ainda.
   arquivos, fora os tipos gerados. Um método usado por todos os clientes
   passa por uns 15: core, protocolo, despacho, `lace mcp`, CLI, Studio,
   extensão e documentação.
-- **O despacho existe duas vezes.** O braço do `lace serve` e o comando do
-  Studio fazem a mesma coisa: abrir o projeto, chamar o core, devolver o
-  resultado. O Studio tem 86 comandos Tauri, e boa parte só repete o
-  despacho.
 - **Algumas respostas não têm tipo.** `update.check`, `update.apply`,
   `install.add` e `learn.check` respondem `Response::Other`, um JSON solto,
   porque o core não pode depender do `lace-installer` nem do `lace-learn`.
@@ -305,14 +304,17 @@ Cada fase vale sozinha e pode parar ali.
    `lace serve` e falha se algum responder `unsupported`. Um `CODEOWNERS`
    para `protocol.rs`, `error.rs` e `docs/schema/`, e um modelo de pull
    request com as perguntas da seção 7.
-2. **Um despacho só.** Um crate novo, `lace-service`, acima do core, do
-   `lace-installer` e do `lace-learn`, com uma função
-   `handle(contexto, Request, cancelamento, notificações) -> Result<Response>`.
-   O `lace serve` e o `lace mcp` viram só transporte. No Studio, os comandos
-   que só repetem o despacho dão lugar a um comando genérico, `lace_call`.
-   Ficam próprios os comandos que são do Studio: as operações longas com
-   canal, os arquivos, o terminal, o vigia de arquivos, as preferências e a
-   janela. As respostas do update, do install e do learn ganham tipo.
+2. **Um despacho só.** Feita em 2026-10-26, sem o crate `lace-service`
+   que esta seção propunha: o Studio virou cliente do `lace serve`, como a
+   extensão, e deixou de linkar o core, o `lace-learn` e o instalador. O
+   despacho é um só, o de `crates/lace-cli/src/serve.rs`, e o `lace serve`
+   e o `lace mcp` são a mesma porta (o primeiro pedido diz se a sessão é do
+   protocolo do Lace ou MCP). No Studio, os comandos que repetiam o
+   despacho deram lugar ao `lace_call`; ficaram próprios os comandos que
+   são do Studio: as operações longas com canal, os arquivos, o terminal, o
+   vigia de arquivos, as preferências e a janela. Falta dar tipo às
+   respostas do update, do install e do learn, que ainda são
+   `Response::Other`.
 3. **O método declarado num lugar só.** Uma macro, como a `reports!` da
    CLI, em que cada método declara uma vez o nome, o estado da seção 4, se
    só lê, se é da instalação, se vai para o `lace mcp` e o resumo. `METHODS`,
@@ -338,10 +340,10 @@ Depois da fase 3, um método novo custa isto:
 | `METHODS`, `is_read_only`, `is_installation` | `METHODS` sai de `methods!`; os outros, à mão | saem do registro |
 | Braço no despacho | no `lace serve`, sem aviso se faltar | no `lace-service`, com teste que exige |
 | Linha no `lace mcp` | à mão | sai do registro |
-| Comando no Studio | um por método | nenhum, pelo `lace_call` |
+| Comando no Studio | nenhum, pelo `lace_call` (desde a fase 2) | nenhum |
 | Tipos em TypeScript | gerados | gerados |
 | Documentação e CHANGELOG | sim | sim |
 
 A ordem sugerida é a das fases. A fase 1 é pequena e protege as outras. A
-fase 2 é a que mais simplifica o Studio. A fase 3 depende da 2, e a 4
-depende da 1.
+fase 2, a que mais simplificava o Studio, está feita. A fase 3 depende da
+2, e a 4 depende da 1.
