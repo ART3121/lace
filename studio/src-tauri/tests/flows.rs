@@ -1,38 +1,64 @@
-//! Os fluxos do Studio (`src/flows.rs`) rodando de verdade, com o bundle do
-//! Lace, sobre cópias dos exemplos do Lace (`examples/`, na raiz do
-//! repositório).
+//! Os fluxos do Studio (`src/flows.rs`) rodando de verdade: o pedido que o
+//! Studio monta vai ao servidor do Lace (`lace serve`), que roda o fluxo com
+//! o bundle sobre cópias dos exemplos do Lace (`examples/`, na raiz do
+//! repositório), e a resposta volta como a interface a lê.
 //!
-//! O bundle é o que o Studio acharia sozinho (a instalação do Lace) ou o de
-//! `LACE_TEST_BUNDLE`. Sem bundle, os testes avisam e passam, como os do
-//! Lace; com a variável `CI` definida, falham, porque lá não podem pular.
+//! O servidor é o `lace` de `LACE_STUDIO_LACE` ou, sem ela, o build de
+//! desenvolvimento em `target/debug` da raiz do repositório. O bundle é o
+//! que o Studio acharia sozinho (a instalação do Lace) ou o de
+//! `LACE_TEST_BUNDLE`. Sem um dos dois, os testes avisam e passam, como os
+//! do Lace; com a variável `CI` definida, falham, porque lá não podem
+//! pular.
 //!
 //! ```sh
-//! cargo test --test flows                                 # instalação do Lace
+//! cargo build -p lace-cli                                  # na raiz
+//! cargo test --test flows                                  # instalação do Lace
 //! LACE_TEST_BUNDLE=/caminho/do/toolchain cargo test --test flows
 //! ```
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::{Control, Simulator, Status, Tool};
-use lace_studio_lib::flows::{self, FlowOutcome, FlowRequest, Progress};
+use lace_core::{Simulator, Tool};
+use lace_studio_lib::error::IpcError;
+use lace_studio_lib::flows::FlowRequest;
+use lace_studio_lib::jobs::JobMessage;
+use lace_studio_lib::server::LaceServer;
 use lace_studio_lib::settings::Settings;
 use lace_studio_lib::toolchain;
+use serde_json::Value;
 
-/// As preferências apontando para o bundle de teste, ou `None` sem bundle.
+fn skip(reason: &str) -> Option<Settings> {
+    if std::env::var_os("CI").is_some() {
+        panic!("CI definido, mas {reason}");
+    }
+    eprintln!("PULADO: {reason}");
+    None
+}
+
+/// As preferências apontando para o bundle de teste e para o `lace` do
+/// servidor, ou `None` sem um dos dois.
 fn settings() -> Option<Settings> {
     let mut settings = Settings::default();
     if let Ok(dir) = std::env::var("LACE_TEST_BUNDLE") {
         settings.toolchain_dir = Some(dir);
     }
-    match toolchain::resolve(&settings) {
-        Ok(_) => Some(settings),
-        Err(error) if std::env::var_os("CI").is_some() => {
-            panic!("CI definido, mas sem bundle do Lace: {error}")
-        }
-        Err(error) => {
-            eprintln!("PULADO: sem bundle do Lace ({error}). Defina LACE_TEST_BUNDLE.");
-            None
-        }
+    if let Err(error) = toolchain::resolve(&settings) {
+        return skip(&format!(
+            "sem bundle do Lace ({error}). Defina LACE_TEST_BUNDLE."
+        ));
     }
+    if std::env::var_os("LACE_STUDIO_LACE").is_none() {
+        let exe = if cfg!(windows) { "lace.exe" } else { "lace" };
+        let dev = Utf8Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target/debug")
+            .join(exe);
+        if !dev.is_file() {
+            return skip(
+                "sem o lace do servidor: rode cargo build -p lace-cli ou defina LACE_STUDIO_LACE",
+            );
+        }
+        settings.lace_path = Some(dev.to_string());
+    }
+    Some(settings)
 }
 
 /// O bundle tem o componente?
@@ -74,9 +100,49 @@ fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
     (dir, spf)
 }
 
-fn run(request: FlowRequest, settings: &Settings, spf: &Utf8Path) -> FlowOutcome {
-    let progress = |_: Progress<'_>| {};
-    flows::run(&request, settings, spf, &Control::default(), &progress).expect("o fluxo rodou")
+/// O fluxo pelo servidor, como `jobs.rs` o roda: a mensagem final.
+fn finish(
+    server: &LaceServer,
+    request: &FlowRequest,
+    settings: &Settings,
+    spf: &Utf8Path,
+) -> JobMessage {
+    let (operation, finisher) = request.plan(settings, spf);
+    let reply = server.call_with(
+        settings,
+        operation.method,
+        operation.params,
+        Box::new(|_, _| {}),
+        |_| {},
+    );
+    finisher.finish(reply)
+}
+
+/// O resultado de um fluxo que rodou (`finished`), como a interface o lê.
+fn run(server: &LaceServer, request: FlowRequest, settings: &Settings, spf: &Utf8Path) -> Value {
+    match finish(server, &request, settings, spf) {
+        JobMessage::Finished { outcome } => outcome,
+        JobMessage::Failed { error } => panic!("o fluxo não rodou: {error}"),
+        _ => panic!("outra mensagem"),
+    }
+}
+
+/// O erro de um fluxo que o Lace não conseguiu rodar (`failed`).
+fn fail(
+    server: &LaceServer,
+    request: &FlowRequest,
+    settings: &Settings,
+    spf: &Utf8Path,
+) -> IpcError {
+    match finish(server, request, settings, spf) {
+        JobMessage::Failed { error } => error,
+        JobMessage::Finished { outcome } => panic!("o fluxo rodou: {outcome}"),
+        _ => panic!("outra mensagem"),
+    }
+}
+
+fn succeeded(outcome: &Value) -> bool {
+    outcome["succeeded"] == true
 }
 
 #[test]
@@ -86,9 +152,11 @@ fn verilog_project_checks_simulates_and_synthesizes() {
         eprintln!("PULADO: o bundle não tem icarus, yosys e graphviz");
         return;
     }
+    let server = LaceServer::default();
     let (_dir, spf) = example("contador");
 
     let check = run(
+        &server,
         FlowRequest::Check {
             file: None,
             processor: None,
@@ -98,13 +166,14 @@ fn verilog_project_checks_simulates_and_synthesizes() {
         &spf,
     );
     assert!(
-        check.succeeded,
-        "check: {:?}",
-        check.check.as_ref().map(|c| &c.diagnostics)
+        succeeded(&check),
+        "check: {}",
+        check["check"]["diagnostics"]
     );
-    assert!(check.report.is_some(), "o check grava relatório");
+    assert!(!check["report"].is_null(), "o check grava relatório");
 
     let sim = run(
+        &server,
         FlowRequest::Simulate {
             processor: None,
             testbench: None,
@@ -116,25 +185,21 @@ fn verilog_project_checks_simulates_and_synthesizes() {
         &settings,
         &spf,
     );
-    let simulation = sim.core.simulation.clone().expect("simulou");
+    let simulation = &sim["simulation"];
     assert_eq!(
-        simulation.status,
-        Status::Succeeded,
-        "{:?}",
-        simulation.diagnostics
+        simulation["status"], "succeeded",
+        "{}",
+        simulation["diagnostics"]
     );
-    assert!(
-        simulation
-            .waveform
-            .as_ref()
-            .is_some_and(|w| w.path.is_file())
-    );
-    assert!(sim.wave.is_none(), "open_wave falso não abre o Surfer");
+    let waveform = simulation["waveform"]["path"].as_str().expect("onda");
+    assert!(Utf8Path::new(waveform).is_file());
+    assert!(sim["wave"].is_null(), "open_wave falso não abre o Surfer");
 
     // A Rápida (F9): o testbench Verilog no Verilator, mesmo com o Icarus
     // escolhido, e sem onda, então nada abre.
     if has_verilator(&settings) {
         let fast = run(
+            &server,
             FlowRequest::Simulate {
                 processor: None,
                 testbench: None,
@@ -146,21 +211,21 @@ fn verilog_project_checks_simulates_and_synthesizes() {
             &settings,
             &spf,
         );
-        assert_eq!(fast.command, "lace-studio sim --fast --timeout 300");
-        let simulation = fast.core.simulation.clone().expect("simulou");
+        assert_eq!(fast["command"], "lace-studio sim --fast --timeout 300");
+        let simulation = &fast["simulation"];
         assert_eq!(
-            simulation.status,
-            Status::Succeeded,
-            "{:?}",
-            simulation.diagnostics
+            simulation["status"], "succeeded",
+            "{}",
+            simulation["diagnostics"]
         );
-        assert!(simulation.fast);
-        assert_eq!(simulation.simulator, Simulator::Verilator);
-        assert!(simulation.waveform.is_none());
-        assert!(fast.wave.is_none() && fast.wave_tab.is_none());
+        assert_eq!(simulation["fast"], true);
+        assert_eq!(simulation["simulator"], "verilator");
+        assert!(simulation["waveform"].is_null());
+        assert!(fast["wave"].is_null() && fast["wave_tab"].is_null());
     }
 
     let synth = run(
+        &server,
         FlowRequest::Synthesize {
             processor: None,
             schematic: true,
@@ -170,35 +235,30 @@ fn verilog_project_checks_simulates_and_synthesizes() {
         &settings,
         &spf,
     );
+    assert!(succeeded(&synth), "{}", synth["synthesis"]["diagnostics"]);
+    let schematic = &synth["schematic"];
+    let svg = schematic["svg"].as_str().expect("desenhou");
+    assert!(Utf8Path::new(svg).is_file());
     assert!(
-        synth.succeeded,
-        "{:?}",
-        synth.core.synthesis.map(|s| s.diagnostics)
-    );
-    let schematic = synth.core.schematic.clone().expect("desenhou");
-    assert!(schematic.svg.as_ref().is_some_and(|svg| svg.is_file()));
-    assert!(
-        synth
-            .synthesis
-            .as_ref()
-            .and_then(|s| s.statistics.as_ref())
-            .is_some_and(|s| s.cells.is_some()),
+        !synth["synthesis"]["statistics"]["cells"].is_null(),
         "a síntese traz as estatísticas do stat"
     );
 
     // Desenhar outro módulo do mesmo netlist, sem sintetizar de novo.
-    let netlist = synth.core.synthesis.unwrap().netlist.unwrap();
+    let netlist = synth["synthesis"]["netlist"].as_str().unwrap();
     let again = run(
+        &server,
         FlowRequest::Schematic {
-            netlist,
-            module: schematic.module.clone(),
+            netlist: netlist.into(),
+            module: schematic["module"].as_str().unwrap().to_owned(),
             bus_widths: false,
         },
         &settings,
         &spf,
     );
-    assert!(again.succeeded);
-    assert!(again.report.is_none(), "redesenhar não grava relatório");
+    assert!(succeeded(&again));
+    assert!(again["report"].is_null(), "redesenhar não grava relatório");
+    server.stop();
 }
 
 #[test]
@@ -208,23 +268,22 @@ fn processor_builds_and_simulates_with_port_values() {
         eprintln!("PULADO: o bundle não tem yanc e icarus");
         return;
     }
+    let server = LaceServer::default();
     let (_dir, spf) = example("soma");
 
     let build = run(
+        &server,
         FlowRequest::Build {
             processors: vec!["soma".into()],
         },
         &settings,
         &spf,
     );
-    assert!(
-        build.succeeded,
-        "{:?}",
-        build.builds.first().map(|b| &b.diagnostics)
-    );
-    assert_eq!(build.builds.len(), 1);
+    assert!(succeeded(&build), "{}", build["builds"][0]["diagnostics"]);
+    assert_eq!(build["builds"].as_array().map(Vec::len), Some(1));
 
     let sim = run(
+        &server,
         FlowRequest::Simulate {
             processor: Some("soma".into()),
             testbench: None,
@@ -236,18 +295,20 @@ fn processor_builds_and_simulates_with_port_values() {
         &settings,
         &spf,
     );
-    assert!(
-        sim.succeeded,
-        "{:?}",
-        sim.simulation.as_ref().map(|s| &s.diagnostics)
-    );
+    assert!(succeeded(&sim), "{}", sim["simulation"]["diagnostics"]);
     // soma.cmm escreve 1 + 2 + ... + 10 na porta 0.
-    let port0 = sim.outputs.iter().find(|p| p.port == 0).expect("porta 0");
-    assert_eq!(port0.values.last(), Some(&55));
+    let last = |outcome: &Value| {
+        outcome["outputs"]
+            .as_array()
+            .and_then(|ports| ports.iter().find(|p| p["port"] == 0))
+            .and_then(|port| port["values"].as_array()?.last().cloned())
+    };
+    assert_eq!(last(&sim), Some(Value::from(55)));
 
     // A Rápida no processador: as mesmas saídas, sem onda.
     if has_verilator(&settings) {
         let fast = run(
+            &server,
             FlowRequest::Simulate {
                 processor: Some("soma".into()),
                 testbench: None,
@@ -259,19 +320,15 @@ fn processor_builds_and_simulates_with_port_values() {
             &settings,
             &spf,
         );
-        assert!(
-            fast.succeeded,
-            "{:?}",
-            fast.simulation.as_ref().map(|s| &s.diagnostics)
-        );
-        let port0 = fast.outputs.iter().find(|p| p.port == 0).expect("porta 0");
-        assert_eq!(port0.values.last(), Some(&55));
-        assert!(fast.simulation.as_ref().unwrap().waveform.is_none());
+        assert!(succeeded(&fast), "{}", fast["simulation"]["diagnostics"]);
+        assert_eq!(last(&fast), Some(Value::from(55)));
+        assert!(fast["simulation"]["waveform"].is_null());
     }
 
     // O alvo no F7: verifica o Verilog do soma, que o build acima compilou,
     // com o testbench do YANC, sem compilar de novo.
     let check = run(
+        &server,
         FlowRequest::Check {
             file: None,
             processor: Some("soma".into()),
@@ -280,15 +337,16 @@ fn processor_builds_and_simulates_with_port_values() {
         &settings,
         &spf,
     );
-    assert!(
-        check.succeeded,
-        "{:?}",
-        check.check.as_ref().map(|c| &c.diagnostics)
+    assert!(succeeded(&check), "{}", check["check"]["diagnostics"]);
+    assert_eq!(
+        check["builds"].as_array().map(Vec::len),
+        Some(0),
+        "o F7 não compila"
     );
-    assert!(check.builds.is_empty(), "o F7 não compila");
-    assert_eq!(check.command, "lace-studio check -p soma");
-    let targets = &check.check.as_ref().unwrap().targets;
+    assert_eq!(check["command"], "lace-studio check -p soma");
+    let targets = check["check"]["targets"].as_array().unwrap();
     assert!(targets.iter().any(|t| t == "soma_tb"), "{targets:?}");
+    server.stop();
 }
 
 #[test]
@@ -298,34 +356,46 @@ fn build_error_comes_back_as_diagnostic_not_err() {
         eprintln!("PULADO: o bundle não tem yanc");
         return;
     }
+    let server = LaceServer::default();
     let (_dir, spf) = example("com_erro");
     let build = run(
+        &server,
         FlowRequest::Build {
             processors: vec!["conta".into()],
         },
         &settings,
         &spf,
     );
-    assert!(!build.succeeded);
-    let result = &build.builds[0];
-    assert_eq!(result.status, Status::Failed);
-    let error = result.first_error().expect("diagnóstico de erro");
-    assert_eq!(error.line, Some(15), "{error:?}");
+    assert!(!succeeded(&build));
+    let result = &build["builds"][0];
+    assert_eq!(result["status"], "failed");
+    let error = result["diagnostics"]
+        .as_array()
+        .and_then(|d| d.iter().find(|d| d["severity"] == "error"))
+        .expect("diagnóstico de erro");
+    assert_eq!(error["line"], 15, "{error}");
     assert!(
-        error
-            .file
-            .as_ref()
-            .is_some_and(|f| f.as_str().ends_with("conta.cmm"))
+        error["file"]
+            .as_str()
+            .is_some_and(|f| f.ends_with("conta.cmm"))
     );
+    server.stop();
 }
 
 #[test]
 fn verilog_only_project_build_is_a_no_op() {
     let Some(settings) = settings() else { return };
+    let server = LaceServer::default();
     let (_dir, spf) = example("contador");
-    let build = run(FlowRequest::Build { processors: vec![] }, &settings, &spf);
-    assert!(build.succeeded);
-    assert!(build.builds.is_empty());
+    let build = run(
+        &server,
+        FlowRequest::Build { processors: vec![] },
+        &settings,
+        &spf,
+    );
+    assert!(succeeded(&build));
+    assert_eq!(build["builds"].as_array().map(Vec::len), Some(0));
+    server.stop();
 }
 
 #[test]
@@ -370,8 +440,9 @@ fn command_line_mirrors_the_cli() {
 }
 
 /// O fluxo `learn`: corrige um exercício da trilha de teste do lace-learn
-/// (`crates/lace-learn/tests/fixtures`, pela preferência `learn_dir`), grava
-/// o resolvido e não grava relatório.
+/// (`crates/lace-learn/tests/fixtures`, pela preferência `learn_dir`, que o
+/// servidor recebe em `LACE_LEARN_DIR`), grava o resolvido e não grava
+/// relatório.
 #[test]
 fn learn_flow_checks_an_exercise_and_records_it() {
     let Some(mut settings) = settings() else {
@@ -384,6 +455,7 @@ fn learn_flow_checks_an_exercise_and_records_it() {
     let fixtures =
         Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/lace-learn/tests/fixtures");
     settings.learn_dir = Some(fixtures.to_string());
+    let server = LaceServer::default();
     let dir = tempfile::tempdir().unwrap();
     let root = Utf8PathBuf::from_path_buf(dir.path().join("ex")).unwrap();
     let track = lace_learn::load_track(&fixtures, "teste", None).unwrap();
@@ -397,21 +469,22 @@ fn learn_flow_checks_an_exercise_and_records_it() {
     };
     assert_eq!(request.command_line(), "lace-studio learn check mux2");
     // O arquivo inicial não atribui a saída.
-    let wrong = run(request.clone(), &settings, &spf);
-    assert!(!wrong.succeeded);
-    let grade = wrong.learn.clone().expect("a correção");
-    assert_eq!(grade.verdict, lace_learn::Verdict::Mismatch);
-    assert!(wrong.report.is_none(), "a correção não grava relatório");
+    let wrong = run(&server, request.clone(), &settings, &spf);
+    assert!(!succeeded(&wrong));
+    assert_eq!(wrong["flow"], "learn");
+    assert_eq!(wrong["learn"]["verdict"], "mismatch", "{}", wrong["learn"]);
+    assert!(wrong["report"].is_null(), "a correção não grava relatório");
 
     std::fs::write(
         workspace.student_file(&mux2),
         "module mux2(input a, input b, input sel, output y);\n    assign y = sel ? b : a;\nendmodule\n",
     )
     .unwrap();
-    let right = run(request, &settings, &spf);
-    assert!(right.succeeded, "{:?}", right.learn);
+    let right = run(&server, request, &settings, &spf);
+    assert!(succeeded(&right), "{}", right["learn"]);
     let reopened = lace_learn::Workspace::open(&root, &fixtures, None).unwrap();
     assert!(reopened.is_solved("mux2"));
+    server.stop();
 }
 
 /// O fluxo `fpga_build` (`lace fpga build`): o pedido que a interface manda
@@ -427,30 +500,23 @@ fn fpga_build_refuses_before_building() {
         program.command_line(),
         "lace-studio fpga program --cable \"USB-Blaster [USB-0]\""
     );
-    // Os dois são da placa FPGA, experimental: `jobs.rs` não os começa com
-    // ela desligada. `flows::run` não confere, e o resto do teste roda.
-    let fpga = Some(lace_core::experimental::Feature::Fpga);
-    assert_eq!(request.feature(), fpga);
-    assert_eq!(program.feature(), fpga);
-    let build: FlowRequest = serde_json::from_str(r#"{"flow":"build"}"#).unwrap();
-    assert_eq!(build.feature(), None);
     let Some(mut settings) = settings() else {
         return;
     };
     // Uma pasta do Quartus sem o Quartus: nenhum é usado, nem o da máquina.
     let empty = tempfile::tempdir().unwrap();
     settings.quartus_dir = Some(empty.path().to_string_lossy().into_owned());
+    let server = LaceServer::default();
     let (_dir, spf) = example("soma");
-    let progress = |_: Progress<'_>| {};
     // Com a placa desligada nesta máquina, o fluxo recusa antes de olhar o
     // projeto (o core confere o recurso experimental, como a CLI).
     if !lace_core::experimental::is_enabled(lace_core::experimental::Feature::Fpga) {
-        let error =
-            flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
+        let error = fail(&server, &request, &settings, &spf);
         assert_eq!(error.code, "experimental_disabled");
+        server.stop();
         return;
     }
-    let error = flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
+    let error = fail(&server, &request, &settings, &spf);
     assert_eq!(error.code, "no_fpga_config");
 
     let root = spf.parent().unwrap();
@@ -459,8 +525,9 @@ fn fpga_build_refuses_before_building() {
         r#"{"board": "de2-115", "connect": {"clk": "CLOCK_50", "rst": "!KEY[0]"}}"#,
     )
     .unwrap();
-    let error = flows::run(&request, &settings, &spf, &Control::default(), &progress).unwrap_err();
+    let error = fail(&server, &request, &settings, &spf);
     assert_eq!(error.code, "quartus_missing");
     // Nenhum processador foi compilado.
     assert!(!root.join("soma/soma/soma.v").exists());
+    server.stop();
 }

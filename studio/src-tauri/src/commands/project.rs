@@ -8,36 +8,40 @@
 //! O retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns
 //! campos a mais que a interface usa para habilitar botões.
 
-use lace_core::{Control, HierarchyOptions, HierarchyResult, Language, NewProcessor, Project};
+use camino::Utf8PathBuf;
+use lace_core::{Control, HierarchyOptions, HierarchyResult, Language, NewProcessor};
+use serde_json::{Value, json};
 use tauri::{AppHandle, Manager};
 
-use crate::error::IpcResult;
+use crate::error::{IpcError, IpcResult, codes};
 use crate::state::{AppState, blocking};
 use crate::toolchain;
 use crate::watcher;
 
-/// O projeto inteiro, como a interface o mostra: o retrato do core
-/// (`Project::status`), que é o `lace status --json` com os campos a mais
+/// O projeto inteiro, como a interface o mostra: o retrato do protocolo
+/// (`project.status`), que é o `lace status --json` com os campos a mais
 /// que a interface usa para habilitar botões.
-pub type ProjectSnapshot = lace_core::ProjectStatus;
+pub type ProjectSnapshot = Value;
 
-/// Monta o retrato do projeto.
-pub fn snapshot(project: &Project) -> ProjectSnapshot {
-    project.status()
-}
-
-/// Torna `project` o projeto aberto: guarda o `.spf`, põe nos recentes e
-/// vigia a pasta.
-fn activate(app: &AppHandle, state: &AppState, project: &Project) -> IpcResult<ProjectSnapshot> {
-    *state.project.lock().expect("project lock") = Some(project.spf_path().to_owned());
-    if let Err(error) = state
-        .settings
-        .touch_recent(project.spf_path(), project.name())
-    {
+/// Torna o projeto do retrato `status` o projeto aberto: guarda o `.spf`,
+/// põe nos recentes e vigia a pasta.
+fn activate(app: &AppHandle, state: &AppState, status: Value) -> IpcResult<ProjectSnapshot> {
+    let field = |name: &str| {
+        status[name].as_str().map(Utf8PathBuf::from).ok_or_else(|| {
+            IpcError::new(
+                codes::INTERNAL,
+                format!("The project status from the lace server has no {name}"),
+            )
+        })
+    };
+    let (spf, root) = (field("spf")?, field("root")?);
+    let name = status["name"].as_str().unwrap_or_default();
+    if let Err(error) = state.settings.touch_recent(&spf, name) {
         tracing::warn!("Could not update the recent projects: {error}");
     }
-    watcher::watch(app, state, project.root());
-    Ok(snapshot(project))
+    *state.project.lock().expect("project lock") = Some(spf);
+    watcher::watch(app, state, &root);
+    Ok(status)
 }
 
 /// A pasta padrão para criar e abrir projetos: `Projetos` na pasta do
@@ -56,12 +60,17 @@ pub fn project_default_parent(app: AppHandle) -> String {
     dir.to_string_lossy().into_owned()
 }
 
-/// Abre um projeto: o `.spf` ou a pasta dele.
+/// Abre um projeto: o `.spf` ou a pasta dele (o `project.status` do
+/// servidor).
 #[tauri::command]
 pub async fn project_open(app: AppHandle, path: String) -> IpcResult<ProjectSnapshot> {
     blocking(app, move |app, state| {
-        let project = Project::open(&path)?;
-        activate(app, state, &project)
+        let status = state.server.call(
+            &state.settings.get(),
+            "project.status",
+            json!({ "project": path }),
+        )?;
+        activate(app, state, status)
     })
     .await
 }
@@ -76,8 +85,12 @@ pub async fn project_create(
     name: String,
 ) -> IpcResult<ProjectSnapshot> {
     blocking(app, move |app, state| {
-        let project = Project::create(&parent, &name)?;
-        activate(app, state, &project)
+        let status = state.server.call(
+            &state.settings.get(),
+            "project.create",
+            json!({ "parent": parent, "name": name }),
+        )?;
+        activate(app, state, status)
     })
     .await
 }

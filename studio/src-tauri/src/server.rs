@@ -16,8 +16,11 @@
 //! versão do Lace, com o mesmo protocolo, só gera um aviso no log.
 //!
 //! No Windows o servidor roda sem janela de console e num Job Object, e
-//! morre junto com o Studio. Ao fechar, o Studio manda `shutdown`, espera
-//! até 3 s e mata o que sobrou.
+//! morre junto com o Studio. O job deixa um processo sair dele
+//! (`CREATE_BREAKAWAY_FROM_JOB`): é assim que o assistente de instalação,
+//! que o `update.apply` abre, sobrevive ao Studio, que fecha para ele
+//! trocar os arquivos. Ao fechar, o Studio manda `shutdown`, espera até 3 s
+//! e mata o que sobrou.
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
@@ -46,7 +49,8 @@ const STOP_WAIT: Duration = Duration::from_secs(3);
 const STDERR_TAIL: usize = 20;
 
 /// Os métodos que não passam por [`lace_call`]: a sessão é do Studio, e os
-/// longos, com progresso, vão pelas operações (`jobs.rs`).
+/// longos, com progresso, vão pelas operações (`jobs.rs`); o `update.check`
+/// tem o comando dele, `lace_update_check`.
 const NOT_THROUGH_CALL: &[&str] = &[
     "initialize",
     "shutdown",
@@ -118,7 +122,8 @@ impl LaceServer {
     }
 
     /// O servidor certo para estas preferências: o aberto, se ainda vivo e
-    /// com o mesmo `lace`, bundle, compilador e Quartus; senão um novo.
+    /// com o mesmo `lace`, bundle, compilador, Quartus e trilhas; senão um
+    /// novo.
     fn session(&self, settings: &Settings) -> IpcResult<Arc<Session>> {
         let key = StartKey::of(settings)?;
         let mut guard = self.session.lock().expect("server lock");
@@ -144,6 +149,9 @@ struct StartKey {
     toolchain: Option<Utf8PathBuf>,
     compiler: Option<String>,
     quartus: Option<String>,
+    /// As trilhas do `lace learn` de outra pasta (preferência `learn_dir`),
+    /// que o servidor recebe em `LACE_LEARN_DIR`.
+    learn_dir: Option<String>,
 }
 
 impl StartKey {
@@ -155,6 +163,7 @@ impl StartKey {
                 .map(|located| located.toolchain.root().to_owned()),
             compiler: nonempty(&settings.compiler_dir),
             quartus: nonempty(&settings.quartus_dir),
+            learn_dir: nonempty(&settings.learn_dir),
         })
     }
 }
@@ -225,6 +234,9 @@ impl Session {
         if let Some(dir) = &key.quartus {
             command.arg("--quartus").arg(dir);
         }
+        if let Some(dir) = &key.learn_dir {
+            command.env("LACE_LEARN_DIR", dir);
+        }
         command
             .arg("serve")
             .env("NO_COLOR", "1")
@@ -232,7 +244,7 @@ impl Session {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         lace_core::hide_console(&mut command);
-        let mut job = ProcessJob::new(false);
+        let mut job = ProcessJob::new(true);
         let mut child = command.spawn().map_err(|error| {
             IpcError::new(
                 codes::LACE_MISSING,
@@ -521,7 +533,7 @@ fn ipc_error(error: &Value) -> IpcError {
     let code = match error["code"].as_i64() {
         Some(-32602 | -32600) => codes::INVALID_ARGUMENT,
         Some(-32601) => "unsupported",
-        Some(-32001) => "cancelled",
+        Some(-32001) => codes::CANCELLED,
         Some(-32003) => codes::SERVER_GONE,
         _ => codes::INTERNAL,
     };
@@ -533,7 +545,6 @@ fn ipc_error(error: &Value) -> IpcError {
     )
 }
 
-/// Os métodos cujo `project` é obrigatório, tirados do schema dos pedidos.
 /// Se um método do protocolo tem o campo `project`, e se o exige.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ProjectField {
@@ -545,6 +556,7 @@ enum ProjectField {
     Required,
 }
 
+/// O campo `project` de `method`, tirado do schema dos pedidos.
 fn project_field(method: &str) -> ProjectField {
     static FIELDS: OnceLock<HashMap<String, ProjectField>> = OnceLock::new();
     FIELDS

@@ -1,31 +1,31 @@
-//! Os fluxos do Studio: o pedido da interface vira um fluxo do core
-//! (`lace_core::flows`) ou a correção de um exercício do lace-learn
-//! (`lace_learn::flows`), e o resultado volta com o que só o Studio
-//! acrescenta: a onda numa aba e a correção.
+//! Os fluxos do Studio: o pedido da interface vira um pedido ao servidor do
+//! Lace ([`crate::server`]), um fluxo do core (`flow.run`) ou a correção de
+//! um exercício do lace-learn (`learn.check`), e o resultado volta com o
+//! que só o Studio acrescenta: a onda numa aba e a correção.
 //!
 //! A composição em si (compilar antes, parar no primeiro build que falhar,
 //! registrar o Verilog gerado, simular, ler as portas, gravar o relatório,
-//! abrir a onda) mora no core desde a 0.9: é a mesma da CLI. Aqui ficam só
-//! as decisões da interface: o texto `lace-studio ...` do histórico, e se a
-//! onda abre em janela ou numa aba (preferência `wave_viewer`).
-//!
-//! Nada aqui fala com a interface: o progresso sai pela função `progress`
-//! do core, e quem a transforma em mensagens é `jobs.rs`.
-
-use std::ops::Deref;
+//! abrir a onda) é a do core, a mesma da CLI, e roda no servidor. Aqui
+//! ficam só as decisões da interface: o texto `lace-studio ...` do
+//! histórico, e se a onda abre em janela ou numa aba (preferência
+//! `wave_viewer`).
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::experimental::Feature;
-use lace_core::flows::{self as core, FlowOptions, ProgressFn, WavePolicy};
-use lace_core::{Control, Simulator, Status};
-use lace_learn::{Grade, Verdict};
-use serde::{Deserialize, Serialize};
+use lace_core::delivery::trim_step_output;
+use lace_core::flows::{self as core, FlowOptions, WavePolicy};
+use lace_core::{Simulator, Status};
+use serde::Deserialize;
+use serde_json::{Value, json};
 
-pub use lace_core::flows::{Phase, Progress};
-
-use crate::error::IpcResult;
+use crate::error::{IpcResult, codes};
+use crate::jobs::{JobMessage, Operation};
 use crate::settings::Settings;
 use crate::toolchain;
+
+/// Quanto do `stdout` e do `stderr` de cada passo vai no resultado final. A
+/// interface já recebeu cada linha pelos eventos; o resultado leva o fim,
+/// para o resumo, sem mandar megabytes de uma vez.
+const MAX_STEP_OUTPUT: usize = 256 * 1024;
 
 /// O que a interface pede: os fluxos do core, no formato deles, mais a
 /// correção de um exercício.
@@ -134,12 +134,6 @@ impl FlowRequest {
         }
     }
 
-    /// O recurso experimental de que o fluxo faz parte: `jobs.rs` não o
-    /// começa com o recurso desligado.
-    pub fn feature(&self) -> Option<Feature> {
-        self.core().and_then(|request| request.feature())
-    }
-
     /// O comando equivalente da CLI, para o relatório e para o console. O
     /// prefixo é `lace-studio` porque quem rodou foi o Studio, não a CLI.
     pub fn command_line(&self) -> String {
@@ -224,104 +218,171 @@ fn quoted(text: &str) -> String {
     }
 }
 
-/// O resultado de um fluxo: o do core, com o que só o Studio acrescenta.
-/// Serializa no mesmo nível (os campos do core e os dois daqui).
-#[derive(Debug, Clone, Serialize)]
-pub struct FlowOutcome {
-    /// O resultado do core.
-    #[serde(flatten)]
-    pub core: core::FlowOutcome,
-    /// A onda que a interface abre numa aba (preferência `wave_viewer` em
-    /// `tab`, com o cliente web no bundle), no lugar da janela.
-    pub wave_tab: Option<Utf8PathBuf>,
-    /// A correção de um exercício (fluxo `learn`).
-    pub learn: Option<Grade>,
+/// O que fazer com a resposta do servidor no fim de um fluxo.
+pub struct Finisher {
+    name: &'static str,
+    command: String,
+    learn: bool,
+    wave_tab: bool,
 }
 
-impl Deref for FlowOutcome {
-    type Target = core::FlowOutcome;
-
-    fn deref(&self) -> &Self::Target {
-        &self.core
-    }
-}
-
-/// Roda um fluxo inteiro. `Err` é o Lace não conseguir rodar; um fluxo que
-/// rodou e falhou é `Ok` com `succeeded: false`.
-pub fn run(
-    request: &FlowRequest,
-    settings: &Settings,
-    spf: &Utf8Path,
-    control: &Control,
-    progress: ProgressFn<'_>,
-) -> IpcResult<FlowOutcome> {
-    let command = request.command_line();
-
-    // O exercício é um projeto Lace, mas a correção é a do lace-learn: não
-    // depende do projeto aberto.
-    if let FlowRequest::Learn { root, exercise } = request {
-        let toolchain = toolchain::require(settings)?;
-        progress(Progress::Phase(Phase::Learn));
-        let tracks = crate::commands::learn::tracks(settings)?;
-        let root = lace_learn::Workspace::discover(root)?;
-        let mut workspace = lace_learn::Workspace::open(&root, &tracks, None)?;
-        let exercise = workspace.track().require(exercise)?.clone();
-        // Sem a saída ao vivo: o resumo do testbench é para a correção ler.
-        let quiet = Control::new().with_cancel(control.cancel_token().clone());
-        let checked = lace_learn::flows::check(
-            &toolchain,
-            &mut workspace,
-            std::slice::from_ref(&exercise),
-            &quiet,
-            &mut |_| {},
-        )?;
-        let grade = checked.results.into_iter().next();
-        let mut outcome = core::FlowOutcome::new("learn", &command);
-        match &grade {
-            Some(grade) if grade.verdict == Verdict::Cancelled => outcome.worsen(Status::Cancelled),
-            Some(grade) if !grade.solved() => outcome.worsen(Status::Failed),
-            _ => {}
+impl FlowRequest {
+    /// O pedido ao servidor para este fluxo, com as decisões da interface,
+    /// e o que fazer com a resposta.
+    pub fn plan(&self, settings: &Settings, spf: &Utf8Path) -> (Operation, Finisher) {
+        let command = self.command_line();
+        let name = self.name();
+        // O exercício é um projeto Lace, mas a correção é a do lace-learn:
+        // não depende do projeto aberto.
+        if let FlowRequest::Learn { root, exercise } = self {
+            let operation = Operation {
+                command: command.clone(),
+                method: "learn.check",
+                params: json!({ "root": root, "exercise": exercise }),
+            };
+            let finisher = Finisher {
+                name,
+                command,
+                learn: true,
+                wave_tab: false,
+            };
+            return (operation, finisher);
         }
-        return Ok(FlowOutcome {
-            core: outcome,
-            wave_tab: None,
-            learn: grade,
-        });
+        let request = self.core().expect("não é learn");
+        // A onda numa aba é do Studio: o core não a abre, e a interface
+        // recebe o caminho em `wave_tab`.
+        let tab = settings.wave_viewer == "tab"
+            && toolchain::require(settings).is_ok_and(|t| t.surfer_web_dir().is_ok());
+        let mut options = FlowOptions::new(command.clone());
+        options.wave = if tab {
+            WavePolicy::None
+        } else {
+            WavePolicy::Window
+        };
+        let wave_tab = tab
+            && matches!(
+                request,
+                core::FlowRequest::Simulate {
+                    open_wave: true,
+                    ..
+                }
+            );
+        let operation = Operation {
+            command: command.clone(),
+            method: "flow.run",
+            params: json!({
+                "project": spf,
+                "request": request,
+                "options": options,
+                "output": true,
+            }),
+        };
+        let finisher = Finisher {
+            name,
+            command,
+            learn: false,
+            wave_tab,
+        };
+        (operation, finisher)
+    }
+}
+
+impl Finisher {
+    /// O fluxo é a correção de um exercício.
+    pub fn is_learn(&self) -> bool {
+        self.learn
     }
 
-    let core_request = request.core().expect("não é learn");
-    let mut project = crate::state::open_project(spf)?;
-    let toolchain = toolchain::require(settings)?;
-    // A onda numa aba é do Studio: o core não a abre, e a interface recebe
-    // o caminho em `wave_tab`.
-    let tab = settings.wave_viewer == "tab" && toolchain.surfer_web_dir().is_ok();
-    let mut options = FlowOptions::new(command);
-    options.wave = if tab {
-        WavePolicy::None
-    } else {
-        WavePolicy::Window
-    };
-    let outcome = core::run(
-        &toolchain,
-        &mut project,
-        &core_request,
-        &options,
-        progress,
-        control,
-    )?;
-    let wave_tab = match &core_request {
-        core::FlowRequest::Simulate {
-            open_wave: true, ..
-        } if tab => outcome
-            .simulation
-            .as_ref()
-            .and_then(|s| s.waveform.as_ref())
-            .map(|w| w.path.clone()),
-        _ => None,
-    };
-    Ok(FlowOutcome {
-        core: outcome,
-        wave_tab,
-        learn: None,
-    })
+    /// A mensagem final da interface: o `FlowOutcome` do core, com
+    /// `wave_tab` (a onda que a interface abre numa aba, no lugar da janela)
+    /// e `learn` (a correção do exercício). `failed` é o Lace não conseguir
+    /// rodar; um fluxo que rodou e falhou é `finished` com `succeeded:
+    /// false`, e um cancelado antes de começar também.
+    pub fn finish(self, reply: IpcResult<Value>) -> JobMessage {
+        let (mut outcome, learn) = match reply {
+            Ok(report) if self.learn => {
+                let grade = report["results"].get(0).cloned().unwrap_or(Value::Null);
+                let mut outcome = core::FlowOutcome::new(self.name, &self.command);
+                match grade.get("verdict").and_then(Value::as_str) {
+                    None | Some("solved") => {}
+                    Some("cancelled") => outcome.worsen(Status::Cancelled),
+                    Some(_) => outcome.worsen(Status::Failed),
+                }
+                (json!(outcome), grade)
+            }
+            Ok(outcome) => (outcome, Value::Null),
+            Err(error) if error.code == codes::CANCELLED => {
+                let mut outcome = core::FlowOutcome::new(self.name, &self.command);
+                outcome.worsen(Status::Cancelled);
+                (json!(outcome), Value::Null)
+            }
+            Err(error) => return JobMessage::Failed { error },
+        };
+        trim_step_output(&mut outcome, MAX_STEP_OUTPUT);
+        let wave_tab = if self.wave_tab {
+            outcome
+                .pointer("/simulation/waveform/path")
+                .cloned()
+                .unwrap_or(Value::Null)
+        } else {
+            Value::Null
+        };
+        if let Some(fields) = outcome.as_object_mut() {
+            fields.insert("wave_tab".to_owned(), wave_tab);
+            fields.insert("learn".to_owned(), learn);
+        }
+        JobMessage::Finished { outcome }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn finisher(learn: bool, wave_tab: bool) -> Finisher {
+        Finisher {
+            name: if learn { "learn" } else { "simulate" },
+            command: "lace-studio sim".to_owned(),
+            learn,
+            wave_tab,
+        }
+    }
+
+    #[test]
+    fn the_outcome_gets_the_wave_tab_and_the_grade() {
+        let outcome = json!({
+            "flow": "simulate", "status": "succeeded", "succeeded": true,
+            "simulation": { "waveform": { "path": "/p/tb.fst" } },
+        });
+        let JobMessage::Finished { outcome } = finisher(false, true).finish(Ok(outcome)) else {
+            panic!("finished");
+        };
+        assert_eq!(outcome["wave_tab"], "/p/tb.fst");
+        assert!(outcome["learn"].is_null());
+
+        let report = json!({ "results": [{ "exercise": "e1", "verdict": "mismatch" }] });
+        let JobMessage::Finished { outcome } = finisher(true, false).finish(Ok(report)) else {
+            panic!("finished");
+        };
+        assert_eq!(outcome["flow"], "learn");
+        assert_eq!(outcome["status"], "failed");
+        assert_eq!(outcome["learn"]["exercise"], "e1");
+    }
+
+    #[test]
+    fn a_flow_cancelled_before_it_started_finishes_cancelled() {
+        let reply = Err(crate::error::IpcError::new(codes::CANCELLED, "Cancelled"));
+        let JobMessage::Finished { outcome } = finisher(false, false).finish(reply) else {
+            panic!("finished");
+        };
+        assert_eq!(outcome["status"], "cancelled");
+        let reply = Err(crate::error::IpcError::new(
+            "toolchain_missing",
+            "No bundle",
+        ));
+        assert!(matches!(
+            finisher(false, false).finish(reply),
+            JobMessage::Failed { .. }
+        ));
+    }
 }

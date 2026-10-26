@@ -39,10 +39,6 @@ pub mod codes {
     /// Um programa está em primeiro plano no terminal (no Linux e no macOS):
     /// o `cd` automático iria para ele e não é digitado.
     pub const TERMINAL_BUSY: &str = "terminal_busy";
-    /// O "Substituir" de um movimento encontrou no destino o que fica no
-    /// lugar (o `.spf`, a pasta de um processador, uma pasta com a origem):
-    /// nada foi para a lixeira.
-    pub const CANNOT_REPLACE: &str = "cannot_replace";
     /// Erro de leitura ou escrita do próprio Studio.
     pub const IO: &str = "io";
     /// O bundle não traz o cliente web do Surfer (a onda abre em janela).
@@ -59,6 +55,8 @@ pub mod codes {
     pub const LACE_INCOMPATIBLE: &str = "lace_incompatible";
     /// O servidor do Lace saiu no meio de um pedido; o próximo o abre de novo.
     pub const SERVER_GONE: &str = "server_gone";
+    /// O pedido foi cancelado antes de começar (`-32001` do protocolo).
+    pub const CANCELLED: &str = "cancelled";
 }
 
 /// O erro de um comando, como a interface o recebe.

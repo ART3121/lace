@@ -1,37 +1,33 @@
-//! As operações longas: rodam numa thread própria, mandam o progresso para
-//! a interface por um `Channel` do Tauri e podem ser canceladas.
+//! As operações longas: o Studio as pede ao servidor do Lace
+//! ([`crate::server`]) e repassa à interface, por um `Channel` do Tauri, as
+//! notificações que o servidor manda enquanto elas rodam e, no fim, o
+//! resultado. Cancelar é o `$/cancel` do protocolo.
 //!
-//! É o desenho que a API do Lace recomenda para uma GUI (API.md, 5.8), com a
-//! entrega que o core fornece (`lace_core::delivery`): a operação roda numa
-//! thread de trabalho com um `Control` que leva o `CancelToken` e um
-//! receptor de eventos; o receptor só põe o evento numa fila, e a thread de
-//! entrega do `Dispatcher` junta os eventos em lotes, aplica o teto de linhas
-//! e os entrega aqui, onde viram [`JobMessage`] para a interface.
+//! As notificações (`phase`, `events`, `output_omitted`, `build`,
+//! `install`) chegam do servidor já em lotes e com o teto de linhas da
+//! entrega do core (`lace_core::delivery`): aqui elas só ganham o `type`
+//! que a interface lê, e a linha do console de um `install` vai também como
+//! `cli_output`.
 //!
 //! Só uma operação roda por vez (erro `busy`): duas no mesmo projeto
-//! dividiriam o `.lace/Temp`.
+//! dividiriam o `.lace/Temp`, e uma instalação no meio de um fluxo trocaria
+//! as ferramentas dele.
 
 use std::panic::AssertUnwindSafe;
 use std::time::{Duration, Instant};
 
-use lace_core::delivery::{Dispatcher, Limits, Notification, trim_step_output};
-use lace_core::flows::Phase;
-use lace_core::{BuildResult, CancelToken, Event, Step, Tool};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
 
 use crate::error::{IpcError, IpcResult, codes};
-use crate::flows::{self, FlowRequest};
+use crate::flows::FlowRequest;
+use crate::server::Listener;
 use crate::state::{ActiveJob, AppState};
 
-/// Quanto do `stdout` e do `stderr` de cada passo vai no resultado final. A
-/// interface já recebeu cada linha pelos eventos; o resultado leva o fim,
-/// para o resumo, sem mandar megabytes de uma vez.
-const MAX_STEP_OUTPUT: usize = 256 * 1024;
-
-/// O que a interface recebe pelo canal de uma operação, em ordem.
+/// O que a interface recebe pelo canal de uma operação, além das
+/// notificações do servidor.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum JobMessage {
@@ -42,38 +38,8 @@ pub enum JobMessage {
         /// O comando equivalente.
         command: String,
     },
-    /// Uma fase começou.
-    Phase {
-        /// Qual.
-        phase: Phase,
-    },
-    /// Eventos do Core, na ordem em que aconteceram.
-    Events {
-        /// Os eventos (`step_started`, `output`, `step_finished`).
-        events: Vec<Event>,
-    },
-    /// Linhas de saída que ficaram de fora (o teto da entrega), no lugar
-    /// onde estariam: antes da próxima linha que passou ou do fim do passo.
-    OutputOmitted {
-        /// O passo que as escreveu.
-        step: Step,
-        /// A ferramenta.
-        tool: Tool,
-        /// Quantas.
-        lines: u64,
-    },
-    /// Um processador terminou de compilar.
-    Build {
-        /// O resultado.
-        result: BuildResult,
-    },
-    /// Progresso de uma instalação ou atualização do Lace (o evento do
-    /// instalador, em JSON).
-    Install {
-        /// O evento.
-        event: Value,
-    },
-    /// Uma linha da CLI `lace` (`lace install`, `lace update`).
+    /// Uma linha para o console da operação: a de cada passo de uma
+    /// instalação ou atualização.
     CliOutput {
         /// `stdout` ou `stderr`.
         stream: &'static str,
@@ -81,7 +47,7 @@ pub enum JobMessage {
         line: String,
     },
     /// A operação terminou e este é o resultado (um `FlowOutcome`, ou o de
-    /// uma chamada da CLI).
+    /// uma instalação ou atualização).
     Finished {
         /// O resultado.
         outcome: Value,
@@ -93,22 +59,128 @@ pub enum JobMessage {
     },
 }
 
-impl From<Notification> for JobMessage {
-    fn from(notification: Notification) -> Self {
-        match notification {
-            Notification::Phase { phase } => JobMessage::Phase { phase },
-            Notification::Events { events } => JobMessage::Events { events },
-            Notification::OutputOmitted { step, tool, lines } => {
-                JobMessage::OutputOmitted { step, tool, lines }
-            }
-            Notification::Build { result } => JobMessage::Build { result },
-            Notification::Install { event, .. } => JobMessage::Install { event },
+/// O canal de uma operação, para as mensagens do Studio e as notificações
+/// do servidor, na ordem em que acontecem.
+#[derive(Clone)]
+pub struct Relay {
+    channel: Channel<Value>,
+}
+
+impl Relay {
+    /// O canal da interface.
+    pub fn new(channel: Channel<Value>) -> Self {
+        Relay { channel }
+    }
+
+    /// Uma mensagem do Studio.
+    pub fn send(&self, message: JobMessage) {
+        if let Ok(value) = serde_json::to_value(message) {
+            let _ = self.channel.send(value);
+        }
+    }
+
+    /// Uma notificação do servidor (`phase`, `events`, `output_omitted`,
+    /// `build`, `install`), como veio, com o `type` que a interface lê. A
+    /// linha do console de um `install` vai depois, como `cli_output`.
+    pub fn notification(&self, method: &str, params: Value) {
+        let (message, line) = message_of(method, params);
+        if let Some(message) = message {
+            let _ = self.channel.send(message);
+        }
+        if let Some(line) = line {
+            self.send(JobMessage::CliOutput {
+                stream: "stderr",
+                line,
+            });
         }
     }
 }
 
+/// A mensagem da interface para uma notificação do servidor, e a linha do
+/// console que ela traz, quando é um `install` com linha.
+fn message_of(method: &str, mut params: Value) -> (Option<Value>, Option<String>) {
+    let Some(fields) = params.as_object_mut() else {
+        return (None, None);
+    };
+    let line = if method == "install" {
+        fields
+            .remove("line")
+            .and_then(|line| line.as_str().map(str::to_owned))
+    } else {
+        None
+    };
+    fields.insert("type".to_owned(), Value::String(method.to_owned()));
+    (Some(params), line)
+}
+
+/// Um pedido ao servidor que roda como operação: o comando que o console
+/// mostra, o método do protocolo e os parâmetros.
+pub struct Operation {
+    /// O comando equivalente (`lace-studio sim -p soma`, `lace install ...`).
+    pub command: String,
+    /// O método (`flow.run`, `learn.check`, `install.add`, `update.apply`).
+    pub method: &'static str,
+    /// Os parâmetros.
+    pub params: Value,
+}
+
+/// Começa `operation` no servidor e devolve o identificador. O canal recebe
+/// `started`, o que `before` mandar, as notificações do pedido e, no fim, a
+/// mensagem que `finish` faz da resposta. A vaga é liberada antes dessa
+/// última mensagem, para a interface poder começar outra operação assim que
+/// a receber.
+pub fn start(
+    app: &AppHandle,
+    operation: Operation,
+    channel: Channel<Value>,
+    before: impl FnOnce(&Relay) + Send + 'static,
+    finish: impl FnOnce(IpcResult<Value>) -> JobMessage + Send + 'static,
+) -> IpcResult<u32> {
+    let state = app.state::<AppState>();
+    let settings = state.settings.get();
+    let id = reserve(&state)?;
+    let relay = Relay::new(channel);
+    relay.send(JobMessage::Started {
+        job: id,
+        command: operation.command,
+    });
+    let worker = app.clone();
+    let spawned = std::thread::Builder::new()
+        .name(format!("job-{id}"))
+        .spawn(move || {
+            let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                before(&relay);
+                let notifications = relay.clone();
+                let listener: Listener = Box::new(move |method, params| {
+                    notifications.notification(method, params);
+                });
+                let reply = worker.state::<AppState>().server.call_with(
+                    &settings,
+                    operation.method,
+                    operation.params,
+                    listener,
+                    |request| attach(&worker, id, request),
+                );
+                finish(reply)
+            }));
+            let message = result.unwrap_or_else(|_| JobMessage::Failed {
+                error: IpcError::new(codes::INTERNAL, "The operation panicked; see the log"),
+            });
+            release(&worker, id);
+            relay.send(message);
+        });
+    if let Err(error) = spawned {
+        release(app, id);
+        return Err(IpcError::new(
+            codes::INTERNAL,
+            format!("Could not start the worker thread: {error}"),
+        ));
+    }
+    Ok(id)
+}
+
 /// Reserva a vaga da operação. Erro `busy` se já houver uma rodando.
-pub fn reserve(state: &AppState) -> IpcResult<(u32, CancelToken)> {
+pub fn reserve(state: &AppState) -> IpcResult<u32> {
     let mut job = state.job.lock().expect("job lock");
     if job.is_some() {
         return Err(IpcError::new(
@@ -117,12 +189,12 @@ pub fn reserve(state: &AppState) -> IpcResult<(u32, CancelToken)> {
         ));
     }
     let id = state.next_id();
-    let cancel = CancelToken::new();
     *job = Some(ActiveJob {
         id,
-        cancel: cancel.clone(),
+        request: None,
+        cancelled: false,
     });
-    Ok((id, cancel))
+    Ok(id)
 }
 
 /// Libera a vaga, se ainda for desta operação.
@@ -134,6 +206,25 @@ pub fn release(app: &AppHandle, id: u32) {
     }
 }
 
+/// O pedido da operação `id` saiu para o servidor: um cancelamento pedido
+/// antes disso vai para ele agora.
+fn attach(app: &AppHandle, id: u32, request: u64) {
+    let state = app.state::<AppState>();
+    let cancelled = {
+        let mut job = state.job.lock().expect("job lock");
+        match job.as_mut() {
+            Some(active) if active.id == id => {
+                active.request = Some(request);
+                active.cancelled
+            }
+            _ => false,
+        }
+    };
+    if cancelled {
+        state.server.cancel(request);
+    }
+}
+
 /// Começa um fluxo (build, check, sim, synth, esquemático, placa, exercício)
 /// e devolve o identificador da operação. O progresso e o resultado chegam
 /// por `channel`, terminando sempre com `finished` ou `failed`.
@@ -141,64 +232,25 @@ pub fn release(app: &AppHandle, id: u32) {
 pub async fn flow_start(
     app: AppHandle,
     request: FlowRequest,
-    channel: Channel<JobMessage>,
+    channel: Channel<Value>,
 ) -> IpcResult<u32> {
     let state = app.state::<AppState>();
     let spf = state.spf()?;
-    let settings = state.settings.get();
-    // A placa FPGA é experimental: desligada, o fluxo nem começa.
-    if let Some(feature) = request.feature() {
-        lace_core::experimental::require(feature)?;
-    }
-    let (id, cancel) = reserve(&state)?;
-    let _ = channel.send(JobMessage::Started {
-        job: id,
-        command: request.command_line(),
-    });
-
-    let worker_app = app.clone();
-    let spawned = std::thread::Builder::new()
-        .name(format!("flow-{id}"))
-        .spawn(move || {
-            let deliver = channel.clone();
-            let dispatcher = Dispatcher::start(Limits::default(), move |notification| {
-                let _ = deliver.send(JobMessage::from(notification));
-            });
-            let control = dispatcher.control(cancel);
-            let progress = dispatcher.progress();
-            let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                flows::run(&request, &settings, &spf, &control, &progress)
-            }));
-            // Tudo que o fluxo disse sai antes do resultado.
-            dispatcher.finish();
-            let message = match result {
-                Ok(Ok(outcome)) => match serde_json::to_value(&outcome) {
-                    Ok(mut value) => {
-                        trim_step_output(&mut value, MAX_STEP_OUTPUT);
-                        JobMessage::Finished { outcome: value }
-                    }
-                    Err(error) => JobMessage::Failed {
-                        error: error.into(),
-                    },
-                },
-                Ok(Err(error)) => JobMessage::Failed { error },
-                Err(_) => JobMessage::Failed {
-                    error: IpcError::new(codes::INTERNAL, "The operation panicked; see the log"),
-                },
-            };
-            // A vaga é liberada antes da última mensagem, para a interface
-            // poder começar outra operação assim que receber o resultado.
-            release(&worker_app, id);
-            let _ = channel.send(message);
-        });
-    if let Err(error) = spawned {
-        release(&app, id);
-        return Err(IpcError::new(
-            codes::INTERNAL,
-            format!("Could not start the worker thread: {error}"),
-        ));
-    }
-    Ok(id)
+    let (operation, finisher) = request.plan(&state.settings.get(), &spf);
+    let learn = finisher.is_learn();
+    start(
+        &app,
+        operation,
+        channel,
+        move |relay| {
+            // A correção não tem fase do core: a interface a mostra por
+            // esta, como antes.
+            if learn {
+                relay.notification("phase", serde_json::json!({ "phase": "learn" }));
+            }
+        },
+        move |reply| finisher.finish(reply),
+    )
 }
 
 /// Cancela a operação que está rodando. Com `job`, só se for ela. O
@@ -206,14 +258,20 @@ pub async fn flow_start(
 #[tauri::command]
 pub fn flow_cancel(app: AppHandle, job: Option<u32>) -> bool {
     let state = app.state::<AppState>();
-    let guard = state.job.lock().expect("job lock");
-    match guard.as_ref() {
-        Some(active) if job.is_none_or(|id| id == active.id) => {
-            active.cancel.cancel();
-            true
+    let request = {
+        let mut guard = state.job.lock().expect("job lock");
+        match guard.as_mut() {
+            Some(active) if job.is_none_or(|id| id == active.id) => {
+                active.cancelled = true;
+                active.request
+            }
+            _ => return false,
         }
-        _ => false,
+    };
+    if let Some(request) = request {
+        state.server.cancel(request);
     }
+    true
 }
 
 /// O identificador da operação rodando, se houver.
@@ -225,8 +283,8 @@ pub fn flow_running(app: AppHandle) -> Option<u32> {
 }
 
 /// Cancela a operação rodando e espera até `wait` ela soltar a vaga. Usado
-/// ao fechar o Studio: sem isso, as ferramentas continuariam rodando (num
-/// grupo de processos próprio, no Unix) depois que ele saísse.
+/// ao fechar o Studio: sem isso, as ferramentas continuariam rodando no
+/// servidor até ele ser fechado.
 pub fn cancel_and_wait(app: &AppHandle, wait: Duration) {
     if !flow_cancel(app.clone(), None) {
         return;
@@ -237,47 +295,36 @@ pub fn cancel_and_wait(app: &AppHandle, wait: Duration) {
     }
 }
 
-/// Manda mensagens de uma operação que não é um fluxo do Core (a CLI): o
-/// mesmo canal, sem lotes.
-pub struct DirectSender {
-    channel: Channel<JobMessage>,
-}
-
-impl DirectSender {
-    /// A entrega direta para `channel`.
-    pub fn new(channel: Channel<JobMessage>) -> Self {
-        DirectSender { channel }
-    }
-
-    /// Manda uma mensagem.
-    pub fn send(&self, message: JobMessage) {
-        let _ = self.channel.send(message);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
-    fn job_messages_keep_the_names_the_interface_reads() {
-        let value = serde_json::to_value(JobMessage::from(Notification::OutputOmitted {
-            step: Step::Simulate,
-            tool: Tool::Vvp,
-            lines: 3,
-        }))
-        .unwrap();
-        assert_eq!(value["type"], "output_omitted");
-        assert_eq!(value["step"], "simulate");
-        assert_eq!(value["lines"], 3);
-        let value = serde_json::to_value(JobMessage::from(Notification::Phase {
-            phase: Phase::Build,
-        }))
-        .unwrap();
-        assert_eq!(
-            value,
-            serde_json::json!({ "type": "phase", "phase": "build" })
+    fn notifications_keep_the_names_the_interface_reads() {
+        let (message, line) = message_of(
+            "output_omitted",
+            json!({ "step": "simulate", "tool": "vvp", "lines": 3 }),
         );
+        let message = message.unwrap();
+        assert_eq!(message["type"], "output_omitted");
+        assert_eq!(message["step"], "simulate");
+        assert_eq!(message["lines"], 3);
+        assert_eq!(line, None);
+        let (message, _) = message_of("phase", json!({ "phase": "build" }));
+        assert_eq!(
+            message.unwrap(),
+            json!({ "type": "phase", "phase": "build" })
+        );
+        // A linha do console de um install sai da mensagem e vira cli_output.
+        let (message, line) = message_of(
+            "install",
+            json!({ "event": { "event": "verifying" }, "line": "  Verifying the executables" }),
+        );
+        let message = message.unwrap();
+        assert_eq!(message["type"], "install");
+        assert!(message.get("line").is_none());
+        assert_eq!(line.as_deref(), Some("  Verifying the executables"));
         let value = serde_json::to_value(JobMessage::Started {
             job: 7,
             command: "lace-studio build".into(),

@@ -12,7 +12,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::{CancelToken, Project};
+use lace_core::Project;
 use notify::RecommendedWatcher;
 use tauri::{AppHandle, Manager};
 
@@ -44,8 +44,12 @@ pub struct AppState {
 pub struct ActiveJob {
     /// O identificador que a interface usa para cancelar.
     pub id: u32,
-    /// O pedido de cancelamento.
-    pub cancel: CancelToken,
+    /// O pedido ao servidor do Lace que a operação fez, depois que ele sai:
+    /// é para ele que vai o `$/cancel`.
+    pub request: Option<u64>,
+    /// Cancelar foi pedido. Se o pedido ainda não saiu, ele é cancelado
+    /// assim que sair.
+    pub cancelled: bool,
 }
 
 impl AppState {

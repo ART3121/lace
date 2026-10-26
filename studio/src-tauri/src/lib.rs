@@ -1,19 +1,21 @@
 //! Lace Studio: o backend do ambiente gráfico do Lace.
 //!
-//! O backend é uma casca fina sobre o `lace-core`, como a CLI: cada comando
-//! Tauri abre o projeto, chama uma função do Core e devolve o resultado
-//! serializado. A interface (React, em `src/`) só mostra
-//! e pede.
+//! O backend é um cliente do servidor do Lace (`lace serve`), como a
+//! extensão do VS Code: o que é do Lace (o projeto, os fluxos, o histórico,
+//! instalar e atualizar) é um pedido do protocolo ao servidor, e o que fica
+//! aqui é do Studio: as janelas, os arquivos, o terminal, a vigia da pasta,
+//! as preferências e a onda numa aba. A interface (React, em `src/`) só
+//! mostra e pede.
 //!
 //! | Módulo | O que tem |
 //! |---|---|
 //! | [`commands::project`] | abrir, criar e fechar o projeto, a pasta padrão, os padrões de um processador novo, os módulos de um texto, a hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
-//! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, compilação para a placa: operações canceláveis com saída ao vivo |
+//! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, placa, correção, instalar e atualizar: pedidos ao servidor que rodam como operações canceláveis, com saída ao vivo |
 //! | [`commands::fpga`] | o topo que vai para a placa e as portas dele (os outros métodos da placa passam pelo servidor); só com a placa FPGA ligada |
 //! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
 //! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
-//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
+//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update` e `lace update --check` pelo servidor |
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
