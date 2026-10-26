@@ -111,11 +111,21 @@ pub struct ServeArgs {
     /// Print the JSON Schema of the protocol (requests and responses) and exit
     #[arg(long)]
     pub schema: bool,
+    /// In an MCP session, also expose update_apply and install_add, which change the Lace installation
+    #[arg(long)]
+    pub allow_update: bool,
 }
 
 /// `lace serve`. `cancel` é o pedido dos sinais, que aqui encerra o
 /// servidor do jeito certo: cancela o que roda, espera e sai.
+///
+/// O primeiro pedido diz o idioma da sessão: o `initialize` do MCP traz
+/// `protocolVersion`, e o do protocolo do Lace não traz. Uma sessão MCP vai
+/// para o tradutor do `lace mcp`, com `project_dir` (o `-C` global) como o
+/// projeto padrão das ferramentas; o idioma MCP é o do assistente de IA e
+/// exige o recurso experimental `assistant`.
 pub fn run(
+    project_dir: &Utf8Path,
     toolchain: &ToolchainArgs,
     args: &ServeArgs,
     cancel: &CancelToken,
@@ -127,6 +137,26 @@ pub fn run(
         });
         println!("{}", serde_json::to_string_pretty(&schema)?);
         return Ok(true);
+    }
+    let stdin = std::io::stdin();
+    let mut input = stdin.lock();
+    let first = first_line(&mut input);
+    if let Some(line) = first.as_deref().filter(|line| is_mcp_initialize(line)) {
+        if !lace_core::experimental::is_enabled(Feature::Assistant) {
+            refuse_mcp(line);
+            return Err(LaceError::ExperimentalDisabled {
+                feature: Feature::Assistant,
+            }
+            .into());
+        }
+        return crate::mcp::serve_session(
+            project_dir,
+            toolchain,
+            args.allow_update,
+            cancel,
+            first,
+            input,
+        );
     }
     let server = Arc::new(Server::new(toolchain.clone(), Writer::stdout()));
     let signalled = cancel.clone();
@@ -140,14 +170,63 @@ pub fn run(
             watcher.finish(ShutdownReason::Signal);
             std::process::exit(0);
         })?;
-    let stdin = std::io::stdin();
-    match server.serve(stdin.lock()) {
+    let ended = match &first {
+        Some(line) => server.handle_line(line).or_else(|| server.serve(input)),
+        None => None,
+    };
+    match ended {
         Some(reason) => server.finish(reason),
         // A entrada fechou: o que já foi pedido roda até o fim e é
         // respondido.
         None => server.finish_after_input(),
     }
     Ok(true)
+}
+
+/// A primeira linha com conteúdo da entrada; `None` se ela fecha antes.
+fn first_line(input: &mut impl BufRead) -> Option<String> {
+    let mut line = String::new();
+    loop {
+        line.clear();
+        match input.read_line(&mut line) {
+            Ok(0) | Err(_) => return None,
+            Ok(_) if line.trim().is_empty() => {}
+            Ok(_) => return Some(line.trim_end_matches(['\r', '\n']).to_owned()),
+        }
+    }
+}
+
+/// A linha é o `initialize` de um cliente MCP: ele traz `protocolVersion`,
+/// e o do protocolo do Lace não traz.
+fn is_mcp_initialize(line: &str) -> bool {
+    let line = line.strip_prefix('\u{feff}').unwrap_or(line);
+    serde_json::from_str::<Value>(line)
+        .is_ok_and(|v| v["method"] == "initialize" && v["params"]["protocolVersion"].is_string())
+}
+
+/// Responde ao `initialize` de um cliente MCP com o recurso `assistant`
+/// desligado: o erro, com a dica, no idioma dele, para o agente mostrar.
+fn refuse_mcp(line: &str) {
+    let line = line.strip_prefix('\u{feff}').unwrap_or(line);
+    let id = serde_json::from_str::<Value>(line)
+        .ok()
+        .and_then(|v| v.get("id").cloned())
+        .unwrap_or(Value::Null);
+    let info = crate::output::error_info(&LaceError::ExperimentalDisabled {
+        feature: Feature::Assistant,
+    });
+    let message = match &info.hint {
+        Some(hint) => format!("{}. {hint}", info.message),
+        None => info.message.clone(),
+    };
+    let writer = Writer::stdout();
+    writer.fail(
+        Some(&id),
+        rpc::LACE,
+        &message,
+        serde_json::to_value(&info).ok(),
+    );
+    writer.drain(SHUTDOWN_WAIT);
 }
 
 /// Um pedido como chega, antes de virar um [`Request`].
@@ -1874,6 +1953,26 @@ mod tests {
         );
         let reply = next(&rx);
         assert_eq!(reply["error"]["data"]["code"], "spf_missing", "{reply}");
+    }
+
+    #[test]
+    fn the_first_request_tells_the_language() {
+        assert!(is_mcp_initialize(
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"c"}}}"#
+        ));
+        assert!(is_mcp_initialize(
+            "\u{feff}{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}"
+        ));
+        assert!(!is_mcp_initialize(
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"client":"lace-vscode"}}"#
+        ));
+        assert!(!is_mcp_initialize(
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize"}"#
+        ));
+        assert!(!is_mcp_initialize("not json"));
+        let mut input = std::io::Cursor::new("\n  \r\n{\"a\":1}\r\nrest\n");
+        assert_eq!(first_line(&mut input).as_deref(), Some("{\"a\":1}"));
+        assert_eq!(first_line(&mut std::io::Cursor::new("")), None);
     }
 
     #[test]

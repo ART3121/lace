@@ -188,9 +188,9 @@ enum Command {
     Fpga(FpgaCommand),
     /// Turn experimental components on and off (no subcommand: list them)
     Experimental(ExperimentalArgs),
-    /// Serve the Lace API to another program over stdin and stdout (JSON-RPC 2.0, one message per line)
+    /// Serve the Lace API to another program over stdin and stdout: the Lace protocol (JSON-RPC 2.0, one message per line), or MCP when the client is an AI agent
     Serve(serve::ServeArgs),
-    /// Experimental, off by default: serve the Lace API to an AI agent as an MCP server over stdin and stdout (lace experimental enable assistant)
+    /// Experimental, off by default: the Lace server always in MCP, for an AI agent; lace serve also answers MCP (lace experimental enable assistant)
     Mcp(mcp::McpArgs),
     /// Experimental, off by default: chat with the Lace assistant (Claude Code with the Lace tools) in the terminal (lace experimental enable assistant)
     Chat(chat::ChatArgs),

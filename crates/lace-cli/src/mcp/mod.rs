@@ -181,6 +181,28 @@ pub fn run(
         setup::run(toolchain, setup)?;
         return Ok(true);
     }
+    let stdin = std::io::stdin();
+    serve_session(
+        project_dir,
+        toolchain,
+        args.allow_update,
+        cancel,
+        None,
+        stdin.lock(),
+    )
+}
+
+/// Uma sessão MCP: a do `lace mcp`, e a que o `lace serve` abre quando o
+/// primeiro pedido é um `initialize` do MCP (`first`, já lido da entrada).
+/// Quem chama já conferiu o recurso experimental `assistant`.
+pub(crate) fn serve_session(
+    project_dir: &Utf8Path,
+    toolchain: &ToolchainArgs,
+    allow_update: bool,
+    cancel: &CancelToken,
+    first: Option<String>,
+    input: impl BufRead,
+) -> anyhow::Result<bool> {
     let default_project = match Project::discover(project_dir) {
         Ok(project) => Some(project.spf_path().to_owned()),
         Err(error) => {
@@ -191,7 +213,7 @@ pub fn run(
     let mcp = Arc::new(Mcp::new(
         Server::new(toolchain.clone(), Writer::silent()),
         Writer::stdout(),
-        args.allow_update,
+        allow_update,
         default_project,
     ));
     // Um sinal cancela o que roda, espera e sai.
@@ -206,8 +228,10 @@ pub fn run(
             watcher.finish();
             std::process::exit(0);
         })?;
-    let stdin = std::io::stdin();
-    for line in stdin.lock().lines() {
+    if let Some(line) = &first {
+        mcp.handle_line(line);
+    }
+    for line in input.lines() {
         let Ok(line) = line else {
             break;
         };

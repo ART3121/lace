@@ -25,8 +25,24 @@ struct Client {
 
 impl Client {
     fn start(toolchain: Option<&str>) -> Client {
+        Client::spawn(toolchain, None)
+    }
+
+    /// Com a pasta de configuração do Lace (a do `experimental.json`) em
+    /// `config`: o teste não lê nem grava a do usuário.
+    fn start_in(config: &Utf8Path) -> Client {
+        Client::spawn(None, Some(config))
+    }
+
+    fn spawn(toolchain: Option<&str>, config: Option<&Utf8Path>) -> Client {
         let exe = assert_cmd::cargo::cargo_bin("lace");
         let mut command = Command::new(exe);
+        if let Some(config) = config {
+            command
+                .env("APPDATA", config)
+                .env("XDG_CONFIG_HOME", config)
+                .env("HOME", config);
+        }
         command
             .arg("serve")
             .env_remove("LACE_TOOLCHAIN")
@@ -243,6 +259,77 @@ fn handshake_errors_and_exit_on_eof() {
     let shutdown = rest.iter().find(|l| l["method"] == "shutdown");
     assert!(shutdown.is_some(), "{rest:?}");
     assert_eq!(shutdown.unwrap()["params"]["reason"], "requested");
+}
+
+/// Espera o processo sair e devolve o código.
+fn wait_exit(client: &mut Client) -> Option<i32> {
+    let until = Instant::now() + Duration::from_secs(10);
+    loop {
+        if let Some(status) = client.child.try_wait().unwrap() {
+            return status.code();
+        }
+        assert!(Instant::now() < until, "não saiu");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
+const MCP_INITIALIZE: &str = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"teste"}}}"#;
+
+#[test]
+fn the_same_server_answers_mcp_when_the_client_speaks_it() {
+    let (_guard, config) = tempdir();
+    // O idioma MCP é o do assistente, experimental: desligado, o
+    // initialize volta com o erro e a dica, e o servidor sai.
+    let mut client = Client::start_in(&config);
+    client.send_raw(MCP_INITIALIZE);
+    let reply = client.next(Duration::from_secs(10)).expect("a resposta");
+    assert_eq!(reply["id"], 1, "{reply}");
+    assert_eq!(
+        reply["error"]["data"]["code"], "experimental_disabled",
+        "{reply}"
+    );
+    assert!(
+        reply["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("lace experimental enable assistant"),
+        "{reply}"
+    );
+    drop(client.stdin.take());
+    assert_eq!(wait_exit(&mut client), Some(2));
+
+    // Ligado, o mesmo comando responde em MCP.
+    let enabled = Command::new(assert_cmd::cargo::cargo_bin("lace"))
+        .args(["experimental", "enable", "assistant"])
+        .env("APPDATA", &config)
+        .env("XDG_CONFIG_HOME", &config)
+        .env("HOME", &config)
+        .output()
+        .unwrap();
+    assert!(enabled.status.success(), "{enabled:?}");
+    let mut client = Client::start_in(&config);
+    client.send_raw(MCP_INITIALIZE);
+    let reply = client.next(Duration::from_secs(10)).expect("a resposta");
+    assert_eq!(reply["result"]["protocolVersion"], "2025-06-18", "{reply}");
+    assert_eq!(reply["result"]["serverInfo"]["name"], "lace", "{reply}");
+    client.send_raw(r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#);
+    let reply = client.next(Duration::from_secs(10)).expect("a lista");
+    let tools = reply["result"]["tools"].as_array().expect("tools");
+    assert!(tools.iter().any(|t| t["name"] == "build"), "{reply}");
+    // Sem --allow-update, nada que mude a instalação.
+    assert!(
+        !tools.iter().any(|t| t["name"] == "update_apply"),
+        "{reply}"
+    );
+    let (code, _) = client.close_and_wait();
+    assert_eq!(code, 0);
+
+    // E o protocolo do Lace continua no mesmo comando.
+    let mut client = Client::start_in(&config);
+    let info = client.initialize();
+    assert_eq!(info["protocol"], 1, "{info}");
+    let (code, _) = client.close_and_wait();
+    assert_eq!(code, 0);
 }
 
 #[test]

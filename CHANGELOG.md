@@ -2,6 +2,13 @@
 
 ## Não publicada
 
+- `lace serve` também fala MCP. O primeiro pedido diz o idioma: um cliente
+  que se apresenta como MCP no `initialize`, com `protocolVersion`, recebe a
+  mesma sessão do `lace mcp`, com as mesmas ferramentas, o projeto do `-C`
+  como padrão e `--allow-update` para as que mudam a instalação. O idioma
+  MCP exige o recurso experimental `assistant`, como antes. O `lace mcp`
+  continua, como o mesmo servidor sempre em MCP, para as configurações dos
+  agentes que já o têm.
 - `lace serve`: fechar a entrada não cancela mais o que já foi pedido. O
   servidor responde cada pedido que recebeu e só então sai, e espera a
   última resposta ser escrita antes de sair; num `printf ... | lace serve`,
