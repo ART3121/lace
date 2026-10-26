@@ -10,10 +10,8 @@
 //! | [`commands::project`] | abrir, criar, retrato do projeto, arquivos Verilog, topo, testbench, processadores, mover arquivos, hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, compilação para a placa: operações canceláveis com saída ao vivo |
-//! | [`commands::fpga`] | as placas, o `fpga.json` e a conferência das ligações; só com a placa FPGA ligada |
-//! | [`commands::experimental`] | os recursos experimentais do Lace (a placa FPGA, o assistente de IA): quais estão ligados, ligar e desligar |
+//! | [`commands::fpga`] | o topo que vai para a placa e as portas dele (os outros métodos da placa passam pelo servidor); só com a placa FPGA ligada |
 //! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
-//! | [`commands::history`] | relatórios do `.lace/reports`: listar, mostrar, comparar, apagar |
 //! | [`commands::learn`] | os exercícios do `lace learn`: abrir e criar a pasta, o exercício atual, restaurar |
 //! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update --check` |
 //! | [`terminal`] | o terminal de shell |
@@ -30,10 +28,8 @@
 pub mod commands {
     //! Os comandos que a interface chama com `invoke`.
     pub mod app;
-    pub mod experimental;
     pub mod files;
     pub mod fpga;
-    pub mod history;
     pub mod learn;
     pub mod project;
     pub mod toolchain;
@@ -147,22 +143,14 @@ pub fn run() {
             commands::project::project_open,
             commands::project::project_create,
             commands::project::project_close,
-            commands::project::project_snapshot,
             commands::project::project_add_verilog,
             commands::project::project_remove_verilog,
             commands::project::project_set_top,
             commands::project::project_set_testbench,
             commands::project::project_processor_defaults,
             commands::project::project_add_processor,
-            commands::project::project_remove_processor,
-            commands::project::project_configure_processor,
-            commands::project::project_output_values,
             commands::project::verilog_modules,
-            commands::project::project_check_name,
-            commands::project::processor_check_name,
-            commands::project::project_reorder,
             commands::project::project_move,
-            commands::project::project_convert_layout,
             commands::project::project_hierarchy,
             commands::files::fs_read_dir,
             commands::files::fs_read_text,
@@ -175,28 +163,13 @@ pub fn run() {
             commands::files::fs_trash,
             commands::files::fs_list_files,
             commands::files::fs_search,
-            commands::history::history_list,
-            commands::history::history_show,
-            commands::history::history_compare,
-            commands::history::history_plan_cleanup,
-            commands::history::history_clean,
             commands::learn::learn_tracks,
             commands::learn::learn_open,
             commands::learn::learn_init,
             commands::learn::learn_set_current,
             commands::learn::learn_reset,
-            commands::experimental::experimental_list,
-            commands::experimental::experimental_set,
-            commands::fpga::fpga_boards,
-            commands::fpga::fpga_config,
-            commands::fpga::fpga_config_set,
             commands::fpga::fpga_top,
-            commands::fpga::fpga_check,
-            commands::fpga::fpga_modules,
-            commands::fpga::fpga_status,
-            commands::fpga::fpga_cables,
             commands::toolchain::toolchain_info,
-            commands::toolchain::toolchain_verify,
             commands::toolchain::lace_update_check,
             commands::toolchain::lace_install,
             commands::toolchain::lace_update,
@@ -216,9 +189,7 @@ pub fn run() {
             assistant::assistant_stop,
             wave_tab::wave_tab_open,
             wave_tab::wave_tab_close,
-            commands::wave::wave_signals,
             commands::wave::wave_selection_set,
-            commands::wave::wave_layout_reset,
         ])
         .build(tauri::generate_context!())
         .expect("Lace Studio could not start");

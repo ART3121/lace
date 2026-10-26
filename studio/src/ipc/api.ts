@@ -1,6 +1,7 @@
-// As chamadas ao backend, uma função por comando Tauri, com os tipos de
-// entrada e saída. O resto da interface só fala com o backend por aqui.
-// Referência: docs/IPC.md.
+// As chamadas ao backend, com os tipos de entrada e saída. O resto da
+// interface só fala com o backend por aqui. Cada função chama um comando
+// Tauri do Studio ou, por `lace()`, um método do protocolo do Lace, que o
+// backend repassa ao servidor (`lace serve`). Referência: docs/IPC.md.
 
 import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -8,9 +9,11 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   AddedFile,
   Board,
+  Cleanup,
   ExperimentalReport,
   Feature,
   FileMismatch,
+  NameCheck,
   ProcRemoveReport,
   ProjectFile,
   RunComparison,
@@ -70,6 +73,32 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   }
 }
 
+/** Um método do protocolo do Lace, pelo servidor do Studio (`server.rs`):
+ * o mesmo pedido e a mesma resposta do `lace serve` (docs/PROTOCOL.md). Sem
+ * `project` nos parâmetros, vale o projeto aberto. */
+function lace<T>(method: string, params?: Record<string, unknown>): Promise<T> {
+  return call<T>('lace_call', { method, params: params ?? null });
+}
+
+/** O `NameCheck` do protocolo como a interface o usa: `null` se o nome
+ * serve, senão o erro. */
+function nameError(check: NameCheck): IpcError | null {
+  if (check.ok) return null;
+  return { code: check.error?.code ?? 'invalid_name', message: check.error?.message ?? '' };
+}
+
+/** A limpeza do histórico como a interface a escreve, no formato do protocolo. */
+function cleanupOf(request: CleanupRequest): Cleanup {
+  switch (request.kind) {
+    case 'all':
+      return { kind: 'all' };
+    case 'keep_latest':
+      return { kind: 'keep_latest', value: request.keep };
+    case 'reports':
+      return { kind: 'reports', value: request.ids };
+  }
+}
+
 export interface ReportView {
   id: string;
   path: string;
@@ -101,11 +130,11 @@ export const api = {
 
   wave: {
     /** A árvore de sinais do testbench do projeto, com a escolha gravada. */
-    signals: () => call<WaveSignals>('wave_signals'),
+    signals: () => lace<WaveSignals>('wave.signals'),
     /** Grava a escolha (vazia: todos os sinais) e devolve como ficou. */
     setSelection: (signals: string[]) => call<string[]>('wave_selection_set', { signals }),
     /** Apaga o layout salvo da onda; `false` se não havia. */
-    resetLayout: (waveform: string) => call<boolean>('wave_layout_reset', { waveform }),
+    resetLayout: (waveform: string) => lace<boolean>('wave.reset_layout', { waveform }),
   },
 
   project: {
@@ -114,7 +143,7 @@ export const api = {
     create: (parent: string, name: string) =>
       call<ProjectSnapshot>('project_create', { parent, name }),
     close: () => call<void>('project_close'),
-    snapshot: () => call<ProjectSnapshot>('project_snapshot'),
+    snapshot: () => lace<ProjectSnapshot>('project.status'),
     addVerilog: (path: string, testbench: boolean) =>
       call<AddedFile>('project_add_verilog', { path, testbench }),
     removeVerilog: (path: string) => call<boolean>('project_remove_verilog', { path }),
@@ -126,19 +155,21 @@ export const api = {
     /** Tira o processador do projeto (`lace proc remove`); com `toTrash`, a
      * pasta dele vai para a lixeira, e sem, fica no disco. */
     removeProcessor: (name: string, toTrash: boolean) =>
-      call<ProcRemoveReport>('project_remove_processor', { name, toTrash }),
+      lace<ProcRemoveReport>('processor.remove', { name, to_trash: toTrash }),
     configureProcessor: (
       name: string,
       config: { frequency_mhz?: number | null; clocks?: number | null; show_arrays?: boolean | null },
     ) =>
-      call<Processor>('project_configure_processor', {
+      lace<Processor>('processor.set', {
         name,
-        frequencyMhz: config.frequency_mhz ?? null,
-        clocks: config.clocks ?? null,
-        showArrays: config.show_arrays ?? null,
+        config: {
+          frequency_mhz: config.frequency_mhz ?? null,
+          clocks: config.clocks ?? null,
+          show_arrays: config.show_arrays ?? null,
+        },
       }),
     outputValues: (processor: string, port: number) =>
-      call<number[]>('project_output_values', { processor, port }),
+      lace<number[]>('processor.outputs', { processor, port }),
     verilogModules: (text: string) => call<string[]>('verilog_modules', { text }),
     /** Move ou renomeia (`Project::move_path` do Core): `to` é o caminho
      * final. Erro `path_exists` se ele já existe, sem `overwrite`. */
@@ -146,15 +177,16 @@ export const api = {
       call<MovedPath>('project_move', { from, to, overwrite }),
     /** Converte da estrutura de pastas do YANC 6.x para a do 7.1
      * (`Project::convert_layout`). */
-    convertLayout: () => call<LayoutConversion>('project_convert_layout'),
+    convertLayout: () => lace<LayoutConversion>('project.convert'),
     /** `null` se o nome de projeto serve; senão o erro do Core. */
-    checkName: (name: string) => call<IpcError | null>('project_check_name', { name }),
+    checkName: (name: string) => lace<NameCheck>('project.check_name', { name }).then(nameError),
     /** Muda a posição de um arquivo na lista dele (`lace order`); devolve
      * a lista na ordem nova. */
     reorder: (path: string, position: ListPosition) =>
-      call<ProjectFile[]>('project_reorder', { path, position }),
+      lace<ProjectFile[]>('project.order', { file: path, position }),
     /** `null` se o nome de processador serve; senão o erro do Core. */
-    checkProcessorName: (name: string) => call<IpcError | null>('processor_check_name', { name }),
+    checkProcessorName: (name: string) =>
+      lace<NameCheck>('processor.check_name', { name }).then(nameError),
     hierarchy: () => call<HierarchyResult>('project_hierarchy'),
   },
 
@@ -187,12 +219,13 @@ export const api = {
   },
 
   history: {
-    list: () => call<RunSummary[]>('history_list'),
-    show: (id?: string | null) => call<ReportView>('history_show', { id: id ?? null }),
+    list: () => lace<RunSummary[]>('history.list'),
+    show: (id?: string | null) => lace<ReportView>('history.show', { id: id ?? null }),
     compare: (id?: string | null, against?: string | null) =>
-      call<RunComparison>('history_compare', { id: id ?? null, against: against ?? null }),
-    planCleanup: (cleanup: CleanupRequest) => call<string[]>('history_plan_cleanup', { cleanup }),
-    clean: (ids: string[]) => call<CleanReport>('history_clean', { ids }),
+      lace<RunComparison>('history.compare', { id: id ?? null, against: against ?? null }),
+    planCleanup: (cleanup: CleanupRequest) =>
+      lace<string[]>('history.plan_cleanup', { cleanup: cleanupOf(cleanup) }),
+    clean: (ids: string[]) => lace<CleanReport>('history.clean', { ids }),
   },
   /** Os exercícios do `lace learn` (commands/learn.rs); a correção é o fluxo `learn`. */
   learn: {
@@ -205,35 +238,36 @@ export const api = {
     reset: (root: string, name: string) => call<void>('learn_reset', { root, name }),
   },
 
-  /** Os recursos experimentais do Lace (commands/experimental.rs): o mesmo
+  /** Os recursos experimentais do Lace, pelo servidor: o mesmo
    * `experimental.json` do `lace experimental` da CLI. */
   experimental: {
-    list: () => call<ExperimentalReport>('experimental_list'),
-    set: (feature: Feature, enabled: boolean) => call<ExperimentalReport>('experimental_set', { feature, enabled }),
+    list: () => lace<ExperimentalReport>('experimental.list'),
+    set: (feature: Feature, enabled: boolean) =>
+      lace<ExperimentalReport>('experimental.set', { feature, enabled }),
   },
 
-  /** A placa FPGA (commands/fpga.rs), experimental: desligada, cada comando
-   * daqui responde `experimental_disabled`. A compilação é o fluxo
-   * `fpga_build`. */
+  /** A placa FPGA, experimental: desligada, cada método daqui responde
+   * `experimental_disabled`. Tudo passa pelo servidor, menos o `top`
+   * (commands/fpga.rs). A compilação é o fluxo `fpga_build`. */
   fpga: {
-    boards: () => call<Board[]>('fpga_boards'),
+    boards: () => lace<Board[]>('fpga.boards'),
     /** O `fpga.json`; `null` se ainda não existe. */
-    config: () => call<FpgaConfig | null>('fpga_config'),
-    setConfig: (config: FpgaConfig) => call<void>('fpga_config_set', { config }),
+    config: () => lace<FpgaConfig | null>('fpga.config'),
+    setConfig: (config: FpgaConfig) => lace<void>('fpga.config_set', { config }),
     /** O topo que vai para a placa e as portas dele. */
     top: (top?: string | null) => call<ModuleInterface>('fpga_top', { top: top ?? null }),
-    check: () => call<FpgaPrepared>('fpga_check'),
+    check: () => lace<FpgaPrepared>('fpga.check'),
     /** Os módulos do projeto que podem ir para a placa. */
-    modules: () => call<string[]>('fpga_modules'),
+    modules: () => lace<string[]>('fpga.modules'),
     /** O arquivo de gravação: pronto, desatualizado (e por quê) ou ausente. */
-    status: () => call<BitstreamState>('fpga_status'),
+    status: () => lace<BitstreamState>('fpga.status'),
     /** Os cabos de gravação ligados (`quartus_pgm -l`, cerca de 1 s). */
-    cables: () => call<string[]>('fpga_cables'),
+    cables: () => lace<string[]>('fpga.cables'),
   },
 
   toolchain: {
     info: () => call<ToolchainInfo>('toolchain_info'),
-    verify: () => call<FileMismatch[]>('toolchain_verify'),
+    verify: () => lace<FileMismatch[]>('toolchain.verify'),
     updateCheck: () => call<unknown>('lace_update_check'),
     install: (components: string[], onMessage: (m: JobMessage) => void) => {
       const channel = new Channel<JobMessage>();

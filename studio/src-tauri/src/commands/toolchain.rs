@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::{CancelToken, FileMismatch, Toolchain, component};
+use lace_core::{CancelToken, Toolchain, component};
 use lace_installer::add::{self, Payload};
 use lace_installer::install::Event;
 use lace_installer::payload::Index;
@@ -40,16 +40,6 @@ const CHECK_TIMEOUT: Duration = Duration::from_secs(90);
 #[tauri::command]
 pub async fn toolchain_info(app: AppHandle) -> IpcResult<ToolchainInfo> {
     blocking(app, |_, state| Ok(toolchain::info(&state.settings.get()))).await
-}
-
-/// Confere o SHA-256 de cada executável do bundle (`lace tools --verify`).
-/// Vazio: todos conferem.
-#[tauri::command]
-pub async fn toolchain_verify(app: AppHandle) -> IpcResult<Vec<FileMismatch>> {
-    blocking(app, |_, state| {
-        Ok(toolchain::require(&state.settings.get())?.verify()?)
-    })
-    .await
 }
 
 /// `lace update --check`: o Lace, o bundle e cada aplicativo comparados com

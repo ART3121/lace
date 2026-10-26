@@ -7,11 +7,10 @@
 
 use camino::Utf8PathBuf;
 use lace_core::{
-    AddedFile, Control, HierarchyOptions, HierarchyResult, LaceError, Language, LayoutConversion,
-    ListPosition, MovedPath, NewProcessor, Processor, ProcessorConfig, Project, ProjectFile,
-    RemovedProcessor,
+    AddedFile, Control, HierarchyOptions, HierarchyResult, LaceError, Language, MovedPath,
+    NewProcessor, Processor, Project,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 
 use crate::error::{IpcError, IpcResult, codes};
@@ -85,25 +84,6 @@ pub async fn project_create(
     .await
 }
 
-/// Confere um nome de processador novo enquanto o usuário digita, com a
-/// regra do Core (`validate_new_processor_name`): `None` se ele serve, ou o
-/// erro `invalid_name` com o motivo.
-#[tauri::command]
-pub fn processor_check_name(name: String) -> Option<IpcError> {
-    lace_core::validate_new_processor_name(&name)
-        .err()
-        .map(IpcError::from)
-}
-
-/// Confere um nome de projeto novo enquanto o usuário digita: `None` se ele
-/// serve, ou o erro `invalid_name` do Core com o motivo.
-#[tauri::command]
-pub fn project_check_name(name: String) -> Option<IpcError> {
-    lace_core::validate_project_name(&name)
-        .err()
-        .map(IpcError::from)
-}
-
 /// Fecha o projeto: para de vigiar a pasta e esquece o `.spf`.
 #[tauri::command]
 pub async fn project_close(app: AppHandle) -> IpcResult<()> {
@@ -113,12 +93,6 @@ pub async fn project_close(app: AppHandle) -> IpcResult<()> {
         Ok(())
     })
     .await
-}
-
-/// O retrato do projeto aberto, relido do disco.
-#[tauri::command]
-pub async fn project_snapshot(app: AppHandle) -> IpcResult<ProjectSnapshot> {
-    blocking(app, |_, state| Ok(snapshot(&state.project()?))).await
 }
 
 /// Registra um arquivo Verilog; cria a partir do modelo se não existir
@@ -144,23 +118,6 @@ pub async fn project_add_verilog(
 pub async fn project_remove_verilog(app: AppHandle, path: String) -> IpcResult<bool> {
     blocking(app, move |_, state| {
         Ok(state.project()?.remove_verilog(Utf8PathBuf::from(path))?)
-    })
-    .await
-}
-
-/// Muda a posição de um arquivo registrado na lista dele (`lace order`):
-/// a ordem é a dos compiladores, e um `` `define `` só vale para os que vêm
-/// depois. Devolve a lista na ordem nova.
-#[tauri::command]
-pub async fn project_reorder(
-    app: AppHandle,
-    path: String,
-    position: ListPosition,
-) -> IpcResult<Vec<ProjectFile>> {
-    blocking(app, move |_, state| {
-        Ok(state
-            .project()?
-            .reorder_file(Utf8PathBuf::from(path), &position)?)
     })
     .await
 }
@@ -244,82 +201,6 @@ pub async fn project_add_processor(
     .await
 }
 
-/// O que `project_remove_processor` fez, como o `lace proc remove --json`.
-#[derive(Debug, Clone, Serialize)]
-pub struct ProcessorRemoval {
-    /// O que saiu: o nome, a pasta e os arquivos que saíram das listas.
-    pub removed: RemovedProcessor,
-    /// A pasta foi para a lixeira do sistema; `false`, ela continua no disco
-    /// (ou não existia).
-    pub trashed: bool,
-}
-
-/// Tira um processador do projeto (`lace proc remove`): a entrada no `.spf`,
-/// os arquivos dele nas listas e o temporário do Lace. Com `to_trash`, a
-/// pasta dele vai para a lixeira do sistema, como o apagar do Explorador;
-/// sem, fica no disco.
-#[tauri::command]
-pub async fn project_remove_processor(
-    app: AppHandle,
-    name: String,
-    to_trash: bool,
-) -> IpcResult<ProcessorRemoval> {
-    blocking(app, move |_, state| {
-        let removed = state.project()?.remove_processor(&name)?;
-        let trashed = to_trash && removed.dir.exists();
-        if trashed {
-            trash::delete(&removed.dir).map_err(|e| {
-                IpcError::new(
-                    codes::IO,
-                    format!(
-                        "{name} is out of the project, but its folder did not go to the trash ({e}): {}",
-                        removed.dir
-                    ),
-                )
-            })?;
-        }
-        Ok(ProcessorRemoval { removed, trashed })
-    })
-    .await
-}
-
-/// Grava frequência, clocks e exportação de arrays de um processador
-/// (`lace proc set`). Campo `None` fica como está.
-#[tauri::command]
-pub async fn project_configure_processor(
-    app: AppHandle,
-    name: String,
-    frequency_mhz: Option<u32>,
-    clocks: Option<u32>,
-    show_arrays: Option<bool>,
-) -> IpcResult<Processor> {
-    blocking(app, move |_, state| {
-        let mut project = state.project()?;
-        let mut config = ProcessorConfig::default();
-        config.frequency_mhz = frequency_mhz;
-        config.clocks = clocks;
-        config.show_arrays = show_arrays;
-        Ok(project.configure_processor(&name, &config)?.clone())
-    })
-    .await
-}
-
-/// Os valores que a simulação escreveu numa porta de saída.
-#[tauri::command]
-pub async fn project_output_values(
-    app: AppHandle,
-    processor: String,
-    port: u32,
-) -> IpcResult<Vec<i64>> {
-    blocking(app, move |_, state| {
-        let project = state.project()?;
-        Ok(project
-            .require_processor(&processor)?
-            .read_output_values(port)?)
-    })
-    .await
-}
-
 /// Os módulos declarados num texto Verilog, sem os comentados. A interface
 /// usa para o contorno do arquivo.
 #[tauri::command]
@@ -361,15 +242,6 @@ pub async fn project_move(
         }
     })
     .await
-}
-
-/// Converte os processadores da estrutura de pastas do YANC 6.x
-/// (`Software/`, `Hardware/`, `Simulation/`) para a do 7.1
-/// (`Project::convert_layout`, o `lace convert`). Nada é apagado nem
-/// sobrescrito; o relatório diz o que mudou de lugar e o que ficou.
-#[tauri::command]
-pub async fn project_convert_layout(app: AppHandle) -> IpcResult<LayoutConversion> {
-    blocking(app, |_, state| Ok(state.project()?.convert_layout()?)).await
 }
 
 /// A hierarquia do design e dos testbenches, elaborada pelo Icarus
