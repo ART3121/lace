@@ -1,12 +1,13 @@
-//! O contrato do orquestrador: o que um cliente pede, o que recebe de volta
-//! e o que ouve enquanto espera, em tipos com schema.
+//! O contrato do Lace: o que um cliente pede, o que recebe de volta e o que
+//! ouve enquanto espera, em tipos com schema.
 //!
-//! É o mesmo contrato para quem linka o core (a CLI, o Studio) e para quem
-//! fala com o Lace por um processo (`lace serve`, JSON-RPC 2.0 por linhas
-//! sobre stdio; `lace mcp`, para um agente). Aqui moram só os tipos: quem
-//! despacha um [`Request`] é o servidor, que linka também o instalador e o
-//! lace-learn, de quem vêm os resultados de `update.*`, `install.*` e
-//! `learn.*` ([`Response::Other`]).
+//! Quem fala com o Lace por um processo usa este contrato em JSON: o
+//! `lace serve` (JSON-RPC 2.0 por linhas sobre stdio) e o `lace mcp`, para
+//! um agente. Aqui moram só os tipos; quem despacha um [`Request`] é o
+//! servidor, na CLI, que linka também o instalador e o lace-learn, de quem
+//! vêm os resultados de `update.*`, `install.*` e `learn.*`
+//! ([`Response::Other`]). O crate fica acima do `lace-core`: os tipos das
+//! operações são do core, e o core não conhece o protocolo.
 //!
 //! Os nomes dos métodos têm um grupo e um ponto (`project.status`,
 //! `flow.run`); os campos são os das operações do core. O schema sai de
@@ -14,27 +15,31 @@
 //! na vista de quem desserializa (os campos com padrão são opcionais), o
 //! segundo na de quem serializa.
 
+#![deny(clippy::print_stdout, clippy::print_stderr)]
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+
 use std::collections::BTreeMap;
 
 use camino::Utf8PathBuf;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::experimental::ExperimentalInfo;
-use crate::flows::{
+use lace_core::experimental::ExperimentalInfo;
+use lace_core::flows::{
     FlowOptions, FlowOutcome, FlowRequest, WaveChoice, WaveChoiceOutcome, WaveOpened, WaveRequest,
 };
-use crate::fpga::{BitstreamState, Board, FpgaConfig, Prepared};
-use crate::history::{CleanOutcome, Cleanup, ReportView, RunComparison, RunSummary};
-use crate::locate::ToolchainInfo;
-use crate::verilog::ModuleInterface;
-use crate::{
+use lace_core::fpga::{BitstreamState, Board, FpgaConfig, Prepared};
+use lace_core::history::{CleanOutcome, Cleanup, ReportView, RunComparison, RunSummary};
+use lace_core::locate::ToolchainInfo;
+use lace_core::verilog::ModuleInterface;
+use lace_core::{
     AddedFile, ErrorInfo, FileMismatch, LayoutConversion, ListPosition, MovedPath, NewProcessor,
     Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemoveOutcome, RemovedProcessor,
     SavedLayout, WaveLayout, WaveSignals,
 };
 
-pub use crate::delivery::Notification;
+pub use lace_core::delivery::Notification;
 
 /// A versão do protocolo. Sobe quando um método muda de forma de um jeito
 /// que um cliente antigo não entenderia; um método novo não a sobe.

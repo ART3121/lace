@@ -1,7 +1,7 @@
 //! `lace serve`: a API do orquestrador para outro programa, por stdin e
 //! stdout, em JSON-RPC 2.0 com uma mensagem por linha.
 //!
-//! É o transporte do contrato de `lace_core::protocol` para quem não é Rust:
+//! É o transporte do contrato de `lace_protocol` para quem não é Rust:
 //! a extensão do VS Code, um agente, um script. Cada linha de entrada é um
 //! pedido (`{"jsonrpc":"2.0","id":1,"method":"project.status","params":
 //! {...}}`) ou a notificação `$/cancel`; cada linha de saída é uma resposta
@@ -61,10 +61,6 @@ use lace_core::flows::{self, FlowOptions, FlowRequest};
 use lace_core::fpga::{self, FpgaConfig};
 use lace_core::history;
 use lace_core::locate;
-use lace_core::protocol::{
-    METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response, ServerInfo,
-    ShutdownReason, WaveLayoutInfo,
-};
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, NewProcessor, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
 use lace_installer::install::Event as InstallEvent;
@@ -72,6 +68,10 @@ use lace_installer::payload::Index;
 use lace_installer::release::{Bar, Remote};
 use lace_installer::update::{
     AppliedUpdate, ChildOutput, Hooks, Prepared as UpdatePrepared, Reopen, RunOptions, UpdateAction,
+};
+use lace_protocol::{
+    METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response, ServerInfo,
+    ShutdownReason, WaveLayoutInfo,
 };
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -141,8 +141,8 @@ pub fn run(
 ) -> anyhow::Result<bool> {
     if args.schema {
         let schema = json!({
-            "request": lace_core::protocol::request_schema(),
-            "response": lace_core::protocol::response_schema(),
+            "request": lace_protocol::request_schema(),
+            "response": lace_protocol::response_schema(),
         });
         println!("{}", serde_json::to_string_pretty(&schema)?);
         return Ok(true);
@@ -1591,8 +1591,7 @@ struct Fields {
 fn fields() -> &'static Fields {
     static FIELDS: OnceLock<Fields> = OnceLock::new();
     FIELDS.get_or_init(|| {
-        let schema =
-            serde_json::to_value(lace_core::protocol::request_schema()).unwrap_or(Value::Null);
+        let schema = serde_json::to_value(lace_protocol::request_schema()).unwrap_or(Value::Null);
         let names = |node: &Value| -> Vec<String> {
             node.as_object()
                 .map(|p| p.keys().cloned().collect())
@@ -1875,7 +1874,7 @@ mod tests {
     /// relatório guardado, do Quartus nem da rede.
     #[test]
     fn results_conform_to_the_declared_schema() {
-        let schema = serde_json::to_value(lace_core::protocol::result_schema()).unwrap();
+        let schema = serde_json::to_value(lace_protocol::result_schema()).unwrap();
         let (server, rx) = server();
         let call =
             |method: &str, params: Value| call_conforming(&server, &rx, &schema, method, params);

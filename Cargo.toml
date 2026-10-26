@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/lace-core", "crates/lace-learn", "crates/lace-cli", "crates/lace-installer", "crates/lace-agent"]
+members = ["crates/lace-core", "crates/lace-learn", "crates/lace-cli", "crates/lace-installer", "crates/lace-protocol", "crates/lace-agent"]
 # O Lace Studio (studio/) tem o próprio workspace e o próprio Cargo.lock:
 # o Tauri pede as bibliotecas de sistema do WebView e a interface já
 # compilada, que os testes do Core e da CLI não precisam.
@@ -16,6 +16,7 @@ license = "MIT"
 lace-core = { path = "crates/lace-core" }
 lace-learn = { path = "crates/lace-learn" }
 lace-installer = { path = "crates/lace-installer" }
+lace-protocol = { path = "crates/lace-protocol" }
 lace-agent = { path = "crates/lace-agent" }
 camino = { version = "1", features = ["serde1"] }
 dunce = "1"

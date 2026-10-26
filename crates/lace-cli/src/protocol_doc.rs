@@ -1,5 +1,5 @@
 //! O `docs/PROTOCOL.md`: a referência do protocolo do `lace serve`, gerada
-//! dos tipos de `lace_core::protocol` como os schemas de `docs/schema/`, e
+//! dos tipos de `lace_protocol` como os schemas de `docs/schema/`, e
 //! conferida pelo mesmo comando. Mudou um método, um parâmetro ou um tipo?
 //! Gere de novo:
 //!
@@ -13,9 +13,7 @@ use std::collections::BTreeSet;
 use std::fmt::Write as _;
 
 use camino::Utf8Path;
-use lace_core::protocol::{
-    METHODS, PROTOCOL_VERSION, request_schema, response_schema, result_schema,
-};
+use lace_protocol::{METHODS, PROTOCOL_VERSION, request_schema, response_schema, result_schema};
 use serde_json::{Map, Value};
 
 use crate::serve::rpc;
@@ -394,8 +392,8 @@ LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli schema -->
 
 Cada método do `lace serve`, com os parâmetros e o resultado, as \
 notificações, os erros e os tipos. O `lace mcp` usa o mesmo contrato. Esta \
-página sai dos tipos de `lace_core::protocol` \
-(`crates/lace-core/src/protocol.rs`), como os schemas \
+página sai dos tipos de `lace_protocol` \
+(`crates/lace-protocol/src/lib.rs`), como os schemas \
 [`protocol-request.json`](schema/protocol-request.json) e \
 [`protocol-response.json`](schema/protocol-response.json), e um teste falha \
 quando ela não confere com eles.

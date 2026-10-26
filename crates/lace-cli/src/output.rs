@@ -20,7 +20,6 @@ use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::fpga::{FpgaBuildResult, FpgaProgramResult, ResourceUsage};
 use lace_core::history::{Availability, MetricComparison, RunComparison, RunMetadata, RunSummary};
 use lace_core::locate::ToolchainInfo;
-use lace_core::protocol::TopOutcome;
 use lace_core::{
     AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
     Event, FileMismatch, FileRole, HierarchyResult, LaceError, Language, LayoutConversion,
@@ -28,6 +27,7 @@ use lace_core::{
     SchematicResult, Severity, SimulationResult, Simulator, Status, Step, StepReport,
     SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool,
 };
+use lace_protocol::TopOutcome;
 use serde::Serialize;
 
 pub(crate) const ERROR: Style = AnsiColor::Red.on_default().bold();

@@ -44,8 +44,8 @@ macro_rules! reports {
                 ("events", schema_of::<EventLine>()),
                 // O protocolo do lace serve, nas duas vistas: os pedidos (campos
                 // opcionais onde o core tem um valor fixo) e as respostas.
-                ("protocol-request", lace_core::protocol::request_schema()),
-                ("protocol-response", lace_core::protocol::response_schema()),
+                ("protocol-request", lace_protocol::request_schema()),
+                ("protocol-response", lace_protocol::response_schema()),
             ]
         }
     };

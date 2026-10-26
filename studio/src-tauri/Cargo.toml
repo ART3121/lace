@@ -58,7 +58,7 @@ win32job = "2"
 tempfile = "3"
 # Os testes conferem a versão do protocolo e o schema embutido contra os do
 # Lace.
-lace-core = { path = "../../crates/lace-core" }
+lace-protocol = { path = "../../crates/lace-protocol" }
 
 [profile.release]
 codegen-units = 1

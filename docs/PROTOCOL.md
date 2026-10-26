@@ -2,7 +2,7 @@
 
 <!-- Gerado por crates/lace-cli/src/protocol_doc.rs. Não edite à mão: LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli schema -->
 
-Cada método do `lace serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `lace mcp` usa o mesmo contrato. Esta página sai dos tipos de `lace_core::protocol` (`crates/lace-core/src/protocol.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
+Cada método do `lace serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `lace mcp` usa o mesmo contrato. Esta página sai dos tipos de `lace_protocol` (`crates/lace-protocol/src/lib.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
 
 Como abrir o servidor, a fila por projeto, o cancelamento e o encerramento: [CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp).
 

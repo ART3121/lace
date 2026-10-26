@@ -2031,12 +2031,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "lace-protocol"
+version = "0.9.0"
+dependencies = [
+ "camino",
+ "lace-core",
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "lace-studio"
 version = "0.9.0"
 dependencies = [
  "camino",
  "lace-agent",
- "lace-core",
+ "lace-protocol",
  "notify",
  "portable-pty",
  "regex",

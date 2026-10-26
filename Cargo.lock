@@ -939,6 +939,7 @@ dependencies = [
  "lace-core",
  "lace-installer",
  "lace-learn",
+ "lace-protocol",
  "predicates",
  "ratatui",
  "schemars",
@@ -1009,6 +1010,17 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tracing",
+]
+
+[[package]]
+name = "lace-protocol"
+version = "0.9.0"
+dependencies = [
+ "camino",
+ "lace-core",
+ "schemars",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
