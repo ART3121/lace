@@ -1299,15 +1299,6 @@ impl Server {
                 workspace.reset(&exercise).map_err(|e| learn_info(&e))?;
                 Response::Nothing(())
             }
-            // O enum cresce sem quebrar quem o usa; um servidor desta versão
-            // não atende o que não conhece.
-            other => {
-                return Err(ErrorInfo::new(
-                    "unsupported",
-                    format!("This server does not serve {}", other.method()),
-                )
-                .into());
-            }
         })
     }
 

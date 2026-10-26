@@ -135,9 +135,10 @@ methods! {
 
 /// O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
 /// um método sem parâmetros vai sem `params`. Os caminhos são absolutos.
+// Sem `non_exhaustive`: o despacho do servidor faz `match` sem `_`, e um
+// método novo sem braço no despacho não compila.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "method", content = "params", rename_all = "snake_case")]
-#[non_exhaustive]
 pub enum Request {
     /// O primeiro pedido de uma sessão: quem é o cliente. Resposta:
     /// [`ServerInfo`].
