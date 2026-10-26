@@ -187,7 +187,8 @@ está no [README](README.md#como-as-partes-se-ligam).
 | Arquivo | O que mora lá |
 |---|---|
 | `main.rs` | a definição da linha de comando com o `clap` (`Cli`, `Command`, `ProcCommand`, as structs `*Args`), o texto de ajuda, `main` com os códigos de saída (`EXIT_FAILED`, `EXIT_ERROR`, `EXIT_CANCELLED`), `cancel_on_signals` (Ctrl+C e SIGTERM viram cancelamento), `init_tracing` e o teste `cli_definition_is_valid` |
-| `commands.rs` | uma função por comando, chamada por `run`; converte os caminhos digitados em absolutos e chama o Core com o `Control`; `build`, `check`, `hierarchy`, `sim` e `synth` montam um `FlowRequest` e o entregam a `run_flow`, que chama `lace_core::flows::run` (é o fluxo que compila os processadores antes de `sim` e `synth` e grava o relatório no histórico) com o `Printer`, que escreve o que o fluxo avisa; `wave` chama `flows::open_wave`, e `report` atende `lace report` |
+| `commands.rs` | uma função por comando, chamada por `run`; resolve o que a linha de comando diz (os caminhos digitados em absolutos, o processador da pasta atual), monta o pedido do protocolo e o entrega ao despacho no mesmo processo (`local.rs`); `build`, `check`, `hierarchy`, `sim` e `synth` montam um `FlowRequest` e o entregam a `run_flow`, que manda o `flow.run` (o fluxo de `lace_core::flows`, que compila os processadores antes de `sim` e `synth` e grava o relatório no histórico) com o `Printer`, que escreve o que o fluxo avisa; `wave` manda o `wave.open`, e `report` atende `lace report` pelos `history.*` |
+| `local.rs` | `Local`: o despacho do `lace serve` (`Server::handle_with`) chamado no mesmo processo, com o bundle resolvido como na linha de comando (`Server::strict`) e a saída das ferramentas e o progresso dos fluxos entregues como o core os dá (`Sink::Direct`); o erro volta com o tipo de antes (`Failure::into_anyhow`), e `answer!` tira o valor da resposta |
 | `output.rs` | `Output`: a saída em texto (cores só em terminal, `NO_COLOR`), em JSON (`Output::json`) e em eventos (`--events`); `Output::control` monta o `Control` de cada modo, e `live_text` mostra o testbench enquanto roda; a formatação dos diagnósticos, das tabelas de `lace report list` e `compare`, e `hint`, a dica de comando para alguns erros |
 | `report.rs` | um tipo por saída do `--json` (`SimReport`, `StatusReport`, ...), o trait `Report` que `Output::json` exige, a macro `reports!` que registra cada um, e o teste que confere `docs/schema/` ([Contrato do `--json`](#contrato-do---json)) |
 | `installation.rs` | a pasta da instalação de onde este `lace` roda (`prefix`, por `lace_installer::installation::prefix_of`) e `lib_error`, que traz um erro da biblioteca do instalador para a CLI (o cancelamento vira a saída 130); o recibo e o desinstalador são de `lace_installer::installation` |
@@ -196,7 +197,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `uninstall.rs` | `lace uninstall`: acha a instalação ao redor do executável e roda o desinstalador que o instalador deixou (`uninstall.sh`, ou o do Inno no Windows) |
 | `settings.rs` | as opções globais do bundle e do que vem do sistema (`ToolchainArgs`: `--toolchain` ou `LACE_TOOLCHAIN`, `--compiler` ou `LACE_COMPILER`, `--quartus` ou `LACE_QUARTUS`); `ToolchainArgs::lookup` monta o `Lookup` (com a `QUARTUS_ROOTDIR` e a `HOME`) e `ToolchainArgs::resolve` abre o bundle por `lace_core::locate::resolve`, onde moram o `compiler_in` e a busca do Quartus; e `absolute` |
 | `fpga.rs` | `lace fpga boards`, `lace fpga check`, `lace fpga build` e `lace fpga program` (com `--list`, os cabos) |
-| `serve.rs` | `lace serve`: o protocolo por JSON-RPC 2.0 sobre stdio; `Server::handle_with` é o despacho de cada método para o Core, que o `lace mcp` também usa |
+| `serve.rs` | `lace serve`: o protocolo por JSON-RPC 2.0 sobre stdio; `Server::handle_with` é o despacho de cada método para o Core, que o `lace mcp` e a CLI (`local.rs`) também usam |
 | `mcp/` | `lace mcp`: as ferramentas para um agente de IA (`TOOLS`, em `mod.rs`), o resumo em texto de cada resultado (`summary.rs`) e o `lace mcp setup` (`setup.rs`) |
 | `chat.rs` | `lace chat`: a tela do assistente no terminal, sobre o `lace-agent` |
 | `experimental.rs` | `lace experimental`: lista, liga e desliga os recursos experimentais |
@@ -290,11 +291,13 @@ O caminho de `lace check`, que é o de toda operação que roda ferramentas:
 
 1. `main.rs`: o `clap` lê os argumentos em `Cli`, e `commands::run` chama
    `check`.
-2. `commands.rs`, função `check`: abre o `Project`, resolve o `Toolchain`
-   (`settings.rs`), monta o `FlowRequest::Check` e chama `run_flow`, que
-   entrega o pedido a `lace_core::flows::run` com o `Control` que `main`
-   criou (`Output::control`) e com o `Printer`, que recebe o `Progress` do
-   fluxo.
+2. `commands.rs`, função `check`: acha o projeto (o `.spf` e o processador
+   da pasta atual), monta o `FlowRequest::Check` e chama `run_flow`, que
+   manda o `flow.run` ao despacho no mesmo processo (`local.rs`). O braço do
+   `flow.run` em `serve.rs` abre o projeto, resolve o `Toolchain`
+   (`settings.rs`) e chama `lace_core::flows::run` com o `Control` que
+   `main` criou (`Output::control`) e com o `Printer`, que recebe o
+   `Progress` do fluxo.
 3. `flows/run.rs`, função `check`: monta `CheckOptions`, chama
    `lace_core::check` sobre o que está no disco, sem compilar os
    processadores (o `sim` e o `synth` compilam antes), e grava o relatório
@@ -362,10 +365,12 @@ herdada do ambiente do usuário.
    comentário `///`, que vira o texto da ajuda e por isso é em inglês. Um comando novo
    é uma variante de `enum Command`.
 2. `crates/lace-cli/src/commands.rs`: o braço do `match` em `run` e a
-   função do comando, que passa o valor ao Core (no `check`, um campo de
-   `FlowRequest::Check`, de `lace_core::flows`, que o fluxo passa a
+   função do comando, que põe o valor no pedido ao despacho (no `check`, um
+   campo de `FlowRequest::Check`, de `lace_core::flows`, que o fluxo passa a
    `CheckOptions`; o `FlowRequest` vai no `flow.run` do protocolo, e o
-   campo novo muda o `docs/schema/`). A função devolve `Ok(false)` quando a operação rodou e
+   campo novo muda o `docs/schema/`). Uma operação que o protocolo ainda
+   não tem é um método novo (receita "Acrescentar um método à API"), e o
+   comando o pede por `Local`, em vez de chamar o Core. A função devolve `Ok(false)` quando a operação rodou e
    falhou (código 1) e `Err` quando não conseguiu rodar (código 2).
 3. `crates/lace-cli/src/output.rs`: o texto, num método de `Output`. O
    JSON é um tipo de `crates/lace-cli/src/report.rs`, escrito por

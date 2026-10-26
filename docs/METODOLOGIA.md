@@ -180,7 +180,10 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    enum.
 4. **O despacho.** Um braço em `Server::handle_with`, em
    `crates/lace-cli/src/serve.rs`: abrir o projeto, chamar a função do core
-   e embrulhar o resultado na `Response`. Nenhuma regra entra aqui. Atenção:
+   e embrulhar o resultado na `Response`. Nenhuma regra entra aqui. A CLI
+   chama este mesmo despacho no próprio processo
+   (`crates/lace-cli/src/local.rs`), então o comando de um método não
+   repete o braço: monta o pedido e escreve a resposta. Atenção:
    o `match` termina num braço `other =>` que responde `unsupported`, então
    o compilador não avisa quando falta o braço. O teste de ponta a ponta vai
    em `crates/lace-cli/tests/serve.rs`. Se o método roda sem bundle, ele
@@ -205,7 +208,7 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
 
 7. **As interfaces que vão usar o método.** Só as que precisam dele agora.
    - CLI: a receita "Acrescentar um comando ou uma opção à CLI" do
-     CONTRIBUTING.md.
+     CONTRIBUTING.md; o comando pede o método por `Local`.
    - Studio: a receita "Uma operação do Lace na interface" do
      DEVELOPMENT.md. A função do `api.ts` pede o método pelo `lace_call`, e
      o backend não ganha comando.
@@ -312,7 +315,11 @@ Cada fase vale sozinha e pode parar ali.
    protocolo do Lace ou MCP). No Studio, os comandos que repetiam o
    despacho deram lugar ao `lace_call`; ficaram próprios os comandos que
    são do Studio: as operações longas com canal, os arquivos, o terminal, o
-   vigia de arquivos, as preferências e a janela. Falta dar tipo às
+   vigia de arquivos, as preferências e a janela. Na CLI, os comandos que
+   têm método chamam o mesmo despacho no próprio processo, como o
+   `lace mcp`, e montam o texto e o `--json` a partir da resposta;
+   instalar, atualizar, desinstalar e o `lace learn` chamam as bibliotecas
+   direto, porque têm interface própria no terminal. Falta dar tipo às
    respostas do update, do install e do learn, que ainda são
    `Response::Other`.
 3. **O método declarado num lugar só.** Uma macro, como a `reports!` da

@@ -1,12 +1,17 @@
 # `lace`: a linha de comando
 
 A CLI é uma casca fina sobre o `lace-core` (ver [API.md](API.md)): cada
-comando abre o projeto, chama uma função do Core e formata o resultado. O que
-a CLI faz, uma GUI faz chamando as mesmas funções. Os comandos que rodam
-ferramentas (`build`, `check`, `hierarchy`, `sim`, `synth`, `fpga build` e
-`fpga program`) montam um `FlowRequest` e chamam `lace_core::flows::run`, e o
-`wave` chama `flows::open_wave` e `flows::choose_signals`; a coluna "Função
-do Core" das tabelas abaixo diz o que esses fluxos chamam por dentro.
+comando que tem método no protocolo do `lace serve` monta o pedido, o
+entrega ao despacho do servidor no próprio processo (sem servidor nem
+processo a mais: o comando termina com o processo, como sempre) e formata a
+resposta, em texto ou no `--json` do comando. O Studio e a extensão do VS
+Code pedem o mesmo ao `lace serve`. Os comandos que rodam ferramentas
+(`build`, `check`, `hierarchy`, `sim`, `synth`, `fpga build` e
+`fpga program`) mandam um `flow.run`, que chama `lace_core::flows::run`, e o
+`wave` manda o `wave.open`, o `wave.signals` e o `wave.choose`; a coluna
+"Função do Core" das tabelas abaixo diz o que esses fluxos chamam por
+dentro. Instalar, atualizar, desinstalar e o `lace learn` chamam as
+bibliotecas direto, porque têm interface própria no terminal.
 
 ```
 cargo install --path crates/lace-cli     # instala o binário `lace`
@@ -789,10 +794,10 @@ lace completions bash > ~/.local/share/bash-completion/completions/lace
 ### A API para outros programas: `lace serve` e `lace mcp`
 
 Um programa que não é Rust (a extensão do VS Code, um agente, um script)
-fala com o Lace por um processo vivo em vez de um processo por comando. A
-CLI e o Studio não passam por aqui: linkam o core e chamam as mesmas
-funções (`lace_core::flows`); o `serve` é só outro transporte do mesmo
-contrato ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busca-do-bundle-e-o-contrato)).
+fala com o Lace por um processo vivo em vez de um processo por comando. O
+Studio é cliente do `lace serve`, como a extensão, e a CLI chama o mesmo
+despacho no próprio processo: o contrato é um só
+([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busca-do-bundle-e-o-contrato)).
 
 | Comando | Faz |
 |---|---|

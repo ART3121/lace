@@ -1873,7 +1873,9 @@ As operações de 5.1 a 5.10 são as peças. O que uma interface faz de fato é
 compô-las: compilar os processadores antes de simular, registrar no `.spf`
 o que o YANC gerou, ler as portas de saída, gravar o relatório, abrir a
 onda. Essa composição morava duas vezes, na CLI e no Studio, e divergia;
-agora mora aqui, uma vez, e os dois (mais o `lace serve`) a chamam.
+agora mora aqui, uma vez, e o despacho do `lace serve` a chama: a CLI pelo
+mesmo despacho no próprio processo, o Studio e a extensão como clientes do
+servidor.
 
 **`lace_core::flows`.** Um [`FlowRequest`] (`build`, `check`, `hierarchy`,
 `simulate`, `synthesize`, `schematic`, `fpga_build`, `fpga_program`; em
@@ -1926,8 +1928,8 @@ põe o Studio), as pastas padrão do instalador, o `lace` do `PATH` e, por
 leu do ambiente e das preferências (o core não lê o ambiente para achar o bundle), e `resolve`
 devolve o bundle com a origem (`Found`); `describe` monta o
 [`ToolchainInfo`] da tela de ferramentas do Studio e do `toolchain.info` do
-`lace serve`: o que o `lace tools` mostra, em dados (a CLI monta o relatório
-dela direto do `Toolchain`).
+`lace serve`: o que o `lace tools` mostra, em dados (a CLI o pede ao
+despacho e monta o relatório dela a partir dele).
 `Project::status()` devolve o retrato do projeto ([`ProjectStatus`]: o
 `lace status` e a árvore do Studio) e `Processor::output_ports` as portas
 de saída lidas pelo nome do arquivo.
