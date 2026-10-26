@@ -415,11 +415,6 @@ type Job = Box<dyn FnOnce() + Send>;
 pub(crate) enum Failure {
     Lace(Box<LaceError>),
     Info(Box<ErrorInfo>),
-    /// Um erro da CLI (o bundle resolvido como na linha de comando, a rede
-    /// do instalador), guardado como veio: quem chama no mesmo processo o
-    /// mostra como a CLI sempre mostrou, e o servidor o converte ao
-    /// responder.
-    Cli(anyhow::Error),
 }
 
 impl From<LaceError> for Failure {
@@ -445,18 +440,6 @@ impl Failure {
         match self {
             Failure::Lace(error) => crate::output::error_info(&error),
             Failure::Info(info) => *info,
-            Failure::Cli(error) => to_info(&error),
-        }
-    }
-
-    /// O erro como a CLI o mostra: o `LaceError`, o `ErrorInfo` ou o erro
-    /// da CLI, cada um com o tipo de antes, para o código, a dica e o
-    /// `--json` não mudarem.
-    pub(crate) fn into_anyhow(self) -> anyhow::Error {
-        match self {
-            Failure::Lace(error) => anyhow::Error::new(*error),
-            Failure::Info(info) => anyhow::Error::new(*info),
-            Failure::Cli(error) => error,
         }
     }
 }
@@ -466,24 +449,6 @@ pub(crate) type Handled = Result<Response, Failure>;
 /// Para onde vão as notificações de um pedido enquanto ele roda: no `serve`,
 /// o stdout com o `id` do pedido; no `lace mcp`, o progresso do MCP.
 pub(crate) type Emit = Arc<dyn Fn(Notification) + Send + Sync>;
-
-/// Para onde vai o que um pedido diz enquanto roda.
-pub(crate) enum Sink<'a> {
-    /// O stdout do `lace serve`: as notificações com o `id` do pedido.
-    Stdout,
-    /// As mesmas notificações para outro destino (o `lace mcp`).
-    Notify(Emit),
-    /// Quem chama no mesmo processo (o CLI): o progresso do core e a saída
-    /// das ferramentas como o core os entrega, sem lotes nem teto de linhas.
-    Direct(Direct<'a>),
-}
-
-/// O que o CLI recebe enquanto um pedido roda no mesmo processo.
-pub(crate) struct Direct<'a> {
-    /// O que um fluxo diz entre um passo e outro (`Progress`), para o texto
-    /// que a CLI escreve na ordem em que acontece.
-    pub(crate) progress: lace_core::flows::ProgressFn<'a>,
-}
 
 /// O servidor: o estado da sessão e as filas.
 pub(crate) struct Server {
@@ -503,10 +468,6 @@ pub(crate) struct Server {
     /// Se um recurso experimental está ligado: o `experimental.json` do
     /// usuário, ou o que o teste disser.
     features: fn(Feature) -> bool,
-    /// O bundle resolvido como na linha de comando: um `--compiler` ou um
-    /// `--quartus` que não serve é erro, e não segue sem ele
-    /// ([`Server::strict`]).
-    strict: bool,
 }
 
 impl Server {
@@ -521,16 +482,7 @@ impl Server {
             pending: Mutex::new(HashMap::new()),
             workers: Mutex::new(HashMap::new()),
             features: lace_core::experimental::is_enabled,
-            strict: false,
         }
-    }
-
-    /// O mesmo servidor com o bundle resolvido como na linha de comando: é
-    /// o despacho que o CLI chama no próprio processo, em que um
-    /// `--compiler` ou um `--quartus` que não serve é erro do comando.
-    pub(crate) fn strict(mut self) -> Self {
-        self.strict = true;
-        self
     }
 
     /// O mesmo servidor, com outra regra para os recursos experimentais.
@@ -852,42 +804,34 @@ impl Server {
     /// (`--compiler`, `--quartus`) que não serve não derruba o bundle, como
     /// no Studio: a sessão segue sem ele, a operação que o exige falha com o
     /// erro dela (`quartus_missing`), e o `toolchain.info` mostra o motivo.
-    /// A CLI, que roda um comando só e chama este despacho no modo estrito
-    /// ([`Server::strict`]), recusa logo ([`ToolchainArgs::resolve`]).
+    /// A CLI, que roda um comando só, recusa logo
+    /// ([`ToolchainArgs::resolve`]).
     fn toolchain(&self) -> Result<Toolchain, Failure> {
-        if self.strict {
-            return self.toolchain.resolve().map_err(Failure::Cli);
-        }
-        let lookup = self.toolchain.lookup().map_err(Failure::Cli)?;
+        let lookup = self.toolchain.lookup().map_err(|e| to_info(&e))?;
         Ok(locate::resolve(&lookup)?.toolchain)
     }
 
     /// Atende um pedido. `Err` é o Lace não conseguir rodar.
     pub(crate) fn handle(&self, id: &Value, request: Request, cancel: CancelToken) -> Handled {
-        self.handle_with(id, request, cancel, Sink::Stdout)
+        self.handle_with(id, request, cancel, None)
     }
 
-    /// [`Server::handle`] com o que o pedido diz enquanto roda indo para
-    /// `sink`: o stdout, outro destino das notificações (o `lace mcp`), ou o
-    /// CLI, no mesmo processo.
+    /// [`Server::handle`] com as notificações do pedido indo para `sink` em
+    /// vez do stdout (o `lace mcp`).
     pub(crate) fn handle_with(
         &self,
         id: &Value,
         request: Request,
         cancel: CancelToken,
-        sink: Sink<'_>,
+        sink: Option<Emit>,
     ) -> Handled {
-        let (emit, direct): (Emit, Option<Direct<'_>>) = match sink {
-            Sink::Stdout => {
+        let emit: Emit = match sink {
+            Some(sink) => sink,
+            None => {
                 let writer = self.writer.clone();
                 let id = id.clone();
-                (
-                    Arc::new(move |notification| writer.notify_for(&id, &notification)),
-                    None,
-                )
+                Arc::new(move |notification| writer.notify_for(&id, &notification))
             }
-            Sink::Notify(emit) => (emit, None),
-            Sink::Direct(direct) => (Arc::new(|_| {}), Some(direct)),
         };
         Ok(match request {
             Request::Initialize { .. } | Request::Shutdown => Response::Nothing(()),
@@ -1026,11 +970,9 @@ impl Server {
                 // A correção de um exercício é do lace-learn, que o core não
                 // conhece: roda aqui, com o resultado de um fluxo.
                 if let FlowRequest::Learn { root, exercise } = &request {
-                    let phase = lace_core::flows::Phase::Learn;
-                    match &direct {
-                        Some(direct) => (direct.progress)(lace_core::flows::Progress::Phase(phase)),
-                        None => emit(Notification::Phase { phase }),
-                    }
+                    emit(Notification::Phase {
+                        phase: lace_core::flows::Phase::Learn,
+                    });
                     let outcome = self.learn_flow(root, exercise, &options.command, cancel)?;
                     return Ok(Response::Flow(Box::new(outcome)));
                 }
@@ -1168,7 +1110,7 @@ impl Server {
                 // Um bundle que não abre vem em `found: false`, e um
                 // compilador ou Quartus declarado que não serve, nos campos de
                 // erro.
-                let lookup = self.toolchain.lookup().map_err(Failure::Cli)?;
+                let lookup = self.toolchain.lookup().map_err(|e| to_info(&e))?;
                 let info = match locate::resolve(&lookup) {
                     Ok(found) => locate::describe(&found),
                     Err(error) => locate::describe_error(&error),
@@ -1518,7 +1460,7 @@ impl Hooks for Labels {
 /// Um erro da CLI (`anyhow`) como [`Failure`], com o código da biblioteca
 /// do instalador quando é dela.
 fn cli_error(error: anyhow::Error) -> Failure {
-    Failure::Cli(error)
+    Failure::Info(Box::new(to_info(&error)))
 }
 
 /// O [`Request`] de um método e seus parâmetros. Um método sem parâmetros

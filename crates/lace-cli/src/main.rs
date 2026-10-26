@@ -11,7 +11,6 @@ mod install;
 mod installation;
 mod learn;
 mod learn_tui;
-mod local;
 mod mcp;
 mod meter;
 mod output;
