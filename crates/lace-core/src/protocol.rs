@@ -44,17 +44,87 @@ fn yes() -> bool {
     true
 }
 
-/// Declara os métodos num lugar só: a variante de [`Request`], o nome em
-/// JSON e o tipo do resultado (o `result` do JSON-RPC). Daqui saem
-/// [`METHODS`] e [`result_schema`]. Uma variante de [`Request`] que falte
-/// aqui não compila: o `match` de `declared` não tem `_`.
+/// Como um método aparece para um agente de IA, no `lace mcp`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Agent {
+    /// Não vira ferramenta.
+    No,
+    /// Vira ferramenta (o `flow.run`, uma por fluxo).
+    Tool,
+    /// Vira ferramenta só com `--allow-update`: muda a instalação do Lace.
+    AllowUpdate,
+}
+
+/// O que se declara de um método além do nome e do tipo do resultado, na
+/// linha dele em `methods!`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MethodInfo {
+    /// O nome em JSON (`project.status`).
+    pub name: &'static str,
+    /// Só lê (o disco, o bundle) e não roda ferramenta: um servidor pode
+    /// atendê-lo em paralelo com um fluxo longo do mesmo projeto, sem fila.
+    pub read_only: bool,
+    /// Mexe na instalação do Lace (instalar, atualizar): um servidor o
+    /// enfileira sozinho, com a trava da instalação.
+    pub installation: bool,
+    /// Como aparece para um agente.
+    pub agent: Agent,
+}
+
+/// A marcação `$want` está na lista de uma linha de `methods!`.
+macro_rules! flag {
+    ($want:ident;) => {
+        false
+    };
+    (read; read $($rest:ident)*) => {
+        true
+    };
+    (install; install $($rest:ident)*) => {
+        true
+    };
+    (agent; agent $($rest:ident)*) => {
+        true
+    };
+    (agent_update; agent_update $($rest:ident)*) => {
+        true
+    };
+    ($want:ident; $other:ident $($rest:ident)*) => {
+        flag!($want; $($rest)*)
+    };
+}
+
+/// Declara os métodos num lugar só, um por linha: a variante de
+/// [`Request`], o nome em JSON, o tipo do resultado (o `result` do
+/// JSON-RPC) e, entre colchetes, as marcações: `read` (só lê), `install`
+/// (mexe na instalação), `agent` (vira ferramenta de agente) e
+/// `agent_update` (vira ferramenta só com `--allow-update`). Daqui saem
+/// [`METHODS`], [`METHOD_INFO`], [`result_schema`],
+/// [`Request::is_read_only`] e [`Request::is_installation`]. Uma variante de
+/// [`Request`] que falte aqui não compila: o `match` de `declared` não tem
+/// `_`.
 macro_rules! methods {
-    ($($variant:ident = $name:literal => $result:ty,)*) => {
+    ($($variant:ident = $name:literal => $result:ty $([$($flag:ident),*])?,)*) => {
         /// Os métodos do protocolo, como vão em JSON: o que um servidor anuncia
         /// em [`ServerInfo::methods`] e usa para distinguir um método
         /// desconhecido de um com parâmetros inválidos. Mais `$/cancel`, a
         /// notificação que não é pedido.
         pub const METHODS: &[&str] = &[$($name),*];
+
+        /// As marcações de cada método, na ordem de [`METHODS`].
+        pub const METHOD_INFO: &[MethodInfo] = &[$(
+            MethodInfo {
+                name: $name,
+                read_only: flag!(read; $($($flag)*)?),
+                installation: flag!(install; $($($flag)*)?),
+                agent: if flag!(agent; $($($flag)*)?) {
+                    Agent::Tool
+                } else if flag!(agent_update; $($($flag)*)?) {
+                    Agent::AllowUpdate
+                } else {
+                    Agent::No
+                },
+            },
+        )*];
 
         /// O resultado de cada método, uma propriedade por método.
         #[derive(JsonSchema)]
@@ -72,61 +142,85 @@ macro_rules! methods {
                 $(Request::$variant { .. } => {})*
             }
         }
+
+        impl Request {
+            /// O pedido só lê e não roda ferramenta (a marcação `read`): um
+            /// servidor pode atendê-lo em paralelo com um fluxo longo do mesmo
+            /// projeto, sem fila.
+            pub fn is_read_only(&self) -> bool {
+                match self {
+                    $(Request::$variant { .. } => flag!(read; $($($flag)*)?),)*
+                }
+            }
+
+            /// O pedido mexe na instalação do Lace (a marcação `install`): um
+            /// servidor o enfileira sozinho, com a trava da instalação.
+            pub fn is_installation(&self) -> bool {
+                match self {
+                    $(Request::$variant { .. } => flag!(install; $($($flag)*)?),)*
+                }
+            }
+        }
     };
 }
 
+/// As marcações do método `name`, ou `None` se ele não existe.
+pub fn method_info(name: &str) -> Option<&'static MethodInfo> {
+    METHOD_INFO.iter().find(|info| info.name == name)
+}
+
 methods! {
-    Initialize = "initialize" => ServerInfo,
+    Initialize = "initialize" => ServerInfo [read],
     Shutdown = "shutdown" => (),
-    ProjectCreate = "project.create" => ProjectStatus,
-    ProjectStatus = "project.status" => ProjectStatus,
-    ProjectAdd = "project.add" => Vec<AddedFile>,
-    ProjectRemove = "project.remove" => RemoveOutcome,
-    ProjectTop = "project.top" => TopOutcome,
-    ProjectTestbench = "project.testbench" => ProjectStatus,
-    ProjectOrder = "project.order" => Vec<ProjectFile>,
-    ProjectMove = "project.move" => MovedPath,
-    ProjectConvert = "project.convert" => LayoutConversion,
-    ProjectCheckName = "project.check_name" => NameCheck,
-    ProcessorCheckName = "processor.check_name" => NameCheck,
-    ProcessorAdd = "processor.add" => Processor,
-    ProcessorSet = "processor.set" => Processor,
-    ProcessorRemove = "processor.remove" => ProcessorRemoval,
-    ProcessorOutputs = "processor.outputs" => Vec<i64>,
-    ProcessorDefaults = "processor.defaults" => NewProcessor,
-    FlowRun = "flow.run" => FlowOutcome,
-    FlowCommand = "flow.command" => String,
+    ProjectCreate = "project.create" => ProjectStatus [agent],
+    ProjectStatus = "project.status" => ProjectStatus [read, agent],
+    ProjectAdd = "project.add" => Vec<AddedFile> [agent],
+    ProjectRemove = "project.remove" => RemoveOutcome [agent],
+    ProjectTop = "project.top" => TopOutcome [agent],
+    ProjectTestbench = "project.testbench" => ProjectStatus [agent],
+    ProjectOrder = "project.order" => Vec<ProjectFile> [agent],
+    ProjectMove = "project.move" => MovedPath [agent],
+    ProjectConvert = "project.convert" => LayoutConversion [agent],
+    ProjectCheckName = "project.check_name" => NameCheck [read],
+    ProcessorCheckName = "processor.check_name" => NameCheck [read],
+    ProcessorAdd = "processor.add" => Processor [agent],
+    ProcessorSet = "processor.set" => Processor [agent],
+    ProcessorRemove = "processor.remove" => ProcessorRemoval [agent],
+    ProcessorOutputs = "processor.outputs" => Vec<i64> [read, agent],
+    ProcessorDefaults = "processor.defaults" => NewProcessor [read],
+    FlowRun = "flow.run" => FlowOutcome [agent],
+    FlowCommand = "flow.command" => String [read],
     WaveOpen = "wave.open" => WaveOpened,
-    WaveSignals = "wave.signals" => WaveSignals,
-    WaveChoose = "wave.choose" => WaveChoiceOutcome,
+    WaveSignals = "wave.signals" => WaveSignals [agent],
+    WaveChoose = "wave.choose" => WaveChoiceOutcome [agent],
     WaveResetLayout = "wave.reset_layout" => bool,
     WaveLayoutGet = "wave.layout" => WaveLayoutInfo,
-    VerilogModules = "verilog.modules" => Vec<String>,
-    VerilogTestbenchNames = "verilog.testbench_names" => Vec<bool>,
-    HistoryList = "history.list" => Vec<RunSummary>,
-    HistoryShow = "history.show" => ReportView,
-    HistoryCompare = "history.compare" => RunComparison,
-    HistoryPlanCleanup = "history.plan_cleanup" => Vec<String>,
+    VerilogModules = "verilog.modules" => Vec<String> [read],
+    VerilogTestbenchNames = "verilog.testbench_names" => Vec<bool> [read],
+    HistoryList = "history.list" => Vec<RunSummary> [read, agent],
+    HistoryShow = "history.show" => ReportView [read, agent],
+    HistoryCompare = "history.compare" => RunComparison [read, agent],
+    HistoryPlanCleanup = "history.plan_cleanup" => Vec<String> [read],
     HistoryClean = "history.clean" => CleanOutcome,
-    ToolchainInfo = "toolchain.info" => ToolchainInfo,
-    ToolchainVerify = "toolchain.verify" => Vec<FileMismatch>,
-    ExperimentalList = "experimental.list" => ExperimentalInfo,
+    ToolchainInfo = "toolchain.info" => ToolchainInfo [read, agent],
+    ToolchainVerify = "toolchain.verify" => Vec<FileMismatch> [read, agent],
+    ExperimentalList = "experimental.list" => ExperimentalInfo [read, agent],
     ExperimentalSet = "experimental.set" => ExperimentalInfo,
-    FpgaBoards = "fpga.boards" => Vec<Board>,
-    FpgaConfigGet = "fpga.config" => Option<FpgaConfig>,
-    FpgaConfigSet = "fpga.config_set" => (),
-    FpgaCheck = "fpga.check" => Prepared,
-    FpgaModules = "fpga.modules" => Vec<String>,
-    FpgaStatus = "fpga.status" => BitstreamState,
+    FpgaBoards = "fpga.boards" => Vec<Board> [read, agent],
+    FpgaConfigGet = "fpga.config" => Option<FpgaConfig> [read, agent],
+    FpgaConfigSet = "fpga.config_set" => () [agent],
+    FpgaCheck = "fpga.check" => Prepared [agent],
+    FpgaModules = "fpga.modules" => Vec<String> [read, agent],
+    FpgaStatus = "fpga.status" => BitstreamState [read, agent],
     FpgaCables = "fpga.cables" => Vec<String>,
     FpgaTop = "fpga.top" => ModuleInterface,
     // O resultado vem do lace-installer e do lace-learn, que o core não
     // conhece ([`Response::Other`]).
-    UpdateCheck = "update.check" => serde_json::Value,
-    UpdateApply = "update.apply" => serde_json::Value,
-    InstallAdd = "install.add" => serde_json::Value,
-    LearnCheck = "learn.check" => serde_json::Value,
-    LearnTracks = "learn.tracks" => serde_json::Value,
+    UpdateCheck = "update.check" => serde_json::Value [install, agent],
+    UpdateApply = "update.apply" => serde_json::Value [install, agent_update],
+    InstallAdd = "install.add" => serde_json::Value [install, agent_update],
+    LearnCheck = "learn.check" => serde_json::Value [agent],
+    LearnTracks = "learn.tracks" => serde_json::Value [read],
     LearnStatus = "learn.status" => serde_json::Value,
     LearnInit = "learn.init" => serde_json::Value,
     LearnSetCurrent = "learn.set_current" => serde_json::Value,
@@ -697,45 +791,6 @@ impl Request {
             _ => None,
         }
     }
-
-    /// O pedido só lê (o disco, o bundle) e não roda ferramenta: um
-    /// servidor pode atendê-lo em paralelo com um fluxo longo do mesmo
-    /// projeto, sem fila.
-    pub fn is_read_only(&self) -> bool {
-        matches!(
-            self,
-            Request::Initialize { .. }
-                | Request::ProjectStatus { .. }
-                | Request::ProjectCheckName { .. }
-                | Request::ProcessorCheckName { .. }
-                | Request::ProcessorOutputs { .. }
-                | Request::ProcessorDefaults
-                | Request::FlowCommand { .. }
-                | Request::VerilogModules { .. }
-                | Request::VerilogTestbenchNames { .. }
-                | Request::LearnTracks
-                | Request::HistoryList { .. }
-                | Request::HistoryShow { .. }
-                | Request::HistoryCompare { .. }
-                | Request::HistoryPlanCleanup { .. }
-                | Request::ToolchainInfo
-                | Request::ToolchainVerify
-                | Request::ExperimentalList
-                | Request::FpgaBoards { .. }
-                | Request::FpgaConfigGet { .. }
-                | Request::FpgaModules { .. }
-                | Request::FpgaStatus { .. }
-        )
-    }
-
-    /// O pedido mexe na instalação do Lace (instalar, atualizar): um
-    /// servidor o enfileira sozinho, com a trava da instalação.
-    pub fn is_installation(&self) -> bool {
-        matches!(
-            self,
-            Request::UpdateCheck | Request::UpdateApply { .. } | Request::InstallAdd { .. }
-        )
-    }
 }
 
 /// O que volta de um pedido que deu certo. Serializa como o valor em si (o
@@ -1034,6 +1089,25 @@ mod tests {
             }
             .is_installation()
         );
+    }
+
+    #[test]
+    fn every_method_has_its_marks_in_the_order_of_the_list() {
+        let names: Vec<&str> = METHOD_INFO.iter().map(|info| info.name).collect();
+        assert_eq!(names, METHODS);
+        // Um método que só vira ferramenta com --allow-update mexe na
+        // instalação.
+        for info in METHOD_INFO
+            .iter()
+            .filter(|info| info.agent == Agent::AllowUpdate)
+        {
+            assert!(info.installation, "{}", info.name);
+        }
+        let info = method_info("toolchain.info").unwrap();
+        assert!(info.read_only && !info.installation);
+        assert_eq!(info.agent, Agent::Tool);
+        assert_eq!(method_info("project.check_name").unwrap().agent, Agent::No);
+        assert!(method_info("nada").is_none());
     }
 
     #[test]
