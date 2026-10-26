@@ -142,6 +142,15 @@ pub fn states() -> Vec<FeatureState> {
     states_from(&enabled)
 }
 
+/// O arquivo e cada recurso: o que o `lace experimental` e o
+/// `experimental.list` mostram.
+pub fn info() -> crate::protocol::ExperimentalInfo {
+    crate::protocol::ExperimentalInfo {
+        path: settings_path(),
+        components: states(),
+    }
+}
+
 /// Liga ou desliga um recurso e grava o arquivo, criando a pasta de
 /// configuração se preciso.
 ///

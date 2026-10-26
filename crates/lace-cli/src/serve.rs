@@ -62,8 +62,8 @@ use lace_core::fpga::{self, FpgaConfig};
 use lace_core::history;
 use lace_core::locate;
 use lace_core::protocol::{
-    ExperimentalInfo, METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response,
-    ServerInfo, ShutdownReason, TopOutcome, WaveLayoutInfo,
+    METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response, ServerInfo,
+    ShutdownReason, TopOutcome, WaveLayoutInfo,
 };
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, NewProcessor, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
@@ -1184,7 +1184,7 @@ impl Server {
                 Response::Toolchain(Box::new(info))
             }
             Request::ToolchainVerify => Response::Mismatches(self.toolchain()?.verify()?),
-            Request::ExperimentalList => Response::Experimental(experimental_info()),
+            Request::ExperimentalList => Response::Experimental(lace_core::experimental::info()),
             Request::ExperimentalSet { feature, enabled } => {
                 let feature =
                     lace_core::experimental::Feature::from_id(&feature).ok_or_else(|| {
@@ -1194,7 +1194,7 @@ impl Server {
                         )
                     })?;
                 lace_core::experimental::set_enabled(feature, enabled)?;
-                Response::Experimental(experimental_info())
+                Response::Experimental(lace_core::experimental::info())
             }
             Request::FpgaBoards { board } => {
                 self.require(Feature::Fpga)?;
@@ -1765,13 +1765,6 @@ fn distance(a: &str, b: &str) -> usize {
         }
     }
     row[b.len()]
-}
-
-fn experimental_info() -> ExperimentalInfo {
-    ExperimentalInfo {
-        path: lace_core::experimental::settings_path(),
-        components: lace_core::experimental::states(),
-    }
 }
 
 /// Um erro da CLI (`anyhow`) como [`ErrorInfo`]: o do core que houver na
