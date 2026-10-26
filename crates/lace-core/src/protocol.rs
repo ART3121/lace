@@ -20,18 +20,18 @@ use camino::Utf8PathBuf;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::experimental::FeatureState;
+use crate::experimental::ExperimentalInfo;
 use crate::flows::{
     FlowOptions, FlowOutcome, FlowRequest, WaveChoice, WaveChoiceOutcome, WaveOpened, WaveRequest,
 };
 use crate::fpga::{BitstreamState, Board, FpgaConfig, Prepared};
-use crate::history::{Cleanup, RunComparison, RunRecord, RunSummary};
+use crate::history::{CleanOutcome, Cleanup, ReportView, RunComparison, RunSummary};
 use crate::locate::ToolchainInfo;
 use crate::verilog::ModuleInterface;
 use crate::{
     AddedFile, ErrorInfo, FileMismatch, LayoutConversion, ListPosition, MovedPath, NewProcessor,
-    Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemovedProcessor, SavedLayout,
-    WaveLayout, WaveSignals,
+    Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemoveOutcome, RemovedProcessor,
+    SavedLayout, WaveLayout, WaveSignals,
 };
 
 pub use crate::delivery::Notification;
@@ -914,17 +914,6 @@ pub struct WaveLayoutInfo {
     pub exercise_layout: Option<Utf8PathBuf>,
 }
 
-/// `project.remove`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
-pub struct RemoveOutcome {
-    /// Tirados do projeto (continuam no disco).
-    #[schemars(with = "Vec<String>")]
-    pub removed: Vec<Utf8PathBuf>,
-    /// Pedidos, mas que não estavam no projeto.
-    #[schemars(with = "Vec<String>")]
-    pub not_registered: Vec<Utf8PathBuf>,
-}
-
 /// `project.top`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct TopOutcome {
@@ -953,39 +942,6 @@ pub struct ProcessorRemoval {
     pub removed: RemovedProcessor,
     /// A pasta foi para a lixeira do sistema.
     pub trashed: bool,
-}
-
-/// `history.show`.
-#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
-pub struct ReportView {
-    /// O identificador (`run-000042`).
-    pub id: String,
-    /// O `report.txt`.
-    #[schemars(with = "String")]
-    pub path: Utf8PathBuf,
-    /// O que a comparação usa.
-    pub record: RunRecord,
-    /// O `report.txt`, sem mudança.
-    pub text: String,
-}
-
-/// `history.clean`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
-pub struct CleanOutcome {
-    /// Os apagados, do mais antigo para o mais novo.
-    pub removed: Vec<String>,
-    /// Quantos ficaram.
-    pub kept: usize,
-}
-
-/// `experimental.list` e `experimental.set`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
-pub struct ExperimentalInfo {
-    /// O `experimental.json`; `None` sem pasta de configuração.
-    #[schemars(with = "Option<String>")]
-    pub path: Option<Utf8PathBuf>,
-    /// Cada recurso e se está ligado.
-    pub components: Vec<FeatureState>,
 }
 
 /// Como um pedido terminou, do ponto de vista de quem o atende.

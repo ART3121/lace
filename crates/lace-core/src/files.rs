@@ -146,6 +146,17 @@ pub struct MovedPath {
     pub files: Vec<ProjectFile>,
 }
 
+/// `project.remove`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+pub struct RemoveOutcome {
+    /// Tirados do projeto (continuam no disco).
+    #[schemars(with = "Vec<String>")]
+    pub removed: Vec<Utf8PathBuf>,
+    /// Pedidos, mas que não estavam no projeto.
+    #[schemars(with = "Vec<String>")]
+    pub not_registered: Vec<Utf8PathBuf>,
+}
+
 impl Project {
     /// Registra um arquivo Verilog, ou um testbench cocotb (`.py`), criando-o
     /// a partir do modelo se ele não existir, e grava o `.spf`.
@@ -431,10 +442,7 @@ impl Project {
     /// para cada um), e diz quais estavam registrados e quais não: o mesmo
     /// arquivo duas vezes sai na primeira e não está mais na segunda. É o
     /// `lace remove` e o `project.remove`.
-    pub fn remove_verilog_files(
-        &mut self,
-        paths: &[Utf8PathBuf],
-    ) -> Result<crate::protocol::RemoveOutcome> {
+    pub fn remove_verilog_files(&mut self, paths: &[Utf8PathBuf]) -> Result<RemoveOutcome> {
         let mut removed = Vec::new();
         let mut not_registered = Vec::new();
         for path in paths {
@@ -444,7 +452,7 @@ impl Project {
                 not_registered.push(path.clone());
             }
         }
-        Ok(crate::protocol::RemoveOutcome {
+        Ok(RemoveOutcome {
             removed,
             not_registered,
         })
