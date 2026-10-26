@@ -1863,7 +1863,7 @@ mod tests {
             .collect();
         assert!(
             errors.is_empty(),
-            "{method} não devolve o tipo declarado em protocol.rs:\n{}\n\n{result:#}",
+            "{method} não devolve o tipo declarado no lace-protocol:\n{}\n\n{result:#}",
             errors.join("\n")
         );
         result

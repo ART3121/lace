@@ -830,7 +830,7 @@ Uma sessão do `serve`:
 ← {"jsonrpc":"2.0","method":"shutdown","params":{"reason":"requested"}}
 ```
 
-- **Métodos.** Os de `lace_core::protocol`, com um grupo e um ponto:
+- **Métodos.** Os do `lace-protocol`, com um grupo e um ponto:
   `project.*` (`create`, `status`, `add`, `remove`, `top`, `testbench`,
   `order`, `move`, `convert`, `check_name`), `processor.*` (`check_name`,
   `add`, `set`, `remove`, `outputs`, `defaults`), `flow.run` (o fluxo em

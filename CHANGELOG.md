@@ -2,6 +2,17 @@
 
 ## Não publicada
 
+- Protocolo: o contrato sai do `lace-core` para um crate próprio, o
+  `lace-protocol`, acima do core, do `lace-learn` e do instalador. Com
+  isso as respostas de `update.check`, `update.apply`, `install.add`,
+  `learn.check`, `learn.tracks`, `learn.status`, `learn.init` e
+  `learn.set_current` ganham tipo no schema (`UpdateReport`,
+  `InstallReport`, `LearnCheckOutcome`, `LearnTracks` e
+  `WorkspaceSnapshot`), e o `docs/PROTOCOL.md` e os tipos gerados do Studio
+  e da extensão passam a descrevê-las. O JSON que o `lace serve` manda não
+  muda. Em Rust, quem usava `lace_core::protocol` passa a usar
+  `lace_protocol`.
+
 - Protocolo: cada método declara na linha dele em `methods!` se só lê, se
   mexe na instalação e se vira ferramenta de agente; o `is_read_only`, o
   `is_installation` e a tabela `METHOD_INFO` saem dali, e um teste confere
@@ -81,10 +92,10 @@
 - `docs/PROTOCOL.md`: a referência do protocolo do `lace serve` e do
   `lace mcp`, com cada método, os parâmetros, o resultado, as
   notificações, os erros e os tipos. É gerada dos tipos de
-  `lace_core::protocol` pelo mesmo comando do `docs/schema/`
+  `lace_protocol` pelo mesmo comando do `docs/schema/`
   (`LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli schema`), e um teste falha
   quando ela não confere.
-- `lace_core::protocol`: a macro `methods!` declara cada método com o tipo
+- `lace_protocol`: a macro `methods!` declara cada método com o tipo
   do resultado, de onde saem `METHODS` e o novo `result_schema()`; uma
   variante de `Request` sem declaração não compila. Um teste do `lace
   serve` roda 23 dos 42 métodos num projeto temporário e confere cada
