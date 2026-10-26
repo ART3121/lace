@@ -865,11 +865,21 @@ Uma sessão do `serve`:
   inválidos, `-32000` um erro do Lace, com o `ErrorInfo` (`code`,
   `message`, `hint`, `data`) em `error.data`, `-32001` cancelado antes de
   começar, `-32002` sessão não inicializada, `-32003` servidor encerrando.
-- **Encerrar.** Fechar a entrada, `shutdown`, ou um sinal: o servidor
-  cancela o que roda, espera até 3 s e sai, com a notificação `shutdown`
-  antes (`reason`: `requested`, `signal` ou `updated`). Depois de um
-  `update.apply` que trocou os arquivos, ele responde e encerra sozinho,
-  porque o binário dele é outro: o cliente o abre de novo.
+  Um parâmetro que o método não tem é `-32602`, com o nome mais parecido
+  na mensagem (`unknown field `form` (did you mean `from`?)`); no
+  `flow.run`, também um campo que o fluxo pedido não tem. Um projeto cujo
+  caminho não existe é `-32000` com o código `spf_missing`. Os métodos
+  `fpga.*` respondem `experimental_disabled` com o recurso `fpga` desligado.
+- **BOM.** Um BOM no começo de uma linha é ignorado: o PowerShell o põe na
+  primeira coisa que escreve para um programa.
+- **Encerrar.** Fechar a entrada: o que já foi pedido roda até o fim e é
+  respondido, e o servidor sai depois, com a notificação `shutdown`; se o
+  cliente fechou também a saída, o que roda é cancelado. Com `shutdown` ou
+  um sinal, o servidor cancela o que roda, espera até 3 s e sai, com a
+  notificação `shutdown` antes (`reason`: `requested`, `signal` ou
+  `updated`). Depois de um `update.apply` que trocou os arquivos, ele
+  responde e encerra sozinho, porque o binário dele é outro: o cliente o
+  abre de novo.
 
 Em Python, sem biblioteca:
 

@@ -2,6 +2,21 @@
 
 ## Não publicada
 
+- `lace serve`: fechar a entrada não cancela mais o que já foi pedido. O
+  servidor responde cada pedido que recebeu e só então sai, e espera a
+  última resposta ser escrita antes de sair; num `printf ... | lace serve`,
+  os pedidos depois do `initialize` voltavam cancelados. Se o cliente
+  fechou também a saída, o que roda é cancelado, como antes.
+- `lace serve` e `lace mcp`: um parâmetro que o método ou a ferramenta não
+  tem é recusado, com o nome mais parecido na mensagem, em vez de ignorado
+  em silêncio; no `flow.run`, também um campo que o fluxo pedido não tem.
+  Um BOM no começo de uma linha, que o PowerShell manda, é ignorado.
+- `lace serve`: o `processor.check_name` confere o nome com a mesma regra
+  do `processor.add`, que recusa os nomes das pastas do Lace (`wave`,
+  `synth`, ...); antes ele aceitava esses nomes e a criação falhava
+  depois. Os métodos `fpga.*` exigem o recurso experimental `fpga` ligado,
+  como a CLI e o Studio já exigiam. Um projeto cujo caminho não existe
+  responde o código `spf_missing`, o mesmo do Studio.
 - `docs/PROTOCOL.md`: a referência do protocolo do `lace serve` e do
   `lace mcp`, com cada método, os parâmetros, o resultado, as
   notificações, os erros e os tipos. É gerada dos tipos de

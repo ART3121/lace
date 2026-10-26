@@ -50,7 +50,9 @@ use lace_core::protocol::request_schema;
 use lace_core::{CancelToken, Project};
 use serde_json::{Map, Value, json};
 
-use crate::serve::{Emit, Server, Writer, parse_request};
+use crate::serve::{
+    Emit, Server, Writer, flow_fields, method_fields, parse_request, unknown_field,
+};
 use crate::settings::ToolchainArgs;
 
 pub use setup::SetupArgs;
@@ -265,6 +267,9 @@ impl Mcp {
     /// Uma linha da entrada: a resposta sai pelo escritor (as chamadas de
     /// ferramenta, mais tarde, pelo worker); uma notificação não responde.
     pub(crate) fn handle_line(self: &Arc<Self>, line: &str) {
+        // O PowerShell põe um BOM na primeira coisa que escreve para um
+        // programa, e o JSON não tem BOM.
+        let line = line.strip_prefix('\u{feff}').unwrap_or(line);
         if line.trim().is_empty() {
             return;
         }
@@ -627,6 +632,25 @@ impl Mcp {
             && let Err(message) = self.project_of(&mut arguments)
         {
             return Ok(tool_error("no_project", &message));
+        }
+        // Um argumento escrito errado seria ignorado em silêncio, e a
+        // ferramenta rodaria com o padrão no lugar do que o agente quis.
+        let known: Option<Vec<String>> = match tool.flow {
+            Some(flow) => flow_fields(flow).map(|fields| {
+                let mut fields = fields.to_vec();
+                fields.retain(|f| f != "flow");
+                fields.push("project".to_owned());
+                fields
+            }),
+            None => method_fields(tool.method).map(<[String]>::to_vec),
+        };
+        if let Some(known) = known
+            && let Some(problem) = unknown_field(&arguments, &known)
+        {
+            return Ok(tool_error(
+                "invalid_argument",
+                &format!("Invalid arguments for {name}: {problem}"),
+            ));
         }
         let params = match tool.flow {
             Some(flow) => {

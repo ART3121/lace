@@ -20,10 +20,19 @@
 //! `-32001`; um fluxo em andamento para e devolve o resultado com `status:
 //! cancelled`, como a CLI faz com o Ctrl+C.
 //!
-//! O servidor encerra quando a entrada fecha, quando recebe `shutdown` ou um
-//! sinal, e depois de um `update.apply` que trocou os arquivos (o binário
-//! dele é outro): cancela o que está rodando, espera até 3 s e sai, com a
-//! notificação `shutdown` antes.
+//! Quando a entrada fecha, o que já foi pedido roda até o fim e é
+//! respondido, e o servidor sai depois, com a notificação `shutdown`; se o
+//! cliente fechou também a saída, o que roda é cancelado. Com `shutdown`,
+//! com um sinal e depois de um `update.apply` que trocou os arquivos (o
+//! binário dele é outro), o servidor cancela o que está rodando, espera até
+//! 3 s e sai, com a notificação `shutdown` antes.
+//!
+//! Um parâmetro que o método não tem é recusado (`-32602`), com o nome mais
+//! parecido, em vez de ignorado; no `flow.run`, também um campo que o fluxo
+//! pedido não tem. Um BOM no começo da linha é ignorado: o PowerShell o põe
+//! na primeira coisa que escreve para um programa. Os métodos `fpga.*`
+//! exigem o recurso experimental `fpga` ligado, como na CLI e no Studio, e
+//! um projeto cujo caminho não existe responde `spf_missing`.
 //!
 //! `update.*` e `install.add` rodam a biblioteca do instalador em processo,
 //! como a CLI e o Studio; o progresso sai como notificação `install`, com o
@@ -39,12 +48,13 @@ use std::collections::{BTreeMap, HashMap};
 use std::io::{BufRead, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender, SyncSender};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::delivery::{Dispatcher, Limits, Notification};
+use lace_core::experimental::Feature;
 use lace_core::flows::{self, FlowOptions};
 use lace_core::fpga::{self, FpgaConfig};
 use lace_core::history;
@@ -59,7 +69,7 @@ use lace_installer::install::Event as InstallEvent;
 use lace_installer::release::{Bar, Remote};
 use lace_installer::update::{ChildOutput, RunOptions, Silent, UpdateAction};
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use crate::settings::ToolchainArgs;
 
@@ -131,8 +141,12 @@ pub fn run(
             std::process::exit(0);
         })?;
     let stdin = std::io::stdin();
-    let reason = server.serve(stdin.lock());
-    server.finish(reason);
+    match server.serve(stdin.lock()) {
+        Some(reason) => server.finish(reason),
+        // A entrada fechou: o que já foi pedido roda até o fim e é
+        // respondido.
+        None => server.finish_after_input(),
+    }
     Ok(true)
 }
 
@@ -147,55 +161,118 @@ struct Incoming {
     params: Option<Value>,
 }
 
+/// O que vai para a thread do stdout: uma linha, ou uma marca que ela
+/// confirma quando chega nela, com tudo o que veio antes já escrito.
+enum Out {
+    Line(String),
+    Barrier(mpsc::Sender<()>),
+}
+
 /// O escritor único do stdout: uma thread, uma linha por mensagem, `flush`
 /// a cada uma. Quem manda só espera a fila, nunca o cliente.
 #[derive(Clone)]
 pub(crate) struct Writer {
-    tx: SyncSender<String>,
+    tx: SyncSender<Out>,
     /// Sem notificações: o `lace mcp` usa o despacho do servidor, mas o
     /// stdout dele é do MCP, que não entende as notificações do Lace.
     quiet: bool,
+    /// O cliente fechou a saída: não há mais a quem responder.
+    closed: Arc<AtomicBool>,
 }
 
 impl Writer {
     /// Um escritor cujas linhas vão para um canal: os testes leem dali.
     #[cfg(test)]
     pub(crate) fn channel() -> (Self, mpsc::Receiver<String>) {
-        let (tx, rx) = mpsc::sync_channel::<String>(1024);
-        (Writer { tx, quiet: false }, rx)
+        let (tx, rx) = mpsc::sync_channel::<Out>(1024);
+        let (lines, received) = mpsc::sync_channel::<String>(1024);
+        thread::spawn(move || {
+            for out in rx {
+                match out {
+                    Out::Line(line) => {
+                        if lines.send(line).is_err() {
+                            break;
+                        }
+                    }
+                    Out::Barrier(ack) => {
+                        let _ = ack.send(());
+                    }
+                }
+            }
+        });
+        let writer = Writer {
+            tx,
+            quiet: false,
+            closed: Arc::default(),
+        };
+        (writer, received)
     }
 
     /// Um escritor que não escreve nada: para quem só usa [`Server::handle`].
     pub(crate) fn silent() -> Self {
-        let (tx, _rx) = mpsc::sync_channel::<String>(1);
-        Writer { tx, quiet: true }
+        let (tx, _rx) = mpsc::sync_channel::<Out>(1);
+        Writer {
+            tx,
+            quiet: true,
+            closed: Arc::default(),
+        }
     }
 
     pub(crate) fn stdout() -> Self {
-        let (tx, rx) = mpsc::sync_channel::<String>(1024);
+        let (tx, rx) = mpsc::sync_channel::<Out>(1024);
+        let closed = Arc::new(AtomicBool::new(false));
+        let gone = Arc::clone(&closed);
         thread::Builder::new()
             .name("lace-serve-stdout".into())
             .spawn(move || {
                 let stdout = std::io::stdout();
-                for line in rx {
-                    let mut out = stdout.lock();
-                    if out.write_all(line.as_bytes()).is_err()
-                        || out.write_all(b"\n").is_err()
-                        || out.flush().is_err()
-                    {
-                        // O cliente fechou a saída: não há mais a quem falar.
-                        break;
+                for out in rx {
+                    match out {
+                        Out::Line(line) => {
+                            let mut handle = stdout.lock();
+                            if handle.write_all(line.as_bytes()).is_err()
+                                || handle.write_all(b"\n").is_err()
+                                || handle.flush().is_err()
+                            {
+                                // O cliente fechou a saída: não há mais a
+                                // quem falar.
+                                gone.store(true, Ordering::SeqCst);
+                                break;
+                            }
+                        }
+                        Out::Barrier(ack) => {
+                            let _ = ack.send(());
+                        }
                     }
                 }
             })
             .expect("spawn the stdout thread");
-        Writer { tx, quiet: false }
+        Writer {
+            tx,
+            quiet: false,
+            closed,
+        }
     }
 
     pub(crate) fn send(&self, value: &Value) {
         if let Ok(line) = serde_json::to_string(value) {
-            let _ = self.tx.send(line);
+            let _ = self.tx.send(Out::Line(line));
         }
+    }
+
+    /// Espera a thread do stdout escrever o que já está na fila, até
+    /// `wait`. Sem isso, um processo que sai logo depois da última resposta
+    /// pode sair antes de ela chegar ao cliente.
+    pub(crate) fn drain(&self, wait: Duration) {
+        let (ack, done) = mpsc::channel();
+        if self.tx.send(Out::Barrier(ack)).is_ok() {
+            let _ = done.recv_timeout(wait);
+        }
+    }
+
+    /// O cliente fechou a saída.
+    pub(crate) fn is_closed(&self) -> bool {
+        self.closed.load(Ordering::SeqCst)
     }
 
     fn respond(&self, id: &Value, result: Value) {
@@ -300,6 +377,9 @@ pub(crate) struct Server {
     exit_when_done: AtomicBool,
     pending: Mutex<HashMap<String, Pending>>,
     workers: Mutex<HashMap<String, Sender<Job>>>,
+    /// Se um recurso experimental está ligado: o `experimental.json` do
+    /// usuário, ou o que o teste disser.
+    features: fn(Feature) -> bool,
 }
 
 impl Server {
@@ -313,11 +393,30 @@ impl Server {
             exit_when_done: AtomicBool::new(false),
             pending: Mutex::new(HashMap::new()),
             workers: Mutex::new(HashMap::new()),
+            features: lace_core::experimental::is_enabled,
         }
     }
 
-    /// Lê a entrada até ela fechar ou até o `shutdown`. Devolve por quê.
-    fn serve(self: &Arc<Self>, input: impl BufRead) -> ShutdownReason {
+    /// O mesmo servidor, com outra regra para os recursos experimentais.
+    #[cfg(test)]
+    pub(crate) fn with_features(mut self, features: fn(Feature) -> bool) -> Self {
+        self.features = features;
+        self
+    }
+
+    /// Confere um recurso experimental antes de atender um método dele,
+    /// como a CLI e o Studio fazem.
+    fn require(&self, feature: Feature) -> Result<(), Failure> {
+        if (self.features)(feature) {
+            Ok(())
+        } else {
+            Err(LaceError::ExperimentalDisabled { feature }.into())
+        }
+    }
+
+    /// Lê a entrada até ela fechar ou até um pedido encerrar a sessão.
+    /// `Some` com o motivo, no segundo caso; `None` quando a entrada fechou.
+    fn serve(self: &Arc<Self>, input: impl BufRead) -> Option<ShutdownReason> {
         for line in input.lines() {
             let Ok(line) = line else {
                 break;
@@ -326,14 +425,17 @@ impl Server {
                 continue;
             }
             if let Some(reason) = self.handle_line(&line) {
-                return reason;
+                return Some(reason);
             }
         }
-        ShutdownReason::Requested
+        None
     }
 
     /// Uma linha da entrada. `Some` quando a sessão termina por causa dela.
     fn handle_line(self: &Arc<Self>, line: &str) -> Option<ShutdownReason> {
+        // O PowerShell põe um BOM na primeira coisa que escreve para um
+        // programa, e o JSON não tem BOM.
+        let line = line.strip_prefix('\u{feff}').unwrap_or(line);
         let value: Value = match serde_json::from_str(line) {
             Ok(value) => value,
             Err(error) => {
@@ -396,6 +498,11 @@ impl Server {
                 "Send initialize first",
                 None,
             );
+            return None;
+        }
+        if let Some(message) = unknown_params(&method, incoming.params.as_ref()) {
+            self.writer
+                .fail(Some(&id), rpc::INVALID_PARAMS, &message, None);
             return None;
         }
         let request: Request = match parse_request(&method, incoming.params) {
@@ -534,8 +641,9 @@ impl Server {
         }
     }
 
-    /// Encerra: avisa, cancela tudo, espera até [`SHUTDOWN_WAIT`] e dá à
-    /// thread do stdout um instante para esvaziar a fila. Só uma vez.
+    /// Encerra por um pedido (`shutdown`), por um sinal ou depois de uma
+    /// atualização: avisa, cancela o que roda, espera até [`SHUTDOWN_WAIT`]
+    /// e espera a thread do stdout escrever o que falta. Só uma vez.
     fn finish(&self, reason: ShutdownReason) {
         self.shutting_down.store(true, Ordering::SeqCst);
         if self.finished.swap(true, Ordering::SeqCst) {
@@ -543,6 +651,29 @@ impl Server {
         }
         let reason = serde_json::to_value(reason).unwrap_or(Value::Null);
         self.writer.notify("shutdown", json!({ "reason": reason }));
+        self.cancel_all();
+        self.wait_pending(SHUTDOWN_WAIT);
+        self.writer.drain(SHUTDOWN_WAIT);
+    }
+
+    /// Encerra porque a entrada fechou: o que já foi pedido roda até o fim
+    /// e é respondido, como num `printf ... | lace serve`. Se o cliente
+    /// fechou também a saída, não há a quem responder, e o que roda é
+    /// cancelado.
+    fn finish_after_input(&self) {
+        self.shutting_down.store(true, Ordering::SeqCst);
+        while !self.pending_is_empty() {
+            if self.writer.is_closed() {
+                self.cancel_all();
+                self.wait_pending(SHUTDOWN_WAIT);
+                break;
+            }
+            thread::sleep(Duration::from_millis(20));
+        }
+        self.finish(ShutdownReason::Requested);
+    }
+
+    fn cancel_all(&self) {
         for entry in self
             .pending
             .lock()
@@ -551,19 +682,20 @@ impl Server {
         {
             entry.cancel.cancel();
         }
-        let until = Instant::now() + SHUTDOWN_WAIT;
-        while Instant::now() < until {
-            if self
-                .pending
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .is_empty()
-            {
-                break;
-            }
+    }
+
+    fn pending_is_empty(&self) -> bool {
+        self.pending
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .is_empty()
+    }
+
+    fn wait_pending(&self, wait: Duration) {
+        let until = Instant::now() + wait;
+        while Instant::now() < until && !self.pending_is_empty() {
             thread::sleep(Duration::from_millis(20));
         }
-        thread::sleep(Duration::from_millis(50));
     }
 
     fn info(&self) -> ServerInfo {
@@ -613,14 +745,14 @@ impl Server {
                 Response::Status(Box::new(project.status()))
             }
             Request::ProjectStatus { project } => {
-                Response::Status(Box::new(Project::open(&project)?.status()))
+                Response::Status(Box::new(open_project(&project)?.status()))
             }
             Request::ProjectAdd {
                 project,
                 files,
                 testbench,
             } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 // Sem bundle o arquivo é criado do mesmo jeito, com o leitor
                 // de portas embutido.
                 let toolchain = self.toolchain().ok();
@@ -634,7 +766,7 @@ impl Server {
                 Response::Added(added)
             }
             Request::ProjectRemove { project, files } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 let mut removed = Vec::new();
                 let mut not_registered = Vec::new();
                 for file in files {
@@ -650,7 +782,7 @@ impl Server {
                 })
             }
             Request::ProjectTop { project, target } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 if let Some(target) = target {
                     project.set_top(&target)?;
                 }
@@ -665,7 +797,7 @@ impl Server {
                 })
             }
             Request::ProjectTestbench { project, path } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 project.set_testbench(&path)?;
                 Response::Status(Box::new(project.status()))
             }
@@ -674,7 +806,7 @@ impl Server {
                 file,
                 position,
             } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 Response::Files(project.reorder_file(&file, &position)?)
             }
             Request::ProjectMove {
@@ -683,7 +815,7 @@ impl Server {
                 to,
                 after,
             } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 let moved = if after {
                     project.record_move(&from, &to)?
                 } else {
@@ -692,17 +824,19 @@ impl Server {
                 Response::Moved(moved)
             }
             Request::ProjectConvert { project } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 Response::Converted(project.convert_layout()?)
             }
             Request::ProjectCheckName { name } => {
                 Response::Name(name_check(lace_core::validate_project_name(&name)))
             }
             Request::ProcessorCheckName { name } => {
-                Response::Name(name_check(lace_core::validate_processor_name(&name)))
+                // A mesma regra do processor.add: a do YANC e, fora dela,
+                // os nomes das pastas do Lace.
+                Response::Name(name_check(lace_core::validate_new_processor_name(&name)))
             }
             Request::ProcessorAdd { project, spec } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 let processor = project.add_processor(&spec)?.clone();
                 Response::Processor(Box::new(processor))
             }
@@ -711,7 +845,7 @@ impl Server {
                 name,
                 config,
             } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 project.configure_processor(&name, &config)?;
                 let processor = project.require_processor(&name)?.clone();
                 Response::Processor(Box::new(processor))
@@ -721,7 +855,7 @@ impl Server {
                 name,
                 to_trash,
             } => {
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 let removed = project.remove_processor(&name)?;
                 let trashed = to_trash && removed.dir.exists();
                 if trashed {
@@ -742,7 +876,7 @@ impl Server {
                 processor,
                 port,
             } => {
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 let processor = project.require_processor(&processor)?;
                 Response::Values(processor.read_output_values(port)?)
             }
@@ -753,7 +887,7 @@ impl Server {
                 output,
             } => {
                 let toolchain = self.toolchain()?;
-                let mut project = Project::open(&project)?;
+                let mut project = open_project(&project)?;
                 let options =
                     options.unwrap_or_else(|| FlowOptions::new(request.command_line("lace")));
                 let deliver = Arc::clone(&emit);
@@ -779,12 +913,12 @@ impl Server {
             }
             Request::WaveOpen { project, request } => {
                 let toolchain = self.toolchain()?;
-                let project = project.map(|p| Project::open(&p)).transpose()?;
+                let project = project.map(|p| open_project(&p)).transpose()?;
                 Response::Wave(flows::open_wave(&toolchain, project.as_ref(), &request)?)
             }
             Request::WaveSignals { project } => {
                 let toolchain = self.toolchain()?;
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 let control = Control::new().with_cancel(cancel);
                 Response::Signals(Box::new(lace_core::wave_signals(
                     &toolchain, &project, &control,
@@ -792,7 +926,7 @@ impl Server {
             }
             Request::WaveChoose { project, choice } => {
                 let toolchain = self.toolchain()?;
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 let control = Control::new().with_cancel(cancel);
                 Response::Choice(flows::choose_signals(
                     &toolchain, &project, &choice, &control,
@@ -808,7 +942,7 @@ impl Server {
                 Response::Flag(lace_core::reset_saved_layout(&project, &testbench)?)
             }
             Request::HistoryList { project, limit } => {
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 let mut reports = history::list(&project)?;
                 if let Some(limit) = limit {
                     reports.truncate(limit);
@@ -816,7 +950,7 @@ impl Server {
                 Response::Reports(reports)
             }
             Request::HistoryShow { project, id } => {
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 let record = match id {
                     Some(id) => history::load(&project, &id)?,
                     None => history::latest(&project)?,
@@ -835,7 +969,7 @@ impl Server {
                 id,
                 against,
             } => {
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 Response::Comparison(Box::new(history::compare_reports(
                     &project,
                     id.as_deref(),
@@ -843,11 +977,11 @@ impl Server {
                 )?))
             }
             Request::HistoryPlanCleanup { project, cleanup } => {
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 Response::Ids(history::plan_cleanup(&project, &cleanup)?)
             }
             Request::HistoryClean { project, ids } => {
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 let removed = history::remove(&project, &ids)?;
                 let kept = history::list(&project)?.len();
                 Response::Cleaned(CleanOutcome { removed, kept })
@@ -873,12 +1007,16 @@ impl Server {
                 lace_core::experimental::set_enabled(feature, enabled)?;
                 Response::Experimental(experimental_info())
             }
-            Request::FpgaBoards { board } => Response::Boards(match board {
-                Some(id) => vec![fpga::board(&id)?],
-                None => fpga::boards()?,
-            }),
+            Request::FpgaBoards { board } => {
+                self.require(Feature::Fpga)?;
+                Response::Boards(match board {
+                    Some(id) => vec![fpga::board(&id)?],
+                    None => fpga::boards()?,
+                })
+            }
             Request::FpgaConfigGet { project } => {
-                let project = Project::open(&project)?;
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
                 let path = FpgaConfig::path(project.root());
                 Response::FpgaConfig(if path.is_file() {
                     Some(FpgaConfig::read(project.root())?)
@@ -887,26 +1025,31 @@ impl Server {
                 })
             }
             Request::FpgaConfigSet { project, config } => {
-                let project = Project::open(&project)?;
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
                 config.write(project.root())?;
                 Response::Nothing(())
             }
             Request::FpgaCheck { project } => {
-                let project = Project::open(&project)?;
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
                 let toolchain = self.toolchain().ok();
                 Response::Prepared(Box::new(fpga::prepare(toolchain.as_ref(), &project)?))
             }
             Request::FpgaModules { project } => {
-                let project = Project::open(&project)?;
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
                 let toolchain = self.toolchain().ok();
                 Response::Modules(fpga::modules(toolchain.as_ref(), &project)?)
             }
             Request::FpgaStatus { project } => {
+                self.require(Feature::Fpga)?;
                 let toolchain = self.toolchain()?;
-                let project = Project::open(&project)?;
+                let project = open_project(&project)?;
                 Response::Bitstream(fpga::bitstream_state(&toolchain, &project)?)
             }
             Request::FpgaCables => {
+                self.require(Feature::Fpga)?;
                 let toolchain = self.toolchain()?;
                 Response::Cables(fpga::cables(&toolchain)?)
             }
@@ -1144,6 +1287,136 @@ fn name_check(result: Result<(), LaceError>) -> NameCheck {
     }
 }
 
+/// Abre o projeto de um pedido. Um caminho que não existe é
+/// `spf_missing`, o código que o Studio já usava para um `.spf` que sumiu
+/// depois de aberto (apagado, movido por fora).
+fn open_project(path: &Utf8Path) -> Result<Project, Failure> {
+    Project::open(path).map_err(|error| {
+        if path.exists() {
+            Failure::from(error)
+        } else {
+            ErrorInfo::new(
+                "spf_missing",
+                format!(
+                    "The project file {path} does not exist anymore: without it Lace cannot build, simulate or change the project"
+                ),
+            )
+            .into()
+        }
+    })
+}
+
+/// Os campos de `params` de cada método e os de cada fluxo do `flow.run`,
+/// tirados do schema dos pedidos.
+struct Fields {
+    methods: HashMap<String, Vec<String>>,
+    flows: HashMap<String, Vec<String>>,
+}
+
+fn fields() -> &'static Fields {
+    static FIELDS: OnceLock<Fields> = OnceLock::new();
+    FIELDS.get_or_init(|| {
+        let schema =
+            serde_json::to_value(lace_core::protocol::request_schema()).unwrap_or(Value::Null);
+        let names = |node: &Value| -> Vec<String> {
+            node.as_object()
+                .map(|p| p.keys().cloned().collect())
+                .unwrap_or_default()
+        };
+        let mut methods = HashMap::new();
+        for entry in schema["oneOf"].as_array().into_iter().flatten() {
+            if let Some(method) = entry["properties"]["method"]["const"].as_str() {
+                methods.insert(
+                    method.to_owned(),
+                    names(&entry["properties"]["params"]["properties"]),
+                );
+            }
+        }
+        let mut flows = HashMap::new();
+        for entry in schema["$defs"]["FlowRequest"]["oneOf"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if let Some(flow) = entry["properties"]["flow"]["const"].as_str() {
+                flows.insert(flow.to_owned(), names(&entry["properties"]));
+            }
+        }
+        Fields { methods, flows }
+    })
+}
+
+/// Os campos de `params` de um método; `None` se o método não existe.
+pub(crate) fn method_fields(method: &str) -> Option<&'static [String]> {
+    fields().methods.get(method).map(Vec::as_slice)
+}
+
+/// Os campos de um fluxo do `flow.run`, com o `flow`; `None` se o fluxo
+/// não existe.
+pub(crate) fn flow_fields(flow: &str) -> Option<&'static [String]> {
+    fields().flows.get(flow).map(Vec::as_slice)
+}
+
+/// A recusa de um campo que não está em `known`, com o mais parecido. Um
+/// campo escrito errado seria ignorado em silêncio, e o pedido rodaria com
+/// o padrão no lugar do que o cliente quis.
+pub(crate) fn unknown_field(given: &Map<String, Value>, known: &[String]) -> Option<String> {
+    let unknown = given.keys().find(|key| !known.contains(key))?;
+    let mut message = format!("unknown field `{unknown}`");
+    if let Some(near) = closest(unknown, known) {
+        message.push_str(&format!(" (did you mean `{near}`?)"));
+    }
+    if known.is_empty() {
+        message.push_str("; this method takes no params");
+    } else {
+        message.push_str(&format!("; the fields are: {}", known.join(", ")));
+    }
+    Some(message)
+}
+
+/// A recusa dos parâmetros de um pedido com um campo que o método não
+/// tem; no `flow.run`, também um campo que o fluxo pedido não tem.
+pub(crate) fn unknown_params(method: &str, params: Option<&Value>) -> Option<String> {
+    let given = params?.as_object()?;
+    let known = method_fields(method)?;
+    if let Some(problem) = unknown_field(given, known) {
+        return Some(format!("Invalid params for {method}: {problem}"));
+    }
+    let request = given.get("request")?.as_object()?;
+    let flow = request.get("flow")?.as_str()?;
+    let known = flow_fields(flow)?;
+    unknown_field(request, known)
+        .map(|problem| format!("Invalid params for {method}, flow {flow}: {problem}"))
+}
+
+/// O nome de `candidates` mais parecido com `word`, se for parecido o
+/// bastante para ser um erro de digitação.
+fn closest<'a>(word: &str, candidates: &'a [String]) -> Option<&'a str> {
+    candidates
+        .iter()
+        .map(|candidate| (distance(word, candidate), candidate))
+        .filter(|(d, _)| *d <= 3 && *d < word.chars().count())
+        .min_by_key(|(d, _)| *d)
+        .map(|(_, candidate)| candidate.as_str())
+}
+
+/// A distância de edição entre `a` e `b`.
+fn distance(a: &str, b: &str) -> usize {
+    let b: Vec<char> = b.chars().collect();
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.chars().enumerate() {
+        let mut diagonal = row[0];
+        row[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != *cb);
+            let value = (row[j + 1] + 1).min(row[j] + 1).min(diagonal + cost);
+            diagonal = row[j + 1];
+            row[j + 1] = value;
+        }
+    }
+    row[b.len()]
+}
+
 fn experimental_info() -> ExperimentalInfo {
     ExperimentalInfo {
         path: lace_core::experimental::settings_path(),
@@ -1187,19 +1460,23 @@ fn learn_info(error: &lace_learn::LearnError) -> ErrorInfo {
 mod tests {
     use super::*;
 
-    fn capture() -> (Writer, mpsc::Receiver<String>) {
-        let (tx, rx) = mpsc::sync_channel::<String>(1024);
-        (Writer { tx, quiet: false }, rx)
+    fn server() -> (Arc<Server>, mpsc::Receiver<String>) {
+        // Os recursos experimentais ligados: os testes não dependem do
+        // `experimental.json` de quem os roda.
+        server_with(|_| true)
     }
 
-    fn server() -> (Arc<Server>, mpsc::Receiver<String>) {
-        let (writer, rx) = capture();
+    fn server_with(features: fn(Feature) -> bool) -> (Arc<Server>, mpsc::Receiver<String>) {
+        let (writer, rx) = Writer::channel();
         let args = ToolchainArgs {
             toolchain: None,
             compiler: None,
             quartus: None,
         };
-        (Arc::new(Server::new(args, writer)), rx)
+        (
+            Arc::new(Server::new(args, writer).with_features(features)),
+            rx,
+        )
     }
 
     fn next(rx: &mpsc::Receiver<String>) -> Value {
@@ -1437,7 +1714,7 @@ mod tests {
 
     #[test]
     fn notifications_carry_the_request_id_and_the_type_as_method() {
-        let (writer, rx) = capture();
+        let (writer, rx) = Writer::channel();
         writer.notify_for(
             &json!(7),
             &Notification::Phase {
@@ -1483,5 +1760,127 @@ mod tests {
         let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir()).unwrap();
         let spf = dir.join("x.spf");
         assert_eq!(project_key(&spf), project_key(&dir));
+    }
+
+    fn initialized() -> (Arc<Server>, mpsc::Receiver<String>) {
+        let (server, rx) = server();
+        server.handle_line(r#"{"jsonrpc":"2.0","id":0,"method":"initialize"}"#);
+        next(&rx);
+        (server, rx)
+    }
+
+    #[test]
+    fn an_unknown_param_is_refused_with_the_closest_name() {
+        let (server, rx) = initialized();
+        server.handle_line(
+            r#"{"jsonrpc":"2.0","id":1,"method":"project.move","params":{"project":"/p","form":"a","to":"b"}}"#,
+        );
+        let reply = next(&rx);
+        assert_eq!(reply["error"]["code"], rpc::INVALID_PARAMS, "{reply}");
+        let message = reply["error"]["message"].as_str().unwrap();
+        assert!(message.contains("`form`"), "{message}");
+        assert!(message.contains("did you mean `from`"), "{message}");
+        // Um campo de um fluxo, dentro do pedido do flow.run.
+        server.handle_line(
+            r#"{"jsonrpc":"2.0","id":2,"method":"flow.run","params":{"project":"/p","request":{"flow":"simulate","simulator":"icarus","proccessor":"x"}}}"#,
+        );
+        let reply = next(&rx);
+        assert_eq!(reply["error"]["code"], rpc::INVALID_PARAMS, "{reply}");
+        let message = reply["error"]["message"].as_str().unwrap();
+        assert!(message.contains("did you mean `processor`"), "{message}");
+        // Um método sem parâmetros aceita `{}`, que um cliente MCP manda.
+        assert!(unknown_params("toolchain.info", Some(&json!({}))).is_none());
+        assert!(unknown_params("toolchain.info", Some(&json!({ "x": 1 }))).is_some());
+        // O que o cliente manda certo passa.
+        assert!(
+            unknown_params(
+                "project.move",
+                Some(&json!({ "project": "/p", "from": "a", "to": "b", "after": true }))
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn a_byte_order_mark_before_a_request_is_ignored() {
+        let (server, rx) = server();
+        server.handle_line("\u{feff}{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\"}");
+        let reply = next(&rx);
+        assert_eq!(reply["result"]["protocol"], PROTOCOL_VERSION, "{reply}");
+    }
+
+    #[test]
+    fn closing_the_input_answers_what_was_already_asked() {
+        let (server, rx) = server();
+        let dir = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dunce::canonicalize(dir.path()).unwrap()).unwrap();
+        let spf = Project::create(&root, "p").unwrap().spf_path().to_owned();
+        let input = format!(
+            "{}\n{}\n",
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize"}"#,
+            json!({ "jsonrpc": "2.0", "id": 2, "method": "processor.add",
+                    "params": { "project": spf, "spec": { "name": "soma", "language": "cmm" } } })
+        );
+        assert!(server.serve(std::io::Cursor::new(input)).is_none());
+        server.finish_after_input();
+        let lines: Vec<Value> = rx
+            .try_iter()
+            .map(|l| serde_json::from_str(&l).unwrap())
+            .collect();
+        assert!(
+            lines
+                .iter()
+                .any(|l| l["id"] == 2 && l["result"]["name"] == "soma"),
+            "{lines:?}"
+        );
+        assert_eq!(lines.last().unwrap()["method"], "shutdown", "{lines:?}");
+    }
+
+    #[test]
+    fn a_processor_name_is_checked_like_processor_add() {
+        let (server, rx) = initialized();
+        // `wave` é a pasta das escolhas de sinais: o processor.add recusa.
+        server.handle_line(
+            r#"{"jsonrpc":"2.0","id":1,"method":"processor.check_name","params":{"name":"wave"}}"#,
+        );
+        let reply = next(&rx);
+        assert_eq!(reply["result"]["ok"], false, "{reply}");
+        assert_eq!(reply["result"]["error"]["code"], "invalid_name", "{reply}");
+    }
+
+    #[test]
+    fn fpga_methods_need_the_experimental_component() {
+        let (server, rx) = server_with(|_| false);
+        server.handle_line(r#"{"jsonrpc":"2.0","id":0,"method":"initialize"}"#);
+        next(&rx);
+        server.handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"fpga.boards"}"#);
+        let reply = next(&rx);
+        assert_eq!(reply["error"]["code"], rpc::LACE, "{reply}");
+        assert_eq!(
+            reply["error"]["data"]["code"], "experimental_disabled",
+            "{reply}"
+        );
+    }
+
+    #[test]
+    fn a_project_file_that_does_not_exist_is_spf_missing() {
+        let (server, rx) = initialized();
+        let dir = tempfile::tempdir().unwrap();
+        let gone = Utf8PathBuf::from_path_buf(dir.path().join("x.spf")).unwrap();
+        server.handle_line(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "project.status",
+                     "params": { "project": gone } })
+            .to_string(),
+        );
+        let reply = next(&rx);
+        assert_eq!(reply["error"]["data"]["code"], "spf_missing", "{reply}");
+    }
+
+    #[test]
+    fn edit_distance() {
+        assert_eq!(distance("form", "from"), 2);
+        assert_eq!(distance("proccessor", "processor"), 1);
+        assert_eq!(distance("", "abc"), 3);
+        assert_eq!(distance("same", "same"), 0);
     }
 }
