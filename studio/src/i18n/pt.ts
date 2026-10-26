@@ -961,6 +961,8 @@ export const pt = {
   'settings.verbose': 'Mostrar o comando de cada passo e as mensagens info nos consoles',
   'settings.toolchainDir': 'Pasta do bundle',
   'settings.toolchainDirHint': 'Vazio: a instalação do Lace (~/.local/share/lace no Linux e no macOS). Como o --toolchain da CLI.',
+  'settings.lacePath': 'Programa lace',
+  'settings.lacePathHint': 'O lace que o Studio abre como servidor (lace serve) para ler, compilar e simular o projeto. Vazio: o da instalação do bundle. Para desenvolvimento, um build em target/.',
   'settings.compilerDir': 'Compilador do Verilator',
   'settings.compilerDirHint': 'Pasta com perl, make e g++ ou clang++ (no Windows, a raiz de um MSYS2). Vazio: os locais padrão. Como o --compiler da CLI.',
   'settings.quartusDir': 'Quartus Prime',

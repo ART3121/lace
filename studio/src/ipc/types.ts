@@ -79,6 +79,8 @@ export interface Settings {
   quartus_dir: string | null;
   /** As trilhas do `lace learn` de outra pasta, como o LACE_LEARN_DIR. */
   learn_dir: string | null;
+  /** O programa `lace` que o Studio abre como servidor; null: o da instalação. */
+  lace_path: string | null;
   simulator: Simulator;
   open_wave_after_sim: boolean;
   /** Onde a onda abre: numa aba (cliente web do Surfer) ou em janela. */

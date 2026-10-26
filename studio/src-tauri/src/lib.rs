@@ -20,6 +20,7 @@
 //! | [`commands::app`] | versão, preferências, recentes, abrir a onda, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
 //! | [`commands::wave`] | a escolha dos sinais da onda e o layout salvo |
+//! | [`server`] | o servidor do Lace (`lace serve`) e o `lace_call`, por onde passam os métodos do protocolo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
 //! está em `docs/IPC.md`.
@@ -42,6 +43,7 @@ pub mod assistant;
 pub mod error;
 pub mod flows;
 pub mod jobs;
+pub mod server;
 pub mod settings;
 pub mod state;
 pub mod terminal;
@@ -130,6 +132,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            server::lace_call,
             commands::app::app_info,
             commands::app::settings_get,
             commands::app::settings_set,
@@ -253,6 +256,7 @@ fn shutdown(app: &AppHandle) {
     jobs::cancel_and_wait(app, SHUTDOWN_WAIT);
     terminal::kill_all(app);
     assistant::stop_all(app);
+    app.state::<AppState>().server.stop();
 }
 
 /// Log no stderr. `RUST_LOG` escolhe o nível (padrão: avisos, e `info` do

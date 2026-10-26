@@ -931,6 +931,8 @@ export const en: Record<Key, string> = {
   'settings.verbose': 'Show each step command and info messages in the consoles',
   'settings.toolchainDir': 'Bundle folder',
   'settings.toolchainDirHint': 'Empty: the Lace installation (~/.local/share/lace on Linux and macOS). Like the CLI --toolchain.',
+  'settings.lacePath': 'lace program',
+  'settings.lacePathHint': 'The lace the Studio starts as its server (lace serve) to read, build and simulate the project. Empty: the one of the bundle installation. For development, a build in target/.',
   'settings.compilerDir': 'Verilator compiler',
   'settings.compilerDirHint': 'Folder with perl, make and g++ or clang++ (on Windows, an MSYS2 root). Empty: the default locations. Like the CLI --compiler.',
   'settings.quartusDir': 'Quartus Prime',

@@ -53,6 +53,12 @@ pub mod codes {
     pub const INTERNAL: &str = "internal";
     /// O assistente: o Claude Code não foi achado, ou a sessão terminou.
     pub const ASSISTANT: &str = "assistant";
+    /// O programa `lace` que serve o Studio não foi achado ou não abriu.
+    pub const LACE_MISSING: &str = "lace_missing";
+    /// O `lace` achado fala outra versão do protocolo.
+    pub const LACE_INCOMPATIBLE: &str = "lace_incompatible";
+    /// O servidor do Lace saiu no meio de um pedido; o próximo o abre de novo.
+    pub const SERVER_GONE: &str = "server_gone";
 }
 
 /// O erro de um comando, como a interface o recebe.
