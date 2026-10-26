@@ -20,6 +20,7 @@ use lace_core::flows::{
     WaveSource,
 };
 use lace_core::history::{self, Cleanup};
+use lace_core::locate;
 use lace_core::protocol::Request;
 use lace_core::{
     Control, Language, ListPosition, NewProcessorFields, Processor, ProcessorConfig, Project,
@@ -953,14 +954,15 @@ fn show_report(project: &Project, id: Option<&str>, out: &Output) -> anyhow::Res
     })
 }
 
+/// `lace tools`: a tela vem do mesmo [`locate::describe`] do
+/// `toolchain.info`, com o bundle achado como a CLI acha.
 fn tools(cli: &Cli, verify: bool, out: &Output) -> anyhow::Result<bool> {
-    let local = Local::new(cli);
-    let info = answer!(local.call(Request::ToolchainInfo)?, Toolchain);
+    let found = cli.toolchain.found()?;
     let mismatches = if verify {
-        Some(answer!(local.call(Request::ToolchainVerify)?, Mismatches))
+        Some(found.toolchain.verify()?)
     } else {
         None
     };
-    out.tools(&info, mismatches.as_deref())?;
+    out.tools(&locate::describe(&found), mismatches.as_deref())?;
     Ok(mismatches.is_none_or(|m| m.is_empty()))
 }

@@ -1173,13 +1173,9 @@ impl Server {
                 Response::Cleaned(history::clean(&open_project(&project)?, &ids)?)
             }
             Request::ToolchainInfo => {
-                // Na linha de comando, um bundle que não abre (ou um
-                // compilador ou Quartus declarado que não serve) é erro do
-                // comando; no servidor, vem em `found: false` e nos campos de
+                // Um bundle que não abre vem em `found: false`, e um
+                // compilador ou Quartus declarado que não serve, nos campos de
                 // erro.
-                if self.strict {
-                    self.toolchain()?;
-                }
                 let lookup = self.toolchain.lookup().map_err(Failure::Cli)?;
                 let info = match locate::resolve(&lookup) {
                     Ok(found) => locate::describe(&found),
