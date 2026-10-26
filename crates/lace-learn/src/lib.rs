@@ -54,4 +54,6 @@ pub use track::{
     Chapter, DEFAULT_TRACK, Exercise, Kind, Reset, Spec, Stimulus, TRACKS_ENV, Track,
     available_tracks, load_track, tracks_dir,
 };
-pub use workspace::{ExerciseStatus, Workspace};
+pub use workspace::{
+    ChapterSnapshot, ExerciseSnapshot, ExerciseStatus, Workspace, WorkspaceSnapshot,
+};

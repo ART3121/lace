@@ -2,6 +2,16 @@
 
 ## Não publicada
 
+- Protocolo: métodos novos para o que o Studio ainda fazia linkando o core,
+  o lace-learn e o instalador: `processor.defaults`, `flow.command`,
+  `wave.layout` (o layout gerado, o salvo no projeto e o de um exercício,
+  para um visualizador próprio), `verilog.modules`,
+  `verilog.testbench_names`, `fpga.top` e os exercícios do `lace learn`
+  (`learn.tracks`, `learn.status`, `learn.init`, `learn.set_current`,
+  `learn.reset`). O `flow.run` corrige um exercício como fluxo
+  (`{"flow": "learn"}`, com a correção em `learn`) e corta a saída de cada
+  passo no resultado com `step_output_limit`. Os dois `PortDirection` do
+  core viram um só.
 - `lace serve`: um `--compiler` ou um `--quartus` que não serve não
   derruba mais o bundle da sessão. Antes, todo pedido que usa o bundle
   falhava com o erro da CLI; agora só a operação que precisa dele falha,

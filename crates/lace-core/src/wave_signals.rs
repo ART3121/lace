@@ -286,18 +286,10 @@ pub enum SignalKind {
     Real,
 }
 
-/// A direção de uma porta. Em JSON, `"input"`, `"output"` ou `"inout"`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum PortDirection {
-    /// Entrada.
-    Input,
-    /// Saída.
-    Output,
-    /// Bidirecional.
-    Inout,
-}
+/// A direção de uma porta: a mesma do leitor de portas
+/// ([`crate::verilog::PortDirection`]). Em JSON, `"input"`, `"output"` ou
+/// `"inout"`.
+pub use crate::verilog::PortDirection;
 
 impl SignalScope {
     /// A árvore tem `path` (um escopo ou um sinal)?

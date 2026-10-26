@@ -830,13 +830,18 @@ Uma sessão do `serve`:
 - **Métodos.** Os de `lace_core::protocol`, com um grupo e um ponto:
   `project.*` (`create`, `status`, `add`, `remove`, `top`, `testbench`,
   `order`, `move`, `convert`, `check_name`), `processor.*` (`check_name`,
-  `add`, `set`, `remove`, `outputs`), `flow.run` (o fluxo em `request`:
-  `build`, `check`, `hierarchy`, `simulate`, `synthesize`, `schematic`,
-  `fpga_build`, `fpga_program`; o resultado é um `FlowOutcome` com
-  `status`), `wave.*` (`open`, `signals`, `choose`, `reset_layout`),
-  `history.*` (`list`, `show`, `compare`, `plan_cleanup`, `clean`),
-  `toolchain.*` (`info`, `verify`), `experimental.*` (`list`, `set`),
-  `fpga.*`, `update.check`, `update.apply`, `install.add`, `learn.check`,
+  `add`, `set`, `remove`, `outputs`, `defaults`), `flow.run` (o fluxo em
+  `request`: `build`, `check`, `hierarchy`, `simulate`, `synthesize`,
+  `schematic`, `fpga_build`, `fpga_program` e `learn`, a correção de um
+  exercício; o resultado é um `FlowOutcome` com `status`, e
+  `step_output_limit` corta o `stdout` e o `stderr` de cada passo no
+  resultado), `flow.command` (o comando de um fluxo, como vai para o
+  histórico), `wave.*` (`open`, `signals`, `choose`, `reset_layout`,
+  `layout`), `verilog.*` (`modules`, `testbench_names`), `history.*`
+  (`list`, `show`, `compare`, `plan_cleanup`, `clean`), `toolchain.*`
+  (`info`, `verify`), `experimental.*` (`list`, `set`), `fpga.*` (com
+  `top`), `update.check`, `update.apply`, `install.add`, `learn.*`
+  (`check`, `tracks`, `status`, `init`, `set_current`, `reset`),
   `initialize` e `shutdown`. O `initialize` lista os que o servidor atende.
   Cada um, com os parâmetros, o resultado e os tipos:
   [PROTOCOL.md](PROTOCOL.md), gerado dos tipos.

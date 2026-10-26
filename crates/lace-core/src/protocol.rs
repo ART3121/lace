@@ -27,9 +27,11 @@ use crate::flows::{
 use crate::fpga::{BitstreamState, Board, FpgaConfig, Prepared};
 use crate::history::{Cleanup, RunComparison, RunRecord, RunSummary};
 use crate::locate::ToolchainInfo;
+use crate::verilog::ModuleInterface;
 use crate::{
     AddedFile, ErrorInfo, FileMismatch, LayoutConversion, ListPosition, MovedPath, NewProcessor,
-    Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemovedProcessor, WaveSignals,
+    Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemovedProcessor, SavedLayout,
+    WaveLayout, WaveSignals,
 };
 
 pub use crate::delivery::Notification;
@@ -91,11 +93,16 @@ methods! {
     ProcessorSet = "processor.set" => Processor,
     ProcessorRemove = "processor.remove" => ProcessorRemoval,
     ProcessorOutputs = "processor.outputs" => Vec<i64>,
+    ProcessorDefaults = "processor.defaults" => NewProcessor,
     FlowRun = "flow.run" => FlowOutcome,
+    FlowCommand = "flow.command" => String,
     WaveOpen = "wave.open" => WaveOpened,
     WaveSignals = "wave.signals" => WaveSignals,
     WaveChoose = "wave.choose" => WaveChoiceOutcome,
     WaveResetLayout = "wave.reset_layout" => bool,
+    WaveLayoutGet = "wave.layout" => WaveLayoutInfo,
+    VerilogModules = "verilog.modules" => Vec<String>,
+    VerilogTestbenchNames = "verilog.testbench_names" => Vec<bool>,
     HistoryList = "history.list" => Vec<RunSummary>,
     HistoryShow = "history.show" => ReportView,
     HistoryCompare = "history.compare" => RunComparison,
@@ -112,12 +119,18 @@ methods! {
     FpgaModules = "fpga.modules" => Vec<String>,
     FpgaStatus = "fpga.status" => BitstreamState,
     FpgaCables = "fpga.cables" => Vec<String>,
+    FpgaTop = "fpga.top" => ModuleInterface,
     // O resultado vem do lace-installer e do lace-learn, que o core não
     // conhece ([`Response::Other`]).
     UpdateCheck = "update.check" => serde_json::Value,
     UpdateApply = "update.apply" => serde_json::Value,
     InstallAdd = "install.add" => serde_json::Value,
     LearnCheck = "learn.check" => serde_json::Value,
+    LearnTracks = "learn.tracks" => serde_json::Value,
+    LearnStatus = "learn.status" => serde_json::Value,
+    LearnInit = "learn.init" => serde_json::Value,
+    LearnSetCurrent = "learn.set_current" => serde_json::Value,
+    LearnReset = "learn.reset" => (),
 }
 
 /// O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
@@ -301,6 +314,10 @@ pub enum Request {
         /// A porta.
         port: u32,
     },
+    /// Os padrões de um processador novo (os da AURORA), para um formulário
+    /// começar preenchido. Resposta: o [`NewProcessor`], com o nome vazio.
+    #[serde(rename = "processor.defaults")]
+    ProcessorDefaults,
 
     /// Roda um fluxo ([`FlowRequest`]). Enquanto roda, as notificações
     /// (`phase`, `events`, `output_omitted`, `build`); no fim, o
@@ -320,6 +337,22 @@ pub enum Request {
         /// `vvp` roda com buffer, que é mais rápido.
         #[serde(default = "yes")]
         output: bool,
+        /// Quantos bytes do `stdout` e do `stderr` de cada passo voltam no
+        /// resultado, do fim; sem isso, tudo. Com `output`, cada linha já
+        /// foi pelas notificações `events`.
+        #[serde(default)]
+        step_output_limit: Option<usize>,
+    },
+    /// O comando equivalente de um fluxo, como a CLI o escreveria e como ele
+    /// vai para o histórico (`lace-studio sim -p soma`), para uma interface
+    /// mostrar antes de rodar. Resposta: o texto.
+    #[serde(rename = "flow.command")]
+    FlowCommand {
+        /// O fluxo.
+        request: FlowRequest,
+        /// O programa que começa o comando; sem ele, `lace`.
+        #[serde(default)]
+        program: Option<String>,
     },
 
     /// Abre uma onda no surfer-aurora. Resposta: [`WaveOpened`].
@@ -355,6 +388,32 @@ pub enum Request {
         /// A onda.
         #[schemars(with = "String")]
         waveform: Utf8PathBuf,
+    },
+    /// O layout do Lace para uma onda, para um visualizador próprio (a aba de
+    /// onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto
+    /// da onda (que o gerado atualiza enquanto o usuário não salvar o dele)
+    /// e o de um exercício do `lace learn`. Resposta: [`WaveLayoutInfo`].
+    #[serde(rename = "wave.layout")]
+    WaveLayoutGet {
+        /// A onda.
+        #[schemars(with = "String")]
+        waveform: Utf8PathBuf,
+    },
+
+    /// Os módulos declarados num texto Verilog, sem os comentados, na ordem
+    /// (o contorno de um editor). Resposta: os nomes.
+    #[serde(rename = "verilog.modules")]
+    VerilogModules {
+        /// O texto.
+        text: String,
+    },
+    /// Quais nomes de arquivo são de testbench pela regra do Lace
+    /// (`tb_<nome>.v`, `<nome>_tb.v`). Resposta: um sim ou não por nome, na
+    /// ordem.
+    #[serde(rename = "verilog.testbench_names")]
+    VerilogTestbenchNames {
+        /// Os nomes, sem pasta.
+        names: Vec<String>,
     },
 
     /// Os relatórios do projeto, do mais novo para o mais antigo. Resposta:
@@ -483,6 +542,17 @@ pub enum Request {
     /// Os cabos de gravação ligados. Resposta: os nomes.
     #[serde(rename = "fpga.cables")]
     FpgaCables,
+    /// O módulo que vai para a placa e as portas dele, para montar as
+    /// ligações antes de estarem certas. Resposta: o [`ModuleInterface`].
+    #[serde(rename = "fpga.top")]
+    FpgaTop {
+        /// O projeto.
+        #[schemars(with = "String")]
+        project: Utf8PathBuf,
+        /// O módulo; `None`, o `top` do `fpga.json`, senão o do projeto.
+        #[serde(default)]
+        top: Option<String>,
+    },
 
     /// As versões: este Lace, a última release, o bundle, cada componente.
     /// Resposta: o relatório do instalador.
@@ -529,6 +599,58 @@ pub enum Request {
         #[serde(default)]
         all: bool,
     },
+    /// De onde vêm as trilhas do `lace learn` e quais há. Resposta: `{dir,
+    /// tracks}`.
+    #[serde(rename = "learn.tracks")]
+    LearnTracks,
+    /// Abre a pasta de exercícios que contém `root` e a põe em dia com a
+    /// trilha. Resposta: o retrato da pasta (o `WorkspaceSnapshot` do
+    /// lace-learn).
+    #[serde(rename = "learn.status")]
+    LearnStatus {
+        /// A pasta de exercícios, ou uma pasta dentro dela.
+        #[schemars(with = "String")]
+        root: Utf8PathBuf,
+        /// O idioma dos enunciados, quando a trilha tem tradução.
+        #[serde(default)]
+        lang: Option<String>,
+    },
+    /// Cria a pasta de exercícios (`lace learn init`). Resposta: o retrato
+    /// da pasta.
+    #[serde(rename = "learn.init")]
+    LearnInit {
+        /// A pasta, que pode existir vazia.
+        #[schemars(with = "String")]
+        dir: Utf8PathBuf,
+        /// A trilha; `None`, a padrão.
+        #[serde(default)]
+        track: Option<String>,
+        /// O idioma dos enunciados.
+        #[serde(default)]
+        lang: Option<String>,
+    },
+    /// Torna atual um exercício. Resposta: o retrato da pasta.
+    #[serde(rename = "learn.set_current")]
+    LearnSetCurrent {
+        /// A pasta de exercícios.
+        #[schemars(with = "String")]
+        root: Utf8PathBuf,
+        /// O exercício.
+        name: String,
+        /// O idioma dos enunciados.
+        #[serde(default)]
+        lang: Option<String>,
+    },
+    /// Volta o arquivo de um exercício ao começo (`lace learn reset`).
+    /// Resposta: nada.
+    #[serde(rename = "learn.reset")]
+    LearnReset {
+        /// A pasta de exercícios.
+        #[schemars(with = "String")]
+        root: Utf8PathBuf,
+        /// O exercício.
+        name: String,
+    },
 }
 
 impl Request {
@@ -568,7 +690,8 @@ impl Request {
             | Request::FpgaConfigSet { project, .. }
             | Request::FpgaCheck { project }
             | Request::FpgaModules { project }
-            | Request::FpgaStatus { project } => Some(project),
+            | Request::FpgaStatus { project }
+            | Request::FpgaTop { project, .. } => Some(project),
             Request::WaveOpen { project, .. } => project.as_ref(),
             _ => None,
         }
@@ -585,6 +708,11 @@ impl Request {
                 | Request::ProjectCheckName { .. }
                 | Request::ProcessorCheckName { .. }
                 | Request::ProcessorOutputs { .. }
+                | Request::ProcessorDefaults
+                | Request::FlowCommand { .. }
+                | Request::VerilogModules { .. }
+                | Request::VerilogTestbenchNames { .. }
+                | Request::LearnTracks
                 | Request::HistoryList { .. }
                 | Request::HistoryShow { .. }
                 | Request::HistoryCompare { .. }
@@ -639,6 +767,16 @@ pub enum Response {
     ProcessorRemoved(ProcessorRemoval),
     /// `processor.outputs`.
     Values(Vec<i64>),
+    /// `processor.defaults`.
+    Defaults(Box<NewProcessor>),
+    /// `flow.command`.
+    Text(String),
+    /// `wave.layout`.
+    Layout(Box<WaveLayoutInfo>),
+    /// `verilog.testbench_names`.
+    Flags(Vec<bool>),
+    /// `fpga.top`.
+    Interface(Box<ModuleInterface>),
     /// `flow.run`.
     Flow(Box<FlowOutcome>),
     /// `wave.open`.
@@ -671,13 +809,13 @@ pub enum Response {
     FpgaConfig(Option<FpgaConfig>),
     /// `fpga.check`.
     Prepared(Box<Prepared>),
-    /// `fpga.modules`.
+    /// `fpga.modules`, `verilog.modules`.
     Modules(Vec<String>),
     /// `fpga.status`.
     Bitstream(BitstreamState),
     /// `fpga.cables`.
     Cables(Vec<String>),
-    /// `shutdown`, `fpga.config_set`: nada.
+    /// `shutdown`, `fpga.config_set`, `learn.reset`: nada.
     Nothing(()),
     /// Um resultado de outro crate (`update.*`, `install.*`, `learn.*`),
     /// já em JSON; o schema dele é do crate de origem.
@@ -699,6 +837,25 @@ pub struct ServerInfo {
     pub experimental: BTreeMap<String, bool>,
     /// Os métodos que este servidor atende.
     pub methods: Vec<String>,
+}
+
+/// `wave.layout`: o que um visualizador próprio precisa para mostrar a
+/// onda com o layout do Lace.
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct WaveLayoutInfo {
+    /// O layout dos processadores SAPHO, gerado da onda; `None` sem
+    /// processador.
+    pub layout: Option<WaveLayout>,
+    /// O layout salvo no projeto da onda (`wave/<testbench>.surf.ron`), onde
+    /// o Surfer salva (Ctrl+S): o do usuário, se ele salvou depois da última
+    /// geração, senão o gerado agora; `None` numa onda fora de projeto.
+    pub saved: Option<SavedLayout>,
+    /// Por que o layout não foi gerado (a onda abre sem ele).
+    pub layout_error: Option<String>,
+    /// Os comandos do Surfer de um exercício do `lace learn` (o
+    /// `.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um.
+    #[schemars(with = "Option<String>")]
+    pub exercise_layout: Option<Utf8PathBuf>,
 }
 
 /// `project.remove`.

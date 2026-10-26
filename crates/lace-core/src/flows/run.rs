@@ -196,6 +196,12 @@ pub fn run(
             outcome.worsen(result.status);
             outcome.fpga_program = Some(result);
         }
+        FlowRequest::Learn { .. } => {
+            return Err(LaceError::Unsupported(
+                "The learn flow runs in the Lace server (lace serve), which links lace-learn"
+                    .into(),
+            ));
+        }
     }
     if control.is_cancelled() {
         outcome.worsen(Status::Cancelled);

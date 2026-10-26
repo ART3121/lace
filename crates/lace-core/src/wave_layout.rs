@@ -71,7 +71,7 @@ const MAX_COMPLEX_BITS: u32 = 16 + 2 * (1 + 32 + 52);
 const MAX_VALUE_LINE: u64 = 4096;
 
 /// O layout de uma onda, em memória.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
 pub struct WaveLayout {
     /// O conteúdo do `.surf.ron`.
@@ -90,10 +90,11 @@ pub struct WaveLayout {
 
 /// O layout salvo no projeto para a onda de um testbench:
 /// `wave/<testbench>.surf.ron` ([`saved_layout`]).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
 pub struct SavedLayout {
     /// O arquivo, onde o Surfer salva o estado (Ctrl+S).
+    #[schemars(with = "String")]
     pub path: Utf8PathBuf,
     /// O estado que vai para o Surfer: o que o usuário salvou, ou o gerado.
     pub state: String,
@@ -104,7 +105,7 @@ pub struct SavedLayout {
 
 /// Um tradutor de valor do Surfer: um arquivo `Name = <nome>`, `Bits = <n>`
 /// e uma linha `<valor> <texto>` por valor.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 #[non_exhaustive]
 pub struct MappingTranslator {
     /// O nome, que é também o nome do arquivo e o `format` dos sinais.

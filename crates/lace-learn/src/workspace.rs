@@ -81,7 +81,126 @@ pub struct ExerciseStatus {
     pub file: Utf8PathBuf,
 }
 
+/// A pasta de exercícios como uma interface a mostra: a trilha, os
+/// capítulos com os enunciados e o que o aluno já fez
+/// ([`Workspace::snapshot`]). É o resultado do `learn.status` do protocolo.
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct WorkspaceSnapshot {
+    /// A pasta de exercícios.
+    #[schemars(with = "String")]
+    pub root: Utf8PathBuf,
+    /// A trilha (`verilog`).
+    pub track: String,
+    /// O título da trilha.
+    pub title: String,
+    /// As boas-vindas, em markdown.
+    pub welcome: String,
+    /// A mensagem do fim, em markdown.
+    pub farewell: Option<String>,
+    /// Os capítulos, na ordem.
+    pub chapters: Vec<ChapterSnapshot>,
+    /// O exercício atual.
+    pub current: String,
+    /// Quantos resolvidos.
+    pub solved: usize,
+    /// Quantos exercícios.
+    pub total: usize,
+}
+
+/// Um capítulo de [`WorkspaceSnapshot`].
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct ChapterSnapshot {
+    /// A pasta do capítulo (`01_primeiros_passos`).
+    pub id: String,
+    /// O título.
+    pub title: String,
+    /// A introdução, em markdown.
+    pub intro: String,
+    /// Os exercícios, na ordem.
+    pub exercises: Vec<ExerciseSnapshot>,
+}
+
+/// Um exercício de [`WorkspaceSnapshot`], com o que o aluno já fez.
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct ExerciseSnapshot {
+    /// O nome.
+    pub name: String,
+    /// O título.
+    pub title: String,
+    /// O enunciado, em markdown.
+    pub prompt: String,
+    /// As dicas, em markdown.
+    pub hints: Vec<String>,
+    /// O módulo que o aluno escreve.
+    pub module: String,
+    /// O arquivo que o aluno edita.
+    #[schemars(with = "String")]
+    pub file: Utf8PathBuf,
+    /// O `.spf` do projeto do exercício.
+    #[schemars(with = "String")]
+    pub spf: Utf8PathBuf,
+    /// A onda da última correção.
+    #[schemars(with = "String")]
+    pub waveform: Utf8PathBuf,
+    /// Resolvido.
+    pub solved: bool,
+    /// A solução liberada, depois de resolvido.
+    #[schemars(with = "Option<String>")]
+    pub solution: Option<Utf8PathBuf>,
+}
+
 impl Workspace {
+    /// O retrato da pasta para uma interface: os capítulos com os
+    /// enunciados, o exercício atual e o que já está resolvido, com a
+    /// solução liberada de cada resolvido.
+    pub fn snapshot(&self) -> WorkspaceSnapshot {
+        let track = self.track();
+        let chapters = track
+            .chapters
+            .iter()
+            .map(|chapter| ChapterSnapshot {
+                id: chapter.id.clone(),
+                title: chapter.title.clone(),
+                intro: chapter.intro.clone(),
+                exercises: chapter
+                    .exercises
+                    .iter()
+                    .map(|e| {
+                        let solved = self.is_solved(&e.name);
+                        ExerciseSnapshot {
+                            name: e.name.clone(),
+                            title: e.title.clone(),
+                            prompt: e.prompt.clone(),
+                            hints: e.hints.clone(),
+                            module: e.module.clone(),
+                            file: self.student_file(e),
+                            spf: self.exercise_dir(e).join(format!("{}.spf", e.name)),
+                            waveform: self.waveform(e),
+                            solved,
+                            solution: solved
+                                .then(|| self.solution_path(e))
+                                .filter(|p| p.is_file()),
+                        }
+                    })
+                    .collect(),
+            })
+            .collect();
+        WorkspaceSnapshot {
+            root: self.root().to_owned(),
+            track: track.id.clone(),
+            title: track.title.clone(),
+            welcome: track.welcome.clone(),
+            farewell: track.farewell.clone(),
+            chapters,
+            current: self.current().name.clone(),
+            solved: self.solved_count(),
+            total: track.len(),
+        }
+    }
+
     /// Cria a pasta de exercícios em `dir` com todos os exercícios da
     /// trilha, e o primeiro como atual. `dir` pode existir, vazia.
     ///

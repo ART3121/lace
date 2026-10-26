@@ -55,17 +55,18 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_core::delivery::{Dispatcher, Limits, Notification};
+use lace_core::delivery::{Dispatcher, Limits, Notification, trim_step_output};
 use lace_core::experimental::Feature;
-use lace_core::flows::{self, FlowOptions};
+use lace_core::flows::{self, FlowOptions, FlowRequest};
 use lace_core::fpga::{self, FpgaConfig};
 use lace_core::history;
 use lace_core::locate;
 use lace_core::protocol::{
     CleanOutcome, ExperimentalInfo, METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval,
     RemoveOutcome, ReportView, Request, Response, ServerInfo, ShutdownReason, TopOutcome,
+    WaveLayoutInfo,
 };
-use lace_core::{CancelToken, Control, ErrorInfo, LaceError, Project, Toolchain};
+use lace_core::{CancelToken, Control, ErrorInfo, LaceError, NewProcessor, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
 use lace_installer::install::Event as InstallEvent;
 use lace_installer::payload::Index;
@@ -983,16 +984,29 @@ impl Server {
                 let processor = project.require_processor(&processor)?;
                 Response::Values(processor.read_output_values(port)?)
             }
+            Request::ProcessorDefaults => {
+                Response::Defaults(Box::new(NewProcessor::new("", lace_core::Language::Cmm)))
+            }
             Request::FlowRun {
                 project,
                 request,
                 options,
                 output,
+                step_output_limit,
             } => {
-                let toolchain = self.toolchain()?;
-                let mut project = open_project(&project)?;
                 let options =
                     options.unwrap_or_else(|| FlowOptions::new(request.command_line("lace")));
+                // A correção de um exercício é do lace-learn, que o core não
+                // conhece: roda aqui, com o resultado de um fluxo.
+                if let FlowRequest::Learn { root, exercise } = &request {
+                    emit(Notification::Phase {
+                        phase: lace_core::flows::Phase::Learn,
+                    });
+                    let outcome = self.learn_flow(root, exercise, &options.command, cancel)?;
+                    return Ok(Response::Flow(Box::new(outcome)));
+                }
+                let toolchain = self.toolchain()?;
+                let mut project = open_project(&project)?;
                 let deliver = Arc::clone(&emit);
                 let dispatcher =
                     Dispatcher::start(Limits::default(), move |notification| deliver(notification));
@@ -1012,7 +1026,18 @@ impl Server {
                 );
                 // Tudo que o fluxo disse sai antes do resultado.
                 dispatcher.finish();
-                Response::Flow(Box::new(outcome?))
+                let outcome = outcome?;
+                match step_output_limit {
+                    Some(limit) => {
+                        let mut value = serde_json::to_value(&outcome).unwrap_or(Value::Null);
+                        trim_step_output(&mut value, limit);
+                        Response::Other(value)
+                    }
+                    None => Response::Flow(Box::new(outcome)),
+                }
+            }
+            Request::FlowCommand { request, program } => {
+                Response::Text(request.command_line(program.as_deref().unwrap_or("lace")))
             }
             Request::WaveOpen { project, request } => {
                 let toolchain = self.toolchain()?;
@@ -1038,6 +1063,35 @@ impl Server {
                     &toolchain, &project, &choice, &control,
                 )?)
             }
+            Request::WaveLayoutGet { waveform } => {
+                let (layout, layout_error) = match lace_core::wave_layout(&waveform) {
+                    Ok(layout) => (layout, None),
+                    Err(error) => (None, Some(error.to_string())),
+                };
+                // O layout salvo é um extra: se não der para ler ou gravar,
+                // a onda abre com o gerado, como no `wave.open`.
+                let saved = layout.as_ref().and_then(|layout| {
+                    lace_core::saved_layout(&waveform, layout)
+                        .inspect_err(|e| tracing::warn!("No saved layout for {waveform}: {e}"))
+                        .ok()
+                        .flatten()
+                });
+                Response::Layout(Box::new(WaveLayoutInfo {
+                    exercise_layout: lace_learn::layout::layout_of(&waveform),
+                    layout,
+                    saved,
+                    layout_error,
+                }))
+            }
+            Request::VerilogModules { text } => {
+                Response::Modules(lace_core::verilog::modules_in(&text))
+            }
+            Request::VerilogTestbenchNames { names } => Response::Flags(
+                names
+                    .iter()
+                    .map(|name| lace_core::verilog::is_testbench_name(name))
+                    .collect(),
+            ),
             Request::WaveResetLayout { waveform } => {
                 let Ok(project) = Project::discover(&waveform) else {
                     return Ok(Response::Flag(false));
@@ -1159,6 +1213,17 @@ impl Server {
                 let toolchain = self.toolchain()?;
                 Response::Cables(fpga::cables(&toolchain)?)
             }
+            Request::FpgaTop { project, top } => {
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
+                // Sem bundle, as portas vêm do leitor embutido.
+                let toolchain = self.toolchain().ok();
+                Response::Interface(Box::new(fpga::top_interface(
+                    toolchain.as_ref(),
+                    &project,
+                    top.as_deref(),
+                )?))
+            }
             Request::UpdateCheck => {
                 Response::Other(self.update(id, &emit, false, None, None, &cancel)?)
             }
@@ -1252,6 +1317,42 @@ impl Server {
                     "total": outcome.total,
                 }))
             }
+            Request::LearnTracks => {
+                let toolchain = self.toolchain().ok();
+                let dir = lace_learn::tracks_dir(toolchain.as_ref()).map_err(|e| learn_info(&e))?;
+                let tracks = lace_learn::available_tracks(&dir).map_err(|e| learn_info(&e))?;
+                Response::Other(json!({ "dir": dir, "tracks": tracks }))
+            }
+            Request::LearnStatus { root, lang } => {
+                let workspace = self.workspace(&root, lang.as_deref())?;
+                Response::Other(json!(workspace.snapshot()))
+            }
+            Request::LearnInit { dir, track, lang } => {
+                let toolchain = self.toolchain().ok();
+                let tracks =
+                    lace_learn::tracks_dir(toolchain.as_ref()).map_err(|e| learn_info(&e))?;
+                let id = track.unwrap_or_else(|| lace_learn::DEFAULT_TRACK.to_owned());
+                let track = lace_learn::load_track(&tracks, &id, lang.as_deref())
+                    .map_err(|e| learn_info(&e))?;
+                let workspace =
+                    lace_learn::Workspace::init(&dir, track).map_err(|e| learn_info(&e))?;
+                Response::Other(json!(workspace.snapshot()))
+            }
+            Request::LearnSetCurrent { root, name, lang } => {
+                let mut workspace = self.workspace(&root, lang.as_deref())?;
+                workspace.set_current(&name).map_err(|e| learn_info(&e))?;
+                Response::Other(json!(workspace.snapshot()))
+            }
+            Request::LearnReset { root, name } => {
+                let workspace = self.workspace(&root, None)?;
+                let exercise = workspace
+                    .track()
+                    .require(&name)
+                    .map_err(|e| learn_info(&e))?
+                    .clone();
+                workspace.reset(&exercise).map_err(|e| learn_info(&e))?;
+                Response::Nothing(())
+            }
             // O enum cresce sem quebrar quem o usa; um servidor desta versão
             // não atende o que não conhece.
             other => {
@@ -1320,6 +1421,62 @@ impl Server {
             self.exit_when_done.store(true, Ordering::SeqCst);
         }
         Ok(serde_json::to_value(report).unwrap_or(Value::Null))
+    }
+
+    /// A pasta de exercícios que contém `root`, aberta e posta em dia com a
+    /// trilha, com as trilhas de onde o servidor as acha.
+    fn workspace(
+        &self,
+        root: &Utf8Path,
+        lang: Option<&str>,
+    ) -> Result<lace_learn::Workspace, Failure> {
+        let toolchain = self.toolchain().ok();
+        let tracks = lace_learn::tracks_dir(toolchain.as_ref()).map_err(|e| learn_info(&e))?;
+        let root = lace_learn::Workspace::discover(root).map_err(|e| learn_info(&e))?;
+        lace_learn::Workspace::open(&root, &tracks, lang).map_err(|e| learn_info(&e).into())
+    }
+
+    /// A correção de um exercício como fluxo (`flow.run` com `learn`): o
+    /// resultado de um fluxo, com a correção em `learn`, cancelado ou falho
+    /// pelo veredito. A saída das ferramentas não vai ao vivo: o resumo do
+    /// testbench é para a correção ler.
+    fn learn_flow(
+        &self,
+        root: &Utf8Path,
+        exercise: &str,
+        command: &str,
+        cancel: CancelToken,
+    ) -> Result<lace_core::flows::FlowOutcome, Failure> {
+        let toolchain = self.toolchain()?;
+        let tracks = lace_learn::tracks_dir(Some(&toolchain)).map_err(|e| learn_info(&e))?;
+        let root = lace_learn::Workspace::discover(root).map_err(|e| learn_info(&e))?;
+        let mut workspace =
+            lace_learn::Workspace::open(&root, &tracks, None).map_err(|e| learn_info(&e))?;
+        let exercise = workspace
+            .track()
+            .require(exercise)
+            .map_err(|e| learn_info(&e))?
+            .clone();
+        let control = Control::new().with_cancel(cancel);
+        let checked = lace_learn::flows::check(
+            &toolchain,
+            &mut workspace,
+            std::slice::from_ref(&exercise),
+            &control,
+            &mut |_| {},
+        )
+        .map_err(|e| learn_info(&e))?;
+        let grade = checked.results.into_iter().next();
+        let mut outcome = lace_core::flows::FlowOutcome::new("learn", command);
+        match &grade {
+            Some(grade) if grade.verdict == lace_learn::Verdict::Cancelled => {
+                outcome.worsen(lace_core::Status::Cancelled);
+            }
+            Some(grade) if !grade.solved() => outcome.worsen(lace_core::Status::Failed),
+            _ => {}
+        }
+        outcome.learn = grade.map(|g| json!(g));
+        Ok(outcome)
     }
 
     /// O pedido em andamento com `id` é um `update.check` (e não um
@@ -1859,6 +2016,65 @@ mod tests {
             "processor.remove",
             json!({"project": project, "name": "soma"}),
         );
+        // Os métodos que tiraram o core do Studio.
+        let defaults = call("processor.defaults", json!({}));
+        assert_eq!(
+            (defaults["name"].clone(), defaults["nubits"].clone()),
+            (json!(""), json!(23))
+        );
+        let command = call(
+            "flow.command",
+            json!({
+                "request": { "flow": "simulate", "processor": "soma", "simulator": "icarus", "open_wave": true },
+                "program": "lace-studio",
+            }),
+        );
+        assert_eq!(command, "lace-studio sim -p soma --open");
+        let learn = call(
+            "flow.command",
+            json!({ "request": { "flow": "learn", "root": root, "exercise": "mux 2" } }),
+        );
+        assert_eq!(learn, "lace learn check \"mux 2\"");
+        let modules = call(
+            "verilog.modules",
+            json!({ "text": "module a; endmodule\n// module b;\nmodule c(); endmodule\n" }),
+        );
+        assert_eq!(modules, json!(["a", "c"]));
+        let names = call(
+            "verilog.testbench_names",
+            json!({ "names": ["top_tb.v", "top.v", "tb_x.sv"] }),
+        );
+        assert_eq!(names, json!([true, false, true]));
+        let layout = call(
+            "wave.layout",
+            json!({ "waveform": project.join("nao_existe.vcd") }),
+        );
+        assert!(
+            layout["layout"].is_null() && layout["layout_error"].is_string(),
+            "{layout}"
+        );
+        let tracks = call("learn.tracks", json!({}));
+        assert!(
+            tracks["tracks"]
+                .as_array()
+                .is_some_and(|t| t.contains(&json!("verilog"))),
+            "{tracks}"
+        );
+        let exercises = root.join("exercicios");
+        let status = call("learn.init", json!({ "dir": exercises }));
+        let first = status["current"].as_str().unwrap().to_owned();
+        let second = status["chapters"][0]["exercises"][1]["name"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        call("learn.status", json!({ "root": exercises }));
+        let status = call(
+            "learn.set_current",
+            json!({ "root": exercises, "name": second }),
+        );
+        assert_eq!(status["current"], second.as_str());
+        assert_ne!(first, second);
+        call("learn.reset", json!({ "root": exercises, "name": second }));
         call("shutdown", json!({}));
     }
 

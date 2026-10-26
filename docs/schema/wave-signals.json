@@ -219,20 +219,20 @@
       ]
     },
     "PortDirection": {
-      "description": "A direção de uma porta. Em JSON, `\"input\"`, `\"output\"` ou `\"inout\"`.",
+      "description": "Direção de uma porta.",
       "oneOf": [
         {
-          "description": "Entrada.",
+          "description": "`input`.",
           "type": "string",
           "const": "input"
         },
         {
-          "description": "Saída.",
+          "description": "`output`.",
           "type": "string",
           "const": "output"
         },
         {
-          "description": "Bidirecional.",
+          "description": "`inout`.",
           "type": "string",
           "const": "inout"
         }

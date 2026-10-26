@@ -594,6 +594,17 @@ export type FlowRequest =
        */
       cable?: string | null;
       flow: 'fpga_program';
+    }
+  | {
+      /**
+       * A pasta de exercícios (ou uma pasta dentro dela).
+       */
+      root: string;
+      /**
+       * O exercício.
+       */
+      exercise: string;
+      flow: 'learn';
     };
 /**
  * Qual simulador usar. Em JSON: `"icarus"` ou `"verilator"`.
@@ -716,6 +727,11 @@ export type Response =
   | Processor
   | ProcessorRemoval
   | number[]
+  | NewProcessor1
+  | string
+  | WaveLayoutInfo
+  | boolean[]
+  | ModuleInterface
   | FlowOutcome
   | WaveOpened1
   | WaveSignals
@@ -738,7 +754,7 @@ export type Response =
       [k: string]: unknown | undefined;
     };
 /**
- * A direção de uma porta. Em JSON, `"input"`, `"output"` ou `"inout"`.
+ * Direção de uma porta.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "PortDirection".
@@ -1176,7 +1192,7 @@ export type Request =
          * O projeto.
          */
         project: string;
-        spec: NewProcessor1;
+        spec: NewProcessor2;
       };
     }
   | {
@@ -1226,6 +1242,9 @@ export type Request =
          */
         port: number;
       };
+    }
+  | {
+      method: 'processor.defaults';
     }
   | {
       method: 'flow.run';
@@ -1344,6 +1363,17 @@ export type Request =
                */
               cable?: string | null;
               flow: 'fpga_program';
+            }
+          | {
+              /**
+               * A pasta de exercícios (ou uma pasta dentro dela).
+               */
+              root: string;
+              /**
+               * O exercício.
+               */
+              exercise: string;
+              flow: 'learn';
             };
         /**
          * As opções da interface; sem elas, o comando é o da CLI
@@ -1355,6 +1385,143 @@ export type Request =
          * `vvp` roda com buffer, que é mais rápido.
          */
         output?: boolean;
+        /**
+         * Quantos bytes do `stdout` e do `stderr` de cada passo voltam no
+         * resultado, do fim; sem isso, tudo. Com `output`, cada linha já
+         * foi pelas notificações `events`.
+         */
+        step_output_limit?: number | null;
+      };
+    }
+  | {
+      method: 'flow.command';
+      params: {
+        /**
+         * O fluxo.
+         */
+        request:
+          | {
+              /**
+               * Os processadores; vazio é todos os do projeto.
+               */
+              processors?: string[];
+              flow: 'build';
+            }
+          | {
+              /**
+               * Só os módulos deste arquivo como raiz.
+               */
+              file?: string | null;
+              /**
+               * Só este processador: o Verilog dele e o testbench que o YANC
+               * gerou, no lugar do projeto.
+               */
+              processor?: string | null;
+              /**
+               * Acrescenta o `verilator --lint-only`.
+               */
+              lint?: boolean;
+              flow: 'check';
+            }
+          | {
+              /**
+               * Só este processador.
+               */
+              processor?: string | null;
+              flow: 'hierarchy';
+            }
+          | {
+              /**
+               * Simula este processador com o testbench do YANC; `None`, a
+               * simulação do projeto.
+               */
+              processor?: string | null;
+              /**
+               * Troca o testbench da simulação do projeto antes de simular
+               * (grava o `.spf`).
+               */
+              testbench?: string | null;
+              /**
+               * Icarus ou Verilator. Na simulação rápida, só vale para um
+               * testbench cocotb.
+               */
+              simulator: 'icarus' | 'verilator';
+              /**
+               * A simulação rápida: sem onda, com o testbench Verilog no
+               * Verilator.
+               */
+              fast?: boolean;
+              /**
+               * Prazo do passo `simulate`, em segundos.
+               */
+              timeout_s?: number | null;
+              /**
+               * Abrir a onda se a simulação a entregar, conforme
+               * [`FlowOptions::wave`]. A simulação rápida não tem onda.
+               */
+              open_wave?: boolean;
+              flow: 'simulate';
+            }
+          | {
+              /**
+               * Sintetiza só este processador; `None`, o topo do projeto.
+               */
+              processor?: string | null;
+              /**
+               * Desenha o esquemático (Yosys `show` e Graphviz) depois.
+               */
+              schematic?: boolean;
+              /**
+               * O módulo do esquemático; `None`, o topo da síntese.
+               */
+              module?: string | null;
+              /**
+               * Grava o HTML do RTL viewer ao lado do netlist e o abre conforme
+               * [`FlowOptions::viewer_opener`].
+               */
+              open_viewer?: boolean;
+              flow: 'synthesize';
+            }
+          | {
+              /**
+               * O `hierarchy.json` da síntese.
+               */
+              netlist: string;
+              /**
+               * O módulo.
+               */
+              module: string;
+              /**
+               * Escrever a largura dos barramentos nas arestas.
+               */
+              bus_widths?: boolean;
+              flow: 'schematic';
+            }
+          | {
+              flow: 'fpga_build';
+            }
+          | {
+              /**
+               * O cabo; `None`, o primeiro que o Quartus lista.
+               */
+              cable?: string | null;
+              flow: 'fpga_program';
+            }
+          | {
+              /**
+               * A pasta de exercícios (ou uma pasta dentro dela).
+               */
+              root: string;
+              /**
+               * O exercício.
+               */
+              exercise: string;
+              flow: 'learn';
+            };
+        /**
+         * O programa que começa o comando; sem ele, `lace`.
+         */
+        program?: string | null;
       };
     }
   | {
@@ -1411,6 +1578,33 @@ export type Request =
          * A onda.
          */
         waveform: string;
+      };
+    }
+  | {
+      method: 'wave.layout';
+      params: {
+        /**
+         * A onda.
+         */
+        waveform: string;
+      };
+    }
+  | {
+      method: 'verilog.modules';
+      params: {
+        /**
+         * O texto.
+         */
+        text: string;
+      };
+    }
+  | {
+      method: 'verilog.testbench_names';
+      params: {
+        /**
+         * Os nomes, sem pasta.
+         */
+        names: string[];
       };
     }
   | {
@@ -1574,6 +1768,19 @@ export type Request =
       method: 'fpga.cables';
     }
   | {
+      method: 'fpga.top';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * O módulo; `None`, o `top` do `fpga.json`, senão o do projeto.
+         */
+        top?: string | null;
+      };
+    }
+  | {
       method: 'update.check';
     }
   | {
@@ -1619,6 +1826,69 @@ export type Request =
          * Todos os exercícios.
          */
         all?: boolean;
+      };
+    }
+  | {
+      method: 'learn.tracks';
+    }
+  | {
+      method: 'learn.status';
+      params: {
+        /**
+         * A pasta de exercícios, ou uma pasta dentro dela.
+         */
+        root: string;
+        /**
+         * O idioma dos enunciados, quando a trilha tem tradução.
+         */
+        lang?: string | null;
+      };
+    }
+  | {
+      method: 'learn.init';
+      params: {
+        /**
+         * A pasta, que pode existir vazia.
+         */
+        dir: string;
+        /**
+         * A trilha; `None`, a padrão.
+         */
+        track?: string | null;
+        /**
+         * O idioma dos enunciados.
+         */
+        lang?: string | null;
+      };
+    }
+  | {
+      method: 'learn.set_current';
+      params: {
+        /**
+         * A pasta de exercícios.
+         */
+        root: string;
+        /**
+         * O exercício.
+         */
+        name: string;
+        /**
+         * O idioma dos enunciados.
+         */
+        lang?: string | null;
+      };
+    }
+  | {
+      method: 'learn.reset';
+      params: {
+        /**
+         * A pasta de exercícios.
+         */
+        root: string;
+        /**
+         * O exercício.
+         */
+        name: string;
       };
     };
 
@@ -3686,6 +3956,228 @@ export interface RemovedProcessor1 {
   unregistered: ProjectFile[];
 }
 /**
+ * `processor.defaults`.
+ */
+export interface NewProcessor1 {
+  /**
+   * Nome do processador: letras, dígitos e `_`, começando por letra ou `_`.
+   */
+  name: string;
+  /**
+   * Linguagem do fonte-modelo.
+   */
+  language: 'cmm' | 'cpp';
+  /**
+   * `#NUBITS`: largura da palavra de dados, em bits. Só C±.
+   */
+  nubits?: number;
+  /**
+   * `#NBMANT`: bits de mantissa do ponto flutuante do SAPHO (não é IEEE
+   * 754). Só C±.
+   */
+  nbmant?: number;
+  /**
+   * `#NBEXPO`: bits de expoente do ponto flutuante. Só C±.
+   */
+  nbexpo?: number;
+  /**
+   * `#NUGAIN`: divisor de `norm(x)`. Precisa ser potência de dois, senão o
+   * `cmmcomp` recusa (um divisor genérico viraria o caminho crítico da
+   * ULA). Só C±; o fonte só traz a diretiva quando difere de 128, o
+   * padrão do YANC.
+   */
+  nugain?: number;
+  /**
+   * `#NDSTAC`: profundidade da pilha de dados. Só C±. `None`, o padrão:
+   * sem a diretiva, e o `asmcomp` calcula a profundidade pelo programa.
+   */
+  ndstac?: number | null;
+  /**
+   * `#SDEPTH`: profundidade da pilha de instruções (chamadas). Só C±.
+   * `None`, o padrão: sem a diretiva, calculada pelo programa.
+   */
+  sdepth?: number | null;
+  /**
+   * `#NUIOIN` / `#pragma yanc nuioin`: número de portas de entrada.
+   */
+  input_ports?: number;
+  /**
+   * `#NUIOOU` / `#pragma yanc nuioou`: número de portas de saída.
+   */
+  output_ports?: number;
+}
+/**
+ * `wave.layout`.
+ */
+export interface WaveLayoutInfo {
+  /**
+   * O layout dos processadores SAPHO, gerado da onda; `None` sem
+   * processador.
+   */
+  layout: WaveLayout | null;
+  /**
+   * O layout salvo no projeto da onda (`wave/<testbench>.surf.ron`), onde
+   * o Surfer salva (Ctrl+S): o do usuário, se ele salvou depois da última
+   * geração, senão o gerado agora; `None` numa onda fora de projeto.
+   */
+  saved: SavedLayout | null;
+  /**
+   * Por que o layout não foi gerado (a onda abre sem ele).
+   */
+  layout_error: string | null;
+  /**
+   * Os comandos do Surfer de um exercício do `lace learn` (o
+   * `.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um.
+   */
+  exercise_layout: string | null;
+}
+/**
+ * O layout de uma onda, em memória.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveLayout".
+ */
+export interface WaveLayout {
+  /**
+   * O conteúdo do `.surf.ron`.
+   */
+  state: string;
+  /**
+   * Os tradutores de valor que o estado usa, pelo nome.
+   */
+  mappings: MappingTranslator[];
+  /**
+   * Os processadores achados na onda, na ordem do cabeçalho.
+   */
+  processors: WaveProcessor[];
+  /**
+   * O testbench da onda (o escopo de cima dela): o nome dos arquivos dele
+   * em `wave/`, a escolha de sinais e o layout salvo.
+   */
+  testbench: string | null;
+  /**
+   * A escolha de sinais que o layout seguiu (`wave/<testbench>.json`);
+   * vazia sem escolha.
+   */
+  selection: string[];
+}
+/**
+ * Um tradutor de valor do Surfer: um arquivo `Name = <nome>`, `Bits = <n>`
+ * e uma linha `<valor> <texto>` por valor.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "MappingTranslator".
+ */
+export interface MappingTranslator {
+  /**
+   * O nome, que é também o nome do arquivo e o `format` dos sinais.
+   */
+  name: string;
+  /**
+   * O conteúdo do arquivo.
+   */
+  content: string;
+}
+/**
+ * Um processador SAPHO achado na onda.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveProcessor".
+ */
+export interface WaveProcessor {
+  /**
+   * O escopo da instância na onda (`soma_tb.proc`).
+   */
+  instance: string;
+  /**
+   * O processador (o nome da pasta no projeto e do fonte).
+   */
+  processor: string;
+  /**
+   * Quantas variáveis do programa estão na onda (cada elemento de array
+   * conta).
+   */
+  variables: number;
+  /**
+   * O PC aparece como instrução de assembly (havia `trad_opcode.txt`).
+   */
+  assembly: boolean;
+  /**
+   * A linha do fonte aparece como texto (havia `src_lines.txt`).
+   */
+  source: boolean;
+  /**
+   * As tabelas são mais novas que a onda: o processador foi compilado de
+   * novo depois da simulação, e o assembly e a linha do C± sairiam
+   * deslocados. O PC e a linha aparecem como números até simular de novo;
+   * as interfaces avisam.
+   */
+  outdated: boolean;
+}
+/**
+ * O layout salvo no projeto para a onda de um testbench:
+ * `wave/<testbench>.surf.ron` ([`saved_layout`]).
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "SavedLayout".
+ */
+export interface SavedLayout {
+  /**
+   * O arquivo, onde o Surfer salva o estado (Ctrl+S).
+   */
+  path: string;
+  /**
+   * O estado que vai para o Surfer: o que o usuário salvou, ou o gerado.
+   */
+  state: string;
+  /**
+   * O usuário salvou o estado depois da última vez que o Lace o gerou: o
+   * Lace o deixa como está.
+   */
+  customized: boolean;
+}
+/**
+ * `fpga.top`.
+ */
+export interface ModuleInterface {
+  /**
+   * Nome do módulo.
+   */
+  name: string;
+  /**
+   * O arquivo que o declara.
+   */
+  file: string;
+  /**
+   * As portas.
+   */
+  ports: Port[];
+}
+/**
+ * Uma porta de um módulo.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "Port".
+ */
+export interface Port {
+  /**
+   * Nome.
+   */
+  name: string;
+  /**
+   * Direção.
+   */
+  direction: 'input' | 'output' | 'inout';
+  /**
+   * Largura em bits, com os parâmetros nos valores padrão.
+   */
+  width: number;
+  /**
+   * `signed`.
+   */
+  signed: boolean;
+}
+/**
  * `flow.run`.
  */
 export interface FlowOutcome {
@@ -3788,6 +4280,13 @@ export interface FlowOutcome {
    * A gravação na placa.
    */
   fpga_program: FpgaProgramResult | null;
+  /**
+   * A correção de um exercício (`learn`): o `Grade` do lace-learn, em
+   * JSON (o core não conhece o tipo).
+   */
+  learn: {
+    [k: string]: unknown | undefined;
+  };
 }
 /**
  * O resultado de [`hierarchy`].
@@ -4251,42 +4750,6 @@ export interface SavedLayoutInfo {
    * O usuário salvou depois que o Lace o gerou: o Lace não o refaz.
    */
   customized: boolean;
-}
-/**
- * Um processador SAPHO achado na onda.
- *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "WaveProcessor".
- */
-export interface WaveProcessor {
-  /**
-   * O escopo da instância na onda (`soma_tb.proc`).
-   */
-  instance: string;
-  /**
-   * O processador (o nome da pasta no projeto e do fonte).
-   */
-  processor: string;
-  /**
-   * Quantas variáveis do programa estão na onda (cada elemento de array
-   * conta).
-   */
-  variables: number;
-  /**
-   * O PC aparece como instrução de assembly (havia `trad_opcode.txt`).
-   */
-  assembly: boolean;
-  /**
-   * A linha do fonte aparece como texto (havia `src_lines.txt`).
-   */
-  source: boolean;
-  /**
-   * As tabelas são mais novas que a onda: o processador foi compilado de
-   * novo depois da simulação, e o assembly e a linha do C± sairiam
-   * deslocados. O PC e a linha aparecem como números até simular de novo;
-   * as interfaces avisam.
-   */
-  outdated: boolean;
 }
 /**
  * O resultado de [`program`].
@@ -5792,6 +6255,55 @@ export interface ProcessorRemoval1 {
   trashed: boolean;
 }
 /**
+ * `wave.layout`: o que um visualizador próprio precisa para mostrar a
+ * onda com o layout do Lace.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "WaveLayoutInfo".
+ */
+export interface WaveLayoutInfo1 {
+  /**
+   * O layout dos processadores SAPHO, gerado da onda; `None` sem
+   * processador.
+   */
+  layout: WaveLayout | null;
+  /**
+   * O layout salvo no projeto da onda (`wave/<testbench>.surf.ron`), onde
+   * o Surfer salva (Ctrl+S): o do usuário, se ele salvou depois da última
+   * geração, senão o gerado agora; `None` numa onda fora de projeto.
+   */
+  saved: SavedLayout | null;
+  /**
+   * Por que o layout não foi gerado (a onda abre sem ele).
+   */
+  layout_error: string | null;
+  /**
+   * Os comandos do Surfer de um exercício do `lace learn` (o
+   * `.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um.
+   */
+  exercise_layout: string | null;
+}
+/**
+ * Um módulo e as portas dele, na ordem da declaração.
+ *
+ * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * via the `definition` "ModuleInterface".
+ */
+export interface ModuleInterface1 {
+  /**
+   * Nome do módulo.
+   */
+  name: string;
+  /**
+   * O arquivo que o declara.
+   */
+  file: string;
+  /**
+   * As portas.
+   */
+  ports: Port[];
+}
+/**
  * O resultado de um fluxo. Os campos de uma fase que não rodou ficam `None`
  * ou vazios.
  *
@@ -5898,6 +6410,13 @@ export interface FlowOutcome1 {
    * A gravação na placa.
    */
   fpga_program: FpgaProgramResult | null;
+  /**
+   * A correção de um exercício (`learn`): o `Grade` do lace-learn, em
+   * JSON (o core não conhece o tipo).
+   */
+  learn: {
+    [k: string]: unknown | undefined;
+  };
 }
 /**
  * A árvore de sinais do testbench do projeto, para escolher o que a onda
@@ -7174,7 +7693,7 @@ export interface RemovedProcessor2 {
 /**
  * O processador; só `name` e `language` são obrigatórios.
  */
-export interface NewProcessor1 {
+export interface NewProcessor2 {
   /**
    * Nome do processador: letras, dígitos e `_`, começando por letra ou `_`.
    */

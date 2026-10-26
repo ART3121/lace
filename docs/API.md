@@ -1903,6 +1903,9 @@ que não existe, do projeto ou um arquivo, é `no_waveform`.
 são conferidos na árvore do testbench elaborado. O `lace learn` tem o seu
 em `lace_learn::flows`, e `lace_learn::layout::with_exercise_layout` dá à
 onda de um exercício o layout da correção, quando o pedido quer o gerado.
+`FlowRequest::Learn` é a correção de um exercício como fluxo, com o
+resultado em `FlowOutcome::learn`: quem a roda é o servidor do Lace, que
+linka o lace-learn, e o `flows::run` do core responde `unsupported`.
 
 **`lace_core::delivery`.** A entrega da saída ao vivo para uma interface
 com fila: o `Dispatcher` recebe os eventos do `Control` e o `Progress` e
@@ -2288,6 +2291,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `StaleBitstream` | `stale_bitstream` | `fpga::program` com um `.sof` que não descreve o projeto de agora: um fonte, uma memória, o `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi trocado, ou a compilação não terminou | `fpga::build` de novo |
 | `QuartusMissing` | `quartus_missing` | `fpga::build`, `fpga::program` ou `tool(Tool::Quartus)` sem Quartus (2.5) | instalar o Quartus Prime Lite com o suporte à família da placa, ou declarar a pasta dele |
 | `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `lace experimental enable <recurso>`, ou Preferências > Experimental no Studio |
+| `Unsupported` | `unsupported` | `flows::run` com `FlowRequest::Learn`: a correção de um exercício roda no servidor do Lace, que linka o lace-learn | pedir pelo `lace serve` (`flow.run`), ou corrigir com `lace learn check` |
 | `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe, porque a simulação não rodou ou não chegou ao fim, ou de um arquivo que não existe | simular antes (`lace sim [-p X]`, o botão Simular) |
 | `SignalNotFound` | `signal_not_found` | `flows::choose_signals` com um caminho que a árvore do testbench elaborado não tem; `similar` traz os parecidos | ver `similar`, ou `wave_signals` |
 | `SignalNotChosen` | `signal_not_chosen` | tirar da escolha um caminho que não está na escolha gravada nem no design | ver a escolha (`wave_signals`) |
