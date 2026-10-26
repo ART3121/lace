@@ -427,6 +427,29 @@ impl Project {
         Ok(synthesizable || testbench)
     }
 
+    /// Tira vários arquivos das listas, na ordem ([`Project::remove_verilog`]
+    /// para cada um), e diz quais estavam registrados e quais não: o mesmo
+    /// arquivo duas vezes sai na primeira e não está mais na segunda. É o
+    /// `lace remove` e o `project.remove`.
+    pub fn remove_verilog_files(
+        &mut self,
+        paths: &[Utf8PathBuf],
+    ) -> Result<crate::protocol::RemoveOutcome> {
+        let mut removed = Vec::new();
+        let mut not_registered = Vec::new();
+        for path in paths {
+            if self.remove_verilog(path)? {
+                removed.push(path.clone());
+            } else {
+                not_registered.push(path.clone());
+            }
+        }
+        Ok(crate::protocol::RemoveOutcome {
+            removed,
+            not_registered,
+        })
+    }
+
     /// Escolhe o topo por arquivo (caminho absoluto ou relativo à raiz, que
     /// é registrado se ainda não estiver) ou por nome de módulo entre os
     /// sintetizáveis registrados. Devolve o arquivo.
@@ -1924,6 +1947,22 @@ mod tests {
         let added = project.add_verilog_files(None, &files[..1], false).unwrap();
         assert_eq!(added.len(), 1);
         assert!(added[0].created);
+    }
+
+    #[test]
+    fn removing_a_list_says_what_was_registered() {
+        let (_guard, mut project) = project();
+        let root = project.root().to_owned();
+        let a = root.join("a.v");
+        project
+            .add_verilog_files(None, std::slice::from_ref(&a), false)
+            .unwrap();
+        let outcome = project
+            .remove_verilog_files(&[a.clone(), a.clone(), root.join("b.v")])
+            .unwrap();
+        assert_eq!(outcome.removed, vec![a.clone()]);
+        assert_eq!(outcome.not_registered, vec![a.clone(), root.join("b.v")]);
+        assert!(a.is_file(), "tirar do projeto não apaga do disco");
     }
 
     #[test]

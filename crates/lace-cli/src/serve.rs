@@ -63,8 +63,7 @@ use lace_core::history;
 use lace_core::locate;
 use lace_core::protocol::{
     CleanOutcome, ExperimentalInfo, METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval,
-    RemoveOutcome, ReportView, Request, Response, ServerInfo, ShutdownReason, TopOutcome,
-    WaveLayoutInfo,
+    ReportView, Request, Response, ServerInfo, ShutdownReason, TopOutcome, WaveLayoutInfo,
 };
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, NewProcessor, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
@@ -914,20 +913,7 @@ impl Server {
                 Response::Added(project.add_verilog_files(toolchain.as_ref(), &files, testbench)?)
             }
             Request::ProjectRemove { project, files } => {
-                let mut project = open_project(&project)?;
-                let mut removed = Vec::new();
-                let mut not_registered = Vec::new();
-                for file in files {
-                    if project.remove_verilog(&file)? {
-                        removed.push(file);
-                    } else {
-                        not_registered.push(file);
-                    }
-                }
-                Response::Removed(RemoveOutcome {
-                    removed,
-                    not_registered,
-                })
+                Response::Removed(open_project(&project)?.remove_verilog_files(&files)?)
             }
             Request::ProjectTop { project, target } => {
                 let mut project = open_project(&project)?;

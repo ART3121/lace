@@ -240,19 +240,16 @@ fn add(cli: &Cli, files: &[Utf8PathBuf], testbench: bool, out: &Output) -> anyho
 }
 
 fn remove(cli: &Cli, files: &[Utf8PathBuf], out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let typed = files
         .iter()
         .map(|file| Ok((file.as_path(), settings::absolute(file)?)))
         .collect::<anyhow::Result<Vec<_>>>()?;
-    let request = Request::ProjectRemove {
-        project: project.spf_path().to_owned(),
-        files: typed.iter().map(|(_, path)| path.clone()).collect(),
-    };
-    let outcome = answer!(Local::new(cli).call(request)?, Removed);
-    // O despacho responde na ordem do pedido: cada arquivo, como foi
-    // digitado, vai para a lista em que caiu (o mesmo arquivo duas vezes sai
-    // na primeira e não está mais na segunda).
+    let paths: Vec<Utf8PathBuf> = typed.iter().map(|(_, path)| path.clone()).collect();
+    let outcome = project.remove_verilog_files(&paths)?;
+    // O Core responde na ordem do pedido: cada arquivo, como foi digitado,
+    // vai para a lista em que caiu (o mesmo arquivo duas vezes sai na
+    // primeira e não está mais na segunda).
     let mut taken = outcome.removed.iter().peekable();
     let mut removed = Vec::new();
     let mut unknown = Vec::new();
