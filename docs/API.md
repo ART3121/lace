@@ -452,6 +452,8 @@ na AURORA (4.4).
 |---|---|
 | `add_verilog(toolchain, caminho, testbench) -> Result<AddedFile>` | registra um arquivo (`.v`, `.sv`, ou `.py`, testbench cocotb); se ele não existe, cria a partir do modelo |
 | `remove_verilog(caminho) -> Result<bool>` | tira das duas listas e das escolhas de topo e testbench, sem apagar do disco; diz se estava registrado |
+| `add_verilog_files(toolchain, caminhos, testbench) -> Result<Vec<AddedFile>>` | registra vários, na ordem, conferindo todos antes de registrar o primeiro: um nome ruim no meio da lista não deixa metade registrada (`lace add`, `project.add`) |
+| `remove_verilog_files(caminhos) -> Result<RemoveOutcome>` | tira vários, na ordem, e diz quais estavam registrados e quais não (`lace remove`, `project.remove`) |
 | `set_top(alvo) -> Result<Utf8PathBuf>` | escolhe o topo por arquivo ou por nome de módulo; devolve o arquivo |
 | `top_module() -> Result<Option<String>>` | o nome do módulo de topo |
 | `testbench_module() -> Result<Option<String>>` | o nome do módulo do testbench escolhido; num `.py`, o módulo Python dos testes (o nome do arquivo) |
@@ -1735,6 +1737,8 @@ let removed = history::remove(&project, &doomed)?;
 | `list(&Project) -> Result<Vec<RunSummary>>` | os relatórios, do mais novo para o mais antigo; um `record.json` ilegível aparece com `readable: false` |
 | `load(&Project, id)`, `latest(&Project)` | um relatório (`run-000042` ou `42`), o mais novo |
 | `report_text(&Project, id)`, `report_path(&Project, id)` | o `report.txt` e onde ele fica |
+| `view(&Project, id) -> Result<ReportView>` | o relatório pedido, ou o mais novo sem `id`, com o texto e o caminho do `report.txt` (`lace report show`, `history.show`) |
+| `clean(&Project, ids) -> Result<CleanOutcome>` | apaga os relatórios do plano e conta os que ficaram (`lace report clean`, `history.clean`) |
 | `compare_reports(&Project, atual, referência)` | escolhe e compara, como `lace report compare`; os dois vêm do histórico do projeto, então se comparam mesmo depois de a pasta mudar de lugar; sem parte nenhuma em comum (uma simulação contra uma síntese), `NotComparable` |
 | `previous_comparable(&Project, &RunRecord)` | o anterior mais novo que se compara em pelo menos uma parte, de preferência um que terminou bem (uma simulação que estourou o prazo só serve sem outra) |
 | `compare(&referência, &atual) -> Result<RunComparison>` | compara dois relatórios; não lê nem roda nada |
@@ -1861,6 +1865,7 @@ sem `APPDATA` ou `HOME`).
 | `is_enabled(Feature) -> bool` | o recurso está ligado |
 | `require(Feature) -> Result<()>` | `ExperimentalDisabled` se ele está desligado |
 | `states() -> Vec<FeatureState>` | cada recurso, se está ligado e a descrição |
+| `info() -> ExperimentalInfo` | o arquivo e cada recurso (`lace experimental`, `experimental.list`) |
 | `set_enabled(Feature, bool) -> Result<()>` | liga ou desliga, gravando o arquivo de forma atômica e criando a pasta |
 
 A leitura falha fechada: sem a pasta, sem o arquivo ou com ele ilegível,
@@ -1873,9 +1878,8 @@ As operações de 5.1 a 5.10 são as peças. O que uma interface faz de fato é
 compô-las: compilar os processadores antes de simular, registrar no `.spf`
 o que o YANC gerou, ler as portas de saída, gravar o relatório, abrir a
 onda. Essa composição morava duas vezes, na CLI e no Studio, e divergia;
-agora mora aqui, uma vez, e o despacho do `lace serve` a chama: a CLI pelo
-mesmo despacho no próprio processo, o Studio e a extensão como clientes do
-servidor.
+agora mora aqui, uma vez: a CLI chama estas funções direto, e o despacho
+do `lace serve`, que o Studio e a extensão usam, chama as mesmas.
 
 **`lace_core::flows`.** Um [`FlowRequest`] (`build`, `check`, `hierarchy`,
 `simulate`, `synthesize`, `schematic`, `fpga_build`, `fpga_program`; em
@@ -1897,6 +1901,13 @@ processador que falha e mostra todos os erros; o `check` não compila
 processadores; a simulação para no primeiro build que falhar
 (`simulation: null`); um módulo inexistente no esquemático é
 `schematic_error`, não falha do fluxo; a onda que não abre é `wave_error`.
+`flows::run_with` é o `run` com o bundle pedido só depois das conferências
+que não precisam dele: o recurso experimental do fluxo, os processadores
+que o pedido nomeia e o `build` de um projeto sem processadores, que nem
+precisa do bundle. Quem chama passa como acha o bundle, e o erro dele sai
+com o tipo de quem chama; é o que a CLI e o despacho do `lace serve`
+chamam, para seguirem a mesma ordem. `flows::open_wave_with` faz o mesmo
+com a onda: confere que ela existe antes de pedir o bundle.
 `flows::open_wave` abre uma onda com a política de layout
 (`generated`, `none`, `reset`, `file`) e devolve [`WaveOpened`]; uma onda
 que não existe, do projeto ou um arquivo, é `no_waveform`.
@@ -1928,8 +1939,8 @@ põe o Studio), as pastas padrão do instalador, o `lace` do `PATH` e, por
 leu do ambiente e das preferências (o core não lê o ambiente para achar o bundle), e `resolve`
 devolve o bundle com a origem (`Found`); `describe` monta o
 [`ToolchainInfo`] da tela de ferramentas do Studio e do `toolchain.info` do
-`lace serve`: o que o `lace tools` mostra, em dados (a CLI o pede ao
-despacho e monta o relatório dela a partir dele).
+`lace serve`: o que o `lace tools` mostra, em dados (o `lace tools` monta a
+tela dele a partir daqui).
 `Project::status()` devolve o retrato do projeto ([`ProjectStatus`]: o
 `lace status` e a árvore do Studio) e `Processor::output_ports` as portas
 de saída lidas pelo nome do arquivo.

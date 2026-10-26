@@ -35,8 +35,8 @@ use crate::{
 mod run;
 mod wave;
 
-pub use run::run;
-pub use wave::{choose_signals, open_wave, wave_file};
+pub use run::{run, run_with};
+pub use wave::{choose_signals, open_wave, open_wave_with, wave_file};
 
 /// O que o cliente pede. Os alvos são sempre explícitos: a CLI resolve o
 /// processador da pasta atual antes de montar o pedido.

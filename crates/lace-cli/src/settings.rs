@@ -22,7 +22,7 @@
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::Toolchain;
-use lace_core::locate::{self, Lookup};
+use lace_core::locate::{self, Found, Lookup};
 
 /// Opções globais de bundle.
 #[derive(clap::Args, Debug, Clone)]
@@ -66,6 +66,12 @@ impl ToolchainArgs {
     /// houver. Um compilador declarado que não está lá é erro, e não volta
     /// em silêncio aos locais padrão.
     pub fn resolve(&self) -> anyhow::Result<Toolchain> {
+        Ok(self.found()?.toolchain)
+    }
+
+    /// O bundle achado, com a origem, como o [`resolve`](Self::resolve) o
+    /// acha: o que o `lace tools` mostra ([`locate::describe`]).
+    pub fn found(&self) -> anyhow::Result<Found> {
         let lookup = self.lookup()?;
         let found = locate::resolve(&lookup)?;
         // Na CLI, um compilador ou um Quartus declarado que não está lá é
@@ -87,7 +93,7 @@ impl ToolchainArgs {
                 "No Quartus Prime at {dir} (from --quartus or LACE_QUARTUS): quartus_sh is not there"
             );
         }
-        Ok(found.toolchain)
+        Ok(found)
     }
 
     /// Onde procurar, do jeito da CLI: o `--toolchain` (ou `LACE_TOOLCHAIN`),

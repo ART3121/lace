@@ -62,9 +62,8 @@ use lace_core::fpga::{self, FpgaConfig};
 use lace_core::history;
 use lace_core::locate;
 use lace_core::protocol::{
-    CleanOutcome, ExperimentalInfo, METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval,
-    RemoveOutcome, ReportView, Request, Response, ServerInfo, ShutdownReason, TopOutcome,
-    WaveLayoutInfo,
+    METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response, ServerInfo,
+    ShutdownReason, WaveLayoutInfo,
 };
 use lace_core::{CancelToken, Control, ErrorInfo, LaceError, NewProcessor, Project, Toolchain};
 use lace_installer::add::{self as installer_add, Payload};
@@ -416,11 +415,6 @@ type Job = Box<dyn FnOnce() + Send>;
 pub(crate) enum Failure {
     Lace(Box<LaceError>),
     Info(Box<ErrorInfo>),
-    /// Um erro da CLI (o bundle resolvido como na linha de comando, a rede
-    /// do instalador), guardado como veio: quem chama no mesmo processo o
-    /// mostra como a CLI sempre mostrou, e o servidor o converte ao
-    /// responder.
-    Cli(anyhow::Error),
 }
 
 impl From<LaceError> for Failure {
@@ -446,18 +440,6 @@ impl Failure {
         match self {
             Failure::Lace(error) => crate::output::error_info(&error),
             Failure::Info(info) => *info,
-            Failure::Cli(error) => to_info(&error),
-        }
-    }
-
-    /// O erro como a CLI o mostra: o `LaceError`, o `ErrorInfo` ou o erro
-    /// da CLI, cada um com o tipo de antes, para o código, a dica e o
-    /// `--json` não mudarem.
-    pub(crate) fn into_anyhow(self) -> anyhow::Error {
-        match self {
-            Failure::Lace(error) => anyhow::Error::new(*error),
-            Failure::Info(info) => anyhow::Error::new(*info),
-            Failure::Cli(error) => error,
         }
     }
 }
@@ -467,27 +449,6 @@ pub(crate) type Handled = Result<Response, Failure>;
 /// Para onde vão as notificações de um pedido enquanto ele roda: no `serve`,
 /// o stdout com o `id` do pedido; no `lace mcp`, o progresso do MCP.
 pub(crate) type Emit = Arc<dyn Fn(Notification) + Send + Sync>;
-
-/// Para onde vai o que um pedido diz enquanto roda.
-pub(crate) enum Sink<'a> {
-    /// O stdout do `lace serve`: as notificações com o `id` do pedido.
-    Stdout,
-    /// As mesmas notificações para outro destino (o `lace mcp`).
-    Notify(Emit),
-    /// Quem chama no mesmo processo (o CLI): o progresso do core e a saída
-    /// das ferramentas como o core os entrega, sem lotes nem teto de linhas.
-    Direct(Direct<'a>),
-}
-
-/// O que o CLI recebe enquanto um pedido roda no mesmo processo.
-pub(crate) struct Direct<'a> {
-    /// A saída das ferramentas e o cancelamento: o `Control` do CLI, com o
-    /// Ctrl+C dele.
-    pub(crate) control: &'a Control,
-    /// O que um fluxo diz entre um passo e outro (`Progress`), para o texto
-    /// que a CLI escreve na ordem em que acontece.
-    pub(crate) progress: lace_core::flows::ProgressFn<'a>,
-}
 
 /// O servidor: o estado da sessão e as filas.
 pub(crate) struct Server {
@@ -507,10 +468,6 @@ pub(crate) struct Server {
     /// Se um recurso experimental está ligado: o `experimental.json` do
     /// usuário, ou o que o teste disser.
     features: fn(Feature) -> bool,
-    /// O bundle resolvido como na linha de comando: um `--compiler` ou um
-    /// `--quartus` que não serve é erro, e não segue sem ele
-    /// ([`Server::strict`]).
-    strict: bool,
 }
 
 impl Server {
@@ -525,16 +482,7 @@ impl Server {
             pending: Mutex::new(HashMap::new()),
             workers: Mutex::new(HashMap::new()),
             features: lace_core::experimental::is_enabled,
-            strict: false,
         }
-    }
-
-    /// O mesmo servidor com o bundle resolvido como na linha de comando: é
-    /// o despacho que o CLI chama no próprio processo, em que um
-    /// `--compiler` ou um `--quartus` que não serve é erro do comando.
-    pub(crate) fn strict(mut self) -> Self {
-        self.strict = true;
-        self
     }
 
     /// O mesmo servidor, com outra regra para os recursos experimentais.
@@ -856,42 +804,34 @@ impl Server {
     /// (`--compiler`, `--quartus`) que não serve não derruba o bundle, como
     /// no Studio: a sessão segue sem ele, a operação que o exige falha com o
     /// erro dela (`quartus_missing`), e o `toolchain.info` mostra o motivo.
-    /// A CLI, que roda um comando só e chama este despacho no modo estrito
-    /// ([`Server::strict`]), recusa logo ([`ToolchainArgs::resolve`]).
+    /// A CLI, que roda um comando só, recusa logo
+    /// ([`ToolchainArgs::resolve`]).
     fn toolchain(&self) -> Result<Toolchain, Failure> {
-        if self.strict {
-            return self.toolchain.resolve().map_err(Failure::Cli);
-        }
-        let lookup = self.toolchain.lookup().map_err(Failure::Cli)?;
+        let lookup = self.toolchain.lookup().map_err(|e| to_info(&e))?;
         Ok(locate::resolve(&lookup)?.toolchain)
     }
 
     /// Atende um pedido. `Err` é o Lace não conseguir rodar.
     pub(crate) fn handle(&self, id: &Value, request: Request, cancel: CancelToken) -> Handled {
-        self.handle_with(id, request, cancel, Sink::Stdout)
+        self.handle_with(id, request, cancel, None)
     }
 
-    /// [`Server::handle`] com o que o pedido diz enquanto roda indo para
-    /// `sink`: o stdout, outro destino das notificações (o `lace mcp`), ou o
-    /// CLI, no mesmo processo.
+    /// [`Server::handle`] com as notificações do pedido indo para `sink` em
+    /// vez do stdout (o `lace mcp`).
     pub(crate) fn handle_with(
         &self,
         id: &Value,
         request: Request,
         cancel: CancelToken,
-        sink: Sink<'_>,
+        sink: Option<Emit>,
     ) -> Handled {
-        let (emit, direct): (Emit, Option<Direct<'_>>) = match sink {
-            Sink::Stdout => {
+        let emit: Emit = match sink {
+            Some(sink) => sink,
+            None => {
                 let writer = self.writer.clone();
                 let id = id.clone();
-                (
-                    Arc::new(move |notification| writer.notify_for(&id, &notification)),
-                    None,
-                )
+                Arc::new(move |notification| writer.notify_for(&id, &notification))
             }
-            Sink::Notify(emit) => (emit, None),
-            Sink::Direct(direct) => (Arc::new(|_| {}), Some(direct)),
         };
         Ok(match request {
             Request::Initialize { .. } | Request::Shutdown => Response::Nothing(()),
@@ -911,45 +851,17 @@ impl Server {
                 // Sem bundle o arquivo é criado do mesmo jeito, com o leitor
                 // de portas embutido.
                 let toolchain = self.toolchain().ok();
-                for file in &files {
-                    project.check_add_verilog(file)?;
-                }
-                let mut added = Vec::with_capacity(files.len());
-                for file in files {
-                    added.push(project.add_verilog(toolchain.as_ref(), file, testbench)?);
-                }
-                Response::Added(added)
+                Response::Added(project.add_verilog_files(toolchain.as_ref(), &files, testbench)?)
             }
             Request::ProjectRemove { project, files } => {
-                let mut project = open_project(&project)?;
-                let mut removed = Vec::new();
-                let mut not_registered = Vec::new();
-                for file in files {
-                    if project.remove_verilog(&file)? {
-                        removed.push(file);
-                    } else {
-                        not_registered.push(file);
-                    }
-                }
-                Response::Removed(RemoveOutcome {
-                    removed,
-                    not_registered,
-                })
+                Response::Removed(open_project(&project)?.remove_verilog_files(&files)?)
             }
             Request::ProjectTop { project, target } => {
                 let mut project = open_project(&project)?;
                 if let Some(target) = target {
                     project.set_top(&target)?;
                 }
-                let (module, module_error) = match project.top_module() {
-                    Ok(module) => (module, None),
-                    Err(error) => (None, Some(crate::output::error_info(&error))),
-                };
-                Response::Top(TopOutcome {
-                    top_level: project.top_level(),
-                    module,
-                    module_error,
-                })
+                Response::Top(crate::output::top_outcome(&project))
             }
             Request::ProjectTestbench { project, path } => {
                 let mut project = open_project(&project)?;
@@ -1058,40 +970,13 @@ impl Server {
                 // A correção de um exercício é do lace-learn, que o core não
                 // conhece: roda aqui, com o resultado de um fluxo.
                 if let FlowRequest::Learn { root, exercise } = &request {
-                    let phase = lace_core::flows::Phase::Learn;
-                    match &direct {
-                        Some(direct) => (direct.progress)(lace_core::flows::Progress::Phase(phase)),
-                        None => emit(Notification::Phase { phase }),
-                    }
+                    emit(Notification::Phase {
+                        phase: lace_core::flows::Phase::Learn,
+                    });
                     let outcome = self.learn_flow(root, exercise, &options.command, cancel)?;
                     return Ok(Response::Flow(Box::new(outcome)));
                 }
                 let mut project = open_project(&project)?;
-                // Um processador que não existe é erro antes do bundle.
-                for name in request.processors() {
-                    project.require_processor(name)?;
-                }
-                // Um projeto só de Verilog não tem o que compilar, e isso não
-                // é erro; nem o bundle é preciso.
-                if let FlowRequest::Build { processors } = &request
-                    && processors.is_empty()
-                    && project.processors().is_empty()
-                {
-                    let outcome = lace_core::flows::FlowOutcome::new("build", &options.command);
-                    return Ok(Response::Flow(Box::new(outcome)));
-                }
-                let toolchain = self.toolchain()?;
-                if let Some(direct) = direct {
-                    let outcome = flows::run(
-                        &toolchain,
-                        &mut project,
-                        &request,
-                        &options,
-                        direct.progress,
-                        direct.control,
-                    )?;
-                    return Ok(Response::Flow(Box::new(outcome)));
-                }
                 let deliver = Arc::clone(&emit);
                 let dispatcher =
                     Dispatcher::start(Limits::default(), move |notification| deliver(notification));
@@ -1101,11 +986,13 @@ impl Server {
                     Control::new().with_cancel(cancel)
                 };
                 let progress = dispatcher.progress();
-                let outcome = flows::run(
-                    &toolchain,
+                // O processador que não existe e o projeto sem nada a
+                // compilar vêm antes do bundle (flows::run_with).
+                let outcome = flows::run_with(
                     &mut project,
                     &request,
                     &options,
+                    || self.toolchain(),
                     &progress,
                     &control,
                 );
@@ -1126,30 +1013,28 @@ impl Server {
             }
             Request::WaveOpen { project, request } => {
                 let project = project.map(|p| open_project(&p)).transpose()?;
-                // A onda que ainda não existe é erro antes do bundle.
-                flows::wave_file(project.as_ref(), &request.source)?;
-                let toolchain = self.toolchain()?;
                 // A onda de um exercício do lace learn abre com o layout da
-                // correção, como no `lace wave`.
+                // correção, como no `lace wave`; a onda que ainda não existe é
+                // erro antes do bundle (flows::open_wave_with).
                 let request = lace_learn::layout::with_exercise_layout(request);
-                Response::Wave(flows::open_wave(&toolchain, project.as_ref(), &request)?)
+                Response::Wave(flows::open_wave_with(project.as_ref(), &request, || {
+                    self.toolchain()
+                })?)
             }
             Request::WaveSignals { project } => {
                 let project = open_project(&project)?;
                 let toolchain = self.toolchain()?;
-                let own = Control::new().with_cancel(cancel);
-                let control = direct.as_ref().map_or(&own, |d| d.control);
+                let control = Control::new().with_cancel(cancel);
                 Response::Signals(Box::new(lace_core::wave_signals(
-                    &toolchain, &project, control,
+                    &toolchain, &project, &control,
                 )?))
             }
             Request::WaveChoose { project, choice } => {
                 let project = open_project(&project)?;
                 let toolchain = self.toolchain()?;
-                let own = Control::new().with_cancel(cancel);
-                let control = direct.as_ref().map_or(&own, |d| d.control);
+                let control = Control::new().with_cancel(cancel);
                 Response::Choice(flows::choose_signals(
-                    &toolchain, &project, &choice, control,
+                    &toolchain, &project, &choice, &control,
                 )?)
             }
             Request::WaveLayoutGet { waveform } => {
@@ -1200,18 +1085,7 @@ impl Server {
             }
             Request::HistoryShow { project, id } => {
                 let project = open_project(&project)?;
-                let record = match id {
-                    Some(id) => history::load(&project, &id)?,
-                    None => history::latest(&project)?,
-                };
-                let text = history::report_text(&project, &record.id)?;
-                let path = history::report_path(&project, &record.id)?;
-                Response::Report(Box::new(ReportView {
-                    id: record.id.clone(),
-                    path,
-                    record,
-                    text,
-                }))
+                Response::Report(Box::new(history::view(&project, id.as_deref())?))
             }
             Request::HistoryCompare {
                 project,
@@ -1230,20 +1104,13 @@ impl Server {
                 Response::Ids(history::plan_cleanup(&project, &cleanup)?)
             }
             Request::HistoryClean { project, ids } => {
-                let project = open_project(&project)?;
-                let removed = history::remove(&project, &ids)?;
-                let kept = history::list(&project)?.len();
-                Response::Cleaned(CleanOutcome { removed, kept })
+                Response::Cleaned(history::clean(&open_project(&project)?, &ids)?)
             }
             Request::ToolchainInfo => {
-                // Na linha de comando, um bundle que não abre (ou um
-                // compilador ou Quartus declarado que não serve) é erro do
-                // comando; no servidor, vem em `found: false` e nos campos de
+                // Um bundle que não abre vem em `found: false`, e um
+                // compilador ou Quartus declarado que não serve, nos campos de
                 // erro.
-                if self.strict {
-                    self.toolchain()?;
-                }
-                let lookup = self.toolchain.lookup().map_err(Failure::Cli)?;
+                let lookup = self.toolchain.lookup().map_err(|e| to_info(&e))?;
                 let info = match locate::resolve(&lookup) {
                     Ok(found) => locate::describe(&found),
                     Err(error) => locate::describe_error(&error),
@@ -1251,7 +1118,7 @@ impl Server {
                 Response::Toolchain(Box::new(info))
             }
             Request::ToolchainVerify => Response::Mismatches(self.toolchain()?.verify()?),
-            Request::ExperimentalList => Response::Experimental(experimental_info()),
+            Request::ExperimentalList => Response::Experimental(lace_core::experimental::info()),
             Request::ExperimentalSet { feature, enabled } => {
                 let feature =
                     lace_core::experimental::Feature::from_id(&feature).ok_or_else(|| {
@@ -1261,7 +1128,7 @@ impl Server {
                         )
                     })?;
                 lace_core::experimental::set_enabled(feature, enabled)?;
-                Response::Experimental(experimental_info())
+                Response::Experimental(lace_core::experimental::info())
             }
             Request::FpgaBoards { board } => {
                 self.require(Feature::Fpga)?;
@@ -1593,7 +1460,7 @@ impl Hooks for Labels {
 /// Um erro da CLI (`anyhow`) como [`Failure`], com o código da biblioteca
 /// do instalador quando é dela.
 fn cli_error(error: anyhow::Error) -> Failure {
-    Failure::Cli(error)
+    Failure::Info(Box::new(to_info(&error)))
 }
 
 /// O [`Request`] de um método e seus parâmetros. Um método sem parâmetros
@@ -1832,13 +1699,6 @@ fn distance(a: &str, b: &str) -> usize {
         }
     }
     row[b.len()]
-}
-
-fn experimental_info() -> ExperimentalInfo {
-    ExperimentalInfo {
-        path: lace_core::experimental::settings_path(),
-        components: lace_core::experimental::states(),
-    }
 }
 
 /// Um erro da CLI (`anyhow`) como [`ErrorInfo`]: o do core que houver na

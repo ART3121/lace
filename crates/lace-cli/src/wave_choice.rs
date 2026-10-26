@@ -7,11 +7,9 @@
 //! nela antes de gravar `wave/<testbench>.json`.
 
 use anstream::println;
-use lace_core::flows::WaveChoice;
-use lace_core::protocol::Request;
+use lace_core::flows::{WaveChoice, choose_signals};
 use lace_core::{Control, SignalScope, Status, WaveSignals};
 
-use crate::local::{Local, answer};
 use crate::output::Output;
 use crate::report::WaveChoiceReport;
 use crate::{Cli, WaveCommand};
@@ -22,12 +20,11 @@ pub fn run(
     out: &Output,
     control: &Control,
 ) -> anyhow::Result<bool> {
-    let project = crate::commands::open(cli)?.spf_path().to_owned();
-    let local = Local::new(cli);
+    let project = crate::commands::open(cli)?;
+    let toolchain = cli.toolchain.resolve()?;
     match command {
         WaveCommand::Signals => {
-            let request = Request::WaveSignals { project };
-            let tree = *answer!(local.run(request, control, &|_| {})?, Signals);
+            let tree = lace_core::wave_signals(&toolchain, &project, control)?;
             if out.is_text() {
                 print_tree(&tree, out);
             }
@@ -52,15 +49,13 @@ pub fn run(
             } else {
                 WaveChoice::Add(paths.clone())
             };
-            let request = Request::WaveChoose { project, choice };
-            let outcome = answer!(local.run(request, control, &|_| {})?, Choice);
+            let outcome = choose_signals(&toolchain, &project, &choice, control)?;
             write(&outcome, out)?;
             Ok(true)
         }
         WaveCommand::Unselect { paths } => {
             let choice = WaveChoice::Remove(paths.clone());
-            let request = Request::WaveChoose { project, choice };
-            let outcome = answer!(local.run(request, control, &|_| {})?, Choice);
+            let outcome = choose_signals(&toolchain, &project, &choice, control)?;
             write(&outcome, out)?;
             Ok(true)
         }

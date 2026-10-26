@@ -326,6 +326,25 @@ impl Project {
         Ok(added)
     }
 
+    /// Registra vários arquivos, na ordem ([`Project::add_verilog`] para cada
+    /// um), conferindo todos antes de registrar o primeiro
+    /// ([`Project::check_add_verilog`]): um nome ruim no meio da lista não
+    /// deixa metade registrada. É o `lace add` e o `project.add`.
+    pub fn add_verilog_files(
+        &mut self,
+        toolchain: Option<&crate::Toolchain>,
+        paths: &[Utf8PathBuf],
+        testbench: bool,
+    ) -> Result<Vec<AddedFile>> {
+        for path in paths {
+            self.check_add_verilog(path)?;
+        }
+        paths
+            .iter()
+            .map(|path| self.add_verilog(toolchain, path, testbench))
+            .collect()
+    }
+
     /// Confere, sem mudar nada, se [`Project::add_verilog`] aceitaria `path`:
     /// termina em `.v`, `.sv` ou `.py` e, se ainda não existe, o nome do
     /// arquivo serve de nome de módulo (do Verilog, ou do Python num `.py`).
@@ -406,6 +425,29 @@ impl Project {
         let synthesizable = self.remove_file(FileRole::Synthesizable, &path)?;
         let testbench = self.remove_file(FileRole::Testbench, &path)?;
         Ok(synthesizable || testbench)
+    }
+
+    /// Tira vários arquivos das listas, na ordem ([`Project::remove_verilog`]
+    /// para cada um), e diz quais estavam registrados e quais não: o mesmo
+    /// arquivo duas vezes sai na primeira e não está mais na segunda. É o
+    /// `lace remove` e o `project.remove`.
+    pub fn remove_verilog_files(
+        &mut self,
+        paths: &[Utf8PathBuf],
+    ) -> Result<crate::protocol::RemoveOutcome> {
+        let mut removed = Vec::new();
+        let mut not_registered = Vec::new();
+        for path in paths {
+            if self.remove_verilog(path)? {
+                removed.push(path.clone());
+            } else {
+                not_registered.push(path.clone());
+            }
+        }
+        Ok(crate::protocol::RemoveOutcome {
+            removed,
+            not_registered,
+        })
     }
 
     /// Escolhe o topo por arquivo (caminho absoluto ou relativo à raiz, que
@@ -1889,6 +1931,38 @@ mod tests {
         let project = Project::open(&spf).unwrap();
         assert_eq!(project.top_level(), None);
         assert_eq!(project.issues()[0].kind, crate::IssueKind::TestbenchAsTop);
+    }
+
+    #[test]
+    fn a_bad_name_in_a_list_registers_none_of_it() {
+        let (_guard, mut project) = project();
+        let root = project.root().to_owned();
+        let files = [root.join("bom.v"), root.join("1ruim.v")];
+        assert!(matches!(
+            project.add_verilog_files(None, &files, false),
+            Err(LaceError::InvalidName { .. })
+        ));
+        assert!(project.files(FileRole::Synthesizable).is_empty());
+        assert!(!files[0].exists(), "nada foi criado");
+        let added = project.add_verilog_files(None, &files[..1], false).unwrap();
+        assert_eq!(added.len(), 1);
+        assert!(added[0].created);
+    }
+
+    #[test]
+    fn removing_a_list_says_what_was_registered() {
+        let (_guard, mut project) = project();
+        let root = project.root().to_owned();
+        let a = root.join("a.v");
+        project
+            .add_verilog_files(None, std::slice::from_ref(&a), false)
+            .unwrap();
+        let outcome = project
+            .remove_verilog_files(&[a.clone(), a.clone(), root.join("b.v")])
+            .unwrap();
+        assert_eq!(outcome.removed, vec![a.clone()]);
+        assert_eq!(outcome.not_registered, vec![a.clone(), root.join("b.v")]);
+        assert!(a.is_file(), "tirar do projeto não apaga do disco");
     }
 
     #[test]

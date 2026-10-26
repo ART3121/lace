@@ -51,7 +51,7 @@ use lace_core::{CancelToken, Project};
 use serde_json::{Map, Value, json};
 
 use crate::serve::{
-    Server, Sink, Writer, flow_fields, method_fields, parse_request, unknown_field,
+    Emit, Server, Writer, flow_fields, method_fields, parse_request, unknown_field,
 };
 use crate::settings::ToolchainArgs;
 
@@ -695,12 +695,9 @@ impl Mcp {
                 ));
             }
         };
-        let sink = match progress {
-            Some(progress) => Sink::Notify(Arc::new(move |notification: Notification| {
-                progress.report(&notification)
-            })),
-            None => Sink::Stdout,
-        };
+        let sink: Option<Emit> = progress.map(|progress| {
+            Arc::new(move |notification: Notification| progress.report(&notification)) as Emit
+        });
         match self
             .server
             .handle_with(&json!(name), request, cancel.clone(), sink)

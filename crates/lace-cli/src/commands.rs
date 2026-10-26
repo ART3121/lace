@@ -20,13 +20,12 @@ use lace_core::flows::{
     WaveSource,
 };
 use lace_core::history::{self, Cleanup};
-use lace_core::protocol::Request;
+use lace_core::locate;
 use lace_core::{
-    Control, Language, ListPosition, NewProcessorFields, Processor, ProcessorConfig, Project,
-    Simulator,
+    Control, ErrorInfo, Language, ListPosition, NewProcessorFields, Processor, ProcessorConfig,
+    Project, Simulator,
 };
 
-use crate::local::{Local, answer};
 use crate::output::Output;
 use crate::report::{
     AddReport, BuildReport, CheckReport, ConvertReport, MoveReport, OrderReport, PortValues,
@@ -44,12 +43,8 @@ use crate::{
 pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
     match &cli.command {
         Command::New { name, dir } => {
-            let request = Request::ProjectCreate {
-                parent: settings::absolute(dir)?,
-                name: name.clone(),
-            };
-            let status = answer!(Local::new(cli).call(request)?, Status);
-            out.created(&status)?;
+            let project = Project::create(settings::absolute(dir)?, name)?;
+            out.created(&project.status())?;
         }
         Command::Status => status(cli, out)?,
         Command::Add { files, tb } => add(cli, files, *tb, out)?,
@@ -76,14 +71,9 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
                     ListPosition::Last
                 }
             };
-            let project = open(cli)?;
+            let mut project = open(cli)?;
             let path = settings::absolute(file)?;
-            let request = Request::ProjectOrder {
-                project: project.spf_path().to_owned(),
-                file: path.clone(),
-                position,
-            };
-            let files = answer!(Local::new(cli).call(request)?, Files);
+            let files = project.reorder_file(&path, &position)?;
             let moved = files
                 .iter()
                 .find(|f| f.path.file_name() == path.file_name())
@@ -96,11 +86,8 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         }
         Command::Proc(command) => proc_command(cli, command, out)?,
         Command::Convert => {
-            let project = open(cli)?;
-            let request = Request::ProjectConvert {
-                project: project.spf_path().to_owned(),
-            };
-            let conversion = answer!(Local::new(cli).call(request)?, Converted);
+            let mut project = open(cli)?;
+            let conversion = project.convert_layout()?;
             out.converted(&conversion, project.root());
             out.json(&ConvertReport {
                 project: project.spf_path().to_owned(),
@@ -116,7 +103,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Report(args) => report(cli, args, out)?,
         Command::Learn(args) => return crate::learn::run(cli, args, out, control),
         Command::Fpga(command) => return crate::fpga::run(cli, command, out, control),
-        Command::Experimental(args) => crate::experimental::run(cli, args, out)?,
+        Command::Experimental(args) => crate::experimental::run(args, out)?,
         Command::Tools { verify } => return tools(cli, *verify, out),
         Command::Serve(args) => {
             return crate::serve::run(&cli.project, &cli.toolchain, args, control.cancel_token());
@@ -209,28 +196,23 @@ pub(crate) fn from_shell(path: &Utf8Path) -> Utf8PathBuf {
 fn status(cli: &Cli, out: &Output) -> anyhow::Result<()> {
     let project = open(cli)?;
     let here = processor_here(cli, &project)?.map(|p| p.name.clone());
-    let request = Request::ProjectStatus {
-        project: project.spf_path().to_owned(),
-    };
-    let status = answer!(Local::new(cli).call(request)?, Status);
-    out.status(&status, here.as_deref())
+    out.status(&project.status(), here.as_deref())
 }
 
 fn add(cli: &Cli, files: &[Utf8PathBuf], testbench: bool, out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
-    // O despacho confere todos antes de registrar o primeiro (um nome ruim no
-    // meio da lista não deixa metade registrada) e, sem bundle, cria o
-    // arquivo do mesmo jeito, lendo as portas com o leitor embutido.
+    let mut project = open(cli)?;
+    // Sem bundle o arquivo é criado do mesmo jeito: o Core lê as portas do
+    // módulo testado com o leitor embutido em vez do Yosys.
+    let toolchain = cli
+        .toolchain
+        .resolve()
+        .inspect_err(|e| tracing::info!("No bundle, reading ports with the built-in parser: {e:#}"))
+        .ok();
     let files = files
         .iter()
         .map(|file| settings::absolute(file))
         .collect::<anyhow::Result<Vec<_>>>()?;
-    let request = Request::ProjectAdd {
-        project: project.spf_path().to_owned(),
-        files,
-        testbench,
-    };
-    let added = answer!(Local::new(cli).call(request)?, Added);
+    let added = project.add_verilog_files(toolchain.as_ref(), &files, testbench)?;
     for file in &added {
         out.added(file, project.root());
     }
@@ -241,19 +223,16 @@ fn add(cli: &Cli, files: &[Utf8PathBuf], testbench: bool, out: &Output) -> anyho
 }
 
 fn remove(cli: &Cli, files: &[Utf8PathBuf], out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let typed = files
         .iter()
         .map(|file| Ok((file.as_path(), settings::absolute(file)?)))
         .collect::<anyhow::Result<Vec<_>>>()?;
-    let request = Request::ProjectRemove {
-        project: project.spf_path().to_owned(),
-        files: typed.iter().map(|(_, path)| path.clone()).collect(),
-    };
-    let outcome = answer!(Local::new(cli).call(request)?, Removed);
-    // O despacho responde na ordem do pedido: cada arquivo, como foi
-    // digitado, vai para a lista em que caiu (o mesmo arquivo duas vezes sai
-    // na primeira e não está mais na segunda).
+    let paths: Vec<Utf8PathBuf> = typed.iter().map(|(_, path)| path.clone()).collect();
+    let outcome = project.remove_verilog_files(&paths)?;
+    // O Core responde na ordem do pedido: cada arquivo, como foi digitado,
+    // vai para a lista em que caiu (o mesmo arquivo duas vezes sai na
+    // primeira e não está mais na segunda).
     let mut taken = outcome.removed.iter().peekable();
     let mut removed = Vec::new();
     let mut unknown = Vec::new();
@@ -280,27 +259,20 @@ fn remove(cli: &Cli, files: &[Utf8PathBuf], out: &Output) -> anyhow::Result<()> 
 }
 
 fn top(cli: &Cli, target: Option<&str>, out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
-    // Um arquivo que existe a partir do diretório atual vai absoluto; o
-    // resto vai como está, e o Core tenta como caminho a partir da raiz e
-    // depois como nome de módulo.
-    let target = match target {
-        Some(target) => {
-            let path = settings::absolute(Utf8Path::new(target))?;
-            Some(if path.is_file() {
-                path.into_string()
-            } else {
-                target.to_owned()
-            })
-        }
-        None => None,
-    };
-    let request = Request::ProjectTop {
-        project: project.spf_path().to_owned(),
-        target,
-    };
-    let top = answer!(Local::new(cli).call(request)?, Top);
-    out.top(&top, project.root())
+    let mut project = open(cli)?;
+    if let Some(target) = target {
+        // Um arquivo que existe a partir do diretório atual vai absoluto; o
+        // resto vai como está, e o Core tenta como caminho a partir da raiz
+        // e depois como nome de módulo.
+        let path = settings::absolute(Utf8Path::new(target))?;
+        let target = if path.is_file() {
+            path.as_str()
+        } else {
+            target
+        };
+        project.set_top(target)?;
+    }
+    out.top(&crate::output::top_outcome(&project), project.root())
 }
 
 /// `lace move`, com os argumentos do `mv`: para uma pasta que existe (ou um
@@ -319,7 +291,7 @@ fn move_paths(
     after: bool,
     out: &Output,
 ) -> anyhow::Result<()> {
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let folder = dest.as_str().ends_with(['/', '\\']);
     let dest = settings::absolute(dest)?;
     let into = folder
@@ -339,7 +311,6 @@ fn move_paths(
             from_shell(&dest)
         );
     }
-    let local = Local::new(cli);
     let mut moved = Vec::new();
     for source in sources {
         let from = settings::absolute(source)?;
@@ -347,14 +318,11 @@ fn move_paths(
             Some(name) if into => dest.join(name),
             _ => dest.clone(),
         };
-        let request = Request::ProjectMove {
-            project: project.spf_path().to_owned(),
-            from,
-            to,
-            after,
-            overwrite: false,
+        let result = if after {
+            project.record_move(&from, &to)?
+        } else {
+            project.move_path(&from, &to)?
         };
-        let result = answer!(local.call(request)?, Moved);
         out.moved(&result, project.root(), after);
         moved.push(result);
     }
@@ -365,9 +333,7 @@ fn move_paths(
 }
 
 fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Result<()> {
-    let project = open(cli)?;
-    let spf = project.spf_path().to_owned();
-    let local = Local::new(cli);
+    let mut project = open(cli)?;
     match command {
         ProcCommand::Add(args) => {
             let language = match args.lang {
@@ -404,13 +370,9 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
                 output_ports: Some(args.outputs),
                 ..NewProcessorFields::new(&args.name, language)
             };
-            let request = Request::ProcessorAdd {
-                project: spf,
-                spec: spec.into(),
-            };
-            let processor = answer!(local.call(request)?, Processor);
+            let processor = project.add_processor(&spec.into())?;
             out.message("Processor created", &processor.source);
-            out.json(&*processor)?;
+            out.json(processor)?;
         }
         ProcCommand::Set {
             name,
@@ -434,14 +396,9 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
             config.frequency_mhz = *freq;
             config.clocks = *clocks;
             config.show_arrays = *arrays;
-            let request = Request::ProcessorSet {
-                project: spf,
-                name,
-                config,
-            };
-            let processor = answer!(local.call(request)?, Processor);
+            let processor = project.configure_processor(&name, &config)?.clone();
             if !out.is_text() {
-                out.json(&*processor)?;
+                out.json(&processor)?;
             } else {
                 println!(
                     "{}: {} MHz, {} clocks{} (applies from the next build)",
@@ -462,17 +419,23 @@ fn proc_command(cli: &Cli, command: &ProcCommand, out: &Output) -> anyhow::Resul
             if *delete && !*yes && dir.exists() {
                 confirm_trash(name, &dir)?;
             }
-            let request = Request::ProcessorRemove {
-                project: spf,
-                name: name.clone(),
-                to_trash: *delete,
-            };
-            let removal = answer!(local.call(request)?, ProcessorRemoved);
-            out.processor_removed(&removal.removed, removal.trashed, project.root());
-            out.json(&ProcRemoveReport {
-                removed: removal.removed,
-                trashed: removal.trashed,
-            })?;
+            let removed = project.remove_processor(name)?;
+            // A lixeira é decisão da interface, e vem depois de o processador
+            // sair do projeto, como no processor.remove.
+            let trashed = *delete && removed.dir.exists();
+            if trashed {
+                trash::delete(&removed.dir).map_err(|error| {
+                    ErrorInfo::new(
+                        "io",
+                        format!(
+                            "{name} is out of the project, but its folder did not go to the trash ({error}): {}",
+                            removed.dir
+                        ),
+                    )
+                })?;
+            }
+            out.processor_removed(&removed, trashed, project.root());
+            out.json(&ProcRemoveReport { removed, trashed })?;
         }
     }
     Ok(())
@@ -592,14 +555,16 @@ pub(crate) fn port_values(outputs: &[flows::PortValues]) -> Vec<PortValues> {
         .collect()
 }
 
-/// Roda um fluxo pelo despacho, com a saída da CLI: o `started` tomado
-/// antes de abrir o projeto, a linha de comando digitada no histórico, a
-/// onda em janela e o RTL viewer no navegador (ou só gravado, com
-/// `LACE_OPENER`). Um processador que não existe é erro antes do bundle.
+/// Roda um fluxo com a saída da CLI: o `started` tomado antes de abrir o
+/// projeto, a linha de comando digitada no histórico, a onda em janela e o
+/// RTL viewer no navegador (ou só gravado, com `LACE_OPENER`). O bundle só é
+/// procurado depois das conferências do Core (flows::run_with): um
+/// processador que não existe é erro antes dele, e um projeto sem
+/// processadores não precisa dele para o `build`.
 pub(crate) fn run_flow(
     cli: &Cli,
-    project: &Project,
-    request: FlowRequest,
+    project: &mut Project,
+    request: &FlowRequest,
     started: SystemTime,
     printer: &Printer<'_>,
     control: &Control,
@@ -607,20 +572,19 @@ pub(crate) fn run_flow(
     let mut options = FlowOptions::new(command_line());
     options.started = Some(started);
     options.viewer_opener = std::env::var(OPENER_ENV).ok().filter(|v| !v.is_empty());
-    let request = Request::FlowRun {
-        project: project.spf_path().to_owned(),
+    flows::run_with(
+        project,
         request,
-        options: Some(options),
-        output: true,
-        step_output_limit: None,
-    };
-    let response = Local::new(cli).run(request, control, &|progress| printer.on(progress))?;
-    Ok(*answer!(response, Flow))
+        &options,
+        || cli.toolchain.resolve(),
+        &|progress| printer.on(progress),
+        control,
+    )
 }
 
 fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Um projeto só de Verilog não tem o que compilar, e isso não é erro;
     // nem o bundle é preciso.
     let nothing = args.processors.is_empty() && project.processors().is_empty();
@@ -633,9 +597,10 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
     } else {
         Vec::new()
     };
-    let printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let request = FlowRequest::Build { processors };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     if nothing {
         out.no_processors();
     }
@@ -650,7 +615,7 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
 
 fn check(cli: &Cli, args: &CheckArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Sem arquivo nem `-p`, dentro da pasta de um processador verifica ele;
     // no resto do projeto, o projeto.
     let processor = match (&args.processor, &args.file) {
@@ -658,14 +623,15 @@ fn check(cli: &Cli, args: &CheckArgs, out: &Output, control: &Control) -> anyhow
         (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    let mut printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let mut printer = Printer::new(out, &root);
     printer.lint = args.lint;
     let request = FlowRequest::Check {
         file: args.file.as_deref().map(settings::absolute).transpose()?,
         processor,
         lint: args.lint,
     };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     if let Some(component) = &outcome.lint_missing {
         out.next(&format!(
             "Install the linter with: lace install {component}"
@@ -687,21 +653,22 @@ fn hierarchy(
     control: &Control,
 ) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let processor = match &args.processor {
         Some(name) => Some(name.clone()),
         None => processor_here(cli, &project)?.map(|p| p.name.clone()),
     };
-    let printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let request = FlowRequest::Hierarchy { processor };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     out.json(&outcome.hierarchy.expect("a hierarquia rodou"))?;
     Ok(outcome.succeeded)
 }
 
 fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Sem `-p` nem testbench, dentro da pasta de um processador simula
     // ele; no resto do projeto, a simulação do projeto.
     let processor = match (&args.processor, &args.testbench) {
@@ -709,7 +676,8 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
         (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    let mut printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let mut printer = Printer::new(out, &root);
     printer.fast = args.fast;
     printer.timeout = args.timeout.map(Duration::from_secs);
     if !args.open {
@@ -734,7 +702,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
         timeout_s: args.timeout,
         open_wave: args.open,
     };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     // O Surfer que não abriu é erro do comando, depois do relatório gravado,
     // como sempre foi.
     if let Some(error) = outcome.wave_error {
@@ -755,9 +723,6 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
     if let Some(command) = &args.command {
         return crate::wave_choice::run(cli, command, out, control);
     }
-    // A onda que ainda não existe (ou o processador não compilado) é erro
-    // antes de abrir o bundle; a de um exercício do lace learn abre com o
-    // layout da correção. As duas regras são do despacho.
     let (project, source) = match &args.waveform {
         Some(path) => (
             None,
@@ -771,10 +736,7 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
                 Some(name) => Some(name.clone()),
                 None => processor_here(cli, &project)?.map(|p| p.name.clone()),
             };
-            (
-                Some(project.spf_path().to_owned()),
-                WaveSource::Project { processor },
-            )
+            (Some(project), WaveSource::Project { processor })
         }
     };
     let layout = if args.no_layout {
@@ -784,11 +746,11 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
     } else {
         LayoutPolicy::Generated
     };
-    let request = Request::WaveOpen {
-        project,
-        request: WaveRequest { source, layout },
-    };
-    let opened = answer!(Local::new(cli).call(request)?, Wave);
+    // A onda de um exercício do lace learn abre com o layout da correção; a
+    // onda que ainda não existe (ou o processador não compilado) é erro antes
+    // de procurar o bundle (flows::open_wave_with).
+    let request = lace_learn::layout::with_exercise_layout(WaveRequest { source, layout });
+    let opened = flows::open_wave_with(project.as_ref(), &request, || cli.toolchain.resolve())?;
     if let Some(testbench) = &opened.reset_deleted
         && out.is_text()
     {
@@ -811,7 +773,7 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
 
 fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // O topo do projeto sintetiza com o Verilog de todos os processadores;
     // com -p, ou dentro da pasta de um processador, só o daquele.
     let processor = match &args.processor {
@@ -821,14 +783,15 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
     if args.no_schematic_limit {
         tracing::debug!("--no-schematic-limit is ignored: the schematic has no connection limit");
     }
-    let printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let request = FlowRequest::Synthesize {
         processor,
         schematic: args.svg,
         module: args.module.clone(),
         open_viewer: args.open,
     };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     // Um módulo fora do netlist e um RTL viewer que não abriu são erros do
     // comando, depois do relatório gravado, como sempre foram.
     if let Some(error) = outcome.schematic_error {
@@ -871,16 +834,14 @@ fn command_line() -> String {
 /// histórico; nenhuma ferramenta roda.
 fn report(cli: &Cli, args: &ReportArgs, out: &Output) -> anyhow::Result<()> {
     let project = open(cli)?;
-    let local = Local::new(cli);
     match &args.command {
-        None => show_report(&local, &project, None, out),
-        Some(ReportCommand::Show { id }) => show_report(&local, &project, Some(id.clone()), out),
+        None => show_report(&project, None, out),
+        Some(ReportCommand::Show { id }) => show_report(&project, Some(id), out),
         Some(ReportCommand::List { limit }) => {
-            let request = Request::HistoryList {
-                project: project.spf_path().to_owned(),
-                limit: limit.map(|n| usize::try_from(n).unwrap_or(usize::MAX)),
-            };
-            let reports = answer!(local.call(request)?, Reports);
+            let mut reports = history::list(&project)?;
+            if let Some(limit) = limit {
+                reports.truncate(usize::try_from(*limit).unwrap_or(usize::MAX));
+            }
             out.report_list(&reports);
             out.json(&ReportListReport { reports })
         }
@@ -889,17 +850,12 @@ fn report(cli: &Cli, args: &ReportArgs, out: &Output) -> anyhow::Result<()> {
             against,
             summary,
         }) => {
-            let request = Request::HistoryCompare {
-                project: project.spf_path().to_owned(),
-                id: id.clone(),
-                against: against.clone(),
-            };
-            let comparison = answer!(local.call(request)?, Comparison);
+            let comparison = history::compare_reports(&project, id.as_deref(), against.as_deref())?;
             out.report_comparison(&comparison, *summary);
-            out.json(&*comparison)
+            out.json(&comparison)
         }
         Some(ReportCommand::Clean { ids, keep, yes }) => {
-            clean_reports(&local, &project, ids, *keep, *yes, out)
+            clean_reports(&project, ids, *keep, *yes, out)
         }
     }
 }
@@ -907,7 +863,6 @@ fn report(cli: &Cli, args: &ReportArgs, out: &Output) -> anyhow::Result<()> {
 /// `lace report clean`. Apagar todos, ou todos menos os mais novos, pede
 /// confirmação; os relatórios pedidos pelo nome saem sem perguntar.
 fn clean_reports(
-    local: &Local,
     project: &Project,
     ids: &[String],
     keep: Option<u64>,
@@ -919,19 +874,11 @@ fn clean_reports(
         Some(n) => Cleanup::KeepLatest(usize::try_from(n).unwrap_or(usize::MAX)),
         None => Cleanup::All,
     };
-    let request = Request::HistoryPlanCleanup {
-        project: project.spf_path().to_owned(),
-        cleanup,
-    };
-    let targets = answer!(local.call(request)?, Ids);
+    let targets = history::plan_cleanup(project, &cleanup)?;
     if !targets.is_empty() && ids.is_empty() && !yes {
         confirm_cleanup(project, targets.len(), keep)?;
     }
-    let request = Request::HistoryClean {
-        project: project.spf_path().to_owned(),
-        ids: targets,
-    };
-    let cleaned = answer!(local.call(request)?, Cleaned);
+    let cleaned = history::clean(project, &targets)?;
     out.reports_removed(&cleaned.removed, cleaned.kept);
     out.json(&ReportCleanReport {
         removed: cleaned.removed,
@@ -962,17 +909,8 @@ fn confirm_cleanup(project: &Project, count: usize, keep: Option<u64>) -> anyhow
     }
 }
 
-fn show_report(
-    local: &Local,
-    project: &Project,
-    id: Option<String>,
-    out: &Output,
-) -> anyhow::Result<()> {
-    let request = Request::HistoryShow {
-        project: project.spf_path().to_owned(),
-        id,
-    };
-    let view = answer!(local.call(request)?, Report);
+fn show_report(project: &Project, id: Option<&str>, out: &Output) -> anyhow::Result<()> {
+    let view = history::view(project, id)?;
     out.report_text(&view.text);
     out.json(&ReportShowReport {
         id: view.id,
@@ -982,14 +920,15 @@ fn show_report(
     })
 }
 
+/// `lace tools`: a tela vem do mesmo [`locate::describe`] do
+/// `toolchain.info`, com o bundle achado como a CLI acha.
 fn tools(cli: &Cli, verify: bool, out: &Output) -> anyhow::Result<bool> {
-    let local = Local::new(cli);
-    let info = answer!(local.call(Request::ToolchainInfo)?, Toolchain);
+    let found = cli.toolchain.found()?;
     let mismatches = if verify {
-        Some(answer!(local.call(Request::ToolchainVerify)?, Mismatches))
+        Some(found.toolchain.verify()?)
     } else {
         None
     };
-    out.tools(&info, mismatches.as_deref())?;
+    out.tools(&locate::describe(&found), mismatches.as_deref())?;
     Ok(mismatches.is_none_or(|m| m.is_empty()))
 }

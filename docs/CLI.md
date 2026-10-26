@@ -1,17 +1,15 @@
 # `lace`: a linha de comando
 
 A CLI é uma casca fina sobre o `lace-core` (ver [API.md](API.md)): cada
-comando que tem método no protocolo do `lace serve` monta o pedido, o
-entrega ao despacho do servidor no próprio processo (sem servidor nem
-processo a mais: o comando termina com o processo, como sempre) e formata a
-resposta, em texto ou no `--json` do comando. O Studio e a extensão do VS
-Code pedem o mesmo ao `lace serve`. Os comandos que rodam ferramentas
-(`build`, `check`, `hierarchy`, `sim`, `synth`, `fpga build` e
-`fpga program`) mandam um `flow.run`, que chama `lace_core::flows::run`, e o
-`wave` manda o `wave.open`, o `wave.signals` e o `wave.choose`; a coluna
-"Função do Core" das tabelas abaixo diz o que esses fluxos chamam por
-dentro. Instalar, atualizar, desinstalar e o `lace learn` chamam as
-bibliotecas direto, porque têm interface própria no terminal.
+comando abre o projeto, chama uma função do Core e formata o resultado, em
+texto ou no `--json` do comando. O despacho do `lace serve`, que o Studio e
+a extensão do VS Code usam, chama as mesmas funções, e as regras de cada
+operação moram no Core, então os dois fazem o mesmo. Os comandos que rodam
+ferramentas (`build`, `check`, `hierarchy`, `sim`, `synth`, `fpga build` e
+`fpga program`) montam um `FlowRequest` e chamam `lace_core::flows::run_with`,
+que confere o pedido antes de procurar o bundle, e o `wave` chama
+`flows::open_wave_with` e `flows::choose_signals`; a coluna "Função do Core"
+das tabelas abaixo diz o que esses fluxos chamam por dentro.
 
 ```
 cargo install --path crates/lace-cli     # instala o binário `lace`
@@ -795,8 +793,8 @@ lace completions bash > ~/.local/share/bash-completion/completions/lace
 
 Um programa que não é Rust (a extensão do VS Code, um agente, um script)
 fala com o Lace por um processo vivo em vez de um processo por comando. O
-Studio é cliente do `lace serve`, como a extensão, e a CLI chama o mesmo
-despacho no próprio processo: o contrato é um só
+Studio é cliente do `lace serve`, como a extensão; a CLI chama direto as
+mesmas funções do Core que o despacho do servidor chama
 ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busca-do-bundle-e-o-contrato)).
 
 | Comando | Faz |

@@ -4,13 +4,11 @@
 
 use anyhow::anyhow;
 use clap::builder::PossibleValuesParser;
-use lace_core::experimental::Feature;
-use lace_core::protocol::Request;
+use lace_core::experimental::{self, Feature};
 
-use crate::local::{Local, answer};
 use crate::output::{BOLD, DIM, OK, Output, paint};
 use crate::report::ExperimentalReport;
-use crate::{Cli, ExperimentalArgs, ExperimentalCommand};
+use crate::{ExperimentalArgs, ExperimentalCommand};
 
 /// Os identificadores que `enable` e `disable` aceitam: os do Core.
 pub fn component_parser() -> PossibleValuesParser {
@@ -19,20 +17,16 @@ pub fn component_parser() -> PossibleValuesParser {
 
 /// Sem subcomando, a lista; com `enable` ou `disable`, a mudança e depois a
 /// lista no JSON.
-pub fn run(cli: &Cli, args: &ExperimentalArgs, out: &Output) -> anyhow::Result<()> {
+pub fn run(args: &ExperimentalArgs, out: &Output) -> anyhow::Result<()> {
     let change = match &args.command {
         None => None,
         Some(ExperimentalCommand::Enable { component }) => Some((feature(component)?, true)),
         Some(ExperimentalCommand::Disable { component }) => Some((feature(component)?, false)),
     };
-    let request = match change {
-        Some((feature, enabled)) => Request::ExperimentalSet {
-            feature: feature.id().to_owned(),
-            enabled,
-        },
-        None => Request::ExperimentalList,
-    };
-    let info = answer!(Local::new(cli).call(request)?, Experimental);
+    if let Some((feature, enabled)) = change {
+        experimental::set_enabled(feature, enabled)?;
+    }
+    let info = experimental::info();
     let report = ExperimentalReport {
         path: info.path,
         components: info.components,
