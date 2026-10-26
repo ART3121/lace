@@ -480,9 +480,6 @@ pub(crate) enum Sink<'a> {
 
 /// O que o CLI recebe enquanto um pedido roda no mesmo processo.
 pub(crate) struct Direct<'a> {
-    /// A saída das ferramentas e o cancelamento: o `Control` do CLI, com o
-    /// Ctrl+C dele.
-    pub(crate) control: &'a Control,
     /// O que um fluxo diz entre um passo e outro (`Progress`), para o texto
     /// que a CLI escreve na ordem em que acontece.
     pub(crate) progress: lace_core::flows::ProgressFn<'a>,
@@ -1082,30 +1079,28 @@ impl Server {
             }
             Request::WaveOpen { project, request } => {
                 let project = project.map(|p| open_project(&p)).transpose()?;
-                // A onda que ainda não existe é erro antes do bundle.
-                flows::wave_file(project.as_ref(), &request.source)?;
-                let toolchain = self.toolchain()?;
                 // A onda de um exercício do lace learn abre com o layout da
-                // correção, como no `lace wave`.
+                // correção, como no `lace wave`; a onda que ainda não existe é
+                // erro antes do bundle (flows::open_wave_with).
                 let request = lace_learn::layout::with_exercise_layout(request);
-                Response::Wave(flows::open_wave(&toolchain, project.as_ref(), &request)?)
+                Response::Wave(flows::open_wave_with(project.as_ref(), &request, || {
+                    self.toolchain()
+                })?)
             }
             Request::WaveSignals { project } => {
                 let project = open_project(&project)?;
                 let toolchain = self.toolchain()?;
-                let own = Control::new().with_cancel(cancel);
-                let control = direct.as_ref().map_or(&own, |d| d.control);
+                let control = Control::new().with_cancel(cancel);
                 Response::Signals(Box::new(lace_core::wave_signals(
-                    &toolchain, &project, control,
+                    &toolchain, &project, &control,
                 )?))
             }
             Request::WaveChoose { project, choice } => {
                 let project = open_project(&project)?;
                 let toolchain = self.toolchain()?;
-                let own = Control::new().with_cancel(cancel);
-                let control = direct.as_ref().map_or(&own, |d| d.control);
+                let control = Control::new().with_cancel(cancel);
                 Response::Choice(flows::choose_signals(
-                    &toolchain, &project, &choice, control,
+                    &toolchain, &project, &choice, &control,
                 )?)
             }
             Request::WaveLayoutGet { waveform } => {

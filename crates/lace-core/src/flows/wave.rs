@@ -110,6 +110,21 @@ pub fn open_wave(
     Ok(opened)
 }
 
+/// [`open_wave`] pedindo o bundle só depois de conferir que a onda existe
+/// ([`wave_file`]): a onda que a simulação ainda não gravou, ou o
+/// processador ainda não compilado, é o erro, e não um bundle que falta.
+/// `toolchain` é como quem chama acha o bundle, e o erro dele sai com o tipo
+/// de quem chama.
+pub fn open_wave_with<E: From<LaceError>>(
+    project: Option<&Project>,
+    request: &WaveRequest,
+    toolchain: impl FnOnce() -> std::result::Result<Toolchain, E>,
+) -> std::result::Result<WaveOpened, E> {
+    wave_file(project, &request.source)?;
+    let toolchain = toolchain()?;
+    Ok(open_wave(&toolchain, project, request)?)
+}
+
 /// O arquivo da onda de `source`, que precisa existir: um arquivo, ou a
 /// onda da simulação do processador ou do projeto
 /// ([`waveform_path`](crate::waveform_path)). Uma onda que não existe é

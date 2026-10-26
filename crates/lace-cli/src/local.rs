@@ -49,7 +49,7 @@ impl Local {
         progress: ProgressFn<'_>,
     ) -> anyhow::Result<Response> {
         let cancel = control.cancel_token().clone();
-        let sink = Sink::Direct(Direct { control, progress });
+        let sink = Sink::Direct(Direct { progress });
         self.server
             .handle_with(&Value::Null, request, cancel, sink)
             .map_err(Failure::into_anyhow)

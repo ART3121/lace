@@ -756,9 +756,6 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
     if let Some(command) = &args.command {
         return crate::wave_choice::run(cli, command, out, control);
     }
-    // A onda que ainda não existe (ou o processador não compilado) é erro
-    // antes de abrir o bundle; a de um exercício do lace learn abre com o
-    // layout da correção. As duas regras são do despacho.
     let (project, source) = match &args.waveform {
         Some(path) => (
             None,
@@ -772,10 +769,7 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
                 Some(name) => Some(name.clone()),
                 None => processor_here(cli, &project)?.map(|p| p.name.clone()),
             };
-            (
-                Some(project.spf_path().to_owned()),
-                WaveSource::Project { processor },
-            )
+            (Some(project), WaveSource::Project { processor })
         }
     };
     let layout = if args.no_layout {
@@ -785,11 +779,11 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
     } else {
         LayoutPolicy::Generated
     };
-    let request = Request::WaveOpen {
-        project,
-        request: WaveRequest { source, layout },
-    };
-    let opened = answer!(Local::new(cli).call(request)?, Wave);
+    // A onda de um exercício do lace learn abre com o layout da correção; a
+    // onda que ainda não existe (ou o processador não compilado) é erro antes
+    // de procurar o bundle (flows::open_wave_with).
+    let request = lace_learn::layout::with_exercise_layout(WaveRequest { source, layout });
+    let opened = flows::open_wave_with(project.as_ref(), &request, || cli.toolchain.resolve())?;
     if let Some(testbench) = &opened.reset_deleted
         && out.is_text()
     {
