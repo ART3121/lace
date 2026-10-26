@@ -1046,31 +1046,6 @@ impl Server {
                     return Ok(Response::Flow(Box::new(outcome)));
                 }
                 let mut project = open_project(&project)?;
-                // Um processador que não existe é erro antes do bundle.
-                for name in request.processors() {
-                    project.require_processor(name)?;
-                }
-                // Um projeto só de Verilog não tem o que compilar, e isso não
-                // é erro; nem o bundle é preciso.
-                if let FlowRequest::Build { processors } = &request
-                    && processors.is_empty()
-                    && project.processors().is_empty()
-                {
-                    let outcome = lace_core::flows::FlowOutcome::new("build", &options.command);
-                    return Ok(Response::Flow(Box::new(outcome)));
-                }
-                let toolchain = self.toolchain()?;
-                if let Some(direct) = direct {
-                    let outcome = flows::run(
-                        &toolchain,
-                        &mut project,
-                        &request,
-                        &options,
-                        direct.progress,
-                        direct.control,
-                    )?;
-                    return Ok(Response::Flow(Box::new(outcome)));
-                }
                 let deliver = Arc::clone(&emit);
                 let dispatcher =
                     Dispatcher::start(Limits::default(), move |notification| deliver(notification));
@@ -1080,11 +1055,13 @@ impl Server {
                     Control::new().with_cancel(cancel)
                 };
                 let progress = dispatcher.progress();
-                let outcome = flows::run(
-                    &toolchain,
+                // O processador que não existe e o projeto sem nada a
+                // compilar vêm antes do bundle (flows::run_with).
+                let outcome = flows::run_with(
                     &mut project,
                     &request,
                     &options,
+                    || self.toolchain(),
                     &progress,
                     &control,
                 );

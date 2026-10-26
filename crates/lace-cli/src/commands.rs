@@ -588,14 +588,16 @@ pub(crate) fn port_values(outputs: &[flows::PortValues]) -> Vec<PortValues> {
         .collect()
 }
 
-/// Roda um fluxo pelo despacho, com a saída da CLI: o `started` tomado
-/// antes de abrir o projeto, a linha de comando digitada no histórico, a
-/// onda em janela e o RTL viewer no navegador (ou só gravado, com
-/// `LACE_OPENER`). Um processador que não existe é erro antes do bundle.
+/// Roda um fluxo com a saída da CLI: o `started` tomado antes de abrir o
+/// projeto, a linha de comando digitada no histórico, a onda em janela e o
+/// RTL viewer no navegador (ou só gravado, com `LACE_OPENER`). O bundle só é
+/// procurado depois das conferências do Core (flows::run_with): um
+/// processador que não existe é erro antes dele, e um projeto sem
+/// processadores não precisa dele para o `build`.
 pub(crate) fn run_flow(
     cli: &Cli,
-    project: &Project,
-    request: FlowRequest,
+    project: &mut Project,
+    request: &FlowRequest,
     started: SystemTime,
     printer: &Printer<'_>,
     control: &Control,
@@ -603,20 +605,19 @@ pub(crate) fn run_flow(
     let mut options = FlowOptions::new(command_line());
     options.started = Some(started);
     options.viewer_opener = std::env::var(OPENER_ENV).ok().filter(|v| !v.is_empty());
-    let request = Request::FlowRun {
-        project: project.spf_path().to_owned(),
+    flows::run_with(
+        project,
         request,
-        options: Some(options),
-        output: true,
-        step_output_limit: None,
-    };
-    let response = Local::new(cli).run(request, control, &|progress| printer.on(progress))?;
-    Ok(*answer!(response, Flow))
+        &options,
+        || cli.toolchain.resolve(),
+        &|progress| printer.on(progress),
+        control,
+    )
 }
 
 fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Um projeto só de Verilog não tem o que compilar, e isso não é erro;
     // nem o bundle é preciso.
     let nothing = args.processors.is_empty() && project.processors().is_empty();
@@ -629,9 +630,10 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
     } else {
         Vec::new()
     };
-    let printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let request = FlowRequest::Build { processors };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     if nothing {
         out.no_processors();
     }
@@ -646,7 +648,7 @@ fn build(cli: &Cli, args: &BuildArgs, out: &Output, control: &Control) -> anyhow
 
 fn check(cli: &Cli, args: &CheckArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Sem arquivo nem `-p`, dentro da pasta de um processador verifica ele;
     // no resto do projeto, o projeto.
     let processor = match (&args.processor, &args.file) {
@@ -654,14 +656,15 @@ fn check(cli: &Cli, args: &CheckArgs, out: &Output, control: &Control) -> anyhow
         (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    let mut printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let mut printer = Printer::new(out, &root);
     printer.lint = args.lint;
     let request = FlowRequest::Check {
         file: args.file.as_deref().map(settings::absolute).transpose()?,
         processor,
         lint: args.lint,
     };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     if let Some(component) = &outcome.lint_missing {
         out.next(&format!(
             "Install the linter with: lace install {component}"
@@ -683,21 +686,22 @@ fn hierarchy(
     control: &Control,
 ) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     let processor = match &args.processor {
         Some(name) => Some(name.clone()),
         None => processor_here(cli, &project)?.map(|p| p.name.clone()),
     };
-    let printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let request = FlowRequest::Hierarchy { processor };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     out.json(&outcome.hierarchy.expect("a hierarquia rodou"))?;
     Ok(outcome.succeeded)
 }
 
 fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // Sem `-p` nem testbench, dentro da pasta de um processador simula
     // ele; no resto do projeto, a simulação do projeto.
     let processor = match (&args.processor, &args.testbench) {
@@ -705,7 +709,8 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
         (None, None) => processor_here(cli, &project)?.map(|p| p.name.clone()),
         (None, Some(_)) => None,
     };
-    let mut printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let mut printer = Printer::new(out, &root);
     printer.fast = args.fast;
     printer.timeout = args.timeout.map(Duration::from_secs);
     if !args.open {
@@ -730,7 +735,7 @@ fn sim(cli: &Cli, args: &SimArgs, out: &Output, control: &Control) -> anyhow::Re
         timeout_s: args.timeout,
         open_wave: args.open,
     };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     // O Surfer que não abriu é erro do comando, depois do relatório gravado,
     // como sempre foi.
     if let Some(error) = outcome.wave_error {
@@ -807,7 +812,7 @@ fn wave(cli: &Cli, args: &WaveArgs, out: &Output, control: &Control) -> anyhow::
 
 fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
+    let mut project = open(cli)?;
     // O topo do projeto sintetiza com o Verilog de todos os processadores;
     // com -p, ou dentro da pasta de um processador, só o daquele.
     let processor = match &args.processor {
@@ -817,14 +822,15 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
     if args.no_schematic_limit {
         tracing::debug!("--no-schematic-limit is ignored: the schematic has no connection limit");
     }
-    let printer = Printer::new(out, project.root());
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let request = FlowRequest::Synthesize {
         processor,
         schematic: args.svg,
         module: args.module.clone(),
         open_viewer: args.open,
     };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     // Um módulo fora do netlist e um RTL viewer que não abriu são erros do
     // comando, depois do relatório gravado, como sempre foram.
     if let Some(error) = outcome.schematic_error {

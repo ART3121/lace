@@ -59,12 +59,13 @@ fn program(
     control: &Control,
 ) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
-    let printer = Printer::new(out, project.root());
+    let mut project = open(cli)?;
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let request = FlowRequest::FpgaProgram {
         cable: cable.map(str::to_owned),
     };
-    let outcome = run_flow(cli, &project, request, started, &printer, control)?;
+    let outcome = run_flow(cli, &mut project, &request, started, &printer, control)?;
     out.json(&outcome.fpga_program.expect("a gravação rodou"))?;
     Ok(outcome.succeeded)
 }
@@ -74,27 +75,23 @@ fn program(
 /// faltar um deles não deve custar o build dos processadores.
 fn build(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
     let started = SystemTime::now();
-    let project = open(cli)?;
-    let printer = Printer::new(out, project.root());
+    let mut project = open(cli)?;
+    let root = project.root().to_owned();
+    let printer = Printer::new(out, &root);
     let outcome = run_flow(
         cli,
-        &project,
-        FlowRequest::FpgaBuild,
+        &mut project,
+        &FlowRequest::FpgaBuild,
         started,
         &printer,
         control,
     )?;
     if let Some(fpga) = outcome.fpga.as_ref().filter(|f| f.bitstream.is_some()) {
-        let request = Request::FpgaBoards {
-            board: Some(fpga.board.clone()),
-        };
-        let boards = answer!(Local::new(cli).call(request)?, Boards);
-        if let Some(board) = boards.first() {
-            out.next(&format!(
-                "Program the {} with: lace fpga program",
-                board.name
-            ));
-        }
+        let board = fpga::board(&fpga.board)?;
+        out.next(&format!(
+            "Program the {} with: lace fpga program",
+            board.name
+        ));
     }
     out.json(&FpgaBuildReport {
         builds: outcome.builds,

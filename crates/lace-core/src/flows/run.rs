@@ -209,6 +209,38 @@ pub fn run(
     Ok(outcome)
 }
 
+/// [`run`] pedindo o bundle só depois das conferências que não precisam
+/// dele: o recurso experimental do fluxo, os processadores que o pedido
+/// nomeia e, num `build` de projeto sem processadores, nada a compilar (o
+/// resultado sai sem o bundle). `toolchain` é como quem chama acha o bundle,
+/// e o erro dele sai com o tipo de quem chama: a CLI e o servidor do Lace
+/// seguem a mesma ordem.
+pub fn run_with<E: From<LaceError>>(
+    project: &mut Project,
+    request: &FlowRequest,
+    options: &FlowOptions,
+    toolchain: impl FnOnce() -> std::result::Result<Toolchain, E>,
+    progress: ProgressFn<'_>,
+    control: &Control,
+) -> std::result::Result<FlowOutcome, E> {
+    if let Some(feature) = request.feature() {
+        crate::experimental::require(feature)?;
+    }
+    for name in request.processors() {
+        project.require_processor(name)?;
+    }
+    if let FlowRequest::Build { processors } = request
+        && processors.is_empty()
+        && project.processors().is_empty()
+    {
+        return Ok(FlowOutcome::new(request.name(), &options.command));
+    }
+    let toolchain = toolchain()?;
+    Ok(run(
+        &toolchain, project, request, options, progress, control,
+    )?)
+}
+
 /// Os processadores pedidos pelo nome, ou todos. Um nome desconhecido é
 /// erro antes de compilar qualquer um.
 fn named(project: &Project, names: &[String]) -> Result<Vec<Processor>> {
