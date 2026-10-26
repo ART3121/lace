@@ -197,7 +197,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `settings.rs` | as opções globais do bundle e do que vem do sistema (`ToolchainArgs`: `--toolchain` ou `LACE_TOOLCHAIN`, `--compiler` ou `LACE_COMPILER`, `--quartus` ou `LACE_QUARTUS`); `ToolchainArgs::lookup` monta o `Lookup` (com a `QUARTUS_ROOTDIR` e a `HOME`) e `ToolchainArgs::resolve` abre o bundle por `lace_core::locate::resolve`, onde moram o `compiler_in` e a busca do Quartus; e `absolute` |
 | `fpga.rs` | `lace fpga boards`, `lace fpga check`, `lace fpga build` e `lace fpga program` (com `--list`, os cabos) |
 | `serve.rs` | `lace serve`: o protocolo por JSON-RPC 2.0 sobre stdio; `Server::handle_with` é o despacho de cada método para o Core, que o `lace mcp` também usa; cada braço chama as mesmas funções do Core que o comando da CLI |
-| `mcp/` | `lace mcp`: as ferramentas para um agente de IA (`TOOLS`, em `mod.rs`), o resumo em texto de cada resultado (`summary.rs`) e o `lace mcp setup` (`setup.rs`) |
+| `mcp/` | `lace mcp`: as ferramentas para um agente de IA (`TOOLS`, em `mod.rs`, com o nome e a ordem; quais métodos viram ferramenta é a marcação `agent` deles no protocolo), o resumo em texto de cada resultado (`summary.rs`) e o `lace mcp setup` (`setup.rs`) |
 | `chat.rs` | `lace chat`: a tela do assistente no terminal, sobre o `lace-agent` |
 | `experimental.rs` | `lace experimental`: lista, liga e desliga os recursos experimentais |
 | `learn.rs` | `lace learn`: os subcomandos e a saída deles, sobre o `lace-learn` |

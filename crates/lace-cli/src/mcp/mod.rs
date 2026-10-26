@@ -46,7 +46,7 @@ use std::time::{Duration, Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use lace_core::delivery::{Notification, trim_step_output};
-use lace_core::protocol::request_schema;
+use lace_core::protocol::{Agent, method_info, request_schema};
 use lace_core::{CancelToken, Project};
 use serde_json::{Map, Value, json};
 
@@ -85,13 +85,21 @@ pub enum McpCommand {
 }
 
 /// Uma ferramenta: o nome para o agente e o método do protocolo por trás.
+/// Se o método vira ferramenta, e se só com `--allow-update`, é a marcação
+/// dele no protocolo ([`method_info`]); aqui ficam o nome e a ordem.
 struct Tool {
     name: &'static str,
     method: &'static str,
     /// Um fluxo de `flow.run`, desdobrado.
     flow: Option<&'static str>,
-    /// Muda a instalação do Lace: só com `--allow-update`.
-    installation: bool,
+}
+
+impl Tool {
+    /// Muda a instalação do Lace: só aparece com `--allow-update` (a
+    /// marcação `agent_update` do método).
+    fn needs_allow_update(&self) -> bool {
+        method_info(self.method).is_some_and(|info| info.agent == Agent::AllowUpdate)
+    }
 }
 
 const fn tool(name: &'static str, method: &'static str) -> Tool {
@@ -99,7 +107,6 @@ const fn tool(name: &'static str, method: &'static str) -> Tool {
         name,
         method,
         flow: None,
-        installation: false,
     }
 }
 
@@ -108,16 +115,6 @@ const fn flow(name: &'static str, flow: &'static str) -> Tool {
         name,
         method: "flow.run",
         flow: Some(flow),
-        installation: false,
-    }
-}
-
-const fn installer(name: &'static str, method: &'static str) -> Tool {
-    Tool {
-        name,
-        method,
-        flow: None,
-        installation: true,
     }
 }
 
@@ -157,8 +154,8 @@ const TOOLS: &[Tool] = &[
     tool("fpga_status", "fpga.status"),
     tool("learn_check", "learn.check"),
     tool("update_check", "update.check"),
-    installer("update_apply", "update.apply"),
-    installer("install_add", "install.add"),
+    tool("update_apply", "update.apply"),
+    tool("install_add", "install.add"),
 ];
 
 /// A ferramenta local que procura projetos.
@@ -481,7 +478,7 @@ impl Mcp {
     pub(crate) fn tools(&self) -> Vec<Value> {
         let mut tools: Vec<Value> = TOOLS
             .iter()
-            .filter(|t| self.allow_update || !t.installation)
+            .filter(|t| self.allow_update || !t.needs_allow_update())
             .filter_map(|t| {
                 let (description, schema) = self.tool_schema(t)?;
                 Some(json!({
@@ -649,7 +646,7 @@ impl Mcp {
         }
         let tool = TOOLS
             .iter()
-            .filter(|t| self.allow_update || !t.installation)
+            .filter(|t| self.allow_update || !t.needs_allow_update())
             .find(|t| t.name == name)
             .ok_or_else(|| format!("Unknown tool: {name}"))?;
         if self.project_tools.contains(tool.name)
@@ -1016,12 +1013,26 @@ mod tests {
     }
 
     #[test]
+    fn the_tools_are_the_methods_marked_for_agents() {
+        // Cada método com a marcação `agent` ou `agent_update` no protocolo
+        // vira ferramenta (o flow.run, uma por fluxo), e nenhuma ferramenta
+        // usa um método sem ela.
+        let marked: BTreeSet<&str> = lace_core::protocol::METHOD_INFO
+            .iter()
+            .filter(|info| info.agent != Agent::No)
+            .map(|info| info.name)
+            .collect();
+        let used: BTreeSet<&str> = TOOLS.iter().map(|t| t.method).collect();
+        assert_eq!(marked, used);
+    }
+
+    #[test]
     fn every_tool_has_a_schema_from_the_protocol() {
         let (mcp, _rx) = server(false, None);
         let tools = mcp.tools();
         assert_eq!(
             tools.len(),
-            TOOLS.iter().filter(|t| !t.installation).count() + 1,
+            TOOLS.iter().filter(|t| !t.needs_allow_update()).count() + 1,
             "toda ferramenta acha o método dela no schema, mais project_find"
         );
         for tool in &tools {
