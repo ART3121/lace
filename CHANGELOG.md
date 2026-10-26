@@ -2,6 +2,13 @@
 
 ## Não publicada
 
+- Protocolo: cada método declara na linha dele em `methods!` se só lê, se
+  mexe na instalação e se vira ferramenta de agente; o `is_read_only`, o
+  `is_installation` e a tabela `METHOD_INFO` saem dali, e um teste confere
+  a lista do `lace mcp` contra essas marcações. O despacho do `lace serve`
+  precisa de um braço para cada método, exigido pelo compilador: sai o
+  braço que respondia `unsupported`.
+
 - CLI e `lace serve`: as operações de mais de um passo viram funções do
   core, e a CLI e o despacho do `lace serve` chamam as mesmas:
   `Project::add_verilog_files` e `remove_verilog_files`, `flows::run_with`

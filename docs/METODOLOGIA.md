@@ -172,25 +172,30 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
 3. **O protocolo.** Em `crates/lace-core/src/protocol.rs`: a variante de
    `Request`, com o `#[serde(rename = "domínio.verbo")]` e o `///` em cada
    campo; a variante de `Response`, se o tipo da resposta é novo; a linha
-   em `methods!`, com a variante, o nome e o tipo do resultado, de onde
-   saem `METHODS` e `result_schema`. Sem essa linha, o `protocol.rs` não
-   compila. Se o método só lê, ele entra em `is_read_only`; se mexe na
-   instalação, em `is_installation`. O teste
+   em `methods!`, com a variante, o nome, o tipo do resultado e, entre
+   colchetes, as marcações: `read` se só lê, `install` se mexe na
+   instalação, `agent` se vira ferramenta de agente e `agent_update` se vira
+   ferramenta só com `--allow-update`. Dela saem `METHODS`, `METHOD_INFO`,
+   `result_schema`, `is_read_only` e `is_installation`. Sem essa linha, o
+   `protocol.rs` não compila. O teste
    `the_method_list_matches_the_request_enum` confere `METHODS` contra o
    enum.
 4. **O despacho.** Um braço em `Server::handle_with`, em
    `crates/lace-cli/src/serve.rs`: abrir o projeto, chamar a função do core
    e embrulhar o resultado na `Response`. Nenhuma regra entra aqui: uma
    operação de mais de um passo vira uma função do core, que o braço e o
-   comando da CLI chamam. Atenção:
-   o `match` termina num braço `other =>` que responde `unsupported`, então
-   o compilador não avisa quando falta o braço. O teste de ponta a ponta vai
+   comando da CLI chamam. O `match` não tem `_` (o `Request` não é
+   `non_exhaustive`): sem o braço, o despacho não compila. O teste de ponta a
+   ponta vai
    em `crates/lace-cli/tests/serve.rs`. Se o método roda sem bundle, ele
    entra também em `results_conform_to_the_declared_schema`, nos testes de
    `crates/lace-cli/src/serve.rs`, que confere o resultado contra o tipo da
    linha de `methods!`.
-5. **O `lace mcp`.** Se o método serve a um agente de IA, ele ganha uma
-   linha em `TOOLS`, em `crates/lace-cli/src/mcp/mod.rs`. Fica de fora o que
+5. **O `lace mcp`.** Se o método serve a um agente de IA, a linha dele em
+   `methods!` leva `agent` (ou `agent_update`, se muda a instalação), e ele
+   ganha uma linha em `TOOLS`, em `crates/lace-cli/src/mcp/mod.rs`, com o
+   nome da ferramenta e a posição na lista; o teste
+   `the_tools_are_the_methods_marked_for_agents` confere as duas. Fica de fora o que
    abre janela, o que apaga sem um plano antes e o que só faz sentido numa
    interface com pessoa. O resumo em texto, em `mcp/summary.rs`, é
    opcional: sem ele, o agente recebe o JSON formatado.
@@ -287,8 +292,6 @@ proposto aqui; as outras, não.
 - **Algumas respostas não têm tipo.** `update.check`, `update.apply`,
   `install.add` e `learn.check` respondem `Response::Other`, um JSON solto,
   porque o core não pode depender do `lace-installer` nem do `lace-learn`.
-- **Faltar um braço do despacho não falha em nenhum teste.** O braço final
-  `other =>` responde `unsupported` em tempo de execução.
 - **Os testes Rust não rodam no GitHub.** O `release.yml` só monta os
   instaladores, e o `vscode.yml` só cobre a extensão. O `ci.yml`, que os
   rodava nos três sistemas, saiu em 2026-10-06.
@@ -302,8 +305,7 @@ Cada fase vale sozinha e pode parar ali.
    fora do `rustfmt`. Depois, CI a cada push e pull request, nos três
    sistemas: `cargo fmt --check`, `clippy`, os testes sem bundle, o
    `cargo doc`, a conferência de `docs/schema/` e o typecheck dos dois
-   projetos TypeScript. Um teste que manda cada método de `METHODS` ao
-   `lace serve` e falha se algum responder `unsupported`. Um `CODEOWNERS`
+   projetos TypeScript. Um `CODEOWNERS`
    para `protocol.rs`, `error.rs` e `docs/schema/`, e um modelo de pull
    request com as perguntas da seção 7.
 2. **Um despacho só.** Feita em 2026-10-26, sem o crate `lace-service`
@@ -323,13 +325,15 @@ Cada fase vale sozinha e pode parar ali.
    `Response::Other`.
 3. **O método declarado num lugar só.** Uma macro, como a `reports!` da
    CLI, em que cada método declara uma vez o nome, o estado da seção 4, se
-   só lê, se é da instalação, se vai para o `lace mcp` e o resumo. `METHODS`,
-   `is_read_only`, `is_installation` e a lista do `lace mcp` passam a sair
-   dela. Um teste confere que cada método declarado tem braço no despacho,
-   e o braço `other =>` deixa de existir. O começo já existe: a `methods!`
-   de `protocol.rs` declara o nome e o tipo do resultado, `METHODS` e
-   `result_schema` saem dela, e uma variante de `Request` sem linha não
-   compila. Falta o resto da declaração.
+   só lê, se é da instalação, se vai para o `lace mcp` e o resumo.
+   Começada: a `methods!` de `protocol.rs` declara o nome, o tipo do
+   resultado e as marcações (`read`, `install`, `agent`, `agent_update`);
+   `METHODS`, `METHOD_INFO`, `result_schema`, `is_read_only` e
+   `is_installation` saem dela; uma variante de `Request` sem linha não
+   compila; o despacho não tem mais o braço `other =>`, e o compilador
+   exige o braço de cada método; e um teste confere a lista do `lace mcp`
+   contra as marcações. Falta o estado da seção 4 e o resumo para os
+   agentes.
 4. **O contrato testado e a compatibilidade conferida pela máquina.** Casos
    de conformidade, pares de pedido e resposta em JSON, rodados contra o
    `lace serve` e contra os clientes em TypeScript. Na CI, uma comparação de
@@ -343,9 +347,9 @@ Depois da fase 3, um método novo custa isto:
 |---|---|---|
 | Função e teste no core | sim | sim |
 | Variante em `Request` e `Response` | sim | sim |
-| `METHODS`, `is_read_only`, `is_installation` | `METHODS` sai de `methods!`; os outros, à mão | saem do registro |
-| Braço no despacho | no `lace serve`, sem aviso se faltar | no `lace-service`, com teste que exige |
-| Linha no `lace mcp` | à mão | sai do registro |
+| `METHODS`, `is_read_only`, `is_installation` | saem de `methods!` | saem do registro |
+| Braço no despacho | no `lace serve`, exigido pelo compilador | no `lace serve`, exigido pelo compilador |
+| Linha no `lace mcp` | a marcação em `methods!` e o nome em `TOOLS`, conferidos por teste | sai do registro |
 | Comando no Studio | nenhum, pelo `lace_call` (desde a fase 2) | nenhum |
 | Tipos em TypeScript | gerados | gerados |
 | Documentação e CHANGELOG | sim | sim |
