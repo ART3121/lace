@@ -100,10 +100,14 @@ async function start(): Promise<() => void> {
   if (os) await applyTitleBar(os);
   cleanups.push(await watchWindow());
   // Um `lace experimental enable|disable` dado num terminal fora do Studio
-  // vale quando a janela volta a ter o foco.
+  // vale quando a janela volta a ter o foco. O projeto também é relido: a
+  // pasta dele movida ou renomeada no Explorer não dá aviso à vigia, que
+  // acompanha a pasta para onde ela for.
   cleanups.push(
     await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
-      if (focused) void useExperimental.getState().load();
+      if (!focused) return;
+      void useExperimental.getState().load();
+      void useProject.getState().refresh();
     }),
   );
   // Sem a janela guardada no localStorage (a primeira abertura, ou o
