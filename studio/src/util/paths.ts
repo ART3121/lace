@@ -66,10 +66,31 @@ export function relativeUp(path: string, root: string | null | undefined): strin
   return [...Array<string>(r.length - same).fill('..'), ...p.slice(same)].join('/');
 }
 
+/** Caminho absoluto: com letra de unidade, UNC ou começando por `/`. */
+export function isAbsolutePath(path: string): boolean {
+  return /^([A-Za-z]:[\\/]|\/|\\\\)/.test(path);
+}
+
 /** Resolve um caminho que pode ser relativo a `root`. */
 export function resolveFrom(root: string, path: string): string {
-  if (/^([A-Za-z]:[\\/]|\/|\\\\)/.test(path)) return path;
+  if (isAbsolutePath(path)) return path;
   return joinPath(root, path);
+}
+
+/** Tira `.` e resolve `..` sem tocar no disco: `C:\p\eco\eco\..\..\rtl\a.v`
+ * vira `C:\p\rtl\a.v`. Um `..` não sobe acima da raiz nem da unidade. */
+export function normalizeDots(path: string): string {
+  const out: string[] = [];
+  for (const part of path.split(/[\\/]/)) {
+    if (part === '.') continue;
+    const last = out[out.length - 1];
+    if (part === '..' && out.length > 0 && last !== '..' && last !== '' && !/^[A-Za-z]:$/.test(last)) {
+      out.pop();
+      continue;
+    }
+    out.push(part);
+  }
+  return out.join(separator(path));
 }
 
 /** O caminho na forma que o backend devolve, a que identifica a aba de um

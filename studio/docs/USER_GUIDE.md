@@ -602,10 +602,11 @@ $ lace-studio sim -p soma
   no meio dela. Quem está no Terminal ou num terminal de etapa fica onde
   está, e a aba do INFO ganha um ponto. Numa falha, ele rola até o primeiro
   erro da rodada.
-- Um `arquivo:linha` é um link: clique para abrir o arquivo na linha. Com a
-  preferência "Mostrar o comando de cada passo e as mensagens info nos
-  consoles" (Preferências > Simulação), aparece também a linha de comando
-  exata de cada ferramenta, para repetir à mão.
+- Um `arquivo:linha` é um link, também com espaço ou acento no caminho:
+  clique para abrir o arquivo na linha. Com a preferência "Mostrar o
+  comando de cada passo e as mensagens info nos consoles" (Preferências >
+  Simulação), aparece também a linha de comando exata de cada ferramenta,
+  para repetir à mão.
 
 **Terminais de etapa.** O botão de escolher o terminal (as setas para cima
 e para baixo, no cabeçalho de qualquer terminal) lista o INFO, o Terminal e

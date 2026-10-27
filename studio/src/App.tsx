@@ -20,7 +20,7 @@ import { watchZen, ZenHud, zenWidth } from './components/layout/Zen';
 import { externalDrop, externalLeave, externalOver } from './components/sidebar/dnd';
 import { Toasts } from './components/Toasts';
 import { Tour } from './components/tour/Tour';
-import { setConsoleTheme, setLinkHandler } from './console/consoles';
+import { recentStepDirs, setConsoleTheme, setLinkHandler } from './console/consoles';
 import { setShellTheme } from './console/shell';
 import { bindEditorChord } from './editor/monaco';
 import { t, useLang } from './i18n';
@@ -42,7 +42,7 @@ import { useTour } from './state/tour';
 import { startUpdateChecks } from './state/updates';
 import { watchWideTabs } from './state/wideTabs';
 import type { Theme } from './themes';
-import { extension, resolveFrom } from './util/paths';
+import { extension, isAbsolutePath, normalizeDots, resolveFrom } from './util/paths';
 
 /**
  * Mostra a janela, uma vez, e fecha o splash. Ela nasce escondida
@@ -142,10 +142,7 @@ async function start(): Promise<() => void> {
   void useLearn.getState().load();
 
   // Links arquivo:linha dos consoles abrem no editor.
-  setLinkHandler((path, line, column) => {
-    const root = useProject.getState().snapshot?.root;
-    void useEditor.getState().openFile(root ? resolveFrom(root, path) : path, { line, column });
-  });
+  setLinkHandler((path, line, column) => void openLinkedFile(path, line, column));
 
   // O que mudou no disco: árvore, retrato do projeto e abas abertas.
   let refreshTimer = 0;
@@ -239,6 +236,29 @@ async function start(): Promise<() => void> {
   cleanups.push(startUpdateChecks());
 
   return () => cleanups.forEach((cleanup) => cleanup());
+}
+
+/** Abre o arquivo de um link `arquivo:linha` de um console. Um caminho
+ * relativo vale a partir da raiz do projeto ou do CWD da ferramenta que o
+ * escreveu (no Windows, o caminho de uma pasta com acento vai relativo ao
+ * CWD): abre a primeira dessas pastas em que o arquivo existe. Sem nenhuma,
+ * abre o da raiz, que diz que o arquivo não existe. */
+async function openLinkedFile(path: string, line: number, column: number): Promise<void> {
+  const root = useProject.getState().snapshot?.root;
+  const open = (file: string) => useEditor.getState().openFile(normalizeDots(file), { line, column });
+  if (!root || isAbsolutePath(path)) {
+    await open(root ? resolveFrom(root, path) : path);
+    return;
+  }
+  for (const base of [root, ...recentStepDirs()]) {
+    const candidate = normalizeDots(resolveFrom(base, path));
+    const stat = await api.fs.stat(candidate).catch(() => null);
+    if (stat && !stat.is_dir) {
+      await open(candidate);
+      return;
+    }
+  }
+  await open(resolveFrom(root, path));
 }
 
 export function App() {
