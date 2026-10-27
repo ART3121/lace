@@ -1095,7 +1095,6 @@ export const pt = {
   'error.legacy_layout': 'Este processador ainda está na estrutura de pastas do YANC 6.x. Converta o projeto (Arquivo > Converter projeto para o YANC 7.1).',
   'error.yanc_too_old': 'O bundle tem um YANC anterior à 7.1, que o Lace não usa mais. Atualize o Lace para receber o bundle atual.',
   'error.path_too_long': 'O caminho é longo demais para o YANC. Mova o projeto para uma pasta mais curta.',
-  'error.non_ascii_path': 'O caminho do projeto tem acento ou outro caractere especial, e o simulador não abre os arquivos do processador nele. Mova o projeto para uma pasta sem acento.',
   'error.ambiguous_module': 'O módulo está declarado em mais de um arquivo registrado. Escolha o topo pelo arquivo.',
   'error.invalid_parameter': 'Parâmetro de processador fora do que o YANC compila. O motivo está no detalhe.',
   'error.operation_in_progress': 'Outra operação do Lace (build, simulação, síntese, talvez no terminal) está usando os arquivos deste projeto. Tente de novo quando ela terminar.',

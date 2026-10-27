@@ -118,25 +118,6 @@ pub(crate) fn user_config_dir() -> Option<Utf8PathBuf> {
     to_utf8(base?.join("lace")).ok()
 }
 
-/// Recusa um caminho com caractere fora do ASCII onde o simulador abre
-/// arquivo por nome. Até o YANC 6.x, o Verilog e o testbench citavam as
-/// memórias e as entradas pelo caminho absoluto, e o `vvp` do Icarus recusa
-/// nome de arquivo com byte fora do ASCII ("contains non-printable
-/// characters"): o processador rodava sem programa e sem entradas, sem erro.
-/// O YANC 7.1 cita tudo pelo nome relativo à pasta de saída, e no Linux a
-/// simulação numa pasta com acento funciona (conferido); o Lace ainda passa
-/// ao simulador o caminho completo dos arquivos, e a recusa fica até isso
-/// ser conferido no Windows.
-pub(crate) fn check_simulator_path(path: &Utf8Path) -> Result<()> {
-    if path.as_str().is_ascii() {
-        Ok(())
-    } else {
-        Err(LaceError::NonAsciiPath {
-            path: path.to_owned(),
-        })
-    }
-}
-
 /// Recusa caminhos que estourariam os buffers do YANC ou o MAX_PATH.
 pub(crate) fn check_yanc_limit(path: &Utf8Path) -> Result<()> {
     check_yanc_limit_with_margin(path, 0)
@@ -311,6 +292,59 @@ pub(crate) fn normalize(path: &Utf8Path) -> Utf8PathBuf {
     out
 }
 
+/// `path` relativo a `base`, os dois absolutos, sem tocar no disco
+/// (`/p/rtl/a.v` a partir de `/p/eco/eco` é `../../rtl/a.v`). `None` se os
+/// dois não começam igual: outro disco ou outro compartilhamento do Windows,
+/// ou um deles relativo. A letra do disco vale com qualquer caixa; os nomes
+/// das pastas, só iguais, para o caminho resolvido de volta a partir de
+/// `base` dar o mesmo texto de `path`.
+pub(crate) fn relative_path(path: &Utf8Path, base: &Utf8Path) -> Option<Utf8PathBuf> {
+    use camino::Utf8Component;
+    if !path.is_absolute() || !base.is_absolute() {
+        return None;
+    }
+    let path = normalize(path);
+    let base = normalize(base);
+    let mut rest = path.components().peekable();
+    let mut up = base.components().peekable();
+    while let (Some(a), Some(b)) = (rest.peek(), up.peek()) {
+        let same = match (a, b) {
+            (Utf8Component::Prefix(a), Utf8Component::Prefix(b)) => {
+                a.as_str().eq_ignore_ascii_case(b.as_str())
+            }
+            (Utf8Component::Normal(_), Utf8Component::Normal(_)) => a == b,
+            (Utf8Component::RootDir, Utf8Component::RootDir) => true,
+            _ => false,
+        };
+        if !same {
+            break;
+        }
+        rest.next();
+        up.next();
+    }
+    // O prefixo e a raiz não podem sobrar: o resto tem que ser só pastas.
+    if rest
+        .peek()
+        .is_some_and(|c| !matches!(c, Utf8Component::Normal(_)))
+        || up
+            .peek()
+            .is_some_and(|c| !matches!(c, Utf8Component::Normal(_)))
+    {
+        return None;
+    }
+    let mut out = Utf8PathBuf::new();
+    for _ in up {
+        out.push("..");
+    }
+    for component in rest {
+        out.push(component.as_str());
+    }
+    if out.as_str().is_empty() {
+        out.push(".");
+    }
+    Some(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -353,10 +387,38 @@ mod tests {
     }
 
     #[test]
-    fn simulator_paths_must_be_ascii() {
-        assert!(check_simulator_path(Utf8Path::new("/home/u/projetos/soma")).is_ok());
-        let err = check_simulator_path(Utf8Path::new("/home/u/Área de Trabalho/soma")).unwrap_err();
-        assert_eq!(err.code(), "non_ascii_path");
+    fn relative_paths_climb_to_the_common_folder() {
+        let rel = |path: &str, base: &str| {
+            relative_path(Utf8Path::new(path), Utf8Path::new(base)).map(|p| p.into_string())
+        };
+        if cfg!(windows) {
+            let sep = |p: &str| p.replace('/', "\\");
+            assert_eq!(
+                rel(r"C:\p\Área\.lace\Temp\eco\x.v", r"C:\p\Área\eco\eco"),
+                Some(sep("../../.lace/Temp/eco/x.v"))
+            );
+            assert_eq!(
+                rel(r"C:\Users\José\AppData\SAPHO", r"c:\Users\José\proj"),
+                Some(sep("../AppData/SAPHO"))
+            );
+            assert_eq!(rel(r"C:\p\a.v", r"C:\p"), Some("a.v".into()));
+            assert_eq!(rel(r"C:\p", r"C:\p"), Some(".".into()));
+            // A caixa das pastas conta: o caminho volta igual a partir da base.
+            assert_eq!(
+                rel(r"C:\Users\Ana\x", r"C:\users\ana"),
+                Some(sep("../../Users/Ana/x"))
+            );
+            assert_eq!(rel(r"D:\p\a.v", r"C:\p"), None);
+            assert_eq!(rel(r"\\srv\share\a.v", r"C:\p"), None);
+        } else {
+            assert_eq!(
+                rel("/p/Área/.lace/Temp/eco/x.v", "/p/Área/eco/eco"),
+                Some("../../.lace/Temp/eco/x.v".into())
+            );
+            assert_eq!(rel("/p/a.v", "/p"), Some("a.v".into()));
+            assert_eq!(rel("/p", "/p"), Some(".".into()));
+        }
+        assert_eq!(rel("rtl/a.v", "/p"), None);
     }
 
     #[test]

@@ -377,7 +377,6 @@ pub fn simulate(
     let _span = tracing::info_span!("simulate", processor = %processor.name).entered();
     let started = Instant::now();
     let name = &processor.name;
-    crate::paths::check_simulator_path(&processor.dir)?;
     let testbench = processor.testbench_path();
     let verilog = processor.verilog_path();
     for path in [&testbench, &verilog] {
@@ -678,10 +677,6 @@ pub fn simulate_project(
     // copia arquivos para a raiz, como a síntese: não corre com outra delas
     // nem com um build.
     let _locks = staging_locks(project, &work.join(".project"), project.name())?;
-    // O simulador recebe o caminho completo do Verilog de cada processador.
-    if !project.processors().is_empty() {
-        crate::paths::check_simulator_path(&root)?;
-    }
     std::fs::create_dir_all(&work).map_err(LaceError::io("Creating directory", &work))?;
 
     // Arquivos: sintetizáveis na ordem do .spf, o Verilog de cada processador
@@ -1047,7 +1042,7 @@ fn execute(
                     elaborate = elaborate.arg("-s").arg(crate::cocotb::DUMP_MODULE);
                 }
             }
-            let mut elaborate = elaborate.arg("-o").path_arg(&image);
+            let mut elaborate = elaborate.arg("-o").tool_path_arg(&image);
             for file in &plan.files {
                 elaborate = elaborate.icarus_path_arg(file);
             }
@@ -1072,7 +1067,7 @@ fn execute(
                         run = run.env(key, value);
                     }
                 }
-                run = run.path_arg(&image);
+                run = run.tool_path_arg(&image);
                 // Na simulação rápida, `-none`: os `$dumpvars` do testbench
                 // não gravam nada.
                 if plan.fast {
@@ -1209,7 +1204,7 @@ fn execute(
                 .arg("-Mdir")
                 .arg(&obj_dir_name);
             if let Some(hdl) = &hdl {
-                verilate = verilate.arg("-y").path_arg(hdl);
+                verilate = verilate.arg("-y").tool_path_arg(hdl);
             }
             // O `main` do cocotb é um fonte C++, e a pasta dele vai para o
             // makefile do modelo (`VM_USER_DIR`).
@@ -1217,7 +1212,7 @@ fn execute(
                 verilate = verilate.arg(make_path(main));
             }
             for file in &plan.files {
-                verilate = verilate.path_arg(file);
+                verilate = verilate.tool_path_arg(file);
             }
             // O PATH (make e compilador; do sistema no Linux e no macOS, do
             // bundle no Windows), o LC_ALL=C e, no Windows, o VERILATOR_ROOT
@@ -1239,7 +1234,7 @@ fn execute(
                         run = run.env(key, value);
                     }
                     if let Some(wave) = &plan.wave {
-                        run = run.arg("--trace").arg("--trace-file").path_arg(wave);
+                        run = run.arg("--trace").arg("--trace-file").tool_path_arg(wave);
                     }
                 }
                 runner.run(

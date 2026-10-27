@@ -1407,6 +1407,77 @@ fn processor_simulation_names_missing_inputs() {
     assert_eq!(report["outputs"][0]["values"], serde_json::json!([5]));
 }
 
+/// Numa pasta com acento, outro alfabeto e espaço, cada operação roda como
+/// em qualquer outra. No Windows, as ferramentas abrem arquivos pela página
+/// de código ANSI: os caminhos com caractere fora do ASCII vão relativos ao
+/// CWD delas, e o Verilator nasce no nome curto da pasta. Antes, a simulação
+/// era recusada, a síntese não abria o log e a hierarquia não lia o `.vvp`.
+#[test]
+fn every_operation_runs_in_a_folder_with_accents_and_other_scripts() {
+    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+        return;
+    };
+    let (_guard, dir) = tempdir();
+    let parent = dir.join("Área de Trabalho Δσ 日本");
+    std::fs::create_dir(&parent).unwrap();
+    lace_in(&parent).args(["new", "p"]).assert().success();
+    let root = parent.join("p");
+    lace_in(&root)
+        .args(["proc", "add", "eco"])
+        .assert()
+        .success();
+    let source = root.join("eco/eco.cmm");
+    let header = std::fs::read_to_string(&source).unwrap();
+    let header = &header[..header.find("void main").unwrap()];
+    std::fs::write(
+        &source,
+        format!("{header}void main()\n{{\n    int x = in(0);\n    out(0, x + 1);\n}}\n"),
+    )
+    .unwrap();
+    std::fs::write(root.join("eco/input_0.txt"), "4\n").unwrap();
+    // O contador do exemplo como topo e testbench do projeto.
+    let rtl = Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/contador/rtl");
+    std::fs::create_dir(root.join("rtl")).unwrap();
+    for file in ["contador.v", "contador_tb.v"] {
+        std::fs::copy(rtl.join(file), root.join("rtl").join(file)).unwrap();
+    }
+    lace_in(&root)
+        .args(["add", "rtl/contador.v", "rtl/contador_tb.v"])
+        .env("LACE_TOOLCHAIN", &tc)
+        .assert()
+        .success();
+    let run = |args: &[&str]| {
+        json(
+            lace_in(&root)
+                .arg("--json")
+                .args(args)
+                .env("LACE_TOOLCHAIN", &tc),
+            0,
+        )
+    };
+
+    let sim = run(&["sim", "-p", "eco"]);
+    assert_eq!(sim["outputs"][0]["values"], serde_json::json!([5]));
+    run(&["sim"]);
+    run(&["check"]);
+    let hierarchy = run(&["hierarchy"]);
+    let top = &hierarchy["design"]["roots"][0];
+    assert_eq!(top["module"], "contador", "{hierarchy:#}");
+    assert_eq!(
+        top["file"],
+        root.join("rtl").join("contador.v").as_str(),
+        "{hierarchy:#}"
+    );
+    let signals = run(&["wave", "signals"]);
+    assert!(!signals["root"].is_null(), "{signals:#}");
+    run(&["synth"]);
+    if bundle_has(&tc, "verilator") {
+        let fast = run(&["sim", "-p", "eco", "--fast"]);
+        assert_eq!(fast["outputs"][0]["values"], serde_json::json!([5]));
+        run(&["check", "--lint"]);
+    }
+}
+
 /// O `$display` do testbench sai sempre, sem -v, e as linhas que o Lace
 /// interpreta (`$finish called at`) não se repetem nele.
 #[test]

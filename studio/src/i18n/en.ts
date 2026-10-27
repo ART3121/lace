@@ -1059,7 +1059,6 @@ export const en: Record<Key, string> = {
   'error.legacy_layout': 'This processor still has the folder layout of YANC 6.x. Convert the project (File > Convert project to YANC 7.1).',
   'error.yanc_too_old': 'The bundle has a YANC older than 7.1, which Lace no longer uses. Update Lace to get the current bundle.',
   'error.path_too_long': 'The path is too long for YANC. Move the project to a shorter folder.',
-  'error.non_ascii_path': 'The project path has accents or other special characters, and the simulator cannot open the processor files there. Move the project to a folder without accents.',
   'error.ambiguous_module': 'The module is declared in more than one registered file. Choose the top by file.',
   'error.invalid_parameter': 'Processor parameter outside what YANC compiles. The reason is in the details.',
   'error.operation_in_progress': 'Another Lace operation (a build, a simulation, a synthesis, maybe in the terminal) is using the files of this project. Try again when it finishes.',

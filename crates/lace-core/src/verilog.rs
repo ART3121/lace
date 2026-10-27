@@ -682,17 +682,21 @@ fn interfaces_by_yosys(
         .map_err(|p| LaceError::NonUtf8Path(p.display().to_string()))?;
     std::fs::create_dir_all(&dir).map_err(LaceError::io("Creating directory", &dir))?;
     let json = dir.join("ports.json");
+    // O Yosys roda na pasta comum dos arquivos, que só lê: no Windows, os
+    // caminhos com acento vão relativos a ela ([`process::tool_path`]), e o
+    // trecho com acento (a pasta do projeto, a do usuário) fica de fora.
+    let cwd = common_folder(files).unwrap_or_else(|| dir.clone());
     let mut script = String::from("read_verilog -sv -lib");
     for file in files {
         script.push(' ');
-        script.push_str(&crate::synth::yosys_quoted(file)?);
+        script.push_str(&crate::synth::yosys_path(file, &cwd)?);
     }
     script.push_str(&format!(
         "; write_json {}",
-        crate::synth::yosys_quoted(&json)?
+        crate::synth::yosys_path(&json, &cwd)?
     ));
     let invocation = toolchain
-        .invocation(Tool::Yosys, &dir)?
+        .invocation(Tool::Yosys, &cwd)?
         .arg("-q")
         .arg("-p")
         .arg(&script);
@@ -701,7 +705,7 @@ fn interfaces_by_yosys(
         Ok(out) if out.termination.success() => std::fs::read_to_string(&json)
             .ok()
             .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-            .map(|value| interfaces_from_json(&value)),
+            .map(|value| interfaces_from_json(&value, &cwd)),
         Ok(_) => None,
         Err(e) => {
             let _ = std::fs::remove_dir_all(&dir);
@@ -712,7 +716,21 @@ fn interfaces_by_yosys(
     Ok(parsed)
 }
 
-fn interfaces_from_json(value: &Value) -> Vec<ModuleInterface> {
+/// A pasta mais funda que contém todos os `files`; `None` se eles não têm
+/// pasta em comum (discos diferentes no Windows).
+fn common_folder(files: &[Utf8PathBuf]) -> Option<Utf8PathBuf> {
+    let mut common = files.first()?.parent()?.to_owned();
+    for file in &files[1..] {
+        while !file.starts_with(&common) {
+            common = common.parent()?.to_owned();
+        }
+    }
+    common.is_dir().then_some(common)
+}
+
+/// As interfaces do JSON do Yosys. O arquivo de cada módulo vem do atributo
+/// `src`, como o Yosys recebeu o caminho; um relativo é relativo a `cwd`.
+fn interfaces_from_json(value: &Value, cwd: &Utf8Path) -> Vec<ModuleInterface> {
     let Some(modules) = value["modules"].as_object() else {
         return Vec::new();
     };
@@ -744,9 +762,14 @@ fn interfaces_from_json(value: &Value) -> Vec<ModuleInterface> {
                         .collect()
                 })
                 .unwrap_or_default();
+            let file = if Utf8Path::new(file).is_relative() && !file.is_empty() {
+                crate::paths::normalize(&cwd.join(crate::paths::native_separators(file)))
+            } else {
+                Utf8PathBuf::from(file)
+            };
             ModuleInterface {
                 name: name.trim_start_matches('\\').to_owned(),
-                file: Utf8PathBuf::from(file),
+                file,
                 ports,
             }
         })

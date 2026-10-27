@@ -971,6 +971,8 @@ impl Toolchain {
                     // modelo em dia: chamado pelo script sem o `.exe`, cada
                     // simulação gerava o C++ de novo e recompilava tudo
                     // (medido em 2026-10-07: 9 s, contra 0,4 s, num contador).
+                    // Numa pasta com caractere fora do ASCII, ele nasce no
+                    // nome curto dela ([`Invocation::ascii_cwd`]).
                     let bin =
                         program.with_file_name(format!("verilator_bin{}", self.platform.exe()));
                     let root = program
@@ -978,7 +980,9 @@ impl Toolchain {
                         .and_then(Utf8Path::parent)
                         .map(|prefix| prefix.join("share/verilator"))
                         .unwrap_or_else(|| dir.join("ucrt64/share/verilator"));
-                    Invocation::new(bin, cwd).env("VERILATOR_ROOT", make_path(&root))
+                    Invocation::new(bin, cwd)
+                        .env("VERILATOR_ROOT", make_path(&root))
+                        .ascii_cwd()
                 } else {
                     Invocation::new(system.perl.clone(), cwd).path_arg(&program)
                 };

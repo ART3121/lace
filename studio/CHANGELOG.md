@@ -31,6 +31,12 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   capítulos (combinacionais, circuitos com memória, máquinas de estado,
   aritmética e memórias).
 
+### Corrigido
+
+- Simular, sintetizar, ver a hierarquia e escolher sinais num projeto em
+  pasta com acento ou outro alfabeto: o Lace recusava a simulação, e a
+  síntese e a hierarquia falhavam.
+
 ## [0.9.0] - 2026-10-20
 
 ### Acrescentado
