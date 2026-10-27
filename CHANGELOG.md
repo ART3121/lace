@@ -12,6 +12,10 @@
   `non_ascii_path`, que recusava a simulação de processador nessas pastas;
   a síntese falhava com `Can't open log file`, e a leitura das portas pelo
   Yosys caía no leitor de texto.
+- A hierarquia e a árvore de sinais da onda leem o `.vvp` na página de
+  código do Windows quando ele não é UTF-8: numa pasta com acento, o
+  `iverilog` grava nele o caminho em Windows-1252, e a leitura falhava com
+  `stream did not contain valid UTF-8`.
 
 - Protocolo: o contrato sai do `lace-core` para um crate próprio, o
   `lace-protocol`, acima do core, do `lace-learn` e do instalador. Com
