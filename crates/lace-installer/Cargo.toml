@@ -17,7 +17,8 @@ required-features = ["tui"]
 [features]
 default = ["tui"]
 # A interface de terminal do instalador e do `lace install` sem nomes. O
-# Studio, que só usa a biblioteca, fica sem ela (e sem o ratatui).
+# lace-protocol, que só usa os tipos dos resultados, pede o crate sem ela
+# (e sem o ratatui).
 tui = ["dep:ratatui"]
 
 [[bin]]
