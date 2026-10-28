@@ -121,6 +121,7 @@ export function StatusBar() {
   const t = useT();
   const snapshot = useProject((s) => s.snapshot);
   const spfMissing = useProject((s) => s.spfMissing);
+  const rootMissing = useProject((s) => s.rootMissing);
   const target = useProject((s) => s.target);
   const running = useJobs((s) => s.running);
   const last = useJobs((s) => s.last);
@@ -147,7 +148,11 @@ export function StatusBar() {
               (spfMissing ? (
                 <span
                   className="statusbar__item statusbar__project statusbar__project--missing"
-                  title={t('status.spfMissing', { file: baseName(snapshot.spf) })}
+                  title={
+                    rootMissing
+                      ? t('status.rootMissing', { path: snapshot.root })
+                      : t('status.spfMissing', { file: baseName(snapshot.spf) })
+                  }
                 >
                   <TriangleAlert size={12} />
                   {snapshot.name}

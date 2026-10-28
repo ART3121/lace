@@ -84,6 +84,9 @@ pub struct Diagnostic {
     pub message: String,
     /// O arquivo a que a mensagem se refere, como a ferramenta o escreveu
     /// (normalmente absoluto, porque o Lace passa caminhos absolutos).
+    // No Windows, um caminho com acento vai relativo ao CWD da ferramenta
+    // (`process::tool_path`), e o que ela escreve assim é resolvido a partir
+    // do CWD do passo (`pipeline::resolve_relative_files`).
     #[schemars(with = "Option<String>")]
     pub file: Option<Utf8PathBuf>,
     /// Linha, a partir de 1.

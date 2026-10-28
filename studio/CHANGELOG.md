@@ -31,6 +31,23 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   capítulos (combinacionais, circuitos com memória, máquinas de estado,
   aritmética e memórias).
 
+### Corrigido
+
+- Um link `arquivo:linha` do INFO e dos terminais de etapa com espaço,
+  acento ou símbolo no caminho (`C:\Users\Maria Silva\...`,
+  `Área de Trabalho`) abria outro arquivo, ou nenhum: o link pegava só o
+  trecho depois do último espaço. Agora o caminho absoluto vai inteiro,
+  também quando o terminal o quebra em duas linhas, e um caminho relativo é
+  procurado na raiz do projeto e na pasta onde a ferramenta rodou.
+- Com a pasta do projeto movida, renomeada ou apagada fora do Studio, o
+  aviso dizia que o `.spf` tinha sido apagado e oferecia criar um projeto
+  novo no lugar antigo, vazio. Agora diz que a pasta não existe mais e
+  oferece abrir o projeto no lugar novo. E o Studio confere o projeto quando
+  a janela volta a ter o foco, e não só na próxima operação.
+- Simular, sintetizar, ver a hierarquia e escolher sinais num projeto em
+  pasta com acento ou outro alfabeto: o Lace recusava a simulação, e a
+  síntese e a hierarquia falhavam.
+
 ## [0.9.0] - 2026-10-20
 
 ### Acrescentado

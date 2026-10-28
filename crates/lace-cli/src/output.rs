@@ -1608,9 +1608,6 @@ fn hint(error: &LaceError) -> Option<String> {
             "Convert it with: lace convert (nothing is deleted or overwritten)".into()
         }
         LaceError::YancTooOld { .. } => "Install the current bundle with: lace update".into(),
-        LaceError::NonAsciiPath { .. } => {
-            "Move the project to a folder without accents or other non-ASCII characters".into()
-        }
         LaceError::ProcessorNotFound { name, available } if available.is_empty() => {
             format!("Create it with: lace proc add {name}")
         }

@@ -514,18 +514,6 @@ pub enum LaceError {
     #[error("Path is not UTF-8: {0}")]
     NonUtf8Path(String),
 
-    /// Caminho com caractere fora do ASCII (acento, `ç`) onde o simulador
-    /// precisa abrir arquivo: o `$readmemb` e o `$fopen` do Icarus recusam o
-    /// nome, e o processador simularia sem programa nem entradas. Mova o
-    /// projeto para uma pasta sem acento.
-    #[error(
-        "Path with characters outside ASCII ({path}): the simulator cannot open the processor files there"
-    )]
-    NonAsciiPath {
-        /// O caminho recusado.
-        path: Utf8PathBuf,
-    },
-
     /// Caminho longo demais para os buffers fixos dos compiladores YANC (ver
     /// [`YANC_PATH_LIMIT`](crate::YANC_PATH_LIMIT)). Mova o projeto para um
     /// diretório mais curto.
@@ -651,7 +639,6 @@ impl LaceError {
             LaceError::InvalidDataFile { .. } => "invalid_data_file",
             LaceError::NonUtf8Path(_) => "non_utf8_path",
             LaceError::PathTooLong { .. } => "path_too_long",
-            LaceError::NonAsciiPath { .. } => "non_ascii_path",
             LaceError::Spawn { .. } => "spawn",
             LaceError::ProcessExitedEarly { .. } => "process_exited_early",
             LaceError::Io { .. } => "io",
@@ -768,7 +755,6 @@ impl LaceError {
             LaceError::NotComparable(_) => return None,
             LaceError::InvalidBoard { id, reason } => json!({ "id": id, "reason": reason }),
             LaceError::NonUtf8Path(path) => json!({ "path": path }),
-            LaceError::NonAsciiPath { path } => json!({ "path": path }),
             LaceError::PathTooLong { path, len, limit } => {
                 json!({ "path": path, "len": len, "limit": limit })
             }

@@ -130,6 +130,8 @@ pub struct Invocation {
     /// Argumentos, na ordem. Caminhos já estão no formato que a ferramenta
     /// aceita: o nativo do sistema, menos os do `iverilog` no Windows, que
     /// vão com `/`.
+    // No Windows, um caminho com caractere fora do ASCII vai relativo a
+    // `cwd` para o Icarus, o Yosys, o Verilator e o `dot` (`tool_path`).
     pub args: Vec<String>,
     /// Diretório de trabalho. Faz parte do contrato de várias ferramentas (o
     /// testbench do YANC lê e grava os arquivos dele relativo a ele, e grava
@@ -141,6 +143,12 @@ pub struct Invocation {
     /// Nomes de variáveis copiadas do ambiente do Lace, quando existirem.
     /// Só os nomes aparecem no relatório.
     pub inherit: Vec<String>,
+    // No Windows, nasce no nome curto (8.3) de `cwd` quando ele tem caractere
+    // fora do ASCII ([`Invocation::ascii_cwd`]). Fica fora do relatório: o
+    // `cwd` acima é a mesma pasta.
+    #[serde(skip)]
+    #[schemars(skip)]
+    ascii_cwd: bool,
 }
 
 impl Invocation {
@@ -151,7 +159,20 @@ impl Invocation {
             cwd: cwd.into(),
             env: Vec::new(),
             inherit: Vec::new(),
+            ascii_cwd: false,
         }
+    }
+
+    /// No Windows, o processo nasce no nome curto (8.3) de `cwd` quando ele
+    /// tem caractere fora do ASCII, se a pasta tem nome curto. É para o
+    /// Verilator, que monta o caminho absoluto de cada fonte a partir do CWD
+    /// lido pela página de código ANSI ("With current working directory
+    /// '...grego ?s...'"): um caminho relativo não basta. Os argumentos
+    /// continuam relativos a `cwd` ([`tool_path`]), e valem a partir do nome
+    /// curto, que é a mesma pasta.
+    pub(crate) fn ascii_cwd(mut self) -> Self {
+        self.ascii_cwd = true;
+        self
     }
 
     pub(crate) fn arg(mut self, arg: impl Into<String>) -> Self {
@@ -166,9 +187,19 @@ impl Invocation {
         self.arg(arg)
     }
 
-    /// Acrescenta um caminho para o `iverilog`, como [`icarus_path`].
+    /// Acrescenta um caminho para o `iverilog`, como [`icarus_path`], e
+    /// relativo ao CWD quando tem caractere fora do ASCII ([`tool_path`]).
     pub(crate) fn icarus_path_arg(self, path: &Utf8Path) -> Self {
-        self.arg(icarus_path(path))
+        let arg = icarus_path(&tool_path(path, &self.cwd));
+        self.arg(arg)
+    }
+
+    /// Acrescenta um caminho para uma ferramenta que abre arquivos pela
+    /// página de código do Windows ([`tool_path`]): o `vvp`, o Yosys, o
+    /// Verilator, o `dot`.
+    pub(crate) fn tool_path_arg(self, path: &Utf8Path) -> Self {
+        let arg = tool_path(path, &self.cwd).into_string();
+        self.arg(arg)
     }
 
     pub(crate) fn env(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
@@ -244,6 +275,55 @@ pub(crate) fn icarus_path(path: &Utf8Path) -> String {
     } else {
         native
     }
+}
+
+/// Um caminho para uma ferramenta do MSYS2 ou do OSS CAD Suite (o Icarus, o
+/// `vvp`, o Yosys, o Verilator, o `dot`) que roda em `cwd`: no Windows,
+/// relativo a `cwd` quando tem caractere fora do ASCII; senão, como é.
+///
+/// No Windows essas ferramentas abrem arquivos pela página de código ANSI. O
+/// Icarus e o Verilator recebem a linha de comando já convertida para ela
+/// (num Windows em português, o `Δ` de `grego Δσ` vira `?`), e o Yosys a
+/// recebe em UTF-8 mas abre o arquivo pela página de código, o que falha com
+/// qualquer acento ("Can't open log file"). O CWD chega a elas pela API
+/// larga do Windows, e o caminho relativo a ele deixa de fora o trecho em
+/// comum, onde fica o acento quando é a pasta do projeto que tem
+/// (`OneDrive\Área de Trabalho`, `teste - Cópia`) ou a do usuário
+/// (`C:\Users\José`). Conferido em 2026-10-27: com caminhos relativos, o
+/// Icarus simula e o Yosys sintetiza em `acentuação`, `grego Δσ` e
+/// `cjk 日本`. Um nome com acento depois do trecho em comum (um arquivo
+/// `módulo.v`) continua chegando à ferramenta. Em outro disco não há
+/// caminho relativo, e vai o absoluto. Fora do Windows o caminho vai como é:
+/// lá as ferramentas recebem o UTF-8 sem conversão, e um `..` depois de um
+/// link simbólico subiria pelo destino dele, e não pela pasta de cima.
+pub(crate) fn tool_path(path: &Utf8Path, cwd: &Utf8Path) -> Utf8PathBuf {
+    let native = Utf8PathBuf::from(
+        dunce::simplified(path.as_std_path())
+            .to_string_lossy()
+            .into_owned(),
+    );
+    if !cfg!(windows) || native.as_str().is_ascii() {
+        return native;
+    }
+    let cwd = Utf8PathBuf::from(
+        dunce::simplified(cwd.as_std_path())
+            .to_string_lossy()
+            .into_owned(),
+    );
+    crate::paths::relative_path(&native, &cwd).unwrap_or(native)
+}
+
+/// O CWD com que o processo de `invocation` nasce: o dele, ou o nome curto
+/// com [`Invocation::ascii_cwd`].
+fn spawn_dir(invocation: &Invocation) -> std::borrow::Cow<'_, Utf8Path> {
+    if invocation.ascii_cwd
+        && cfg!(windows)
+        && !invocation.cwd.as_str().is_ascii()
+        && let Some(short) = short_path(&invocation.cwd)
+    {
+        return std::borrow::Cow::Owned(short);
+    }
+    std::borrow::Cow::Borrowed(&invocation.cwd)
 }
 
 /// Um caminho que o Verilator escreve nos makefiles do modelo, ou que vai na
@@ -381,7 +461,7 @@ fn command(invocation: &Invocation) -> Command {
     let mut command = Command::new(invocation.program.as_std_path());
     command
         .args(&invocation.args)
-        .current_dir(invocation.cwd.as_std_path())
+        .current_dir(spawn_dir(invocation).as_std_path())
         .env_clear()
         .stdin(Stdio::null());
     hide_console(&mut command);
@@ -1150,6 +1230,29 @@ mod reader_tests {
     use super::*;
 
     #[test]
+    fn tool_paths_with_accents_go_relative_to_the_cwd_on_windows() {
+        if cfg!(windows) {
+            let cwd = Utf8Path::new(r"C:\p\Área\eco\eco");
+            let image = Utf8Path::new(r"C:\p\Área\.lace\Temp\x.vvp");
+            assert_eq!(
+                tool_path(image, cwd),
+                Utf8Path::new(r"..\..\.lace\Temp\x.vvp")
+            );
+            // Só ASCII, ou em outro disco: o caminho como é.
+            let plain = Utf8Path::new(r"C:\p\a.v");
+            assert_eq!(tool_path(plain, cwd), plain);
+            let other = Utf8Path::new(r"D:\Área\a.v");
+            assert_eq!(tool_path(other, cwd), other);
+            // O `iverilog` recebe o relativo com `/`.
+            let invocation = Invocation::new("iverilog", cwd).icarus_path_arg(image);
+            assert_eq!(invocation.args, ["../../.lace/Temp/x.vvp"]);
+        } else {
+            let image = Utf8Path::new("/p/Área/.lace/Temp/x.vvp");
+            assert_eq!(tool_path(image, Utf8Path::new("/p/Área/eco/eco")), image);
+        }
+    }
+
+    #[test]
     fn a_line_that_is_not_utf8_is_read_in_the_windows_code_page() {
         // `Área` na Windows-1252: o 0xC1 sozinho não é UTF-8.
         let line = b"C:/p/\xC1rea/m.v:2: syntax error\r\n";
@@ -1874,5 +1977,24 @@ mod windows_tests {
         let plain = base.join("simples");
         std::fs::create_dir_all(&plain).unwrap();
         assert_eq!(make_path(&plain), plain.as_str().replace('\\', "/"));
+    }
+
+    #[test]
+    fn ascii_cwd_starts_the_tool_in_the_short_name_of_the_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = crate::paths::canonicalize(Utf8Path::from_path(dir.path()).unwrap()).unwrap();
+        let odd = base.join("grego Δσ");
+        std::fs::create_dir_all(&odd).unwrap();
+        assert_eq!(
+            spawn_dir(&Invocation::new("x", &odd)).as_ref(),
+            odd.as_path()
+        );
+        // Sem nome curto (um volume que não os cria), fica a pasta como é.
+        let expected = short_path(&odd).unwrap_or_else(|| odd.clone());
+        let ascii = Invocation::new("x", &odd).ascii_cwd();
+        assert_eq!(spawn_dir(&ascii).as_ref(), expected.as_path());
+        // Numa pasta só ASCII, nada muda.
+        let ascii = Invocation::new("x", &base).ascii_cwd();
+        assert_eq!(spawn_dir(&ascii).as_ref(), base.as_path());
     }
 }

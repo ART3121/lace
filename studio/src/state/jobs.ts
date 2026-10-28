@@ -11,7 +11,7 @@
 
 import { create } from 'zustand';
 
-import { beginRun, endRun, revealRunError, writeLine, type LineStyle } from '../console/consoles';
+import { beginRun, endRun, noteStepDir, revealRunError, writeLine, type LineStyle } from '../console/consoles';
 import * as fmt from '../console/format';
 import { setDiagnostics } from '../editor/monaco';
 import { formatDuration, t, type Key } from '../i18n';
@@ -280,6 +280,9 @@ export function lastFlowKey(last: LastRun): Key {
 function handleEvent(event: Event): void {
   switch (event.event) {
     case 'step_started': {
+      // Os caminhos relativos que a ferramenta escrever valem a partir do
+      // CWD dela: o link do console os procura ali também.
+      noteStepDir((event.command as Invocation).cwd);
       // Com o modo detalhado, o comando exato abre o bloco da ferramenta.
       if (verbose()) {
         const stage = channelOf(event.step as Step, event.tool as string);

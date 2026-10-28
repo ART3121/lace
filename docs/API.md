@@ -830,14 +830,18 @@ memórias e `pc_<nome>_mem.txt` pelo nome, e o testbench lê as entradas na
 pasta do processador (`../input_<n>.txt`) e grava as saídas e a onda
 (`<nome>_tb.fst`, `.vcd` no Verilator) ali.
 
-O caminho do processador não pode ter caractere fora do ASCII
-(`NonAsciiPath`). Até o YANC 6.x, o `.v` e o testbench citavam memórias e
-entradas pelo caminho absoluto, e o `vvp` recusa nome de arquivo com acento
-("contains non-printable characters"), seguindo sem os dados. Na 7.1 eles
-citam pelo nome relativo, e no Linux a simulação numa pasta com acento
-funciona (conferido); o Lace ainda passa ao simulador o caminho completo dos
-arquivos, e a recusa fica até isso ser conferido no Windows. O aviso do
-`vvp`, se aparecer, também vira erro.
+Uma pasta com acento, outro alfabeto ou emoji funciona: o YANC 7.1 cita
+memórias e entradas pelo nome relativo. No Windows, o Icarus, o `vvp`, o
+Yosys, o Verilator e o `dot` abrem arquivos pela página de código ANSI, e um
+caminho com caractere fora do ASCII chega a eles relativo ao CWD do passo
+(`process::tool_path`): o trecho com acento, que é a pasta do projeto ou a do
+usuário, fica de fora. O Verilator, que monta o caminho absoluto de cada
+fonte a partir do CWD lido pela página de código, nasce no nome curto (8.3)
+da pasta. Os diagnósticos voltam com o caminho absoluto. Um nome de arquivo
+com acento dentro do projeto (`rtl/módulo.v`) continua chegando assim à
+ferramenta. Conferido em 2026-10-27 em pastas com acento, espaço, símbolos,
+grego, CJK e emoji. O aviso do `vvp` sobre nome de arquivo
+("contains non-printable characters"), se aparecer, vira erro.
 
 Em toda chamada do Icarus (simulação, `check`, `hierarchy`), um `include`
 procura primeiro na pasta do arquivo que inclui (`-grelative-include`) e
@@ -1019,9 +1023,6 @@ Uma onda VCD do Icarus acima de 100 MB vem com um aviso: um `$dumpfile`
 terminado em `.fst` grava os mesmos sinais várias vezes menor. Só acontece
 quando o Lace não troca a extensão do `$dumpfile` (a chamada quebrada em
 linhas).
-
-Com processador no projeto, a raiz não pode ter caractere fora do ASCII
-(`NonAsciiPath`), pelo mesmo motivo de 5.2.
 
 ### 5.3.2 Testbench cocotb
 
@@ -2292,7 +2293,6 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `ProcessExitedEarly` | `process_exited_early` | o Surfer fechou logo ao abrir | ver o fim do log (`tail`) |
 | `NonUtf8Path` | `non_utf8_path` | caminho não UTF-8 | renomear |
 | `PathTooLong` | `path_too_long` | caminho acima de `YANC_PATH_LIMIT` (259 no Windows, 1000 nos outros) | mover o projeto |
-| `NonAsciiPath` | `non_ascii_path` | processador num caminho com caractere fora do ASCII (a pasta dele em `simulate`, a raiz do projeto com processador em `simulate_project`): o Lace passa ao simulador o caminho completo dos arquivos, e a recusa fica até a simulação numa pasta com acento ser conferida no Windows (5.2) | mover o projeto para uma pasta sem acento |
 | `Spawn` | `spawn` | processo não iniciou | ver permissão e caminho |
 | `Io` | `io` | leitura ou escrita do Lace falhou | ver `context` e `path` |
 | `ProjectNotFound` | `project_not_found` | `Project::discover` sem `.spf` na pasta nem nas de cima | rodar de dentro de um projeto, ou criar um |

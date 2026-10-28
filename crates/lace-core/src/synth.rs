@@ -466,10 +466,10 @@ pub fn check(
             invocation = invocation.arg("--top-module").arg(top);
         }
         if let Some(library) = &library {
-            invocation = invocation.arg("-y").path_arg(library);
+            invocation = invocation.arg("-y").tool_path_arg(library);
         }
         for file in &lint_files {
-            invocation = invocation.path_arg(file);
+            invocation = invocation.tool_path_arg(file);
         }
         runner.run(PlannedStep::new(Step::Lint, Tool::Verilator, invocation))?;
     }
@@ -606,9 +606,9 @@ pub fn synthesize(
         .invocation(Tool::Yosys, project.root())?
         .arg("-q")
         .arg("-l")
-        .path_arg(&log)
+        .tool_path_arg(&log)
         .arg("-s")
-        .path_arg(&script);
+        .tool_path_arg(&script);
     let mut runner = Runner::new(control);
     // Um módulo que se instancia sem `if`, `case` nem `for` no corpo nunca
     // para: o Icarus recusa, mas o Yosys gera um nível atrás do outro até
@@ -707,7 +707,7 @@ pub fn render_schematic(
     // da síntese), com o nome já sem espaço nem caractere especial.
     let text = format!(
         "read_json {}\nshow -format dot -prefix {stem}{width} {}\n",
-        yosys_quoted(netlist)?,
+        yosys_path(netlist, &dir)?,
         yosys_selection(module),
     );
     std::fs::write(&script, text).map_err(LaceError::io("Writing Yosys script", &script))?;
@@ -720,7 +720,7 @@ pub fn render_schematic(
         .invocation(Tool::Yosys, &dir)?
         .arg("-q")
         .arg("-s")
-        .path_arg(&script);
+        .tool_path_arg(&script);
     if runner.run(PlannedStep::new(Step::Graph, Tool::Yosys, graph))? {
         let mut render = toolchain.invocation(Tool::Dot, &dir)?;
         for (key, value) in toolchain.dot_fonts(&dir)? {
@@ -728,9 +728,9 @@ pub fn render_schematic(
         }
         let render = render
             .arg("-Tsvg")
-            .path_arg(&dot_file)
+            .tool_path_arg(&dot_file)
             .arg("-o")
-            .path_arg(&svg);
+            .tool_path_arg(&svg);
         runner.run(PlannedStep::new(Step::Render, Tool::Dot, render).timeout(options.timeout))?;
         // O dot pode avisar de erro de sintaxe e sair com 0 em versões antigas.
         runner.fail_on_error_diagnostics(Tool::Dot);
@@ -886,6 +886,13 @@ pub(crate) fn yosys_quoted(path: &Utf8Path) -> Result<String> {
     Ok(format!("\"{}\"", path.as_str().replace('\\', "/")))
 }
 
+/// Um caminho entre aspas para um script do Yosys que roda em `cwd`: no
+/// Windows, relativo a ele quando tem caractere fora do ASCII
+/// ([`tool_path`](crate::process::tool_path)).
+pub(crate) fn yosys_path(path: &Utf8Path, cwd: &Utf8Path) -> Result<String> {
+    yosys_quoted(&crate::process::tool_path(path, cwd))
+}
+
 fn yosys_script(
     files: &[Utf8PathBuf],
     top: &str,
@@ -894,7 +901,8 @@ fn yosys_script(
     check: &Utf8Path,
     root: &Utf8Path,
 ) -> Result<String> {
-    let quoted = yosys_quoted;
+    // O Yosys roda na raiz: os caminhos com acento vão relativos a ela.
+    let quoted = |path: &Utf8Path| yosys_path(path, root);
     let mut script = String::new();
     // `-I <raiz>`: um `include` relativo à raiz do projeto, como no Icarus
     // (`include_paths`); o relativo à pasta do arquivo o Yosys já acha.

@@ -33,7 +33,7 @@
 
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
-import { Terminal, type IMarker, type ITheme } from '@xterm/xterm';
+import { Terminal, type ILink, type IMarker, type ITheme } from '@xterm/xterm';
 
 import type { ConsoleChannel, ConsoleId } from '../state/layout';
 import { DEFAULT_THEME, legible, resolveTheme, type Theme } from '../themes';
@@ -112,9 +112,79 @@ export function setLinkHandler(handler: LinkHandler): void {
 }
 
 // `caminho/arquivo.ext:linha[:coluna]`, como o Icarus, o Verilator, o Yosys
-// e o Lace escrevem. Caminho com espaço não vira link.
-const FILE_LINK =
-  /((?:[A-Za-z]:)?[\w.~/\\-]*[\w-]+\.(?:v|sv|vh|svh|cmm|cpp|c|h|hpp|asm|txt|mif|ys|dot|json|spf|py)):(\d+)(?::(\d+))?/g;
+// e o Lace escrevem. Um caminho absoluto (`C:\...`, `C:/...`, `/...`) pode ter
+// espaço, acento e símbolos (`C:/Users/Ana/Área de Trabalho/p/a.v:7`): vai do
+// começo dele até o primeiro `.ext:linha`, sem passar pelo que um nome do
+// Windows não tem (`:`, `"`, `<`, `>`, `|`, `*`, `?`). Um relativo
+// (`rtl/a.v:7`, `../../x.v:90`) vai sem espaço, porque nada diz onde ele
+// começaria.
+const EXTENSIONS = 'v|sv|vh|svh|cmm|cpp|c|h|hpp|asm|txt|mif|ys|dot|json|spf|py';
+const FILE_LINK = new RegExp(
+  String.raw`(?<![\p{L}\p{N}_])((?:` +
+    String.raw`(?:[A-Za-z]:[\\/]|(?<=^|[\s"'(=])/)[^"<>|*?:\r\n]*?` +
+    String.raw`|[\p{L}\p{N}_.~\\/-]*?` +
+    String.raw`)[\p{L}\p{N}_-]+\.(?:${EXTENSIONS})):(\d+)(?::(\d+))?`,
+  'gu',
+);
+
+/** A célula de um caractere do texto de uma linha lógica: a linha do buffer
+ * (a partir de 0), a coluna e a largura (2 num caractere largo). */
+interface CellOf {
+  row: number;
+  col: number;
+  width: number;
+}
+
+/** A linha lógica que contém a linha `row` do buffer: as linhas que o
+ * terminal quebrou emendadas (um caminho longo passa da largura do painel), e
+ * a célula de cada caractere do texto, para o link cair no lugar certo mesmo
+ * com caractere largo. */
+function logicalLine(term: Terminal, row: number): { text: string; cells: CellOf[] } {
+  const buffer = term.buffer.active;
+  let first = row;
+  while (first > 0 && buffer.getLine(first)?.isWrapped) first--;
+  let last = row;
+  while (buffer.getLine(last + 1)?.isWrapped) last++;
+  let text = '';
+  const cells: CellOf[] = [];
+  for (let r = first; r <= last; r++) {
+    const line = buffer.getLine(r);
+    if (!line) break;
+    // Até a última célula escrita. O vazio no fim de uma linha que continua
+    // na de baixo é o lugar que sobrou de um caractere largo, e não espaço.
+    let end = line.length;
+    while (end > 0 && !line.getCell(end - 1)?.getChars()) end--;
+    for (let col = 0; col < end; col++) {
+      const cell = line.getCell(col);
+      const width = cell?.getWidth() ?? 1;
+      // A segunda metade de um caractere largo.
+      if (!cell || width === 0) continue;
+      const chars = cell.getChars() || ' ';
+      for (let i = 0; i < chars.length; i++) cells.push({ row: r, col, width });
+      text += chars;
+    }
+  }
+  return { text, cells };
+}
+
+/** As pastas onde rodaram as últimas etapas, da mais nova para a mais velha:
+ * o CWD de cada ferramenta, a partir do qual valem os caminhos relativos que
+ * ela escreve (no Windows, os de uma pasta com acento vão relativos). */
+const stepDirs: string[] = [];
+const STEP_DIRS = 8;
+
+/** Lembra a pasta onde uma etapa começou a rodar. */
+export function noteStepDir(dir: string): void {
+  const at = stepDirs.indexOf(dir);
+  if (at >= 0) stepDirs.splice(at, 1);
+  stepDirs.unshift(dir);
+  stepDirs.length = Math.min(stepDirs.length, STEP_DIRS);
+}
+
+/** As pastas de `noteStepDir`, da mais nova para a mais velha. */
+export function recentStepDirs(): readonly string[] {
+  return stepDirs;
+}
 
 function create(id: ConsoleId): ConsoleEntry {
   const term = new Terminal({
@@ -135,14 +205,22 @@ function create(id: ConsoleId): ConsoleEntry {
   term.loadAddon(search);
   term.registerLinkProvider({
     provideLinks(y, callback) {
-      const line = term.buffer.active.getLine(y - 1)?.translateToString(true) ?? '';
-      const links = [];
-      for (const match of line.matchAll(FILE_LINK)) {
+      const row = y - 1;
+      const { text, cells } = logicalLine(term, row);
+      const links: ILink[] = [];
+      for (const match of text.matchAll(FILE_LINK)) {
         const start = match.index ?? 0;
-        const [text, path, lineNo, column] = match;
+        const [whole, path, lineNo, column] = match;
+        const from = cells[start];
+        const to = cells[start + whole.length - 1];
+        // Só os links que passam por esta linha do buffer.
+        if (!from || !to || from.row > row || to.row < row) continue;
         links.push({
-          range: { start: { x: start + 1, y }, end: { x: start + text.length, y } },
-          text,
+          range: {
+            start: { x: from.col + 1, y: from.row + 1 },
+            end: { x: to.col + to.width, y: to.row + 1 },
+          },
+          text: whole,
           decorations: { underline: true, pointerCursor: true },
           activate: () => linkHandler?.(path, Number(lineNo), Number(column ?? 1)),
         });

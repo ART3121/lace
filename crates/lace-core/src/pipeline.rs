@@ -313,6 +313,11 @@ impl<'a> Runner<'a> {
             &output.stderr,
             planned.source.as_deref(),
         ));
+        resolve_relative_files(
+            planned.tool,
+            &planned.invocation.cwd,
+            &mut self.diagnostics[first_new..],
+        );
         // O iverilog sai com 0 depois de um erro que o Lace promove (macro
         // indefinida): o passo falha do mesmo jeito.
         let promoted = planned.tool == Tool::Iverilog
@@ -354,6 +359,34 @@ impl<'a> Runner<'a> {
         if self.status == Status::Succeeded && has_error {
             self.status = Status::Failed;
             self.failed_step = self.steps.last().map(|s| s.step);
+        }
+    }
+}
+
+/// Torna absoluto o arquivo de cada diagnóstico que a ferramenta escreveu
+/// relativo ao CWD dela: o Icarus, o `vvp`, o Yosys e o Verilator escrevem
+/// o caminho como o receberam, e no Windows um caminho com acento vai
+/// relativo ao CWD ([`tool_path`](crate::process::tool_path)). O `vvp`
+/// cita o que o `iverilog` recebeu, e os dois rodam no mesmo CWD. Só quando o
+/// arquivo existe: o compilador C++ que o Verilator chama cita os fontes do
+/// modelo relativos à pasta dele, e não ao CWD do Verilator.
+fn resolve_relative_files(tool: Tool, cwd: &Utf8Path, diagnostics: &mut [Diagnostic]) {
+    if !matches!(
+        tool,
+        Tool::Iverilog | Tool::Vvp | Tool::Yosys | Tool::Verilator | Tool::Dot
+    ) {
+        return;
+    }
+    for d in diagnostics {
+        let Some(file) = &d.file else {
+            continue;
+        };
+        if !file.is_relative() || file.as_str().starts_with('<') {
+            continue;
+        }
+        let absolute = crate::paths::normalize(&cwd.join(file));
+        if absolute.is_file() {
+            d.file = Some(absolute);
         }
     }
 }
@@ -418,5 +451,45 @@ pub(crate) fn final_status(status: Status, artifacts: &[Artifact]) -> Status {
         Status::Incomplete
     } else {
         status
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn found(tool: Tool, file: &str) -> Diagnostic {
+        Diagnostic {
+            tool,
+            severity: Severity::Error,
+            message: "x".into(),
+            file: Some(Utf8PathBuf::from(file)),
+            line: Some(1),
+            column: None,
+            raw: String::new(),
+        }
+    }
+
+    #[test]
+    fn relative_files_become_absolute_from_the_cwd() {
+        let dir = tempfile::tempdir().unwrap();
+        let cwd = crate::paths::canonicalize(Utf8Path::from_path(dir.path()).unwrap()).unwrap();
+        std::fs::create_dir_all(cwd.join("rtl")).unwrap();
+        std::fs::write(cwd.join("rtl/a.v"), "").unwrap();
+        let mut icarus = [
+            found(Tool::Iverilog, "rtl/a.v"),
+            found(Tool::Iverilog, "rtl/../rtl/a.v"),
+            // Um arquivo que não existe a partir do CWD fica como veio.
+            found(Tool::Iverilog, "rtl/b.v"),
+        ];
+        resolve_relative_files(Tool::Iverilog, &cwd, &mut icarus);
+        let a = cwd.join("rtl").join("a.v");
+        assert_eq!(icarus[0].file.as_deref(), Some(a.as_path()));
+        assert_eq!(icarus[1].file.as_deref(), Some(a.as_path()));
+        assert_eq!(icarus[2].file.as_deref(), Some(Utf8Path::new("rtl/b.v")));
+        // O YANC cita os arquivos de dados a partir de outra pasta.
+        let mut yanc = [found(Tool::Asmcomp, "rtl/a.v")];
+        resolve_relative_files(Tool::Asmcomp, &cwd, &mut yanc);
+        assert_eq!(yanc[0].file.as_deref(), Some(Utf8Path::new("rtl/a.v")));
     }
 }

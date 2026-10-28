@@ -2,6 +2,21 @@
 
 ## Não publicada
 
+- Simulação, síntese, hierarquia e escolha de sinais funcionam com o
+  projeto numa pasta com acento, outro alfabeto ou emoji, como
+  `OneDrive\Área de Trabalho` ou a cópia `teste - Cópia` que o Explorer
+  cria. No Windows, o Icarus, o `vvp`, o Yosys, o Verilator e o `dot` abrem
+  arquivos pela página de código ANSI: um caminho com caractere fora do
+  ASCII chega a eles relativo ao CWD do passo, e o Verilator nasce no nome
+  curto da pasta. Os diagnósticos voltam com o caminho absoluto. Sai o erro
+  `non_ascii_path`, que recusava a simulação de processador nessas pastas;
+  a síntese falhava com `Can't open log file`, e a leitura das portas pelo
+  Yosys caía no leitor de texto.
+- A hierarquia e a árvore de sinais da onda leem o `.vvp` na página de
+  código do Windows quando ele não é UTF-8: numa pasta com acento, o
+  `iverilog` grava nele o caminho em Windows-1252, e a leitura falhava com
+  `stream did not contain valid UTF-8`.
+
 - Protocolo: o contrato sai do `lace-core` para um crate próprio, o
   `lace-protocol`, acima do core, do `lace-learn` e do instalador. Com
   isso as respostas de `update.check`, `update.apply`, `install.add`,

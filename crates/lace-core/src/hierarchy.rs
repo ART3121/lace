@@ -382,7 +382,7 @@ pub(crate) fn elaborate<'c>(
     for top in tops {
         invocation = invocation.arg("-s").arg(top);
     }
-    invocation = invocation.arg("-o").path_arg(image);
+    invocation = invocation.arg("-o").tool_path_arg(image);
     for file in files {
         invocation = invocation.icarus_path_arg(file);
     }
@@ -392,8 +392,12 @@ pub(crate) fn elaborate<'c>(
         Tool::Iverilog,
         invocation,
     ))?;
+    // No Windows o `iverilog` grava na tabela de arquivos o caminho na
+    // página de código ANSI: um `Área` não é UTF-8, e o `read_to_string`
+    // recusava o arquivo inteiro.
     let text = if runner.status == Status::Succeeded {
-        Some(std::fs::read_to_string(image).map_err(LaceError::io("Reading", image))?)
+        let bytes = std::fs::read(image).map_err(LaceError::io("Reading", image))?;
+        Some(crate::process::decode_text(&bytes))
     } else {
         None
     };
@@ -468,8 +472,12 @@ fn parse_vvp(text: &str, root: &Utf8Path, library: Option<&Utf8Path>) -> Vec<Mod
                 let real = !name.is_empty() && name != "N/A" && !name.starts_with('<');
                 // O `iverilog` recebe os fontes com `/` (`process::icarus_path`),
                 // porque o `unescape` comeria a `\` de `C:\Users`; no
-                // resultado, o separador volta a ser o do sistema.
-                files.push(real.then(|| root.join(crate::paths::native_separators(&name))));
+                // resultado, o separador volta a ser o do sistema. Um caminho
+                // relativo (no Windows, o de uma pasta com acento) sai sem
+                // os `..`, como o absoluto que ele é.
+                files.push(real.then(|| {
+                    crate::paths::normalize(&root.join(crate::paths::native_separators(&name)))
+                }));
             }
         }
     }
@@ -593,6 +601,9 @@ pub(crate) fn quoted(text: &str) -> Option<(String, &str)> {
 }
 
 /// Desfaz os escapes de uma string do `.vvp`: `\\`, `\"` e octal (`\042`).
+/// Os bytes voltam a texto como a saída das ferramentas
+/// ([`decode_line`](crate::process::decode_line)): no Windows, o que não é
+/// UTF-8 é Windows-1252.
 fn unescape(text: &str) -> String {
     if !text.contains('\\') {
         return text.to_owned();
@@ -615,7 +626,7 @@ fn unescape(text: &str) -> String {
             i += 1;
         }
     }
-    String::from_utf8_lossy(&out).into_owned()
+    crate::process::decode_line(&out).into_owned()
 }
 
 #[cfg(test)]
@@ -675,6 +686,26 @@ S_0x7 .scope module, "a\\b" "esc\042q" 3 10, 3 2 0, S_0x2;
         assert_eq!(processor.children.len(), 1);
         assert_eq!(processor.children[0].name, "op_add.my_add");
         assert_eq!(processor.children[0].module, "ula_add");
+    }
+
+    #[test]
+    fn relative_file_names_come_back_absolute_and_without_dots() {
+        // No Windows, um caminho com acento vai relativo ao CWD do `iverilog`
+        // (`process::tool_path`), e o `.vvp` o guarda assim.
+        let vvp = "S_0x1 .scope module, \"tb\" \"tb\" 2 3;\n:file_names 3;\n    \"N/A\";\n    \"<interactive>\";\n    \"rtl/../tb.v\";\n";
+        let roots = parse_vvp(vvp, Utf8Path::new("/p"), None);
+        assert_eq!(roots[0].file.as_deref(), Some(Utf8Path::new("/p/tb.v")));
+    }
+
+    #[test]
+    fn escaped_bytes_that_are_not_utf8_are_read_in_the_windows_code_page() {
+        // `\301` é o 0xC1, o `Á` da Windows-1252.
+        let expected = if cfg!(windows) {
+            "Área"
+        } else {
+            "\u{FFFD}rea"
+        };
+        assert_eq!(unescape(r"\301rea"), expected);
     }
 
     #[test]

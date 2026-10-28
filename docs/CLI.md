@@ -1052,7 +1052,6 @@ CLI acrescenta o comando que resolve:
 | `no_cable` | `Connect the board through its USB-Blaster port, turn it on and set its RUN/PROG switch to RUN; on Windows the USB-Blaster driver is in the drivers folder of Quartus, and on Linux the cable needs a udev rule (see docs/FPGA.md)` |
 | `quartus_missing` | `Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS` |
 | `experimental_disabled` | `Enable it with: lace experimental enable <componente> (in Lace Studio: Settings > Experimental)` |
-| `non_ascii_path` | `Move the project to a folder without accents or other non-ASCII characters` |
 | `no_waveform` | `Simulate first with: lace sim`; na onda de um processador, `Simulate first with: lace sim -p <processador>` |
 | `signal_not_found` | sem caminho parecido no design, `List them with: lace wave signals`; com, nenhuma: a mensagem sugere os caminhos |
 | `testbench_not_elaborated` | `See the errors with: lace check` |

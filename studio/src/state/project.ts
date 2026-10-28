@@ -31,6 +31,10 @@ interface ProjectState {
    * com as abas e a árvore de arquivos, e o Explorer oferece criar o projeto
    * de novo. Volta a `false` quando o `.spf` reaparece. */
   spfMissing: boolean;
+  /** Com `spfMissing`, a pasta do projeto também não existe mais: ela foi
+   * movida, renomeada ou apagada, e criar o projeto de novo no lugar dela
+   * não traz nada de volta. O aviso manda abrir o projeto no lugar novo. */
+  rootMissing: boolean;
 
   open: (path: string) => Promise<boolean>;
   create: (parent: string, name: string) => Promise<boolean>;
@@ -68,7 +72,13 @@ function loadTarget(spf: string): string | null {
 async function activate(snapshot: ProjectSnapshot): Promise<void> {
   const saved = loadTarget(snapshot.spf);
   const target = saved && snapshot.processors.some((p) => p.name === saved) ? saved : null;
-  useProject.setState({ snapshot, target, spfMissing: false, treeVersion: useProject.getState().treeVersion + 1 });
+  useProject.setState({
+    snapshot,
+    target,
+    spfMissing: false,
+    rootMissing: false,
+    treeVersion: useProject.getState().treeVersion + 1,
+  });
   useHierarchy.getState().clear();
   if (useLayout.getState().explorerMode === 'hierarchy') void useHierarchy.getState().refresh();
   void setTitle(snapshot.name);
@@ -137,6 +147,7 @@ export const useProject = create<ProjectState>((set, get) => ({
   treeVersion: 0,
   closing: false,
   spfMissing: false,
+  rootMissing: false,
 
   open: async (path) => {
     if (get().snapshot && !(await get().close())) return false;
@@ -172,7 +183,7 @@ export const useProject = create<ProjectState>((set, get) => ({
     }
     useEditor.getState().reset();
     await guarded(() => api.project.close());
-    set({ snapshot: null, target: null, closing: false, spfMissing: false });
+    set({ snapshot: null, target: null, closing: false, spfMissing: false, rootMissing: false });
     useHierarchy.getState().clear();
     void setTitle(null);
     return true;
@@ -190,6 +201,7 @@ export const useProject = create<ProjectState>((set, get) => ({
       set({
         snapshot,
         spfMissing: false,
+        rootMissing: false,
         target: target && snapshot.processors.some((p) => p.name === target) ? target : null,
       });
     } catch (error) {
@@ -209,16 +221,33 @@ export const useProject = create<ProjectState>((set, get) => ({
     const snapshot = get().snapshot;
     if (!snapshot || get().spfMissing) return false;
     set({ spfMissing: true });
-    useToasts.getState().push(
-      {
-        kind: 'warning',
-        title: t('project.spfMissing.title', { file: baseName(snapshot.spf) }),
-        detail: t('project.spfMissing.detail'),
-      },
-      15000,
-    );
-    // O aviso com o botão de criar o projeto fica no Explorer.
-    useLayout.getState().revealView('explorer');
+    // Sem o .spf e sem a pasta, o projeto foi movido, renomeado ou apagado
+    // inteiro: o aviso é outro, e não oferece criar o projeto no lugar vazio.
+    void api.fs
+      .stat(snapshot.root)
+      .catch(() => null)
+      .then((stat) => {
+        if (get().snapshot !== snapshot || !get().spfMissing) return;
+        const rootMissing = !stat?.is_dir;
+        set({ rootMissing });
+        useToasts.getState().push(
+          rootMissing
+            ? {
+                kind: 'warning',
+                title: t('project.rootMissing.title', { name: snapshot.name }),
+                detail: t('project.rootMissing.detail', { path: snapshot.root }),
+              }
+            : {
+                kind: 'warning',
+                title: t('project.spfMissing.title', { file: baseName(snapshot.spf) }),
+                detail: t('project.spfMissing.detail'),
+              },
+          15000,
+        );
+        // O aviso com o botão (criar o projeto, ou abrir no lugar novo) fica
+        // no Explorer.
+        useLayout.getState().revealView('explorer');
+      });
     return true;
   },
 
