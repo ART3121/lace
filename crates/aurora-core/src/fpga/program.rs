@@ -3,7 +3,7 @@
 //!
 //! ```text
 //! quartus_pgm -l                                                        os cabos
-//! quartus_pgm -c "USB-Blaster [USB-0]" -m jtag -o "p;output_files/lace_board_top.sof@1"
+//! quartus_pgm -c "USB-Blaster [USB-0]" -m jtag -o "p;output_files/aurora_board_top.sof@1"
 //! ```
 //!
 //! Os dois rodam na pasta da placa ([`super::build_dir`]). O `@n` é a

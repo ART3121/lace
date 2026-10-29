@@ -155,7 +155,7 @@ function migrate(old: Record<string, unknown>): LayoutBody {
   if (typeof old.sidebarVisible === 'boolean') body = withRegion(body, 'left', { visible: old.sidebarVisible });
   // O console "Lace" saiu do painel, e os de etapa ficam fechados: quem
   // deixou um deles na frente passa ao INFO, que mostra tudo.
-  const tab = old.panelTab === 'lace' || isConsoleChannel(old.panelTab) ? 'info' : old.panelTab;
+  const tab = old.panelTab === 'aurora' || isConsoleChannel(old.panelTab) ? 'info' : old.panelTab;
   if (isViewId(tab)) body = withRegion(body, 'panel', { active: tab });
   if (typeof old.panelVisible === 'boolean') body = withRegion(body, 'panel', { visible: old.panelVisible });
   return normalizeBody(body);

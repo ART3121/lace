@@ -583,7 +583,7 @@ pub fn add_components(
     })
 }
 
-/// O que `lace setup` fez.
+/// O que `aurora setup` fez.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetupReport {
     /// Os rótulos dos componentes instalados, na ordem do índice.
@@ -592,8 +592,8 @@ pub struct SetupReport {
     pub verified: usize,
 }
 
-/// `lace setup`, que o assistente do Windows que baixa só os aplicativos
-/// escolhidos roda antes de copiar o `lace.exe`: o bundle de `components` em
+/// `aurora setup`, que o assistente do Windows que baixa só os aplicativos
+/// escolhidos roda antes de copiar o `aurora.exe`: o bundle de `components` em
 /// `prefix/toolchain`, a partir dos arquivos da release em `payload`
 /// ([`crate::install::install_bundle`]).
 pub fn setup(

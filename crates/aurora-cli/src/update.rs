@@ -60,7 +60,7 @@ struct CliHooks<'a> {
 
 impl Hooks for CliHooks<'_> {
     fn report(&mut self, report: &UpdateReport) {
-        crate::update_check::record(&report.lace.latest);
+        crate::update_check::record(&report.aurora.latest);
         if self.out.is_text() {
             print_table(report);
         }
@@ -92,13 +92,13 @@ impl Hooks for CliHooks<'_> {
 
     fn confirm_installer(
         &mut self,
-        lace: &AuroraVersions,
+        aurora: &AuroraVersions,
         prefix: &Utf8Path,
     ) -> aurora_installer::error::Result<()> {
         if self.yes {
             return Ok(());
         }
-        confirm(lace, prefix).map_err(aurora_installer::Error::Other)
+        confirm(aurora, prefix).map_err(aurora_installer::Error::Other)
     }
 
     fn applied(&mut self, prepared: &Prepared, applied: &AppliedUpdate, prefix: &Utf8Path) {
@@ -196,7 +196,7 @@ pub fn run(
     meter.finish();
     let report = result.map_err(crate::installation::lib_error)?;
     if text && report.method == Some(UpdateMethod::Installer) {
-        let version = &report.lace.latest;
+        let version = &report.aurora.latest;
         match report.action {
             UpdateAction::Updated => {
                 let prefix = report.prefix.as_deref().unwrap_or(Utf8Path::new(""));
@@ -212,8 +212,8 @@ pub fn run(
     out.json(&report)
 }
 
-/// A rede como as variáveis de ambiente a descrevem (`LACE_REPO`,
-/// `LACE_RELEASE_URL`).
+/// A rede como as variáveis de ambiente a descrevem (`AURORA_REPO`,
+/// `AURORA_RELEASE_URL`).
 pub(crate) fn network() -> anyhow::Result<Network> {
     Network::from_env().map_err(crate::installation::lib_error)
 }
@@ -317,13 +317,13 @@ fn print_table(report: &UpdateReport) {
         [
             String::new(),
             "Installed".to_owned(),
-            format!("Release {}", report.lace.latest),
+            format!("Release {}", report.aurora.latest),
             "Upstream".to_owned(),
         ],
         [
             "aurora".to_owned(),
-            report.lace.installed.clone(),
-            cell(Some(&report.lace.latest), report.lace.newer),
+            report.aurora.installed.clone(),
+            cell(Some(&report.aurora.latest), report.aurora.newer),
             String::new(),
         ],
         [
@@ -364,17 +364,17 @@ fn print_table(report: &UpdateReport) {
 
 /// O que fazer depois da tabela, quando não há atualização a instalar agora.
 fn print_summary(report: &UpdateReport) {
-    let lace = &report.lace;
+    let aurora = &report.aurora;
     println!();
-    if lace.newer {
-        println!("Lace {} is available: update with aurora update", lace.latest);
-    } else if is_newer(&lace.installed, &lace.latest) {
+    if aurora.newer {
+        println!("Lace {} is available: update with aurora update", aurora.latest);
+    } else if is_newer(&aurora.installed, &aurora.latest) {
         println!(
             "This Lace ({}) is newer than the latest release ({})",
-            lace.installed, lace.latest
+            aurora.installed, aurora.latest
         );
     } else {
-        println!("Lace is up to date ({})", lace.latest);
+        println!("Lace is up to date ({})", aurora.latest);
     }
     if report.bundle.installed.is_none() {
         println!("No bundle: no components to compare");
@@ -413,13 +413,13 @@ fn print_summary(report: &UpdateReport) {
 /// Pergunta no terminal. Sem terminal (um script, uma extensão), exige
 /// `--yes`, como o `aurora uninstall`: a atualização troca o Lace e o bundle
 /// inteiro.
-fn confirm(lace: &AuroraVersions, prefix: &Utf8Path) -> anyhow::Result<()> {
+fn confirm(aurora: &AuroraVersions, prefix: &Utf8Path) -> anyhow::Result<()> {
     if !std::io::stdin().is_terminal() {
         bail!("No terminal to confirm: use aurora update --yes");
     }
     eprint!(
         "Update Lace {} to {} in {prefix}, with its bundle? [y/N] ",
-        lace.installed, lace.latest
+        aurora.installed, aurora.latest
     );
     std::io::stderr().flush()?;
     let mut answer = String::new();
@@ -457,7 +457,7 @@ mod tests {
     struct Fake;
 
     impl Sources for Fake {
-        fn latest_lace(&self, _cancel: &CancelToken) -> aurora_installer::error::Result<String> {
+        fn latest_aurora(&self, _cancel: &CancelToken) -> aurora_installer::error::Result<String> {
             Ok("0.2.0".to_owned())
         }
 
@@ -521,7 +521,7 @@ mod tests {
     fn the_json_matches_its_schema() {
         // Na rodada que regrava `docs/schema/`, o arquivo pode estar no meio
         // da escrita; a rodada seguinte confere.
-        if std::env::var_os("LACE_UPDATE_SCHEMA").is_some() {
+        if std::env::var_os("AURORA_UPDATE_SCHEMA").is_some() {
             return;
         }
         let path = Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/schema/update.json");
@@ -533,7 +533,7 @@ mod tests {
                 .unwrap();
         for (action, prefix) in [
             (UpdateAction::Checked, None),
-            (UpdateAction::Updated, Some(Utf8PathBuf::from("/opt/lace"))),
+            (UpdateAction::Updated, Some(Utf8PathBuf::from("/opt/aurora"))),
         ] {
             report.action = action;
             report.prefix = prefix;

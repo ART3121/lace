@@ -1,8 +1,8 @@
 //! O `aurora learn` de ponta a ponta, com a trilha de teste do aurora-learn
-//! (`crates/aurora-learn/tests/fixtures`, por `LACE_LEARN_DIR`). O `--json` de
+//! (`crates/aurora-learn/tests/fixtures`, por `AURORA_LEARN_DIR`). O `--json` de
 //! cada subcomando confere com o schema dele em `docs/schema/`.
 //!
-//! Os que corrigem precisam do bundle em `LACE_TEST_BUNDLE`, como os de
+//! Os que corrigem precisam do bundle em `AURORA_TEST_BUNDLE`, como os de
 //! `cli.rs`; sem ele, avisam e passam.
 
 use assert_cmd::Command;
@@ -14,29 +14,29 @@ fn fixtures() -> Utf8PathBuf {
 }
 
 /// `aurora` sem configuração herdada, com a trilha de teste, dentro de `dir`.
-fn lace(dir: &Utf8Path) -> Command {
+fn aurora(dir: &Utf8Path) -> Command {
     let mut cmd = Command::cargo_bin("aurora").unwrap();
-    cmd.env_remove("LACE_TOOLCHAIN")
-        .env_remove("LACE_COMPILER")
-        .env_remove("LACE_TEST_BUNDLE")
-        .env("LACE_LEARN_DIR", fixtures())
+    cmd.env_remove("AURORA_TOOLCHAIN")
+        .env_remove("AURORA_COMPILER")
+        .env_remove("AURORA_TEST_BUNDLE")
+        .env("AURORA_LEARN_DIR", fixtures())
         .env("NO_COLOR", "1")
         .current_dir(dir);
     cmd
 }
 
 /// O mesmo, com o bundle de teste; `None` sem ele.
-fn lace_with_tools(dir: &Utf8Path) -> Option<Command> {
-    let bundle = match std::env::var("LACE_TEST_BUNDLE") {
+fn aurora_with_tools(dir: &Utf8Path) -> Option<Command> {
+    let bundle = match std::env::var("AURORA_TEST_BUNDLE") {
         Ok(bundle) => bundle,
         Err(_) => {
-            assert!(std::env::var_os("CI").is_none(), "CI sem LACE_TEST_BUNDLE");
-            eprintln!("PULADO: defina LACE_TEST_BUNDLE");
+            assert!(std::env::var_os("CI").is_none(), "CI sem AURORA_TEST_BUNDLE");
+            eprintln!("PULADO: defina AURORA_TEST_BUNDLE");
             return None;
         }
     };
-    let mut cmd = lace(dir);
-    cmd.env("LACE_TOOLCHAIN", bundle);
+    let mut cmd = aurora(dir);
+    cmd.env("AURORA_TOOLCHAIN", bundle);
     Some(cmd)
 }
 
@@ -79,7 +79,7 @@ fn json(cmd: &mut Command, args: &[&str], code: i32, schema: &str) -> Value {
 fn workspace() -> (tempfile::TempDir, Utf8PathBuf) {
     let (guard, dir) = tempdir();
     let report = json(
-        &mut lace(&dir),
+        &mut aurora(&dir),
         &["learn", "init", "ex", "--track", "teste"],
         0,
         "learn-init",
@@ -92,10 +92,10 @@ fn workspace() -> (tempfile::TempDir, Utf8PathBuf) {
 #[test]
 fn without_the_component_the_error_says_how_to_install_it() {
     let (_guard, dir) = tempdir();
-    let mut cmd = lace(&dir);
+    let mut cmd = aurora(&dir);
     // Vazia: sem a trilha do repositório, que o `aurora` de teste (uma build
     // de desenvolvimento) acharia sozinho.
-    cmd.env("LACE_LEARN_DIR", "");
+    cmd.env("AURORA_LEARN_DIR", "");
     let report = json(&mut cmd, &["learn", "init"], 2, "error");
     assert_eq!(report["error"]["code"], "learn_component_missing");
     assert_eq!(
@@ -107,7 +107,7 @@ fn without_the_component_the_error_says_how_to_install_it() {
 #[test]
 fn list_hint_and_reset_work_without_tools() {
     let (_guard, ex) = workspace();
-    let list = json(&mut lace(&ex), &["learn", "list"], 0, "learn-list");
+    let list = json(&mut aurora(&ex), &["learn", "list"], 0, "learn-list");
     assert_eq!(list["total"], 4);
     assert_eq!(list["solved"], 0);
     assert_eq!(list["exercises"][0]["current"], true);
@@ -116,7 +116,7 @@ fn list_hint_and_reset_work_without_tools() {
     // De uma subpasta, como os outros comandos.
     let deep = ex.join("exercises/01_comb/soma4");
     let hint = json(
-        &mut lace(&deep),
+        &mut aurora(&deep),
         &["learn", "hint", "soma4"],
         0,
         "learn-hint",
@@ -126,10 +126,10 @@ fn list_hint_and_reset_work_without_tools() {
     let file = ex.join("exercises/01_comb/mux2/mux2.v");
     std::fs::write(&file, "// meu\n").unwrap();
     // Sem --yes e sem terminal, recusa.
-    lace(&ex).args(["learn", "reset", "mux2"]).assert().code(2);
+    aurora(&ex).args(["learn", "reset", "mux2"]).assert().code(2);
     assert_eq!(std::fs::read_to_string(&file).unwrap(), "// meu\n");
     json(
-        &mut lace(&ex),
+        &mut aurora(&ex),
         &["learn", "reset", "mux2", "--yes"],
         0,
         "learn-reset",
@@ -140,21 +140,21 @@ fn list_hint_and_reset_work_without_tools() {
             .contains("module mux2")
     );
 
-    let unknown = json(&mut lace(&ex), &["learn", "hint", "nada"], 2, "error");
+    let unknown = json(&mut aurora(&ex), &["learn", "hint", "nada"], 2, "error");
     assert_eq!(unknown["error"]["code"], "unknown_exercise");
 }
 
 #[test]
 fn outside_a_workspace_the_error_says_how_to_create_one() {
     let (_guard, dir) = tempdir();
-    let report = json(&mut lace(&dir), &["learn", "list"], 2, "error");
+    let report = json(&mut aurora(&dir), &["learn", "list"], 2, "error");
     assert_eq!(report["error"]["code"], "no_learn_workspace");
 }
 
 #[test]
 fn the_watch_mode_needs_a_terminal() {
     let (_guard, ex) = workspace();
-    let Some(mut cmd) = lace_with_tools(&ex) else {
+    let Some(mut cmd) = aurora_with_tools(&ex) else {
         return;
     };
     let out = cmd
@@ -171,7 +171,7 @@ fn the_watch_mode_needs_a_terminal() {
 #[test]
 fn check_records_solved_and_unsolved() {
     let (_guard, ex) = workspace();
-    let Some(mut cmd) = lace_with_tools(&ex) else {
+    let Some(mut cmd) = aurora_with_tools(&ex) else {
         return;
     };
     // O arquivo inicial erra: saída sem atribuição.
@@ -187,7 +187,7 @@ fn check_records_solved_and_unsolved() {
     )
     .unwrap();
     let report = json(
-        &mut lace_with_tools(&ex).unwrap(),
+        &mut aurora_with_tools(&ex).unwrap(),
         &["learn", "check", "mux2"],
         0,
         "learn-check",
@@ -197,7 +197,7 @@ fn check_records_solved_and_unsolved() {
     assert!(ex.join("solutions/01_comb/mux2.v").is_file());
 
     // Em texto: o veredito e onde está a solução.
-    let out = lace_with_tools(&ex)
+    let out = aurora_with_tools(&ex)
         .unwrap()
         .args(["learn", "check"])
         .assert()
@@ -215,7 +215,7 @@ fn check_records_solved_and_unsolved() {
     )
     .unwrap();
     let report = json(
-        &mut lace_with_tools(&ex).unwrap(),
+        &mut aurora_with_tools(&ex).unwrap(),
         &["learn", "check"],
         1,
         "learn-check",
@@ -226,7 +226,7 @@ fn check_records_solved_and_unsolved() {
 #[test]
 fn dev_check_passes_on_the_test_track() {
     let (_guard, dir) = tempdir();
-    let Some(mut cmd) = lace_with_tools(&dir) else {
+    let Some(mut cmd) = aurora_with_tools(&dir) else {
         return;
     };
     let track = fixtures().join("teste");

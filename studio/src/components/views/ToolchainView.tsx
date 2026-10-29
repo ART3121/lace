@@ -137,9 +137,9 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
       {updates && (
         <>
           <h2>{t('toolchain.updates')}</h2>
-          {updates.lace.newer ? (
+          {updates.aurora.newer ? (
             <div className="notice update-offer">
-              <p>{t('toolchain.updateAvailable', { latest: updates.lace.latest, installed: updates.lace.installed })}</p>
+              <p>{t('toolchain.updateAvailable', { latest: updates.aurora.latest, installed: updates.aurora.installed })}</p>
               {updates.prefix ? (
                 <Button
                   variant="primary"
@@ -147,14 +147,14 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
                   disabled={!!running}
                   onClick={() => void offerUpdate()}
                 >
-                  {t('toolchain.update', { version: updates.lace.latest })}
+                  {t('toolchain.update', { version: updates.aurora.latest })}
                 </Button>
               ) : (
                 <p className="muted">{t('toolchain.updateNoInstaller')}</p>
               )}
             </div>
           ) : (
-            <p className="muted">{t('toolchain.upToDate', { latest: updates.lace.latest })}</p>
+            <p className="muted">{t('toolchain.upToDate', { latest: updates.aurora.latest })}</p>
           )}
           <table className="table">
             <thead>
@@ -168,9 +168,9 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
             <tbody>
               <tr>
                 <td>Lace</td>
-                <td className="mono">{updates.lace.installed}</td>
+                <td className="mono">{updates.aurora.installed}</td>
                 <td className="mono">
-                  {updates.lace.latest} {updates.lace.newer && <Badge tone="warn">new</Badge>}
+                  {updates.aurora.latest} {updates.aurora.newer && <Badge tone="warn">new</Badge>}
                 </td>
                 <td />
               </tr>

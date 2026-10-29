@@ -9,7 +9,7 @@ expression: qsf
 
 set_global_assignment -name FAMILY "Cyclone IV E"
 set_global_assignment -name DEVICE EP4CE115F29C7
-set_global_assignment -name TOP_LEVEL_ENTITY lace_board_top
+set_global_assignment -name TOP_LEVEL_ENTITY aurora_board_top
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 
@@ -26,11 +26,11 @@ set_global_assignment -name GENERATE_SVF_FILE ON
 
 # The sources in order, then the board top and the clocks.
 set_global_assignment -name SEARCH_PATH "/p"
-set_global_assignment -name VERILOG_FILE "/opt/lace/yanc/SAPHO/core.v"
+set_global_assignment -name VERILOG_FILE "/opt/aurora/yanc/SAPHO/core.v"
 set_global_assignment -name VERILOG_FILE "/p/My Files/proc/Hardware/proc.v"
 set_global_assignment -name SYSTEMVERILOG_FILE "/p/rtl/fifo.sv"
-set_global_assignment -name VERILOG_FILE lace_board_top.v
-set_global_assignment -name SDC_FILE lace_board_top.sdc
+set_global_assignment -name VERILOG_FILE aurora_board_top.v
+set_global_assignment -name SDC_FILE aurora_board_top.sdc
 
 # The pins of the signals in use, from the board manual.
 set_location_assignment PIN_A1 -to CLOCK_50

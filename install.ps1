@@ -5,10 +5,10 @@
 # Baixa o assistente de instalação da release, confere o SHA-256 com o
 # SHA256SUMS da release e o abre. Desde a 0.7.0, o assistente é o web, que
 # baixa só os aplicativos escolhidos. Variáveis opcionais:
-#   $env:LACE_VERSION = "0.2.0"            versão fixa, em vez da última
-#   $env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"
+#   $env:AURORA_VERSION = "0.2.0"            versão fixa, em vez da última
+#   $env:AURORA_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"
 #                                          instalação sem perguntas
-#   $env:LACE_FULL_SETUP = "1"             o assistente completo, com o bundle
+#   $env:AURORA_FULL_SETUP = "1"             o assistente completo, com o bundle
 #                                          inteiro dentro (para instalar sem rede depois)
 
 & {
@@ -109,8 +109,8 @@
         }
     }
 
-    $repo = if ($env:LACE_REPO) { $env:LACE_REPO } else { 'ART3121/lace' }
-    $version = $env:LACE_VERSION
+    $repo = if ($env:AURORA_REPO) { $env:AURORA_REPO } else { 'ART3121/lace' }
+    $version = $env:AURORA_VERSION
     if (-not $version) {
         # A página da última release redireciona para /releases/tag/<tag>,
         # e é o que a CLI consulta: a API do GitHub limita a 60 consultas por
@@ -136,10 +136,10 @@
 
     # O assistente web (desde a 0.7.0) tem poucos MB e baixa da release só
     # os aplicativos escolhidos; o completo traz o bundle inteiro, e é o que
-    # vem numa versão sem o web ou com LACE_FULL_SETUP.
+    # vem numa versão sem o web ou com AURORA_FULL_SETUP.
     $name = "lace-$version-windows-x64-web-setup.exe"
     $what = 'the Lace {0} installer, which downloads only the apps you choose (windows-x64)' -f $version
-    if ($env:LACE_FULL_SETUP -or -not (& $listedAs $name)) {
+    if ($env:AURORA_FULL_SETUP -or -not (& $listedAs $name)) {
         $name = "lace-$version-windows-x64-setup.exe"
         $what = "Lace $version (windows-x64)"
     }
@@ -174,8 +174,8 @@
     }
 
     Write-Host 'Opening the installer'
-    if ($env:LACE_SETUP_ARGS) {
-        $p = Start-Process -FilePath $setup -ArgumentList $env:LACE_SETUP_ARGS -Wait -PassThru
+    if ($env:AURORA_SETUP_ARGS) {
+        $p = Start-Process -FilePath $setup -ArgumentList $env:AURORA_SETUP_ARGS -Wait -PassThru
     } else {
         $p = Start-Process -FilePath $setup -Wait -PassThru
     }

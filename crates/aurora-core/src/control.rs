@@ -16,7 +16,7 @@
 //! use std::sync::mpsc;
 //! use aurora_core::*;
 //!
-//! # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+//! # let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 //! let project = Project::open("/p/demo")?;
 //! let cancel = CancelToken::new();
 //! let (events, received) = mpsc::channel();

@@ -14,7 +14,7 @@ use clap::{Parser, Subcommand};
 use aurora_installer::pack::{self, Contents};
 
 #[derive(Parser, Debug)]
-#[command(name = "aurora-pack", version = aurora_installer::LACE_VERSION)]
+#[command(name = "aurora-pack", version = aurora_installer::AURORA_VERSION)]
 /// Build the Lace installers
 struct Args {
     #[command(subcommand)]
@@ -34,7 +34,7 @@ struct Common {
     contents: Option<PathBuf>,
     /// The Lace executable for the platform
     #[arg(long, value_name = "FILE")]
-    lace: PathBuf,
+    aurora: PathBuf,
     /// Where to build (must be empty)
     #[arg(long, value_name = "DIR")]
     out: PathBuf,
@@ -101,7 +101,7 @@ fn main() -> anyhow::Result<()> {
             let index = pack::tui(
                 &common.toolchain,
                 &contents,
-                &common.lace,
+                &common.aurora,
                 &installer,
                 &common.out,
                 level,
@@ -136,7 +136,7 @@ fn main() -> anyhow::Result<()> {
             pack::inno(
                 &common.toolchain,
                 &contents,
-                &common.lace,
+                &common.aurora,
                 &common.out,
                 web.as_deref(),
             )?;

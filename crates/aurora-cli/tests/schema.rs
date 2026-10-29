@@ -4,17 +4,17 @@
 //! descrevem.
 //!
 //! A primeira metade roda sem ferramentas. A segunda precisa do bundle em
-//! `LACE_TEST_BUNDLE`, como os testes de `cli.rs`.
+//! `AURORA_TEST_BUNDLE`, como os testes de `cli.rs`.
 
 use assert_cmd::Command;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde_json::Value;
 
-fn lace(dir: &Utf8Path) -> Command {
+fn aurora(dir: &Utf8Path) -> Command {
     let mut cmd = Command::cargo_bin("aurora").unwrap();
-    cmd.env_remove("LACE_TOOLCHAIN")
-        .env_remove("LACE_COMPILER")
-        .env_remove("LACE_TEST_BUNDLE")
+    cmd.env_remove("AURORA_TOOLCHAIN")
+        .env_remove("AURORA_COMPILER")
+        .env_remove("AURORA_TEST_BUNDLE")
         .current_dir(dir);
     cmd
 }
@@ -63,10 +63,10 @@ fn conforms(schema: &str, value: &Value) {
 }
 
 fn bundle() -> Option<String> {
-    let value = std::env::var("LACE_TEST_BUNDLE").ok();
+    let value = std::env::var("AURORA_TEST_BUNDLE").ok();
     if value.is_none() {
-        assert!(std::env::var_os("CI").is_none(), "CI sem LACE_TEST_BUNDLE");
-        eprintln!("PULADO: defina LACE_TEST_BUNDLE");
+        assert!(std::env::var_os("CI").is_none(), "CI sem AURORA_TEST_BUNDLE");
+        eprintln!("PULADO: defina AURORA_TEST_BUNDLE");
     }
     value
 }
@@ -74,9 +74,9 @@ fn bundle() -> Option<String> {
 #[test]
 fn commands_without_tools_match_their_schemas() {
     let (_guard, dir) = tempdir();
-    conforms("new", &run(&mut lace(&dir), &["new", "demo"], 0));
+    conforms("new", &run(&mut aurora(&dir), &["new", "demo"], 0));
     let root = dir.join("demo");
-    let at = || lace(&root);
+    let at = || aurora(&root);
 
     let status = run(&mut at(), &["status"], 0);
     conforms("status", &status);
@@ -152,11 +152,11 @@ fn commands_with_tools_match_their_schemas() {
     };
     let (_guard, dir) = tempdir();
     let at = |root: &Utf8Path| {
-        let mut cmd = lace(root);
-        cmd.env("LACE_TOOLCHAIN", &tc);
+        let mut cmd = aurora(root);
+        cmd.env("AURORA_TOOLCHAIN", &tc);
         cmd
     };
-    lace(&dir).args(["new", "demo"]).assert().success();
+    aurora(&dir).args(["new", "demo"]).assert().success();
     let root = dir.join("demo");
     run(&mut at(&root), &["add", "porta.v", "porta_tb.v"], 0);
 

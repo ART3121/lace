@@ -9,7 +9,7 @@
 // instalado:
 //
 //   cargo build --release -p aurora-cli
-//   LACE=../../target/release/aurora LACE_TOOLCHAIN=~/.local/share/lace/toolchain \
+//   AURORA=../../target/release/aurora AURORA_TOOLCHAIN=~/.local/share/lace/toolchain \
 //     npm run record:fixtures
 //
 // Roda numa cópia de test/fixtures/projeto demo, numa pasta temporária com
@@ -23,7 +23,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, write
 import { homedir, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 
-const lace = process.env.LACE ?? 'lace';
+const lace = process.env.AURORA ?? 'lace';
 const here = import.meta.dirname;
 const fixtures = join(here, '..', 'test', 'fixtures');
 const out = join(fixtures, 'responses');

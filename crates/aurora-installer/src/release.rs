@@ -27,7 +27,7 @@ pub struct Network {
     /// O repositório das releases (`dono/nome`); [`Network::DEFAULT_REPO`]
     /// por padrão.
     pub repo: String,
-    /// Um espelho (`LACE_RELEASE_URL`), já validado por
+    /// Um espelho (`AURORA_RELEASE_URL`), já validado por
     /// [`Network::validate_mirror`]: só `https://` ou `file://`, sem a barra
     /// final. Tem uma pasta `v<versão>/` por release e, se quiser, um
     /// arquivo `latest` com a última versão.
@@ -46,15 +46,15 @@ pub struct Network {
 
 impl Network {
     /// O repositório padrão das releases.
-    pub const DEFAULT_REPO: &str = "ART3121/lace";
+    pub const DEFAULT_REPO: &str = "ART3121/aurora";
 
-    /// A rede como a CLI a monta: `LACE_REPO`, `LACE_RELEASE_URL`, o `curl`
+    /// A rede como a CLI a monta: `AURORA_REPO`, `AURORA_RELEASE_URL`, o `curl`
     /// do `System32` no Windows, e a base das pastas de trabalho (o temp do
     /// sistema no Windows; `/var/tmp` como root; `XDG_CACHE_HOME` ou
     /// `~/.cache`).
     pub fn from_env() -> Result<Network> {
-        let repo = std::env::var("LACE_REPO").unwrap_or_else(|_| Self::DEFAULT_REPO.to_owned());
-        let mirror = Self::validate_mirror(std::env::var("LACE_RELEASE_URL").ok().as_deref())?;
+        let repo = std::env::var("AURORA_REPO").unwrap_or_else(|_| Self::DEFAULT_REPO.to_owned());
+        let mirror = Self::validate_mirror(std::env::var("AURORA_RELEASE_URL").ok().as_deref())?;
         let curl = if cfg!(windows) {
             std::env::var("SystemRoot")
                 .ok()
@@ -262,7 +262,7 @@ pub enum Bar {
 /// [`Remote`]; um substituto nos testes.
 pub trait Sources: Send + Sync {
     /// A última versão do Lace publicada (a tag sem o `v`).
-    fn latest_lace(&self, cancel: &CancelToken) -> Result<String>;
+    fn latest_aurora(&self, cancel: &CancelToken) -> Result<String>;
     /// O `bundle/versions.json` da release `v<version>` do Lace.
     fn release_versions(&self, version: &str, cancel: &CancelToken) -> Result<String>;
     /// A última versão upstream de um pacote de `bundle/versions.json`.
@@ -296,13 +296,13 @@ pub mod package {
     pub const STUDIO: &str = "studio";
     /// As trilhas do `aurora learn`, do próprio repositório: a versão é a do
     /// Lace.
-    pub const LACE_LEARN: &str = "aurora-learn";
+    pub const AURORA_LEARN: &str = "aurora-learn";
     /// O modelo do RTL viewer, do próprio repositório: a versão é a do Lace.
     pub const RTL_VIEWER: &str = "rtl-viewer";
 }
 
 /// O repositório do bloco de Windows (o pacote `msys`).
-const LACE_TOOLCHAIN: &str = "ART3121/lace-toolchain";
+const AURORA_TOOLCHAIN: &str = "ART3121/lace-toolchain";
 
 /// As tags do surfer-aurora no GitLab.
 const SURFER_AURORA_TAGS: &str =
@@ -446,7 +446,7 @@ impl Remote {
 impl Sources for Remote {
     /// Com um espelho, o arquivo `latest` dele, com a versão numa linha, se
     /// houver; sem ele, a do GitHub.
-    fn latest_lace(&self, cancel: &CancelToken) -> Result<String> {
+    fn latest_aurora(&self, cancel: &CancelToken) -> Result<String> {
         if let Some(base) = &self.0.mirror {
             let url = format!("{base}/latest");
             match self.fetch_text(&url, cancel) {
@@ -487,11 +487,11 @@ impl Sources for Remote {
     fn upstream(&self, name: &str, cancel: &CancelToken) -> Result<String> {
         match name {
             package::OSS_CAD_SUITE => self.latest_github_tag("YosysHQ/oss-cad-suite-build", cancel),
-            package::MSYS => self.latest_github_tag(LACE_TOOLCHAIN, cancel),
+            package::MSYS => self.latest_github_tag(AURORA_TOOLCHAIN, cancel),
             package::YANC => self.latest_github_tag("nipscernlab/yanc", cancel),
             // O Studio, as trilhas e o RTL viewer saem com o Lace: o mais
             // novo é o da última release.
-            package::STUDIO | package::LACE_LEARN | package::RTL_VIEWER => self.latest_lace(cancel),
+            package::STUDIO | package::AURORA_LEARN | package::RTL_VIEWER => self.latest_aurora(cancel),
             package::SURFER_AURORA => {
                 let text = self.fetch_text(SURFER_AURORA_TAGS, cancel)?;
                 let tags: Vec<GitlabTag> = serde_json::from_str(&text)
@@ -703,18 +703,18 @@ bbbb *lace-0.2.0-windows-x64-setup.exe
         }
         let network = network();
         assert!(network.asset_url("0.8.0/../..", "SHA256SUMS").is_err());
-        assert!(network.asset_url("0.8.0", "../lace.exe").is_err());
+        assert!(network.asset_url("0.8.0", "../aurora.exe").is_err());
         assert_eq!(
             network.asset_url("0.8.0", "SHA256SUMS").unwrap(),
-            "https://github.com/ART3121/lace/releases/download/v0.8.0/SHA256SUMS"
+            "https://github.com/ART3121/aurora/releases/download/v0.8.0/SHA256SUMS"
         );
         let mirrored = Network {
-            mirror: Some("https://lab.example/lace".into()),
+            mirror: Some("https://lab.example/aurora".into()),
             ..network
         };
         assert_eq!(
             mirrored.asset_url("0.8.0", "SHA256SUMS").unwrap(),
-            "https://lab.example/lace/v0.8.0/SHA256SUMS"
+            "https://lab.example/aurora/v0.8.0/SHA256SUMS"
         );
     }
 
@@ -723,10 +723,10 @@ bbbb *lace-0.2.0-windows-x64-setup.exe
         assert_eq!(Network::validate_mirror(None).unwrap(), None);
         assert_eq!(Network::validate_mirror(Some("")).unwrap(), None);
         assert_eq!(
-            Network::validate_mirror(Some("https://lab.example/lace/"))
+            Network::validate_mirror(Some("https://lab.example/aurora/"))
                 .unwrap()
                 .as_deref(),
-            Some("https://lab.example/lace")
+            Some("https://lab.example/aurora")
         );
         assert!(
             Network::validate_mirror(Some("HTTPS://lab.example"))
@@ -734,14 +734,14 @@ bbbb *lace-0.2.0-windows-x64-setup.exe
                 .is_some()
         );
         assert!(
-            Network::validate_mirror(Some("file:///srv/lace"))
+            Network::validate_mirror(Some("file:///srv/aurora"))
                 .unwrap()
                 .is_some()
         );
         for bad in [
-            "http://lab.example/lace",
+            "http://lab.example/aurora",
             "ftp://lab.example",
-            "lab.example/lace",
+            "lab.example/aurora",
         ] {
             let error = Network::validate_mirror(Some(bad)).unwrap_err();
             assert_eq!(error.code(), "invalid_mirror", "{bad}");

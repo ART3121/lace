@@ -11,9 +11,9 @@ import { join } from 'node:path';
 
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020';
 
-import { EXTENSION_ROOT, LACE_REPO, recordedCases, RESPONSES } from '../support/fixtures';
+import { EXTENSION_ROOT, AURORA_REPO, recordedCases, RESPONSES } from '../support/fixtures';
 
-const SCHEMAS = join(LACE_REPO, 'docs', 'schema');
+const SCHEMAS = join(AURORA_REPO, 'docs', 'schema');
 
 // Os formatos que o schemars põe nos inteiros. Um formato novo nos schemas
 // faz o Ajv recusar o schema, e o teste diz qual.
@@ -84,7 +84,7 @@ describe('contrato com docs/schema/', () => {
   const { cases } = recordedCases();
 
   it('toda resposta gravada tem os arquivos e um schema que existe', () => {
-    assert.ok(existsSync(SCHEMAS), `sem ${SCHEMAS}: defina LACE_REPO`);
+    assert.ok(existsSync(SCHEMAS), `sem ${SCHEMAS}: defina AURORA_REPO`);
     for (const c of cases) {
       for (const file of [c.stdout, c.stderr].filter((f): f is string => f !== undefined)) {
         assert.ok(existsSync(join(RESPONSES, file)), `falta ${file}`);
@@ -119,7 +119,7 @@ describe('contrato com docs/schema/', () => {
   it('src/lace/lace-types.ts é o que docs/schema/ gera', function () {
     this.timeout(60000);
     const result = spawnSync(process.execPath, [join(EXTENSION_ROOT, 'scripts', 'gen-lace-types.mjs'), '--check'], {
-      env: { ...process.env, LACE_REPO },
+      env: { ...process.env, AURORA_REPO },
       encoding: 'utf8',
     });
     assert.equal(result.status, 0, result.stderr);

@@ -7,8 +7,8 @@
 //   theme-standalone.css   as variáveis com as cores do Studio, claro ou escuro
 //   rtl-viewer.html        o modelo do HTML autocontido do `aurora synth --open`:
 //                          tudo acima embutido, e dois lugares que o Core
-//                          preenche, @@LACE_NETLIST@@ (o hierarchy.json) e
-//                          @@LACE_CONFIG@@ (o caminho e a data dele)
+//                          preenche, @@AURORA_NETLIST@@ (o hierarchy.json) e
+//                          @@AURORA_CONFIG@@ (o caminho e a data dele)
 //
 // O Studio não usa nada disto: compila o fonte direto (studio/vite.config.ts).
 //
@@ -68,8 +68,8 @@ ${css}
 </head>
 <body>
 <div id="lace-rtl-viewer"></div>
-<script id="lace-netlist" type="application/json">@@LACE_NETLIST@@</script>
-<script id="lace-config" type="application/json">@@LACE_CONFIG@@</script>
+<script id="lace-netlist" type="application/json">@@AURORA_NETLIST@@</script>
+<script id="lace-config" type="application/json">@@AURORA_CONFIG@@</script>
 <script>
 ${inline(js)}
 </script>

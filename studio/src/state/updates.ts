@@ -1,5 +1,5 @@
 // A atualização do Lace pelo Studio: a busca da release nova (`aurora update
-// --check`) ao abrir e a cada 12 horas, a oferta, a atualização (`lace
+// --check`) ao abrir e a cada 12 horas, a oferta, a atualização (`aurora
 // update --yes`, em jobs.ts) e o reinício do Studio na versão nova.
 //
 // A busca automática não mostra erro: sem rede, ela só tenta de novo na
@@ -33,7 +33,7 @@ const FIRST_CHECK_MS = 5000;
 /** Quanto o aviso de reinício fica à vista antes de a janela fechar. */
 const RESTART_DELAY_MS = 1500;
 /** A versão para a qual o Studio reiniciou, que a abertura seguinte avisa. */
-const UPDATED_KEY = 'lace.updatedTo';
+const UPDATED_KEY = 'aurora.updatedTo';
 
 /** A atualização terminou e o Studio ainda não saiu, porque algum arquivo
  * não foi gravado: `restart` reinicia, `quit` fecha para o assistente. */
@@ -57,7 +57,7 @@ const offered = new Set<string>();
 
 /** Há Lace mais novo, e esta instalação veio do instalador. */
 export function canUpdate(report: UpdateReport | null): report is UpdateReport {
-  return !!report && report.lace.newer && !!report.prefix;
+  return !!report && report.aurora.newer && !!report.prefix;
 }
 
 export const useUpdates = create<UpdatesState>((set, get) => ({
@@ -79,10 +79,10 @@ export const useUpdates = create<UpdatesState>((set, get) => ({
       }
     }
     set(report ? { checking: false, report } : { checking: false });
-    if (auto && canUpdate(report) && !offered.has(report.lace.latest)) {
-      offered.add(report.lace.latest);
+    if (auto && canUpdate(report) && !offered.has(report.aurora.latest)) {
+      offered.add(report.aurora.latest);
       if (!useDialogs.getState().dialog && !useJobs.getState().running) void offerUpdate(true);
-      else useToasts.getState().push({ kind: 'info', title: t('update.availableToast', { version: report.lace.latest }) }, 10000);
+      else useToasts.getState().push({ kind: 'info', title: t('update.availableToast', { version: report.aurora.latest }) }, 10000);
     }
     return report;
   },
@@ -97,10 +97,10 @@ export async function offerUpdate(auto = false): Promise<void> {
   if (!canUpdate(report)) return;
   const windows = useApp.getState().info?.os.startsWith('windows') ?? false;
   const answer = await confirm({
-    title: t('dialog.update.title', { version: report.lace.latest }),
+    title: t('dialog.update.title', { version: report.aurora.latest }),
     message: t(windows ? 'dialog.update.messageWindows' : 'dialog.update.message', {
-      installed: report.lace.installed,
-      latest: report.lace.latest,
+      installed: report.aurora.installed,
+      latest: report.aurora.latest,
       prefix: report.prefix ?? '',
     }),
     buttons: [
@@ -113,15 +113,15 @@ export async function offerUpdate(auto = false): Promise<void> {
   const result = await useJobs.getState().update();
   if (!result) return;
   if (result.action === 'updated') {
-    await leave({ mode: 'restart', version: result.lace.latest });
+    await leave({ mode: 'restart', version: result.aurora.latest });
   } else if (result.action === 'wizard_opened') {
-    useUpdates.setState({ pending: { mode: 'quit', version: result.lace.latest } });
+    useUpdates.setState({ pending: { mode: 'quit', version: result.aurora.latest } });
     const close = await confirm({
       title: t('dialog.updateWizard.title'),
-      message: t('dialog.updateWizard.message', { version: result.lace.latest }),
+      message: t('dialog.updateWizard.message', { version: result.aurora.latest }),
       buttons: [{ label: t('dialog.updateWizard.close'), value: 'close', primary: true }],
     });
-    if (close === 'close') await leave({ mode: 'quit', version: result.lace.latest });
+    if (close === 'close') await leave({ mode: 'quit', version: result.aurora.latest });
   } else {
     // Nada mais novo, afinal: o indicador sai.
     useUpdates.setState({ report: result });

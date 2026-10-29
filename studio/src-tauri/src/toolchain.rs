@@ -5,11 +5,11 @@
 //! compilador do Verilator, o Quartus, o cliente web do Surfer) é o
 //! `toolchain.info` do servidor.
 //!
-//! O `aurora` é, nesta ordem: o da variável `LACE_STUDIO_LACE` (para
-//! desenvolvimento), o da preferência `lace_path`, o da instalação do
-//! bundle das preferências (`<instalação>/bin/lace`), o da instalação em
+//! O `aurora` é, nesta ordem: o da variável `AURORA_IDE_CLI` (para
+//! desenvolvimento), o da preferência `aurora_path`, o da instalação do
+//! bundle das preferências (`<instalação>/bin/aurora`), o da instalação em
 //! que o Studio está (`<instalação>/toolchain/studio/`) e o do `PATH`. O
-//! bundle é o da preferência `toolchain_dir`, o de `LACE_TOOLCHAIN` ou o da
+//! bundle é o da preferência `toolchain_dir`, o de `AURORA_TOOLCHAIN` ou o da
 //! instalação achada; sem nenhum, o servidor procura o dele.
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -20,7 +20,7 @@ use crate::server::AuroraServer;
 use crate::settings::Settings;
 
 /// O nome do executável do Lace neste sistema.
-const LACE_EXE: &str = if cfg!(windows) { "lace.exe" } else { "lace" };
+const AURORA_EXE: &str = if cfg!(windows) { "aurora.exe" } else { "aurora" };
 
 /// Quantas pastas acima do Studio procurar a instalação: o Studio fica em
 /// `<instalação>/toolchain/studio/` (no macOS, dentro de um `.app`).
@@ -42,36 +42,36 @@ fn setting_path(value: &Option<String>) -> Option<Utf8PathBuf> {
         .map(Utf8PathBuf::from)
 }
 
-/// O `aurora` de uma instalação (`<instalação>/bin/lace`), se existe.
-fn lace_in(prefix: &Utf8Path) -> Option<Utf8PathBuf> {
-    let lace = prefix.join("bin").join(LACE_EXE);
-    lace.is_file().then_some(lace)
+/// O `aurora` de uma instalação (`<instalação>/bin/aurora`), se existe.
+fn aurora_in(prefix: &Utf8Path) -> Option<Utf8PathBuf> {
+    let aurora = prefix.join("bin").join(AURORA_EXE);
+    aurora.is_file().then_some(aurora)
 }
 
 /// A instalação em que o Studio está: a primeira pasta acima dele com
-/// `bin/lace` e `toolchain/`.
+/// `bin/aurora` e `toolchain/`.
 fn installation_of_studio() -> Option<Utf8PathBuf> {
     let exe = std::env::current_exe().ok()?;
     let exe = Utf8PathBuf::from_path_buf(exe).ok()?;
     exe.ancestors()
         .skip(1)
         .take(INSTALLATION_DEPTH)
-        .find(|dir| lace_in(dir).is_some() && dir.join("toolchain").is_dir())
+        .find(|dir| aurora_in(dir).is_some() && dir.join("toolchain").is_dir())
         .map(Utf8Path::to_owned)
 }
 
 /// O `aurora` do `PATH`.
-fn lace_on_path() -> Option<Utf8PathBuf> {
+fn aurora_on_path() -> Option<Utf8PathBuf> {
     let path = std::env::var_os("PATH")?;
     std::env::split_paths(&path)
         .filter_map(|dir| Utf8PathBuf::from_path_buf(dir).ok())
-        .map(|dir| dir.join(LACE_EXE))
-        .find(|lace| lace.is_file())
+        .map(|dir| dir.join(AURORA_EXE))
+        .find(|aurora| aurora.is_file())
 }
 
 /// A instalação de um `aurora` em `<instalação>/bin/`, com o bundle ao lado.
-fn installation_of(lace: &Utf8Path) -> Option<Utf8PathBuf> {
-    let bin = lace.parent()?;
+fn installation_of(aurora: &Utf8Path) -> Option<Utf8PathBuf> {
+    let bin = aurora.parent()?;
     let prefix = bin.parent()?;
     (bin.file_name() == Some("bin") && prefix.join("toolchain").is_dir()).then(|| prefix.to_owned())
 }
@@ -82,43 +82,43 @@ fn installation(settings: &Settings) -> Option<Utf8PathBuf> {
     setting_path(&settings.toolchain_dir)
         .and_then(|dir| {
             dir.parent()
-                .filter(|p| lace_in(p).is_some())
+                .filter(|p| aurora_in(p).is_some())
                 .map(Utf8Path::to_owned)
         })
         .or_else(installation_of_studio)
-        .or_else(|| lace_on_path().as_deref().and_then(installation_of))
+        .or_else(|| aurora_on_path().as_deref().and_then(installation_of))
 }
 
 /// O `aurora` que o Studio usa como servidor.
-pub fn lace_executable(settings: &Settings) -> IpcResult<Utf8PathBuf> {
-    let declared = env_path("LACE_STUDIO_LACE").or_else(|| setting_path(&settings.lace_path));
+pub fn aurora_executable(settings: &Settings) -> IpcResult<Utf8PathBuf> {
+    let declared = env_path("AURORA_IDE_CLI").or_else(|| setting_path(&settings.aurora_path));
     if let Some(path) = declared {
         return if path.is_file() {
             Ok(path)
         } else {
             Err(IpcError::new(
-                codes::LACE_MISSING,
-                format!("The lace program {path} does not exist"),
+                codes::AURORA_MISSING,
+                format!("The aurora program {path} does not exist"),
             ))
         };
     }
     installation(settings)
-        .and_then(|prefix| lace_in(&prefix))
-        .or_else(lace_on_path)
+        .and_then(|prefix| aurora_in(&prefix))
+        .or_else(aurora_on_path)
         .ok_or_else(|| {
             IpcError::new(
-                codes::LACE_MISSING,
-                "The lace program was not found next to the Studio or in the PATH; set it in Preferences > Lace bundle",
+                codes::AURORA_MISSING,
+                "The aurora program was not found next to the Studio or in the PATH; set it in Preferences > Lace bundle",
             )
         })
 }
 
 /// O bundle que o servidor recebe em `--toolchain`: o das preferências, o
-/// de `LACE_TOOLCHAIN` ou o da instalação; `None` deixa o servidor achar o
+/// de `AURORA_TOOLCHAIN` ou o da instalação; `None` deixa o servidor achar o
 /// dele.
 pub fn bundle_dir(settings: &Settings) -> Option<Utf8PathBuf> {
     setting_path(&settings.toolchain_dir)
-        .or_else(|| env_path("LACE_TOOLCHAIN"))
+        .or_else(|| env_path("AURORA_TOOLCHAIN"))
         .or_else(|| installation(settings).map(|prefix| prefix.join("toolchain")))
 }
 
@@ -172,12 +172,12 @@ mod tests {
         let prefix = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
         std::fs::create_dir_all(prefix.join("bin")).unwrap();
         std::fs::create_dir_all(prefix.join("toolchain")).unwrap();
-        let lace = prefix.join("bin").join(LACE_EXE);
-        std::fs::write(&lace, "").unwrap();
-        assert_eq!(lace_in(&prefix), Some(lace.clone()));
-        assert_eq!(installation_of(&lace), Some(prefix.clone()));
-        // Um lace fora de `bin/` não diz qual é a instalação.
-        let loose = prefix.join(LACE_EXE);
+        let aurora = prefix.join("bin").join(AURORA_EXE);
+        std::fs::write(&aurora, "").unwrap();
+        assert_eq!(aurora_in(&prefix), Some(aurora.clone()));
+        assert_eq!(installation_of(&aurora), Some(prefix.clone()));
+        // Um aurora fora de `bin/` não diz qual é a instalação.
+        let loose = prefix.join(AURORA_EXE);
         std::fs::write(&loose, "").unwrap();
         assert_eq!(installation_of(&loose), None);
         // O bundle das preferências leva à instalação dele.

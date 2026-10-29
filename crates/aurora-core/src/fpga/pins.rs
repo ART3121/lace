@@ -165,7 +165,7 @@ mod tests {
     /// Um `.pin` no formato do Quartus 25.1, com os pinos da placa de teste.
     fn report(rows: &[(&str, &str, &str, &str, &str)]) -> String {
         let mut text = String::from(
-            "CHIP  \"lace_board_top\"  ASSIGNED TO AN: EP4CE115F29C7\n\n\
+            "CHIP  \"aurora_board_top\"  ASSIGNED TO AN: EP4CE115F29C7\n\n\
              Pin Name/Usage               : Location  : Dir.   : I/O Standard      : Voltage : I/O Bank  : User Assignment\n\
              -------------------------------------------------------------------------------------------------------------\n\
              GND                          : A1        : gnd    :                   :         :           :\n\

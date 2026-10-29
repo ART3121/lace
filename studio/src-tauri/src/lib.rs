@@ -17,7 +17,7 @@
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
-//! | [`server`] | o servidor do Lace (`aurora serve`) e o `lace_call`, por onde passam os métodos do protocolo |
+//! | [`server`] | o servidor do Lace (`aurora serve`) e o `aurora_call`, por onde passam os métodos do protocolo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
 //! está em `docs/IPC.md`.
@@ -124,7 +124,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            server::lace_call,
+            server::aurora_call,
             commands::app::app_info,
             commands::app::settings_get,
             commands::app::settings_set,
@@ -151,9 +151,9 @@ pub fn run() {
             commands::files::fs_list_files,
             commands::files::fs_search,
             commands::toolchain::toolchain_info,
-            commands::toolchain::lace_update_check,
-            commands::toolchain::lace_install,
-            commands::toolchain::lace_update,
+            commands::toolchain::aurora_update_check,
+            commands::toolchain::aurora_install,
+            commands::toolchain::aurora_update,
             jobs::flow_start,
             jobs::flow_cancel,
             jobs::flow_running,

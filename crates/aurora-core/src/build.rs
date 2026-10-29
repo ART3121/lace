@@ -168,7 +168,7 @@ impl BuildResult {
 /// ```no_run
 /// use aurora_core::{BuildOptions, Control, Project, Toolchain, build};
 ///
-/// let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+/// let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 /// let project = Project::open("/home/eu/projetos/soma")?;
 /// let soma = project.require_processor("soma")?;
 /// let result = build(&toolchain, soma, &BuildOptions::default(), &Control::default())?;
@@ -269,7 +269,7 @@ pub enum OnFailure {
 ///
 /// ```no_run
 /// use aurora_core::{BuildOptions, Control, OnFailure, Project, Toolchain, build_processors};
-/// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+/// # let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 /// let project = Project::open("/p/demo")?;
 /// let results = build_processors(
 ///     &toolchain,

@@ -1,6 +1,6 @@
 //! A CLI de ponta a ponta: códigos de saída, texto e JSON.
 //!
-//! Os testes que rodam ferramentas precisam de um bundle em `LACE_TEST_BUNDLE`
+//! Os testes que rodam ferramentas precisam de um bundle em `AURORA_TEST_BUNDLE`
 //! (parcial com o YANC basta para os de build; completo para os demais; ver
 //! `crates/aurora-core/tests/common/mod.rs`). Sem elas, avisam e passam.
 //!
@@ -13,18 +13,18 @@ use predicates::prelude::*;
 use serde_json::Value;
 
 /// `aurora` sem nenhuma configuração herdada do ambiente de quem roda o teste.
-fn lace() -> Command {
+fn aurora() -> Command {
     let mut cmd = Command::cargo_bin("aurora").unwrap();
-    cmd.env_remove("LACE_TOOLCHAIN")
-        .env_remove("LACE_COMPILER")
-        .env_remove("LACE_TEST_BUNDLE")
+    cmd.env_remove("AURORA_TOOLCHAIN")
+        .env_remove("AURORA_COMPILER")
+        .env_remove("AURORA_TEST_BUNDLE")
         .env("NO_COLOR", "1");
     cmd
 }
 
 /// `aurora` rodando dentro de `dir`, como quem digita no terminal ali.
-fn lace_in(dir: &Utf8Path) -> Command {
-    let mut cmd = lace();
+fn aurora_in(dir: &Utf8Path) -> Command {
+    let mut cmd = aurora();
     cmd.current_dir(dir);
     cmd
 }
@@ -76,7 +76,7 @@ fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
 /// Um projeto vazio criado pela CLI: `(guarda, raiz)`.
 fn new_project(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
     let (guard, dir) = tempdir();
-    lace_in(&dir).args(["new", name]).assert().success();
+    aurora_in(&dir).args(["new", name]).assert().success();
     (guard, dir.join(name))
 }
 
@@ -159,14 +159,14 @@ fn fake_bundle(dir: &Utf8Path) {
 
 #[test]
 fn help_shows_both_flows_and_hides_completions() {
-    let help = stdout(lace().arg("--help"), 0);
+    let help = stdout(aurora().arg("--help"), 0);
     for expected in [
         "Verilog",
         "SAPHO",
         "aurora add counter.v counter_tb.v",
         "aurora proc add adder",
         "aurora sim -p adder",
-        "LACE_COMPILER",
+        "AURORA_COMPILER",
     ] {
         assert!(help.contains(expected), "falta {expected:?}:\n{help}");
     }
@@ -178,7 +178,7 @@ fn help_shows_both_flows_and_hides_completions() {
 
 #[test]
 fn completions_are_generated() {
-    lace()
+    aurora()
         .args(["completions", "bash"])
         .assert()
         .success()
@@ -216,7 +216,7 @@ fn removed_commands_and_flags_are_rejected() {
         &["synth", "--no-widths"],
     ];
     for args in removed {
-        lace()
+        aurora()
             .args(*args)
             .assert()
             .code(2)
@@ -235,7 +235,7 @@ fn exclusive_arguments_are_rejected() {
         &["remove"],
     ];
     for args in conflicts {
-        lace()
+        aurora()
             .args(*args)
             .assert()
             .code(2)
@@ -248,7 +248,7 @@ fn exclusive_arguments_are_rejected() {
 #[test]
 fn new_prints_spf_and_nothing_else() {
     let (_guard, dir) = tempdir();
-    let text = stdout(lace_in(&dir).args(["new", "proj"]), 0);
+    let text = stdout(aurora_in(&dir).args(["new", "proj"]), 0);
     assert_eq!(
         text.trim_end(),
         format!("Project created: {}", dir.join("proj").join("proj.spf"))
@@ -256,7 +256,7 @@ fn new_prints_spf_and_nothing_else() {
 
     std::fs::create_dir_all(dir.join("sub")).unwrap();
     let created = json(
-        lace_in(&dir).args(["--json", "new", "outro", "--dir", "sub"]),
+        aurora_in(&dir).args(["--json", "new", "outro", "--dir", "sub"]),
         0,
     );
     assert_eq!(created["message"], "Project created");
@@ -265,28 +265,28 @@ fn new_prints_spf_and_nothing_else() {
         dir.join("sub/outro/outro.spf")
     );
 
-    let err = json(lace_in(&dir).args(["--json", "new", "proj"]), 2);
+    let err = json(aurora_in(&dir).args(["--json", "new", "proj"]), 2);
     assert_eq!(err["error"]["code"], "project_exists");
 }
 
 #[test]
 fn top_without_top_level_shows_hint() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .arg("top")
         .assert()
         .success()
         .stdout(predicate::str::contains("No top module"))
         .stdout(predicate::str::contains("aurora top <file|module>"));
-    let top = json(lace_in(&root).args(["--json", "top"]), 0);
+    let top = json(aurora_in(&root).args(["--json", "top"]), 0);
     assert!(top["top_level"].is_null());
     assert!(top["module"].is_null());
 }
 
 /// `aurora` com a pasta de configuração do Lace (a do `experimental.json`)
 /// em `config`: o teste não lê nem grava a do usuário.
-fn lace_with_config(config: &Utf8Path) -> Command {
-    let mut cmd = lace();
+fn aurora_with_config(config: &Utf8Path) -> Command {
+    let mut cmd = aurora();
     cmd.env("APPDATA", config)
         .env("XDG_CONFIG_HOME", config)
         .env("HOME", config);
@@ -296,8 +296,8 @@ fn lace_with_config(config: &Utf8Path) -> Command {
 #[test]
 fn fpga_is_experimental_and_off_until_enabled() {
     let (_guard, config) = tempdir();
-    let lace = || lace_with_config(&config);
-    lace()
+    let aurora = || aurora_with_config(&config);
+    aurora()
         .args(["fpga", "boards"])
         .assert()
         .code(2)
@@ -308,21 +308,21 @@ fn fpga_is_experimental_and_off_until_enabled() {
         .stderr(predicate::str::contains(
             "Enable it with: aurora experimental enable fpga",
         ));
-    let list = stdout(lace().arg("experimental"), 0);
+    let list = stdout(aurora().arg("experimental"), 0);
     assert!(list.contains("  fpga       off  FPGA boards"), "{list}");
     assert!(list.contains("  assistant  off  AI assistant"), "{list}");
 
-    lace()
+    aurora()
         .args(["experimental", "enable", "fpga"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Enabled fpga (FPGA boards)"));
-    lace()
+    aurora()
         .args(["fpga", "boards"])
         .assert()
         .success()
         .stdout(predicate::str::contains("de2-115"));
-    let report = json(lace().args(["--json", "experimental"]), 0);
+    let report = json(aurora().args(["--json", "experimental"]), 0);
     assert_eq!(report["components"][0]["feature"], "fpga");
     assert_eq!(report["components"][0]["enabled"], true);
     assert!(
@@ -332,12 +332,12 @@ fn fpga_is_experimental_and_off_until_enabled() {
             .ends_with("experimental.json")
     );
 
-    lace()
+    aurora()
         .args(["experimental", "disable", "fpga"])
         .assert()
         .success();
-    lace().args(["fpga", "check"]).assert().code(2);
-    lace()
+    aurora().args(["fpga", "check"]).assert().code(2);
+    aurora()
         .args(["experimental", "enable", "nada"])
         .assert()
         .code(2)
@@ -349,9 +349,9 @@ fn fpga_is_experimental_and_off_until_enabled() {
 #[test]
 fn the_assistant_is_experimental_and_off_until_enabled() {
     let (_guard, config) = tempdir();
-    let lace = || lace_with_config(&config);
+    let aurora = || aurora_with_config(&config);
     for command in [&["mcp"][..], &["mcp", "setup", "print"], &["chat"]] {
-        lace()
+        aurora()
             .args(command)
             .assert()
             .code(2)
@@ -363,19 +363,19 @@ fn the_assistant_is_experimental_and_off_until_enabled() {
                 "Enable it with: aurora experimental enable assistant",
             ));
     }
-    lace()
+    aurora()
         .args(["experimental", "enable", "assistant"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Enabled assistant (AI assistant)"));
     // Ligado, o chat passa da conferência e para no que vem depois: sem
     // terminal, ele recusa com a própria mensagem.
-    lace()
+    aurora()
         .arg("chat")
         .assert()
         .code(2)
         .stderr(predicate::str::contains("aurora chat needs a terminal"));
-    let report = json(lace().args(["--json", "experimental"]), 0);
+    let report = json(aurora().args(["--json", "experimental"]), 0);
     assert_eq!(report["components"][1]["feature"], "assistant");
     assert_eq!(report["components"][1]["enabled"], true);
 }
@@ -383,7 +383,7 @@ fn the_assistant_is_experimental_and_off_until_enabled() {
 #[test]
 fn proc_add_and_set_with_arrays() {
     let (_guard, root) = new_project("proj");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "add", "alu", "--lang", "cpp", "--inputs", "2"])
         .assert()
         .success()
@@ -393,10 +393,10 @@ fn proc_add_and_set_with_arrays() {
     assert!(!source.contains("prname"), "{source}");
 
     // Nome repetido é erro do Lace, não do build: código 2, com o código estável.
-    let err = json(lace_in(&root).args(["--json", "proc", "add", "alu"]), 2);
+    let err = json(aurora_in(&root).args(["--json", "proc", "add", "alu"]), 2);
     assert_eq!(err["error"]["code"], "processor_exists");
 
-    lace_in(&root)
+    aurora_in(&root)
         .args([
             "proc", "set", "alu", "--freq", "50", "--clocks", "300", "--arrays", "true",
         ])
@@ -409,13 +409,13 @@ fn proc_add_and_set_with_arrays() {
     assert_eq!(entry["showArrays"], true);
 
     let processor = json(
-        lace_in(&root).args(["--json", "proc", "set", "alu", "--arrays", "false"]),
+        aurora_in(&root).args(["--json", "proc", "set", "alu", "--arrays", "false"]),
         0,
     );
     assert_eq!(processor["show_arrays"], false);
     assert_eq!(processor["frequency_mhz"], 50);
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "set", "alu"])
         .assert()
         .code(2)
@@ -426,8 +426,8 @@ fn proc_add_and_set_with_arrays() {
 #[test]
 fn proc_remove_takes_the_processor_out_and_keeps_its_folder() {
     let (_guard, root) = new_project("p");
-    lace_in(&root).args(["proc", "add", "soma"]).assert().success();
-    lace_in(&root)
+    aurora_in(&root).args(["proc", "add", "soma"]).assert().success();
+    aurora_in(&root)
         .args(["proc", "add", "filtro", "--lang", "cpp"])
         .assert()
         .success();
@@ -443,29 +443,29 @@ fn proc_remove_takes_the_processor_out_and_keeps_its_folder() {
         "module soma_tb;\nsoma u(.clk(1'b0));\nendmodule\n",
     )
     .unwrap();
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "soma/soma/soma.v", "soma/soma/soma_tb.v"])
         .assert()
         .success();
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "remove", "nada"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("available: soma, filtro"));
     // A lixeira pede um sim; sem terminal, só com --yes, e nada muda.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "remove", "soma", "--delete"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("--delete --yes"));
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "remove", "soma", "--yes"])
         .assert()
         .code(2);
     assert_eq!(spf(&root)["structure"]["processors"][0]["name"], "soma");
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "remove", "soma"])
         .assert()
         .success()
@@ -486,7 +486,7 @@ fn proc_remove_takes_the_processor_out_and_keeps_its_folder() {
     assert!(root.join("soma/soma.cmm").is_file());
 
     let report = json(
-        lace_in(&root).args(["--json", "proc", "remove", "filtro"]),
+        aurora_in(&root).args(["--json", "proc", "remove", "filtro"]),
         0,
     );
     assert_eq!(report["removed"]["name"], "filtro");
@@ -498,34 +498,34 @@ fn proc_remove_takes_the_processor_out_and_keeps_its_folder() {
 fn build_without_processors_exits_0() {
     let (_guard, root) = new_project("p");
     // Sem bundle nenhum: um projeto só de Verilog nem chega a precisar dele.
-    lace_in(&root)
+    aurora_in(&root)
         .arg("build")
         .assert()
         .success()
         .stdout(predicate::str::contains(
             "The project has no SAPHO processors",
         ));
-    let report = json(lace_in(&root).args(["--json", "build"]), 0);
+    let report = json(aurora_in(&root).args(["--json", "build"]), 0);
     assert_eq!(report["results"], serde_json::json!([]));
 }
 
 #[test]
 fn build_adds_the_generated_files_to_the_project() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     if !bundle_has(&tc, "yanc") {
         return;
     }
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "add", "soma"])
         .assert()
         .success();
     let soma_v = Utf8Path::new("soma").join("soma").join("soma.v");
     let soma_tb = Utf8Path::new("soma").join("soma").join("soma_tb.v");
-    lace_in(&root)
-        .env("LACE_TOOLCHAIN", &tc)
+    aurora_in(&root)
+        .env("AURORA_TOOLCHAIN", &tc)
         .arg("build")
         .assert()
         .success()
@@ -541,19 +541,19 @@ fn build_adds_the_generated_files_to_the_project() {
 
     // Já registrados: o build seguinte não repete. Tirado, volta.
     let report = json(
-        lace_in(&root)
-            .env("LACE_TOOLCHAIN", &tc)
+        aurora_in(&root)
+            .env("AURORA_TOOLCHAIN", &tc)
             .args(["--json", "build"]),
         0,
     );
     assert_eq!(report["registered"], serde_json::json!([]));
-    lace_in(&root)
+    aurora_in(&root)
         .args(["remove", soma_v.as_str()])
         .assert()
         .success();
     let report = json(
-        lace_in(&root)
-            .env("LACE_TOOLCHAIN", &tc)
+        aurora_in(&root)
+            .env("AURORA_TOOLCHAIN", &tc)
             .args(["--json", "build"]),
         0,
     );
@@ -568,7 +568,7 @@ fn unknown_processor_lists_available_ones() {
     // O binário de teste não tem bundle: o nome errado é o erro, antes dele,
     // em todo fluxo que nomeia um processador.
     for command in ["build", "check", "hierarchy", "sim", "synth"] {
-        lace()
+        aurora()
             .args(["-C", root.as_str(), command, "-p", "nada"])
             .assert()
             .code(2)
@@ -580,11 +580,11 @@ fn unknown_processor_lists_available_ones() {
 fn missing_bundle_is_exit_code_2() {
     let (_guard, root) = example("soma");
     // O binário de teste não tem bundle ao lado dele.
-    let err = json(lace().args(["-C", root.as_str(), "--json", "build"]), 2);
+    let err = json(aurora().args(["-C", root.as_str(), "--json", "build"]), 2);
     assert_eq!(err["error"]["code"], "bundle_not_found");
 
     let err = json(
-        lace().args([
+        aurora().args([
             "-C",
             root.as_str(),
             "--json",
@@ -612,8 +612,8 @@ fn bundle_next_to_the_executable_is_found_and_verified() {
     let run = |args: &[&str], code: i32| {
         let mut cmd = std::process::Command::new(installed.as_std_path());
         cmd.args(args)
-            .env_remove("LACE_TOOLCHAIN")
-            .env_remove("LACE_COMPILER")
+            .env_remove("AURORA_TOOLCHAIN")
+            .env_remove("AURORA_COMPILER")
             .env("NO_COLOR", "1");
         let out = cmd.output().unwrap();
         assert_eq!(
@@ -651,7 +651,7 @@ fn compiler_is_declared_by_option_or_variable() {
     // Um diretório sem os três programas é recusado, e não esquecido.
     let empty = dir.join("vazio");
     std::fs::create_dir_all(&empty).unwrap();
-    lace()
+    aurora()
         .args(["tools", "--toolchain", bundle.as_str()])
         .args(["--compiler", empty.as_str()])
         .assert()
@@ -673,15 +673,15 @@ fn compiler_is_declared_by_option_or_variable() {
         }
     }
     let by_option = json(
-        lace()
+        aurora()
             .args(["--json", "tools", "--toolchain", bundle.as_str()])
             .args(["--compiler", fake.as_str()]),
         0,
     );
     let by_variable = json(
-        lace()
+        aurora()
             .args(["--json", "tools", "--toolchain", bundle.as_str()])
-            .env("LACE_COMPILER", fake.as_str()),
+            .env("AURORA_COMPILER", fake.as_str()),
         0,
     );
     for tools in [by_option, by_variable] {
@@ -696,7 +696,7 @@ fn compiler_is_declared_by_option_or_variable() {
     }
 
     // O comando que guardava isso num arquivo saiu.
-    lace().arg("config").assert().code(2);
+    aurora().arg("config").assert().code(2);
 }
 
 /// As mensagens do Core são neutras; a dica com o comando vem da CLI, no
@@ -708,8 +708,8 @@ fn error_hints_name_the_command() {
     let bundle = root.join("../bundle");
     fake_bundle(&bundle);
     let run = |args: &[&str]| {
-        let mut cmd = lace_in(&root);
-        cmd.args(args).env("LACE_TOOLCHAIN", bundle.as_str());
+        let mut cmd = aurora_in(&root);
+        cmd.args(args).env("AURORA_TOOLCHAIN", bundle.as_str());
         cmd
     };
 
@@ -744,7 +744,7 @@ fn error_hints_name_the_command() {
 #[test]
 fn add_creates_module_and_testbench() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "and_gate.v"])
         .assert()
         .success()
@@ -752,7 +752,7 @@ fn add_creates_module_and_testbench() {
     let module = std::fs::read_to_string(root.join("and_gate.v")).unwrap();
     assert!(module.contains("module and_gate"), "{module}");
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "and_gate_tb.v"])
         .assert()
         .success()
@@ -765,7 +765,7 @@ fn add_creates_module_and_testbench() {
 
     // Um nome que não indica testbench vira testbench com --tb.
     let added = json(
-        lace_in(&root).args(["--json", "add", "--tb", "verifica.v"]),
+        aurora_in(&root).args(["--json", "add", "--tb", "verifica.v"]),
         0,
     );
     assert_eq!(added["files"][0]["role"], "testbench");
@@ -800,7 +800,7 @@ fn add_registers_existing_files_relative_to_the_shell() {
 
     // De dentro de rtl/, com -C apontando o projeto: os caminhos são de rtl/.
     let added = json(
-        lace_in(&rtl).args(["-C", "..", "--json", "add", "soma.v", "estimulo.v"]),
+        aurora_in(&rtl).args(["-C", "..", "--json", "add", "soma.v", "estimulo.v"]),
         0,
     );
     let files = added["files"].as_array().unwrap();
@@ -815,7 +815,7 @@ fn add_registers_existing_files_relative_to_the_shell() {
     assert_eq!(files[1]["role"], "testbench", "classificado pelo conteúdo");
     assert_eq!(files[1]["selected"], true);
 
-    lace_in(&rtl)
+    aurora_in(&rtl)
         .args(["-C", "..", "add", "--tb", "forcado.v"])
         .assert()
         .success()
@@ -834,7 +834,7 @@ fn add_registers_existing_files_relative_to_the_shell() {
     );
 
     // Arquivo inexistente numa pasta que não existe: o Core cria.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "novo/dentro.v"])
         .assert()
         .success()
@@ -848,12 +848,12 @@ fn add_registers_existing_files_relative_to_the_shell() {
 #[test]
 fn remove_unregisters_without_deleting() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "a.v", "b.v"])
         .assert()
         .success();
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["remove", "a.v"])
         .assert()
         .success()
@@ -861,14 +861,14 @@ fn remove_unregisters_without_deleting() {
     assert!(root.join("a.v").is_file(), "remover não apaga do disco");
 
     // Nenhum registrado: erro.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["remove", "a.v"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("a.v is not in the project"));
 
     // Um registrado e um não: remove o que estava e avisa do outro.
-    let removed = json(lace_in(&root).args(["--json", "remove", "b.v", "a.v"]), 0);
+    let removed = json(aurora_in(&root).args(["--json", "remove", "b.v", "a.v"]), 0);
     assert_eq!(
         Utf8Path::new(removed["removed"][0].as_str().unwrap()),
         root.join("b.v")
@@ -877,8 +877,8 @@ fn remove_unregisters_without_deleting() {
         Utf8Path::new(removed["not_registered"][0].as_str().unwrap()),
         root.join("a.v")
     );
-    lace_in(&root).args(["add", "a.v"]).assert().success();
-    lace_in(&root)
+    aurora_in(&root).args(["add", "a.v"]).assert().success();
+    aurora_in(&root)
         .args(["remove", "a.v", "b.v"])
         .assert()
         .success()
@@ -886,7 +886,7 @@ fn remove_unregisters_without_deleting() {
             "Warning: b.v was not in the project",
         ));
 
-    let status = json(lace_in(&root).args(["--json", "status"]), 0);
+    let status = json(aurora_in(&root).args(["--json", "status"]), 0);
     assert_eq!(status["synthesizable"], serde_json::json!([]));
     assert_eq!(status["unregistered"].as_array().unwrap().len(), 2);
 }
@@ -894,17 +894,17 @@ fn remove_unregisters_without_deleting() {
 #[test]
 fn top_by_file_and_by_module() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "a.v", "b.v"])
         .assert()
         .success();
-    lace_in(&root)
+    aurora_in(&root)
         .arg("top")
         .assert()
         .success()
         .stdout(predicate::str::contains("Top module: a (a.v)"));
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["top", "b.v"])
         .assert()
         .success()
@@ -914,7 +914,7 @@ fn top_by_file_and_by_module() {
     // Pelo nome do módulo, de qualquer pasta.
     let sub = root.join("sub");
     std::fs::create_dir_all(&sub).unwrap();
-    let top = json(lace_in(&sub).args(["-C", "..", "--json", "top", "a"]), 0);
+    let top = json(aurora_in(&sub).args(["-C", "..", "--json", "top", "a"]), 0);
     assert_eq!(
         Utf8Path::new(top["top_level"].as_str().unwrap()),
         root.join("a.v")
@@ -925,12 +925,12 @@ fn top_by_file_and_by_module() {
 #[test]
 fn move_keeps_files_in_the_project() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "a.v", "a_tb.v"])
         .assert()
         .success();
     let rtl_a = Utf8Path::new("rtl").join("a.v");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["move", "a.v", rtl_a.as_str()])
         .assert()
         .success()
@@ -945,7 +945,7 @@ fn move_keeps_files_in_the_project() {
     std::fs::create_dir(root.join("sim")).unwrap();
     std::fs::write(root.join("leia.txt"), "x").unwrap();
     let moved = json(
-        lace_in(&root).args(["--json", "move", "a_tb.v", "leia.txt", "sim"]),
+        aurora_in(&root).args(["--json", "move", "a_tb.v", "leia.txt", "sim"]),
         0,
     );
     assert_eq!(moved["moved"].as_array().unwrap().len(), 2, "{moved:#}");
@@ -957,22 +957,22 @@ fn move_keeps_files_in_the_project() {
 
     // Várias origens precisam de uma pasta; o .spf não se move; o destino
     // que existe não é sobrescrito.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["move", "sim/a_tb.v", "sim/leia.txt", "novo.v"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("must be an existing folder"));
-    let refused = json(lace_in(&root).args(["--json", "move", "p.spf", "q.spf"]), 2);
+    let refused = json(aurora_in(&root).args(["--json", "move", "p.spf", "q.spf"]), 2);
     assert_eq!(refused["error"]["code"], "cannot_move");
     let exists = json(
-        lace_in(&root).args(["--json", "move", "rtl/a.v", "sim/a_tb.v"]),
+        aurora_in(&root).args(["--json", "move", "rtl/a.v", "sim/a_tb.v"]),
         2,
     );
     assert_eq!(exists["error"]["code"], "path_exists");
     assert!(root.join("rtl/a.v").is_file());
 
     // Destino com `/` no fim é pasta, criada se faltar.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["move", "rtl/a.v", "hdl/"])
         .assert()
         .success();
@@ -983,20 +983,20 @@ fn move_keeps_files_in_the_project() {
 #[test]
 fn move_after_records_what_an_editor_moved() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "a.v", "a_tb.v"])
         .assert()
         .success();
 
     // A pasta renomeada: `hdl` é a própria `rtl`, não a pasta de destino.
     std::fs::create_dir(root.join("rtl")).unwrap();
-    lace_in(&root)
+    aurora_in(&root)
         .args(["move", "a.v", "rtl/"])
         .assert()
         .success();
     std::fs::rename(root.join("rtl"), root.join("hdl")).unwrap();
     let hdl_a = Utf8Path::new("hdl").join("a.v");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["move", "--after", "rtl", "hdl"])
         .assert()
         .success()
@@ -1009,7 +1009,7 @@ fn move_after_records_what_an_editor_moved() {
     // Arrastado para dentro de uma pasta que já existia.
     std::fs::rename(root.join("a_tb.v"), root.join("hdl/a_tb.v")).unwrap();
     let moved = json(
-        lace_in(&root).args(["--json", "move", "--after", "a_tb.v", "hdl"]),
+        aurora_in(&root).args(["--json", "move", "--after", "a_tb.v", "hdl"]),
         0,
     );
     assert_eq!(
@@ -1020,7 +1020,7 @@ fn move_after_records_what_an_editor_moved() {
 
     // O que não foi movido é recusado, e nada muda.
     let refused = json(
-        lace_in(&root).args(["--json", "move", "--after", "hdl/a.v", "b.v"]),
+        aurora_in(&root).args(["--json", "move", "--after", "hdl/a.v", "b.v"]),
         2,
     );
     assert_eq!(refused["error"]["code"], "invalid_project", "{refused:#}");
@@ -1029,19 +1029,19 @@ fn move_after_records_what_an_editor_moved() {
 
 #[test]
 fn hierarchy_shows_design_and_testbench() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     if !bundle_has(&tc, "icarus") {
         return;
     }
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "porta.v", "porta_tb.v"])
         .assert()
         .success();
-    lace_in(&root)
-        .env("LACE_TOOLCHAIN", &tc)
+    aurora_in(&root)
+        .env("AURORA_TOOLCHAIN", &tc)
         .arg("hierarchy")
         .assert()
         .success()
@@ -1054,8 +1054,8 @@ fn hierarchy_shows_design_and_testbench() {
     assert!(!root.join(".aurora8/reports").exists());
 
     let result = json(
-        lace_in(&root)
-            .env("LACE_TOOLCHAIN", &tc)
+        aurora_in(&root)
+            .env("AURORA_TOOLCHAIN", &tc)
             .args(["--json", "hierarchy"]),
         0,
     );
@@ -1071,8 +1071,8 @@ fn hierarchy_shows_design_and_testbench() {
         "module porta(input a, output y);\n  assign y = ;\nendmodule\n",
     )
     .unwrap();
-    lace_in(&root)
-        .env("LACE_TOOLCHAIN", &tc)
+    aurora_in(&root)
+        .env("AURORA_TOOLCHAIN", &tc)
         .arg("hierarchy")
         .assert()
         .code(1)
@@ -1083,11 +1083,11 @@ fn hierarchy_shows_design_and_testbench() {
 #[test]
 fn top_refuses_a_testbench_name() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "a.v", "a_tb.v"])
         .assert()
         .success();
-    let error = json(lace_in(&root).args(["--json", "top", "a_tb.v"]), 2);
+    let error = json(aurora_in(&root).args(["--json", "top", "a_tb.v"]), 2);
     assert_eq!(error["error"]["code"], "invalid_name");
     assert_eq!(spf(&root)["structure"]["topLevelFile"], "a.v");
 }
@@ -1095,24 +1095,24 @@ fn top_refuses_a_testbench_name() {
 #[test]
 fn top_unknown_module_lists_modules() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "and_gate.v"])
         .assert()
         .success();
-    lace_in(&root)
+    aurora_in(&root)
         .args(["top", "nada"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("nada"))
         .stderr(predicate::str::contains("and_gate"));
-    let err = json(lace_in(&root).args(["--json", "top", "nada"]), 2);
+    let err = json(aurora_in(&root).args(["--json", "top", "nada"]), 2);
     assert_eq!(err["error"]["code"], "module_not_found");
 }
 
 #[test]
 fn status_of_an_empty_project_explains_both_flows() {
     let (_guard, root) = new_project("p");
-    let text = stdout(lace_in(&root).arg("status"), 0);
+    let text = stdout(aurora_in(&root).arg("status"), 0);
     assert!(text.contains("Empty project"), "{text}");
     assert!(text.contains("aurora add <name>.v"), "{text}");
     assert!(text.contains("aurora proc add <name>"), "{text}");
@@ -1123,12 +1123,12 @@ fn status_lists_unregistered_files() {
     let (_guard, root) = new_project("p");
     std::fs::create_dir_all(root.join("rtl")).unwrap();
     std::fs::write(root.join("rtl/solto.v"), "module solto; endmodule\n").unwrap();
-    let text = stdout(lace_in(&root).arg("status"), 0);
+    let text = stdout(aurora_in(&root).arg("status"), 0);
     assert!(text.contains("Untracked files"), "{text}");
     assert!(text.contains(&shown("rtl/solto.v")), "{text}");
     assert!(text.contains("Add one with: aurora add <file>"), "{text}");
 
-    let status = json(lace_in(&root).args(["--json", "status"]), 0);
+    let status = json(aurora_in(&root).args(["--json", "status"]), 0);
     assert_eq!(
         Utf8Path::new(status["unregistered"][0].as_str().unwrap()),
         root.join("rtl/solto.v")
@@ -1138,15 +1138,15 @@ fn status_lists_unregistered_files() {
 #[test]
 fn status_shows_both_flows() {
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "and_gate.v", "and_gate_tb.v"])
         .assert()
         .success();
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "add", "soma"])
         .assert()
         .success();
-    let text = stdout(lace_in(&root).arg("status"), 0);
+    let text = stdout(aurora_in(&root).arg("status"), 0);
     for expected in [
         "Modules",
         "and_gate.v  top: and_gate",
@@ -1160,7 +1160,7 @@ fn status_shows_both_flows() {
     }
     assert!(!text.contains("Empty project"), "{text}");
 
-    let status = json(lace_in(&root).args(["--json", "status"]), 0);
+    let status = json(aurora_in(&root).args(["--json", "status"]), 0);
     assert_eq!(status["name"], "p");
     assert_eq!(status["top_module"], "and_gate");
     assert_eq!(status["testbench_module"], "and_gate_tb");
@@ -1175,9 +1175,9 @@ fn check_of_an_empty_project_hints_both_flows() {
     let bundle = root.join("../bundle");
     fake_bundle(&bundle);
     let err = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "check"])
-            .env("LACE_TOOLCHAIN", bundle.as_str()),
+            .env("AURORA_TOOLCHAIN", bundle.as_str()),
         2,
     );
     assert_eq!(err["error"]["code"], "empty_project");
@@ -1192,7 +1192,7 @@ fn check_of_an_empty_project_hints_both_flows() {
 #[test]
 fn wave_of_a_processor_before_simulating_hints_sim() {
     let (_guard, root) = example("soma");
-    let err = json(lace_in(&root).args(["--json", "wave", "-p", "soma"]), 2);
+    let err = json(aurora_in(&root).args(["--json", "wave", "-p", "soma"]), 2);
     assert_eq!(err["error"]["code"], "not_built");
     assert_eq!(
         err["error"]["hint"],
@@ -1200,18 +1200,18 @@ fn wave_of_a_processor_before_simulating_hints_sim() {
     );
 }
 
-// Com ferramentas (LACE_TEST_BUNDLE).
+// Com ferramentas (AURORA_TEST_BUNDLE).
 
 #[test]
 fn build_ok_is_exit_code_0() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("soma");
     let report = json(
-        lace()
+        aurora()
             .args(["-C", root.as_str(), "--json", "build"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     let results = report["results"].as_array().unwrap();
@@ -1221,14 +1221,14 @@ fn build_ok_is_exit_code_0() {
 
 #[test]
 fn build_error_is_exit_code_1_with_file_and_line() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("com_erro");
     let line = 15;
-    lace()
+    aurora()
         .args(["-C", root.as_str(), "build", "-p", "conta"])
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .code(1)
         .stdout(predicate::str::contains(format!(
@@ -1238,15 +1238,15 @@ fn build_error_is_exit_code_1_with_file_and_line() {
 
 #[test]
 fn build_reports_all_failures_but_sim_stops_at_first() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("com_erro");
     let run = |args: &[&str], code: i32| {
-        let mut cmd = lace();
+        let mut cmd = aurora();
         cmd.args(["-C", root.as_str(), "--json"])
             .args(args)
-            .env("LACE_TOOLCHAIN", &tc);
+            .env("AURORA_TOOLCHAIN", &tc);
         json(&mut cmd, code)
     };
     let build = run(&["build"], 1);
@@ -1259,16 +1259,16 @@ fn build_reports_all_failures_but_sim_stops_at_first() {
 
 #[test]
 fn check_does_not_build_the_processors() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("soma");
     let check = |args: &[&str], code: i32| {
         json(
-            lace_in(&root)
+            aurora_in(&root)
                 .args(["--json", "check"])
                 .args(args)
-                .env("LACE_TOOLCHAIN", &tc),
+                .env("AURORA_TOOLCHAIN", &tc),
             code,
         )
     };
@@ -1280,9 +1280,9 @@ fn check_does_not_build_the_processors() {
     }
     // Com um processador compilado e o outro não, o check roda e avisa do
     // que ficou de fora.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["build", "-p", "soma"])
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .success();
     let partial = check(&[], 0);
@@ -1296,9 +1296,9 @@ fn check_does_not_build_the_processors() {
     assert!(warned, "{partial}");
     // Compilado, o check só roda o Icarus: nenhum passo do YANC, e o
     // Verilog gerado não é reescrito.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["build"])
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .success();
     let verilog = root.join("soma/soma/soma.v");
@@ -1320,13 +1320,13 @@ fn check_does_not_build_the_processors() {
 
 #[test]
 fn processor_simulation_prints_outputs() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("soma");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["sim", "-p", "soma"])
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .success()
         .stdout(predicate::str::contains(
@@ -1349,9 +1349,9 @@ fn processor_simulation_prints_outputs() {
     assert!(root.join("soma/soma/output_0.txt").is_file());
 
     let report = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "sim", "-p", "filtro"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(report["builds"].as_array().unwrap().len(), 1);
@@ -1365,11 +1365,11 @@ fn processor_simulation_prints_outputs() {
 /// criar; com ele, a saída muda.
 #[test]
 fn processor_simulation_names_missing_inputs() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = new_project("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "add", "eco"])
         .assert()
         .success();
@@ -1382,9 +1382,9 @@ fn processor_simulation_names_missing_inputs() {
     )
     .unwrap();
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["sim", "-p", "eco"])
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .success()
         // O caminho vem com o separador do sistema.
@@ -1395,9 +1395,9 @@ fn processor_simulation_names_missing_inputs() {
 
     std::fs::write(root.join("eco/input_0.txt"), "4\n").unwrap();
     let report = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "sim", "-p", "eco"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(
@@ -1414,15 +1414,15 @@ fn processor_simulation_names_missing_inputs() {
 /// era recusada, a síntese não abria o log e a hierarquia não lia o `.vvp`.
 #[test]
 fn every_operation_runs_in_a_folder_with_accents_and_other_scripts() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, dir) = tempdir();
     let parent = dir.join("Área de Trabalho Δσ 日本");
     std::fs::create_dir(&parent).unwrap();
-    lace_in(&parent).args(["new", "p"]).assert().success();
+    aurora_in(&parent).args(["new", "p"]).assert().success();
     let root = parent.join("p");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "add", "eco"])
         .assert()
         .success();
@@ -1441,17 +1441,17 @@ fn every_operation_runs_in_a_folder_with_accents_and_other_scripts() {
     for file in ["contador.v", "contador_tb.v"] {
         std::fs::copy(rtl.join(file), root.join("rtl").join(file)).unwrap();
     }
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "rtl/contador.v", "rtl/contador_tb.v"])
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .success();
     let run = |args: &[&str]| {
         json(
-            lace_in(&root)
+            aurora_in(&root)
                 .arg("--json")
                 .args(args)
-                .env("LACE_TOOLCHAIN", &tc),
+                .env("AURORA_TOOLCHAIN", &tc),
             0,
         )
     };
@@ -1482,11 +1482,11 @@ fn every_operation_runs_in_a_folder_with_accents_and_other_scripts() {
 /// interpreta (`$finish called at`) não se repetem nele.
 #[test]
 fn project_simulation_always_prints_testbench_stdout() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("contador");
-    let text = stdout(lace_in(&root).arg("sim").env("LACE_TOOLCHAIN", &tc), 0);
+    let text = stdout(aurora_in(&root).arg("sim").env("AURORA_TOOLCHAIN", &tc), 0);
     assert!(
         text.contains("Simulation of contador_tb (Icarus): finished in"),
         "{text}"
@@ -1495,9 +1495,9 @@ fn project_simulation_always_prints_testbench_stdout() {
     assert!(!text.contains("$finish called"), "{text}");
 
     let sim = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "sim"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(sim["simulation"]["waveform"]["format"], "fst");
@@ -1508,7 +1508,7 @@ fn project_simulation_always_prints_testbench_stdout() {
 
 #[test]
 fn sim_with_testbench_argument_selects_it() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("contador");
@@ -1524,9 +1524,9 @@ fn sim_with_testbench_argument_selects_it() {
     // De dentro de rtl/: o argumento é relativo ao diretório atual.
     let rtl = root.join("rtl");
     let text = stdout(
-        lace_in(&rtl)
+        aurora_in(&rtl)
             .args(["-C", "..", "sim", "outro_tb.v"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert!(
@@ -1538,9 +1538,9 @@ fn sim_with_testbench_argument_selects_it() {
 
     // Sem argumento, continua no escolhido.
     let sim = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "sim"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(sim["simulation"]["top"], "outro_tb");
@@ -1548,14 +1548,14 @@ fn sim_with_testbench_argument_selects_it() {
 
 #[test]
 fn synthesis_of_the_top_level() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("contador");
     let synth = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "synth", "--svg"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(synth["builds"], serde_json::json!([]));
@@ -1568,14 +1568,14 @@ fn synthesis_of_the_top_level() {
 
 #[test]
 fn synthesis_of_a_processor_builds_it_first() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("soma");
     let synth = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "synth", "-p", "soma"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(synth["builds"][0]["status"], "succeeded");
@@ -1590,23 +1590,23 @@ fn synthesis_of_a_processor_builds_it_first() {
 #[cfg(all(unix, not(target_os = "macos")))]
 #[test]
 fn wave_with_relative_path_and_without_display() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("contador");
     let sim = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "sim"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     let wave = Utf8PathBuf::from(sim["simulation"]["waveform"]["path"].as_str().unwrap());
     // Relativo ao diretório atual, que não é a raiz do projeto.
     let relative = format!("../{}", wave.file_name().unwrap());
     let err = json(
-        lace_in(&root.join("rtl"))
+        aurora_in(&root.join("rtl"))
             .args(["--json", "wave", &relative])
-            .env("LACE_TOOLCHAIN", &tc)
+            .env("AURORA_TOOLCHAIN", &tc)
             .env_remove("DISPLAY")
             .env_remove("WAYLAND_DISPLAY"),
         2,
@@ -1619,28 +1619,28 @@ fn wave_with_relative_path_and_without_display() {
 #[cfg(all(unix, not(target_os = "macos")))]
 #[test]
 fn wave_without_argument_uses_the_project_waveform() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("contador");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["wave"])
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .code(2)
         .stderr(predicate::str::contains("simulate first with: aurora sim"));
 
     let sim = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "sim"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     let wave = Utf8PathBuf::from(sim["simulation"]["waveform"]["path"].as_str().unwrap());
     let err = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "wave"])
-            .env("LACE_TOOLCHAIN", &tc)
+            .env("AURORA_TOOLCHAIN", &tc)
             .env_remove("DISPLAY")
             .env_remove("WAYLAND_DISPLAY"),
         2,
@@ -1666,13 +1666,13 @@ fn wave_without_argument_uses_the_project_waveform() {
 
 #[test]
 fn check_project_single_file_and_lint() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("contador");
     let run = |args: &[&str], code: i32| {
-        let mut cmd = lace_in(&root);
-        cmd.arg("--json").args(args).env("LACE_TOOLCHAIN", &tc);
+        let mut cmd = aurora_in(&root);
+        cmd.arg("--json").args(args).env("AURORA_TOOLCHAIN", &tc);
         json(&mut cmd, code)
     };
 
@@ -1700,9 +1700,9 @@ fn check_project_single_file_and_lint() {
         .unwrap()
         .replace("q <= q + 4'd1;", "q <= q + ;");
     std::fs::write(&file, broken).unwrap();
-    lace_in(&root)
+    aurora_in(&root)
         .arg("check")
-        .env("LACE_TOOLCHAIN", &tc)
+        .env("AURORA_TOOLCHAIN", &tc)
         .assert()
         .code(1)
         .stdout(predicate::str::contains("contador.v:"))
@@ -1713,13 +1713,13 @@ fn check_project_single_file_and_lint() {
 /// testbench, verificar e simular, sem escrever Verilog à mão.
 #[test]
 fn verilog_flow_from_scratch() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = new_project("demo");
     let run = |args: &[&str], code: i32| {
-        let mut cmd = lace_in(&root);
-        cmd.arg("--json").args(args).env("LACE_TOOLCHAIN", &tc);
+        let mut cmd = aurora_in(&root);
+        cmd.arg("--json").args(args).env("AURORA_TOOLCHAIN", &tc);
         json(&mut cmd, code)
     };
 
@@ -1756,7 +1756,7 @@ endmodule
 fn endless_project() -> (tempfile::TempDir, Utf8PathBuf) {
     let (guard, root) = new_project("demo");
     std::fs::write(root.join("infinito_tb.v"), ENDLESS_TB).unwrap();
-    lace_in(&root)
+    aurora_in(&root)
         .args(["add", "infinito_tb.v"])
         .assert()
         .success();
@@ -1765,15 +1765,15 @@ fn endless_project() -> (tempfile::TempDir, Utf8PathBuf) {
 
 #[test]
 fn sim_timeout_stops_a_testbench_without_finish() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = endless_project();
 
     let text = stdout(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["sim", "--timeout", "1"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         1,
     );
     assert!(
@@ -1787,9 +1787,9 @@ fn sim_timeout_stops_a_testbench_without_finish() {
     assert!(text.contains("$finish"), "a dica do $finish:\n{text}");
 
     let sim = json(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--json", "sim", "--timeout", "1"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         1,
     );
     assert_eq!(sim["simulation"]["status"], "timed_out");
@@ -1797,7 +1797,7 @@ fn sim_timeout_stops_a_testbench_without_finish() {
     let steps = sim["simulation"]["steps"].as_array().unwrap();
     assert_eq!(steps.last().unwrap()["termination"]["kind"], "timed_out");
 
-    lace_in(&root)
+    aurora_in(&root)
         .args(["sim", "--timeout", "0"])
         .assert()
         .code(2);
@@ -1805,14 +1805,14 @@ fn sim_timeout_stops_a_testbench_without_finish() {
 
 #[test]
 fn events_are_one_json_object_per_line_ending_with_the_result() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("contador");
     let text = stdout(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["--events", "sim"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     let events: Vec<Value> = text
@@ -1849,7 +1849,7 @@ fn events_are_one_json_object_per_line_ending_with_the_result() {
 fn events_report_errors_in_the_result_line() {
     let (dir, path) = tempdir();
     let text = stdout(
-        lace_in(&path).args(["--events", "-C", "nao_existe", "status"]),
+        aurora_in(&path).args(["--events", "-C", "nao_existe", "status"]),
         2,
     );
     let lines: Vec<&str> = text.lines().collect();
@@ -1868,7 +1868,7 @@ fn events_report_errors_in_the_result_line() {
 fn interrupt_cancels_and_leaves_no_simulator_behind() {
     use std::io::{BufRead, BufReader};
 
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = endless_project();
@@ -1876,9 +1876,9 @@ fn interrupt_cancels_and_leaves_no_simulator_behind() {
     let mut child = std::process::Command::new(exe)
         .args(["--json", "sim"])
         .current_dir(&root)
-        .env_remove("LACE_TEST_BUNDLE")
-        .env("LACE_TOOLCHAIN", &tc)
-        .env_remove("LACE_COMPILER")
+        .env_remove("AURORA_TEST_BUNDLE")
+        .env("AURORA_TOOLCHAIN", &tc)
+        .env_remove("AURORA_COMPILER")
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
         .spawn()
@@ -1925,7 +1925,7 @@ fn interrupt_cancels_and_leaves_no_simulator_behind() {
 /// Um `aurora` fora de uma instalação (este, em `target/`) não apaga nada.
 #[test]
 fn uninstall_outside_an_installation_is_refused() {
-    lace()
+    aurora()
         .args(["uninstall", "--yes"])
         .assert()
         .code(2)
@@ -1934,7 +1934,7 @@ fn uninstall_outside_an_installation_is_refused() {
         ));
 }
 
-/// Uma instalação como a do instalador: `bin/lace`, `toolchain/`,
+/// Uma instalação como a do instalador: `bin/aurora`, `toolchain/`,
 /// `install.json`, o `uninstall.sh` que ele gera e o atalho. O script de
 /// verdade é testado em `crates/aurora-installer/tests/install.rs`; aqui, o
 /// que importa é que `aurora uninstall` o ache e o rode.
@@ -1942,15 +1942,15 @@ fn uninstall_outside_an_installation_is_refused() {
 #[test]
 fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
     let (_guard, dir) = tempdir();
-    let prefix = dir.join("share/lace");
+    let prefix = dir.join("share/aurora");
     std::fs::create_dir_all(prefix.join("bin")).unwrap();
     let exe = assert_cmd::cargo::cargo_bin("aurora");
-    std::fs::copy(&exe, prefix.join("bin/lace")).unwrap();
+    std::fs::copy(&exe, prefix.join("bin/aurora")).unwrap();
     fake_bundle(&prefix.join("toolchain"));
     std::fs::write(prefix.join("install.json"), "{}").unwrap();
-    let link = dir.join("bin/lace");
+    let link = dir.join("bin/aurora");
     std::fs::create_dir_all(link.parent().unwrap()).unwrap();
-    std::os::unix::fs::symlink(prefix.join("bin/lace"), &link).unwrap();
+    std::os::unix::fs::symlink(prefix.join("bin/aurora"), &link).unwrap();
     std::fs::write(
         prefix.join("uninstall.sh"),
         format!(
@@ -1966,13 +1966,13 @@ fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
     .unwrap();
     // A configuração da 0.1.0, que nenhuma versão nova lê.
     let config = dir.join("config");
-    std::fs::create_dir_all(config.join("lace")).unwrap();
-    std::fs::write(config.join("lace/config.json"), "{}").unwrap();
+    std::fs::create_dir_all(config.join("aurora")).unwrap();
+    std::fs::write(config.join("aurora/config.json"), "{}").unwrap();
 
     let installed = || {
         let mut cmd = std::process::Command::new(link.as_std_path());
-        cmd.env_remove("LACE_TOOLCHAIN")
-            .env_remove("LACE_COMPILER")
+        cmd.env_remove("AURORA_TOOLCHAIN")
+            .env_remove("AURORA_COMPILER")
             .env("XDG_CONFIG_HOME", &config)
             .env("NO_COLOR", "1")
             .stdin(std::process::Stdio::null());
@@ -1998,7 +1998,7 @@ fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
     assert_eq!(Utf8Path::new(report["prefix"].as_str().unwrap()), prefix);
     assert!(!prefix.exists(), "a instalação ficou");
     assert!(std::fs::symlink_metadata(&link).is_err(), "o atalho ficou");
-    assert!(!config.join("lace").exists(), "a configuração antiga ficou");
+    assert!(!config.join("aurora").exists(), "a configuração antiga ficou");
 }
 
 // Acrescentar componentes.
@@ -2006,14 +2006,14 @@ fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
 #[test]
 fn install_checks_the_names_and_the_installation_before_downloading() {
     // Nome errado: a lista do bundle, sem tentar baixar nada.
-    lace()
+    aurora()
         .args(["install", "vivado"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("Unknown app: vivado"))
         .stderr(predicate::str::contains("verilator"));
-    // Este lace, de target/, não foi instalado pelo instalador.
-    lace()
+    // Este aurora, de target/, não foi instalado pelo instalador.
+    aurora()
         .args(["install", "verilator"])
         .assert()
         .code(2)
@@ -2027,23 +2027,23 @@ fn install_checks_the_names_and_the_installation_before_downloading() {
 #[test]
 fn report_without_history_explains_itself() {
     let (_guard, root) = new_project("p");
-    let error = json(lace_in(&root).args(["--json", "report"]), 2);
+    let error = json(aurora_in(&root).args(["--json", "report"]), 2);
     assert_eq!(error["error"]["code"], "no_reports");
-    let list = json(lace_in(&root).args(["--json", "report", "list"]), 0);
+    let list = json(aurora_in(&root).args(["--json", "report", "list"]), 0);
     assert_eq!(list["reports"].as_array().unwrap().len(), 0);
-    assert!(stdout(lace_in(&root).args(["report", "list"]), 0).contains("No reports yet"));
-    let error = json(lace_in(&root).args(["--json", "report", "show", "5"]), 2);
+    assert!(stdout(aurora_in(&root).args(["report", "list"]), 0).contains("No reports yet"));
+    let error = json(aurora_in(&root).args(["--json", "report", "show", "5"]), 2);
     assert_eq!(error["error"]["code"], "report_not_found");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["report", "show", "5"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("Report run-000005 not found"))
         .stderr(predicate::str::contains("aurora report list"));
-    let error = json(lace_in(&root).args(["--json", "report", "compare"]), 2);
+    let error = json(aurora_in(&root).args(["--json", "report", "compare"]), 2);
     assert_eq!(error["error"]["code"], "no_reports");
     // `list` não aceita limite zero.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["report", "list", "--limit", "0"])
         .assert()
         .code(2);
@@ -2059,7 +2059,7 @@ fn fake_reports(root: &Utf8Path, numbers: &[u32]) {
 }
 
 fn report_ids(root: &Utf8Path) -> Vec<String> {
-    let list = json(lace_in(root).args(["--json", "report", "list"]), 0);
+    let list = json(aurora_in(root).args(["--json", "report", "list"]), 0);
     list["reports"]
         .as_array()
         .unwrap()
@@ -2071,12 +2071,12 @@ fn report_ids(root: &Utf8Path) -> Vec<String> {
 #[test]
 fn report_clean_removes_named_old_or_all_reports() {
     let (_guard, root) = new_project("p");
-    assert!(stdout(lace_in(&root).args(["report", "clean"]), 0).contains("No reports to remove"));
+    assert!(stdout(aurora_in(&root).args(["report", "clean"]), 0).contains("No reports to remove"));
     fake_reports(&root, &[1, 2, 3, 4, 5, 6]);
 
     // Pelo nome: sem perguntar, com o número ou o identificador.
     let clean = json(
-        lace_in(&root).args(["--json", "report", "clean", "2", "run-000004"]),
+        aurora_in(&root).args(["--json", "report", "clean", "2", "run-000004"]),
         0,
     );
     assert_eq!(
@@ -2086,7 +2086,7 @@ fn report_clean_removes_named_old_or_all_reports() {
     assert_eq!(clean["kept"], 4);
     // Um que não existe: nada sai.
     let error = json(
-        lace_in(&root).args(["--json", "report", "clean", "1", "9"]),
+        aurora_in(&root).args(["--json", "report", "clean", "1", "9"]),
         2,
     );
     assert_eq!(error["error"]["code"], "report_not_found");
@@ -2099,13 +2099,13 @@ fn report_clean_removes_named_old_or_all_reports() {
     assert_eq!(report_ids(&root).len(), 4);
 
     // Em massa, sem terminal: só com --yes.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["report", "clean", "--keep", "1"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("use aurora report clean --yes"));
     let text = stdout(
-        lace_in(&root).args(["report", "clean", "--keep", "1", "--yes"]),
+        aurora_in(&root).args(["report", "clean", "--keep", "1", "--yes"]),
         0,
     );
     assert!(
@@ -2113,12 +2113,12 @@ fn report_clean_removes_named_old_or_all_reports() {
         "{text}"
     );
     assert_eq!(report_ids(&root), ["run-000006"]);
-    lace_in(&root)
+    aurora_in(&root)
         .args(["report", "clean", "1", "--keep", "1"])
         .assert()
         .code(2);
 
-    let text = stdout(lace_in(&root).args(["report", "clean", "--yes"]), 0);
+    let text = stdout(aurora_in(&root).args(["report", "clean", "--yes"]), 0);
     assert!(text.contains("Removed run-000006"), "{text}");
     assert!(text.contains("report numbers are not reused"), "{text}");
     assert!(report_ids(&root).is_empty());
@@ -2129,7 +2129,7 @@ fn report_clean_removes_named_old_or_all_reports() {
 
 #[test]
 fn operations_store_reports_that_list_show_and_compare() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     if !bundle_has(&tc, "yosys") || !bundle_has(&tc, "icarus") {
@@ -2137,10 +2137,10 @@ fn operations_store_reports_that_list_show_and_compare() {
     }
     let (_guard, root) = example("soma");
     let run = |args: &[&str], code: i32| {
-        let mut cmd = lace();
+        let mut cmd = aurora();
         cmd.args(["-C", root.as_str(), "--json"])
             .args(args)
-            .env("LACE_TOOLCHAIN", &tc);
+            .env("AURORA_TOOLCHAIN", &tc);
         json(&mut cmd, code)
     };
     assert_eq!(run(&["synth", "-p", "soma"], 0)["report"], "run-000001");
@@ -2164,7 +2164,7 @@ fn operations_store_reports_that_list_show_and_compare() {
         show["text"]
             .as_str()
             .unwrap()
-            .contains("LACE OPERATION REPORT")
+            .contains("AURORA OPERATION REPORT")
     );
     assert!(show["record"]["simulation"]["execution_ms"].is_u64());
 
@@ -2176,9 +2176,9 @@ fn operations_store_reports_that_list_show_and_compare() {
     assert!(compare["simulation"].is_null());
 
     let text = {
-        let mut cmd = lace();
+        let mut cmd = aurora();
         cmd.args(["-C", root.as_str(), "report", "compare", "--summary"])
-            .env("LACE_TOOLCHAIN", &tc);
+            .env("AURORA_TOOLCHAIN", &tc);
         stdout(&mut cmd, 0)
     };
     assert!(text.contains("COMPARISON SUMMARY"), "{text}");
@@ -2187,14 +2187,14 @@ fn operations_store_reports_that_list_show_and_compare() {
 
 #[test]
 fn a_failed_build_says_what_ran_and_what_did_not() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("com_erro");
     let text = stdout(
-        lace_in(&root)
+        aurora_in(&root)
             .args(["sim", "-p", "conta"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         1,
     );
     for expected in [
@@ -2214,14 +2214,14 @@ fn a_failed_build_says_what_ran_and_what_did_not() {
 #[test]
 fn commands_find_the_project_from_any_inner_folder() {
     let (_guard, root) = new_project("demo");
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "add", "soma"])
         .assert()
         .success();
     // A pasta de saída nasce no primeiro build.
     std::fs::create_dir_all(root.join("soma/soma")).unwrap();
     for inner in ["soma", "soma/soma"] {
-        let status = json(lace_in(&root.join(inner)).args(["--json", "status"]), 0);
+        let status = json(aurora_in(&root.join(inner)).args(["--json", "status"]), 0);
         assert!(
             status["spf"].as_str().unwrap().ends_with("demo.spf"),
             "de {inner}: {status}"
@@ -2230,9 +2230,9 @@ fn commands_find_the_project_from_any_inner_folder() {
 
     // Fora de qualquer projeto.
     let (_outside_guard, outside) = tempdir();
-    let error = json(lace_in(&outside).args(["--json", "status"]), 2);
+    let error = json(aurora_in(&outside).args(["--json", "status"]), 2);
     assert_eq!(error["error"]["code"], "project_not_found");
-    lace_in(&outside)
+    aurora_in(&outside)
         .arg("status")
         .assert()
         .code(2)
@@ -2243,7 +2243,7 @@ fn commands_find_the_project_from_any_inner_folder() {
 fn status_and_proc_set_know_the_processor_of_the_folder() {
     let (_guard, root) = new_project("demo");
     for name in ["soma", "filtro"] {
-        lace_in(&root)
+        aurora_in(&root)
             .args(["proc", "add", name])
             .assert()
             .success();
@@ -2251,27 +2251,27 @@ fn status_and_proc_set_know_the_processor_of_the_folder() {
     let here = root.join("filtro/filtro");
     std::fs::create_dir_all(&here).unwrap();
 
-    let status = json(lace_in(&here).args(["--json", "status"]), 0);
+    let status = json(aurora_in(&here).args(["--json", "status"]), 0);
     assert_eq!(status["here"], "filtro");
-    let status = json(lace_in(&root).args(["--json", "status"]), 0);
+    let status = json(aurora_in(&root).args(["--json", "status"]), 0);
     assert!(status["here"].is_null());
-    let text = stdout(lace_in(&here).arg("status"), 0);
+    let text = stdout(aurora_in(&here).arg("status"), 0);
     assert!(text.contains("(this folder)"), "{text}");
 
     let set = json(
-        lace_in(&here).args(["--json", "proc", "set", "--freq", "50"]),
+        aurora_in(&here).args(["--json", "proc", "set", "--freq", "50"]),
         0,
     );
     assert_eq!(set["name"], "filtro");
     assert_eq!(set["frequency_mhz"], 50);
     // Na raiz não há processador da pasta: precisa do nome.
-    lace_in(&root)
+    aurora_in(&root)
         .args(["proc", "set", "--freq", "50"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("Which processor?"));
     let set = json(
-        lace_in(&root).args(["--json", "proc", "set", "soma", "--clocks", "10"]),
+        aurora_in(&root).args(["--json", "proc", "set", "soma", "--clocks", "10"]),
         0,
     );
     assert_eq!(set["name"], "soma");
@@ -2279,7 +2279,7 @@ fn status_and_proc_set_know_the_processor_of_the_folder() {
 
 #[test]
 fn build_check_and_synth_inside_a_processor_folder_act_on_it() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     if !bundle_has(&tc, "yosys") || !bundle_has(&tc, "icarus") {
@@ -2288,8 +2288,8 @@ fn build_check_and_synth_inside_a_processor_folder_act_on_it() {
     let (_guard, root) = example("soma");
     let here = root.join("filtro");
     let run = |dir: &Utf8Path, args: &[&str]| {
-        let mut cmd = lace_in(dir);
-        cmd.arg("--json").args(args).env("LACE_TOOLCHAIN", &tc);
+        let mut cmd = aurora_in(dir);
+        cmd.arg("--json").args(args).env("AURORA_TOOLCHAIN", &tc);
         json(&mut cmd, 0)
     };
     let processors = |builds: &Value| -> Vec<String> {
@@ -2327,15 +2327,15 @@ fn build_check_and_synth_inside_a_processor_folder_act_on_it() {
 
 #[test]
 fn sim_inside_a_processor_folder_simulates_that_processor() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let (_guard, root) = example("soma");
     // Da pasta do código do filtro: o filtro, sem -p.
     let sim = json(
-        lace_in(&root.join("filtro"))
+        aurora_in(&root.join("filtro"))
             .args(["--json", "sim"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(sim["builds"].as_array().unwrap().len(), 1);
@@ -2346,9 +2346,9 @@ fn sim_inside_a_processor_folder_simulates_that_processor() {
     // projeto.
     let (_guard, contador) = example("contador");
     let sim = json(
-        lace_in(&contador.join("rtl"))
+        aurora_in(&contador.join("rtl"))
             .args(["--json", "sim"])
-            .env("LACE_TOOLCHAIN", &tc),
+            .env("AURORA_TOOLCHAIN", &tc),
         0,
     );
     assert_eq!(sim["simulation"]["top"], "contador_tb");
@@ -2356,7 +2356,7 @@ fn sim_inside_a_processor_folder_simulates_that_processor() {
 
 #[test]
 fn cocotb_testbench_from_the_command_line() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     if !bundle_has(&tc, "icarus") || !bundle_has(&tc, "cocotb") {
@@ -2368,30 +2368,30 @@ fn cocotb_testbench_from_the_command_line() {
         "module somador(input [3:0] a, input [3:0] b, output [4:0] y);\n    assign y = a + b;\nendmodule\n",
     )
     .unwrap();
-    let lace = |args: &[&str]| {
-        let mut cmd = lace_in(&root);
-        cmd.args(args).env("LACE_TOOLCHAIN", &tc);
+    let aurora = |args: &[&str]| {
+        let mut cmd = aurora_in(&root);
+        cmd.args(args).env("AURORA_TOOLCHAIN", &tc);
         cmd
     };
-    lace(&["add", "somador.v", "test_somador.py"])
+    aurora(&["add", "somador.v", "test_somador.py"])
         .assert()
         .success()
         .stdout(predicate::str::contains(
             "Testbench created: test_somador.py",
         ));
-    let sim = json(&mut lace(&["--json", "sim"]), 0);
+    let sim = json(&mut aurora(&["--json", "sim"]), 0);
     assert_eq!(sim["simulation"]["top"], "somador");
     assert_eq!(sim["simulation"]["tests"]["passed"], 1, "{sim}");
     assert_eq!(
         sim["simulation"]["tests"]["cases"][0]["name"],
         "test_somador.basic_test"
     );
-    let text = stdout(&mut lace(&["sim"]), 0);
+    let text = stdout(&mut aurora(&["sim"]), 0);
     assert!(text.contains("Tests: 1 of 1 passed"), "{text}");
 
     // A simulação rápida roda os testes no Icarus, sem a onda.
     std::fs::remove_file(root.join("test_somador.fst")).unwrap();
-    let fast = json(&mut lace(&["--json", "sim", "--fast"]), 0);
+    let fast = json(&mut aurora(&["--json", "sim", "--fast"]), 0);
     assert_eq!(fast["simulation"]["fast"], true, "{fast}");
     assert_eq!(fast["simulation"]["simulator"], "icarus");
     assert_eq!(fast["simulation"]["waveform"], Value::Null);
@@ -2400,7 +2400,7 @@ fn cocotb_testbench_from_the_command_line() {
 
     // E no Verilator, com a onda em VCD.
     if bundle_has(&tc, "verilator") {
-        let sim = json(&mut lace(&["--json", "sim", "--verilator"]), 0);
+        let sim = json(&mut aurora(&["--json", "sim", "--verilator"]), 0);
         assert_eq!(sim["simulation"]["simulator"], "verilator", "{sim}");
         assert_eq!(sim["simulation"]["tests"]["passed"], 1, "{sim}");
         assert_eq!(sim["simulation"]["waveform"]["format"], "vcd");
@@ -2410,19 +2410,19 @@ fn cocotb_testbench_from_the_command_line() {
 
 #[test]
 fn fast_sim_runs_on_verilator_without_waveform() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     if !bundle_has(&tc, "verilator") {
         return;
     }
     let (_guard, root) = example("contador");
-    let lace = |args: &[&str]| {
-        let mut cmd = lace_in(&root);
-        cmd.args(args).env("LACE_TOOLCHAIN", &tc);
+    let aurora = |args: &[&str]| {
+        let mut cmd = aurora_in(&root);
+        cmd.args(args).env("AURORA_TOOLCHAIN", &tc);
         cmd
     };
-    let text = stdout(&mut lace(&["sim", "--fast"]), 0);
+    let text = stdout(&mut aurora(&["sim", "--fast"]), 0);
     assert!(
         text.contains("Fast simulation of contador_tb (Verilator): finished in"),
         "{text}"
@@ -2433,12 +2433,12 @@ fn fast_sim_runs_on_verilator_without_waveform() {
         assert!(!root.join(wave).exists(), "{wave}");
     }
 
-    let sim = json(&mut lace(&["--json", "sim", "--fast"]), 0);
+    let sim = json(&mut aurora(&["--json", "sim", "--fast"]), 0);
     assert_eq!(sim["simulation"]["fast"], true, "{sim}");
     assert_eq!(sim["simulation"]["simulator"], "verilator");
     assert_eq!(sim["simulation"]["waveform"], Value::Null);
     // O relatório diz que foi a rápida.
-    let report = json(&mut lace(&["--json", "report"]), 0);
+    let report = json(&mut aurora(&["--json", "report"]), 0);
     assert!(
         report
             .to_string()
@@ -2447,7 +2447,7 @@ fn fast_sim_runs_on_verilator_without_waveform() {
     );
 
     // Sem onda não há o que abrir.
-    lace(&["sim", "--fast", "--open"])
+    aurora(&["sim", "--fast", "--open"])
         .assert()
         .code(2)
         .stderr(predicate::str::contains("--open"));

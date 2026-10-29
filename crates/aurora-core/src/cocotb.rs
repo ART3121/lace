@@ -13,8 +13,8 @@
 //!
 //! ```text
 //! Icarus
-//! elaborate  iverilog [-g2012] -f <build>/cmds.f [-y <SAPHO>] -s <dut> -s lace_cocotb_dump
-//!            -o <build>/<dut>.vvp <design> <build>/lace_cocotb_dump.v          cwd raiz
+//! elaborate  iverilog [-g2012] -f <build>/cmds.f [-y <SAPHO>] -s <dut> -s aurora_cocotb_dump
+//!            -o <build>/<dut>.vvp <design> <build>/aurora_cocotb_dump.v          cwd raiz
 //! simulate   vvp -n [-i] -m <VPI do cocotb> <build>/<dut>.vvp -fst             cwd raiz
 //!
 //! Verilator
@@ -28,7 +28,7 @@
 //! traz `+timescale+1ns/1ps` (no Verilator, `--timescale`), o padrão do
 //! runner do cocotb, para os módulos sem `` `timescale ``: sem ele, o
 //! `Timer(1, "ns")` de um teste falha num design sem `` `timescale ``, cuja
-//! precisão é de 1 s. No Icarus, o `lace_cocotb_dump` grava a onda na raiz,
+//! precisão é de 1 s. No Icarus, o `aurora_cocotb_dump` grava a onda na raiz,
 //! `<módulo de teste>.fst`, com todos os sinais do DUT; no Verilator, quem
 //! grava é o `main` do cocotb (`verilator.cpp`), em `<módulo de teste>.vcd`,
 //! com as outras flags do Lace (`--timing`, `-O3`; ver
@@ -38,7 +38,7 @@
 //! falha vira um diagnóstico de erro no `.py`.
 //!
 //! Na simulação rápida ([`SimulationOptions::fast`](crate::SimulationOptions::fast))
-//! os testes rodam sem onda: no Icarus sem o `lace_cocotb_dump` e com `vvp
+//! os testes rodam sem onda: no Icarus sem o `aurora_cocotb_dump` e com `vvp
 //! -none`, no Verilator com o modelo compilado sem `--trace`, em
 //! `<build>/obj_dir_fast_<dut>`.
 //!
@@ -74,7 +74,7 @@ use crate::toolchain::{Tool, Toolchain};
 use crate::verilog::{ModuleInterface, Port, PortDirection, is_clock, reset_polarity};
 
 /// O módulo que grava a onda de um testbench cocotb no Icarus.
-pub(crate) const DUMP_MODULE: &str = "lace_cocotb_dump";
+pub(crate) const DUMP_MODULE: &str = "aurora_cocotb_dump";
 
 /// O padrão de tempo do runner do cocotb, para os módulos sem `` `timescale ``:
 /// `+timescale+` no `iverilog`, `--timescale` no Verilator.
@@ -627,7 +627,7 @@ fn probe(
     pycache: &Utf8Path,
     control: &Control,
 ) -> Result<Option<(Probe, String)>> {
-    let script = dir.join("lace_cocotb_probe.py");
+    let script = dir.join("aurora_cocotb_probe.py");
     let invocation = toolchain
         .cocotb_python(&script, dir)?
         .env("PYTHONPYCACHEPREFIX", pycache.as_str())

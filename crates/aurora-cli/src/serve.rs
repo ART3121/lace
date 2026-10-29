@@ -93,7 +93,7 @@ pub(crate) mod rpc {
     pub const INVALID_REQUEST: i64 = -32600;
     pub const METHOD_NOT_FOUND: i64 = -32601;
     pub const INVALID_PARAMS: i64 = -32602;
-    pub const LACE: i64 = -32000;
+    pub const AURORA: i64 = -32000;
     pub const CANCELLED: i64 = -32001;
     pub const NOT_INITIALIZED: i64 = -32002;
     pub const SHUTTING_DOWN: i64 = -32003;
@@ -106,7 +106,7 @@ pub(crate) mod rpc {
         (METHOD_NOT_FOUND, "método desconhecido"),
         (INVALID_PARAMS, "parâmetros que o método não aceita"),
         (
-            LACE,
+            AURORA,
             "o Lace não conseguiu atender: o `ErrorInfo` vai em `error.data`",
         ),
         (CANCELLED, "cancelado com `$/cancel` antes de começar"),
@@ -232,7 +232,7 @@ fn refuse_mcp(line: &str) {
     let writer = Writer::stdout();
     writer.fail(
         Some(&id),
-        rpc::LACE,
+        rpc::AURORA,
         &message,
         serde_json::to_value(&info).ok(),
     );
@@ -677,7 +677,7 @@ impl Server {
                         let data = serde_json::to_value(&info).ok();
                         server
                             .writer
-                            .fail(Some(&id), rpc::LACE, &info.message, data);
+                            .fail(Some(&id), rpc::AURORA, &info.message, data);
                     }
                 }
             }
@@ -804,7 +804,7 @@ impl Server {
             .map(|s| (s.feature.id().to_owned(), s.enabled))
             .collect();
         ServerInfo {
-            lace: env!("CARGO_PKG_VERSION").to_owned(),
+            aurora: env!("CARGO_PKG_VERSION").to_owned(),
             protocol: PROTOCOL_VERSION,
             prefix: crate::installation::prefix().ok(),
             experimental,
@@ -1695,8 +1695,8 @@ fn distance(a: &str, b: &str) -> usize {
 /// Um erro da CLI (`anyhow`) como [`ErrorInfo`]: o do core que houver na
 /// cadeia, com a dica, senão `cli` com o texto inteiro.
 fn to_info(error: &anyhow::Error) -> ErrorInfo {
-    if let Some(lace) = error.chain().find_map(|e| e.downcast_ref::<AuroraError>()) {
-        return crate::output::error_info(lace);
+    if let Some(aurora) = error.chain().find_map(|e| e.downcast_ref::<AuroraError>()) {
+        return crate::output::error_info(aurora);
     }
     if let Some(installer) = error
         .chain()
@@ -1817,7 +1817,7 @@ mod tests {
         ));
         let reply = next(&rx);
         assert_eq!(reply["id"], "a");
-        assert_eq!(reply["error"]["code"], rpc::LACE);
+        assert_eq!(reply["error"]["code"], rpc::AURORA);
         assert!(reply["error"]["data"]["code"].is_string(), "{reply}");
         assert_eq!(reply["error"]["message"], reply["error"]["data"]["message"]);
         // O pedido sai da lista dos pendentes depois de respondido.
@@ -2182,7 +2182,7 @@ mod tests {
         next(&rx);
         server.handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"fpga.boards"}"#);
         let reply = next(&rx);
-        assert_eq!(reply["error"]["code"], rpc::LACE, "{reply}");
+        assert_eq!(reply["error"]["code"], rpc::AURORA, "{reply}");
         assert_eq!(
             reply["error"]["data"]["code"], "experimental_disabled",
             "{reply}"
@@ -2217,7 +2217,7 @@ mod tests {
         // Um bundle que não existe: o erro do pedido aparece antes dele.
         let (writer, rx) = Writer::channel();
         let args = ToolchainArgs {
-            toolchain: Some(Utf8PathBuf::from("/lace/nao/existe")),
+            toolchain: Some(Utf8PathBuf::from("/aurora/nao/existe")),
             compiler: None,
             quartus: None,
         };

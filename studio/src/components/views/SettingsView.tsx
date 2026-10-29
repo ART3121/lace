@@ -337,7 +337,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
   };
   const browseLace = async () => {
     const chosen = await open({ directory: false, multiple: false });
-    if (typeof chosen === 'string') set('lace_path', chosen);
+    if (typeof chosen === 'string') set('aurora_path', chosen);
   };
 
   return (
@@ -359,7 +359,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
       <SettingRow label={t('settings.lacePath')} hint={t('settings.lacePathHint')} stack>
         {(id) => (
           <div className="input-group">
-            <input id={id} className="input" value={settings.lace_path ?? ''} onChange={(e) => set('lace_path', e.target.value || null)} />
+            <input id={id} className="input" value={settings.aurora_path ?? ''} onChange={(e) => set('aurora_path', e.target.value || null)} />
             <Button onClick={() => void browseLace()}>{t('common.browse')}</Button>
           </div>
         )}
@@ -415,7 +415,7 @@ function AssistantPage({ settings }: { settings: Settings }) {
   const t = useT();
   const set = setter(useApp((s) => s.updateSettings));
   const info = useAssistant((s) => s.info);
-  const browse = async (key: 'assistant_claude' | 'assistant_lace') => {
+  const browse = async (key: 'assistant_claude' | 'assistant_aurora') => {
     const picked = await open({ multiple: false });
     if (typeof picked === 'string') {
       set(key, picked);
@@ -454,12 +454,12 @@ function AssistantPage({ settings }: { settings: Settings }) {
             <input
               id={id}
               className="input"
-              value={settings.assistant_lace ?? ''}
-              placeholder={info?.lace ?? ''}
-              onChange={(e) => set('assistant_lace', e.target.value || null)}
+              value={settings.assistant_aurora ?? ''}
+              placeholder={info?.aurora ?? ''}
+              onChange={(e) => set('assistant_aurora', e.target.value || null)}
               onBlur={() => void useAssistant.getState().refreshInfo()}
             />
-            <Button onClick={() => void browse('assistant_lace')}>{t('common.browse')}</Button>
+            <Button onClick={() => void browse('assistant_aurora')}>{t('common.browse')}</Button>
           </div>
         )}
       </SettingRow>

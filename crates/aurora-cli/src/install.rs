@@ -129,8 +129,8 @@ fn choose(out: &Output, prepared: &AddPrepared, prefix: &Utf8Path) -> anyhow::Re
     Ok(())
 }
 
-/// `lace setup`, que o assistente do Windows que baixa só os aplicativos
-/// escolhidos roda antes de copiar o `lace.exe`: o bundle de `components` em
+/// `aurora setup`, que o assistente do Windows que baixa só os aplicativos
+/// escolhidos roda antes de copiar o `aurora.exe`: o bundle de `components` em
 /// `prefix/toolchain`, a partir dos arquivos da release em `payload`. Cada
 /// pedaço vira uma linha `[i/n] ...` no stderr, que o assistente mostra.
 pub fn setup(payload: &Utf8Path, components: &[String], prefix: &Utf8Path) -> anyhow::Result<()> {

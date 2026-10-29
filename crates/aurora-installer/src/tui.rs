@@ -483,7 +483,7 @@ impl App {
         } else {
             format!(
                 " Lace {} · installer ({}) ",
-                self.index.lace_version, self.index.platform
+                self.index.aurora_version, self.index.platform
             )
         };
         let block = Block::bordered()
@@ -589,10 +589,10 @@ impl App {
                 format!(
                     "There is already a Lace {} installation in {} ({}). It will be replaced \
                      by Lace {}; with a profile, the apps it has stay.",
-                    r.lace_version,
+                    r.aurora_version,
                     self.prefix,
                     r.components.join(", "),
-                    self.index.lace_version
+                    self.index.aurora_version
                 ),
                 Style::default().fg(Color::Yellow),
             )));
@@ -660,7 +660,7 @@ impl App {
                 }
                 lines.push(Line::from(Span::styled(
                     format!(
-                        "{} installs {LACE_LABEL} and {} of the {} apps:",
+                        "{} installs {AURORA_LABEL} and {} of the {} apps:",
                         p.label,
                         selection.len(),
                         self.index.components.len()
@@ -673,7 +673,7 @@ impl App {
                 let text = format!(
                     "The Custom installation is for advanced use, for users who know which \
                      components they need. The next screen lists every app; Space marks and \
-                     unmarks. {LACE_LABEL} is always installed."
+                     unmarks. {AURORA_LABEL} is always installed."
                 );
                 lines.extend(
                     crate::wrap(&text, area.width as usize)
@@ -696,7 +696,7 @@ impl App {
             .map(|c| c.label.chars().count())
             .max()
             .unwrap_or(0)
-            .max(LACE_LABEL.len());
+            .max(AURORA_LABEL.len());
         let room = (width as usize).saturating_sub(label_width + 8);
         let row = |on: bool, label: &str, description: &str| {
             let mark = if on { "[x]" } else { "[ ]" };
@@ -713,7 +713,7 @@ impl App {
                 Span::styled(description, dim()),
             ])
         };
-        std::iter::once(row(true, LACE_LABEL, "Always installed"))
+        std::iter::once(row(true, AURORA_LABEL, "Always installed"))
             .chain(
                 self.index
                     .components
@@ -737,7 +737,7 @@ impl App {
                 Line::from(Span::styled("Components", bold())),
                 Line::from(""),
                 Line::from(vec![
-                    Span::styled(format!("[x] {LACE_LABEL}"), dim()),
+                    Span::styled(format!("[x] {AURORA_LABEL}"), dim()),
                     Span::styled("  Always installed, with any profile", dim()),
                 ]),
             ],
@@ -894,7 +894,7 @@ impl App {
             kv("Profile", &self.profile_label()),
             kv(
                 "Components",
-                &format!("{LACE_LABEL}, {}", self.selection_labels()),
+                &format!("{AURORA_LABEL}, {}", self.selection_labels()),
             ),
             kv("Folder", &target.prefix.to_string_lossy()),
             kv(
@@ -914,7 +914,7 @@ impl App {
             lines.push(Line::from(Span::styled(
                 format!(
                     "Replaces the Lace {} installed there ({}).",
-                    r.lace_version,
+                    r.aurora_version,
                     r.components.join(", ")
                 ),
                 Style::default().fg(Color::Yellow),
@@ -1045,7 +1045,7 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
         Line::from(Span::styled(
             format!(
                 "Lace {} installed in {}",
-                index.lace_version,
+                index.aurora_version,
                 report.prefix.display()
             ),
             bold().fg(Color::Green),
@@ -1094,7 +1094,7 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
             ),
             Style::default().fg(Color::Yellow),
         ))),
-        LinkOutcome::NotRequested => lines.push(kv("Executable", &report.lace.to_string_lossy())),
+        LinkOutcome::NotRequested => lines.push(kv("Executable", &report.aurora.to_string_lossy())),
     }
     lines.extend(studio_lines(
         report.shortcut.as_deref(),
@@ -1114,7 +1114,7 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
 
 /// O nome do Lace nas listas de aplicativos: sempre instalado, em qualquer
 /// perfil.
-const LACE_LABEL: &str = "Lace (CLI & Core)";
+const AURORA_LABEL: &str = "Lace (CLI & Core)";
 
 /// A largura da marca na tela de boas-vindas, em colunas.
 const MARK_COLS: usize = 20;
@@ -1200,8 +1200,8 @@ mod tests {
         // o drive) e inexistente, para a tela de destino aceitar.
         let base = std::env::temp_dir().join(format!("lace-tui-{}", std::process::id()));
         let target = Target {
-            prefix: base.join("lace"),
-            link: Some(base.join("bin").join("lace")),
+            prefix: base.join("aurora"),
+            link: Some(base.join("bin").join("aurora")),
         };
         App::new(crate::plan::tests::index(), base, target, None)
     }
@@ -1283,7 +1283,7 @@ mod tests {
     fn a_profile_over_an_installation_keeps_its_apps() {
         let mut app = app();
         app.existing = Some(Receipt {
-            lace_version: "0.1.0".into(),
+            aurora_version: "0.1.0".into(),
             bundle: "teste".into(),
             platform: "linux-x64".into(),
             components: vec!["yanc".into(), "saiu".into()],

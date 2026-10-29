@@ -1,5 +1,5 @@
 //! Os fluxos compostos (`aurora_core::flows`) rodando de verdade, com o bundle
-//! de `LACE_TEST_BUNDLE`, sobre cópias dos exemplos. Sem bundle, avisam e
+//! de `AURORA_TEST_BUNDLE`, sobre cópias dos exemplos. Sem bundle, avisam e
 //! passam (ver `common/mod.rs`).
 
 mod common;

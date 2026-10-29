@@ -3,7 +3,7 @@
 //! - `CMMComp/Tests/<nome>/<nome>.cmm`: precisa compilar até o fim, e o
 //!   `.asm` tem que ser idêntico ao `golden.asm` (o mesmo critério do
 //!   `Scripts/regress.sh`). Isso confere que o Lace chama o `cmmcomp` do
-//!   mesmo jeito que o YANC se testa. Os fontes vêm de `LACE_TEST_YANC_SRC`
+//!   mesmo jeito que o YANC se testa. Os fontes vêm de `AURORA_TEST_YANC_SRC`
 //!   (padrão: `vendor/yanc`), que tem que ser da versão do YANC do bundle.
 //! - `CMMComp/NegTests/manifest.txt`: cada fixture tem que ser recusada com a
 //!   mensagem esperada, e nunca por crash.

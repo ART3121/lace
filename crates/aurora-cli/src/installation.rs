@@ -1,6 +1,6 @@
 //! A instalação de onde este `aurora` roda, pela biblioteca do instalador
 //! (`aurora_installer::installation`): a pasta que o instalador criou, com
-//! `bin/lace`, `toolchain/` e o que ele deixa para desinstalar.
+//! `bin/aurora`, `toolchain/` e o que ele deixa para desinstalar.
 
 use anyhow::Context;
 use camino::Utf8PathBuf;
@@ -16,7 +16,7 @@ pub fn prefix() -> anyhow::Result<Utf8PathBuf> {
 /// [`prefix`] com o erro da biblioteca, para quem o repassa a ela.
 pub fn prefix_result() -> aurora_installer::error::Result<Utf8PathBuf> {
     let exe = std::env::current_exe()
-        .context("Could not find the lace executable")
+        .context("Could not find the aurora executable")
         .map_err(aurora_installer::Error::Other)?;
     let exe = Utf8PathBuf::from_path_buf(exe)
         .map_err(|p| anyhow::anyhow!("Path is not UTF-8: {}", p.display()))

@@ -343,7 +343,7 @@ pub struct Waveform {
 ///
 /// ```no_run
 /// use aurora_core::*;
-/// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+/// # let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 /// let project = Project::open("/p/soma")?;
 /// let soma = project.require_processor("soma")?;
 /// soma.write_input(0, "3\n4\n5\n")?;
@@ -578,12 +578,12 @@ fn watch_inputs(
         // escape.
         let shown = path.as_str().replace('\\', "/").replace('%', "%%");
         let warning = format!(
-            "begin {read} if (scan_result != 1 && !lace_eof_{port}) begin lace_eof_{port} = 1; \
+            "begin {read} if (scan_result != 1 && !aurora_eof_{port}) begin aurora_eof_{port} = 1; \
              $display(\"WARNING: {shown}:{}: the program reads more values than this file has ({values}); from here on the port repeats the last one\"); end end",
             values + 1
         );
         text = text.replace(&read, &warning);
-        flags.push_str(&format!(" reg lace_eof_{port} = 0;"));
+        flags.push_str(&format!(" reg aurora_eof_{port} = 0;"));
         watched += 1;
     }
     if watched == 0 {
@@ -2184,7 +2184,7 @@ endmodule
             tb.lines().count(),
             "as linhas ficam"
         );
-        assert!(watched.contains("integer scan_result; reg lace_eof_0 = 0;"));
+        assert!(watched.contains("integer scan_result; reg aurora_eof_0 = 0;"));
         assert!(watched.contains(
             "WARNING: /p/le/input_0.txt:3: the program reads more values than this file has (2)"
         ));

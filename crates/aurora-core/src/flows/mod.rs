@@ -329,7 +329,7 @@ pub struct FlowOptions {
     pub wave: WavePolicy,
     /// Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do
     /// sistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o
-    /// `LACE_OPENER=vscode` do terminal da extensão do VS Code).
+    /// `AURORA_OPENER=vscode` do terminal da extensão do VS Code).
     #[serde(default)]
     pub viewer_opener: Option<String>,
 }

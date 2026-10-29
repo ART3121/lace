@@ -50,9 +50,9 @@ pub mod codes {
     /// O assistente: o Claude Code não foi achado, ou a sessão terminou.
     pub const ASSISTANT: &str = "assistant";
     /// O programa `aurora` que serve o Studio não foi achado ou não abriu.
-    pub const LACE_MISSING: &str = "lace_missing";
+    pub const AURORA_MISSING: &str = "aurora_missing";
     /// O `aurora` achado fala outra versão do protocolo.
-    pub const LACE_INCOMPATIBLE: &str = "lace_incompatible";
+    pub const AURORA_INCOMPATIBLE: &str = "aurora_incompatible";
     /// O servidor do Lace saiu no meio de um pedido; o próximo o abre de novo.
     pub const SERVER_GONE: &str = "server_gone";
     /// O pedido foi cancelado antes de começar (`-32001` do protocolo).

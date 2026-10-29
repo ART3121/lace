@@ -80,13 +80,13 @@ pub fn run(
                 .and_then(|d| Utf8PathBuf::from_path_buf(d).ok())
                 .unwrap_or_else(|| Utf8PathBuf::from("."))
         });
-    let lace = std::env::current_exe().context("Could not find the lace executable")?;
-    let lace = Utf8PathBuf::from_path_buf(dunce::canonicalize(&lace).unwrap_or(lace))
+    let aurora = std::env::current_exe().context("Could not find the aurora executable")?;
+    let aurora = Utf8PathBuf::from_path_buf(dunce::canonicalize(&aurora).unwrap_or(aurora))
         .map_err(|p| anyhow::anyhow!("Path is not UTF-8: {}", p.display()))?;
     let options = SessionOptions {
         claude,
         cwd,
-        lace,
+        aurora,
         toolchain: toolchain.toolchain.clone(),
         project: project.as_ref().map(|p| p.spf_path().to_owned()),
         permission: if args.allow_edits {
@@ -222,13 +222,13 @@ impl App {
             AgentEvent::Ready {
                 session_id,
                 model,
-                lace_connected,
+                aurora_connected,
                 ..
             } => {
                 self.starting = false;
                 self.session_id = Some(session_id);
                 self.model = model;
-                if lace_connected == Some(false) {
+                if aurora_connected == Some(false) {
                     self.entries.push(Entry::Note(
                         "The Lace tools did not connect: the assistant answers without them."
                             .to_owned(),
@@ -248,7 +248,7 @@ impl App {
             AgentEvent::ToolUse { name, input, .. } => {
                 self.streaming = false;
                 let name = name
-                    .strip_prefix("mcp__lace__")
+                    .strip_prefix("mcp__aurora__")
                     .map_or(name.clone(), str::to_owned);
                 let args = match &input {
                     serde_json::Value::Object(fields) => fields

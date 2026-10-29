@@ -2,7 +2,7 @@
 //! em `wave/<testbench>.json`, a simulação que grava só ela, o layout que
 //! mostra só ela e o layout salvo no projeto.
 //!
-//! Executam o Icarus do bundle e precisam de `LACE_TEST_BUNDLE` (ver
+//! Executam o Icarus do bundle e precisam de `AURORA_TEST_BUNDLE` (ver
 //! `common/mod.rs`).
 
 mod common;

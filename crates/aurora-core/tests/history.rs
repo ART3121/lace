@@ -3,7 +3,7 @@
 //!
 //! Os testes de erro não executam ferramenta nenhuma e rodam sempre. O do
 //! fluxo inteiro executa o Yosys e o Icarus do bundle e precisa de
-//! `LACE_TEST_BUNDLE` (ver `common/mod.rs`).
+//! `AURORA_TEST_BUNDLE` (ver `common/mod.rs`).
 
 mod common;
 
@@ -239,7 +239,7 @@ fn synthesis_and_simulation_are_recorded_and_compared() {
     // O texto guardado tem as seções do relatório.
     let text = history::report_text(&project, "3").unwrap();
     for section in [
-        "LACE OPERATION REPORT",
+        "AURORA OPERATION REPORT",
         "HOST ENVIRONMENT",
         "EDA TOOLCHAIN",
         "TIMING BREAKDOWN",

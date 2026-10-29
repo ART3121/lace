@@ -467,7 +467,7 @@ function editorCommand(id: string) {
 }
 
 // Links de ajuda: só os endereços que existem.
-export const LACE_CLI_DOCS = 'https://github.com/ART3121/lace/blob/main/docs/CLI.md';
+export const AURORA_CLI_DOCS = 'https://github.com/ART3121/aurora/blob/main/docs/CLI.md';
 export const SAPHO_MANUAL = 'https://nipscern.com/library/sapho';
 export const NIPSCERN_SITE = 'https://nipscern.com';
 export const NIPSCERN_GITHUB = 'https://github.com/nipscernlab';
@@ -859,7 +859,7 @@ export const ACTIONS: Action[] = [
   { id: 'learnNext', label: 'action.learnNext', category: 'tools', enabled: () => idle() && !!currentExercise(useLearn.getState().snapshot)?.solved, run: () => useLearn.getState().next() },
 
   // Ajuda
-  { id: 'laceDocs', label: 'action.laceDocs', category: 'help', run: () => openUrl(LACE_CLI_DOCS).catch(showError) },
+  { id: 'laceDocs', label: 'action.laceDocs', category: 'help', run: () => openUrl(AURORA_CLI_DOCS).catch(showError) },
   { id: 'saphoManual', label: 'action.saphoManual', category: 'help', run: () => openUrl(SAPHO_MANUAL).catch(showError) },
   { id: 'startTour', label: 'action.startTour', category: 'help', run: () => useTour.getState().start() },
   { id: 'shortcuts', label: 'action.shortcuts', category: 'help', run: () => openDialog({ kind: 'shortcuts' }) },

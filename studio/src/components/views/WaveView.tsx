@@ -51,8 +51,8 @@ export function WaveView({ path }: { path: string }) {
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (!frame.current || event.source !== frame.current.contentWindow) return;
-      const data = event.data as { lace?: string } & KeyboardEventInit;
-      if (data?.lace !== 'key') return;
+      const data = event.data as { aurora?: string } & KeyboardEventInit;
+      if (data?.aurora !== 'key') return;
       const { key, code, ctrlKey, shiftKey, altKey, metaKey } = data;
       frame.current.blur();
       document.body.dispatchEvent(

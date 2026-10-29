@@ -97,15 +97,15 @@ pub const MAX_PROCESSOR_NAME: usize = 64;
 /// A pasta do projeto que é só nossa: intermediários (`Temp/`), relatórios,
 /// projetos de placa e a trava do `.spf`. O nome tem o 8 porque a `.aurora`
 /// é da AURORA 7, que pode abrir o mesmo projeto; até a renomeação, era a
-/// `.lace`.
+/// `.aurora`.
 pub const PROJECT_DIR: &str = ".aurora8";
 
-/// Leva a `.lace` de um projeto do Lace para a [`PROJECT_DIR`], quando ela
+/// Leva a `.aurora` de um projeto do Lace para a [`PROJECT_DIR`], quando ela
 /// ainda não existe, com o que tinha dentro (relatórios, placas). É melhor
 /// esforço: se o renomear falhar (no Windows, um arquivo aberto lá dentro),
-/// a `.lace` fica, e a pasta nova nasce vazia no primeiro uso.
+/// a `.aurora` fica, e a pasta nova nasce vazia no primeiro uso.
 pub(crate) fn migrate_project_dir(root: &Utf8Path) {
-    let old = root.join(".lace");
+    let old = root.join(".aurora");
     let new = root.join(PROJECT_DIR);
     if old.is_dir() && !new.exists() {
         let _ = std::fs::rename(&old, &new);
@@ -631,7 +631,7 @@ impl Project {
     /// (`<dir>/<nome-do-dir>.spf`, ou o único `.spf` do diretório).
     ///
     /// Não regrava o `.spf`, ao contrário da AURORA 7. A única escrita é a
-    /// da pasta `.lace` de um projeto do Lace, que vira a [`PROJECT_DIR`]
+    /// da pasta `.aurora` de um projeto do Lace, que vira a [`PROJECT_DIR`]
     /// ([`migrate_project_dir`]). Os diretórios dos processadores não
     /// precisam existir para abrir; eles são criados no primeiro
     /// [`build`](crate::build).
@@ -889,7 +889,7 @@ impl Project {
                 "createdAt": now,
                 "lastModified": now,
                 "computerName": computer_name(),
-                "appVersion": concat!("lace ", env!("CARGO_PKG_VERSION")),
+                "appVersion": concat!("aurora ", env!("CARGO_PKG_VERSION")),
                 "projectPath": root,
             },
             "structure": {
@@ -1588,7 +1588,7 @@ pub fn validate_processor_name(name: &str) -> Result<()> {
 /// `synth` apagava a síntese do projeto; e a pasta do processador `wave` é a
 /// das escolhas de sinais, que remover o processador com a pasta mandaria
 /// para a lixeira.
-const LACE_FOLDERS: [&str; 6] = ["synth", "hierarchy", "lint", "wave", "surfer", "cocotb"];
+const AURORA_FOLDERS: [&str; 6] = ["synth", "hierarchy", "lint", "wave", "surfer", "cocotb"];
 
 /// Confere o nome de um processador novo: a regra do YANC
 /// ([`validate_processor_name`]) e, sem diferença de maiúsculas (no Windows
@@ -1611,7 +1611,7 @@ const LACE_FOLDERS: [&str; 6] = ["synth", "hierarchy", "lint", "wave", "surfer",
 /// [`AuroraError::InvalidName`], com o motivo em `reason`.
 pub fn validate_new_processor_name(name: &str) -> Result<()> {
     validate_processor_name(name)?;
-    if LACE_FOLDERS.iter().any(|f| f.eq_ignore_ascii_case(name)) {
+    if AURORA_FOLDERS.iter().any(|f| f.eq_ignore_ascii_case(name)) {
         return Err(AuroraError::InvalidName {
             name: name.to_owned(),
             reason: "Lace keeps a folder with this name for its own work (.aurora8/Temp/<name>, or wave/ for the signal choices), and the processor would share it".into(),
@@ -2146,7 +2146,7 @@ mod tests {
         (dir, path)
     }
 
-    /// A `.lace` de um projeto do Lace vira a `.aurora8` ao abrir, com o que
+    /// A `.aurora` de um projeto do Lace vira a `.aurora8` ao abrir, com o que
     /// tinha dentro; com as duas, nenhuma muda.
     #[test]
     fn opening_moves_the_lace_folder_to_aurora8() {
@@ -2154,17 +2154,17 @@ mod tests {
         let project = Project::create(&dir, "demo").unwrap();
         let root = project.root().to_owned();
         let _ = std::fs::remove_dir_all(root.join(PROJECT_DIR));
-        let report = root.join(".lace/reports/run-000001/report.json");
+        let report = root.join(".aurora/reports/run-000001/report.json");
         std::fs::create_dir_all(report.parent().unwrap()).unwrap();
         std::fs::write(&report, "{}").unwrap();
 
         Project::open(project.spf_path()).unwrap();
-        assert!(!root.join(".lace").exists());
+        assert!(!root.join(".aurora").exists());
         assert!(root.join(".aurora8/reports/run-000001/report.json").is_file());
 
-        std::fs::create_dir_all(root.join(".lace/fpga")).unwrap();
+        std::fs::create_dir_all(root.join(".aurora/fpga")).unwrap();
         Project::open(project.spf_path()).unwrap();
-        assert!(root.join(".lace/fpga").is_dir());
+        assert!(root.join(".aurora/fpga").is_dir());
         assert!(root.join(".aurora8/reports").is_dir());
     }
 

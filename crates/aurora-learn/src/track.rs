@@ -31,7 +31,7 @@ use crate::text;
 /// A variável de ambiente que aponta a pasta das trilhas, no lugar do
 /// componente instalado: é como quem escreve exercícios testa a trilha do
 /// repositório (`aurora-learn/`).
-pub const TRACKS_ENV: &str = "LACE_LEARN_DIR";
+pub const TRACKS_ENV: &str = "AURORA_LEARN_DIR";
 
 /// A trilha que o `aurora learn init` usa quando nenhuma é pedida.
 pub const DEFAULT_TRACK: &str = "verilog";
@@ -358,7 +358,7 @@ pub fn tracks_dir(toolchain: Option<&Toolchain>) -> Result<Utf8PathBuf> {
     }
     let toolchain = toolchain.ok_or(LearnError::ComponentMissing)?;
     let component = toolchain
-        .component(aurora_core::component::LACE_LEARN)
+        .component(aurora_core::component::AURORA_LEARN)
         .ok_or(LearnError::ComponentMissing)?;
     Ok(toolchain.root().join(&component.dir))
 }

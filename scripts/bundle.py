@@ -23,7 +23,7 @@ Os pacotes, com as versões exatas, estão em bundle/versions.json:
 - surfer-aurora: o executável pré-compilado do commit fixado do fork da
   AURORA, que o workflow surfer-aurora.yml publica numa pré-release deste
   repositório e versions.json fixa pelo SHA-256 (`prebuilt`, por
-  plataforma). Sem ele para a plataforma, ou com LACE_BUILD_SURFER,
+  plataforma). Sem ele para a plataforma, ou com AURORA_BUILD_SURFER,
   compilado do commit (cargo build --bin surfer, como o CI do fork), o que
   leva uns 14 minutos. --surfer-prebuilt DIR só compila e grava em DIR o
   pacote da plataforma, que o workflow publica;
@@ -60,14 +60,14 @@ Node.js e, no Linux, as bibliotecas de desenvolvimento do webkit2gtk 4.1. No
 Windows, rode dentro do shell MINGW64 do MSYS2.
 
 Variáveis opcionais:
-  LACE_BUNDLE_CACHE   onde guardar downloads, clones e pacotes extraídos
+  AURORA_BUNDLE_CACHE   onde guardar downloads, clones e pacotes extraídos
                       (padrão: ./.bundle-cache)
   YANC_MAKE_ARGS      argumentos extras para o make do YANC
                       (no macOS: BISON=... FLEX=... do Homebrew)
-  LACE_MSYS_DIST      o dist/ de um build local do lace-toolchain (com o
+  AURORA_MSYS_DIST      o dist/ de um build local do lace-toolchain (com o
                       lace-msys-<tag>.zip e o .json), no lugar da release:
                       para testar um bloco de Windows antes de publicá-lo
-  LACE_BUILD_SURFER   compila o surfer-aurora mesmo com o pré-compilado
+  AURORA_BUILD_SURFER   compila o surfer-aurora mesmo com o pré-compilado
                       fixado em versions.json
 """
 
@@ -238,7 +238,7 @@ def pkg_surfer_aurora(spec, plat, work, cache):
     # ele, cada release compilava o surfer-aurora de novo, uns 14 minutos
     # por plataforma.
     prebuilt = spec.get("prebuilt", {}).get(plat)
-    if prebuilt and not os.environ.get("LACE_BUILD_SURFER"):
+    if prebuilt and not os.environ.get("AURORA_BUILD_SURFER"):
         extract_tgz(download(prebuilt["url"], prebuilt["sha256"], cache), stage)
         if not (stage / f"surfer-aurora{exe}").is_file():
             sys.exit(f"o pacote pré-compilado do surfer-aurora não tem surfer-aurora{exe}")
@@ -350,11 +350,11 @@ def pkg_graphviz(spec, plat, work, cache):
 def pkg_msys(spec, plat, work, cache):
     """O bloco de Windows do lace-toolchain: o zip (com msys/ na raiz) e o
     manifesto, que fica ao lado da pasta extraída (MSYS_MANIFEST)."""
-    local = os.environ.get("LACE_MSYS_DIST")
+    local = os.environ.get("AURORA_MSYS_DIST")
     if local:
         zips = sorted(Path(local).glob("lace-msys-*.zip"))
         if len(zips) != 1:
-            sys.exit(f"LACE_MSYS_DIST={local}: esperado um lace-msys-<tag>.zip, achados {len(zips)}")
+            sys.exit(f"AURORA_MSYS_DIST={local}: esperado um lace-msys-<tag>.zip, achados {len(zips)}")
         archive, manifest = zips[0], zips[0].with_suffix(".json")
         if not manifest.is_file():
             sys.exit(f"falta {manifest.name} ao lado de {archive.name}")
@@ -367,7 +367,7 @@ def pkg_msys(spec, plat, work, cache):
             sys.exit(
                 f"o pacote msys {spec['version']} ainda não tem SHA-256 em bundle/versions.json: "
                 "publique a release no lace-toolchain e preencha sha256 e manifest_sha256 "
-                "(ou aponte LACE_MSYS_DIST para o dist/ de um build local dele)"
+                "(ou aponte AURORA_MSYS_DIST para o dist/ de um build local dele)"
             )
         archive = download(asset["url"], asset["sha256"], cache)
         manifest = download(asset["manifest"], asset["manifest_sha256"], cache)
@@ -740,7 +740,7 @@ def main():
     plat = args.platform or current_platform()
 
     pins = json.loads(args.versions.read_text(encoding="utf-8"))
-    cache = Path(os.environ.get("LACE_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
+    cache = Path(os.environ.get("AURORA_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
     if args.surfer_prebuilt:
         surfer_prebuilt(pins, plat, args.surfer_prebuilt.resolve(), cache)
         return

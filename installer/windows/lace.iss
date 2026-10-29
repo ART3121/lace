@@ -17,7 +17,7 @@
 ; componentes marcados, cada um conferido pelo SHA-256, e o `lace setup` os
 ; extrai e troca o toolchain\ antes de o assistente copiar o lace.exe. A
 ; release vem do GitHub, ou de um espelho com /MIRROR=<url> (com uma pasta
-; v<versão>\ por release, como o LACE_RELEASE_URL).
+; v<versão>\ por release, como o AURORA_RELEASE_URL).
 ;
 ; O assistente começa pelo idioma (inglês ou português). Os tipos de
 ; instalação são um por perfil de bundle/components.json (o primeiro é o

@@ -42,7 +42,7 @@ pub struct AssistantInfo {
     /// A versão dele (`claude --version`), se respondeu.
     pub version: Option<String>,
     /// O `aurora` que vai servir as ferramentas, ou `null` se não há.
-    pub lace: Option<String>,
+    pub aurora: Option<String>,
     /// O projeto padrão das ferramentas (o `.spf` aberto).
     pub project: Option<String>,
 }
@@ -56,7 +56,7 @@ pub async fn assistant_info(app: AppHandle) -> IpcResult<AssistantInfo> {
         Ok(AssistantInfo {
             version: claude.as_ref().and_then(aurora_agent::version),
             claude: claude.map(|c| c.display()),
-            lace: lace_for(&settings).ok().map(|p| p.to_string()),
+            aurora: aurora_for(&settings).ok().map(|p| p.to_string()),
             project: state.spf().ok().map(|p| p.to_string()),
         })
     })
@@ -81,7 +81,7 @@ pub async fn assistant_start(
                 "Claude Code was not found; install it or set its path in Preferences",
             )
         })?;
-        let lace = lace_for(&settings)?;
+        let aurora = aurora_for(&settings)?;
         let spf = state.spf().ok();
         let cwd = spf
             .as_deref()
@@ -96,7 +96,7 @@ pub async fn assistant_start(
         let options = SessionOptions {
             claude,
             cwd,
-            lace,
+            aurora,
             toolchain: toolchain_env(&settings),
             project: spf,
             permission: if settings.assistant_allow_edits {
@@ -226,11 +226,11 @@ fn find_claude(settings: &Settings) -> Option<Claude> {
     aurora_agent::find_claude(configured)
 }
 
-/// O `aurora` que serve as ferramentas: a preferência `assistant_lace`, senão
+/// O `aurora` que serve as ferramentas: a preferência `assistant_aurora`, senão
 /// o da instalação do bundle.
-fn lace_for(settings: &Settings) -> IpcResult<Utf8PathBuf> {
+fn aurora_for(settings: &Settings) -> IpcResult<Utf8PathBuf> {
     if let Some(path) = settings
-        .assistant_lace
+        .assistant_aurora
         .as_deref()
         .filter(|p| !p.trim().is_empty())
     {
@@ -238,16 +238,16 @@ fn lace_for(settings: &Settings) -> IpcResult<Utf8PathBuf> {
         if !path.is_file() {
             return Err(IpcError::new(
                 codes::ASSISTANT,
-                format!("The lace executable for the assistant does not exist: {path}"),
+                format!("The aurora executable for the assistant does not exist: {path}"),
             ));
         }
         return Ok(path);
     }
-    toolchain::lace_executable(settings).map_err(|error| {
+    toolchain::aurora_executable(settings).map_err(|error| {
         IpcError::new(
             codes::ASSISTANT,
             format!(
-                "The lace command for the assistant was not found: {}",
+                "The aurora command for the assistant was not found: {}",
                 error.message
             ),
         )
@@ -284,7 +284,7 @@ fn toolchain_env(settings: &Settings) -> Option<Utf8PathBuf> {
         .filter(|d| !d.is_empty())
         .map(Utf8PathBuf::from)
         .or_else(|| {
-            std::env::var("LACE_TOOLCHAIN")
+            std::env::var("AURORA_TOOLCHAIN")
                 .ok()
                 .filter(|d| !d.is_empty())
                 .map(Utf8PathBuf::from)

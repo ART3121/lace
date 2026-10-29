@@ -3455,7 +3455,7 @@ export interface FlowOptions {
   /**
    * Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do
    * sistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o
-   * `LACE_OPENER=vscode` do terminal da extensão do VS Code).
+   * `AURORA_OPENER=vscode` do terminal da extensão do VS Code).
    */
   viewer_opener?: string | null;
 }
@@ -3534,7 +3534,7 @@ export interface ServerInfo {
   /**
    * A versão do Lace.
    */
-  lace: string;
+  aurora: string;
   /**
    * A versão do protocolo ([`PROTOCOL_VERSION`]).
    */
@@ -5101,9 +5101,10 @@ export interface RunMetadata {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -5312,9 +5313,10 @@ export interface RunMetadata1 {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -5368,9 +5370,10 @@ export interface RunMetadata2 {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -5958,7 +5961,7 @@ export interface BitstreamState {
  * `update.check`, `update.apply`.
  */
 export interface UpdateReport {
-  lace: AuroraVersions;
+  aurora: AuroraVersions;
   bundle: BundleVersions;
   /**
    * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
@@ -6256,7 +6259,7 @@ export interface ServerInfo1 {
   /**
    * A versão do Lace.
    */
-  lace: string;
+  aurora: string;
   /**
    * A versão do protocolo ([`PROTOCOL_VERSION`]).
    */
@@ -6856,9 +6859,10 @@ export interface RunMetadata3 {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -7161,7 +7165,7 @@ export interface BitstreamState1 {
  * via the `definition` "UpdateReport".
  */
 export interface UpdateReport1 {
-  lace: AuroraVersions;
+  aurora: AuroraVersions;
   bundle: BundleVersions;
   /**
    * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem

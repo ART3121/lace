@@ -195,7 +195,7 @@ pub(crate) mod tests {
         };
         Index {
             schema: INDEX_SCHEMA,
-            lace_version: "0.1.0".into(),
+            aurora_version: "0.1.0".into(),
             bundle: "teste".into(),
             platform: "linux-x64".into(),
             profiles: vec![
@@ -214,7 +214,7 @@ pub(crate) mod tests {
                 c("graphviz", true, &["yosys"]),
             ],
             chunks: vec![
-                chunk("lace.tar.zst", &[], 10),
+                chunk("aurora.tar.zst", &[], 10),
                 chunk(
                     "c01.tar.zst",
                     &["icarus", "verilator", "yosys", "graphviz"],

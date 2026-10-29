@@ -1,7 +1,7 @@
 //! Apoio aos testes que executam as ferramentas de verdade.
 //!
 //! Precisam de um bundle montado por `scripts/bundle.py` em
-//! `LACE_TEST_BUNDLE`. Sem ele, os testes avisam e passam, para que
+//! `AURORA_TEST_BUNDLE`. Sem ele, os testes avisam e passam, para que
 //! `cargo test` funcione num clone recém-feito; com `CI` definido, a ausência
 //! é falha. Um bundle parcial (`--only yanc`) basta para os testes de build.
 
@@ -12,13 +12,13 @@ use aurora_core::{Tool, Toolchain};
 
 /// O bundle de teste.
 pub fn toolchain() -> Option<Toolchain> {
-    match std::env::var("LACE_TEST_BUNDLE") {
-        Ok(dir) => Some(Toolchain::open(&dir).expect("LACE_TEST_BUNDLE não é um bundle válido")),
+    match std::env::var("AURORA_TEST_BUNDLE") {
+        Ok(dir) => Some(Toolchain::open(&dir).expect("AURORA_TEST_BUNDLE não é um bundle válido")),
         Err(_) if std::env::var_os("CI").is_some() => {
-            panic!("CI definido, mas LACE_TEST_BUNDLE não: estes testes não podem ser pulados")
+            panic!("CI definido, mas AURORA_TEST_BUNDLE não: estes testes não podem ser pulados")
         }
         Err(_) => {
-            eprintln!("PULADO: defina LACE_TEST_BUNDLE com um bundle de scripts/bundle.py");
+            eprintln!("PULADO: defina AURORA_TEST_BUNDLE com um bundle de scripts/bundle.py");
             None
         }
     }
@@ -28,7 +28,7 @@ pub fn toolchain() -> Option<Toolchain> {
 /// `vendor/yanc` não vem num clone), os testes avisam e passam, como sem o
 /// bundle; com `CI` definido, a ausência é falha.
 pub fn yanc_source() -> Option<Utf8PathBuf> {
-    let dir = std::env::var("LACE_TEST_YANC_SRC")
+    let dir = std::env::var("AURORA_TEST_YANC_SRC")
         .map_or_else(|_| workspace().join("vendor/yanc"), Utf8PathBuf::from);
     if dir.join("Compilers").is_dir() {
         return Some(dir);
@@ -36,7 +36,7 @@ pub fn yanc_source() -> Option<Utf8PathBuf> {
     if std::env::var_os("CI").is_some() {
         panic!("CI definido, mas a fonte do YANC não está em {dir}");
     }
-    eprintln!("PULADO: sem a fonte do YANC em {dir} (defina LACE_TEST_YANC_SRC)");
+    eprintln!("PULADO: sem a fonte do YANC em {dir} (defina AURORA_TEST_YANC_SRC)");
     None
 }
 

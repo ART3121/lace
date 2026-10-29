@@ -17,7 +17,7 @@ describe('Numa pasta sem .spf', () => {
   let api: LaceExtensionApi;
 
   before(async () => {
-    assert.ok(workspace, 'LACE_TEST_WORKSPACE não definido: rode pelo npm run test:integration');
+    assert.ok(workspace, 'AURORA_TEST_WORKSPACE não definido: rode pelo npm run test:integration');
     const extension = vscode.extensions.getExtension<LaceExtensionApi>('nipscernlab.lace');
     assert.ok(extension, 'a extensão não foi carregada');
     api = await extension.activate();

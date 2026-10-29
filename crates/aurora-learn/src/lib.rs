@@ -16,7 +16,7 @@
 //! use aurora_core::{Control, Toolchain};
 //! use aurora_learn::{Workspace, grade, load_track, tracks_dir};
 //!
-//! let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+//! let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 //! let tracks = tracks_dir(Some(&toolchain))?;
 //! let track = load_track(&tracks, aurora_learn::DEFAULT_TRACK, None)?;
 //! let mut workspace = Workspace::init(camino::Utf8Path::new("aurora-learn"), track)?;

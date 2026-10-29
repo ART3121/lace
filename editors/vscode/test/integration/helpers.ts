@@ -10,14 +10,14 @@ import * as vscode from 'vscode';
 import type { LaceExtensionApi } from '../../src/extension';
 import { laceCalls, until } from '../support/fixtures';
 
-export const workspace = process.env.LACE_TEST_WORKSPACE ?? '';
+export const workspace = process.env.AURORA_TEST_WORKSPACE ?? '';
 export const spf = join(workspace, 'demo.spf');
 const log = process.env.FAKE_LACE_LOG ?? '';
 const state = process.env.FAKE_LACE_STATE ?? '';
 
 /** A extensão ativada, com o projeto lido. */
 export async function activate(): Promise<LaceExtensionApi> {
-  assert.ok(workspace, 'LACE_TEST_WORKSPACE não definido: rode pelo npm run test:integration');
+  assert.ok(workspace, 'AURORA_TEST_WORKSPACE não definido: rode pelo npm run test:integration');
   const extension = vscode.extensions.getExtension<LaceExtensionApi>('nipscernlab.lace');
   assert.ok(extension, 'a extensão não foi carregada');
   const api = await extension.activate();

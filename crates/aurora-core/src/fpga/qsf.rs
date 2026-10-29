@@ -18,7 +18,7 @@ use super::config::Resolved;
 use super::wrapper::TOP_MODULE;
 use crate::error::{AuroraError, Result};
 
-/// O nome dos arquivos do projeto (`lace_board_top.qsf`, `.sdc`, `.v`): o do
+/// O nome dos arquivos do projeto (`aurora_board_top.qsf`, `.sdc`, `.v`): o do
 /// módulo do topo da placa, que é também a revisão do Quartus.
 pub const REVISION: &str = TOP_MODULE;
 
@@ -193,7 +193,7 @@ mod tests {
             ("out[1:0]", "!HEX0"),
         ]);
         let sources = [
-            Utf8PathBuf::from("/opt/lace/yanc/SAPHO/core.v"),
+            Utf8PathBuf::from("/opt/aurora/yanc/SAPHO/core.v"),
             Utf8PathBuf::from("/p/My Files/proc/Hardware/proc.v"),
             Utf8PathBuf::from("/p/rtl/fifo.sv"),
         ];

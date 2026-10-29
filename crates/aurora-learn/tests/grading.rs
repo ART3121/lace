@@ -1,5 +1,5 @@
 //! A pasta de exercícios e a correção, com a trilha de `tests/fixtures/teste`.
-//! Os testes que simulam precisam do bundle em `LACE_TEST_BUNDLE`, como os
+//! Os testes que simulam precisam do bundle em `AURORA_TEST_BUNDLE`, como os
 //! do aurora-core: sem ele, avisam e passam (com `CI`, falham).
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -7,13 +7,13 @@ use aurora_core::{Control, Severity, Toolchain};
 use aurora_learn::{Finding, Track, Verdict, Workspace, check_track, grade, load_track};
 
 fn toolchain() -> Option<Toolchain> {
-    match std::env::var("LACE_TEST_BUNDLE") {
-        Ok(dir) => Some(Toolchain::open(&dir).expect("LACE_TEST_BUNDLE não é um bundle válido")),
+    match std::env::var("AURORA_TEST_BUNDLE") {
+        Ok(dir) => Some(Toolchain::open(&dir).expect("AURORA_TEST_BUNDLE não é um bundle válido")),
         Err(_) if std::env::var_os("CI").is_some() => {
-            panic!("CI definido, mas LACE_TEST_BUNDLE não: estes testes não podem ser pulados")
+            panic!("CI definido, mas AURORA_TEST_BUNDLE não: estes testes não podem ser pulados")
         }
         Err(_) => {
-            eprintln!("PULADO: defina LACE_TEST_BUNDLE com um bundle de scripts/bundle.py");
+            eprintln!("PULADO: defina AURORA_TEST_BUNDLE com um bundle de scripts/bundle.py");
             None
         }
     }

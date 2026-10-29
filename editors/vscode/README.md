@@ -72,7 +72,7 @@ está no [README do Lace](../../README.md#extensão-do-vs-code)).
   cores do tema do editor. Clicar duas vezes numa célula abre o fonte ao
   lado. **Lace: Abrir o RTL viewer** mostra a última síntese sem sintetizar
   de novo. Um `aurora synth --open` no terminal integrado abre a mesma aba, e
-  não o navegador: a extensão define `LACE_OPENER=vscode` nos terminais
+  não o navegador: a extensão define `AURORA_OPENER=vscode` nos terminais
   dela. Com `lace.synth.schematic`, também o SVG do Graphviz.
 - **Pôr no projeto** (`aurora add`): o + nos não registrados (e no grupo, para
   todos), o botão direito no explorador, **Adicionar como testbench**, e

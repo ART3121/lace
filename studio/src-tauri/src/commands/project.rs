@@ -27,7 +27,7 @@ fn activate(app: &AppHandle, state: &AppState, status: Value) -> IpcResult<Proje
         status[name].as_str().map(Utf8PathBuf::from).ok_or_else(|| {
             IpcError::new(
                 codes::INTERNAL,
-                format!("The project status from the lace server has no {name}"),
+                format!("The project status from the aurora server has no {name}"),
             )
         })
     };

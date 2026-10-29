@@ -71,13 +71,13 @@ fn fixture() -> Fixture {
         "common": ["bundle.json"], "components": contents_components,
     });
     fs::write(root.join("toolchain.contents.json"), contents.to_string()).unwrap();
-    let lace = root.join("lace");
-    fs::write(&lace, "#!/bin/sh\necho lace\n").unwrap();
+    let aurora = root.join("aurora");
+    fs::write(&aurora, "#!/bin/sh\necho aurora\n").unwrap();
     let installer = root.join("installer");
     fs::write(&installer, "instalador").unwrap();
     let contents = Contents::load(&root.join("toolchain.contents.json")).unwrap();
     let out = root.join("lace-teste");
-    pack::tui(&toolchain, &contents, &lace, &installer, &out, 3).unwrap();
+    pack::tui(&toolchain, &contents, &aurora, &installer, &out, 3).unwrap();
     Fixture {
         _dir: dir,
         installer: out,
@@ -119,13 +119,13 @@ fn installs_the_selection_and_replaces_it_later() {
     let (payload_dir, index) = payload(&f);
     // Um pedaço sempre instalado, um compartilhado e um por componente.
     assert_eq!(index.chunks.len(), 5, "{:#?}", index.chunks);
-    assert_eq!(index.chunks[0].file, "lace.tar.zst");
+    assert_eq!(index.chunks[0].file, "aurora.tar.zst");
     assert!(f.installer.join("install").is_file());
 
     let prefix = f.root.join("instalacao");
     let target = Target {
         prefix: prefix.clone(),
-        link: Some(f.root.join("bin/lace")),
+        link: Some(f.root.join("bin/aurora")),
     };
     let mut events = Vec::new();
     let selection = plan::default_selection(&index);
@@ -141,7 +141,7 @@ fn installs_the_selection_and_replaces_it_later() {
         [
             // A trava das instalações e atualizações fica.
             aurora_installer::update::LOCK_FILE,
-            pack::lace_entry(platform()),
+            pack::aurora_entry(platform()),
             "install.json",
             "toolchain/bundle.json",
             "toolchain/components/icarus.json",
@@ -159,18 +159,18 @@ fn installs_the_selection_and_replaces_it_later() {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mode = fs::metadata(prefix.join("bin/lace"))
+        let mode = fs::metadata(prefix.join("bin/aurora"))
             .unwrap()
             .permissions()
             .mode();
-        assert_eq!(mode & 0o111, 0o111, "bin/lace executável");
+        assert_eq!(mode & 0o111, 0o111, "bin/aurora executável");
         assert_eq!(
             report.link,
-            install::LinkOutcome::Created(f.root.join("bin/lace"))
+            install::LinkOutcome::Created(f.root.join("bin/aurora"))
         );
         assert_eq!(
-            fs::read_link(f.root.join("bin/lace")).unwrap(),
-            prefix.join("bin/lace")
+            fs::read_link(f.root.join("bin/aurora")).unwrap(),
+            prefix.join("bin/aurora")
         );
     }
 
@@ -205,7 +205,7 @@ fn installs_the_selection_and_replaces_it_later() {
             .unwrap();
         assert!(status.status.success(), "{status:?}");
         assert!(!prefix.exists());
-        assert!(fs::symlink_metadata(f.root.join("bin/lace")).is_err());
+        assert!(fs::symlink_metadata(f.root.join("bin/aurora")).is_err());
     }
 }
 
@@ -273,7 +273,7 @@ fn a_corrupt_payload_leaves_the_previous_installation_alone() {
 /// Acrescentar: só os pedaços dos componentes novos entram em `toolchain/`,
 /// o `aurora` não é reinstalado, e uma falha no meio desfaz tudo.
 #[test]
-fn adds_bundle_apps_without_reinstalling_lace() {
+fn adds_bundle_apps_without_reinstalling_aurora() {
     let f = fixture();
     let (payload_dir, index) = payload(&f);
     let prefix = f.root.join("instalacao");
@@ -285,7 +285,7 @@ fn adds_bundle_apps_without_reinstalling_lace() {
     install::install(&payload_dir, &index, &only_icarus, &target, |_| {}).unwrap();
     // Um `aurora` diferente do do payload: se o add o reinstalasse, voltaria
     // a ser o do payload.
-    fs::write(prefix.join("bin/lace"), "o lace instalado").unwrap();
+    fs::write(prefix.join("bin/aurora"), "o aurora instalado").unwrap();
     let toolchain = prefix.join("toolchain");
     let before = files_under(&toolchain);
 
@@ -365,9 +365,9 @@ fn adds_bundle_apps_without_reinstalling_lace() {
         assert!(toolchain.join("oss/bin").join(bin).is_file(), "{bin}");
     }
     assert_eq!(
-        fs::read_to_string(prefix.join("bin/lace")).unwrap(),
-        "o lace instalado",
-        "o add reinstalou o lace"
+        fs::read_to_string(prefix.join("bin/aurora")).unwrap(),
+        "o aurora instalado",
+        "o add reinstalou o aurora"
     );
     assert_eq!(
         Receipt::load(&prefix).unwrap().components,
@@ -402,13 +402,13 @@ fn install_events_have_the_console_line_with_the_labels() {
         chunk.console_line(&label).as_deref(),
         Some("  [2/5] icarus, yosys")
     );
-    let lace = Event::Chunk {
+    let aurora = Event::Chunk {
         index: 1,
         count: 5,
         components: Vec::new(),
         download: 0,
     };
-    assert_eq!(lace.console_line(&label).as_deref(), Some("  [1/5] Lace"));
+    assert_eq!(aurora.console_line(&label).as_deref(), Some("  [1/5] Lace"));
     assert_eq!(
         Event::Verifying.console_line(&label).as_deref(),
         Some("  Verifying the executables")
@@ -416,7 +416,7 @@ fn install_events_have_the_console_line_with_the_labels() {
     // O que é só barra não vira linha.
     assert_eq!(Event::Progress { done: 10 }.console_line(&label), None);
     assert_eq!(
-        aurora_installer::install::label(None, aurora_installer::update::LACE),
+        aurora_installer::install::label(None, aurora_installer::update::AURORA),
         "Lace"
     );
 }

@@ -3,16 +3,16 @@
 //!
 //! ```text
 //! <raiz>/.aurora8/fpga/<placa>/
-//!   lace_board_top.v      o topo da placa (wrapper)
-//!   lace_board_top.qsf    a FPGA, os fontes e os pinos (qsf)
-//!   lace_board_top.sdc    os clocks da placa
+//!   aurora_board_top.v      o topo da placa (wrapper)
+//!   aurora_board_top.qsf    a FPGA, os fontes e os pinos (qsf)
+//!   aurora_board_top.sdc    os clocks da placa
 //!   output_files/         o .sof, o .rbf, o .svf e os relatórios do Quartus
 //!   db/, incremental_db/  o banco de dados do Quartus
 //!
-//! quartus_map --read_settings_files=on --write_settings_files=off lace_board_top -c lace_board_top
-//! quartus_fit --read_settings_files=off --write_settings_files=off lace_board_top -c lace_board_top
-//! quartus_asm --read_settings_files=off --write_settings_files=off lace_board_top -c lace_board_top
-//! quartus_sta lace_board_top -c lace_board_top
+//! quartus_map --read_settings_files=on --write_settings_files=off aurora_board_top -c aurora_board_top
+//! quartus_fit --read_settings_files=off --write_settings_files=off aurora_board_top -c aurora_board_top
+//! quartus_asm --read_settings_files=off --write_settings_files=off aurora_board_top -c aurora_board_top
+//! quartus_sta aurora_board_top -c aurora_board_top
 //! ```
 //!
 //! Os quatro são os comandos que a interface do Quartus roda ao compilar (o
@@ -297,7 +297,7 @@ fn read_lossy(path: &Utf8Path) -> Option<String> {
 }
 
 /// O `.sof` da compilação na pasta da placa `dir` ([`build_dir`]):
-/// `output_files/lace_board_top.sof`.
+/// `output_files/aurora_board_top.sof`.
 pub fn bitstream_path(dir: &Utf8Path) -> Utf8PathBuf {
     dir.join(OUTPUT_DIR).join(format!("{REVISION}.sof"))
 }

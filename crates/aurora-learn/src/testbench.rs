@@ -7,14 +7,14 @@
 //! ou 1 é erro. O resumo sai no stdout, uma linha por fato:
 //!
 //! ```text
-//! LACE-LEARN samples 16
-//! LACE-LEARN mismatched 4         amostras com alguma saída errada
-//! LACE-LEARN output y 4 25 0      erros, primeiro erro em ns (-1: nenhum), amostras em X
-//! LACE-LEARN reset 2              só com reset: erros com o reset ativo
-//! LACE-LEARN first 25 -1          a primeira amostra errada: ns e ciclo (-1: combinacional)
-//! LACE-LEARN first_in a 1         o valor de cada entrada nela, em binário
-//! LACE-LEARN first_out y 1 0      cada saída nela: o esperado e o do aluno
-//! LACE-LEARN end
+//! AURORA-LEARN samples 16
+//! AURORA-LEARN mismatched 4         amostras com alguma saída errada
+//! AURORA-LEARN output y 4 25 0      erros, primeiro erro em ns (-1: nenhum), amostras em X
+//! AURORA-LEARN reset 2              só com reset: erros com o reset ativo
+//! AURORA-LEARN first 25 -1          a primeira amostra errada: ns e ciclo (-1: combinacional)
+//! AURORA-LEARN first_in a 1         o valor de cada entrada nela, em binário
+//! AURORA-LEARN first_out y 1 0      cada saída nela: o esperado e o do aluno
+//! AURORA-LEARN end
 //! ```
 //!
 //! As linhas `first` saem uma vez, na primeira amostra errada, e são o
@@ -43,7 +43,7 @@ pub const DEFAULT_RESET_EVERY: u32 = 16;
 /// O período do clock, em ns.
 pub const CLOCK_PERIOD_NS: u32 = 10;
 /// O prefixo das linhas do resumo.
-pub const PROTOCOL: &str = "LACE-LEARN";
+pub const PROTOCOL: &str = "AURORA-LEARN";
 /// A onda, relativa à pasta do exercício (o CWD da simulação).
 pub const WAVE_FILE: &str = ".aurora-learn/wave.fst";
 /// O sinal que marca a amostra com erro.
@@ -104,7 +104,7 @@ pub fn generate(exercise: &Exercise, interface: &ModuleInterface) -> Result<Stri
     let names: Vec<&str> = interface.ports.iter().map(|p| p.name.as_str()).collect();
     for name in &names {
         let clash = *name == MISMATCH_SIGNAL
-            || name.starts_with("lace_")
+            || name.starts_with("aurora_")
             || names.contains(&format!("{name}_ref").as_str());
         if clash {
             return Err(invalid(format!(
@@ -180,37 +180,37 @@ pub fn generate(exercise: &Exercise, interface: &ModuleInterface) -> Result<Stri
     ));
 
     // A contagem.
-    v.push_str("    integer lace_samples = 0;\n    integer lace_mismatched = 0;\n");
+    v.push_str("    integer aurora_samples = 0;\n    integer aurora_mismatched = 0;\n");
     for port in &outputs {
         let n = &port.name;
         v.push_str(&format!(
-            "    integer lace_{n}_errors = 0;\n    integer lace_{n}_first = -1;\n    integer lace_{n}_unknown = 0;\n"
+            "    integer aurora_{n}_errors = 0;\n    integer aurora_{n}_first = -1;\n    integer aurora_{n}_unknown = 0;\n"
         ));
     }
     if reset.is_some() {
-        v.push_str("    integer lace_reset_errors = 0;\n");
+        v.push_str("    integer aurora_reset_errors = 0;\n");
     }
     v.push_str(&format!(
-        "    integer lace_seed = {};\n    integer lace_i;\n\n",
+        "    integer aurora_seed = {};\n    integer aurora_i;\n\n",
         spec.seed.unwrap_or(1)
     ));
 
     // A comparação.
-    v.push_str("    task compare;\n        begin\n            lace_samples = lace_samples + 1;\n");
+    v.push_str("    task compare;\n        begin\n            aurora_samples = aurora_samples + 1;\n");
     v.push_str(&format!("            {MISMATCH_SIGNAL} = 0;\n"));
     for port in &outputs {
         let n = &port.name;
         v.push_str(&format!(
-            "            if (({n}_ref ^ {n} ^ {n}_ref) !== {n}_ref) begin\n                lace_{n}_errors = lace_{n}_errors + 1;\n                if (lace_{n}_first < 0) lace_{n}_first = $time;\n                if ((^{n}) === 1'bx) lace_{n}_unknown = lace_{n}_unknown + 1;\n                {MISMATCH_SIGNAL} = 1;\n            end\n"
+            "            if (({n}_ref ^ {n} ^ {n}_ref) !== {n}_ref) begin\n                aurora_{n}_errors = aurora_{n}_errors + 1;\n                if (aurora_{n}_first < 0) aurora_{n}_first = $time;\n                if ((^{n}) === 1'bx) aurora_{n}_unknown = aurora_{n}_unknown + 1;\n                {MISMATCH_SIGNAL} = 1;\n            end\n"
         ));
     }
     // A primeira amostra errada: o contraexemplo.
     let cycle = match spec.kind {
         Kind::Combinational => "-1",
-        Kind::Sequential => "lace_i",
+        Kind::Sequential => "aurora_i",
     };
     v.push_str(&format!(
-        "            if ({MISMATCH_SIGNAL} && lace_mismatched == 0) begin\n                $display(\"{PROTOCOL} first %0d %0d\", $time, {cycle});\n"
+        "            if ({MISMATCH_SIGNAL} && aurora_mismatched == 0) begin\n                $display(\"{PROTOCOL} first %0d %0d\", $time, {cycle});\n"
     ));
     let shown_inputs = data_inputs
         .iter()
@@ -229,11 +229,11 @@ pub fn generate(exercise: &Exercise, interface: &ModuleInterface) -> Result<Stri
     }
     v.push_str("            end\n");
     v.push_str(&format!(
-        "            if ({MISMATCH_SIGNAL}) lace_mismatched = lace_mismatched + 1;\n"
+        "            if ({MISMATCH_SIGNAL}) aurora_mismatched = aurora_mismatched + 1;\n"
     ));
     if let Some(reset) = &reset {
         v.push_str(&format!(
-            "            if ({MISMATCH_SIGNAL} && {} === 1'b{}) lace_reset_errors = lace_reset_errors + 1;\n",
+            "            if ({MISMATCH_SIGNAL} && {} === 1'b{}) aurora_reset_errors = aurora_reset_errors + 1;\n",
             reset.name, reset.active
         ));
     }
@@ -263,17 +263,17 @@ pub fn generate(exercise: &Exercise, interface: &ModuleInterface) -> Result<Stri
 
     // O resumo.
     v.push_str(&format!(
-        "        $display(\"{PROTOCOL} samples %0d\", lace_samples);\n        $display(\"{PROTOCOL} mismatched %0d\", lace_mismatched);\n"
+        "        $display(\"{PROTOCOL} samples %0d\", aurora_samples);\n        $display(\"{PROTOCOL} mismatched %0d\", aurora_mismatched);\n"
     ));
     for port in &outputs {
         let n = &port.name;
         v.push_str(&format!(
-            "        $display(\"{PROTOCOL} output {n} %0d %0d %0d\", lace_{n}_errors, lace_{n}_first, lace_{n}_unknown);\n"
+            "        $display(\"{PROTOCOL} output {n} %0d %0d %0d\", aurora_{n}_errors, aurora_{n}_first, aurora_{n}_unknown);\n"
         ));
     }
     if reset.is_some() {
         v.push_str(&format!(
-            "        $display(\"{PROTOCOL} reset %0d\", lace_reset_errors);\n"
+            "        $display(\"{PROTOCOL} reset %0d\", aurora_reset_errors);\n"
         ));
     }
     v.push_str(&format!(
@@ -310,9 +310,9 @@ fn check_control_input(
 fn random_value(port: &Port) -> String {
     let words = port.width.div_ceil(32).max(1);
     if words == 1 {
-        "$random(lace_seed)".to_owned()
+        "$random(aurora_seed)".to_owned()
     } else {
-        let parts = vec!["$random(lace_seed)"; words as usize].join(", ");
+        let parts = vec!["$random(aurora_seed)"; words as usize].join(", ");
         format!("{{{parts}}}")
     }
 }
@@ -353,7 +353,7 @@ fn combinational(
         v.push_str("        end\n");
     } else if exhaustive {
         v.push_str(&format!(
-            "        for (lace_i = 0; lace_i < {}; lace_i = lace_i + 1) begin\n            {{{}}} = lace_i;\n",
+            "        for (aurora_i = 0; aurora_i < {}; aurora_i = aurora_i + 1) begin\n            {{{}}} = aurora_i;\n",
             1u64 << bits,
             all()
         ));
@@ -366,7 +366,7 @@ fn combinational(
         v.push_str(&format!("        {{{}}} = {{{bits}{{1'b1}}}};\n", all()));
         v.push_str(&SAMPLE.replace("            ", "        "));
         v.push_str(&format!(
-            "        for (lace_i = 0; lace_i < {}; lace_i = lace_i + 1) begin\n",
+            "        for (aurora_i = 0; aurora_i < {}; aurora_i = aurora_i + 1) begin\n",
             spec.samples.unwrap_or(DEFAULT_SAMPLES)
         ));
         for port in inputs {
@@ -396,7 +396,7 @@ fn sequential(
 ) {
     let spec = &exercise.spec;
     v.push_str(&format!(
-        "        for (lace_i = 0; lace_i < {}; lace_i = lace_i + 1) begin\n            @(posedge {clock});\n            #2 compare;\n            #3;\n",
+        "        for (aurora_i = 0; aurora_i < {}; aurora_i = aurora_i + 1) begin\n            @(posedge {clock});\n            #2 compare;\n            #3;\n",
         spec.cycles.unwrap_or(DEFAULT_CYCLES)
     ));
     for port in inputs {
@@ -412,12 +412,12 @@ fn sequential(
         let every = reset.every.unwrap_or(DEFAULT_RESET_EVERY);
         if every == 0 {
             v.push_str(&format!(
-                "            {} = (lace_i < 1) ? {active} : {inactive};\n",
+                "            {} = (aurora_i < 1) ? {active} : {inactive};\n",
                 reset.name
             ));
         } else {
             v.push_str(&format!(
-                "            {} = (lace_i < 1 || ($unsigned($random(lace_seed)) % {every}) == 0) ? {active} : {inactive};\n",
+                "            {} = (aurora_i < 1 || ($unsigned($random(aurora_seed)) % {every}) == 0) ? {active} : {inactive};\n",
                 reset.name
             ));
         }
@@ -486,8 +486,8 @@ mod tests {
         .unwrap();
         assert!(tb.contains("{a, b} = 0;"), "{tb}");
         assert!(tb.contains("{a, b} = {32{1'b1}};"), "{tb}");
-        assert!(tb.contains("lace_i < 50"), "{tb}");
-        assert!(tb.contains("integer lace_seed = 7;"), "{tb}");
+        assert!(tb.contains("aurora_i < 50"), "{tb}");
+        assert!(tb.contains("integer aurora_seed = 7;"), "{tb}");
         assert!(tb.contains("wire [16:0] s_ref;"), "{tb}");
     }
 
@@ -496,7 +496,7 @@ mod tests {
         let iface = interface("module w(input [39:0] a, output [39:0] y);\nendmodule\n");
         let tb = generate(&exercise("w", spec(r#"{"kind": "combinational"}"#)), &iface).unwrap();
         assert!(
-            tb.contains("a = {$random(lace_seed), $random(lace_seed)};"),
+            tb.contains("a = {$random(aurora_seed), $random(aurora_seed)};"),
             "{tb}"
         );
     }

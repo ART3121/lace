@@ -10,7 +10,7 @@ use camino::Utf8PathBuf;
 pub enum Error {
     /// O `aurora` não veio do instalador: não há instalação para mexer.
     #[error(
-        "This lace ({exe}) was not installed by the installer, so there is no installation here"
+        "This aurora ({exe}) was not installed by the installer, so there is no installation here"
     )]
     NoInstallation {
         /// O executável (ou a pasta) examinado.
@@ -58,7 +58,7 @@ pub enum Error {
     },
     /// O instalador inteiro (Linux, macOS) saiu com erro.
     #[error(
-        "The installer exited with code {code}; if the installation is system-wide (/opt/lace), run: sudo aurora update"
+        "The installer exited with code {code}; if the installation is system-wide (/opt/aurora), run: sudo aurora update"
     )]
     InstallerFailed {
         /// O código de saída, ou `?`.
@@ -70,9 +70,9 @@ pub enum Error {
         /// O que aconteceu.
         reason: String,
     },
-    /// `LACE_RELEASE_URL` não é `https://` nem `file://`.
+    /// `AURORA_RELEASE_URL` não é `https://` nem `file://`.
     #[error(
-        "LACE_RELEASE_URL must start with https:// (or file:// for a mirror on disk), and it is \
+        "AURORA_RELEASE_URL must start with https:// (or file:// for a mirror on disk), and it is \
          {base}: the SHA256SUMS that checks each download comes from there too"
     )]
     InvalidMirror {

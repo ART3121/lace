@@ -47,7 +47,7 @@ pub use flow::*;
 
 /// O nome que [`Plan::changed`] dá aos arquivos sempre instalados: o `aurora`
 /// e o cabeçalho do bundle.
-pub const LACE: &str = "lace";
+pub const AURORA: &str = "aurora";
 
 /// O diário da troca em andamento, na raiz da instalação.
 pub const JOURNAL_FILE: &str = ".atualizando.json";
@@ -239,7 +239,7 @@ pub struct Plan {
     /// Os instalados que a versão nova não tem mais: os arquivos deles saem.
     pub removed: Vec<String>,
     /// Os componentes com algum arquivo que entra ou sai, na ordem do índice,
-    /// com [`LACE`] na frente quando o `aurora` ou o cabeçalho mudam.
+    /// com [`AURORA`] na frente quando o `aurora` ou o cabeçalho mudam.
     pub changed: Vec<String>,
     /// Os pedaços a baixar, na ordem do índice.
     pub chunks: Vec<PlannedChunk>,
@@ -294,7 +294,7 @@ pub fn plan(
     if current != Some(index.platform.as_str()) {
         bail!(
             "Release {} is for {}, and this machine is {}",
-            index.lace_version,
+            index.aurora_version,
             index.platform,
             current.unwrap_or("an unsupported platform")
         );
@@ -303,17 +303,17 @@ pub fn plan(
         bail!(
             "The installation is for {}, and release {} is for {}",
             installed.platform,
-            index.lace_version,
+            index.aurora_version,
             index.platform
         );
     }
-    if new.lace_version != index.lace_version
+    if new.aurora_version != index.aurora_version
         || new.bundle != index.bundle
         || new.platform != index.platform
     {
         bail!(
             "The file manifest of release {} does not match its index",
-            index.lace_version
+            index.aurora_version
         );
     }
     let toolchain = prefix.join("toolchain");
@@ -374,7 +374,7 @@ pub fn plan(
     if let Some(file) = by_chunk.keys().next() {
         bail!(
             "The file manifest of release {} names the chunk {file}, which its index does not have",
-            index.lace_version
+            index.aurora_version
         );
     }
 
@@ -387,20 +387,20 @@ pub fn plan(
             .collect()
     };
     let mut changed_names = Vec::new();
-    if changed.contains(LACE) {
-        changed_names.push(LACE.to_owned());
+    if changed.contains(AURORA) {
+        changed_names.push(AURORA.to_owned());
     }
     changed_names.extend(in_order(&|n| changed.contains(n)));
     // Um componente que a versão nova não conhece não está no índice dela.
     changed_names.extend(
         changed
             .iter()
-            .filter(|n| **n != LACE && index.component(n).is_none())
+            .filter(|n| **n != AURORA && index.component(n).is_none())
             .map(|n| (*n).to_owned()),
     );
     Ok(Plan {
-        from: installed.lace_version.clone(),
-        to: index.lace_version.clone(),
+        from: installed.aurora_version.clone(),
+        to: index.aurora_version.clone(),
         bundle: index.bundle.clone(),
         components: in_order(&|n| after.contains(n)),
         added: in_order(&|n| after.contains(n) && !before.contains(n)),
@@ -416,10 +416,10 @@ pub fn plan(
 }
 
 /// Anota os componentes de um grupo em `changed` (os sempre instalados como
-/// [`LACE`]).
+/// [`AURORA`]).
 fn mark<'a>(changed: &mut BTreeSet<&'a str>, components: &'a [String]) {
     if components.is_empty() {
-        changed.insert(LACE);
+        changed.insert(AURORA);
     }
     changed.extend(components.iter().map(String::as_str));
 }
@@ -509,13 +509,13 @@ pub fn apply_with(
         }
     };
     remove_empty_dirs(prefix, &plan.stale);
-    // No Windows, o `lace.exe` em uso fica, e a pasta com ele.
+    // No Windows, o `aurora.exe` em uso fica, e a pasta com ele.
     remove_what_can_be_removed(&backup);
 
     // O recibo (Linux, macOS) passa a ser o da versão nova. No Windows não há
     // recibo: quem sabe é o bundle.
     if let Some(mut receipt) = Receipt::load(prefix) {
-        receipt.lace_version = plan.to.clone();
+        receipt.aurora_version = plan.to.clone();
         receipt.bundle = plan.bundle.clone();
         receipt.components = plan.components.clone();
         let path = prefix.join(RECEIPT_FILE);
@@ -737,7 +737,7 @@ fn remove_what_can_be_removed(dir: &Path) {
 
 /// Apaga as pastas `.antigo-<pid>` e `.instalando-<pid>` que uma operação
 /// anterior deixou em `prefix` (no Windows, a `.antigo-<pid>` fica com o
-/// `lace.exe` que estava rodando). As desta execução ficam. Com outra
+/// `aurora.exe` que estava rodando). As desta execução ficam. Com outra
 /// operação rodando, ou com uma troca a desfazer ([`recover`]), nada sai: as
 /// pastas são dela.
 pub fn clean_leftovers(prefix: &Path) {
@@ -768,7 +768,7 @@ mod tests {
 
     #[test]
     fn manifest_paths_stay_inside_the_installation() {
-        for ok in ["bin/lace", "toolchain/oss/lib/libc.so.6"] {
+        for ok in ["bin/aurora", "toolchain/oss/lib/libc.so.6"] {
             assert!(check_path(ok).is_ok(), "{ok}");
         }
         for bad in ["", "../x", "toolchain/../../x", "/etc/passwd", "./x"] {
@@ -792,8 +792,8 @@ mod tests {
     fn interrupted(prefix: &Path) {
         let staging = prefix.join(".instalando-1");
         let backup = prefix.join(".antigo-1");
-        write(&backup.join("bin/lace"), "lace velho");
-        write(&prefix.join("bin/lace"), "lace novo");
+        write(&backup.join("bin/aurora"), "aurora velho");
+        write(&prefix.join("bin/aurora"), "aurora novo");
         write(&backup.join("toolchain/a"), "a velho");
         write(&staging.join("toolchain/a"), "a novo");
         write(&prefix.join("toolchain/sub/novo"), "novo");
@@ -802,7 +802,7 @@ mod tests {
         write(&staging.join("toolchain/files.json"), "manifesto novo");
         write(&prefix.join("toolchain/sai"), "sai");
         let put = [
-            "bin/lace",
+            "bin/aurora",
             "toolchain/a",
             "toolchain/sub/novo",
             "toolchain/depois",
@@ -831,8 +831,8 @@ mod tests {
         interrupted(prefix);
         assert_eq!(recover(prefix).unwrap().as_deref(), Some("9.9.9"));
         assert_eq!(
-            read(&prefix.join("bin/lace")).as_deref(),
-            Some("lace velho")
+            read(&prefix.join("bin/aurora")).as_deref(),
+            Some("aurora velho")
         );
         assert_eq!(
             read(&prefix.join("toolchain/a")).as_deref(),
@@ -862,7 +862,7 @@ mod tests {
         interrupted(prefix);
         fs::remove_dir_all(prefix.join(".instalando-1")).unwrap();
         assert_eq!(recover(prefix).unwrap(), None);
-        assert_eq!(read(&prefix.join("bin/lace")).as_deref(), Some("lace novo"));
+        assert_eq!(read(&prefix.join("bin/aurora")).as_deref(), Some("aurora novo"));
         assert!(!prefix.join(JOURNAL_FILE).exists());
     }
 
@@ -890,6 +890,6 @@ mod tests {
         let text = read(&path).unwrap().replace(".antigo-1", "../fora");
         fs::write(&path, text).unwrap();
         assert!(recover(prefix).is_err());
-        assert_eq!(read(&prefix.join("bin/lace")).as_deref(), Some("lace novo"));
+        assert_eq!(read(&prefix.join("bin/aurora")).as_deref(), Some("aurora novo"));
     }
 }

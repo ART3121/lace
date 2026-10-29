@@ -1,7 +1,7 @@
 //! As trilhas do repositório (`aurora-learn/`, que viram o componente
 //! `aurora-learn`): carregam, e cada exercício passa no `dev check` (o
 //! `start.v` não passa, a `solution.v` passa). O `dev check` precisa do
-//! bundle em `LACE_TEST_BUNDLE`; sem ele, avisa e passa.
+//! bundle em `AURORA_TEST_BUNDLE`; sem ele, avisa e passa.
 
 use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{Control, Toolchain};
@@ -25,13 +25,13 @@ fn the_tracks_of_this_repository_load() {
 
 #[test]
 fn every_exercise_of_this_repository_passes_the_dev_check() {
-    let toolchain = match std::env::var("LACE_TEST_BUNDLE") {
-        Ok(dir) => Toolchain::open(&dir).expect("LACE_TEST_BUNDLE não é um bundle válido"),
+    let toolchain = match std::env::var("AURORA_TEST_BUNDLE") {
+        Ok(dir) => Toolchain::open(&dir).expect("AURORA_TEST_BUNDLE não é um bundle válido"),
         Err(_) if std::env::var_os("CI").is_some() => {
-            panic!("CI definido, mas LACE_TEST_BUNDLE não: estes testes não podem ser pulados")
+            panic!("CI definido, mas AURORA_TEST_BUNDLE não: estes testes não podem ser pulados")
         }
         Err(_) => {
-            eprintln!("PULADO: defina LACE_TEST_BUNDLE com um bundle de scripts/bundle.py");
+            eprintln!("PULADO: defina AURORA_TEST_BUNDLE com um bundle de scripts/bundle.py");
             return;
         }
     };

@@ -350,7 +350,7 @@ enum LearnCommand {
 enum LearnDevCommand {
     /// Check a track: every starting file fails and every solution passes
     Check {
-        /// The track folder (default: the installed verilog track, or the one in LACE_LEARN_DIR)
+        /// The track folder (default: the installed verilog track, or the one in AURORA_LEARN_DIR)
         track: Option<Utf8PathBuf>,
     },
 }
@@ -803,16 +803,16 @@ mod tests {
     #[test]
     fn clap_labels_are_capitalized() {
         let plain = "error: unexpected argument '--x' found\n\n  \
-                     tip: a similar argument exists: '--json'\n\nUsage: lace\n";
+                     tip: a similar argument exists: '--json'\n\nUsage: aurora\n";
         assert_eq!(
             super::capitalize_labels(plain),
             "Error: Unexpected argument '--x' found\n\n  \
-             Tip: A similar argument exists: '--json'\n\nUsage: lace\n"
+             Tip: A similar argument exists: '--json'\n\nUsage: aurora\n"
         );
-        let colored = "\x1b[1m\x1b[31merror:\x1b[0m 'lace' requires a subcommand\n";
+        let colored = "\x1b[1m\x1b[31merror:\x1b[0m 'aurora' requires a subcommand\n";
         assert_eq!(
             super::capitalize_labels(colored),
-            "\x1b[1m\x1b[31mError:\x1b[0m 'lace' requires a subcommand\n"
+            "\x1b[1m\x1b[31mError:\x1b[0m 'aurora' requires a subcommand\n"
         );
         let usage = "  <NAME>\n";
         assert_eq!(super::capitalize_labels(usage), usage);

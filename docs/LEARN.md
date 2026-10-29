@@ -228,7 +228,7 @@ assíncrono). As entradas que não são clock nem reset mudam a cada ciclo.
 O gerador recusa módulo sem saída, porta `inout`, clock ou reset que não
 seja entrada de 1 bit, `active` do reset que não seja 0 nem 1, uma porta
 `<x>` ao lado de uma porta `<x>_ref`, uma porta chamada
-`mismatch` ou começada por `lace_`, e mais de 16 bits de entrada no
+`mismatch` ou começada por `aurora_`, e mais de 16 bits de entrada no
 estímulo exaustivo.
 
 ### `prompt.md`
@@ -268,14 +268,14 @@ Ele precisa:
 - escrever o resumo no stdout e terminar com `$finish`:
 
 ```
-LACE-LEARN samples <amostras>
-LACE-LEARN mismatched <amostras com alguma saída errada>
-LACE-LEARN output <saída> <erros> <primeiro erro em ns, ou -1> <erradas em X ou Z>
-LACE-LEARN reset <erradas com o reset ativo>       (opcional)
-LACE-LEARN first <ns> <ciclo, ou -1>                (opcional: a primeira amostra errada)
-LACE-LEARN first_in <entrada> <bits>                (uma por entrada, depois do first)
-LACE-LEARN first_out <saída> <bits esperados> <bits do aluno>
-LACE-LEARN end
+AURORA-LEARN samples <amostras>
+AURORA-LEARN mismatched <amostras com alguma saída errada>
+AURORA-LEARN output <saída> <erros> <primeiro erro em ns, ou -1> <erradas em X ou Z>
+AURORA-LEARN reset <erradas com o reset ativo>       (opcional)
+AURORA-LEARN first <ns> <ciclo, ou -1>                (opcional: a primeira amostra errada)
+AURORA-LEARN first_in <entrada> <bits>                (uma por entrada, depois do first)
+AURORA-LEARN first_out <saída> <bits esperados> <bits do aluno>
+AURORA-LEARN end
 ```
 
 Os bits vão como o `%b` do Verilog os escreve, do mais significativo ao
@@ -286,25 +286,25 @@ O que ele escrever além disso aparece para o aluno na correção.
 ### Conferir
 
 ```
-LACE_LEARN_DIR=aurora-learn aurora learn dev check aurora-learn/verilog
+AURORA_LEARN_DIR=aurora-learn aurora learn dev check aurora-learn/verilog
 ```
 
 Para cada exercício: as portas de `start.v` e `solution.v` são as mesmas, o
 enunciado tem dica, o testbench sai, o `start.v` não passa e a `solution.v`
 passa, sem latch e sem aviso (do Icarus e, com o Verilator instalado, do
 lint): a solução é o exemplo que o aluno vê depois de resolver. O teste `crates/aurora-learn/tests/track.rs` faz o mesmo para todas as
-trilhas do repositório (com `LACE_TEST_BUNDLE`).
+trilhas do repositório (com `AURORA_TEST_BUNDLE`).
 
-`LACE_LEARN_DIR` aponta a pasta das trilhas no lugar do componente, para
+`AURORA_LEARN_DIR` aponta a pasta das trilhas no lugar do componente, para
 testar uma trilha sem instalá-la: `aurora learn init`, `aurora learn` e os outros
 subcomandos passam a usá-la. No Studio, o mesmo é a preferência "Pasta das
 trilhas de exercícios" (Preferências > Bundle do Lace), que a vista
 Exercícios também oferece quando não acha trilha nenhuma.
 
 Numa build de desenvolvimento (`cargo run`, `npm run tauri dev`), sem
-`LACE_LEARN_DIR` e sem a preferência, o Lace e o Studio usam sozinhos a
+`AURORA_LEARN_DIR` e sem a preferência, o Lace e o Studio usam sozinhos a
 pasta `aurora-learn/` do repositório de onde foram compilados. Com
-`LACE_LEARN_DIR` definida e vazia, isso desliga.
+`AURORA_LEARN_DIR` definida e vazia, isso desliga.
 
 ### Publicar
 

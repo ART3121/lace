@@ -25,7 +25,7 @@ pub enum LearnError {
         source: std::io::Error,
     },
 
-    /// Sem o componente `aurora-learn` no bundle e sem `LACE_LEARN_DIR`.
+    /// Sem o componente `aurora-learn` no bundle e sem `AURORA_LEARN_DIR`.
     #[error("The aurora-learn component is not installed")]
     ComponentMissing,
 

@@ -168,7 +168,7 @@ pub enum ArtifactKind {
     Schematic,
     /// As estatísticas do `stat -json` do Yosys (`stat.json`).
     SynthesisStatistics,
-    /// O topo da placa que o Lace gera (`lace_board_top.v`).
+    /// O topo da placa que o Lace gera (`aurora_board_top.v`).
     BoardTop,
     /// As configurações do projeto do Quartus (`.qsf`): a FPGA, os fontes e
     /// os pinos.

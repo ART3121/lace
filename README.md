@@ -6,7 +6,7 @@
 </h1>
 
 <p align="center">
-  <a href="https://github.com/ART3121/lace/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=2e4374" alt="Versão"></a>
+  <a href="https://github.com/ART3121/aurora/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=2e4374" alt="Versão"></a>
   <a href="https://nipscern.com"><img src="https://img.shields.io/badge/NIPS--CERN-UFJF-2e4374" alt="NIPS-CERN, UFJF"></a>
 </p>
 
@@ -55,13 +55,13 @@ sudo pacman -S webkit2gtk-4.1            # Arch, Manjaro
 Linux x64 e macOS Apple Silicon, em qualquer shell (bash, zsh, fish):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh
 ```
 
 Windows 10 e 11, no PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ART3121/aurora/main/install.ps1 | iex
 ```
 
 O script baixa o instalador da última release, confere o SHA-256 com o
@@ -70,26 +70,26 @@ no macOS, o assistente no Windows. Nos dois, primeiro se escolhe um perfil
 (abaixo): o **SAPHO** é o recomendado, e o **Custom**, para uso avançado,
 deixa marcar os componentes. O assistente do Windows pergunta antes o
 idioma, inglês ou português. No Linux e no macOS,
-instala em `~/.local/share/lace`, com o atalho `~/.local/bin/lace`. O Lace
+instala em `~/.local/share/aurora`, com o atalho `~/.local/bin/aurora`. O Lace
 Studio entra no menu de aplicativos.
 
 Sem perguntas (scripts, laboratórios, CI):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes
-curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes --profile verilog
-curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes --components yanc,icarus,verilator
+curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh -s -- --yes
+curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh -s -- --yes --profile verilog
+curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh -s -- --yes --components yanc,icarus,verilator
 ```
 
 ```powershell
-$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"
-irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
+$env:AURORA_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"
+irm https://raw.githubusercontent.com/ART3121/aurora/main/install.ps1 | iex
 ```
 
-Sem o script, direto da [página da release](https://github.com/ART3121/lace/releases/latest):
+Sem o script, direto da [página da release](https://github.com/ART3121/aurora/releases/latest):
 
 ```sh
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
+curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
 tar xzf lace-0.9.0-linux-x64.tar.gz && ./lace-0.9.0-linux-x64/install
 ```
 
@@ -140,13 +140,13 @@ A extensão ainda não está no Marketplace: o arquivo dela,
 Lace instalado (acima) e do VS Code 1.90 ou mais novo.
 
 ```sh
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/lace-vscode-0.1.0.vsix
+curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/lace-vscode-0.1.0.vsix
 code --install-extension lace-vscode-0.1.0.vsix
 ```
 
 No Windows, os mesmos dois comandos no PowerShell, com `curl.exe` no lugar
 de `curl`. Sem o terminal: baixe o `.vsix` da
-[página da release](https://github.com/ART3121/lace/releases/latest) e, no
+[página da release](https://github.com/ART3121/aurora/releases/latest) e, no
 VS Code, abra Extensões, o menu `...` e **Install from VSIX...**. Para
 atualizar, instale o `.vsix` novo do mesmo jeito; para remover, desinstale
 pela aba Extensões.
@@ -154,7 +154,7 @@ pela aba Extensões.
 A extensão ativa numa pasta com `.spf` e procura o `aurora` no `PATH`. Se o
 VS Code não o achar (no Linux e no macOS, aberto pelo menu do sistema, ele
 pode não ver o `~/.local/bin`), ponha o caminho do executável na
-configuração `lace.path`. O que ela faz, e o que cada versão do Lace
+configuração `aurora.path`. O que ela faz, e o que cada versão do Lace
 habilita: [editors/vscode/README.md](editors/vscode/README.md).
 
 ## Depois de instalar

@@ -52,7 +52,7 @@ define `CI`, mas hoje não roda os testes do Rust.
 
 ### O bundle, para os testes que rodam ferramentas
 
-Os testes acham o bundle pela variável `LACE_TEST_BUNDLE`, que precisa ser
+Os testes acham o bundle pela variável `AURORA_TEST_BUNDLE`, que precisa ser
 um caminho absoluto: o `cargo test` roda cada teste no diretório do crate,
 então um caminho relativo aponta para o lugar errado. Há dois jeitos de ter
 um bundle.
@@ -61,11 +61,11 @@ um bundle.
 aponte para a pasta `toolchain/` da instalação. Não compila nada.
 
 ```sh
-export LACE_TEST_BUNDLE="$HOME/.local/share/lace/toolchain"            # Linux, macOS
+export AURORA_TEST_BUNDLE="$HOME/.local/share/aurora/toolchain"            # Linux, macOS
 ```
 
 ```powershell
-$env:LACE_TEST_BUNDLE = "$env:LOCALAPPDATA\Programs\Lace\toolchain"     # Windows
+$env:AURORA_TEST_BUNDLE = "$env:LOCALAPPDATA\Programs\Lace\toolchain"     # Windows
 ```
 
 Confira com `aurora tools` que o identificador do bundle instalado é o mesmo
@@ -82,7 +82,7 @@ surfer-aurora vem pré-compilado (a tabela por sistema está em
 ```sh
 python3 scripts/bundle.py --out dist/toolchain               # completo
 python3 scripts/bundle.py --out dist/toolchain --only yanc   # só o YANC: basta para os testes de build
-export LACE_TEST_BUNDLE="$PWD/dist/toolchain"
+export AURORA_TEST_BUNDLE="$PWD/dist/toolchain"
 ```
 
 Com o bundle definido, há mais duas dependências:
@@ -93,7 +93,7 @@ Com o bundle definido, há mais duas dependências:
   compilador vem no bundle.
 - **`yanc_regression` precisa do fonte do YANC** no commit do bundle (o
   `commit` de `yanc` em `bundle/versions.json`), em `vendor/yanc` ou no
-  caminho de `LACE_TEST_YANC_SRC`. Sem ele, o teste é pulado, como sem o
+  caminho de `AURORA_TEST_YANC_SRC`. Sem ele, o teste é pulado, como sem o
   bundle (com `CI` definido, falha).
 
 ```sh
@@ -111,19 +111,19 @@ cargo test --workspace -- --test-threads=2
 
 | Variável | Efeito |
 |---|---|
-| `LACE_TEST_BUNDLE` | o bundle dos testes que rodam ferramentas; sem ela, eles são pulados |
-| `LACE_TEST_YANC_SRC` | o fonte do YANC para `yanc_regression` (padrão: `vendor/yanc`) |
-| `LACE_TEST_GUI=1` | com o bundle, roda o teste que abre a janela do surfer-aurora: `cargo test --test tools surfer` |
+| `AURORA_TEST_BUNDLE` | o bundle dos testes que rodam ferramentas; sem ela, eles são pulados |
+| `AURORA_TEST_YANC_SRC` | o fonte do YANC para `yanc_regression` (padrão: `vendor/yanc`) |
+| `AURORA_TEST_GUI=1` | com o bundle, roda o teste que abre a janela do surfer-aurora: `cargo test --test tools surfer` |
 | `CI` | com qualquer valor, bundle ou ferramenta ausente é falha |
 
 ### Rodar a CLI a partir do código
 
 O `aurora` procura o bundle ao lado do executável, e `target/debug/` não tem
-um. Passe o bundle com `--toolchain` ou com a variável `LACE_TOOLCHAIN`:
+um. Passe o bundle com `--toolchain` ou com a variável `AURORA_TOOLCHAIN`:
 
 ```sh
-cargo run -p aurora-cli -- --toolchain "$LACE_TEST_BUNDLE" tools
-cargo run -p aurora-cli -- --toolchain "$LACE_TEST_BUNDLE" -C examples/contador check
+cargo run -p aurora-cli -- --toolchain "$AURORA_TEST_BUNDLE" tools
+cargo run -p aurora-cli -- --toolchain "$AURORA_TEST_BUNDLE" -C examples/contador check
 ```
 
 `new`, `add`, `remove`, `top`, `status` e `proc` funcionam sem
@@ -153,7 +153,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `lib.rs` | a lista de módulos, os `pub use` que formam a API pública, a documentação do crate (fluxo típico, garantias) e os atributos que valem para o crate todo |
 | `toolchain.rs` | o bundle: `Toolchain` (`open`, `locate`, `tool`, `verify`, `sapho_library`), `Tool` e o caminho fixo de cada executável (`Tool::location`), `Platform`, o manifesto (`BundleManifest`, `BundleComponent`), `SystemCompiler` e o ambiente de cada ferramenta (`Toolchain::invocation`) |
 | `process.rs` | o único módulo que cria processos: `Invocation`, `run` (lê a saída em blocos de linhas inteiras, confere cancelamento e prazo, encerra o grupo de processos no Unix e o Job Object no Windows), `Watch`, `spawn`, `RunningProcess`, `Termination`; o ambiente vazio (`INHERITED_ENV`, `GUI_ENV`); `ProcessJob` e `hide_console`, que o `aurora-agent` também usa; `open_with_system`, o abridor do sistema para o HTML do RTL viewer |
-| `rtl_viewer.rs` | módulo público `aurora_core::rtl_viewer`: o modelo do HTML do RTL viewer (`template`, o componente `rtl-viewer` ou `LACE_RTL_VIEWER`) e o HTML preenchido com o netlist (`write`), que o `aurora synth --open` abre |
+| `rtl_viewer.rs` | módulo público `aurora_core::rtl_viewer`: o modelo do HTML do RTL viewer (`template`, o componente `rtl-viewer` ou `AURORA_RTL_VIEWER`) e o HTML preenchido com o netlist (`write`), que o `aurora synth --open` abre |
 | `control.rs` | `Control`, `CancelToken`, `Event` e `Stream`: o que a interface passa a cada operação para cancelá-la e acompanhar a saída ([Cancelamento e saída ao vivo](#cancelamento-e-saída-ao-vivo)) |
 | `pipeline.rs` | o que todo resultado tem: `Step`, `Status`, `StepReport`, `Artifact`, `ArtifactKind`; por dentro, `PlannedStep`, `Runner` (roda os passos em sequência, emite os eventos do `Control` e para no primeiro que falha ou no cancelamento) e `ArtifactTracker` (o `fresh` dos artefatos) |
 | `diagnostics.rs` | `Diagnostic` e `Severity`; `parse` traduz a saída de cada ferramenta em diagnósticos; `is_message` diz, linha a linha, se uma linha é mensagem da ferramenta (o campo `diagnostic` do `Event::Output`) |
@@ -201,7 +201,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `install.rs` | `aurora install`: a lista (a TUI de `aurora-installer`) ou os nomes, e de onde vêm os pedaços dos aplicativos (`--from`, ou a release, por `ReleasePayload`); quem extrai é `aurora_installer::add` |
 | `update.rs` | `aurora update`: a casca sobre `aurora_installer::update`, com as tabelas, as confirmações e a barra; as versões, as releases (`aurora_installer::release`, atrás do trait `Sources`, para testar sem rede) e a troca dos arquivos são da biblioteca |
 | `uninstall.rs` | `aurora uninstall`: acha a instalação ao redor do executável e roda o desinstalador que o instalador deixou (`uninstall.sh`, ou o do Inno no Windows) |
-| `settings.rs` | as opções globais do bundle e do que vem do sistema (`ToolchainArgs`: `--toolchain` ou `LACE_TOOLCHAIN`, `--compiler` ou `LACE_COMPILER`, `--quartus` ou `LACE_QUARTUS`); `ToolchainArgs::lookup` monta o `Lookup` (com a `QUARTUS_ROOTDIR` e a `HOME`) e `ToolchainArgs::resolve` abre o bundle por `aurora_core::locate::resolve`, onde moram o `compiler_in` e a busca do Quartus; e `absolute` |
+| `settings.rs` | as opções globais do bundle e do que vem do sistema (`ToolchainArgs`: `--toolchain` ou `AURORA_TOOLCHAIN`, `--compiler` ou `AURORA_COMPILER`, `--quartus` ou `AURORA_QUARTUS`); `ToolchainArgs::lookup` monta o `Lookup` (com a `QUARTUS_ROOTDIR` e a `HOME`) e `ToolchainArgs::resolve` abre o bundle por `aurora_core::locate::resolve`, onde moram o `compiler_in` e a busca do Quartus; e `absolute` |
 | `fpga.rs` | `aurora fpga boards`, `aurora fpga check`, `aurora fpga build` e `aurora fpga program` (com `--list`, os cabos) |
 | `serve.rs` | `aurora serve`: o protocolo por JSON-RPC 2.0 sobre stdio; `Server::handle_with` é o despacho de cada método para o Core, que o `aurora mcp` também usa; cada braço chama as mesmas funções do Core que o comando da CLI |
 | `mcp/` | `aurora mcp`: as ferramentas para um agente de IA (`TOOLS`, em `mod.rs`, com o nome e a ordem; quais métodos viram ferramenta é a marcação `agent` deles no protocolo), o resumo em texto de cada resultado (`summary.rs`) e o `aurora mcp setup` (`setup.rs`) |
@@ -225,9 +225,9 @@ a onda.
 | Arquivo | O que mora lá |
 |---|---|
 | `lib.rs` | os módulos, os `pub use` e a documentação do crate |
-| `track.rs` | a trilha: `Track`, `Chapter`, `Exercise`, o `exercise.json` (`Spec`, `Kind`, `Stimulus`, `Reset`), a pasta das trilhas (`tracks_dir`, `LACE_LEARN_DIR`) |
+| `track.rs` | a trilha: `Track`, `Chapter`, `Exercise`, o `exercise.json` (`Spec`, `Kind`, `Stimulus`, `Reset`), a pasta das trilhas (`tracks_dir`, `AURORA_LEARN_DIR`) |
 | `text.rs` | o título, o corpo e as dicas de um `.md`, e a escolha do idioma (`prompt.en.md`) |
-| `testbench.rs` | o testbench gerado: o estímulo, a comparação com a referência e o resumo `LACE-LEARN` |
+| `testbench.rs` | o testbench gerado: o estímulo, a comparação com a referência e o resumo `AURORA-LEARN` |
 | `reference.rs` | a cópia da solução com `_ref` no nome de cada módulo |
 | `workspace.rs` | a pasta de exercícios: `Workspace` (`init`, `open`, `discover`, `record`, `reset`), o estado `.aurora-learn.json` e as soluções liberadas |
 | `grade.rs` | a correção: `grade`, `Grade`, `Verdict`, `Finding`; os diagnósticos que o aluno vê |
@@ -279,7 +279,7 @@ a onda.
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
 | `docs/PROTOCOL.md` | a referência do protocolo do `aurora serve`, gerada dos tipos do `aurora-protocol` por `crates/aurora-cli/src/protocol_doc.rs`; não edite à mão |
 | `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `aurora synth --open`, que vira o componente `rtl-viewer` |
-| `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pelo `aurora serve` ou, com um Lace sem ele (ou `lace.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
+| `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pelo `aurora serve` ou, com um Lace sem ele (ou `aurora.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
 | `crates/aurora-installer/tests/` | `install.rs` (empacota um bundle pequeno e instala de verdade) e `update.rs` (duas versões de um bundle pequeno: instala a primeira e atualiza para a segunda trocando só o que mudou) |
 | `studio/` | a AURORA IDE (antes Lace Studio), em Tauri: o backend em Rust (`studio/src-tauri/`, fora do workspace, com o próprio `Cargo.lock`) e a interface em React (`studio/src/`); o guia é o [studio/docs/DEVELOPMENT.md](studio/docs/DEVELOPMENT.md) |
 | `examples/` | os projetos `soma`, `com_erro` e `contador`, usados pelos testes |
@@ -390,10 +390,10 @@ herdada do ambiente do usuário.
    - `cli_definition_is_valid`, em `main.rs`, confere a definição do
      `clap` (nomes repetidos, conflitos): `cargo test -p aurora-cli --bins`;
    - um teste em `crates/aurora-cli/tests/cli.rs`, com os auxiliares de lá:
-     `new_project`, `lace_in(&root)` para rodar dentro do projeto,
+     `new_project`, `aurora_in(&root)` para rodar dentro do projeto,
      `json(&mut cmd, código)` e `stdout(&mut cmd, código)`. Se precisar de
-     ferramenta, comece com `env_or_skip("LACE_TEST_BUNDLE")` e passe o
-     bundle por `LACE_TOOLCHAIN`, como `build_ok_is_exit_code_0` faz.
+     ferramenta, comece com `env_or_skip("AURORA_TEST_BUNDLE")` e passe o
+     bundle por `AURORA_TOOLCHAIN`, como `build_ok_is_exit_code_0` faz.
 
    ```sh
    cargo test -p aurora-cli
@@ -473,14 +473,14 @@ mudá-los muda a classificação dos arquivos de todos os projetos.
    lace-toolchain ([docs/BUNDLE.md](docs/BUNDLE.md), seção 6).
 2. Troque `bundle`, o identificador do bundle.
 3. YANC: ponha o seu `vendor/yanc` no mesmo commit (ou aponte
-   `LACE_TEST_YANC_SRC` para um fonte nele), de onde o `yanc_regression` lê
+   `AURORA_TEST_YANC_SRC` para um fonte nele), de onde o `yanc_regression` lê
    os casos de teste do próprio YANC.
 4. Monte e confira:
 
    ```sh
    python3 scripts/bundle.py --out dist/toolchain
    cargo run -p aurora-cli -- --toolchain "$PWD/dist/toolchain" tools --verify
-   LACE_TEST_BUNDLE="$PWD/dist/toolchain" cargo test --workspace -- --test-threads=2
+   AURORA_TEST_BUNDLE="$PWD/dist/toolchain" cargo test --workspace -- --test-threads=2
    ```
 
    Se a saída do YANC mudou, os snapshots de `crates/aurora-core/tests/build.rs`
@@ -671,7 +671,7 @@ Quando uma mudança altera o JSON (um campo novo num resultado do Core, um
 relatório novo), o teste falha e diz o que fazer:
 
 ```sh
-LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema
+AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema
 git diff docs/schema/ docs/PROTOCOL.md
 ```
 
@@ -703,7 +703,7 @@ formatação de outros arquivos na sua mudança.
 
 Depois confira:
 
-- [ ] Rodou `cargo test --workspace` com `LACE_TEST_BUNDLE` definido, se a
+- [ ] Rodou `cargo test --workspace` com `AURORA_TEST_BUNDLE` definido, se a
       mudança toca qualquer fluxo de ferramenta (build, check, sim, synth,
       wave, bundle). Sem o bundle, esses testes não testaram nada.
 - [ ] O comportamento novo tem teste, e o teste falha sem a mudança.

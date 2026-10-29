@@ -4,7 +4,7 @@
 //! Gere de novo:
 //!
 //! ```sh
-//! LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema
+//! AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema
 //! ```
 //!
 //! e confira o diff do `docs/PROTOCOL.md` junto com o de `docs/schema/`.
@@ -388,7 +388,7 @@ const HEADER: &str = "\
 # Protocolo do `aurora serve`
 
 <!-- Gerado por crates/aurora-cli/src/protocol_doc.rs. Não edite à mão: \
-LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema -->
+AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema -->
 
 Cada método do `aurora serve`, com os parâmetros e o resultado, as \
 notificações, os erros e os tipos. O `aurora mcp` usa o mesmo contrato. Esta \
@@ -521,7 +521,7 @@ pub fn render() -> String {
         out,
         "\nNo `{}`, `error.data` é um {}: os valores de `code` estão em \
          [API.md, seção 8](API.md#8-erros).\n",
-        rpc::LACE,
+        rpc::AURORA,
         label(&responses["properties"]["error"])
     );
 
@@ -543,20 +543,20 @@ pub fn render() -> String {
 mod tests {
     use super::*;
 
-    /// `docs/PROTOCOL.md` é o que `render()` gera. Com `LACE_UPDATE_SCHEMA`,
+    /// `docs/PROTOCOL.md` é o que `render()` gera. Com `AURORA_UPDATE_SCHEMA`,
     /// regrava o arquivo em vez de comparar.
     #[test]
     fn protocol_doc_matches_the_schema() {
         let path = Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/PROTOCOL.md");
         let text = render();
-        if std::env::var_os("LACE_UPDATE_SCHEMA").is_some() {
+        if std::env::var_os("AURORA_UPDATE_SCHEMA").is_some() {
             std::fs::write(&path, &text).unwrap();
             return;
         }
         assert!(
             std::fs::read_to_string(&path).ok().as_deref() == Some(text.as_str()),
             "docs/PROTOCOL.md não confere com os tipos do protocolo\n\
-             gere de novo com: LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema\n\
+             gere de novo com: AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema\n\
              e confira o diff"
         );
     }

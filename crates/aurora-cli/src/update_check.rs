@@ -2,8 +2,8 @@
 //! instalador, rodando num terminal, procura uma vez por dia se há Lace mais
 //! novo publicado e, se há, avisa no fim do comando, no stderr.
 //!
-//! A consulta é a mesma do `aurora update` (`Sources::latest_lace` da biblioteca do instalador: a
-//! última release no GitHub, ou o `latest` do espelho de `LACE_RELEASE_URL`)
+//! A consulta é a mesma do `aurora update` (`Sources::latest_aurora` da biblioteca do instalador: a
+//! última release no GitHub, ou o `latest` do espelho de `AURORA_RELEASE_URL`)
 //! e roda numa thread enquanto o comando roda. No fim, o comando espera por
 //! ela no máximo [`WAIT`]; se ela não voltou a tempo, o aviso fica para a
 //! próxima vez. O resultado fica em `update-check.json`, na pasta de cache do
@@ -14,7 +14,7 @@
 //! como o Studio e a extensão do VS Code), fora de um terminal, em
 //! `aurora update` (que já compara as versões), `aurora uninstall` e nos comandos
 //! internos, num `aurora` que não veio do instalador, com `CI` definida ou com
-//! `LACE_NO_UPDATE_CHECK` definida.
+//! `AURORA_NO_UPDATE_CHECK` definida.
 
 use std::io::IsTerminal;
 use std::path::PathBuf;
@@ -38,7 +38,7 @@ const RETRY: u64 = 60 * 60;
 /// Quanto o fim do comando espera pela consulta que ainda roda.
 const WAIT: Duration = Duration::from_millis(1500);
 /// A variável que desliga a verificação.
-pub const DISABLE_VAR: &str = "LACE_NO_UPDATE_CHECK";
+pub const DISABLE_VAR: &str = "AURORA_NO_UPDATE_CHECK";
 /// O arquivo do estado, na pasta de cache do Lace.
 const STATE_FILE: &str = "update-check.json";
 
@@ -93,7 +93,7 @@ pub fn start(wanted: bool) -> Option<Pending> {
             let latest = crate::update::network()
                 .and_then(|network| {
                     Remote(network)
-                        .latest_lace(&CancelToken::new())
+                        .latest_aurora(&CancelToken::new())
                         .map_err(anyhow::Error::new)
                 })
                 .inspect_err(|error| tracing::info!("Update check: {error:#}"))
@@ -186,8 +186,8 @@ fn now() -> u64 {
         .map_or(0, |d| d.as_secs())
 }
 
-/// `update-check.json` na pasta de cache do Lace: `%LOCALAPPDATA%\lace` no
-/// Windows; nos outros, `$XDG_CACHE_HOME/lace` ou `~/.cache/lace`, como a
+/// `update-check.json` na pasta de cache do Lace: `%LOCALAPPDATA%\aurora` no
+/// Windows; nos outros, `$XDG_CACHE_HOME/aurora` ou `~/.cache/aurora`, como a
 /// pasta dos downloads do `aurora update` (`Network::work_dir`).
 fn state_path() -> Option<PathBuf> {
     let base = if cfg!(windows) {
@@ -200,7 +200,7 @@ fn state_path() -> Option<PathBuf> {
             .filter(|p| p.is_absolute())
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))?
     };
-    Some(base.join("lace").join(STATE_FILE))
+    Some(base.join("aurora").join(STATE_FILE))
 }
 
 /// O estado gravado; um arquivo que falta ou que não se lê vale como nunca.
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn the_state_survives_a_round_trip_and_a_bad_file() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("lace").join(STATE_FILE);
+        let path = dir.path().join("aurora").join(STATE_FILE);
         assert_eq!(load(&path), State::default());
         let state = State {
             checked: NOW,

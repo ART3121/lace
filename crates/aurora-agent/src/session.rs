@@ -59,8 +59,8 @@ pub struct SessionOptions {
     /// caminhos relativos e as edições.
     pub cwd: Utf8PathBuf,
     /// O `aurora` que serve as ferramentas (`aurora mcp`).
-    pub lace: Utf8PathBuf,
-    /// O bundle para o `aurora mcp` (`LACE_TOOLCHAIN`), quando não é o da
+    pub aurora: Utf8PathBuf,
+    /// O bundle para o `aurora mcp` (`AURORA_TOOLCHAIN`), quando não é o da
     /// instalação dele.
     pub toolchain: Option<Utf8PathBuf>,
     /// O projeto padrão das ferramentas (`aurora mcp --project`).
@@ -81,7 +81,7 @@ pub struct SessionOptions {
 /// `{project}` trocado pelo projeto ou por "no project is open".
 pub const SYSTEM_PROMPT: &str = "You are the Lace assistant, inside the Lace tools for Verilog and \
 SAPHO (C±) processor projects. Current project: {project}. Use the aurora tools \
-(mcp__lace__*) for everything about the project: project_status to see it, build to compile \
+(mcp__aurora__*) for everything about the project: project_status to see it, build to compile \
 the processors with the YANC, check for the Verilog, sim to simulate, synth to synthesize, \
 history_show to read a past report, processor_outputs for the values a processor wrote. The \
 tools take the project path; it is already set as the default, so you may omit it. Paths in \
@@ -99,10 +99,10 @@ pub enum AgentEvent {
         session_id: String,
         /// O modelo em uso.
         model: Option<String>,
-        /// As ferramentas disponíveis (`mcp__lace__build`, `Read`, ...).
+        /// As ferramentas disponíveis (`mcp__aurora__build`, `Read`, ...).
         tools: Vec<String>,
         /// O servidor `aurora` conectou (`None`: o Claude Code não disse).
-        lace_connected: Option<bool>,
+        aurora_connected: Option<bool>,
     },
     /// Um pedaço do texto da resposta, na ordem.
     Text {
@@ -113,7 +113,7 @@ pub enum AgentEvent {
     ToolUse {
         /// O identificador da chamada.
         id: String,
-        /// A ferramenta (`mcp__lace__sim`, `Read`).
+        /// A ferramenta (`mcp__aurora__sim`, `Read`).
         name: String,
         /// Os argumentos.
         input: Value,
@@ -193,7 +193,7 @@ impl Session {
         // Um Claude Code aberto por outro Claude Code recusa rodar; a sessão
         // do assistente é dele mesma.
         command.env_remove("CLAUDECODE");
-        command.env("CLAUDE_CODE_ENTRYPOINT", "lace");
+        command.env("CLAUDE_CODE_ENTRYPOINT", "aurora");
         aurora_core::hide_console(&mut command);
         let mut job = ProcessJob::new(false);
         let mut child = command.spawn().map_err(|error| AgentError::Spawn {
@@ -364,11 +364,11 @@ fn mcp_config(options: &SessionOptions) -> Value {
         args.push("--project".to_owned());
         args.push(project.to_string());
     }
-    let mut server = json!({ "command": options.lace, "args": args });
+    let mut server = json!({ "command": options.aurora, "args": args });
     if let Some(toolchain) = &options.toolchain {
-        server["env"] = json!({ "LACE_TOOLCHAIN": toolchain });
+        server["env"] = json!({ "AURORA_TOOLCHAIN": toolchain });
     }
-    json!({ "mcpServers": { "lace": server } })
+    json!({ "mcpServers": { "aurora": server } })
 }
 
 /// Os argumentos do Claude Code, fora o `--mcp-config` (que leva um
@@ -386,7 +386,7 @@ fn arguments(options: &SessionOptions) -> Vec<String> {
     ]
     .map(str::to_owned)
     .to_vec();
-    let mut allowed = vec!["mcp__lace", "Read", "Grep", "Glob"];
+    let mut allowed = vec!["mcp__aurora", "Read", "Grep", "Glob"];
     if options.permission == Permission::Edits {
         allowed.extend(["Edit", "Write", "MultiEdit"]);
         args.push("--permission-mode".to_owned());
@@ -445,13 +445,13 @@ impl Parser {
                             .collect()
                     })
                     .unwrap_or_default();
-                let lace_connected = value
+                let aurora_connected = value
                     .get("mcp_servers")
                     .and_then(Value::as_array)
                     .and_then(|servers| {
                         servers
                             .iter()
-                            .find(|s| s.get("name").and_then(Value::as_str) == Some("lace"))
+                            .find(|s| s.get("name").and_then(Value::as_str) == Some("aurora"))
                     })
                     .map(|s| s.get("status").and_then(Value::as_str) == Some("connected"));
                 vec![AgentEvent::Ready {
@@ -461,7 +461,7 @@ impl Parser {
                         .and_then(Value::as_str)
                         .map(str::to_owned),
                     tools,
-                    lace_connected,
+                    aurora_connected,
                 }]
             }
             Some("stream_event") => {
@@ -597,7 +597,7 @@ mod tests {
                 prefix: Vec::new(),
             },
             cwd: "/p".into(),
-            lace: "/opt/lace/bin/lace".into(),
+            aurora: "/opt/aurora/bin/aurora".into(),
             toolchain: None,
             project: Some("/p/soma.spf".into()),
             permission: Permission::AuroraOnly,
@@ -614,7 +614,7 @@ mod tests {
         assert!(args.contains(&"--print".to_owned()));
         assert!(args.contains(&"--include-partial-messages".to_owned()));
         let allowed = &args[args.iter().position(|a| a == "--allowedTools").unwrap() + 1];
-        assert_eq!(allowed, "mcp__lace,Read,Grep,Glob");
+        assert_eq!(allowed, "mcp__aurora,Read,Grep,Glob");
         assert!(!args.contains(&"--permission-mode".to_owned()));
         let prompt = &args[args
             .iter()
@@ -651,28 +651,28 @@ mod tests {
         opts.toolchain = Some("/bundle".into());
         opts.allow_update = true;
         let config = mcp_config(&opts);
-        let lace = &config["mcpServers"]["lace"];
-        assert_eq!(lace["command"], "/opt/lace/bin/lace");
+        let aurora = &config["mcpServers"]["aurora"];
+        assert_eq!(aurora["command"], "/opt/aurora/bin/aurora");
         assert_eq!(
-            lace["args"],
+            aurora["args"],
             json!(["mcp", "--allow-update", "--project", "/p/soma.spf"])
         );
-        assert_eq!(lace["env"]["LACE_TOOLCHAIN"], "/bundle");
+        assert_eq!(aurora["env"]["AURORA_TOOLCHAIN"], "/bundle");
         let plain = mcp_config(&options());
-        assert!(plain["mcpServers"]["lace"].get("env").is_none());
+        assert!(plain["mcpServers"]["aurora"].get("env").is_none());
     }
 
     #[test]
     fn the_stream_is_translated_into_events() {
         let mut parser = Parser::default();
-        let init = parser.line(r#"{"type":"system","subtype":"init","session_id":"s1","model":"claude-x","tools":["mcp__lace__build","Read"],"mcp_servers":[{"name":"lace","status":"connected"}]}"#);
+        let init = parser.line(r#"{"type":"system","subtype":"init","session_id":"s1","model":"claude-x","tools":["mcp__aurora__build","Read"],"mcp_servers":[{"name":"aurora","status":"connected"}]}"#);
         assert_eq!(
             init,
             [AgentEvent::Ready {
                 session_id: "s1".into(),
                 model: Some("claude-x".into()),
-                tools: vec!["mcp__lace__build".into(), "Read".into()],
-                lace_connected: Some(true),
+                tools: vec!["mcp__aurora__build".into(), "Read".into()],
+                aurora_connected: Some(true),
             }]
         );
         // O texto em pedaços, depois a mensagem inteira sem repetir.
@@ -685,12 +685,12 @@ mod tests {
             parser.line(r#"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Olá"}}}"#),
             [AgentEvent::Text { text: "Olá".into() }]
         );
-        let whole = parser.line(r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Olá"},{"type":"tool_use","id":"t1","name":"mcp__lace__build","input":{"processors":[]}}]}}"#);
+        let whole = parser.line(r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Olá"},{"type":"tool_use","id":"t1","name":"mcp__aurora__build","input":{"processors":[]}}]}}"#);
         assert_eq!(
             whole,
             [AgentEvent::ToolUse {
                 id: "t1".into(),
-                name: "mcp__lace__build".into(),
+                name: "mcp__aurora__build".into(),
                 input: json!({ "processors": [] }),
             }]
         );

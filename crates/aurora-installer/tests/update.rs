@@ -37,7 +37,7 @@ struct Spec<'a> {
 }
 
 /// Monta o bundle `specs` e empacota o instalador em `root/<name>`.
-fn build(root: &Path, name: &str, lace: &str, specs: &[Spec], wrong_hash: Option<&str>) -> PathBuf {
+fn build(root: &Path, name: &str, aurora: &str, specs: &[Spec], wrong_hash: Option<&str>) -> PathBuf {
     let toolchain = root.join(format!("{name}-toolchain"));
     let write = |rel: &str, data: &str| {
         let p = toolchain.join(rel);
@@ -83,13 +83,13 @@ fn build(root: &Path, name: &str, lace: &str, specs: &[Spec], wrong_hash: Option
     });
     let contents_path = root.join(format!("{name}.contents.json"));
     fs::write(&contents_path, contents.to_string()).unwrap();
-    let lace_path = root.join(format!("{name}-lace"));
-    fs::write(&lace_path, lace).unwrap();
+    let aurora_path = root.join(format!("{name}-lace"));
+    fs::write(&aurora_path, aurora).unwrap();
     let installer = root.join(format!("{name}-installer"));
     fs::write(&installer, "instalador").unwrap();
     let out = root.join(name);
     let contents = Contents::load(&contents_path).unwrap();
-    pack::tui(&toolchain, &contents, &lace_path, &installer, &out, 3).unwrap();
+    pack::tui(&toolchain, &contents, &aurora_path, &installer, &out, 3).unwrap();
     out
 }
 
@@ -97,7 +97,7 @@ fn v1(root: &Path) -> PathBuf {
     build(
         root,
         "v1",
-        "lace 1",
+        "aurora 1",
         &[
             Spec {
                 name: "icarus",
@@ -132,7 +132,7 @@ fn v2(root: &Path, name: &str, wrong_hash: Option<&str>) -> PathBuf {
     build(
         root,
         name,
-        "lace 2",
+        "aurora 2",
         &[
             Spec {
                 name: "icarus",
@@ -265,12 +265,12 @@ fn the_installation_keeps_the_manifest_of_its_version() {
         listed.keys().collect::<Vec<_>>()
     );
     // O `aurora` tem o nome da plataforma.
-    let lace = if cfg!(windows) {
-        "bin/lace.exe"
+    let aurora = if cfg!(windows) {
+        "bin/aurora.exe"
     } else {
-        "bin/lace"
+        "bin/aurora"
     };
-    assert!(listed.contains_key(lace), "{listed:?}");
+    assert!(listed.contains_key(aurora), "{listed:?}");
 }
 
 #[test]
@@ -281,7 +281,7 @@ fn only_the_chunks_with_changed_files_are_downloaded() {
     let installed = FilesManifest::load(&i.prefix.join(files::INSTALLED)).unwrap();
     let plan = update::plan(&i.prefix, &installed, &index, &new).unwrap();
     assert_eq!(plan.components, ["icarus", "yosys"]);
-    assert_eq!(plan.changed, ["lace", "icarus"]);
+    assert_eq!(plan.changed, ["aurora", "icarus"]);
     assert!(plan.added.is_empty() && plan.removed.is_empty());
     assert_eq!(plan.stale, ["toolchain/oss/share/icarus/old.txt"]);
     let chunks: Vec<&str> = plan.chunks.iter().map(|c| c.chunk.file.as_str()).collect();
@@ -292,7 +292,7 @@ fn only_the_chunks_with_changed_files_are_downloaded() {
         .iter()
         .find(|c| c.components == ["icarus"])
         .unwrap();
-    assert_eq!(chunks, ["lace.tar.zst", icarus_chunk.file.as_str()]);
+    assert_eq!(chunks, ["aurora.tar.zst", icarus_chunk.file.as_str()]);
     assert!(plan.download() > 0);
 
     let source = counting(&installer);
@@ -310,12 +310,12 @@ fn only_the_chunks_with_changed_files_are_downloaded() {
     assert!(!after.contains_key("toolchain/oss/share/icarus/old.txt"));
     assert!(!i.prefix.join("toolchain/oss/share/icarus").join("old.txt").exists());
     assert_eq!(text("toolchain/oss/bin/yosys"), "yosys 1");
-    let lace = if cfg!(windows) {
-        "bin/lace.exe"
+    let aurora = if cfg!(windows) {
+        "bin/aurora.exe"
     } else {
-        "bin/lace"
+        "bin/aurora"
     };
-    assert_eq!(text(lace), "lace 2");
+    assert_eq!(text(aurora), "aurora 2");
     assert!(text("toolchain/bundle.json").contains("\"v2\""));
     // O manifesto instalado é o da v2, e nada ficou para trás.
     assert_eq!(
@@ -401,7 +401,7 @@ fn a_component_the_new_version_requires_comes_in() {
     let installer = build(
         &root,
         "v3",
-        "lace 3",
+        "aurora 3",
         &[
             Spec {
                 name: "icarus",

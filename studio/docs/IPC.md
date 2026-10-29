@@ -6,7 +6,7 @@ devolve. São duas coisas:
 - os comandos do Studio, um por linha das tabelas abaixo: as janelas, os
   arquivos, o terminal, a vigia da pasta, as preferências, a onda numa aba e
   as operações longas;
-- o `lace_call`, que leva um método do protocolo do Lace ao servidor do
+- o `aurora_call`, que leva um método do protocolo do Lace ao servidor do
   Lace (`aurora serve`, aberto pelo Studio como processo filho) e devolve a
   resposta dele. O projeto, os processadores, o histórico, os sinais da
   onda, a placa FPGA e os exercícios passam por aqui.
@@ -35,10 +35,10 @@ Convenções:
 
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
-| `lace_call` | `method` (`project.status`, `history.show`, ...), `params?` | o resultado do método | um pedido ao `aurora serve` |
+| `aurora_call` | `method` (`project.status`, `history.show`, ...), `params?` | o resultado do método | um pedido ao `aurora serve` |
 
 Cada método, com os parâmetros, o resultado e os tipos, está em
-`docs/PROTOCOL.md` do Lace, gerado do código. O `lace_call` não aceita os
+`docs/PROTOCOL.md` do Lace, gerado do código. O `aurora_call` não aceita os
 métodos da sessão (`initialize`, `shutdown`) nem os longos, que têm
 progresso: `flow.run`, `learn.check`, `update.check`, `update.apply` e
 `install.add` vão pelas operações e pelos comandos do bundle.
@@ -49,16 +49,16 @@ exige `project` é `no_project`; um que o tem opcional (o `wave.open`) vai
 sem ele. Quem não quer o projeto num campo opcional manda `project: null`.
 
 O servidor abre no primeiro pedido e reabre se cair. O `aurora` é o de
-`LACE_STUDIO_LACE`, o da preferência `lace_path`, o da instalação do bundle
+`AURORA_IDE_CLI`, o da preferência `aurora_path`, o da instalação do bundle
 das preferências, o da instalação em que o Studio está e o do `PATH`, nessa
 ordem; ele recebe o bundle (`--toolchain`), o compilador do Verilator
 (`--compiler`), o Quartus (`--quartus`) e as trilhas do `aurora learn`
-(`LACE_LEARN_DIR`) das preferências, e mudar uma dessas coisas fecha o
+(`AURORA_LEARN_DIR`) das preferências, e mudar uma dessas coisas fecha o
 servidor e abre outro no pedido seguinte. Um `aurora` de outra versão do
-protocolo é recusado (`lace_incompatible`). No Windows o servidor roda sem
+protocolo é recusado (`aurora_incompatible`). No Windows o servidor roda sem
 janela de console, num Job Object que o leva junto quando o Studio fecha.
 
-As funções do `api.ts` que passam pelo `lace_call` mantêm a forma que a
+As funções do `api.ts` que passam pelo `aurora_call` mantêm a forma que a
 interface já usava:
 
 | Função | Método | O que muda na ida ou na volta |
@@ -111,7 +111,7 @@ O que vale saber de alguns métodos, do lado da interface:
   também para a CLI, e o contrário. A placa FPGA é um deles: desligada, os
   métodos `fpga.*` respondem `experimental_disabled`.
 - As trilhas do `aurora learn` vêm da preferência `learn_dir`, de
-  `LACE_LEARN_DIR` ou do componente `aurora-learn`, nessa ordem; sem nenhum,
+  `AURORA_LEARN_DIR` ou do componente `aurora-learn`, nessa ordem; sem nenhum,
   o erro é `learn_component_missing`. Com `lang` (`en`), os textos que têm
   tradução vêm traduzidos.
 
@@ -125,7 +125,7 @@ O que vale saber de alguns métodos, do lado da interface:
 | `recent_projects` | | `RecentStatus[]`: `spf`, `name`, `opened_at_ms`, `exists` |
 | `recent_forget` | `spf` | |
 | `log_frontend` | `level` (`error`, `warn`, `info`), `message` | |
-| `dev_smoke_script` | | o roteiro de `LACE_STUDIO_SMOKE`, só na build de desenvolvimento; senão `null` |
+| `dev_smoke_script` | | o roteiro de `AURORA_IDE_SMOKE`, só na build de desenvolvimento; senão `null` |
 | `app_exit` | `restart: boolean` | (não volta: o Studio sai) |
 | `splash_close` | | (fecha o splash, a janela com o logo que fica na frente enquanto a principal abre escondida; a interface chama logo depois de mostrar a principal) |
 
@@ -142,7 +142,7 @@ arquivos e a sessão antes de chamar. Sem `restart`, só fecha: é o que o
 Studio faz no Windows para o assistente de instalação trocar os arquivos
 dele.
 
-`Settings.lace_path` é o `aurora` que o Studio abre como servidor; vazio, o
+`Settings.aurora_path` é o `aurora` que o Studio abre como servidor; vazio, o
 da instalação. Para desenvolvimento, um build em `target/`.
 
 `Settings.wave_viewer` é `tab` (o padrão) ou `window`: onde a interface
@@ -293,9 +293,9 @@ notificações do servidor, como ele as manda:
 | `events` | `events: Event[]` | lotes de eventos do Lace (`step_started`, `output`, `step_finished`; API.md do Lace, 5.8), no máximo a cada 30 ms ou 500 eventos |
 | `output_omitted` | `step`, `tool`, `lines` | linhas de `output` que ficaram de fora, no lugar delas: passam 20 000 de uma vez e depois 5 000 por segundo, em blocos, com um aviso a cada meio segundo (uma linha longa conta uma a mais a cada 1 KiB); o resultado final ainda traz o fim da saída de cada passo |
 | `build` | `result: BuildResult` | um processador terminou de compilar |
-| `install` | `event` | o progresso de `lace_install` e `lace_update`: um evento do instalador (etiquetado por `event`: `start`, `chunk`, `downloading`, `progress`, `replacing`, `verifying`, `fallback`, `fallback_download`, `wizard_selection`, `installer_output`, `warning`) |
-| `cli_output` | `stream`, `line` | só em `lace_install` e `lace_update`: a linha do console para o evento, com os nomes dos aplicativos (o `line` da notificação `install`) |
-| `finished` | `outcome` | fim: um `FlowOutcome` (ou o resultado de `lace_install` e `lace_update`) |
+| `install` | `event` | o progresso de `aurora_install` e `aurora_update`: um evento do instalador (etiquetado por `event`: `start`, `chunk`, `downloading`, `progress`, `replacing`, `verifying`, `fallback`, `fallback_download`, `wizard_selection`, `installer_output`, `warning`) |
+| `cli_output` | `stream`, `line` | só em `aurora_install` e `aurora_update`: a linha do console para o evento, com os nomes dos aplicativos (o `line` da notificação `install`) |
+| `finished` | `outcome` | fim: um `FlowOutcome` (ou o resultado de `aurora_install` e `aurora_update`) |
 | `failed` | `error: IpcError` | fim: o Lace não conseguiu rodar |
 
 Toda operação termina com exatamente um `finished` ou um `failed`.
@@ -335,9 +335,9 @@ cancelled` e as listas vazias.
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
 | `toolchain_info` | | `ToolchainInfo` (nunca falha: sem bundle, ou sem servidor, `found: false` e o erro) | `aurora tools --json`, o `toolchain.info` do servidor |
-| `lace_update_check` | | o `UpdateReport` (`docs/schema/update.json` do Lace), com `prefix` quando o servidor é o `aurora` de uma instalação do instalador | `aurora update --check --json`, o `update.check` do servidor |
-| `lace_install` | `components: string[]`, `channel` | o identificador da operação | `aurora install <componentes> --json`, o `install.add` do servidor |
-| `lace_update` | `channel` | o identificador da operação | `aurora update --yes --json`, o `update.apply` do servidor |
+| `aurora_update_check` | | o `UpdateReport` (`docs/schema/update.json` do Lace), com `prefix` quando o servidor é o `aurora` de uma instalação do instalador | `aurora update --check --json`, o `update.check` do servidor |
+| `aurora_install` | `components: string[]`, `channel` | o identificador da operação | `aurora install <componentes> --json`, o `install.add` do servidor |
+| `aurora_update` | `channel` | o identificador da operação | `aurora update --yes --json`, o `update.apply` do servidor |
 
 `ToolchainInfo` (o `aurora_core::locate::ToolchainInfo`): `found`, `error`,
 `origin` (`settings`, `environment`, `bundled`, `installation`, `path`,
@@ -351,8 +351,8 @@ operação que precisa dele falha.
 
 Os três do instalador rodam no servidor, com a mesma regra do
 `aurora update` e do `aurora install` da CLI, e precisam de rede; cada consulta
-de versão do `update.check` tem prazo de 90 s. `lace_install` e
-`lace_update` são operações como os fluxos: ocupam a vaga e mandam
+de versão do `update.check` tem prazo de 90 s. `aurora_install` e
+`aurora_update` são operações como os fluxos: ocupam a vaga e mandam
 `install` (cada evento do instalador), `cli_output` (a linha dele para o
 console) e `finished` (`{ flow: 'install' | 'update', succeeded,
 cancelled, exit_code, result }`). `result` é o relatório (`InstallReport`,
@@ -363,16 +363,16 @@ instalador (`network`, `no_installation`, `install_in_progress`,
 é recusado antes de qualquer download (`invalid_argument`).
 
 A pasta da instalação é a do `aurora` do servidor (`bin/..`); com um `aurora`
-de desenvolvimento (`LACE_STUDIO_LACE`, `lace_path`), `lace_update_check`
-responde com `prefix: null` e `lace_update` falha com `no_installation`.
+de desenvolvimento (`AURORA_IDE_CLI`, `aurora_path`), `aurora_update_check`
+responde com `prefix: null` e `aurora_update` falha com `no_installation`.
 
-`lace_update` não pergunta: quem pergunta é a interface, antes de chamar,
+`aurora_update` não pergunta: quem pergunta é a interface, antes de chamar,
 com a versão instalada, a nova e a pasta (o `UpdateReport` de
-`lace_update_check`). No Windows pede ao assistente de instalação, quando a
+`aurora_update_check`). No Windows pede ao assistente de instalação, quando a
 atualização cai nele, para abrir o Studio de novo no fim
 (`reopen_studio`); o servidor roda num Job Object que deixa o assistente
 sair dele, e o assistente sobrevive ao Studio, que fecha para ele trocar
-os arquivos. A interface chama `lace_update_check` sozinha ao abrir e a
+os arquivos. A interface chama `aurora_update_check` sozinha ao abrir e a
 cada 12 horas (`check_updates` nas preferências), e depois de `updated`
 reinicia o Studio com `app_exit`; o servidor, que teve o binário trocado,
 sai sozinho depois da resposta. No `result`, `action` diz o que aconteceu:
@@ -430,7 +430,7 @@ UTF-16, o que o xterm já escreveu, e o backend para de ler o shell quando a
 interface fica 128 Ki atrás, até o atraso cair para 16 Ki; o programa que
 escreve no terminal espera. O shell é o do usuário
 (`$SHELL`) no Linux e no macOS e, no Windows, o PowerShell ou o `cmd.exe`, pela preferência `terminal_shell`, com a pasta `bin/`
-da instalação do Lace no começo do `PATH` e `LACE_STUDIO=1`.
+da instalação do Lace no começo do `PATH` e `AURORA_IDE=1`.
 
 ## Assistente (`assistant.rs`)
 
@@ -441,7 +441,7 @@ servidor).
 
 | Comando | Argumentos | Devolve |
 |---|---|---|
-| `assistant_info` | | `{ claude, version, lace, project }`: o Claude Code achado (ou `null`), a versão dele, o `aurora` que vai servir as ferramentas e o `.spf` aberto |
+| `assistant_info` | | `{ claude, version, aurora, project }`: o Claude Code achado (ou `null`), a versão dele, o `aurora` que vai servir as ferramentas e o `.spf` aberto |
 | `assistant_start` | `resume?` (um `session_id` para retomar), `channel: Channel<AgentEvent>` | o identificador da sessão |
 | `assistant_send` | `id`, `text` | |
 | `assistant_interrupt` | `id` | interrompe o turno em andamento |
@@ -450,7 +450,7 @@ servidor).
 A sessão é um processo filho do Claude Code (`crates/aurora-agent`, o único
 crate do Lace que o Studio linka, até a 1.0), aberto em modo `--print` com
 entrada e saída em JSON por linha, o `aurora mcp` como servidor de
-ferramentas (a preferência `assistant_lace`, ou o mesmo `aurora` do servidor
+ferramentas (a preferência `assistant_aurora`, ou o mesmo `aurora` do servidor
 do Studio), o `.spf` aberto como projeto padrão e a pasta do projeto como
 pasta de trabalho. O que ele pode fazer vem da preferência
 `assistant_allow_edits`: só as ferramentas do Lace e ler arquivos, ou
@@ -458,7 +458,7 @@ também editar e criar na pasta do projeto. Quem autentica é o Claude Code;
 o Studio não guarda chave.
 
 `AgentEvent` (`aurora_agent::AgentEvent`, etiquetado por `type`): `ready`
-(`session_id`, `model`, `tools`, `lace_connected`; só vem depois da primeira
+(`session_id`, `model`, `tools`, `aurora_connected`; só vem depois da primeira
 mensagem, porque o Claude Code não inicia nada antes dela), `text` (um
 pedaço da resposta), `tool_use` (`id`, `name`, `input`), `tool_result`
 (`id`, `content`, `is_error`), `done` (`is_error`, `text`, `cost_usd`,
@@ -482,7 +482,7 @@ e a próxima mensagem abre outra. Ao sair, o Studio encerra todas.
 | `outside_project` | criar, renomear ou apagar fora da pasta do projeto |
 | `conflict` | o arquivo mudou no disco desde que foi lido |
 | `exists` | o arquivo ou a pasta de destino já existe |
-| `invalid_argument` | argumento inválido (regex mal formada, método que não passa pelo `lace_call`, parâmetro que o método não tem) |
+| `invalid_argument` | argumento inválido (regex mal formada, método que não passa pelo `aurora_call`, parâmetro que o método não tem) |
 | `terminal` | o pseudoterminal não abriu, ou o shell já terminou |
 | `unsafe_path` | `terminal_cd` com um caminho que tem caractere de controle: o shell o leria como tecla, e o `cd` não é digitado |
 | `terminal_busy` | `terminal_cd` com um programa em primeiro plano no terminal (Linux e macOS): a linha iria para ele, e o `cd` não é digitado |
@@ -491,8 +491,8 @@ e a próxima mensagem abre outra. Ao sair, o Studio encerra todas.
 | `wave_too_large` | `wave_tab_open` com uma onda acima de 256 MiB (`MAX_TAB_WAVE`): a interface oferece a janela |
 | `internal` | uma thread caiu, ou JSON inválido |
 | `assistant` | o assistente: o Claude Code não foi achado, o `aurora` das ferramentas não existe, ou a sessão já terminou |
-| `lace_missing` | o programa `aurora` do servidor não foi achado ou não abriu |
-| `lace_incompatible` | o `aurora` achado fala outra versão do protocolo |
+| `aurora_missing` | o programa `aurora` do servidor não foi achado ou não abriu |
+| `aurora_incompatible` | o `aurora` achado fala outra versão do protocolo |
 | `server_gone` | o servidor do Lace saiu no meio de um pedido; o seguinte o abre de novo |
 | `cancelled` | o pedido foi cancelado antes de começar |
 

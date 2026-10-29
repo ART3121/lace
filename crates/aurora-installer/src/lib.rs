@@ -9,7 +9,7 @@
 //!   payload/
 //!     index.json               versão, componentes, pedaços
 //!     files.json               o SHA-256 de cada arquivo, por pedaço
-//!     lace.tar.zst             bin/lace, o cabeçalho do bundle e o files.json: sempre instalados
+//!     aurora.tar.zst             bin/aurora, o cabeçalho do bundle e o files.json: sempre instalados
 //!     c01.tar.zst ...          um pedaço por conjunto de componentes que divide arquivos
 //! ```
 //!
@@ -67,7 +67,7 @@ pub mod update;
 pub use error::Error;
 
 /// Versão do Lace que este instalador instala (a do workspace).
-pub const LACE_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const AURORA_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// A primeira letra em minúscula, para a frase vir depois de dois-pontos ou
 /// de "For": "Every app" vira "every app". Uma sigla no começo ("YANC

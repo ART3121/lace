@@ -649,21 +649,21 @@ fn toolchain(value: &Value) -> String {
         }
     }
     if let Some(cli) = value.get("aurora_cli").and_then(Value::as_str) {
-        line(&mut out, format!("  lace: {cli}"));
+        line(&mut out, format!("  aurora: {cli}"));
     }
     out
 }
 
 fn update(value: &Value) -> String {
     let mut out = String::new();
-    let lace = value.get("lace").cloned().unwrap_or(Value::Null);
-    let newer = lace.get("newer").and_then(Value::as_bool) == Some(true);
+    let aurora = value.get("aurora").cloned().unwrap_or(Value::Null);
+    let newer = aurora.get("newer").and_then(Value::as_bool) == Some(true);
     line(
         &mut out,
         format!(
             "Lace {} installed, latest release {}{}",
-            str_of(&lace, "installed"),
-            str_of(&lace, "latest"),
+            str_of(&aurora, "installed"),
+            str_of(&aurora, "latest"),
             if newer { " (newer)" } else { " (up to date)" }
         ),
     );
@@ -684,7 +684,7 @@ fn update(value: &Value) -> String {
     } else {
         line(
             &mut out,
-            "  installation: none (this lace was not installed by the installer)",
+            "  installation: none (this aurora was not installed by the installer)",
         );
     }
     for c in items(value, "components") {

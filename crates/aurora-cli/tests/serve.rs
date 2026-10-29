@@ -2,7 +2,7 @@
 //! stdin e stdout com o binário.
 //!
 //! Os testes que rodam ferramentas precisam de um bundle em
-//! `LACE_TEST_BUNDLE`; sem ele, avisam e passam, como os de `cli.rs`.
+//! `AURORA_TEST_BUNDLE`; sem ele, avisam e passam, como os de `cli.rs`.
 
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
@@ -45,15 +45,15 @@ impl Client {
         }
         command
             .arg("serve")
-            .env_remove("LACE_TOOLCHAIN")
-            .env_remove("LACE_COMPILER")
-            .env_remove("LACE_TEST_BUNDLE")
+            .env_remove("AURORA_TOOLCHAIN")
+            .env_remove("AURORA_COMPILER")
+            .env_remove("AURORA_TEST_BUNDLE")
             .env("NO_COLOR", "1")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
         if let Some(dir) = toolchain {
-            command.env("LACE_TOOLCHAIN", dir);
+            command.env("AURORA_TOOLCHAIN", dir);
         }
         let mut child = command.spawn().expect("aurora serve");
         let stdout = child.stdout.take().unwrap();
@@ -227,8 +227,8 @@ fn handshake_errors_and_exit_on_eof() {
     let (reply, _) = client.call("toolchain.info", Value::Null);
     assert_eq!(reply["error"]["code"], -32002, "{reply}");
     let info = client.initialize();
-    assert_eq!(info["lace"], env!("CARGO_PKG_VERSION"));
-    assert_eq!(info["protocol"], 1);
+    assert_eq!(info["aurora"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(info["protocol"], 2);
     assert!(info["methods"].as_array().unwrap().len() > 30);
     // JSON inválido e pedidos malformados não derrubam a sessão.
     client.send_raw("isto nao e json");
@@ -311,7 +311,7 @@ fn the_same_server_answers_mcp_when_the_client_speaks_it() {
     client.send_raw(MCP_INITIALIZE);
     let reply = client.next(Duration::from_secs(10)).expect("a resposta");
     assert_eq!(reply["result"]["protocolVersion"], "2025-06-18", "{reply}");
-    assert_eq!(reply["result"]["serverInfo"]["name"], "lace", "{reply}");
+    assert_eq!(reply["result"]["serverInfo"]["name"], "aurora", "{reply}");
     client.send_raw(r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#);
     let reply = client.next(Duration::from_secs(10)).expect("a lista");
     let tools = reply["result"]["tools"].as_array().expect("tools");
@@ -327,7 +327,7 @@ fn the_same_server_answers_mcp_when_the_client_speaks_it() {
     // E o protocolo do Lace continua no mesmo comando.
     let mut client = Client::start_in(&config);
     let info = client.initialize();
-    assert_eq!(info["protocol"], 1, "{info}");
+    assert_eq!(info["protocol"], 2, "{info}");
     let (code, _) = client.close_and_wait();
     assert_eq!(code, 0);
 }
@@ -398,7 +398,7 @@ fn project_methods_create_add_and_report_without_a_bundle() {
 
 #[test]
 fn flows_notify_progress_and_cancel_returns_a_cancelled_outcome() {
-    let Some(tc) = env_or_skip("LACE_TEST_BUNDLE") else {
+    let Some(tc) = env_or_skip("AURORA_TEST_BUNDLE") else {
         return;
     };
     let mut client = Client::start(Some(&tc));

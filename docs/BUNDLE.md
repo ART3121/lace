@@ -139,7 +139,7 @@ Um bundle só abre na plataforma para a qual foi montado.
 
 ```
 <instalação>/
-  bin/lace[.exe]
+  bin/aurora[.exe]
   toolchain/
     bundle.json               formato, versão do bundle, plataforma
     components/<nome>.json    um por componente instalado
@@ -209,17 +209,17 @@ síntese, a partir do modelo que o pacote traz (como fazem os lançadores do
 | `libc` (Linux e macOS) | o `aurora` e o YANC são binários nativos ligados à `libc` do sistema; as ferramentas do OSS CAD Suite não, carregam as bibliotecas do pacote | sistema base |
 | fontes (macOS e Windows) | os pacotes dessas plataformas não trazem fontes; o `dot` usa as do sistema | as do sistema |
 | compilador C++, `make`, Perl (Linux e macOS) | exceção decidida pelo autor: o Verilator compila o modelo em C++, e o OSS CAD Suite não traz compilador. No Windows os três vêm no bundle, com o Verilator | locais fixos: `/usr/bin` (Linux); `/usr/bin` com as Command Line Tools do Xcode (macOS) |
-| Quartus Prime (Windows e Linux) | segunda exceção decidida pelo autor: o bitstream das placas Intel sai dele, que é proprietário, tem dezenas de GB e não pode ir no bundle. Só as placas FPGA o usam, um recurso experimental desligado por padrão (`aurora experimental enable fpga`) | `--quartus` ou `LACE_QUARTUS`; senão `QUARTUS_ROOTDIR`; senão `C:\intelFPGA_lite`, `C:\intelFPGA`, `C:\altera_lite`, `C:\altera` (Windows) e as mesmas na pasta do usuário e em `/opt` (Linux), a versão mais nova ([FPGA.md](FPGA.md)) |
+| Quartus Prime (Windows e Linux) | segunda exceção decidida pelo autor: o bitstream das placas Intel sai dele, que é proprietário, tem dezenas de GB e não pode ir no bundle. Só as placas FPGA o usam, um recurso experimental desligado por padrão (`aurora experimental enable fpga`) | `--quartus` ou `AURORA_QUARTUS`; senão `QUARTUS_ROOTDIR`; senão `C:\intelFPGA_lite`, `C:\intelFPGA`, `C:\altera_lite`, `C:\altera` (Windows) e as mesmas na pasta do usuário e em `/opt` (Linux), a versão mais nova ([FPGA.md](FPGA.md)) |
 | `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho; no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
 
 Sem o compilador, tudo funciona menos a simulação com Verilator, e
 `aurora tools` avisa. Para um compilador fora do local padrão, a opção global
-`--compiler` ou a variável `LACE_COMPILER`, que vale para toda chamada. No
+`--compiler` ou a variável `AURORA_COMPILER`, que vale para toda chamada. No
 Windows ela troca o compilador do bundle pelo de um MSYS2 instalado, só
 para desenvolvimento:
 
 ```
-LACE_COMPILER=/opt/gcc/bin aurora tools        # Linux, macOS: diretório com perl, make e g++/clang++
+AURORA_COMPILER=/opt/gcc/bin aurora tools        # Linux, macOS: diretório com perl, make e g++/clang++
 aurora tools --compiler D:\msys64              # Windows: raiz de um MSYS2, no lugar do bundle
 ```
 
@@ -274,7 +274,7 @@ python3 scripts/bundle.py --out dist/toolchain --only yanc     # parcial, para t
 
 O script baixa (uma vez, para `.bundle-cache/`) e confere o SHA-256 de cada
 pacote, compila o YANC do commit fixado (e o surfer-aurora, quando não há o
-pré-compilado da plataforma em `prebuilt`, ou com `LACE_BUILD_SURFER`),
+pré-compilado da plataforma em `prebuilt`, ou com `AURORA_BUILD_SURFER`),
 separa a parte de
 cada componente e grava o `bundle.json`, os `components/<nome>.json` com o
 hash de cada executável, e `dist/toolchain.contents.json`, o índice de que
@@ -297,7 +297,7 @@ do `prebuilt` pelos do resumo da execução.
 No Windows, o pacote msys precisa do SHA-256 da release do lace-toolchain em
 `bundle/versions.json` (o zip em `sha256`, o manifesto em
 `manifest_sha256`); sem ele, o `bundle.py` para e diz o que falta. Para
-testar um bloco que ainda não foi publicado, `LACE_MSYS_DIST` aponta para o
+testar um bloco que ainda não foi publicado, `AURORA_MSYS_DIST` aponta para o
 `dist/` de um build local do lace-toolchain (com o `lace-msys-<tag>.zip` e o
 `.json`), e o `bundle.py` usa ele no lugar da release.
 
@@ -330,13 +330,13 @@ publicados se testam à mão.
    que estão no `SHA256SUMS` da release.
 2. Mudar `bundle`, o identificador do bundle.
 3. No YANC, pôr o `vendor/yanc` no mesmo `commit` de
-   `bundle/versions.json` (ou apontar `LACE_TEST_YANC_SRC` para um fonte
+   `bundle/versions.json` (ou apontar `AURORA_TEST_YANC_SRC` para um fonte
    nesse commit): é dele que `crates/aurora-core/tests/yanc_regression.rs` lê
    os casos de teste do próprio YANC, e com outro commit os testes comparam
    o compilador novo com os casos de teste antigos. A release não roda
    testes: esses rodam à mão.
 4. Montar o bundle e rodar os testes
-   (`LACE_TEST_BUNDLE="$PWD/dist/toolchain" cargo test`; ver a seção 7).
+   (`AURORA_TEST_BUNDLE="$PWD/dist/toolchain" cargo test`; ver a seção 7).
 
 Nada no código do Lace muda com a versão, a menos que um pacote mude de
 estrutura (nome de diretório, forma dos lançadores). Se um caminho de
@@ -346,18 +346,18 @@ que o pacote não tem, o `bundle.py` falha dizendo qual.
 ## 7. Testes
 
 ```
-export LACE_TEST_BUNDLE="$PWD/dist/toolchain"
+export AURORA_TEST_BUNDLE="$PWD/dist/toolchain"
 cargo test
-LACE_TEST_GUI=1 cargo test --test tools surfer     # abre uma janela do surfer-aurora
+AURORA_TEST_GUI=1 cargo test --test tools surfer     # abre uma janela do surfer-aurora
 ```
 
-`LACE_TEST_BUNDLE` precisa ser um caminho absoluto. O `cargo test` roda
+`AURORA_TEST_BUNDLE` precisa ser um caminho absoluto. O `cargo test` roda
 cada teste no diretório do crate (`crates/aurora-core`, `crates/aurora-cli`),
 e um caminho relativo como `dist/toolchain` é procurado lá: os testes do
-`aurora-core` falham com "LACE_TEST_BUNDLE não é um bundle válido", mesmo
+`aurora-core` falham com "AURORA_TEST_BUNDLE não é um bundle válido", mesmo
 com o bundle no lugar certo a partir da raiz do repositório. O fonte do YANC
 para `yanc_regression` vem de `vendor/yanc`, no commit de
-`bundle/versions.json`, ou de `LACE_TEST_YANC_SRC`.
+`bundle/versions.json`, ou de `AURORA_TEST_YANC_SRC`.
 
-Sem `LACE_TEST_BUNDLE`, os testes que dependem de ferramenta avisam e passam.
+Sem `AURORA_TEST_BUNDLE`, os testes que dependem de ferramenta avisam e passam.
 Com `CI` definido, a ausência é falha.

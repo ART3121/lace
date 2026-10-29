@@ -2,12 +2,12 @@
  * cmm.ts: a linguagem C± (.cmm) no Monaco da AURORA IDE.
  *
  * Portado da AURORA em 2026-10-03, de:
- *   lace/vendor/aurora/js/editor/monaco_editor.js   (buildCMMTokenizer, setupCMMLanguage,
+ *   aurora/vendor/aurora/js/editor/monaco_editor.js   (buildCMMTokenizer, setupCMMLanguage,
  *                                                    refreshCMMDefines, temas cmm-dark/cmm-light)
- *   lace/vendor/aurora/js/editor/dirac_snippets.js  (SUGESTOES_DIRAC)
- *   lace/vendor/aurora/js/editor/editor_language.ts (.cmm -> 'cmm')
+ *   aurora/vendor/aurora/js/editor/dirac_snippets.js  (SUGESTOES_DIRAC)
+ *   aurora/vendor/aurora/js/editor/editor_language.ts (.cmm -> 'cmm')
  *
- * Conferido contra o YANC (lace/vendor/yanc/Compilers/CMMComp/Sources/CMMComp.l
+ * Conferido contra o YANC (aurora/vendor/yanc/Compilers/CMMComp/Sources/CMMComp.l
  * e CMMComp.y). Onde a AURORA e o YANC divergem vale o YANC, e cada caso está
  * anotado no ponto em que acontece.
  *

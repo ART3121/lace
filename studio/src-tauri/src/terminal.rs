@@ -313,7 +313,7 @@ pub async fn terminal_spawn(
     }
     command.env("TERM", "xterm-256color");
     command.env("COLORTERM", "truecolor");
-    command.env("LACE_STUDIO", "1");
+    command.env("AURORA_IDE", "1");
     if let Some(bin) = toolchain::install_bin_dir(&state.settings.get()) {
         let mut paths = vec![bin.into_std_path_buf()];
         if let Some(current) = std::env::var_os("PATH") {

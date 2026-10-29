@@ -270,7 +270,7 @@ impl Project {
     ///
     /// ```no_run
     /// use aurora_core::{BuildOptions, Control, OnFailure, Project, Toolchain, build_processors};
-    /// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+    /// # let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
     /// let mut project = Project::open("/p/demo")?;
     /// let builds = build_processors(
     ///     &toolchain,

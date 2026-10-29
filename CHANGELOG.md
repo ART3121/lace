@@ -2,6 +2,18 @@
 
 ## Não publicada
 
+- As variáveis de ambiente passam de `LACE_*` para `AURORA_*`
+  (`AURORA_TOOLCHAIN`, `AURORA_COMPILER`, `AURORA_QUARTUS`,
+  `AURORA_LEARN_DIR`...); a do programa que a IDE abre, `LACE_STUDIO_LACE`,
+  vira `AURORA_IDE_CLI`. As pastas de configuração e de cache passam a se
+  chamar `aurora`, e a instalação de terminal vai para
+  `~/.local/share/aurora`, com o atalho em `~/.local/bin/aurora` (como
+  root, `/opt/aurora`).
+- Protocolo 2: os campos `lace` viram `aurora` (a versão no `initialize`, o
+  relatório do `update.check`), `lace_version` vira `aurora_version` (os
+  relatórios gravados pelo Lace continuam legíveis), e o servidor MCP passa
+  a se chamar `aurora`, com as ferramentas `mcp__aurora__*`. A IDE recusa
+  um servidor do protocolo 1.
 - O comando passa a ser `aurora`, e os crates, `aurora-core`, `aurora-cli`,
   `aurora-protocol`, `aurora-installer`, `aurora-learn` e `aurora-agent`
   (`LaceError` vira `AuroraError`). O empacotador passa a ser `aurora-pack`,

@@ -155,7 +155,7 @@ pub struct ModuleInstance {
 ///
 /// ```no_run
 /// use aurora_core::*;
-/// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+/// # let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 /// let project = Project::open("/p/contador")?;
 /// let result = hierarchy(&toolchain, &project, &HierarchyOptions::default(), &Control::default())?;
 /// fn print(node: &ModuleInstance, depth: usize) {

@@ -2,17 +2,17 @@
 //! interface, os métodos do protocolo do Lace (`aurora_protocol`). O
 //! Studio não tem despacho próprio desses métodos: manda o pedido ao
 //! servidor e devolve a resposta, como a extensão do VS Code faz. A
-//! interface chama [`lace_call`] com o método e os parâmetros do protocolo.
+//! interface chama [`aurora_call`] com o método e os parâmetros do protocolo.
 //!
 //! O servidor abre no primeiro pedido e reabre se cair. O `aurora` é, nesta
-//! ordem: o da variável `LACE_STUDIO_LACE`, o da preferência `lace_path` e
+//! ordem: o da variável `AURORA_IDE_CLI`, o da preferência `aurora_path` e
 //! o da instalação do bundle. O Studio passa ao servidor o bundle que ele
 //! mesmo achou e o compilador e o Quartus das preferências, para os dois
 //! verem as mesmas ferramentas; mudou uma dessas coisas, o pedido seguinte
 //! fecha o servidor e abre outro.
 //!
 //! No `initialize`, o Studio confere a versão do protocolo: um `aurora` de
-//! outro protocolo é recusado com `lace_incompatible`. Um `aurora` de outra
+//! outro protocolo é recusado com `aurora_incompatible`. Um `aurora` de outra
 //! versão do Lace, com o mesmo protocolo, só gera um aviso no log.
 //!
 //! No Windows o servidor roda sem janela de console e num Job Object, e
@@ -40,7 +40,7 @@ use crate::toolchain;
 
 /// A versão do protocolo do Lace que este Studio fala
 /// (`aurora_protocol::PROTOCOL_VERSION`).
-const PROTOCOL_VERSION: u64 = 1;
+const PROTOCOL_VERSION: u64 = 2;
 
 /// O schema dos pedidos do protocolo, gerado do código do Lace
 /// (`docs/schema/protocol-request.json`): é por ele que o Studio sabe quais
@@ -55,9 +55,9 @@ const STOP_WAIT: Duration = Duration::from_secs(3);
 /// ele cai.
 const STDERR_TAIL: usize = 20;
 
-/// Os métodos que não passam por [`lace_call`]: a sessão é do Studio, e os
+/// Os métodos que não passam por [`aurora_call`]: a sessão é do Studio, e os
 /// longos, com progresso, vão pelas operações (`jobs.rs`); o `update.check`
-/// tem o comando dele, `lace_update_check`.
+/// tem o comando dele, `aurora_update_check`.
 const NOT_THROUGH_CALL: &[&str] = &[
     "initialize",
     "shutdown",
@@ -139,7 +139,7 @@ impl AuroraServer {
                 return Ok(Arc::clone(session));
             }
             if let Some(old) = guard.take() {
-                tracing::info!("Restarting the lace server");
+                tracing::info!("Restarting the aurora server");
                 old.stop();
             }
         }
@@ -152,19 +152,19 @@ impl AuroraServer {
 /// Com que o servidor abriu: mudou algo daqui, é outro servidor.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct StartKey {
-    lace: Utf8PathBuf,
+    aurora: Utf8PathBuf,
     toolchain: Option<Utf8PathBuf>,
     compiler: Option<String>,
     quartus: Option<String>,
     /// As trilhas do `aurora learn` de outra pasta (preferência `learn_dir`),
-    /// que o servidor recebe em `LACE_LEARN_DIR`.
+    /// que o servidor recebe em `AURORA_LEARN_DIR`.
     learn_dir: Option<String>,
 }
 
 impl StartKey {
     fn of(settings: &Settings) -> IpcResult<StartKey> {
         Ok(StartKey {
-            lace: toolchain::lace_executable(settings)?,
+            aurora: toolchain::aurora_executable(settings)?,
             toolchain: toolchain::bundle_dir(settings),
             compiler: nonempty(&settings.compiler_dir),
             quartus: nonempty(&settings.quartus_dir),
@@ -231,7 +231,7 @@ impl ProcessJob {
             if let Some(job) = &self.job
                 && let Err(error) = job.assign_process(child.as_raw_handle() as isize)
             {
-                tracing::warn!(%error, "Assigning the lace server to the job object");
+                tracing::warn!(%error, "Assigning the aurora server to the job object");
                 self.job = None;
             }
         }
@@ -259,7 +259,7 @@ struct Session {
 
 impl Session {
     fn start(key: StartKey) -> IpcResult<Arc<Session>> {
-        let mut command = Command::new(key.lace.as_std_path());
+        let mut command = Command::new(key.aurora.as_std_path());
         if let Some(dir) = &key.toolchain {
             command.arg("--toolchain").arg(dir.as_std_path());
         }
@@ -270,7 +270,7 @@ impl Session {
             command.arg("--quartus").arg(dir);
         }
         if let Some(dir) = &key.learn_dir {
-            command.env("LACE_LEARN_DIR", dir);
+            command.env("AURORA_LEARN_DIR", dir);
         }
         command
             .arg("serve")
@@ -282,15 +282,15 @@ impl Session {
         let mut job = ProcessJob::new();
         let mut child = command.spawn().map_err(|error| {
             IpcError::new(
-                codes::LACE_MISSING,
-                format!("Could not start {} serve: {error}", key.lace),
+                codes::AURORA_MISSING,
+                format!("Could not start {} serve: {error}", key.aurora),
             )
         })?;
         job.adopt(&child);
         let stdin = child.stdin.take();
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
-        tracing::info!(lace = %key.lace, "lace server started");
+        tracing::info!(aurora = %key.aurora, "aurora server started");
         let session = Arc::new(Session {
             key,
             child: Mutex::new(child),
@@ -327,7 +327,7 @@ impl Session {
                         let Ok(line) = line else {
                             break;
                         };
-                        tracing::info!(target: "lace_serve", "{line}");
+                        tracing::info!(target: "aurora_serve", "{line}");
                         let mut tail = reader.stderr.lock().expect("stderr lock");
                         if tail.len() == STDERR_TAIL {
                             tail.remove(0);
@@ -355,18 +355,18 @@ impl Session {
         if protocol != Some(PROTOCOL_VERSION) {
             session.stop();
             return Err(IpcError::new(
-                codes::LACE_INCOMPATIBLE,
+                codes::AURORA_INCOMPATIBLE,
                 format!(
-                    "{} speaks protocol {}, and this AURORA IDE speaks {PROTOCOL_VERSION}: use a lace of the same version as the IDE (Settings > Lace bundle)",
-                    session.key.lace,
+                    "{} speaks protocol {}, and this AURORA IDE speaks {PROTOCOL_VERSION}: use an aurora of the same version as the IDE (Settings > Lace bundle)",
+                    session.key.aurora,
                     protocol.map_or_else(|| "?".to_owned(), |p| p.to_string()),
                 ),
             ));
         }
-        let version = info["lace"].as_str().unwrap_or("?");
+        let version = info["aurora"].as_str().unwrap_or("?");
         if version != env!("CARGO_PKG_VERSION") {
             tracing::warn!(
-                "The lace server is version {version} and the Studio {}: same protocol, so they work together",
+                "The aurora server is version {version} and the Studio {}: same protocol, so they work together",
                 env!("CARGO_PKG_VERSION")
             );
         }
@@ -405,7 +405,7 @@ impl Session {
         }
         if let Err(error) = self.write(&message) {
             self.forget(id);
-            tracing::warn!("Could not write to the lace server: {error}");
+            tracing::warn!("Could not write to the aurora server: {error}");
             return Err(self.gone());
         }
         started(id);
@@ -413,7 +413,7 @@ impl Session {
             Some(wait) => rx.recv_timeout(wait).map_err(|_| {
                 IpcError::new(
                     codes::SERVER_GONE,
-                    format!("The lace server did not answer {method} in {wait:?}"),
+                    format!("The aurora server did not answer {method} in {wait:?}"),
                 )
             }),
             None => rx.recv().map_err(|_| self.gone()),
@@ -430,7 +430,7 @@ impl Session {
     fn notify(&self, method: &str, params: Value) {
         let message = json!({ "jsonrpc": "2.0", "method": method, "params": params });
         if let Err(error) = self.write(&message) {
-            tracing::warn!("Could not write to the lace server: {error}");
+            tracing::warn!("Could not write to the aurora server: {error}");
         }
     }
 
@@ -452,13 +452,13 @@ impl Session {
     /// notificação, para quem ouve o pedido dela.
     fn on_line(&self, line: &str) {
         let Ok(mut value) = serde_json::from_str::<Value>(line) else {
-            tracing::warn!("The lace server wrote a line that is not JSON: {line}");
+            tracing::warn!("The aurora server wrote a line that is not JSON: {line}");
             return;
         };
         let answered = value.get("result").is_some() || value.get("error").is_some();
         if answered {
             let Some(id) = value.get("id").and_then(Value::as_u64) else {
-                tracing::warn!("The lace server answered without an id: {line}");
+                tracing::warn!("The aurora server answered without an id: {line}");
                 return;
             };
             let sender = self.pending.lock().expect("pending lock").remove(&id);
@@ -483,7 +483,7 @@ impl Session {
             .map(Value::take)
             .unwrap_or(Value::Null);
         if method == "shutdown" {
-            tracing::info!("The lace server is shutting down: {params}");
+            tracing::info!("The aurora server is shutting down: {params}");
             return;
         }
         let id = params.get("id").and_then(Value::as_u64);
@@ -512,16 +512,16 @@ impl Session {
             let _ = sender.send(Err(error.clone()));
         }
         self.listeners.lock().expect("listeners lock").clear();
-        tracing::info!("lace server ended");
+        tracing::info!("aurora server ended");
     }
 
     fn gone(&self) -> IpcError {
         let tail = self.stderr.lock().expect("stderr lock").join("\n");
         let message = if tail.is_empty() {
-            "The lace server stopped; the next request starts it again".to_owned()
+            "The aurora server stopped; the next request starts it again".to_owned()
         } else {
             format!(
-                "The lace server stopped; the next request starts it again. Its last messages:\n{tail}"
+                "The aurora server stopped; the next request starts it again. Its last messages:\n{tail}"
             )
         };
         IpcError::new(codes::SERVER_GONE, message)
@@ -576,7 +576,7 @@ fn ipc_error(error: &Value) -> IpcError {
         code,
         error["message"]
             .as_str()
-            .unwrap_or("The lace server could not answer"),
+            .unwrap_or("The aurora server could not answer"),
     )
 }
 
@@ -655,12 +655,12 @@ fn with_project(state: &AppState, method: &str, params: Option<Value>) -> IpcRes
 /// parâmetros, vale o projeto aberto. Os fluxos, a atualização e a
 /// instalação vão pelas operações, que mostram o progresso.
 #[tauri::command]
-pub async fn lace_call(app: AppHandle, method: String, params: Option<Value>) -> IpcResult<Value> {
+pub async fn aurora_call(app: AppHandle, method: String, params: Option<Value>) -> IpcResult<Value> {
     blocking(app, move |_, state| {
         if NOT_THROUGH_CALL.contains(&method.as_str()) {
             return Err(IpcError::new(
                 codes::INVALID_ARGUMENT,
-                format!("{method} does not go through lace_call"),
+                format!("{method} does not go through aurora_call"),
             ));
         }
         let params = with_project(state, &method, params)?;
@@ -699,7 +699,7 @@ mod tests {
         let generated = serde_json::to_value(aurora_protocol::request_schema()).unwrap();
         assert_eq!(
             embedded, generated,
-            "docs/schema/protocol-request.json está velho: LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli"
+            "docs/schema/protocol-request.json está velho: AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli"
         );
     }
 
@@ -713,12 +713,12 @@ mod tests {
         assert_eq!(project_field("wave.open"), ProjectField::Optional);
     }
 
-    /// O servidor de verdade, com o `aurora` de `LACE_STUDIO_LACE`: cria um
+    /// O servidor de verdade, com o `aurora` de `AURORA_IDE_CLI`: cria um
     /// projeto, lê, erra e fecha.
     #[test]
     fn a_real_server_answers_and_stops() {
-        if std::env::var_os("LACE_STUDIO_LACE").is_none() {
-            eprintln!("PULADO: defina LACE_STUDIO_LACE com o lace a testar");
+        if std::env::var_os("AURORA_IDE_CLI").is_none() {
+            eprintln!("PULADO: defina AURORA_IDE_CLI com o aurora a testar");
             return;
         }
         let dir = tempfile::tempdir().unwrap();
@@ -751,8 +751,8 @@ mod tests {
     /// um nome de campo errado ali seria recusado aqui.
     #[test]
     fn the_interface_requests_reach_the_server() {
-        if std::env::var_os("LACE_STUDIO_LACE").is_none() {
-            eprintln!("PULADO: defina LACE_STUDIO_LACE com o lace a testar");
+        if std::env::var_os("AURORA_IDE_CLI").is_none() {
+            eprintln!("PULADO: defina AURORA_IDE_CLI com o aurora a testar");
             return;
         }
         let dir = tempfile::tempdir().unwrap();

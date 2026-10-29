@@ -85,5 +85,5 @@ fn legacy_config_dir() -> Option<Utf8PathBuf> {
                     .map(|h| Utf8PathBuf::from(h).join(".config"))
             })
     };
-    base.map(|b| b.join("lace"))
+    base.map(|b| b.join("aurora"))
 }

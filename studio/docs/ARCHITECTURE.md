@@ -26,7 +26,7 @@ Sumário:
 │                                                                       │
 │  WebView (React)                       Rust (src-tauri)               │
 │  ┌──────────────────────┐   invoke   ┌──────────────────────────┐     │
-│  │ componentes          │ ─────────▶ │ server.rs  (lace_call)   │─────┼──▶ aurora serve ──▶ bundle do Lace
+│  │ componentes          │ ─────────▶ │ server.rs  (aurora_call)   │─────┼──▶ aurora serve ──▶ bundle do Lace
 │  │ stores (zustand)     │            │ jobs.rs, flows.rs        │     │    (filho, stdio,   (YANC, Icarus,
 │  │ Monaco, xterm.js     │ ◀───────── │ commands/*  (Studio)     │     │     JSON-RPC)       Verilator, Yosys,
 │  └──────────────────────┘  Channel   │ terminal.rs (PTY)        │     │                     dot, surfer-aurora)
@@ -65,7 +65,7 @@ studio/
     main.tsx, App.tsx        entrada; a janela e as ligações globais
     actions.ts               todas as ações: menus, barra, paleta e atalhos leem daqui
     ipc/
-      api.ts                 uma função por comando Tauri ou método do protocolo (lace())
+      api.ts                 uma função por comando Tauri ou método do protocolo (aurora())
       types.ts               os tipos do Studio (espelho dos structs Rust)
       lace-types.ts          os tipos do protocolo, GERADOS dos JSON Schemas do Lace
     state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic, assistant, experimental, learn, settingsPage, tour, updates, waves;
@@ -80,7 +80,7 @@ studio/
     dev/smoke.ts             roteiro de fumaça, só na build de desenvolvimento
   src-tauri/                 o backend (Rust)
     src/lib.rs               registro dos plugins, do estado e dos comandos
-    src/server.rs            o servidor do Lace (aurora serve filho) e o lace_call
+    src/server.rs            o servidor do Lace (aurora serve filho) e o aurora_call
     src/commands/            app, project, files, toolchain
     src/flows.rs             as decisões da interface num fluxo (o comando, a onda numa aba)
     src/jobs.rs              operações longas: o pedido ao servidor e as notificações para a interface
@@ -88,7 +88,7 @@ studio/
     src/assistant.rs         o assistente: sessões do Claude Code (aurora-agent)
     src/watcher.rs           vigia da pasta do projeto (notify)
     src/wave_tab.rs          a onda numa aba: o servidor local do cliente web do Surfer
-    src/toolchain.rs         onde está o lace do servidor e o bundle dele
+    src/toolchain.rs         onde está o aurora do servidor e o bundle dele
     src/settings.rs          preferências e recentes (settings.json)
     src/state.rs, error.rs   estado do aplicativo e o erro dos comandos
     tests/flows.rs           os fluxos rodando de verdade, pelo servidor, contra o bundle
@@ -118,7 +118,7 @@ studio/
 
 `server.rs` abre o `aurora serve` como processo filho no primeiro pedido,
 manda `initialize` e confere a versão do protocolo (um `aurora` de outro
-protocolo é `lace_incompatible`; de outra versão do Lace, com o mesmo
+protocolo é `aurora_incompatible`; de outra versão do Lace, com o mesmo
 protocolo, só um aviso no log). Um pedido é uma linha JSON no stdin dele, e
 uma thread lê o stdout: a resposta vai para quem a espera, pelo `id`, e uma
 notificação (`phase`, `events`, `output_omitted`, `build`, `install`) vai
@@ -127,7 +127,7 @@ para quem ouve o pedido dela. Se o servidor cai, quem esperava recebe
 
 O servidor recebe o bundle (`--toolchain`), o compilador do Verilator
 (`--compiler`), o Quartus (`--quartus`) e as trilhas do `aurora learn`
-(`LACE_LEARN_DIR`); mudou uma dessas coisas nas preferências, o pedido
+(`AURORA_LEARN_DIR`); mudou uma dessas coisas nas preferências, o pedido
 seguinte fecha o servidor e abre outro. No Windows ele roda com
 `CREATE_NO_WINDOW` (o `aurora` é um programa de console) e num Job Object que
 o leva junto quando o Studio fecha ou morre; o job deixa um processo sair
@@ -135,7 +135,7 @@ dele, que é como o assistente de instalação, aberto pelo `update.apply`,
 sobrevive ao Studio. Ao fechar, o Studio manda `shutdown`, espera até 3 s e
 mata o que sobrou.
 
-O `lace_call` é a porta da interface para o protocolo: o método e os
+O `aurora_call` é a porta da interface para o protocolo: o método e os
 parâmetros, como o `aurora serve` os recebe, e a resposta dele. O projeto
 aberto entra sozinho no campo `project`; quais métodos têm esse campo vem do
 schema dos pedidos (`docs/schema/protocol-request.json`, embutido no
@@ -154,7 +154,7 @@ fora da thread da interface.
 
 | Módulo | Comandos |
 |---|---|
-| `server` | `lace_call`: os métodos do protocolo (o projeto, os processadores, o histórico, os sinais da onda, a placa FPGA, os exercícios, os recursos experimentais) |
+| `server` | `aurora_call`: os métodos do protocolo (o projeto, os processadores, o histórico, os sinais da onda, a placa FPGA, os exercícios, os recursos experimentais) |
 | `commands::app` | versão, preferências, recentes, sair e reiniciar, fechar o splash, o log da interface e o roteiro de fumaça |
 | `commands::project` | abrir, criar e fechar o projeto (o projeto aberto, os recentes e a vigia), a pasta padrão dos projetos, a hierarquia |
 | `commands::files` | ler pasta, ler e gravar texto (com detecção de conflito), criar, renomear, copiar, lixeira, lista para o "abrir rápido", busca |
@@ -175,8 +175,8 @@ mantém:
   (`error::codes`: `no_project`, `spf_missing`, `busy`, `conflict`,
   `outside_project`, `exists`, `invalid_argument`, `terminal`,
   `unsafe_path`, `terminal_busy`, `io`, `surfer_web_missing`,
-  `wave_too_large`, `internal`, `assistant`, `lace_missing`,
-  `lace_incompatible`, `server_gone`, `cancelled`). A interface traduz pelo
+  `wave_too_large`, `internal`, `assistant`, `aurora_missing`,
+  `aurora_incompatible`, `server_gone`, `cancelled`). A interface traduz pelo
   código (`i18n`, chaves `error.<code>`) e mostra a mensagem original
   embaixo.
 - Uma operação que rodou e falhou é `Ok`, com `succeeded: false` e os
@@ -188,16 +188,16 @@ mantém:
 A CLI acha o bundle ao lado do próprio executável. O Studio é outro
 programa: acha o `aurora` que vai servir e o bundle que ele recebe, como a
 extensão do VS Code acha o `aurora` dela (`toolchain.rs`). O `aurora` é o de
-`LACE_STUDIO_LACE` (para desenvolvimento), o da preferência `lace_path`, o
-da instalação do bundle das preferências (`<instalação>/bin/lace`), o da
+`AURORA_IDE_CLI` (para desenvolvimento), o da preferência `aurora_path`, o
+da instalação do bundle das preferências (`<instalação>/bin/aurora`), o da
 instalação em que o Studio está (`<instalação>/toolchain/studio/`) e o do
-`PATH`, nessa ordem. O bundle é o da preferência, o de `LACE_TOOLCHAIN` ou
+`PATH`, nessa ordem. O bundle é o da preferência, o de `AURORA_TOOLCHAIN` ou
 o da instalação achada; sem nenhum, o servidor procura o dele. O resto (as
 ferramentas, os componentes, o compilador, o Quartus, o cliente web do
 Surfer) é o `toolchain.info` do servidor, que a tela de ferramentas mostra.
 
 O compilador do Verilator segue o `--compiler` da CLI: preferência ou
-`LACE_COMPILER`. Uma pasta declarada sem `perl`, `make` e um compilador C++
+`AURORA_COMPILER`. Uma pasta declarada sem `perl`, `make` e um compilador C++
 não derruba o bundle: o servidor segue sem compilador, a simulação com
 Verilator falha com `system_compiler_missing`, e a tela de ferramentas
 mostra o motivo. O Quartus, o mesmo.
@@ -684,7 +684,7 @@ protocolo:
 
 | Era do Studio | Foi para |
 |---|---|
-| Os comandos que repetiam um método (retrato, ordem, conversão, nomes, configurar e remover processador, saídas, histórico, recursos experimentais, placa FPGA, conferência do bundle, sinais e layout salvo da onda) | os métodos do protocolo, pelo `lace_call` |
+| Os comandos que repetiam um método (retrato, ordem, conversão, nomes, configurar e remover processador, saídas, histórico, recursos experimentais, placa FPGA, conferência do bundle, sinais e layout salvo da onda) | os métodos do protocolo, pelo `aurora_call` |
 | Arquivos, topo, testbench, processador novo, mover com substituir, escolher sinais, abrir a onda | `project.add`, `project.remove`, `project.top`, `project.testbench`, `processor.add`, `project.move` com `overwrite`, `wave.choose` com `set`, `wave.open` (com o layout do exercício) |
 | Os fluxos, a correção de um exercício, a entrega em lotes e o corte da saída | `flow.run` (com o fluxo `learn` e `step_output_limit`) e `flow.command` |
 | Instalar, atualizar, as linhas do console do instalador | `install.add`, `update.apply` (com `reopen_studio`), `update.check` e o `line` da notificação `install` |

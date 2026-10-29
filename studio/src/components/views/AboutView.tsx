@@ -7,7 +7,7 @@ import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { BookOpen, Check, Copy, Download, ExternalLink, FolderOpen, Wrench } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
-import { LACE_CLI_DOCS, NIPSCERN_GITHUB, NIPSCERN_SITE, runAction, SAPHO_MANUAL } from '../../actions';
+import { AURORA_CLI_DOCS, NIPSCERN_GITHUB, NIPSCERN_SITE, runAction, SAPHO_MANUAL } from '../../actions';
 import { t, useT } from '../../i18n';
 import type { AppInfo, ToolchainInfo } from '../../ipc/types';
 import { useApp } from '../../state/app';
@@ -25,7 +25,7 @@ function diagnostics(info: AppInfo | null, toolchain: ToolchainInfo | null): str
     lines.push(`Lace bundle: ${toolchain.bundle} (${toolchain.platform}), from ${toolchain.origin ?? '?'}: ${toolchain.root}`);
     lines.push(`Components: ${toolchain.components.map((c) => `${c.name} ${c.version}`).join(', ') || 'none'}`);
     if (toolchain.not_installed.length) lines.push(`Not installed: ${toolchain.not_installed.join(', ')}`);
-    lines.push(`lace CLI: ${toolchain.aurora_cli ?? 'not found'}`);
+    lines.push(`aurora CLI: ${toolchain.aurora_cli ?? 'not found'}`);
   } else {
     lines.push(`Lace bundle: not found${toolchain?.error ? ` (${toolchain.error.message})` : ''}`);
   }
@@ -111,7 +111,7 @@ export function AboutView() {
           <dl className="kv">
             <dt>AURORA IDE</dt>
             <dd className="mono">{info?.version}</dd>
-            <dt>{t('about.lace')}</dt>
+            <dt>{t('about.aurora')}</dt>
             <dd className="mono">{found ? `${toolchain!.bundle} (${toolchain!.platform})` : t('about.laceMissing')}</dd>
             <dt>Tauri</dt>
             <dd className="mono">{info?.tauri_version}</dd>
@@ -157,7 +157,7 @@ export function AboutView() {
           <ul className="about__links">
             <li>
               <BookOpen size={14} />
-              <Link href={LACE_CLI_DOCS}>{t('about.laceDocs')}</Link>
+              <Link href={AURORA_CLI_DOCS}>{t('about.laceDocs')}</Link>
             </li>
             <li>
               <BookOpen size={14} />

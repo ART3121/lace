@@ -82,8 +82,8 @@
           "format": "uint64",
           "minimum": 0
         },
-        "lace_version": {
-          "description": "A versão do Lace que gravou.",
+        "aurora_version": {
+          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nLace, que a `.lace` levada para a `.aurora8` traz.",
           "type": "string"
         },
         "project": {
@@ -141,7 +141,7 @@
         "command",
         "status",
         "duration_ms",
-        "lace_version",
+        "aurora_version",
         "project",
         "project_name",
         "bundle",

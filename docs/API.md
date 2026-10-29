@@ -100,7 +100,7 @@ os symlinks, fica dentro do bundle. Um bundle pode ser parcial (os
 componentes que o usuário escolheu, ou só o YANC para testes de build): a
 ferramenta de um componente não instalado dá `ComponentMissing` quando for
 usada. `locate` resolve os symlinks do caminho do executável antes de
-procurar, para o atalho `~/.local/bin/lace` do instalador funcionar.
+procurar, para o atalho `~/.local/bin/aurora` do instalador funcionar.
 
 ### 2.2 Consultar
 
@@ -173,7 +173,7 @@ variáveis de ambiente para achá-lo, e quem abre o bundle passa o que achou.
 | `fpga::Quartus::in_dir(dir)` | a instalação numa pasta declarada: a da versão, a `quartus` dentro dela ou a dos programas |
 | `toolchain.with_quartus(Some(q))` / `toolchain.quartus()` | prende ao `Toolchain` e consulta |
 
-A CLI e o Studio usam a pasta declarada (`--quartus`, `LACE_QUARTUS`, a
+A CLI e o Studio usam a pasta declarada (`--quartus`, `AURORA_QUARTUS`, a
 preferência do Studio), senão `QUARTUS_ROOTDIR`, senão `detect`. Sem
 Quartus, `tool(Tool::Quartus)` e `fpga::build` (5.10) dão
 `QuartusMissing`.
@@ -1033,7 +1033,7 @@ da diretiva (ou o topo):
 
 | Simulador | Passo | Comando | CWD |
 |---|---|---|---|
-| Icarus | `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s lace_cocotb_dump -o <B>/<dut>.vvp <design> <B>/lace_cocotb_dump.v` | raiz |
+| Icarus | `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s aurora_cocotb_dump -o <B>/<dut>.vvp <design> <B>/aurora_cocotb_dump.v` | raiz |
 | Icarus | `simulate` | `vvp -n [-i] -m <VPI do cocotb> <B>/<dut>.vvp -fst` | raiz |
 | Verilator | `verilate` | `perl verilator --cc --exe --build --vpi --public-flat-rw --prefix Vtop -o V<dut> --timescale 1ns/1ps -LDFLAGS <VPI do cocotb> ... --trace --no-trace-top <as flags de 5.2> --top-module <dut> -Mdir <B>/obj_dir_<dut> [-y <SAPHO>] <verilator.cpp do cocotb> <design>` (no Windows, `verilator_bin.exe` no lugar de `perl verilator`) | `<B>` |
 | Verilator | `simulate` | `<B>/obj_dir_<dut>/V<dut> --trace --trace-file <raiz>/<módulo de teste>.vcd` | raiz |
@@ -1042,7 +1042,7 @@ da diretiva (ou o topo):
 sem o testbench, e os `pc_<nome>_mem.txt` dos processadores também vão para
 a raiz. O `cmds.f` traz `+timescale+1ns/1ps`, o padrão do runner do cocotb,
 para os módulos sem `` `timescale `` (no Verilator, `--timescale`). O
-`lace_cocotb_dump` grava `<raiz>/<módulo de teste>.fst` com
+`aurora_cocotb_dump` grava `<raiz>/<módulo de teste>.fst` com
 `$dumpvars(0, <dut>)`.
 
 No Verilator, o modelo tem o `main` do cocotb (`share/lib/verilator/verilator.cpp`),
@@ -1058,7 +1058,7 @@ acha as DLLs das extensões dele pelo `PATH` (o `binascii` carrega a do
 `zlib`), e o modelo, ao contrário do `vvp`, não fica na pasta do Python.
 
 Na simulação rápida (5.2) os testes rodam sem onda: no Icarus sem o
-`lace_cocotb_dump` e com `vvp ... -none`; no Verilator com o modelo sem
+`aurora_cocotb_dump` e com `vvp ... -none`; no Verilator com o modelo sem
 `--trace`, em `<B>/obj_dir_fast_<dut>`.
 
 O que o simulador precisa para carregar o cocotb vem de uma sonda
@@ -1375,7 +1375,7 @@ embutidos, que o componente `rtl-viewer` do bundle traz. Não roda ferramenta.
 
 | Função | O que faz |
 |---|---|
-| `rtl_viewer::template(&Toolchain) -> Result<Utf8PathBuf>` | o modelo: o de `LACE_RTL_VIEWER` (`TEMPLATE_ENV`), se definida, ou o do componente. `ComponentMissing("rtl-viewer")` sem o componente; `ToolchainIncomplete` sem o arquivo |
+| `rtl_viewer::template(&Toolchain) -> Result<Utf8PathBuf>` | o modelo: o de `AURORA_RTL_VIEWER` (`TEMPLATE_ENV`), se definida, ou o do componente. `ComponentMissing("rtl-viewer")` sem o componente; `ToolchainIncomplete` sem o arquivo |
 | `rtl_viewer::write(&modelo, &netlist, título) -> Result<Utf8PathBuf>` | preenche o modelo com o netlist (`SynthesisResult::netlist`) e grava `rtl-viewer.html` na pasta dele, sobrescrevendo o de antes. Os `<` do JSON viram `\u003c`, para um `</script>` dentro de uma string do netlist não fechar o elemento. `ToolchainIncomplete` se o modelo não tem os lugares do netlist e da configuração |
 | `open_with_system(&caminho) -> Result<()>` | abre um arquivo com o programa padrão do sistema (`xdg-open`, `open`, o Explorer), sem esperar por ele. É uma das exceções à regra de só rodar ferramentas do bundle, com o compilador do Verilator (2.4), o Quartus (2.5) e o `taskkill` (5.8): o navegador do usuário não vem nele. O abridor é chamado pelo nome, sem caminho fixo, e herda o ambiente do Lace. `Spawn` se o abridor não pôde rodar |
 
@@ -1385,9 +1385,9 @@ embutidos, que o componente `rtl-viewer` do bundle traz. Não roda ferramenta.
 CWD na pasta da onda. Retorna na hora. O stdout e o stderr vão para
 `<onda>.log` (`contador_tb.fst.log`) numa pasta oculta, nunca ao lado da
 onda: `.aurora8/Temp/surfer/` do projeto que contém a onda; com a onda fora de
-projeto, a pasta de cache do usuário (`$XDG_CACHE_HOME/lace/surfer` ou
-`~/.cache/lace/surfer` no Linux, `~/Library/Caches/lace/surfer` no macOS,
-`%TEMP%\lace\surfer` no Windows). Abrir a mesma onda de novo sobrescreve o
+projeto, a pasta de cache do usuário (`$XDG_CACHE_HOME/aurora/surfer` ou
+`~/.cache/aurora/surfer` no Linux, `~/Library/Caches/aurora/surfer` no macOS,
+`%TEMP%\aurora\surfer` no Windows). Abrir a mesma onda de novo sobrescreve o
 log; `RunningProcess::log_file()` diz onde ele ficou.
 Não recebe `Control`: o surfer-aurora não é um passo da operação, e o
 cancelamento não o fecha.
@@ -1441,9 +1441,9 @@ pasta da onda, se ela tem `pc_<nome>_mem.txt`):
 
 | Tabela do YANC | Tradutor | Sinal |
 |---|---|---|
-| `trad_opcode.txt` (`<índice> <mnemônico> <operando>`) | `lace_asm_<proc>`, `Bits` = largura do `valr2` | `valr2` |
-| `src_lines.txt` (`<linha> <texto>`; -1, -2 e -3 viram `0xFFFFF`, `0xFFFFE`, `0xFFFFD` em 20 bits) | `lace_src_<proc>` | `linetabs` |
-| os valores dos complexos no corpo da onda | `lace_complex`, um `0b<bits> <re> <im>i` por valor | `comp_me3_*`, `comp_arr_me3_*` |
+| `trad_opcode.txt` (`<índice> <mnemônico> <operando>`) | `aurora_asm_<proc>`, `Bits` = largura do `valr2` | `valr2` |
+| `src_lines.txt` (`<linha> <texto>`; -1, -2 e -3 viram `0xFFFFF`, `0xFFFFE`, `0xFFFFD` em 20 bits) | `aurora_src_<proc>` | `linetabs` |
+| os valores dos complexos no corpo da onda | `aurora_complex`, um `0b<bits> <re> <im>i` por valor | `comp_me3_*`, `comp_arr_me3_*` |
 
 Linha de tabela sem texto sai: o Surfer recusa o tradutor inteiro por ela.
 Sem a tabela, o sinal aparece como número (`Unsigned`, `Signed`).
@@ -1798,7 +1798,7 @@ ajuste) e o Verilog do topo da placa (`board_top`).
    pasta da placa, a do projeto do Quartus, antes da compilação. Que o
    Quartus procura ali é suposição, ainda não conferida numa compilação;
 2. grava em `fpga::build_dir(projeto, placa)`, `<raiz>/.aurora8/fpga/<placa>/`,
-   o topo da placa (`lace_board_top.v`), o `.qsf` (a FPGA, os fontes da
+   o topo da placa (`aurora_board_top.v`), o `.qsf` (a FPGA, os fontes da
    síntese mais o topo da placa, um pino por bit com o padrão de I/O, o
    `.rbf` e o `.svf` sem compressão) e o `.sdc` (um `create_clock` por
    clock da placa ligado ao topo);
@@ -1824,7 +1824,7 @@ uma vez.
 `fpga::program(&Toolchain, &Project, cable: Option<&str>, &Control) ->
 Result<FpgaProgramResult>` grava o `.sof` da última `build` pelo Quartus
 Programmer: um passo `program`/`quartus`, `quartus_pgm -c <cabo> -m jtag -o
-"p;output_files/lace_board_top.sof@<posição>"` na pasta da placa, com a
+"p;output_files/aurora_board_top.sof@<posição>"` na pasta da placa, com a
 posição da FPGA na cadeia JTAG da placa. Sem `cable`, o primeiro de
 `fpga::cables(&Toolchain)` (o `quartus_pgm -l`). Antes, confere o
 `lace-build.json` contra o projeto de agora, pelo conteúdo, e recusa com
@@ -1856,8 +1856,8 @@ do arquivo e da CLI), `name()` e `description()`, em inglês; `Feature::ALL`
 tem todos.
 
 O que está ligado fica em `experimental.json`, na pasta de configuração do
-Lace do usuário (`%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace` ou
-`~/.config/lace` no Linux, `~/Library/Application Support/lace` no macOS),
+Lace do usuário (`%APPDATA%\aurora` no Windows, `$XDG_CONFIG_HOME/aurora` ou
+`~/.config/aurora` no Linux, `~/Library/Application Support/aurora` no macOS),
 como `{"enabled": ["fpga"]}`. `settings_path()` devolve o arquivo (`None`
 sem `APPDATA` ou `HOME`).
 
@@ -1968,7 +1968,7 @@ na instalação, se vira ferramenta de agente): dela saem `METHODS`, a lista
 dos métodos, `METHOD_INFO` e `result_schema()`, o schema do `result` de
 cada um, que um teste do `aurora serve` confere contra o que o servidor
 devolve; uma variante de `Request` sem linha nela não compila. Os três schemas geram a
-referência legível, [PROTOCOL.md](PROTOCOL.md). O `lace
+referência legível, [PROTOCOL.md](PROTOCOL.md). O `aurora
 serve` é o transporte deste contrato por stdio, e o `aurora mcp` o
 adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
 
@@ -2078,17 +2078,17 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 | `synthesis_statistics` | `synth/<topo>/stat.json` (não obrigatório) | `synthesize` |
 | `schematic_graph` | `synth/<topo>/<módulo>.dot` | `render_schematic` |
 | `schematic` | `synth/<topo>/<módulo>.svg` | `render_schematic` |
-| `board_top` | `.aurora8/fpga/<placa>/lace_board_top.v` (não obrigatório) | `fpga::build` |
-| `quartus_project` | `.aurora8/fpga/<placa>/lace_board_top.qsf` (não obrigatório) | `fpga::build` |
-| `sram_object` | `.aurora8/fpga/<placa>/output_files/lace_board_top.sof` | `fpga::build` |
-| `raw_binary` | `output_files/lace_board_top.rbf` (não obrigatório) | `fpga::build` |
-| `serial_vector_format` | `output_files/lace_board_top.svf` (não obrigatório) | `fpga::build` |
+| `board_top` | `.aurora8/fpga/<placa>/aurora_board_top.v` (não obrigatório) | `fpga::build` |
+| `quartus_project` | `.aurora8/fpga/<placa>/aurora_board_top.qsf` (não obrigatório) | `fpga::build` |
+| `sram_object` | `.aurora8/fpga/<placa>/output_files/aurora_board_top.sof` | `fpga::build` |
+| `raw_binary` | `output_files/aurora_board_top.rbf` (não obrigatório) | `fpga::build` |
+| `serial_vector_format` | `output_files/aurora_board_top.svf` (não obrigatório) | `fpga::build` |
 
 ### 6.4 Exemplo: build com erro
 
 Um elemento de `results` na saída real de
-`lace -C com_erro build -p conta --json` (caminhos encurtados, bundle em
-`/opt/lace/toolchain`, com o YANC 7.1, artefatos e o `duration_ms` cortados):
+`aurora -C com_erro build -p conta --json` (caminhos encurtados, bundle em
+`/opt/aurora/toolchain`, com o YANC 7.1, artefatos e o `duration_ms` cortados):
 
 ```json
 {
@@ -2103,7 +2103,7 @@ Um elemento de `results` na saída real de
       "step": "compile",
       "tool": "cmmcomp",
       "command": {
-        "program": "/opt/lace/toolchain/yanc/bin/cmmcomp",
+        "program": "/opt/aurora/toolchain/yanc/bin/cmmcomp",
         "args": ["/home/eu/projetos/com_erro/conta/conta.cmm",
                  "-o", "/home/eu/projetos/com_erro/conta/conta", "--lang=en"],
         "cwd": "/home/eu/projetos/com_erro/conta",
@@ -2139,8 +2139,8 @@ achar o erro; o `.v` não, porque o `asmcomp` nem rodou.
 
 ### 6.5 Exemplo: simulação
 
-Exemplo de `lace -C soma sim -p soma --json`, campo `simulation` (caminhos
-encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no macOS, o
+Exemplo de `aurora -C soma sim -p soma --json`, campo `simulation` (caminhos
+encurtados, bundle em `/opt/aurora/toolchain`, sem o `duration_ms`). No Linux e no macOS, o
 `iverilog` e o `vvp` do bundle são lançadores em bash, que o Lace roda pelo
 `/bin/bash` com `PATH=/usr/bin:/bin` (9.1):
 
@@ -2157,9 +2157,9 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
       "tool": "iverilog",
       "command": {
         "program": "/bin/bash",
-        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/iverilog",
+        "args": ["/opt/aurora/toolchain/oss-cad-suite/bin/iverilog",
                  "-grelative-include", "-I", "/home/eu/projetos/soma/soma/soma",
-                 "-y", "/opt/lace/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp",
+                 "-y", "/opt/aurora/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp",
                  "/home/eu/projetos/soma/soma/soma/soma.v", "/home/eu/projetos/soma/.aurora8/Temp/soma/instr_soma_tb.v"],
         "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
@@ -2175,7 +2175,7 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
       "tool": "vvp",
       "command": {
         "program": "/bin/bash",
-        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp", "-fst"],
+        "args": ["/opt/aurora/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp", "-fst"],
         "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
@@ -2265,7 +2265,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `UnsupportedPlatform` | `unsupported_platform` | fora de Linux x64, macOS arm64, Windows x64 | não há bundle |
 | `ComponentMissing` | `component_missing` | o componente da ferramenta não foi instalado; a mensagem não diz como instalar, que é de cada interface | `aurora install <componente>`, ou o botão Instalar do Studio |
 | `ToolchainIncomplete` | `toolchain_incomplete` | o componente está lá, mas falta o executável (ou o `verilator_bin`), ou um diretório do YANC | reinstalar |
-| `SystemCompilerMissing` | `system_compiler_missing` | Linux e macOS: Verilator (simulação ou `check` com `lint`) sem compilador C++, `make` e Perl do sistema | instalar (ver BUNDLE.md) ou, na CLI, declarar com `--compiler <DIR>` ou `LACE_COMPILER` |
+| `SystemCompilerMissing` | `system_compiler_missing` | Linux e macOS: Verilator (simulação ou `check` com `lint`) sem compilador C++, `make` e Perl do sistema | instalar (ver BUNDLE.md) ou, na CLI, declarar com `--compiler <DIR>` ou `AURORA_COMPILER` |
 | `InvalidProject` | `invalid_project` | diretório ou arquivo do projeto ausente ou em conflito | ver `path` e `reason` |
 | `ProjectExists` | `project_exists` | `create` sobre um `.spf` existente | abrir em vez de criar |
 | `OutsideProject` | `outside_project` | `move_path` com um caminho fora da pasta do projeto | usar um caminho do projeto |

@@ -1,6 +1,6 @@
 //! A instalação de onde um `aurora` roda: a pasta que o instalador criou, com
-//! `bin/lace` (ou `bin\lace.exe`), `toolchain/` e o que o instalador deixa
-//! para desinstalar. É a base de `aurora install`, `aurora update` e `lace
+//! `bin/aurora` (ou `bin\aurora.exe`), `toolchain/` e o que o instalador deixa
+//! para desinstalar. É a base de `aurora install`, `aurora update` e `aurora
 //! uninstall`, e do Studio, que chega à pasta pelo bundle dele.
 
 use anyhow::Context;
@@ -174,7 +174,7 @@ mod tests {
     fn a_build_in_target_is_not_an_installation() {
         let dir = tempfile::tempdir().unwrap();
         let dir = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
-        let exe = dir.join("target").join("debug").join("lace");
+        let exe = dir.join("target").join("debug").join("aurora");
         std::fs::create_dir_all(exe.parent().unwrap()).unwrap();
         std::fs::write(&exe, "").unwrap();
         let error = prefix_of(&exe).unwrap_err();
@@ -187,7 +187,7 @@ mod tests {
     fn an_installed_lace_has_its_prefix() {
         let dir = tempfile::tempdir().unwrap();
         let prefix = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
-        let exe = prefix.join("bin").join("lace");
+        let exe = prefix.join("bin").join("aurora");
         std::fs::create_dir_all(exe.parent().unwrap()).unwrap();
         std::fs::write(&exe, "").unwrap();
         if cfg!(windows) {

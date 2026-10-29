@@ -8,7 +8,7 @@
 //! 1. A pasta declarada numa preferência ([`Lookup::settings`]). Declarada e
 //!    inválida é erro: não cai em silêncio para as outras.
 //! 2. A pasta declarada no ambiente ([`Lookup::environment`], o valor de
-//!    `LACE_TOOLCHAIN`), com a mesma regra.
+//!    `AURORA_TOOLCHAIN`), com a mesma regra.
 //! 3. O bundle em que o programa está instalado: a primeira pasta acima do
 //!    executável ([`Lookup::exe`]) com um `bundle.json`. O instalador põe o
 //!    Studio dentro do bundle (`toolchain/studio/`); vem antes das pastas
@@ -45,7 +45,7 @@ pub struct Lookup {
     /// A pasta do bundle declarada numa preferência (o `toolchain_dir` do
     /// Studio). Inválida é erro.
     pub settings: Option<Utf8PathBuf>,
-    /// A pasta do bundle declarada no ambiente (`LACE_TOOLCHAIN`). Inválida
+    /// A pasta do bundle declarada no ambiente (`AURORA_TOOLCHAIN`). Inválida
     /// é erro.
     pub environment: Option<Utf8PathBuf>,
     /// O executável de quem chama (`current_exe`): o bundle que o contém, e
@@ -57,11 +57,11 @@ pub struct Lookup {
     /// As pastas do `PATH` (`std::env::split_paths`), para achar o `aurora` e,
     /// dele, a instalação.
     pub path_dirs: Vec<Utf8PathBuf>,
-    /// O compilador do Verilator declarado (`--compiler`, `LACE_COMPILER`, a
+    /// O compilador do Verilator declarado (`--compiler`, `AURORA_COMPILER`, a
     /// preferência): a raiz de um MSYS2 no Windows, a pasta com `perl`,
     /// `make` e um compilador C++ nos outros sistemas.
     pub compiler: Option<Utf8PathBuf>,
-    /// O Quartus Prime declarado (`--quartus`, `LACE_QUARTUS`, a
+    /// O Quartus Prime declarado (`--quartus`, `AURORA_QUARTUS`, a
     /// preferência).
     pub quartus: Option<Utf8PathBuf>,
     /// O valor de `QUARTUS_ROOTDIR`, que o instalador da Intel cria.
@@ -74,7 +74,7 @@ impl Lookup {
     /// As pastas onde o instalador do Lace põe o bundle, por plataforma:
     /// `%LOCALAPPDATA%\Programs\Lace\toolchain` e
     /// `%ProgramFiles%\Lace\toolchain` no Windows;
-    /// `$XDG_DATA_HOME/lace/toolchain` e `~/.local/share/lace/toolchain` nos
+    /// `$XDG_DATA_HOME/aurora/toolchain` e `~/.local/share/aurora/toolchain` nos
     /// outros. `var` lê uma variável de ambiente (`None` quando ausente ou
     /// vazia): o core não a lê sozinho.
     pub fn installation_dirs(var: impl Fn(&str) -> Option<Utf8PathBuf>) -> Vec<Utf8PathBuf> {
@@ -90,10 +90,10 @@ impl Lookup {
             }
         } else {
             if let Some(data) = var("XDG_DATA_HOME") {
-                dirs.push(data.join("lace/toolchain"));
+                dirs.push(data.join("aurora/toolchain"));
             }
             if let Some(home) = var("HOME") {
-                dirs.push(home.join(".local/share/lace/toolchain"));
+                dirs.push(home.join(".local/share/aurora/toolchain"));
             }
             dirs.dedup();
         }
@@ -107,7 +107,7 @@ impl Lookup {
 pub enum Origin {
     /// A pasta declarada numa preferência.
     Settings,
-    /// A pasta declarada no ambiente (`LACE_TOOLCHAIN`).
+    /// A pasta declarada no ambiente (`AURORA_TOOLCHAIN`).
     Environment,
     /// O bundle em que o programa está instalado.
     Bundled,
@@ -183,12 +183,12 @@ fn open_bundle(lookup: &Lookup) -> Result<(Toolchain, Origin)> {
         }
         searched.push(dir.clone());
     }
-    if let Some(lace) = lace_on_path(&lookup.path_dirs) {
-        match Toolchain::locate(&lace) {
+    if let Some(aurora) = aurora_on_path(&lookup.path_dirs) {
+        match Toolchain::locate(&aurora) {
             Ok(toolchain) => return Ok((toolchain, Origin::Path)),
-            Err(error) => tracing::warn!("The lace at {lace} has no usable bundle: {error}"),
+            Err(error) => tracing::warn!("The aurora at {aurora} has no usable bundle: {error}"),
         }
-        searched.push(lace);
+        searched.push(aurora);
     }
     if let Some(exe) = &lookup.exe {
         match Toolchain::locate(exe) {
@@ -217,9 +217,9 @@ fn containing_bundle(exe: &Utf8Path) -> Option<Utf8PathBuf> {
         .map(Utf8Path::to_owned)
 }
 
-/// O `aurora` (ou `lace.exe`) nas pastas do `PATH`.
-fn lace_on_path(dirs: &[Utf8PathBuf]) -> Option<Utf8PathBuf> {
-    let name = if cfg!(windows) { "lace.exe" } else { "lace" };
+/// O `aurora` (ou `aurora.exe`) nas pastas do `PATH`.
+fn aurora_on_path(dirs: &[Utf8PathBuf]) -> Option<Utf8PathBuf> {
+    let name = if cfg!(windows) { "aurora.exe" } else { "aurora" };
     dirs.iter()
         .map(|dir| dir.join(name))
         .find(|candidate| candidate.is_file())
@@ -283,9 +283,9 @@ fn apply_quartus(toolchain: Toolchain, lookup: &Lookup) -> (Toolchain, Option<Er
     )
 }
 
-/// O `aurora` da instalação do bundle: `<instalação>/bin/lace`, se existe.
+/// O `aurora` da instalação do bundle: `<instalação>/bin/aurora`, se existe.
 pub fn aurora_cli(toolchain: &Toolchain) -> Option<Utf8PathBuf> {
-    let name = if cfg!(windows) { "lace.exe" } else { "lace" };
+    let name = if cfg!(windows) { "aurora.exe" } else { "aurora" };
     let candidate = toolchain.root().parent()?.join("bin").join(name);
     candidate.is_file().then_some(candidate)
 }
@@ -481,8 +481,8 @@ mod tests {
         // Pelo PATH: um `aurora` em `<inst>/bin`, e o bundle ao lado.
         let bin = root.join("inst/bin");
         std::fs::create_dir_all(&bin).unwrap();
-        let lace = bin.join(if cfg!(windows) { "lace.exe" } else { "lace" });
-        std::fs::write(&lace, "").unwrap();
+        let aurora = bin.join(if cfg!(windows) { "aurora.exe" } else { "aurora" });
+        std::fs::write(&aurora, "").unwrap();
         let found = resolve(&Lookup {
             path_dirs: vec![root.join("nada"), bin.clone()],
             ..Lookup::default()
@@ -582,8 +582,8 @@ mod tests {
             assert_eq!(
                 dirs,
                 [
-                    Utf8PathBuf::from("/x/data/lace/toolchain"),
-                    Utf8PathBuf::from("/home/eu/.local/share/lace/toolchain")
+                    Utf8PathBuf::from("/x/data/aurora/toolchain"),
+                    Utf8PathBuf::from("/home/eu/.local/share/aurora/toolchain")
                 ]
             );
         }

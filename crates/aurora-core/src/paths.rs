@@ -79,8 +79,8 @@ pub(crate) fn to_utf8(path: impl AsRef<Path>) -> Result<Utf8PathBuf> {
 }
 
 /// A pasta de cache do Lace, só do usuário (o `/tmp` do Linux é de todos):
-/// `$XDG_CACHE_HOME/lace` ou `~/.cache/lace` no Linux,
-/// `~/Library/Caches/lace` no macOS, `%TEMP%\lace` no Windows. Não é
+/// `$XDG_CACHE_HOME/aurora` ou `~/.cache/aurora` no Linux,
+/// `~/Library/Caches/aurora` no macOS, `%TEMP%\aurora` no Windows. Não é
 /// criada aqui.
 pub(crate) fn user_cache_dir() -> Result<Utf8PathBuf> {
     let home = || std::env::var_os("HOME").filter(|h| !h.is_empty());
@@ -95,12 +95,12 @@ pub(crate) fn user_cache_dir() -> Result<Utf8PathBuf> {
             .or_else(|| home().map(|h| std::path::PathBuf::from(h).join(".cache")))
     };
     let base = base.unwrap_or_else(std::env::temp_dir);
-    to_utf8(base.join("lace"))
+    to_utf8(base.join("aurora"))
 }
 
-/// A pasta de configuração do Lace, só do usuário: `%APPDATA%\lace` no
-/// Windows, `~/Library/Application Support/lace` no macOS,
-/// `$XDG_CONFIG_HOME/lace` ou `~/.config/lace` no Linux. Não é criada aqui.
+/// A pasta de configuração do Lace, só do usuário: `%APPDATA%\aurora` no
+/// Windows, `~/Library/Application Support/aurora` no macOS,
+/// `$XDG_CONFIG_HOME/aurora` ou `~/.config/aurora` no Linux. Não é criada aqui.
 /// `None` sem a variável de onde ela sai (`APPDATA`, `HOME`).
 pub(crate) fn user_config_dir() -> Option<Utf8PathBuf> {
     let var = |name: &str| {
@@ -115,7 +115,7 @@ pub(crate) fn user_config_dir() -> Option<Utf8PathBuf> {
     } else {
         var("XDG_CONFIG_HOME").or_else(|| var("HOME").map(|h| h.join(".config")))
     };
-    to_utf8(base?.join("lace")).ok()
+    to_utf8(base?.join("aurora")).ok()
 }
 
 /// Recusa caminhos que estourariam os buffers do YANC ou o MAX_PATH.

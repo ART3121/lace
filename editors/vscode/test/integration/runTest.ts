@@ -51,8 +51,8 @@ async function runSuite(suite: 'projeto' | 'vazia', folder: string, prepare: (wo
       extensionTestsEnv: {
         FAKE_LACE_LOG: join(tmp, 'lace.log'),
         FAKE_LACE_STATE: join(tmp, 'lace.state'),
-        LACE_TEST_WORKSPACE: workspace,
-        LACE_TEST_SUITE: suite,
+        AURORA_TEST_WORKSPACE: workspace,
+        AURORA_TEST_SUITE: suite,
       },
     });
   } finally {

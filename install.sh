@@ -7,11 +7,11 @@
 # Baixa o instalador da release, confere o SHA-256 com o SHA256SUMS da
 # release, extrai numa pasta provisória e roda o `install`. Os argumentos
 # depois de `sh -s --` vão para o `install` (--yes, --components, --prefix,
-# --no-link, --list). LACE_VERSION=0.2.0 fixa a versão.
+# --no-link, --list). AURORA_VERSION=0.2.0 fixa a versão.
 
 set -eu
 
-repo="${LACE_REPO:-ART3121/lace}"
+repo="${AURORA_REPO:-ART3121/lace}"
 
 die() {
     echo "Error: $*" >&2
@@ -35,7 +35,7 @@ else
 fi
 
 # A última versão: /releases/latest redireciona para /releases/tag/v<versão>.
-version="${LACE_VERSION:-}"
+version="${AURORA_VERSION:-}"
 if [ -z "$version" ]; then
     latest=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$repo/releases/latest") ||
         die "Could not look up https://github.com/$repo/releases"

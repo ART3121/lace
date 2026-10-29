@@ -34,7 +34,7 @@ pub async fn toolchain_info(app: AppHandle) -> IpcResult<Value> {
 /// servidor é o `aurora` de uma instalação do instalador: é por ele que a
 /// interface decide o botão de atualizar.
 #[tauri::command]
-pub async fn lace_update_check(app: AppHandle) -> IpcResult<Value> {
+pub async fn aurora_update_check(app: AppHandle) -> IpcResult<Value> {
     blocking(app, |_, state| {
         state
             .server
@@ -48,7 +48,7 @@ pub async fn lace_update_check(app: AppHandle) -> IpcResult<Value> {
 /// recusa um nome que não é do bundle antes de baixar). Cancelar vale até
 /// o último pedaço entrar, e o que entrou sai.
 #[tauri::command]
-pub async fn lace_install(
+pub async fn aurora_install(
     app: AppHandle,
     components: Vec<String>,
     channel: Channel<Value>,
@@ -80,7 +80,7 @@ pub async fn lace_install(
 /// ele trocar os arquivos, e o assistente abre o Studio quando termina
 /// (`reopen_studio`).
 #[tauri::command]
-pub async fn lace_update(app: AppHandle, channel: Channel<Value>) -> IpcResult<u32> {
+pub async fn aurora_update(app: AppHandle, channel: Channel<Value>) -> IpcResult<u32> {
     let command = if cfg!(windows) {
         "aurora update --yes --json --reopen-studio"
     } else {

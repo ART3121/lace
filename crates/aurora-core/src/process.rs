@@ -378,11 +378,11 @@ pub(crate) fn short_path(path: &Utf8Path) -> Option<Utf8PathBuf> {
         .map_or_else(|| system32.join("cmd.exe"), std::path::PathBuf::from);
     let mut command = Command::new(shell);
     command
-        .raw_arg(r#"/d /v:on /c "for %I in ("!LACE_SHORT_PATH!") do @echo %~sI""#)
+        .raw_arg(r#"/d /v:on /c "for %I in ("!AURORA_SHORT_PATH!") do @echo %~sI""#)
         .current_dir(&system32)
         .env_clear()
         .env("SystemRoot", &system_root)
-        .env("LACE_SHORT_PATH", dunce::simplified(path.as_std_path()))
+        .env("AURORA_SHORT_PATH", dunce::simplified(path.as_std_path()))
         .stdin(Stdio::null())
         .stderr(Stdio::null());
     hide_console(&mut command);
@@ -912,7 +912,7 @@ pub fn open_with_system(path: &Utf8Path) -> Result<()> {
 /// usa o mesmo mecanismo:
 ///
 /// ```no_run
-/// let mut command = std::process::Command::new("lace");
+/// let mut command = std::process::Command::new("aurora");
 /// aurora_core::hide_console(&mut command);
 /// let mut job = aurora_core::ProcessJob::new(false);
 /// let mut child = command.spawn()?;
@@ -1372,7 +1372,7 @@ mod tests {
     fn environment_is_not_inherited() {
         // HOME existe no processo de teste; o filho não pode enxergá-la.
         assert!(std::env::var_os("HOME").is_some());
-        let out = run(&sh("echo \"[$HOME]\"").env("LACE_X", "1")).unwrap();
+        let out = run(&sh("echo \"[$HOME]\"").env("AURORA_X", "1")).unwrap();
         assert_eq!(out.stdout.trim(), "[]");
     }
 
@@ -1822,12 +1822,12 @@ mod windows_tests {
 
     /// Roda num processo à parte, criado por
     /// `the_tools_die_with_the_lace_process`: prende uma ferramenta que dorme
-    /// e grava o PID dela em `LACE_TEST_PID_FILE`. Sem a variável, não faz
+    /// e grava o PID dela em `AURORA_TEST_PID_FILE`. Sem a variável, não faz
     /// nada.
     #[test]
     #[ignore = "processo auxiliar de the_tools_die_with_the_lace_process"]
     fn helper_runs_a_long_tool() {
-        let Ok(pid_file) = std::env::var("LACE_TEST_PID_FILE") else {
+        let Ok(pid_file) = std::env::var("AURORA_TEST_PID_FILE") else {
             return;
         };
         let _ = run(&powershell(&format!(
@@ -1839,14 +1839,14 @@ mod windows_tests {
     fn the_tools_die_with_the_lace_process() {
         let dir = tempfile::tempdir().unwrap();
         let pid_file = dir.path().join("ferramenta.pid");
-        let mut lace = Command::new(std::env::current_exe().unwrap())
+        let mut aurora = Command::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",
                 "process::windows_tests::helper_runs_a_long_tool",
                 "--ignored",
                 "--test-threads=1",
             ])
-            .env("LACE_TEST_PID_FILE", &pid_file)
+            .env("AURORA_TEST_PID_FILE", &pid_file)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
@@ -1854,8 +1854,8 @@ mod windows_tests {
         let pid = wait_for_pid(&pid_file);
         // Como o Gerenciador de Tarefas: TerminateProcess, sem chance de o
         // Lace limpar nada.
-        lace.kill().unwrap();
-        lace.wait().unwrap();
+        aurora.kill().unwrap();
+        aurora.wait().unwrap();
         assert!(
             gone(pid),
             "a ferramenta ficou órfã depois que o Lace morreu"
@@ -1864,14 +1864,14 @@ mod windows_tests {
 
     /// Roda num processo à parte, criado por [`tool_console_under`]: inicia
     /// uma ferramenta e escreve a janela de console dela (0 sem janela) e os
-    /// processos que dividem o console dela. Sem `LACE_TEST_CONSOLE`, não faz
+    /// processos que dividem o console dela. Sem `AURORA_TEST_CONSOLE`, não faz
     /// nada.
     #[test]
     #[ignore = "processo auxiliar dos testes de console"]
     // O stdout é o canal com o teste que criou este processo.
     #[allow(clippy::print_stdout)]
     fn helper_reports_the_tool_console() {
-        if std::env::var_os("LACE_TEST_CONSOLE").is_none() {
+        if std::env::var_os("AURORA_TEST_CONSOLE").is_none() {
             return;
         }
         let script = "Add-Type -Namespace Lace -Name Console -MemberDefinition \
@@ -1884,7 +1884,7 @@ mod windows_tests {
         let out = run(&powershell(script).inherit(GUI_ENV)).unwrap();
         let mut lines = out.stdout.lines();
         println!(
-            "LACE_CONSOLE {} {}",
+            "AURORA_CONSOLE {} {}",
             lines.next().unwrap_or("?"),
             lines.next().unwrap_or_default()
         );
@@ -1895,7 +1895,7 @@ mod windows_tests {
     /// dela e o PID do Lace.
     fn tool_console_under(flags: u32) -> (String, Vec<u32>, u32) {
         use std::os::windows::process::CommandExt;
-        let lace = Command::new(std::env::current_exe().unwrap())
+        let aurora = Command::new(std::env::current_exe().unwrap())
             .args([
                 "--exact",
                 "process::windows_tests::helper_reports_the_tool_console",
@@ -1903,20 +1903,20 @@ mod windows_tests {
                 "--nocapture",
                 "--test-threads=1",
             ])
-            .env("LACE_TEST_CONSOLE", "1")
+            .env("AURORA_TEST_CONSOLE", "1")
             .creation_flags(flags)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .unwrap();
-        let pid = lace.id();
-        let out = lace.wait_with_output().unwrap();
+        let pid = aurora.id();
+        let out = aurora.wait_with_output().unwrap();
         let text = String::from_utf8_lossy(&out.stdout);
         // O libtest escreve a saída do teste na linha do nome dele.
         let line = text
             .lines()
-            .find_map(|l| l.split_once("LACE_CONSOLE ").map(|(_, rest)| rest))
+            .find_map(|l| l.split_once("AURORA_CONSOLE ").map(|(_, rest)| rest))
             .unwrap_or_else(|| panic!("o auxiliar não respondeu: {text}"));
         let mut parts = line.split(' ');
         let window = parts.next().unwrap_or_default().to_owned();
@@ -1946,10 +1946,10 @@ mod windows_tests {
         // vez de ganhar um próprio, que custaria um conhost.exe por
         // ferramenta.
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        let (window, attached, lace) = tool_console_under(CREATE_NO_WINDOW);
+        let (window, attached, aurora) = tool_console_under(CREATE_NO_WINDOW);
         assert_eq!(window, "0", "a ferramenta abriu janela de console");
         assert!(
-            attached.contains(&lace),
+            attached.contains(&aurora),
             "a ferramenta não divide o console do Lace: {attached:?}"
         );
     }

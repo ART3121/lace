@@ -2056,7 +2056,7 @@
           "default": "window"
         },
         "viewer_opener": {
-          "description": "Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do\nsistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o\n`LACE_OPENER=vscode` do terminal da extensão do VS Code).",
+          "description": "Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do\nsistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o\n`AURORA_OPENER=vscode` do terminal da extensão do VS Code).",
           "type": [
             "string",
             "null"

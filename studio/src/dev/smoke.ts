@@ -3,7 +3,7 @@
 // Só existe na build de desenvolvimento (App.tsx importa este módulo com
 // import.meta.env.DEV, e o backend só devolve o roteiro em debug).
 //
-//   LACE_STUDIO_SMOKE="wait:2000;check;fastSim;panel:wave;synthesize" npm run tauri dev
+//   AURORA_IDE_SMOKE="wait:2000;check;fastSim;panel:wave;synthesize" npm run tauri dev
 //
 // Passos, separados por ';':
 //   <ação>         um id de actions.ts (check, fastSim, synthesize, build...)
@@ -250,7 +250,7 @@ export async function runSmokeScript(): Promise<void> {
           window.dispatchEvent(
             new MessageEvent('message', {
               source: frame.contentWindow,
-              data: { lace: 'key', key, code: key, ctrlKey: mods.includes('Ctrl'), shiftKey: mods.includes('Shift'), altKey: mods.includes('Alt'), metaKey: false },
+              data: { aurora: 'key', key, code: key, ctrlKey: mods.includes('Ctrl'), shiftKey: mods.includes('Shift'), altKey: mods.includes('Alt'), metaKey: false },
             }),
           );
           break;

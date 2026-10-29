@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! <prefixo>/
-//!   bin/lace
+//!   bin/aurora
 //!   toolchain/          o bundle, só com os componentes escolhidos
 //!   install.json        o que foi instalado (o instalador lê numa próxima vez)
 //!   uninstall.sh        remove tudo isto, o atalho, o do Studio no menu e
@@ -39,7 +39,7 @@ pub const UNINSTALL_SCRIPT: &str = "uninstall.sh";
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Receipt {
     /// Versão do Lace.
-    pub lace_version: String,
+    pub aurora_version: String,
     /// Identificador do bundle.
     pub bundle: String,
     /// Plataforma.
@@ -64,25 +64,25 @@ impl Receipt {
 pub struct Target {
     /// O prefixo (absoluto).
     pub prefix: PathBuf,
-    /// Onde criar o atalho `aurora` (um symlink para `<prefixo>/bin/lace`).
+    /// Onde criar o atalho `aurora` (um symlink para `<prefixo>/bin/aurora`).
     pub link: Option<PathBuf>,
 }
 
 impl Target {
-    /// O padrão: para o usuário, `~/.local/share/lace` com o atalho em
-    /// `~/.local/bin`; como root, `/opt/lace` com o atalho em
+    /// O padrão: para o usuário, `~/.local/share/aurora` com o atalho em
+    /// `~/.local/bin`; como root, `/opt/aurora` com o atalho em
     /// `/usr/local/bin`.
     pub fn default_for_user() -> Target {
         if is_root() {
             return Target {
-                prefix: "/opt/lace".into(),
-                link: Some("/usr/local/bin/lace".into()),
+                prefix: "/opt/aurora".into(),
+                link: Some("/usr/local/bin/aurora".into()),
             };
         }
         let home = home();
         Target {
-            prefix: home.join(".local/share/lace"),
-            link: Some(home.join(".local/bin/lace")),
+            prefix: home.join(".local/share/aurora"),
+            link: Some(home.join(".local/bin/aurora")),
         }
     }
 }
@@ -265,7 +265,7 @@ impl Event {
 /// rótulo do índice da versão, ou o nome, quando o índice não o tem ou ainda
 /// não se sabe.
 pub fn label(index: Option<&Index>, name: &str) -> String {
-    if name == crate::update::LACE {
+    if name == crate::update::AURORA {
         return "Lace".to_owned();
     }
     index
@@ -290,7 +290,7 @@ pub struct Report {
     /// O prefixo.
     pub prefix: PathBuf,
     /// O executável instalado.
-    pub lace: PathBuf,
+    pub aurora: PathBuf,
     /// O atalho.
     pub link: LinkOutcome,
     /// Os componentes instalados.
@@ -353,8 +353,8 @@ pub fn install(
 
     // Troca: o que existia vai para um diretório que é apagado no fim.
     let old = prefix.join(format!(".antigo-{pid}"));
-    let lace_entry = crate::pack::lace_entry(&index.platform);
-    for entry in ["toolchain", lace_entry] {
+    let aurora_entry = crate::pack::aurora_entry(&index.platform);
+    for entry in ["toolchain", aurora_entry] {
         let dest = prefix.join(entry);
         if fs::symlink_metadata(&dest).is_ok() {
             let aside = old.join(entry);
@@ -369,21 +369,21 @@ pub fn install(
     let _ = fs::remove_dir_all(&staging);
     crate::update::forget_journal(prefix);
 
-    let lace = prefix.join(lace_entry);
+    let aurora = prefix.join(aurora_entry);
     // Um atalho de uma instalação anterior, em outro lugar, sai.
     if let Some(previous) = replaced.as_ref().and_then(|r| r.link.clone())
         && Some(&previous) != target.link.as_ref()
     {
-        remove_link_to(&previous, &lace);
+        remove_link_to(&previous, &aurora);
     }
     let link = match &target.link {
-        Some(path) => make_link(path, &lace)?,
+        Some(path) => make_link(path, &aurora)?,
         None => LinkOutcome::NotRequested,
     };
 
     let components: Vec<String> = selection.iter().cloned().collect();
     let receipt = Receipt {
-        lace_version: index.lace_version.clone(),
+        aurora_version: index.aurora_version.clone(),
         bundle: index.bundle.clone(),
         platform: index.platform.clone(),
         components: components.clone(),
@@ -401,7 +401,7 @@ pub fn install(
 
     Ok(Report {
         prefix: prefix.clone(),
-        lace,
+        aurora,
         link,
         components,
         shortcut,
@@ -470,9 +470,9 @@ fn extract_and_verify(
 /// Instala só o bundle (`toolchain/`) de `selection` em `prefix`, com os
 /// pedaços de `source`: extrai numa pasta provisória, confere os executáveis
 /// e troca o `toolchain/` que houver, guardado até a troca dar certo. O
-/// `aurora` e o resto da pasta ficam como estão. É o `lace setup`, que o
+/// `aurora` e o resto da pasta ficam como estão. É o `aurora setup`, que o
 /// assistente do Windows que baixa os aplicativos roda antes de copiar o
-/// `bin/lace.exe` dele. Devolve quantos executáveis tiveram o hash conferido.
+/// `bin/aurora.exe` dele. Devolve quantos executáveis tiveram o hash conferido.
 pub fn install_bundle(
     source: &dyn crate::add::ChunkSource,
     index: &Index,
@@ -534,12 +534,12 @@ pub fn install_bundle(
 /// `prefix` tem uma instalação do Lace: o cabeçalho do bundle
 /// (`toolchain/bundle.json`) ou o `aurora` em `bin/`.
 pub fn is_lace_installation(prefix: &Path) -> bool {
-    let lace = format!("bin/lace{}", std::env::consts::EXE_SUFFIX);
+    let aurora = format!("bin/lace{}", std::env::consts::EXE_SUFFIX);
     prefix
         .join("toolchain")
         .join(aurora_core::MANIFEST_FILE)
         .is_file()
-        || prefix.join(lace).is_file()
+        || prefix.join(aurora).is_file()
 }
 
 /// Antes de trocar a instalação em `prefix`: desfaz a troca que uma

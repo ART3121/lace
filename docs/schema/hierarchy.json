@@ -787,7 +787,7 @@
           "const": "synthesis_statistics"
         },
         {
-          "description": "O topo da placa que o Lace gera (`lace_board_top.v`).",
+          "description": "O topo da placa que o Lace gera (`aurora_board_top.v`).",
           "type": "string",
           "const": "board_top"
         },

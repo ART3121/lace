@@ -53,8 +53,8 @@ impl ViewerOptions {
 /// [`RunningProcess::kill`]. A saída do Surfer vai para `<onda>.log`
 /// (`soma_tb.vcd.log`) em `.aurora8/Temp/surfer/`, no projeto que contém a
 /// onda; com a onda fora de projeto, na pasta de cache do usuário
-/// (`$XDG_CACHE_HOME/lace/surfer` ou `~/.cache/lace/surfer` no Linux,
-/// `~/Library/Caches/lace/surfer` no macOS, `%TEMP%\lace\surfer` no
+/// (`$XDG_CACHE_HOME/aurora/surfer` ou `~/.cache/aurora/surfer` no Linux,
+/// `~/Library/Caches/aurora/surfer` no macOS, `%TEMP%\aurora\surfer` no
 /// Windows). Cada abertura da mesma onda sobrescreve o log anterior.
 ///
 /// O Surfer recebe as variáveis de ambiente de que uma aplicação gráfica
@@ -68,7 +68,7 @@ impl ViewerOptions {
 /// ```no_run
 /// use std::time::Duration;
 /// use aurora_core::{Toolchain, ViewerOptions, open_waveform};
-/// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+/// # let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 ///
 /// let wave = camino::Utf8Path::new("/p/.aurora8/Temp/soma/soma_tb.vcd");
 /// let mut surfer = open_waveform(&toolchain, wave, &ViewerOptions::default())?;
@@ -184,6 +184,6 @@ mod tests {
     fn outside_a_project_the_log_goes_to_the_user_cache() {
         let dir = user_log_dir().unwrap();
         assert!(dir.is_absolute(), "{dir}");
-        assert!(dir.ends_with(Utf8Path::new("lace").join(LOG_DIR)), "{dir}");
+        assert!(dir.ends_with(Utf8Path::new("aurora").join(LOG_DIR)), "{dir}");
     }
 }

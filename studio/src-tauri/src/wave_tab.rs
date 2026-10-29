@@ -180,7 +180,7 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
         let info: LayoutInfo = serde_json::from_value(reply).map_err(|e| {
             IpcError::new(
                 codes::INTERNAL,
-                format!("The waveform layout from the lace server is not readable: {e}"),
+                format!("The waveform layout from the aurora server is not readable: {e}"),
             )
         })?;
         if let Some(error) = &info.layout_error {
@@ -499,7 +499,7 @@ const KEY_FORWARDING: &str = r#"<script>
     if (!forwarded(e)) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    window.parent.postMessage({ lace: 'key', key: e.key, code: e.code, ctrlKey: e.ctrlKey,
+    window.parent.postMessage({ aurora: 'key', key: e.key, code: e.code, ctrlKey: e.ctrlKey,
       shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey }, '*');
   }, true);
 })();
@@ -545,7 +545,7 @@ mod tests {
             b"<!DOCTYPE html><html><head><script src=\"surfer.js\"></script>".to_vec(),
         );
         let page = String::from_utf8(page).unwrap();
-        let script = page.find("lace: 'key'").unwrap();
+        let script = page.find("aurora: 'key'").unwrap();
         assert!(
             script < page.find("surfer.js").unwrap(),
             "o ouvinte vem antes do cliente"

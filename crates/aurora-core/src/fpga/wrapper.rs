@@ -9,7 +9,7 @@
 use super::config::{BitSource, PortBit, Resolved};
 
 /// O nome do módulo gerado.
-pub const TOP_MODULE: &str = "lace_board_top";
+pub const TOP_MODULE: &str = "aurora_board_top";
 
 /// O Verilog do topo da placa.
 pub fn generate(resolved: &Resolved) -> String {
@@ -110,7 +110,7 @@ pub fn connections(resolved: &Resolved) -> Vec<(String, String)> {
         }
     }
     for drive in &resolved.board_outputs {
-        let expr = output_expr(resolved, &drive.bits, drive.active_low).replace("lace_", "");
+        let expr = output_expr(resolved, &drive.bits, drive.active_low).replace("aurora_", "");
         out.push((
             format!(
                 "{}{}",
@@ -134,7 +134,7 @@ fn range(width: u32) -> String {
 
 /// O fio de uma saída do topo.
 fn wire(port: &str) -> String {
-    format!("lace_{port}")
+    format!("aurora_{port}")
 }
 
 /// `n` bits de um valor fixo.

@@ -111,11 +111,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
     vscode.commands.registerCommand(id, handler);
 
   // No terminal integrado, o `aurora synth --open` não abre o navegador: só
-  // grava o rtl-viewer.html (LACE_OPENER), e a extensão, que confere esse
+  // grava o rtl-viewer.html (AURORA_OPENER), e a extensão, que confere esse
   // arquivo de cada alvo, abre o netlist ao lado dele numa aba. Quem confere
   // é o ChangePoller, e não o vigia do VS Code, que não vê a pasta que a
   // síntese cria (poller.ts).
-  context.environmentVariableCollection.replace('LACE_OPENER', 'vscode');
+  context.environmentVariableCollection.replace('AURORA_OPENER', 'vscode');
   context.environmentVariableCollection.description = 'O aurora synth --open abre o RTL viewer numa aba do VS Code';
   const synthDir = () => (projects.active ? join(projects.active.root, '.aurora8', 'Temp', 'synth') : undefined);
   const viewerPages = new ChangePoller(

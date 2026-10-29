@@ -8,10 +8,10 @@
 //! para baixar só os pedaços com arquivos que mudaram ([`crate::update`]).
 //!
 //! ```json
-//! { "schema": 1, "lace_version": "0.7.0", "bundle": "2026.10.13", "platform": "linux-x64",
+//! { "schema": 1, "aurora_version": "0.7.0", "bundle": "2026.10.13", "platform": "linux-x64",
 //!   "groups": [
-//!     { "chunk": "lace.tar.zst", "components": [],
-//!       "files": { "bin/lace": "<sha256>", "toolchain/bundle.json": "<sha256>" } },
+//!     { "chunk": "aurora.tar.zst", "components": [],
+//!       "files": { "bin/aurora": "<sha256>", "toolchain/bundle.json": "<sha256>" } },
 //!     { "chunk": "c01.tar.zst", "components": ["icarus", "yosys"],
 //!       "files": { "toolchain/oss-cad-suite/lib/libc.so.6": "<sha256>",
 //!                  "toolchain/oss-cad-suite/lib/libc.so": "symlink:libc.so.6" } } ] }
@@ -46,7 +46,7 @@ pub struct FilesManifest {
     /// [`FILES_SCHEMA`].
     pub schema: u32,
     /// Versão do Lace.
-    pub lace_version: String,
+    pub aurora_version: String,
     /// Identificador do bundle.
     pub bundle: String,
     /// Plataforma.
@@ -58,7 +58,7 @@ pub struct FilesManifest {
 /// Os arquivos de um pedaço.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileGroup {
-    /// O pedaço (`lace.tar.zst`, `c01.tar.zst`).
+    /// O pedaço (`aurora.tar.zst`, `c01.tar.zst`).
     pub chunk: String,
     /// Os componentes que usam estes arquivos. Vazio: sempre instalados.
     pub components: Vec<String>,
@@ -167,11 +167,11 @@ mod tests {
         };
         let manifest = FilesManifest {
             schema: FILES_SCHEMA,
-            lace_version: "0.7.0".into(),
+            aurora_version: "0.7.0".into(),
             bundle: "b".into(),
             platform: "linux-x64".into(),
             groups: vec![
-                group("lace.tar.zst", &[], &[("bin/lace", "1")]),
+                group("aurora.tar.zst", &[], &[("bin/aurora", "1")]),
                 group("c01.tar.zst", &["icarus", "yosys"], &[("toolchain/lib", "2")]),
                 group("c02.tar.zst", &["yosys"], &[("toolchain/yosys", "3")]),
             ],
@@ -182,7 +182,7 @@ mod tests {
         let files = manifest.files_for(&icarus);
         assert_eq!(
             files.keys().copied().collect::<Vec<_>>(),
-            ["bin/lace", "toolchain/lib"]
+            ["bin/aurora", "toolchain/lib"]
         );
         assert_eq!(files["toolchain/lib"].1.chunk, "c01.tar.zst");
         assert!(

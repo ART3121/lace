@@ -1,12 +1,12 @@
 # Protocolo do `aurora serve`
 
-<!-- Gerado por crates/aurora-cli/src/protocol_doc.rs. Não edite à mão: LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema -->
+<!-- Gerado por crates/aurora-cli/src/protocol_doc.rs. Não edite à mão: AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema -->
 
 Cada método do `aurora serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `aurora mcp` usa o mesmo contrato. Esta página sai dos tipos de `aurora_protocol` (`crates/aurora-protocol/src/lib.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
 
 Como abrir o servidor, a fila por projeto, o cancelamento e o encerramento: [CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp).
 
-Versão do protocolo: 1 (`PROTOCOL_VERSION`, que o `initialize` devolve).
+Versão do protocolo: 2 (`PROTOCOL_VERSION`, que o `initialize` devolve).
 
 Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status", "params": {"project": "/home/eu/soma"}}`. Os parâmetros vão por nome, e os caminhos são absolutos. A resposta traz o mesmo `id` e o resultado em `result`, ou o erro em `error`.
 
@@ -943,7 +943,7 @@ O papel de um arquivo produzido por uma operação. Em JSON, em
 | `"schematic_graph"` | Grafo do esquemático (`.dot`), gerado pelo Yosys. |
 | `"schematic"` | Esquemático SVG, desenhado pelo `dot`. |
 | `"synthesis_statistics"` | As estatísticas do `stat -json` do Yosys (`stat.json`). |
-| `"board_top"` | O topo da placa que o Lace gera (`lace_board_top.v`). |
+| `"board_top"` | O topo da placa que o Lace gera (`aurora_board_top.v`). |
 | `"quartus_project"` | As configurações do projeto do Quartus (`.qsf`): a FPGA, os fontes e os pinos. |
 | `"sram_object"` | O arquivo de gravação do Quartus (`.sof`, SRAM Object File), que o `quartus_pgm` grava. |
 | `"raw_binary"` | O bitstream cru, sem compressão (`.rbf`, Raw Binary File), que o openFPGALoader grava. |
@@ -1609,7 +1609,7 @@ O que é da interface, não do fluxo.
 |---|---|---|---|
 | `command` | `string` | sim | O texto do comando para o histórico e para o console (`aurora sim -p soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um cliente sem linha de comando monta com `FlowRequest::command_line`. |
 | `wave` | [`WavePolicy`](#tipo-wavepolicy) | não (padrão: `"window"`) | Como abrir a onda quando o pedido tem `open_wave`. |
-| `viewer_opener` | `string` \| `null` | não (padrão: `null`) | Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do sistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o `LACE_OPENER=vscode` do terminal da extensão do VS Code). |
+| `viewer_opener` | `string` \| `null` | não (padrão: `null`) | Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do sistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o `AURORA_OPENER=vscode` do terminal da extensão do VS Code). |
 
 <a id="tipo-flowoutcome"></a>
 
@@ -2197,7 +2197,7 @@ Como o bundle foi achado.
 | Valor | Descrição |
 |---|---|
 | `"settings"` | A pasta declarada numa preferência. |
-| `"environment"` | A pasta declarada no ambiente (`LACE_TOOLCHAIN`). |
+| `"environment"` | A pasta declarada no ambiente (`AURORA_TOOLCHAIN`). |
 | `"bundled"` | O bundle em que o programa está instalado. |
 | `"installation"` | Uma pasta padrão do instalador. |
 | `"path"` | O `aurora` do `PATH`. |
@@ -2573,7 +2573,7 @@ O contexto de uma operação guardada.
 | `command` | `string` | sim | O comando. |
 | `status` | [`Status`](#tipo-status) | sim | Como terminou. |
 | `duration_ms` | `integer` | sim | Quanto levou, do começo ao fim, em milissegundos. |
-| `lace_version` | `string` | sim | A versão do Lace que gravou. |
+| `aurora_version` | `string` | sim | A versão que gravou. `lace_version` nos relatórios gravados pelo Lace, que a `.lace` levada para a `.aurora8` traz. |
 | `project` | `string` | sim | O que identifica o projeto: um hash da raiz dele. Relatórios de projetos diferentes não se comparam. |
 | `project_name` | `string` | sim | O nome do projeto. |
 | `bundle` | `string` | sim | O bundle de ferramentas (`2026.09.29`) e a plataforma. |
@@ -2676,7 +2676,7 @@ O que `initialize` devolve.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `lace` | `string` | sim | A versão do Lace. |
+| `aurora` | `string` | sim | A versão do Lace. |
 | `protocol` | `integer` | sim | A versão do protocolo (`PROTOCOL_VERSION`). |
 | `prefix` | `string` \| `null` | sim | A pasta da instalação do Lace, quando o servidor é o `aurora` instalado. |
 | `experimental` | mapa de `string` para `boolean` | sim | Cada recurso experimental e se está ligado. |
@@ -3308,7 +3308,7 @@ O relatório do `aurora update` (`docs/schema/update.json`).
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `lace` | [`AuroraVersions`](#tipo-auroraversions) | sim | O Lace: este e o da última release. |
+| `aurora` | [`AuroraVersions`](#tipo-auroraversions) | sim | O Lace: este e o da última release. |
 | `bundle` | [`BundleVersions`](#tipo-bundleversions) | sim | O bundle de ferramentas: o instalado e o da última release. |
 | `components` | lista de [`ComponentVersions`](#tipo-componentversions) | sim | Cada componente instalado, na ordem do manifesto do bundle. Vazio sem bundle. |
 | `prefix` | `string` \| `null` | sim | A pasta da instalação; `null` se este `aurora` não foi instalado pelo instalador (um build em `target/`, por exemplo). |

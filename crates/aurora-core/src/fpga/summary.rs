@@ -227,8 +227,8 @@ mod tests {
     /// inventados para o teste.
     const FIT_SUMMARY: &str = "Fitter Status : Successful - Thu Oct 08 15:20:11 2026\n\
         Quartus Prime Version : 25.1std.0 Build 1129 10/21/2025 SC Lite Edition\n\
-        Revision Name : lace_board_top\n\
-        Top-level Entity Name : lace_board_top\n\
+        Revision Name : aurora_board_top\n\
+        Top-level Entity Name : aurora_board_top\n\
         Family : Cyclone IV E\n\
         Device : EP4CE115F29C7\n\
         Timing Models : Final\n\

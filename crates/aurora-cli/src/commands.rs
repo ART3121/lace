@@ -557,7 +557,7 @@ pub(crate) fn port_values(outputs: &[flows::PortValues]) -> Vec<PortValues> {
 
 /// Roda um fluxo com a saída da CLI: o `started` tomado antes de abrir o
 /// projeto, a linha de comando digitada no histórico, a onda em janela e o
-/// RTL viewer no navegador (ou só gravado, com `LACE_OPENER`). O bundle só é
+/// RTL viewer no navegador (ou só gravado, com `AURORA_OPENER`). O bundle só é
 /// procurado depois das conferências do Core (flows::run_with): um
 /// processador que não existe é erro antes dele, e um projeto sem
 /// processadores não precisa dele para o `build`.
@@ -814,7 +814,7 @@ fn synth(cli: &Cli, args: &SynthArgs, out: &Output, control: &Control) -> anyhow
 /// Quem abre o RTL viewer no lugar do navegador. A extensão do VS Code a
 /// define (`vscode`) no terminal integrado: lá, o `aurora synth --open` só
 /// grava o HTML, e ela abre o netlist numa aba.
-const OPENER_ENV: &str = "LACE_OPENER";
+const OPENER_ENV: &str = "AURORA_OPENER";
 
 /// A linha de comando como o usuário a escreveu, para o relatório.
 fn command_line() -> String {

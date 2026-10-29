@@ -108,11 +108,11 @@ function UpdateIndicator() {
     <button
       type="button"
       className="statusbar__item statusbar__button statusbar__update"
-      title={t('update.availableHint', { installed: report.lace.installed })}
+      title={t('update.availableHint', { installed: report.aurora.installed })}
       onClick={() => void offerUpdate()}
     >
       <CircleArrowUp size={12} />
-      {t('update.available', { version: report.lace.latest })}
+      {t('update.available', { version: report.aurora.latest })}
     </button>
   );
 }

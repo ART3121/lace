@@ -4,7 +4,7 @@
 //!
 //! Os testes da primeira metade não executam ferramenta nenhuma e rodam
 //! sempre. Os da segunda executam Icarus, Yosys ou Verilator do bundle e
-//! precisam de `LACE_TEST_BUNDLE` (ver `common/mod.rs`).
+//! precisam de `AURORA_TEST_BUNDLE` (ver `common/mod.rs`).
 
 mod common;
 
@@ -1048,7 +1048,7 @@ fn new_errors_have_stable_codes_and_neutral_messages() {
         AuroraError::NoTestbench("/p/p.spf".into()),
     ] {
         let text = err.to_string();
-        assert!(!text.contains("lace "), "{text}");
+        assert!(!text.contains("aurora "), "{text}");
     }
 }
 
@@ -1177,7 +1177,7 @@ fn move_path_refuses_what_stays_in_place() {
     let spf = project.spf_path().to_owned();
     for (from, to) in [
         (spf.clone(), root.join("x.spf")),
-        (root.join(".aurora8"), root.join("lace")),
+        (root.join(".aurora8"), root.join("aurora")),
         (root.join("soma"), root.join("outro")),
         (root.join("soma/soma"), root.join("saida")),
         (root.join("soma/soma.cmm"), root.join("soma.cmm")),

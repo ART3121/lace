@@ -262,7 +262,7 @@ function monacoKey(combo: string): number {
 export function bindEditorChord(keys: string, run: () => void): void {
   const [first, second] = keys.split(' ');
   if (!first || !second) throw new Error(`Atalho sem duas etapas: ${keys}`);
-  const command = `lace.chord.${keys}`;
+  const command = `aurora.chord.${keys}`;
   monaco.editor.registerCommand(command, () => run());
   monaco.editor.addKeybindingRule({ keybinding: monaco.KeyMod.chord(monacoKey(first), monacoKey(second)), command });
 }
@@ -292,7 +292,7 @@ export function disposeModel(path: string): void {
 
 // Diagnósticos -----------------------------------------------------------
 
-const OWNER = 'lace';
+const OWNER = 'aurora';
 let markersByFile = new Map<string, monaco.editor.IMarkerData[]>();
 
 function key(path: string): string {

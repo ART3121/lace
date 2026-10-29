@@ -18,7 +18,7 @@ use crate::toolchain::{Toolchain, component};
 
 /// A variável que aponta outro modelo no lugar do do bundle: numa build de
 /// desenvolvimento, `packages/rtl-viewer/dist/rtl-viewer.html`.
-pub const TEMPLATE_ENV: &str = "LACE_RTL_VIEWER";
+pub const TEMPLATE_ENV: &str = "AURORA_RTL_VIEWER";
 
 /// O modelo, na pasta do componente `rtl-viewer`.
 pub const TEMPLATE_FILE: &str = "rtl-viewer.html";
@@ -27,9 +27,9 @@ pub const TEMPLATE_FILE: &str = "rtl-viewer.html";
 pub const OUTPUT_FILE: &str = "rtl-viewer.html";
 
 /// Onde o modelo recebe o netlist (o `hierarchy.json` inteiro).
-const NETLIST_SLOT: &str = "@@LACE_NETLIST@@";
+const NETLIST_SLOT: &str = "@@AURORA_NETLIST@@";
 /// Onde o modelo recebe [`ViewerConfig`].
-const CONFIG_SLOT: &str = "@@LACE_CONFIG@@";
+const CONFIG_SLOT: &str = "@@AURORA_CONFIG@@";
 
 /// O que o HTML sabe do netlist além do conteúdo.
 #[derive(Serialize)]
@@ -121,8 +121,8 @@ fn script_safe(json: &str) -> String {
 mod tests {
     use super::*;
 
-    const MODEL: &str = "<html><script id=\"lace-netlist\" type=\"application/json\">@@LACE_NETLIST@@</script>\
-<script id=\"lace-config\" type=\"application/json\">@@LACE_CONFIG@@</script></html>";
+    const MODEL: &str = "<html><script id=\"lace-netlist\" type=\"application/json\">@@AURORA_NETLIST@@</script>\
+<script id=\"lace-config\" type=\"application/json\">@@AURORA_CONFIG@@</script></html>";
 
     fn slot<'a>(html: &'a str, id: &str) -> &'a str {
         let start = html
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(out, dir.join(OUTPUT_FILE));
         let html = std::fs::read_to_string(&out).expect("lê o HTML");
         assert!(
-            !html.contains("@@LACE_"),
+            !html.contains("@@AURORA_"),
             "sobrou um lugar sem preencher: {html}"
         );
         assert_eq!(

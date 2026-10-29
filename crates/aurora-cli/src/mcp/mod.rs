@@ -457,13 +457,13 @@ impl Mcp {
             ),
             None => "There is no default project: pass `project` (the .spf file or the project \
                      folder, absolute or relative to the current folder) to every project tool, \
-                     or find one with project_find (or start the server with lace -C <project> mcp)."
+                     or find one with project_find (or start the server with aurora -C <project> mcp)."
                 .to_owned(),
         };
         json!({
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": { "tools": { "listChanged": false } },
-            "serverInfo": { "name": "lace", "version": env!("CARGO_PKG_VERSION") },
+            "serverInfo": { "name": "aurora", "version": env!("CARGO_PKG_VERSION") },
             "instructions": format!(
                 "Lace orchestrates Verilog and SAPHO processor projects. {project} Use build, \
                  check, sim and synth for the flows (each returns a text summary and the full \
@@ -615,7 +615,7 @@ impl Mcp {
                 None => {
                     return Err(
                         "No project: pass `project` (the .spf file or the project folder) \
-                                or start the server with `lace -C <project> mcp`. project_find \
+                                or start the server with `aurora -C <project> mcp`. project_find \
                                 lists the projects under a folder."
                             .to_owned(),
                     );
@@ -984,7 +984,7 @@ mod tests {
             r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"t"}}}"#,
         );
         assert_eq!(reply["result"]["protocolVersion"], PROTOCOL_VERSION);
-        assert_eq!(reply["result"]["serverInfo"]["name"], "lace");
+        assert_eq!(reply["result"]["serverInfo"]["name"], "aurora");
         assert!(reply["result"]["capabilities"]["tools"].is_object());
         assert!(
             reply["result"]["instructions"]

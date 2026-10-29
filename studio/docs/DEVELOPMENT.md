@@ -11,7 +11,7 @@ tipo de mudança. A arquitetura está em [ARCHITECTURE.md](ARCHITECTURE.md).
 | Node.js | 22 | a interface (Vite, TypeScript) |
 | Dependências de sistema do Tauri | ver abaixo | WebView e GTK |
 | O repositório do Lace | o Studio está em `studio/` dele | o servidor que o Studio abre (`aurora serve`, do `crates/aurora-cli`), o `aurora-agent` do assistente, que entra por caminho (`../../crates/`, em `src-tauri/Cargo.toml`), e os tipos, que saem de `../docs/schema` |
-| Uma instalação do Lace | qualquer | o bundle das ferramentas, para rodar o Studio e os testes de fluxo; ou um bundle em `LACE_TEST_BUNDLE` |
+| Uma instalação do Lace | qualquer | o bundle das ferramentas, para rodar o Studio e os testes de fluxo; ou um bundle em `AURORA_TEST_BUNDLE` |
 
 Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
 (<https://v2.tauri.app/start/prerequisites/>), confira lá a lista atual:
@@ -24,8 +24,8 @@ Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
 O Studio está no repositório do Lace, em `studio/`:
 
 ```
-lace/
-  crates/aurora-cli/    o lace, que o Studio abre como servidor (aurora serve)
+aurora/
+  crates/aurora-cli/    o aurora, que o Studio abre como servidor (aurora serve)
   crates/aurora-agent/  o assistente, que o Studio linka por caminho
   docs/schema/        os tipos que o npm run gen:types lê
   studio/             este
@@ -34,23 +34,23 @@ lace/
 O `src-tauri/` tem o próprio workspace do Cargo e o próprio `Cargo.lock`:
 o `Cargo.toml` da raiz o deixa de fora (`exclude`), para os testes do Core
 e da CLI não precisarem do WebView nem da interface compilada. Os testes
-dos fluxos do Studio pedem o bundle instalado (`LACE_TEST_BUNDLE`) e um
+dos fluxos do Studio pedem o bundle instalado (`AURORA_TEST_BUNDLE`) e um
 `aurora` para servir, e rodam à mão.
 
-O Studio não linka o Core: tudo do Lace é pedido ao servidor, um `lace
+O Studio não linka o Core: tudo do Lace é pedido ao servidor, um `aurora
 serve` filho (ARCHITECTURE.md, seção 3.2). Em desenvolvimento, o servidor
 precisa ser o `aurora` do mesmo repositório, que fala os métodos que o Studio
 pede; o da instalação é de outra versão. Compile antes, na raiz, e aponte o
-Studio para ele com `LACE_STUDIO_LACE` (ou a preferência Programa lace, em
+Studio para ele com `AURORA_IDE_CLI` (ou a preferência Programa aurora, em
 Preferências > Bundle do Lace):
 
 ```sh
 cargo build -p aurora-cli          # na raiz: target/debug/aurora
-LACE_STUDIO_LACE=../target/debug/aurora npm run tauri dev
+AURORA_IDE_CLI=../target/debug/aurora npm run tauri dev
 ```
 
 O bundle é o da instalação do Lace, achado pelo Studio e passado ao
-servidor em `--toolchain`, ou o de `LACE_TOOLCHAIN` ou da preferência.
+servidor em `--toolchain`, ou o de `AURORA_TOOLCHAIN` ou da preferência.
 
 ## 2. Rodar
 
@@ -65,7 +65,7 @@ salvar um de `src-tauri/` recompila e reabre o aplicativo. A primeira
 compilação do backend leva vários minutos (o Tauri e o WebKitGTK).
 
 Log do backend no terminal: `RUST_LOG=lace_studio_lib=debug npm run tauri dev`. O
-stderr do servidor do Lace sai no mesmo log, com o alvo `lace_serve`.
+stderr do servidor do Lace sai no mesmo log, com o alvo `aurora_serve`.
 O inspetor da WebView abre com Ctrl+Shift+I, só na build de
 desenvolvimento (o menu de contexto do navegador fica desligado fora dos
 campos de texto, em `src/main.tsx`).
@@ -84,10 +84,10 @@ Os testes de `src-tauri/tests/flows.rs` rodam, pelo servidor do Lace,
 check, sim, synth e build sobre cópias dos exemplos do Lace, a correção de
 um exercício (`learn`) sobre a trilha de teste do `aurora-learn` e as recusas
 do `fpga_build`, com o bundle que o Studio acharia sozinho ou com
-`LACE_TEST_BUNDLE=/caminho/do/toolchain`. O servidor é o `aurora` de
-`LACE_STUDIO_LACE` ou, sem ela, o `target/debug/aurora` da raiz (compile antes
+`AURORA_TEST_BUNDLE=/caminho/do/toolchain`. O servidor é o `aurora` de
+`AURORA_IDE_CLI` ou, sem ela, o `target/debug/aurora` da raiz (compile antes
 com `cargo build -p aurora-cli`). Os testes de unidade do `server.rs` que
-abrem um servidor de verdade também usam `LACE_STUDIO_LACE`. Sem bundle ou
+abrem um servidor de verdade também usam `AURORA_IDE_CLI`. Sem bundle ou
 sem `aurora`, avisam e passam; com `CI` definido, falham.
 
 Antes de mandar uma mudança: `typecheck`, `clippy` sem aviso, `cargo test`
@@ -95,13 +95,13 @@ e, se mexeu na interface, abrir o Studio e passar pelo que mudou.
 
 ### Roteiro de fumaça
 
-Na build de desenvolvimento, a variável `LACE_STUDIO_SMOKE` faz a interface
+Na build de desenvolvimento, a variável `AURORA_IDE_SMOKE` faz a interface
 rodar uma sequência de ações sozinha, pelo mesmo caminho dos botões
 (`src/dev/smoke.ts`). Serve para conferir a interface de ponta a ponta sem
 mouse nem teclado, e para capturar a tela de cada passo:
 
 ```sh
-LACE_STUDIO_SMOKE="wait:2000;open:rtl/contador.v;check;fastSim;synthesize;view:schematic" \
+AURORA_IDE_SMOKE="wait:2000;open:rtl/contador.v;check;fastSim;synthesize;view:schematic" \
 RUST_LOG=info npm run tauri dev
 ```
 
@@ -179,18 +179,18 @@ precisa esperar esse tempo.
 
 O que é do Lace (o projeto, os fluxos, o histórico, a placa, os
 exercícios) não ganha comando no backend: é um método do protocolo, que a
-interface pede pelo `lace_call`. Se o método ainda não existe, ele nasce no
+interface pede pelo `aurora_call`. Se o método ainda não existe, ele nasce no
 Lace, com o passo a passo de
 [docs/METODOLOGIA.md](../../docs/METODOLOGIA.md), seção 6, e chega ao
 Studio pelo servidor.
 
-1. Acrescente a função em `src/ipc/api.ts`, chamando `lace('<método>',
+1. Acrescente a função em `src/ipc/api.ts`, chamando `aurora('<método>',
    { parâmetros })`. O tipo do resultado já está em
    `src/ipc/lace-types.ts`, gerado (veja "Um tipo do Core mudou", abaixo).
    O projeto aberto entra sozinho no campo `project`.
 2. Um método longo, com progresso (como o `flow.run`), vai como operação:
    `jobs::start`, com o pedido e o que fazer com a resposta.
-3. Documente em [IPC.md](IPC.md), na tabela do `lace_call`.
+3. Documente em [IPC.md](IPC.md), na tabela do `aurora_call`.
 
 ### Um comando novo no backend
 
@@ -238,7 +238,7 @@ npm run gen:types     # relê ../docs/schema/*.json
 git diff src/ipc/lace-types.ts
 ```
 
-`LACE_REPO=/outro/lace npm run gen:types` lê de outro lugar.
+`AURORA_REPO=/outro/aurora npm run gen:types` lê de outro lugar.
 
 ### Cores, temas e medidas
 

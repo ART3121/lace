@@ -1928,8 +1928,8 @@ mod tests {
     /// Com o bundle, a correção de verdade aparece na tela.
     #[test]
     fn a_wrong_answer_shows_the_outputs_and_the_first_mismatch() {
-        let Ok(bundle) = std::env::var("LACE_TEST_BUNDLE") else {
-            eprintln!("PULADO: defina LACE_TEST_BUNDLE");
+        let Ok(bundle) = std::env::var("AURORA_TEST_BUNDLE") else {
+            eprintln!("PULADO: defina AURORA_TEST_BUNDLE");
             return;
         };
         let (_tmp, mut app) = app();

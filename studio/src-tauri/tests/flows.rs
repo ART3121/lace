@@ -3,17 +3,17 @@
 //! com o bundle sobre cópias dos exemplos do Lace (`examples/`, na raiz do
 //! repositório), e a resposta volta como a interface a lê.
 //!
-//! O servidor é o `aurora` de `LACE_STUDIO_LACE` ou, sem ela, o build de
+//! O servidor é o `aurora` de `AURORA_IDE_CLI` ou, sem ela, o build de
 //! desenvolvimento em `target/debug` da raiz do repositório. O bundle é o
 //! que o Studio acharia sozinho (a instalação do Lace) ou o de
-//! `LACE_TEST_BUNDLE`. Sem um dos dois, os testes avisam e passam, como os
+//! `AURORA_TEST_BUNDLE`. Sem um dos dois, os testes avisam e passam, como os
 //! do Lace; com a variável `CI` definida, falham, porque lá não podem
 //! pular.
 //!
 //! ```sh
 //! cargo build -p aurora-cli                                  # na raiz
 //! cargo test --test flows                                  # instalação do Lace
-//! LACE_TEST_BUNDLE=/caminho/do/toolchain cargo test --test flows
+//! AURORA_TEST_BUNDLE=/caminho/do/toolchain cargo test --test flows
 //! ```
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -37,25 +37,25 @@ fn skip(reason: &str) -> Option<Settings> {
 /// servidor, ou `None` sem um dos dois.
 fn settings() -> Option<Settings> {
     let mut settings = Settings::default();
-    if let Ok(dir) = std::env::var("LACE_TEST_BUNDLE") {
+    if let Ok(dir) = std::env::var("AURORA_TEST_BUNDLE") {
         settings.toolchain_dir = Some(dir);
     }
-    if std::env::var_os("LACE_STUDIO_LACE").is_none() {
-        let exe = if cfg!(windows) { "lace.exe" } else { "lace" };
+    if std::env::var_os("AURORA_IDE_CLI").is_none() {
+        let exe = if cfg!(windows) { "aurora.exe" } else { "aurora" };
         let dev = Utf8Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../target/debug")
             .join(exe);
         if !dev.is_file() {
             return skip(
-                "sem o lace do servidor: rode cargo build -p aurora-cli ou defina LACE_STUDIO_LACE",
+                "sem o aurora do servidor: rode cargo build -p aurora-cli ou defina AURORA_IDE_CLI",
             );
         }
-        settings.lace_path = Some(dev.to_string());
+        settings.aurora_path = Some(dev.to_string());
     }
     let info = toolchain::info(&AuroraServer::default(), &settings);
     if info["found"] != true {
         return skip(&format!(
-            "sem bundle do Lace ({}). Defina LACE_TEST_BUNDLE.",
+            "sem bundle do Lace ({}). Defina AURORA_TEST_BUNDLE.",
             info["error"]["message"]
         ));
     }
@@ -381,7 +381,7 @@ fn command_line_mirrors_the_cli() {
 
 /// O fluxo `learn`: corrige um exercício da trilha de teste do aurora-learn
 /// (`crates/aurora-learn/tests/fixtures`, pela preferência `learn_dir`, que o
-/// servidor recebe em `LACE_LEARN_DIR`), grava o resolvido e não grava
+/// servidor recebe em `AURORA_LEARN_DIR`), grava o resolvido e não grava
 /// relatório. A pasta de exercícios também é criada pelo servidor.
 #[test]
 fn learn_flow_checks_an_exercise_and_records_it() {

@@ -527,7 +527,7 @@ pub(crate) fn design_roots(
 ///
 /// ```no_run
 /// use aurora_core::*;
-/// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+/// # let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 /// let project = Project::open("/p/soma")?;
 /// let control = Control::default();
 /// let target = DesignTarget::Processor("soma".into());

@@ -4,7 +4,7 @@
   "description": "O relatório do `aurora update` (`docs/schema/update.json`).",
   "type": "object",
   "properties": {
-    "lace": {
+    "aurora": {
       "description": "O Lace: este e o da última release.",
       "$ref": "#/$defs/AuroraVersions"
     },
@@ -54,7 +54,7 @@
     }
   },
   "required": [
-    "lace",
+    "aurora",
     "bundle",
     "components",
     "prefix",

@@ -45,17 +45,19 @@ pub struct Settings {
     /// `--compiler` da CLI. No Windows, a raiz de um MSYS2.
     pub compiler_dir: Option<String>,
     /// Onde está o Quartus Prime, que compila para as placas Intel, como o
-    /// `--quartus` da CLI. `None`: o `LACE_QUARTUS`, o `QUARTUS_ROOTDIR` e as
+    /// `--quartus` da CLI. `None`: o `AURORA_QUARTUS`, o `QUARTUS_ROOTDIR` e as
     /// pastas padrão do instalador.
     pub quartus_dir: Option<String>,
-    /// As trilhas do `aurora learn` de outra pasta, como o `LACE_LEARN_DIR` da
+    /// As trilhas do `aurora learn` de outra pasta, como o `AURORA_LEARN_DIR` da
     /// CLI: é como quem escreve exercícios os testa no Studio. `None`: as do
     /// componente `aurora-learn`.
     pub learn_dir: Option<String>,
     /// O programa `aurora` que o Studio abre como servidor (`aurora serve`).
     /// `None`: o da instalação do bundle. Para desenvolvimento, um build em
-    /// `target/`; a variável `LACE_STUDIO_LACE` vale antes desta preferência.
-    pub lace_path: Option<String>,
+    /// `target/`; a variável `AURORA_IDE_CLI` vale antes desta preferência.
+    /// `lace_path` no `settings.json` do Lace Studio.
+    #[serde(alias = "lace_path")]
+    pub aurora_path: Option<String>,
     /// Simulador padrão: `icarus` ou `verilator`.
     pub simulator: String,
     /// Abrir a onda no surfer-aurora quando a simulação terminar bem, como o
@@ -98,7 +100,9 @@ pub struct Settings {
     pub assistant_claude: Option<String>,
     /// O `aurora` que serve as ferramentas ao assistente; `None` é o da
     /// instalação do bundle. Para desenvolvimento, um build em `target/`.
-    pub assistant_lace: Option<String>,
+    /// `assistant_lace` no `settings.json` do Lace Studio.
+    #[serde(alias = "assistant_lace")]
+    pub assistant_aurora: Option<String>,
     /// O modelo do assistente (`--model` do Claude Code); `None` é o padrão.
     pub assistant_model: Option<String>,
     /// O assistente pode editar e criar arquivos na pasta do projeto, além
@@ -143,7 +147,7 @@ impl Default for Settings {
             theme: "azul".into(),
             aurora_themes: true,
             toolchain_dir: None,
-            lace_path: None,
+            aurora_path: None,
             compiler_dir: None,
             quartus_dir: None,
             learn_dir: None,
@@ -160,7 +164,7 @@ impl Default for Settings {
             layouts: LayoutSettings::default(),
             tour_done: false,
             assistant_claude: None,
-            assistant_lace: None,
+            assistant_aurora: None,
             assistant_model: None,
             assistant_allow_edits: false,
             recent_projects: Vec::new(),
@@ -498,6 +502,20 @@ mod tests {
             assert_eq!(settings.theme, new);
             assert!(settings.aurora_themes);
         }
+    }
+
+    /// Os campos com o nome do Lace Studio valem com o nome novo.
+    #[test]
+    fn lace_studio_fields_are_read_under_the_new_names() {
+        let settings: Settings = serde_json::from_str(
+            r#"{ "lace_path": "C:/aurora/target/debug/aurora.exe", "assistant_lace": "/opt/aurora/bin/aurora" }"#,
+        )
+        .unwrap();
+        assert_eq!(settings.aurora_path.as_deref(), Some("C:/aurora/target/debug/aurora.exe"));
+        assert_eq!(settings.assistant_aurora.as_deref(), Some("/opt/aurora/bin/aurora"));
+        let saved = serde_json::to_value(&settings).unwrap();
+        assert!(saved.get("lace_path").is_none());
+        assert_eq!(saved["aurora_path"], "C:/aurora/target/debug/aurora.exe");
     }
 
     /// O Atlas escolhido na AURORA IDE fica: a troca para o Azul é uma vez só.

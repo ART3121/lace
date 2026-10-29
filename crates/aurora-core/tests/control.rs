@@ -1,5 +1,5 @@
 //! Cancelamento, prazo e eventos das operações, com as ferramentas do
-//! bundle. Precisam de `LACE_TEST_BUNDLE` (ver `common/mod.rs`).
+//! bundle. Precisam de `AURORA_TEST_BUNDLE` (ver `common/mod.rs`).
 
 mod common;
 

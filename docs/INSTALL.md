@@ -73,11 +73,11 @@ Lace lê; ela pode ser apagada à mão. Os projetos (`.spf`) não mudam.
 ## Em um comando
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh     # Linux, macOS
+curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh     # Linux, macOS
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex          # Windows, PowerShell
+irm https://raw.githubusercontent.com/ART3121/aurora/main/install.ps1 | iex          # Windows, PowerShell
 ```
 
 Os dois scripts, `install.sh` e `install.ps1` na raiz do repositório, fazem
@@ -93,10 +93,10 @@ execução) e apaga o que baixou no fim.
 
 | O quê | Linux, macOS | Windows |
 |---|---|---|
-| versão fixa | `... \| LACE_VERSION=0.9.0 sh` | `$env:LACE_VERSION = "0.9.0"` antes do `irm` |
-| sem perguntas | `... \| sh -s -- --yes` | `$env:LACE_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"` antes do `irm` |
-| outras opções do instalador | `... \| sh -s -- --yes --profile verilog --prefix /opt/lace` | os parâmetros do Inno Setup em `LACE_SETUP_ARGS` |
-| para todos os usuários | `... \| sudo sh` (vai para `/opt/lace`) | o assistente pergunta |
+| versão fixa | `... \| AURORA_VERSION=0.9.0 sh` | `$env:AURORA_VERSION = "0.9.0"` antes do `irm` |
+| sem perguntas | `... \| sh -s -- --yes` | `$env:AURORA_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"` antes do `irm` |
+| outras opções do instalador | `... \| sh -s -- --yes --profile verilog --prefix /opt/aurora` | os parâmetros do Inno Setup em `AURORA_SETUP_ARGS` |
+| para todos os usuários | `... \| sudo sh` (vai para `/opt/aurora`) | o assistente pergunta |
 
 ## Idioma, perfis e componentes
 
@@ -179,13 +179,13 @@ plataforma, e a página de componentes do assistente, o da seleção.
      É o que o `irm ... | iex` usa;
    - `lace-<versão>-windows-x64-setup.exe`: o bundle inteiro dentro dele,
      para instalar sem rede (o `irm ... | iex` o usa com
-     `$env:LACE_FULL_SETUP = "1"`).
+     `$env:AURORA_FULL_SETUP = "1"`).
 2. Escolha instalar só para você (padrão, sem administrador, em
    `%LOCALAPPDATA%\Programs\Lace`) ou para todos os usuários (pede
    administrador, em `C:\Lace`). Para todos os usuários, a pasta fica com
    permissões próprias: os administradores e o sistema escrevem nela, os
    outros usuários só leem e executam. Sem isso, ela herdaria de `C:\` a
-   escrita de qualquer usuário, e o `lace.exe`, no PATH do sistema, poderia
+   escrita de qualquer usuário, e o `aurora.exe`, no PATH do sistema, poderia
    ser trocado por qualquer um.
 3. Escolha o idioma do assistente.
 4. Na página **Choose a profile** (Escolha um perfil), escolha o perfil na
@@ -201,7 +201,7 @@ se a pasta escolhida tiver. Com o Studio marcado e sem o WebView2 no
 computador, ele avisa antes de instalar.
 
 O assistente recusa uma pasta que já tem uma `toolchain` que não é de uma
-instalação do Lace (sem `toolchain\bundle.json` nem `bin\lace.exe`):
+instalação do Lace (sem `toolchain\bundle.json` nem `bin\aurora.exe`):
 instalar trocaria essa pasta inteira, sem passar pela lixeira.
 
 Numa pasta que já tem o Lace, a primeira página diz de que versão para qual
@@ -211,7 +211,7 @@ fica no Custom. O mesmo vale numa instalação silenciosa sem `/COMPONENTS`.
 
 O assistente web baixa do GitHub; `/MIRROR=<url>` o faz baixar de um
 espelho do laboratório, com uma pasta `v<versão>/` por release, como o
-`LACE_RELEASE_URL`. Uma falha no download para o assistente na página de
+`AURORA_RELEASE_URL`. Uma falha no download para o assistente na página de
 instalação, sem ter mudado nada; uma falha ao extrair, antes de copiar
 qualquer arquivo.
 
@@ -231,7 +231,7 @@ o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
-`LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
+`AURORA_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
 mais nova, que o `aurora update` lê no lugar do GitHub. O espelho é
 `https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
@@ -274,7 +274,7 @@ perguntar.
 ```
 lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
 lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
-lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="lace,yanc,icarus,verilator,studio" /DIR=D:\Lace
+lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="aurora,yanc,icarus,verilator,studio" /DIR=D:\Lace
 ```
 
 O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
@@ -295,7 +295,7 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
 
 ```
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
+curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
 tar xzf lace-0.9.0-linux-x64.tar.gz && ./lace-0.9.0-linux-x64/install
 ```
 
@@ -316,8 +316,8 @@ não interrompe.
 
 | | Usuário comum | root (`sudo ./install`, ou `curl ... \| sudo sh`) |
 |---|---|---|
-| Pasta | `~/.local/share/lace` | `/opt/lace` |
-| Atalho | `~/.local/bin/lace` | `/usr/local/bin/lace` |
+| Pasta | `~/.local/share/aurora` | `/opt/aurora` |
+| Atalho | `~/.local/bin/aurora` | `/usr/local/bin/aurora` |
 | Studio no menu (Linux) | `~/.local/share/applications/lace-studio.desktop` | `/usr/local/share/applications/lace-studio.desktop` |
 | Studio no menu (macOS) | `~/Applications/Lace Studio.app` | `/Applications/Lace Studio.app` |
 
@@ -338,7 +338,7 @@ falha no meio não estraga o que já estava instalado.
 ./install --yes                                    # o perfil padrão (SAPHO)
 ./install --yes --profile verilog                  # outro perfil
 ./install --yes --components yanc,icarus,verilator # Custom
-./install --yes --prefix /opt/lace --no-link
+./install --yes --prefix /opt/aurora --no-link
 ```
 
 Um componente que exige outro traz o outro junto (`--components graphviz`
@@ -358,7 +358,7 @@ o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
-`LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
+`AURORA_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
 mais nova, que o `aurora update` lê no lugar do GitHub. O espelho é
 `https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
@@ -385,7 +385,7 @@ tem ficam, junto dos do perfil; para tirar algum, use o Custom.
 
 **Remover:** `aurora uninstall` (pergunta antes; `--yes` não pergunta) ou
 `<pasta>/uninstall.sh`. Sai o Lace, o bundle inteiro (`toolchain/`), o
-atalho, o do Studio no menu e a pasta; uma instalação do sistema (`/opt/lace`) pede
+atalho, o do Studio no menu e a pasta; uma instalação do sistema (`/opt/aurora`) pede
 `sudo aurora uninstall`.
 
 O que não sai, porque não é da instalação: os projetos, com o `.aurora8/` de
@@ -393,8 +393,8 @@ cada um (intermediários e ondas, que se apagam à mão), e o histórico de
 arquivos do surfer-aurora (`~/.local/share/surfer` no Linux), que o Surfer e
 a AURORA também usam, as preferências do Studio, o `experimental.json` do
 `aurora experimental` e o `update-check.json` do aviso de versão nova. Um
-`~/.config/lace/config.json` de um build de desenvolvimento anterior à
-0.2.0 (o `lace config`, que saiu), que nenhuma versão lê, sai junto com
+`~/.config/aurora/config.json` de um build de desenvolvimento anterior à
+0.2.0 (o `aurora config`, que saiu), que nenhuma versão lê, sai junto com
 `aurora uninstall`.
 
 **Verilator:** precisa de `g++` (ou `clang++`), `make` e `perl` do sistema:
@@ -451,7 +451,7 @@ atualizações ao mesmo tempo na mesma pasta. A AURORA IDE não fecha
 enquanto uma atualização ou instalação dela está rodando.
 
 O próprio `aurora` é um dos arquivos trocados. No Windows, um executável em
-uso pode ser renomeado, mas não apagado: o `lace.exe` antigo fica na pasta
+uso pode ser renomeado, mas não apagado: o `aurora.exe` antigo fica na pasta
 `.antigo-<pid>` até o próximo `aurora install` ou `aurora update`. Se o Lace
 Studio estiver aberto durante a atualização, feche e abra de novo para usar
 a versão nova.
@@ -483,7 +483,7 @@ Os dois fluxos, Verilog e SAPHO, completos estão em
 
 ```
 <pasta>/
-  bin/lace[.exe]
+  bin/aurora[.exe]
   toolchain/            o bundle, só com os componentes escolhidos
     bundle.json
     components/<nome>.json

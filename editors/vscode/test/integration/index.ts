@@ -14,7 +14,7 @@ import Mocha from 'mocha';
 export async function run(): Promise<void> {
   const mocha = new Mocha({ ui: 'bdd', timeout: 30000, color: true });
   // Os testes da pasta sem .spf ficam em vazia/; os do projeto, aqui.
-  const dir = process.env.LACE_TEST_SUITE === 'vazia' ? join(__dirname, 'vazia') : __dirname;
+  const dir = process.env.AURORA_TEST_SUITE === 'vazia' ? join(__dirname, 'vazia') : __dirname;
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.test.js'))) {
     mocha.addFile(join(dir, file));
   }

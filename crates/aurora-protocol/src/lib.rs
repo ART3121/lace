@@ -46,8 +46,9 @@ use aurora_learn::{LearnTracks, WorkspaceSnapshot};
 pub use aurora_core::delivery::Notification;
 
 /// A versão do protocolo. Sobe quando um método muda de forma de um jeito
-/// que um cliente antigo não entenderia; um método novo não a sobe.
-pub const PROTOCOL_VERSION: u32 = 1;
+/// que um cliente antigo não entenderia; um método novo não a sobe. A 2 é a
+/// da renomeação para AURORA: os campos `lace` viraram `aurora`.
+pub const PROTOCOL_VERSION: u32 = 2;
 
 fn yes() -> bool {
     true
@@ -896,7 +897,7 @@ pub enum Response {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ServerInfo {
     /// A versão do Lace.
-    pub lace: String,
+    pub aurora: String,
     /// A versão do protocolo ([`PROTOCOL_VERSION`]).
     pub protocol: u32,
     /// A pasta da instalação do Lace, quando o servidor é o `aurora`
@@ -1137,7 +1138,7 @@ mod tests {
         // O resultado tipado sai igual ao tipo do instalador serializado
         // direto, que é o `--json` do `aurora install`.
         let report = InstallReport {
-            prefix: "/opt/lace".into(),
+            prefix: "/opt/aurora".into(),
             components: vec!["yanc".into(), "icarus".into()],
             added: vec!["icarus".into()],
         };

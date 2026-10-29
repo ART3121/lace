@@ -11,7 +11,7 @@ export const RESPONSES = join(FIXTURES, 'responses');
 /** O lace falso, que devolve as respostas gravadas. */
 export const FAKE_LACE = join(FIXTURES, 'fake-lace', 'lace.mjs');
 /** O repositório do Lace, de onde vêm os schemas. */
-export const LACE_REPO = resolve(process.env.LACE_REPO ?? join(EXTENSION_ROOT, '..', '..'));
+export const AURORA_REPO = resolve(process.env.AURORA_REPO ?? join(EXTENSION_ROOT, '..', '..'));
 
 export interface RecordedCase {
   args: string[];

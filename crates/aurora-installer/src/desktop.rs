@@ -378,8 +378,8 @@ mod tests {
     #[test]
     fn exec_quotes_and_escapes_the_program() {
         assert_eq!(
-            desktop_exec(Path::new("/opt/my lace/toolchain/studio/lace-studio")),
-            "\"/opt/my lace/toolchain/studio/lace-studio\""
+            desktop_exec(Path::new("/opt/my aurora/toolchain/studio/lace-studio")),
+            "\"/opt/my aurora/toolchain/studio/lace-studio\""
         );
         assert_eq!(desktop_exec(Path::new("/a$b")), "\"/a\\\\$b\"");
     }

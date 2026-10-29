@@ -1,6 +1,6 @@
 # AURORA IDE
 
-O ambiente gráfico do [Lace](https://github.com/ART3121/lace) para projetos
+O ambiente gráfico do [Lace](https://github.com/ART3121/aurora) para projetos
 Verilog e processadores SAPHO. Sucede a AURORA 7, feita em Electron: cria e abre projetos
 `.spf`, edita C±, C e Verilog, compila pelo YANC, verifica e simula com
 Icarus Verilog e Verilator, sintetiza com Yosys, desenha o esquemático com
@@ -29,7 +29,7 @@ cobrir tudo o que a AURORA fazia está em
   instalação sem ele, `aurora install studio`. Instalado assim, ele fica no
   bundle (`toolchain/studio/`) e usa o bundle em que está. Fora do bundle
   (o `npm run tauri dev`), acha a instalação do Lace sozinho
-  (`~/.local/share/lace` no Linux e no macOS, `%LOCALAPPDATA%\Programs\Lace`
+  (`~/.local/share/aurora` no Linux e no macOS, `%LOCALAPPDATA%\Programs\Lace`
   no Windows) ou pela pasta indicada nas preferências.
 - No Linux, o webkit2gtk 4.1 do sistema (`libwebkit2gtk-4.1-0` no Debian e
   no Ubuntu, `webkit2gtk4.1` no Fedora); no Windows, o WebView2, que vem com
@@ -42,8 +42,8 @@ cobrir tudo o que a AURORA fazia está em
 ## Rodar a partir do fonte
 
 ```sh
-git clone https://github.com/ART3121/lace
-cd lace/studio
+git clone https://github.com/ART3121/aurora
+cd aurora/studio
 npm install
 npm run tauri dev                                      # abre o Studio, com recarga ao salvar
 ```

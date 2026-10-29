@@ -1,6 +1,6 @@
 // As chamadas ao backend, com os tipos de entrada e saída. O resto da
 // interface só fala com o backend por aqui. Cada função chama um comando
-// Tauri do Studio ou, por `lace()`, um método do protocolo do Lace, que o
+// Tauri do Studio ou, por `aurora()`, um método do protocolo do Lace, que o
 // backend repassa ao servidor (`aurora serve`). Referência: docs/IPC.md.
 
 import { Channel, invoke } from '@tauri-apps/api/core';
@@ -79,8 +79,8 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 /** Um método do protocolo do Lace, pelo servidor do Studio (`server.rs`):
  * o mesmo pedido e a mesma resposta do `aurora serve` (docs/PROTOCOL.md). Sem
  * `project` nos parâmetros, vale o projeto aberto. */
-function lace<T>(method: string, params?: Record<string, unknown>): Promise<T> {
-  return call<T>('lace_call', { method, params: params ?? null });
+function aurora<T>(method: string, params?: Record<string, unknown>): Promise<T> {
+  return call<T>('aurora_call', { method, params: params ?? null });
 }
 
 /** O `NameCheck` do protocolo como a interface o usa: `null` se o nome
@@ -121,13 +121,13 @@ export const api = {
      * simulação do processador ou, sem processador, a do projeto. Um arquivo
      * vai com `project: null`, para não esperar na fila do projeto aberto. */
     openWave: (processor?: string | null, path?: string | null) =>
-      lace<WaveOpened>(
+      aurora<WaveOpened>(
         'wave.open',
         path
           ? { project: null, request: { source: { kind: 'file', path } } }
           : { request: { source: { kind: 'project', processor: processor ?? null } } },
       ),
-    /** Fecha o Studio e, com `restart`, abre ele de novo (depois do `lace
+    /** Fecha o Studio e, com `restart`, abre ele de novo (depois do `aurora
      * update`). Quem chama grava os arquivos antes. */
     exit: (restart: boolean) => call<void>('app_exit', { restart }),
     /** Fecha o splash, depois de a janela principal aparecer. */
@@ -142,15 +142,15 @@ export const api = {
 
   wave: {
     /** A árvore de sinais do testbench do projeto, com a escolha gravada. */
-    signals: () => lace<WaveSignals>('wave.signals'),
+    signals: () => aurora<WaveSignals>('wave.signals'),
     /** Grava a escolha (vazia: todos os sinais) e devolve como ficou. Os
      * caminhos são conferidos na árvore do testbench elaborado. */
     setSelection: (signals: string[]) =>
-      lace<WaveChoiceOutcome>('wave.choose', { choice: { kind: 'set', paths: signals } }).then(
+      aurora<WaveChoiceOutcome>('wave.choose', { choice: { kind: 'set', paths: signals } }).then(
         (outcome) => outcome.selection,
       ),
     /** Apaga o layout salvo da onda; `false` se não havia. */
-    resetLayout: (waveform: string) => lace<boolean>('wave.reset_layout', { waveform }),
+    resetLayout: (waveform: string) => aurora<boolean>('wave.reset_layout', { waveform }),
   },
 
   project: {
@@ -159,29 +159,29 @@ export const api = {
     create: (parent: string, name: string) =>
       call<ProjectSnapshot>('project_create', { parent, name }),
     close: () => call<void>('project_close'),
-    snapshot: () => lace<ProjectSnapshot>('project.status'),
+    snapshot: () => aurora<ProjectSnapshot>('project.status'),
     addVerilog: (path: string, testbench: boolean) =>
-      lace<AddedFile[]>('project.add', { files: [path], testbench }).then((added) => added[0]),
+      aurora<AddedFile[]>('project.add', { files: [path], testbench }).then((added) => added[0]),
     /** `false` se o arquivo não estava no projeto. */
     removeVerilog: (path: string) =>
-      lace<RemoveOutcome>('project.remove', { files: [path] }).then((r) => r.removed.length > 0),
+      aurora<RemoveOutcome>('project.remove', { files: [path] }).then((r) => r.removed.length > 0),
     /** Escolhe o topo por arquivo ou por módulo; devolve o arquivo de topo. */
     setTop: (target: string) =>
-      lace<TopOutcome>('project.top', { target }).then((r) => r.top_level ?? ''),
-    setTestbench: (path: string) => lace<ProjectSnapshot>('project.testbench', { path }),
-    processorDefaults: () => lace<NewProcessorDefaults>('processor.defaults'),
+      aurora<TopOutcome>('project.top', { target }).then((r) => r.top_level ?? ''),
+    setTestbench: (path: string) => aurora<ProjectSnapshot>('project.testbench', { path }),
+    processorDefaults: () => aurora<NewProcessorDefaults>('processor.defaults'),
     /** Campo ausente fica com o padrão da AURORA; sem `nubits`, com
      * `nbmant` ou `nbexpo` dados, ele vira `nbmant + nbexpo + 1`. */
-    addProcessor: (request: NewProcessorRequest) => lace<Processor>('processor.add', { spec: request }),
+    addProcessor: (request: NewProcessorRequest) => aurora<Processor>('processor.add', { spec: request }),
     /** Tira o processador do projeto (`aurora proc remove`); com `toTrash`, a
      * pasta dele vai para a lixeira, e sem, fica no disco. */
     removeProcessor: (name: string, toTrash: boolean) =>
-      lace<ProcRemoveReport>('processor.remove', { name, to_trash: toTrash }),
+      aurora<ProcRemoveReport>('processor.remove', { name, to_trash: toTrash }),
     configureProcessor: (
       name: string,
       config: { frequency_mhz?: number | null; clocks?: number | null; show_arrays?: boolean | null },
     ) =>
-      lace<Processor>('processor.set', {
+      aurora<Processor>('processor.set', {
         name,
         config: {
           frequency_mhz: config.frequency_mhz ?? null,
@@ -190,26 +190,26 @@ export const api = {
         },
       }),
     outputValues: (processor: string, port: number) =>
-      lace<number[]>('processor.outputs', { processor, port }),
-    verilogModules: (text: string) => lace<string[]>('verilog.modules', { text }),
+      aurora<number[]>('processor.outputs', { processor, port }),
+    verilogModules: (text: string) => aurora<string[]>('verilog.modules', { text }),
     /** Move ou renomeia (`Project::move_path` do Core): `to` é o caminho
      * final. Erro `path_exists` se ele já existe, sem `overwrite`; com, o
      * destino vai para a lixeira, menos o que o Lace mantém no lugar
      * (`cannot_replace`). */
     move: (from: string, to: string, overwrite = false) =>
-      lace<MovedPath>('project.move', { from, to, overwrite }),
+      aurora<MovedPath>('project.move', { from, to, overwrite }),
     /** Converte da estrutura de pastas do YANC 6.x para a do 7.1
      * (`Project::convert_layout`). */
-    convertLayout: () => lace<LayoutConversion>('project.convert'),
+    convertLayout: () => aurora<LayoutConversion>('project.convert'),
     /** `null` se o nome de projeto serve; senão o erro do Core. */
-    checkName: (name: string) => lace<NameCheck>('project.check_name', { name }).then(nameError),
+    checkName: (name: string) => aurora<NameCheck>('project.check_name', { name }).then(nameError),
     /** Muda a posição de um arquivo na lista dele (`aurora order`); devolve
      * a lista na ordem nova. */
     reorder: (path: string, position: ListPosition) =>
-      lace<ProjectFile[]>('project.order', { file: path, position }),
+      aurora<ProjectFile[]>('project.order', { file: path, position }),
     /** `null` se o nome de processador serve; senão o erro do Core. */
     checkProcessorName: (name: string) =>
-      lace<NameCheck>('processor.check_name', { name }).then(nameError),
+      aurora<NameCheck>('processor.check_name', { name }).then(nameError),
     hierarchy: () => call<HierarchyResult>('project_hierarchy'),
   },
 
@@ -242,68 +242,68 @@ export const api = {
   },
 
   history: {
-    list: () => lace<RunSummary[]>('history.list'),
-    show: (id?: string | null) => lace<ReportView>('history.show', { id: id ?? null }),
+    list: () => aurora<RunSummary[]>('history.list'),
+    show: (id?: string | null) => aurora<ReportView>('history.show', { id: id ?? null }),
     compare: (id?: string | null, against?: string | null) =>
-      lace<RunComparison>('history.compare', { id: id ?? null, against: against ?? null }),
+      aurora<RunComparison>('history.compare', { id: id ?? null, against: against ?? null }),
     planCleanup: (cleanup: CleanupRequest) =>
-      lace<string[]>('history.plan_cleanup', { cleanup: cleanupOf(cleanup) }),
-    clean: (ids: string[]) => lace<CleanReport>('history.clean', { ids }),
+      aurora<string[]>('history.plan_cleanup', { cleanup: cleanupOf(cleanup) }),
+    clean: (ids: string[]) => aurora<CleanReport>('history.clean', { ids }),
   },
   /** Os exercícios do `aurora learn` (commands/learn.rs); a correção é o fluxo `learn`. */
   learn: {
-    tracks: () => lace<LearnTracks>('learn.tracks'),
+    tracks: () => aurora<LearnTracks>('learn.tracks'),
     /** Abre a pasta de exercícios que contém `root` e a põe em dia com a
      * trilha (`learn.status`). */
-    open: (root: string, lang?: string | null) => lace<LearnSnapshot>('learn.status', { root, lang: lang ?? null }),
+    open: (root: string, lang?: string | null) => aurora<LearnSnapshot>('learn.status', { root, lang: lang ?? null }),
     init: (dir: string, track?: string | null, lang?: string | null) =>
-      lace<LearnSnapshot>('learn.init', { dir, track: track ?? null, lang: lang ?? null }),
+      aurora<LearnSnapshot>('learn.init', { dir, track: track ?? null, lang: lang ?? null }),
     setCurrent: (root: string, name: string, lang?: string | null) =>
-      lace<LearnSnapshot>('learn.set_current', { root, name, lang: lang ?? null }),
-    reset: (root: string, name: string) => lace<void>('learn.reset', { root, name }),
+      aurora<LearnSnapshot>('learn.set_current', { root, name, lang: lang ?? null }),
+    reset: (root: string, name: string) => aurora<void>('learn.reset', { root, name }),
   },
 
   /** Os recursos experimentais do Lace, pelo servidor: o mesmo
    * `experimental.json` do `aurora experimental` da CLI. */
   experimental: {
-    list: () => lace<ExperimentalReport>('experimental.list'),
+    list: () => aurora<ExperimentalReport>('experimental.list'),
     set: (feature: Feature, enabled: boolean) =>
-      lace<ExperimentalReport>('experimental.set', { feature, enabled }),
+      aurora<ExperimentalReport>('experimental.set', { feature, enabled }),
   },
 
   /** A placa FPGA, experimental: desligada, cada método daqui responde
    * `experimental_disabled`. Tudo passa pelo servidor; a compilação é o
    * fluxo `fpga_build`. */
   fpga: {
-    boards: () => lace<Board[]>('fpga.boards'),
+    boards: () => aurora<Board[]>('fpga.boards'),
     /** O `fpga.json`; `null` se ainda não existe. */
-    config: () => lace<FpgaConfig | null>('fpga.config'),
-    setConfig: (config: FpgaConfig) => lace<void>('fpga.config_set', { config }),
+    config: () => aurora<FpgaConfig | null>('fpga.config'),
+    setConfig: (config: FpgaConfig) => aurora<void>('fpga.config_set', { config }),
     /** O topo que vai para a placa e as portas dele. */
-    top: (top?: string | null) => lace<ModuleInterface>('fpga.top', { top: top ?? null }),
-    check: () => lace<FpgaPrepared>('fpga.check'),
+    top: (top?: string | null) => aurora<ModuleInterface>('fpga.top', { top: top ?? null }),
+    check: () => aurora<FpgaPrepared>('fpga.check'),
     /** Os módulos do projeto que podem ir para a placa. */
-    modules: () => lace<string[]>('fpga.modules'),
+    modules: () => aurora<string[]>('fpga.modules'),
     /** O arquivo de gravação: pronto, desatualizado (e por quê) ou ausente. */
-    status: () => lace<BitstreamState>('fpga.status'),
+    status: () => aurora<BitstreamState>('fpga.status'),
     /** Os cabos de gravação ligados (`quartus_pgm -l`, cerca de 1 s). */
-    cables: () => lace<string[]>('fpga.cables'),
+    cables: () => aurora<string[]>('fpga.cables'),
   },
 
   toolchain: {
     info: () => call<ToolchainInfo>('toolchain_info'),
-    verify: () => lace<FileMismatch[]>('toolchain.verify'),
-    updateCheck: () => call<unknown>('lace_update_check'),
+    verify: () => aurora<FileMismatch[]>('toolchain.verify'),
+    updateCheck: () => call<unknown>('aurora_update_check'),
     install: (components: string[], onMessage: (m: JobMessage) => void) => {
       const channel = new Channel<JobMessage>();
       channel.onmessage = onMessage;
-      return call<number>('lace_install', { components, channel });
+      return call<number>('aurora_install', { components, channel });
     },
     /** `aurora update --yes --json`: só depois de o usuário confirmar. */
     update: (onMessage: (m: JobMessage) => void) => {
       const channel = new Channel<JobMessage>();
       channel.onmessage = onMessage;
-      return call<number>('lace_update', { channel });
+      return call<number>('aurora_update', { channel });
     },
   },
 

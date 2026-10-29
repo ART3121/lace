@@ -19,8 +19,8 @@ pub const INDEX_SCHEMA: u32 = 1;
 /// pedaço), para o `aurora install` baixar só o que precisa:
 /// `lace-<versão>-<plataforma>-<arquivo>`, como em
 /// `lace-0.2.0-linux-x64-c03.tar.zst`.
-pub fn release_asset(lace_version: &str, platform: &str, file: &str) -> String {
-    format!("lace-{lace_version}-{platform}-{file}")
+pub fn release_asset(aurora_version: &str, platform: &str, file: &str) -> String {
+    format!("lace-{aurora_version}-{platform}-{file}")
 }
 
 /// O índice: o que o payload instala e em que pedaços.
@@ -29,7 +29,7 @@ pub struct Index {
     /// [`INDEX_SCHEMA`].
     pub schema: u32,
     /// Versão do Lace.
-    pub lace_version: String,
+    pub aurora_version: String,
     /// Identificador do bundle de ferramentas.
     pub bundle: String,
     /// Plataforma (`linux-x64`, `darwin-arm64`).

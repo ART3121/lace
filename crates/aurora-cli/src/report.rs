@@ -7,7 +7,7 @@
 //! resultado do Core? Gere de novo:
 //!
 //! ```sh
-//! LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema
+//! AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema
 //! ```
 //!
 //! e confira o diff de `docs/schema/` antes de mandar: é a mudança que quem
@@ -586,12 +586,12 @@ enum ResultTag {
 mod tests {
     use camino::Utf8Path;
 
-    /// `docs/schema/` é o que `schemas()` gera. Com `LACE_UPDATE_SCHEMA`,
+    /// `docs/schema/` é o que `schemas()` gera. Com `AURORA_UPDATE_SCHEMA`,
     /// regrava os arquivos em vez de comparar.
     #[test]
     fn schema_files_match_the_types() {
         let dir = Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/schema");
-        let update = std::env::var_os("LACE_UPDATE_SCHEMA").is_some();
+        let update = std::env::var_os("AURORA_UPDATE_SCHEMA").is_some();
         let schemas = super::schemas();
         let mut stale = Vec::new();
         if update {
@@ -621,7 +621,7 @@ mod tests {
         assert!(
             stale.is_empty(),
             "docs/schema não confere com os tipos: {stale:?}\n\
-             gere de novo com: LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema\n\
+             gere de novo com: AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema\n\
              e confira o diff, que é a mudança que os clientes do --json vão ver"
         );
     }

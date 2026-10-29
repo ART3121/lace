@@ -5,7 +5,7 @@
 //!
 //! - Linux e macOS: `<instalação>/uninstall.sh`, gerado por este crate
 //!   (`write_uninstaller`, em [`crate::install`]). Ele apaga `toolchain/`,
-//!   `bin/lace`, o `install.json`, o atalho e a pasta, se ficar vazia.
+//!   `bin/aurora`, o `install.json`, o atalho e a pasta, se ficar vazia.
 //! - Windows: o `unins000.exe` do Inno Setup, que também tira a pasta do
 //!   `PATH`. Ele roda depois que quem chamou sai, porque o Windows não apaga
 //!   um executável em uso.
@@ -67,7 +67,7 @@ fn remove(prefix: &Utf8Path, options: &UninstallOptions) -> Result<bool> {
         .with_context(|| format!("Running {script}"))?;
     if !status.success() {
         return Err(anyhow::anyhow!(
-            "{script} failed; for a system installation (/opt/lace), run: sudo aurora uninstall"
+            "{script} failed; for a system installation (/opt/aurora), run: sudo aurora uninstall"
         )
         .into());
     }
@@ -88,7 +88,7 @@ fn remove(prefix: &Utf8Path, options: &UninstallOptions) -> Result<bool> {
     Ok(false)
 }
 
-/// O arquivo de configuração de `lace config`, que saiu na 0.2.0. Se ficou
+/// O arquivo de configuração de `aurora config`, que saiu na 0.2.0. Se ficou
 /// de uma instalação antiga em `config_dir` (a pasta `aurora` da configuração
 /// do usuário), sai também, com a pasta se ela ficar vazia.
 pub fn remove_legacy_config(config_dir: &Utf8Path) {
@@ -103,16 +103,16 @@ mod tests {
     #[test]
     fn the_legacy_config_goes_with_its_empty_folder() {
         let dir = tempfile::tempdir().unwrap();
-        let lace = Utf8PathBuf::from_path_buf(dir.path().join("lace")).unwrap();
-        std::fs::create_dir_all(&lace).unwrap();
-        std::fs::write(lace.join("config.json"), "{}").unwrap();
-        remove_legacy_config(&lace);
-        assert!(!lace.exists());
+        let aurora = Utf8PathBuf::from_path_buf(dir.path().join("aurora")).unwrap();
+        std::fs::create_dir_all(&aurora).unwrap();
+        std::fs::write(aurora.join("config.json"), "{}").unwrap();
+        remove_legacy_config(&aurora);
+        assert!(!aurora.exists());
         // Uma pasta com outras coisas fica.
-        std::fs::create_dir_all(&lace).unwrap();
-        std::fs::write(lace.join("outro.json"), "{}").unwrap();
-        remove_legacy_config(&lace);
-        assert!(lace.join("outro.json").is_file());
+        std::fs::create_dir_all(&aurora).unwrap();
+        std::fs::write(aurora.join("outro.json"), "{}").unwrap();
+        remove_legacy_config(&aurora);
+        assert!(aurora.join("outro.json").is_file());
     }
 
     #[test]

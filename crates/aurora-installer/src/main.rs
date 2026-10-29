@@ -22,11 +22,11 @@ use aurora_installer::tui::{self, App};
 #[derive(Parser, Debug)]
 #[command(
     name = "install",
-    version = aurora_installer::LACE_VERSION,
+    version = aurora_installer::AURORA_VERSION,
     after_help = "Without --yes, opens the guided installation in the terminal: a profile, or Custom \
                   to choose the components.\n\nExamples:\n  ./install\n  ./install --yes\n  \
                   ./install --yes --profile verilog\n  \
-                  ./install --yes --components yanc,icarus,verilator\n  sudo ./install --yes --prefix /opt/lace"
+                  ./install --yes --components yanc,icarus,verilator\n  sudo ./install --yes --prefix /opt/aurora"
 )]
 struct Args {
     /// Install without asking: the default profile, the one in --profile, or the components in --components
@@ -41,11 +41,11 @@ struct Args {
     #[arg(long, value_delimiter = ',', value_name = "LIST")]
     components: Option<Vec<String>>,
 
-    /// Installation folder [default: ~/.local/share/lace; as root, /opt/lace]
+    /// Installation folder [default: ~/.local/share/aurora; as root, /opt/aurora]
     #[arg(long, value_name = "DIR")]
     prefix: Option<PathBuf>,
 
-    /// Where to create the `aurora` link [default: ~/.local/bin/lace; as root, /usr/local/bin/lace]
+    /// Where to create the `aurora` link [default: ~/.local/bin/aurora; as root, /usr/local/bin/aurora]
     #[arg(long, value_name = "FILE", conflicts_with = "no_link")]
     link: Option<PathBuf>,
 
@@ -176,7 +176,7 @@ fn has_studio(components: &[String]) -> bool {
 fn list(index: &Index) {
     println!(
         "Lace {} ({}), bundle {}\n",
-        index.lace_version, index.platform, index.bundle
+        index.aurora_version, index.platform, index.bundle
     );
     println!("Profiles (--profile):\n");
     let default = plan::default_profile(index);
@@ -235,7 +235,7 @@ fn unattended(
 ) -> anyhow::Result<()> {
     println!(
         "Installing Lace {} in {} with: {}",
-        index.lace_version,
+        index.aurora_version,
         target.prefix.display(),
         if selection.is_empty() {
             "no components".to_owned()
@@ -251,7 +251,7 @@ fn unattended(
             ..
         } => {
             let what = if components.is_empty() {
-                "lace".to_owned()
+                "aurora".to_owned()
             } else {
                 components.join(", ")
             };

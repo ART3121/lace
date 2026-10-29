@@ -130,7 +130,7 @@ compilado (`aurora build`).
 
 ## O topo da placa
 
-O Lace gera um módulo, `lace_board_top`, que tem como portas só os sinais
+O Lace gera um módulo, `aurora_board_top`, que tem como portas só os sinais
 da placa usados e instancia o topo do projeto com as ligações. É ele que
 vai para o Quartus, com um pino por bit de cada sinal. `aurora fpga check --show-top`
 mostra o Verilog. Ele é gerado de novo a cada compilação: não edite.
@@ -143,7 +143,7 @@ interface. Ele não vai no bundle (é proprietário e grande): é a segunda
 exceção à regra do bundle, depois do compilador do Verilator. O Lace o
 procura nesta ordem:
 
-1. `--quartus <DIR>` ou `LACE_QUARTUS`: a pasta da versão
+1. `--quartus <DIR>` ou `AURORA_QUARTUS`: a pasta da versão
    (`C:\intelFPGA_lite\22.1std`), a `quartus` dentro dela ou a dos
    programas. Pasta declarada sem o `quartus_sh` é erro.
 2. `QUARTUS_ROOTDIR`, que o instalador da Intel cria.
@@ -177,16 +177,16 @@ aurora fpga build
 
 ```text
 <raiz>/.aurora8/fpga/<placa>/
-  lace_board_top.v      o topo da placa
-  lace_board_top.qsf    a FPGA, os fontes e os pinos
-  lace_board_top.sdc    os clocks da placa
+  aurora_board_top.v      o topo da placa
+  aurora_board_top.qsf    a FPGA, os fontes e os pinos
+  aurora_board_top.sdc    os clocks da placa
   output_files/         o .sof, o .rbf, o .svf e os relatórios do Quartus
   db/, incremental_db/  o banco de dados do Quartus
 
-synthesize  quartus_map --read_settings_files=on --write_settings_files=off lace_board_top -c lace_board_top
-fit         quartus_fit --read_settings_files=off --write_settings_files=off lace_board_top -c lace_board_top
-bitstream   quartus_asm --read_settings_files=off --write_settings_files=off lace_board_top -c lace_board_top
-timing      quartus_sta lace_board_top -c lace_board_top
+synthesize  quartus_map --read_settings_files=on --write_settings_files=off aurora_board_top -c aurora_board_top
+fit         quartus_fit --read_settings_files=off --write_settings_files=off aurora_board_top -c aurora_board_top
+bitstream   quartus_asm --read_settings_files=off --write_settings_files=off aurora_board_top -c aurora_board_top
+timing      quartus_sta aurora_board_top -c aurora_board_top
 ```
 
 O `.qsf` traz a família e o modelo da FPGA, os fontes (a biblioteca SAPHO,
@@ -226,7 +226,7 @@ Saída real de `aurora fpga build` no projeto `bcd_prot`, com o Quartus Prime
 ```
   quartus: warning: 1 pins must meet Intel FPGA requirements for 3.3-, 3.0-, and 2.5-V interfaces. For more information, refer to AN 447: Interfacing Cyclone IV E Devices with 3.3/3.0/2.5-V LVTTL/LVCMOS I/O Systems. [169177]
   Generated:
-    bitstream (.sof)    .aurora8\fpga\de2-115\output_files\lace_board_top.sof
+    bitstream (.sof)    .aurora8\fpga\de2-115\output_files\aurora_board_top.sof
   Resources:
     Total logic elements                677 / 114480 (<1%)
     Total registers                     39
@@ -269,7 +269,7 @@ Grava o `.sof` da última `aurora fpga build` pelo Quartus Programmer, na
 pasta da placa:
 
 ```
-quartus_pgm -c "USB-Blaster [USB-0]" -m jtag -o "p;output_files/lace_board_top.sof@1"
+quartus_pgm -c "USB-Blaster [USB-0]" -m jtag -o "p;output_files/aurora_board_top.sof@1"
 ```
 
 O `@1` é a posição da FPGA na cadeia JTAG da placa: 1 na DE2-115 e na C5G

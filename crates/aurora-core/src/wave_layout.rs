@@ -1027,7 +1027,7 @@ impl Tables {
 /// O nome de um tradutor, só com letras, dígitos e `_` (vira nome de
 /// arquivo).
 fn mapping_name(kind: &str, processor: &str) -> String {
-    format!("lace_{kind}_{processor}")
+    format!("aurora_{kind}_{processor}")
         .chars()
         .map(|c| {
             if c.is_ascii_alphanumeric() || c == '_' {
@@ -1099,7 +1099,7 @@ fn is_complex(name: &str) -> bool {
 /// `0b<bits> <re> <im>i`. Um tradutor só, sem largura, serve a todos: a
 /// tradução só depende dos bits.
 fn complex_mapping(values: &BTreeSet<String>) -> Option<MappingTranslator> {
-    let name = "lace_complex".to_owned();
+    let name = "aurora_complex".to_owned();
     let mut content = format!("Name = {name}\n");
     let mut any = false;
     for bits in values {
@@ -2036,8 +2036,8 @@ $upscope $end $upscope $end $enddefinitions $end";
         let table =
             "-1 INTERNAL\n-2 void main();\n-3 END\n1 #PRNAME soma\n2 \n3     int x;  \nlixo\n";
         assert_eq!(
-            convert_table("lace_src_soma", 20, table),
-            "Name = lace_src_soma\nBits = 20\n0xFFFFF INTERNAL\n0xFFFFE void main();\n0xFFFFD END\n1 #PRNAME soma\n3     int x;\n"
+            convert_table("aurora_src_soma", 20, table),
+            "Name = aurora_src_soma\nBits = 20\n0xFFFFF INTERNAL\n0xFFFFE void main();\n0xFFFFD END\n1 #PRNAME soma\n3     int x;\n"
         );
         // Sem largura, os negativos não têm como virar bits.
         assert_eq!(
@@ -2092,25 +2092,25 @@ $upscope $end $upscope $end $enddefinitions $end";
             }]
         );
         let names: Vec<&str> = layout.mappings.iter().map(|m| m.name.as_str()).collect();
-        assert_eq!(names, ["lace_asm_soma", "lace_src_soma", "lace_complex"]);
+        assert_eq!(names, ["aurora_asm_soma", "aurora_src_soma", "aurora_complex"]);
         assert_eq!(
             layout.mappings[0].content,
-            "Name = lace_asm_soma\nBits = 16\n0 NOP\n1 LOD 5\n"
+            "Name = aurora_asm_soma\nBits = 16\n0 NOP\n1 LOD 5\n"
         );
         assert_eq!(
             layout.mappings[2].content,
-            format!("Name = lace_complex\n0b{COMPLEX} 6.000 -0.500i\n")
+            format!("Name = aurora_complex\n0b{COMPLEX} 6.000 -0.500i\n")
         );
 
         let state = &layout.state;
         for expected in [
             "name: \"proc (soma)\"",
             "manual_name: Some(\"Assembly (soma)\")",
-            "format: Some(\"lace_asm_soma\")",
+            "format: Some(\"aurora_asm_soma\")",
             "manual_name: Some(\"C± (soma)\")",
             "manual_name: Some(\"int soma in main()\")",
             "manual_name: Some(\"float ganho in global\")",
-            "format: Some(\"lace_complex\")",
+            "format: Some(\"aurora_complex\")",
             "name: \"int x in main()\"",
             "manual_name: Some(\"Data Stack Pointer\")",
             "annotation_groups: []",
@@ -2289,9 +2289,9 @@ $upscope $end $upscope $end $enddefinitions $end";
             .join("surfer")
             .join(layout_dir_name(&wave))
             .join(MAPPINGS_DIR)
-            .join("lace_asm_velho");
+            .join("aurora_asm_velho");
         std::fs::create_dir_all(old.parent().unwrap()).unwrap();
-        std::fs::write(&old, "Name = lace_asm_velho\n").unwrap();
+        std::fs::write(&old, "Name = aurora_asm_velho\n").unwrap();
 
         let prepared = prepare_wave_layout(&wave).unwrap().unwrap();
         let name = layout_dir_name(&wave);
@@ -2310,7 +2310,7 @@ $upscope $end $upscope $end $enddefinitions $end";
             .map(|e| e.unwrap().file_name().into_string().unwrap())
             .collect();
         written.sort();
-        assert_eq!(written, ["lace_asm_soma", "lace_complex", "lace_src_soma"]);
+        assert_eq!(written, ["aurora_asm_soma", "aurora_complex", "aurora_src_soma"]);
         let options = crate::ViewerOptions::with_layout(&prepared);
         assert_eq!(options.working_dir.as_deref(), Some(prepared.dir.as_path()));
     }

@@ -22,8 +22,8 @@
 //! atualização por componentes falha, quem atualiza é o instalador inteiro
 //! da versão nova, baixado da release e conferido pelo `SHA256SUMS` dela
 //! ([`fallback_installer`]): no Linux e no macOS, o `install` dele, que
-//! troca o `bin/lace` e o `toolchain/` inteiro; no Windows, o assistente de
-//! instalação, que troca o `lace.exe` e por isso roda depois que quem chamou
+//! troca o `bin/aurora` e o `toolchain/` inteiro; no Windows, o assistente de
+//! instalação, que troca o `aurora.exe` e por isso roda depois que quem chamou
 //! sai.
 
 use std::collections::BTreeMap;
@@ -58,7 +58,7 @@ macro_rules! fail {
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct UpdateReport {
     /// O Lace: este e o da última release.
-    pub lace: AuroraVersions,
+    pub aurora: AuroraVersions,
     /// O bundle de ferramentas: o instalado e o da última release.
     pub bundle: BundleVersions,
     /// Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
@@ -202,7 +202,7 @@ pub fn package_of(name: &str, platform: &str) -> Option<&'static str> {
         component::YANC => Some(package::YANC),
         component::SURFER_AURORA => Some(package::SURFER_AURORA),
         component::STUDIO => Some(package::STUDIO),
-        component::LACE_LEARN => Some(package::LACE_LEARN),
+        component::AURORA_LEARN => Some(package::AURORA_LEARN),
         component::RTL_VIEWER => Some(package::RTL_VIEWER),
         // O cocotb do Windows sai do bloco MSYS2, com o Icarus e o Verilator.
         component::ICARUS | component::VERILATOR | component::COCOTB if windows => {
@@ -244,7 +244,7 @@ pub fn check(
             .iter()
             .map(|&p| (p, scope.spawn(move || sources.upstream(p, cancel))))
             .collect();
-        let latest = sources.latest_lace(cancel);
+        let latest = sources.latest_aurora(cancel);
         let upstream: BTreeMap<&str, Option<String>> = handles
             .into_iter()
             .map(|(p, handle)| {
@@ -283,7 +283,7 @@ pub fn check(
         .inspect_err(|error| tracing::info!("No bundle for release v{latest}: {error:#}"))
         .ok();
 
-    let lace_newer = is_newer(&latest, installed);
+    let aurora_newer = is_newer(&latest, installed);
     let components = components
         .iter()
         .zip(packages)
@@ -301,7 +301,7 @@ pub fn check(
                 is_newer(u, &c.version)
                     && match in_release.as_deref() {
                         Some(r) => is_newer(u, r),
-                        None => !lace_newer,
+                        None => !aurora_newer,
                     }
             });
             ComponentVersions {
@@ -323,9 +323,9 @@ pub fn check(
         _ => false,
     };
     Ok(UpdateReport {
-        lace: AuroraVersions {
+        aurora: AuroraVersions {
             installed: installed.to_owned(),
-            newer: lace_newer,
+            newer: aurora_newer,
             latest,
         },
         bundle: BundleVersions {
@@ -401,7 +401,7 @@ impl std::fmt::Debug for Prepared {
 }
 
 fn label_of(index: &Index, name: &str) -> String {
-    if name == super::LACE {
+    if name == super::AURORA {
         return "Lace".to_owned();
     }
     index
@@ -452,10 +452,10 @@ pub fn prepare(
     };
     let index = Index::parse(&get(payload::INDEX_FILE)?)
         .with_context(|| format!("Invalid index in release v{version}"))?;
-    if index.lace_version != version {
+    if index.aurora_version != version {
         fail!(
             "The index of release v{version} is for Lace {}",
-            index.lace_version
+            index.aurora_version
         );
     }
     let new = match get(files::FILES_FILE) {
@@ -519,18 +519,18 @@ pub fn prepare_from_disk(
              update it with the installer, or with aurora update --full"
         )
     })?;
-    if is_newer(this_version, &index.lace_version) {
+    if is_newer(this_version, &index.aurora_version) {
         fail!(
             "The installer in {path} is Lace {}, older than this Lace ({this_version})",
-            index.lace_version
+            index.aurora_version
         );
     }
     let plan = super::plan(prefix.as_std_path(), &installed, &index, &new)?;
     let report = UpdateReport {
-        lace: AuroraVersions {
+        aurora: AuroraVersions {
             installed: this_version.to_owned(),
-            latest: index.lace_version.clone(),
-            newer: is_newer(&index.lace_version, this_version),
+            latest: index.aurora_version.clone(),
+            newer: is_newer(&index.aurora_version, this_version),
         },
         bundle: BundleVersions {
             installed: manifest.map(|m| m.bundle.clone()),
@@ -855,7 +855,7 @@ fn wizard_components(
     work: &Utf8Path,
     cancel: &CancelToken,
 ) -> Result<Vec<String>> {
-    // Sem a lista (o bundle não abriu), `/COMPONENTS=lace` desmarcaria
+    // Sem a lista (o bundle não abriu), `/COMPONENTS=aurora` desmarcaria
     // todas as ferramentas: melhor deixar a seleção que o assistente lembra.
     if installed.is_empty() {
         fail!("the installed components are unknown");
@@ -879,7 +879,7 @@ pub fn selected_components(index: &Index, installed: &[String]) -> Result<Vec<St
         .map(|c| (c.name.as_str(), c.requires.as_slice()))
         .collect();
     let names = pack::inno_component_names(&pairs)?;
-    let mut selected = vec!["lace".to_owned()];
+    let mut selected = vec!["aurora".to_owned()];
     selected.extend(
         installed
             .iter()
@@ -954,8 +954,8 @@ pub trait Hooks {
     }
     /// Pode rodar o instalador inteiro? Perguntado também quando o plano já
     /// tinha sido aceito e falhou: é outra operação, maior.
-    fn confirm_installer(&mut self, lace: &AuroraVersions, prefix: &Utf8Path) -> Result<()> {
-        let _ = (lace, prefix);
+    fn confirm_installer(&mut self, aurora: &AuroraVersions, prefix: &Utf8Path) -> Result<()> {
+        let _ = (aurora, prefix);
         Ok(())
     }
     /// A atualização por componentes terminou.
@@ -1056,7 +1056,7 @@ pub fn run(
     let mut report = check(&*sources, this_version, manifest, cancel)?;
     report.prefix = prefix.as_ref().ok().cloned();
     hooks.report(&report);
-    if options.check || !report.lace.newer {
+    if options.check || !report.aurora.newer {
         report.action = if options.check {
             UpdateAction::Checked
         } else {
@@ -1068,7 +1068,7 @@ pub fn run(
 
     let prefix = prefix?;
     super::clean_leftovers(prefix.as_std_path());
-    let version = report.lace.latest.clone();
+    let version = report.aurora.latest.clone();
     if !options.full {
         let prepared = match prepare(&sources, &remote.0, &version, &prefix, cancel) {
             Ok(prepared) => prepared,
@@ -1107,7 +1107,7 @@ pub fn run(
 
     // O instalador inteiro pergunta antes, também quando a pessoa já tinha
     // aceitado a atualização por partes, que falhou: é outra operação, maior.
-    hooks.confirm_installer(&report.lace, &prefix)?;
+    hooks.confirm_installer(&report.aurora, &prefix)?;
     if cancel.is_cancelled() {
         return Err(Error::Cancelled);
     }
@@ -1181,7 +1181,7 @@ mod tests {
     /// Fontes sem rede. `None` faz a consulta falhar; `asked` guarda os
     /// pacotes consultados upstream.
     pub(crate) struct Fake {
-        lace: Option<&'static str>,
+        aurora: Option<&'static str>,
         versions: Option<&'static str>,
         upstream: &'static [(&'static str, &'static str)],
         asked: Mutex<Vec<String>>,
@@ -1189,12 +1189,12 @@ mod tests {
 
     impl Fake {
         pub(crate) fn new(
-            lace: Option<&'static str>,
+            aurora: Option<&'static str>,
             versions: Option<&'static str>,
             upstream: &'static [(&'static str, &'static str)],
         ) -> Fake {
             Fake {
-                lace,
+                aurora,
                 versions,
                 upstream,
                 asked: Mutex::new(Vec::new()),
@@ -1209,14 +1209,14 @@ mod tests {
     }
 
     impl Sources for Fake {
-        fn latest_lace(&self, _cancel: &CancelToken) -> Result<String> {
-            self.lace
+        fn latest_aurora(&self, _cancel: &CancelToken) -> Result<String> {
+            self.aurora
                 .map(str::to_owned)
                 .ok_or_else(|| Error::network("x", "sem rede"))
         }
 
         fn release_versions(&self, version: &str, _cancel: &CancelToken) -> Result<String> {
-            assert_eq!(Some(version), self.lace, "o bundle é o da última release");
+            assert_eq!(Some(version), self.aurora, "o bundle é o da última release");
             self.versions
                 .map(str::to_owned)
                 .ok_or_else(|| Error::network("x", "sem rede"))
@@ -1338,9 +1338,9 @@ mod tests {
         );
         let report = check(&sources, "0.1.0", Some(&installed), &never()).unwrap();
 
-        assert_eq!(report.lace.installed, "0.1.0");
-        assert_eq!(report.lace.latest, "0.2.0");
-        assert!(report.lace.newer);
+        assert_eq!(report.aurora.installed, "0.1.0");
+        assert_eq!(report.aurora.latest, "0.2.0");
+        assert!(report.aurora.newer);
         assert_eq!(report.bundle.installed.as_deref(), Some("2026.09.29"));
         assert_eq!(report.bundle.latest.as_deref(), Some("2026.10.15"));
         assert!(report.bundle.newer);
@@ -1409,7 +1409,7 @@ mod tests {
             ],
         );
         let report = check(&sources, "0.1.0", Some(&installed), &never()).unwrap();
-        assert!(!report.lace.newer);
+        assert!(!report.aurora.newer);
         for c in &report.components {
             assert!(!c.release_newer, "{}", c.name);
             assert!(!c.upstream_newer, "{}", c.name);
@@ -1476,7 +1476,7 @@ mod tests {
         // trazer o YANC novo.
         let sources = Fake::new(Some("0.2.0"), None, &[("yanc", "v5.7")]);
         let newer = check(&sources, "0.1.0", Some(&installed), &never()).unwrap();
-        assert!(newer.lace.newer);
+        assert!(newer.aurora.newer);
         assert!(!row(&newer, "yanc").upstream_newer);
 
         // `null` no JSON, não ausente.
@@ -1490,7 +1490,7 @@ mod tests {
     fn without_a_bundle_only_the_lace_is_compared() {
         let sources = Fake::new(Some("0.2.0"), Some(VERSIONS), &[]);
         let report = check(&sources, "0.1.0", None, &never()).unwrap();
-        assert!(report.lace.newer);
+        assert!(report.aurora.newer);
         assert_eq!(report.bundle.installed, None);
         assert_eq!(report.bundle.latest.as_deref(), Some("2026.10.15"));
         assert!(!report.bundle.newer);
@@ -1550,7 +1550,7 @@ mod tests {
         };
         let index = Index {
             schema: payload::INDEX_SCHEMA,
-            lace_version: "0.3.0".into(),
+            aurora_version: "0.3.0".into(),
             bundle: "2026.10.01".into(),
             platform: "windows-x64".into(),
             profiles: Vec::new(),
@@ -1581,7 +1581,7 @@ mod tests {
         assert_eq!(
             selected_components(&index, &installed).unwrap(),
             [
-                "lace",
+                "aurora",
                 "yanc",
                 "icarus",
                 "verilator",

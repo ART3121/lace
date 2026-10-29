@@ -75,7 +75,7 @@ const RULE: &str =
 /// ```no_run
 /// use aurora_core::{history, Control, Project, SimulationOptions, Simulator, Toolchain};
 ///
-/// let toolchain = Toolchain::open("/opt/lace/toolchain")?;
+/// let toolchain = Toolchain::open("/opt/aurora/toolchain")?;
 /// let project = Project::open("/home/eu/projetos/soma")?;
 /// let started = std::time::SystemTime::now();
 /// let options = SimulationOptions::new(Simulator::Icarus);
@@ -269,8 +269,10 @@ pub struct RunMetadata {
     pub status: Status,
     /// Quanto levou, do começo ao fim, em milissegundos.
     pub duration_ms: u64,
-    /// A versão do Lace que gravou.
-    pub lace_version: String,
+    /// A versão que gravou. `lace_version` nos relatórios gravados pelo
+    /// Lace, que a `.lace` levada para a `.aurora8` traz.
+    #[serde(alias = "lace_version")]
+    pub aurora_version: String,
     /// O que identifica o projeto: um hash da raiz dele. Relatórios de
     /// projetos diferentes não se comparam.
     pub project: String,
@@ -1156,7 +1158,7 @@ fn compare_records(
             _ => {}
         }
     }
-    warn_if(b.lace_version != c.lace_version, "Lace versions differ");
+    warn_if(b.aurora_version != c.aurora_version, "Lace versions differ");
 
     Ok(RunComparison {
         current_id: current.id.clone(),
@@ -1314,7 +1316,7 @@ fn metadata(
         duration_ms: finished
             .duration_since(operation.started)
             .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX)),
-        lace_version: env!("CARGO_PKG_VERSION").to_owned(),
+        aurora_version: env!("CARGO_PKG_VERSION").to_owned(),
         project: Fnv::new().text(project.root().as_str()).hex(),
         project_name: project.name().to_owned(),
         bundle: manifest.bundle.clone(),
@@ -1552,7 +1554,7 @@ fn render(
     let phases = operation.phases();
     let m = &record.metadata;
     let mut out = String::new();
-    let _ = writeln!(out, "{RULE}\nLACE OPERATION REPORT\n{RULE}");
+    let _ = writeln!(out, "{RULE}\nAURORA OPERATION REPORT\n{RULE}");
 
     section(&mut out, "OVERVIEW");
     field(&mut out, "Status", status_word(m.status));
@@ -1564,7 +1566,7 @@ fn render(
         format!("{} ({} ms)", duration(m.duration_ms), m.duration_ms)
     };
     field(&mut out, "Total wall time", &total);
-    field(&mut out, "Lace version", &m.lace_version);
+    field(&mut out, "Lace version", &m.aurora_version);
     field(&mut out, "Started (UTC)", &utc_seconds(operation.started));
     field(&mut out, "Finished (UTC)", &utc_seconds(finished));
 
@@ -2015,7 +2017,7 @@ mod tests {
             command: "aurora synth".into(),
             status: Status::Succeeded,
             duration_ms: 1,
-            lace_version: "0.2.0".into(),
+            aurora_version: "0.2.0".into(),
             project: project.into(),
             project_name: "soma".into(),
             bundle: "2026.09.29".into(),

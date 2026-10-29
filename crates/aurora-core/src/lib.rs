@@ -82,7 +82,7 @@
 //! ([`StepReport`]: comando exato, CWD, ambiente, stdout, stderr, duração) e
 //! `diagnostics`; os que produzem arquivos têm `artifacts` ([`Artifact`], com
 //! `fresh` dizendo se o arquivo foi escrito agora). Todos implementam
-//! `Serialize`: o JSON da CLI (`lace ... --json`) é exatamente esse.
+//! `Serialize`: o JSON da CLI (`aurora ... --json`) é exatamente esse.
 //!
 //! # Disco
 //!

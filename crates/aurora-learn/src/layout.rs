@@ -31,7 +31,7 @@ pub fn layout_of(waveform: &Utf8Path) -> Option<Utf8PathBuf> {
 }
 
 /// O pedido de onda com o layout do exercício quando o arquivo é a onda de
-/// um exercício ([`layout_of`]) e o pedido quer o layout gerado: o `lace
+/// um exercício ([`layout_of`]) e o pedido quer o layout gerado: o `aurora
 /// wave <arquivo>` e o `wave.open` do protocolo abrem a onda da correção
 /// arrumada, como o `aurora learn wave`. Os outros pedidos ficam como vieram.
 pub fn with_exercise_layout(mut request: WaveRequest) -> WaveRequest {

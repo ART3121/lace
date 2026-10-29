@@ -26,7 +26,7 @@ aurora-core          a regra: projeto, fluxos, ferramentas e erros
   aurora-installer   instalar, atualizar e desinstalar, sobre o core
   aurora-agent       o assistente de IA, sobre o core (experimental)
 aurora-protocol      o contrato: pedidos, respostas e schemas, sobre o core, o aurora-learn e o instalador
-aurora-cli           o binário lace: os comandos de texto, o aurora serve (que fala também MCP), o aurora mcp e o aurora chat
+aurora-cli           o binário aurora: os comandos de texto, o aurora serve (que fala também MCP), o aurora mcp e o aurora chat
 studio/src-tauri   o backend da AURORA IDE: cliente do aurora serve, mais o que é só da IDE
 studio/src         a interface do Studio, em TypeScript
 editors/vscode     a extensão do VS Code, em TypeScript, pelo aurora serve ou pela CLI
@@ -82,7 +82,7 @@ mas quem escreve um programa que fala com o Lace usa o protocolo.
 | Variante de `Request` | o método em CamelCase | `HistoryPlanCleanup` |
 | Função do core | `verbo_objeto`, no módulo do domínio | `history::compare_reports` |
 | Ferramenta do `aurora mcp` | o método com `_` no lugar do ponto | `history_compare` |
-| Função no frontend do Studio | `api.<domínio>.<verbo>`, em `studio/src/ipc/api.ts`, que pede o método pelo `lace_call` | `api.history.compare` |
+| Função no frontend do Studio | `api.<domínio>.<verbo>`, em `studio/src/ipc/api.ts`, que pede o método pelo `aurora_call` | `api.history.compare` |
 | Código de erro | `snake_case`, em inglês, e nunca muda depois de publicado | `experimental_disabled` |
 
 Os domínios de hoje são `project`, `processor`, `flow`, `wave`,
@@ -151,7 +151,7 @@ contrato lê esse diff e confere, com a tabela acima, se ela é compatível.
 Um cliente descobre o que o Lace sabe fazer pela lista de métodos que o
 `initialize` devolve, não comparando versões. A extensão do VS Code ainda
 compara versões quando usa a CLI direto, pela tabela `FEATURES` de
-`editors/vscode/src/lace/version.ts`. Uma função nova que depende da CLI
+`editors/vscode/src/aurora/version.ts`. Uma função nova que depende da CLI
 ganha uma linha lá.
 
 ## 6. Passo a passo de um método novo
@@ -206,7 +206,7 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    `docs/schema/` e do `docs/PROTOCOL.md`, que sai do mesmo comando:
 
    ```bash
-   LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli --bin lace schema
+   AURORA_UPDATE_SCHEMA=1 cargo test -p aurora-cli --bin aurora schema
    ```
 
    ```bash
@@ -217,15 +217,15 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    - CLI: a receita "Acrescentar um comando ou uma opção à CLI" do
      CONTRIBUTING.md; o comando chama a mesma função do core que o braço.
    - Studio: a receita "Uma operação do Lace na interface" do
-     DEVELOPMENT.md. A função do `api.ts` pede o método pelo `lace_call`, e
+     DEVELOPMENT.md. A função do `api.ts` pede o método pelo `aurora_call`, e
      o backend não ganha comando.
    - Extensão do VS Code: o método na interface `LaceClient`
-     (`editors/vscode/src/lace/client.ts`), em `serveClient.ts` e, se houver
+     (`editors/vscode/src/aurora/client.ts`), em `serveClient.ts` e, se houver
      comando de CLI equivalente, em `cliClient.ts`.
 8. **Documentação.** A função em [API.md](API.md); o método na lista do
    `aurora serve` em [CLI.md](CLI.md) (a referência dele, em
    [PROTOCOL.md](PROTOCOL.md), saiu no passo 6); a função do Studio na
-   tabela do `lace_call` em [IPC.md](../studio/docs/IPC.md), se o Studio a
+   tabela do `aurora_call` em [IPC.md](../studio/docs/IPC.md), se o Studio a
    usa; uma linha no `CHANGELOG.md`, e no `studio/CHANGELOG.md` se o Studio
    mudou.
 
@@ -317,7 +317,7 @@ Cada fase vale sozinha e pode parar ali.
    despacho é um só, o de `crates/aurora-cli/src/serve.rs`, e o `aurora serve`
    e o `aurora mcp` são a mesma porta (o primeiro pedido diz se a sessão é do
    protocolo do Lace ou MCP). No Studio, os comandos que repetiam o
-   despacho deram lugar ao `lace_call`; ficaram próprios os comandos que
+   despacho deram lugar ao `aurora_call`; ficaram próprios os comandos que
    são do Studio: as operações longas com canal, os arquivos, o terminal, o
    vigia de arquivos, as preferências e a janela. A CLI chama direto as
    mesmas funções do core que o despacho chama; as operações de mais de um
@@ -353,7 +353,7 @@ Depois da fase 3, um método novo custa isto:
 | `METHODS`, `is_read_only`, `is_installation` | saem de `methods!` | saem do registro |
 | Braço no despacho | no `aurora serve`, exigido pelo compilador | no `aurora serve`, exigido pelo compilador |
 | Linha no `aurora mcp` | a marcação em `methods!` e o nome em `TOOLS`, conferidos por teste | sai do registro |
-| Comando no Studio | nenhum, pelo `lace_call` (desde a fase 2) | nenhum |
+| Comando no Studio | nenhum, pelo `aurora_call` (desde a fase 2) | nenhum |
 | Tipos em TypeScript | gerados | gerados |
 | Documentação e CHANGELOG | sim | sim |
 

@@ -563,7 +563,7 @@ pub fn error_info(error: &LearnError) -> (&'static str, Option<String>) {
     let hint = match error {
         LearnError::ComponentMissing => Some(format!(
             "Install it with: aurora install {}",
-            aurora_core::component::LACE_LEARN
+            aurora_core::component::AURORA_LEARN
         )),
         LearnError::NoWorkspace(_) => {
             Some("Create one with: aurora learn init, or point to it with -C <folder>".into())

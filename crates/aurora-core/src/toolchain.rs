@@ -7,7 +7,7 @@
 //!
 //! ```text
 //! <instalação>/
-//!   bin/lace[.exe]
+//!   bin/aurora[.exe]
 //!   toolchain/                 o bundle
 //!     bundle.json              cabeçalho: formato, versão do bundle, plataforma
 //!     components/<nome>.json   um por componente instalado: versão, origem, hashes
@@ -105,7 +105,7 @@ pub mod component {
     /// As trilhas de exercícios do `aurora learn` (`aurora-learn/` no
     /// repositório). Só dados: o código que as corrige está no Lace e no
     /// Studio, no crate `aurora-learn`.
-    pub const LACE_LEARN: &str = "aurora-learn";
+    pub const AURORA_LEARN: &str = "aurora-learn";
     /// O RTL viewer fora do Studio (`packages/rtl-viewer/` no repositório):
     /// o modelo do HTML autocontido que o `aurora synth --open` preenche com
     /// o netlist ([`crate::rtl_viewer`]). Só dados.
@@ -122,7 +122,7 @@ pub mod component {
         SURFER_AURORA,
         OPENFPGALOADER,
         STUDIO,
-        LACE_LEARN,
+        AURORA_LEARN,
         RTL_VIEWER,
     ];
 
@@ -656,7 +656,7 @@ impl Toolchain {
     /// [`AuroraError::BundleNotFound`] se nenhum dos dois tiver um
     /// `bundle.json`; os de [`Toolchain::open`] se o achado for inválido.
     pub fn locate(executable: &Utf8Path) -> Result<Self> {
-        // O executável pode ser um symlink (`~/.local/bin/lace` apontando
+        // O executável pode ser um symlink (`~/.local/bin/aurora` apontando
         // para a instalação): o bundle fica ao lado do arquivo de verdade.
         let executable = paths::canonicalize(executable).unwrap_or_else(|_| executable.to_owned());
         let dir = executable.parent().unwrap_or(Utf8Path::new("."));
@@ -1548,22 +1548,22 @@ mod tests {
         });
         std::fs::write(toolchain_dir.join(MANIFEST_FILE), manifest.to_string()).unwrap();
 
-        let tc = Toolchain::locate(&install.join("bin").join("lace")).unwrap();
+        let tc = Toolchain::locate(&install.join("bin").join("aurora")).unwrap();
         assert_eq!(tc.root(), toolchain_dir);
 
-        // Por um symlink em outro diretório (`~/.local/bin/lace`).
+        // Por um symlink em outro diretório (`~/.local/bin/aurora`).
         #[cfg(unix)]
         {
-            let exe = install.join("bin/lace");
+            let exe = install.join("bin/aurora");
             std::fs::write(&exe, "").unwrap();
             let links = install.join("links");
             std::fs::create_dir_all(&links).unwrap();
-            std::os::unix::fs::symlink(&exe, links.join("lace")).unwrap();
-            let tc = Toolchain::locate(&links.join("lace")).unwrap();
+            std::os::unix::fs::symlink(&exe, links.join("aurora")).unwrap();
+            let tc = Toolchain::locate(&links.join("aurora")).unwrap();
             assert_eq!(tc.root(), toolchain_dir);
         }
         assert!(matches!(
-            Toolchain::locate(Utf8Path::new("/nao/existe/bin/lace")),
+            Toolchain::locate(Utf8Path::new("/nao/existe/bin/aurora")),
             Err(AuroraError::BundleNotFound { .. })
         ));
     }

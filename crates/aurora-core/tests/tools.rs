@@ -1,5 +1,5 @@
 //! Simulação, checagem, síntese, esquemático e visualizador, com as
-//! ferramentas do bundle. Precisam de `LACE_TEST_BUNDLE` com um bundle
+//! ferramentas do bundle. Precisam de `AURORA_TEST_BUNDLE` com um bundle
 //! completo (ver `common/mod.rs`).
 
 mod common;
@@ -65,7 +65,7 @@ fn icarus_simulates_both_languages() {
         assert!(found[0].assembly && found[0].source, "{found:#?}");
         assert!(found[0].variables > 0, "{found:#?}");
         let asm = &layout.mappings[0];
-        assert_eq!(asm.name, format!("lace_asm_{name}"));
+        assert_eq!(asm.name, format!("aurora_asm_{name}"));
         assert!(asm.content.contains("\n0 NOP"), "{}", asm.content);
         // O `$finish called` do Icarus é informação, não aviso.
         assert!(
@@ -261,7 +261,7 @@ fn the_layout_translates_complexes_from_an_fst_wave() {
     let complex = layout
         .mappings
         .iter()
-        .find(|m| m.name == "lace_complex")
+        .find(|m| m.name == "aurora_complex")
         .expect("the complex translator");
     assert!(
         complex.content.contains("1.500 -2.000i"),
@@ -606,11 +606,11 @@ fn synthesis_error_is_reported() {
     assert_eq!(error.line, Some(2));
 }
 
-/// Abre uma janela de verdade: só roda com `LACE_TEST_GUI=1`.
+/// Abre uma janela de verdade: só roda com `AURORA_TEST_GUI=1`.
 #[test]
 fn surfer_opens_and_closes() {
-    if std::env::var_os("LACE_TEST_GUI").is_none() {
-        eprintln!("PULADO: defina LACE_TEST_GUI=1 para abrir o Surfer");
+    if std::env::var_os("AURORA_TEST_GUI").is_none() {
+        eprintln!("PULADO: defina AURORA_TEST_GUI=1 para abrir o Surfer");
         return;
     }
     let Some(toolchain) = common::toolchain_with(&[Tool::Surfer, Tool::Iverilog, Tool::Vvp]) else {

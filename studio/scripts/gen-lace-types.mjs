@@ -3,7 +3,7 @@
 // Assim a interface usa o mesmo contrato da CLI.
 //
 // Uso: npm run gen:types            (o Lace deste repositório, em ..)
-//      LACE_REPO=/outro/lace npm run gen:types
+//      AURORA_REPO=/outro/lace npm run gen:types
 //
 // Rode de novo sempre que o Lace mudar um tipo público e confira o diff.
 
@@ -11,7 +11,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { compile } from 'json-schema-to-typescript';
 
-const repo = resolve(process.env.LACE_REPO ?? join(import.meta.dirname, '..', '..'));
+const repo = resolve(process.env.AURORA_REPO ?? join(import.meta.dirname, '..', '..'));
 const dir = join(repo, 'docs', 'schema');
 const out = join(import.meta.dirname, '..', 'src', 'ipc', 'lace-types.ts');
 

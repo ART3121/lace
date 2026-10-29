@@ -6,8 +6,8 @@
 //! do Studio, tudo o que passa pelo crate `aurora-agent`).
 //!
 //! O que está ligado fica em `experimental.json`, na pasta de configuração
-//! do Lace do usuário: `%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace`
-//! (ou `~/.config/lace`) no Linux e `~/Library/Application Support/lace` no
+//! do Lace do usuário: `%APPDATA%\aurora` no Windows, `$XDG_CONFIG_HOME/aurora`
+//! (ou `~/.config/aurora`) no Linux e `~/Library/Application Support/aurora` no
 //! macOS. A CLI liga e desliga com `aurora experimental enable|disable
 //! <recurso>`, e o Studio, em Preferências > Experimental; os dois leem o
 //! mesmo arquivo.
@@ -259,7 +259,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = Utf8Path::from_path(dir.path())
             .unwrap()
-            .join("lace")
+            .join("aurora")
             .join(SETTINGS_FILE);
         (dir, path)
     }

@@ -21,47 +21,47 @@ module tb_mux2;
     mux2 dut (.a(a), .b(b), .sel(sel), .y(y));
     mux2_ref reference (.a(a), .b(b), .sel(sel), .y(y_ref));
 
-    integer lace_samples = 0;
-    integer lace_mismatched = 0;
-    integer lace_y_errors = 0;
-    integer lace_y_first = -1;
-    integer lace_y_unknown = 0;
-    integer lace_seed = 1;
-    integer lace_i;
+    integer aurora_samples = 0;
+    integer aurora_mismatched = 0;
+    integer aurora_y_errors = 0;
+    integer aurora_y_first = -1;
+    integer aurora_y_unknown = 0;
+    integer aurora_seed = 1;
+    integer aurora_i;
 
     task compare;
         begin
-            lace_samples = lace_samples + 1;
+            aurora_samples = aurora_samples + 1;
             mismatch = 0;
             if ((y_ref ^ y ^ y_ref) !== y_ref) begin
-                lace_y_errors = lace_y_errors + 1;
-                if (lace_y_first < 0) lace_y_first = $time;
-                if ((^y) === 1'bx) lace_y_unknown = lace_y_unknown + 1;
+                aurora_y_errors = aurora_y_errors + 1;
+                if (aurora_y_first < 0) aurora_y_first = $time;
+                if ((^y) === 1'bx) aurora_y_unknown = aurora_y_unknown + 1;
                 mismatch = 1;
             end
-            if (mismatch && lace_mismatched == 0) begin
-                $display("LACE-LEARN first %0d %0d", $time, -1);
-                $display("LACE-LEARN first_in a %b", a);
-                $display("LACE-LEARN first_in b %b", b);
-                $display("LACE-LEARN first_in sel %b", sel);
-                $display("LACE-LEARN first_out y %b %b", y_ref, y);
+            if (mismatch && aurora_mismatched == 0) begin
+                $display("AURORA-LEARN first %0d %0d", $time, -1);
+                $display("AURORA-LEARN first_in a %b", a);
+                $display("AURORA-LEARN first_in b %b", b);
+                $display("AURORA-LEARN first_in sel %b", sel);
+                $display("AURORA-LEARN first_out y %b %b", y_ref, y);
             end
-            if (mismatch) lace_mismatched = lace_mismatched + 1;
+            if (mismatch) aurora_mismatched = aurora_mismatched + 1;
         end
     endtask
 
     initial begin
         $dumpfile(".aurora-learn/wave.fst");
         $dumpvars(0, tb_mux2);
-        for (lace_i = 0; lace_i < 8; lace_i = lace_i + 1) begin
-            {a, b, sel} = lace_i;
+        for (aurora_i = 0; aurora_i < 8; aurora_i = aurora_i + 1) begin
+            {a, b, sel} = aurora_i;
             #5 compare;
             #5;
         end
-        $display("LACE-LEARN samples %0d", lace_samples);
-        $display("LACE-LEARN mismatched %0d", lace_mismatched);
-        $display("LACE-LEARN output y %0d %0d %0d", lace_y_errors, lace_y_first, lace_y_unknown);
-        $display("LACE-LEARN end");
+        $display("AURORA-LEARN samples %0d", aurora_samples);
+        $display("AURORA-LEARN mismatched %0d", aurora_mismatched);
+        $display("AURORA-LEARN output y %0d %0d %0d", aurora_y_errors, aurora_y_first, aurora_y_unknown);
+        $display("AURORA-LEARN end");
         $finish;
     end
 endmodule

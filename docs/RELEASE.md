@@ -155,7 +155,7 @@ correção que precise sair antes fica com um número de novidade.
 
 Quem escreve uma novidade já sabe que ela sai na próxima versão menor e usa
 esse número onde precisar dele, como na tabela `FEATURES` da extensão
-(`editors/vscode/src/lace/version.ts`).
+(`editors/vscode/src/aurora/version.ts`).
 
 ### 2.6 A 1.0
 
@@ -344,7 +344,7 @@ sozinho no GitHub hoje: o `release.yml` só monta os instaladores, sem teste
 
 - As verificações de "Antes de mandar a mudança", do
   [CONTRIBUTING.md](../CONTRIBUTING.md), com o `cargo test --workspace`
-  rodando com `LACE_TEST_BUNDLE` definido, num bundle com o identificador
+  rodando com `AURORA_TEST_BUNDLE` definido, num bundle com o identificador
   de `bundle/versions.json`.
 - O Studio: `npm run build` em `studio/`; `cargo clippy` e `cargo test` em
   `studio/src-tauri/`, com o bundle; e o roteiro de fumaça
@@ -481,12 +481,12 @@ python scripts/bundle.py --out dist/toolchain
 cargo build --release -p aurora-cli -p aurora-installer
 target\release\aurora-pack.exe tui --toolchain dist\toolchain --lace target\release\aurora.exe --installer target\release\aurora-installer.exe --out dist\tui --assets dist\apps
 target\release\aurora-pack.exe inno --toolchain dist\toolchain --lace target\release\aurora.exe --out dist\inno --web dist\tui
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\lace.iss
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DWeb /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\lace.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DWeb /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
 ```
 
 O segundo `ISCC` (`/DWeb`) monta o assistente web,
-`lace-<versão>-windows-x64-web-setup.exe`: ele leva só o `lace.exe` e baixa
+`lace-<versão>-windows-x64-web-setup.exe`: ele leva só o `aurora.exe` e baixa
 da release os pedaços que o `aurora-pack tui --assets` gravou, conferidos
 pelo SHA-256 que o `aurora-pack inno --web` pôs no `web.iss`. Os pedaços
 publicados precisam ser exatamente os dessa montagem. Para testar sem
@@ -517,7 +517,7 @@ O `aurora-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
 - A cara do assistente: o ícone da AURORA IDE e as imagens de
   `installer/windows/art/`, geradas da marca (`studio/public/brand`) por
   `python scripts/installer_art.py`, só com a biblioteca padrão. Mudou a
-  marca, ou o `WizardSizePercent` do `lace.iss`, gere de novo (a proporção
+  marca, ou o `WizardSizePercent` do `aurora.iss`, gere de novo (a proporção
   da faixa da esquerda segue o `SIZE_PERCENT` do script).
 
 Além dos instaladores, a release publica o bundle em pedaços, para o

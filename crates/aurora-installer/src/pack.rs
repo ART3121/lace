@@ -92,7 +92,7 @@ impl Contents {
     fn index_without_chunks(&self) -> Index {
         Index {
             schema: INDEX_SCHEMA,
-            lace_version: crate::LACE_VERSION.to_owned(),
+            aurora_version: crate::AURORA_VERSION.to_owned(),
             bundle: self.bundle.clone(),
             platform: self.platform.clone(),
             profiles: self.profiles.clone(),
@@ -177,14 +177,14 @@ pub fn groups(contents: &Contents) -> Vec<Group> {
 }
 
 /// O nome do pedaço de cada grupo de [`groups`], na mesma ordem: o comum é
-/// `lace.tar.zst`; os outros, `c01.tar.zst`, `c02.tar.zst`...
+/// `aurora.tar.zst`; os outros, `c01.tar.zst`, `c02.tar.zst`...
 fn chunk_names(groups: &[Group]) -> Vec<String> {
     let mut numbered = 0;
     groups
         .iter()
         .map(|g| {
             if g.components.is_empty() {
-                "lace.tar.zst".to_owned()
+                "aurora.tar.zst".to_owned()
             } else {
                 numbered += 1;
                 format!("c{numbered:02}.tar.zst")
@@ -194,13 +194,13 @@ fn chunk_names(groups: &[Group]) -> Vec<String> {
 }
 
 /// Onde fica o `aurora` na instalação, e o nome dele no pedaço sempre
-/// instalado e no manifesto de arquivos: `bin/lace.exe` no Windows,
-/// `bin/lace` nos outros.
-pub fn lace_entry(platform: &str) -> &'static str {
+/// instalado e no manifesto de arquivos: `bin/aurora.exe` no Windows,
+/// `bin/aurora` nos outros.
+pub fn aurora_entry(platform: &str) -> &'static str {
     if platform == "windows-x64" {
-        "bin/lace.exe"
+        "bin/aurora.exe"
     } else {
-        "bin/lace"
+        "bin/aurora"
     }
 }
 
@@ -210,7 +210,7 @@ pub fn lace_entry(platform: &str) -> &'static str {
 pub fn files_manifest(
     toolchain: &Path,
     contents: &Contents,
-    lace: &Path,
+    aurora: &Path,
 ) -> anyhow::Result<FilesManifest> {
     let groups = groups(contents);
     let names = chunk_names(&groups);
@@ -219,8 +219,8 @@ pub fn files_manifest(
         let mut entries = BTreeMap::new();
         if group.components.is_empty() {
             entries.insert(
-                lace_entry(&contents.platform).to_owned(),
-                files::digest(lace)?,
+                aurora_entry(&contents.platform).to_owned(),
+                files::digest(aurora)?,
             );
         }
         for f in &group.files {
@@ -234,7 +234,7 @@ pub fn files_manifest(
     }
     Ok(FilesManifest {
         schema: FILES_SCHEMA,
-        lace_version: crate::LACE_VERSION.to_owned(),
+        aurora_version: crate::AURORA_VERSION.to_owned(),
         bundle: contents.bundle.clone(),
         platform: contents.platform.clone(),
         groups: out,
@@ -258,7 +258,7 @@ fn ensure_empty(out: &Path) -> anyhow::Result<()> {
 }
 
 /// Um arquivo do pedaço: origem, nome no tar, e se precisa sair executável
-/// seja qual for o modo da origem (o `bin/lace`).
+/// seja qual for o modo da origem (o `bin/aurora`).
 struct Entry {
     src: PathBuf,
     name: String,
@@ -305,7 +305,7 @@ Lace {version} installer ({platform}), tool bundle {bundle}
   ./install --list               The profiles, the components and the size of each
   ./install --help               All options
 
-Default: ~/.local/share/lace, with the link ~/.local/bin/lace.
+Default: ~/.local/share/aurora, with the link ~/.local/bin/aurora.
 To remove it, with the bundle: aurora uninstall (or <installation folder>/uninstall.sh)
 ";
 
@@ -315,7 +315,7 @@ To remove it, with the bundle: aurora uninstall (or <installation folder>/uninst
 pub fn tui(
     toolchain: &Path,
     contents: &Contents,
-    lace: &Path,
+    aurora: &Path,
     installer: &Path,
     out: &Path,
     level: i32,
@@ -327,7 +327,7 @@ pub fn tui(
     fs::copy(installer, &install).with_context(|| format!("Copying {}", installer.display()))?;
     set_executable(&install)?;
 
-    let manifest = files_manifest(toolchain, contents, lace)?;
+    let manifest = files_manifest(toolchain, contents, aurora)?;
     let manifest_path = payload.join(FILES_FILE);
     manifest.save(&manifest_path)?;
 
@@ -348,8 +348,8 @@ pub fn tui(
             entries.insert(
                 0,
                 Entry {
-                    src: lace.to_owned(),
-                    name: lace_entry(&contents.platform).to_owned(),
+                    src: aurora.to_owned(),
+                    name: aurora_entry(&contents.platform).to_owned(),
                     executable: true,
                 },
             );
@@ -385,7 +385,7 @@ pub fn tui(
     fs::write(
         out.join("LEIA-ME.txt"),
         README
-            .replace("{version}", &index.lace_version)
+            .replace("{version}", &index.aurora_version)
             .replace("{platform}", &index.platform)
             .replace("{bundle}", &index.bundle),
     )?;
@@ -432,7 +432,7 @@ pub fn release_assets(installer: &Path, dir: &Path) -> anyhow::Result<Vec<std::p
     let mut written = Vec::new();
     for file in files {
         let dest = dir.join(crate::payload::release_asset(
-            &index.lace_version,
+            &index.aurora_version,
             &index.platform,
             &file,
         ));
@@ -501,7 +501,7 @@ pub const CUSTOM_TYPE: &str = "avancada";
 pub const INNO_LANGUAGES: [&str; 2] = ["en", "pt"];
 
 /// O nome do Lace na lista de componentes, sempre marcado.
-const LACE_LABEL: &str = "Lace (CLI & Core)";
+const AURORA_LABEL: &str = "Lace (CLI & Core)";
 
 /// Os textos fixos do `components.iss` em cada idioma.
 struct InnoTexts {
@@ -522,7 +522,7 @@ fn inno_texts(lang: &str) -> InnoTexts {
             custom_type: "Personalizada (avançada): você escolhe os componentes",
             profile: |label, marked, total| {
                 format!(
-                    "O {label} instala o {LACE_LABEL} e os {marked} aplicativos marcados \
+                    "O {label} instala o {AURORA_LABEL} e os {marked} aplicativos marcados \
                      abaixo, de {total}."
                 )
             },
@@ -531,7 +531,7 @@ fn inno_texts(lang: &str) -> InnoTexts {
                 format!(
                     "A instalação personalizada é para uso avançado, para quem sabe de quais \
                      componentes precisa: marque abaixo os aplicativos a instalar, de {total}. \
-                     O {LACE_LABEL} é sempre instalado."
+                     O {AURORA_LABEL} é sempre instalado."
                 )
             },
         },
@@ -540,7 +540,7 @@ fn inno_texts(lang: &str) -> InnoTexts {
             custom_type: "Custom (advanced): choose the components yourself",
             profile: |label, marked, total| {
                 format!(
-                    "{label} installs {LACE_LABEL} and the {marked} apps marked below, of {total}."
+                    "{label} installs {AURORA_LABEL} and the {marked} apps marked below, of {total}."
                 )
             },
             audience: |audience| format!(" For {}.", crate::lowercase_first(audience)),
@@ -548,7 +548,7 @@ fn inno_texts(lang: &str) -> InnoTexts {
                 format!(
                     "The Custom installation is for advanced use, for users who know which \
                      components they need: mark below the apps to install, of the {total}. \
-                     {LACE_LABEL} is always installed."
+                     {AURORA_LABEL} is always installed."
                 )
             },
         },
@@ -597,7 +597,7 @@ fn inno_messages(profiles: &[ProfileInfo], contents: &Contents) -> String {
         }
         put("Type_Custom", texts.custom_type);
         put("Detail_Custom", &(texts.custom)(total));
-        put("Comp_lace", LACE_LABEL);
+        put("Comp_lace", AURORA_LABEL);
         for c in &contents.components {
             let description = c
                 .translations
@@ -628,7 +628,7 @@ fn inno_quote(text: &str) -> String {
     text.replace('"', "\"\"")
 }
 
-/// Monta o estágio do instalador de Windows em `out`: `bin/lace.exe`,
+/// Monta o estágio do instalador de Windows em `out`: `bin/aurora.exe`,
 /// `common/` e `chunks/NN/` com os arquivos, e `components.iss` com as
 /// seções `[Components]` e `[Files]` que o `installer/windows/lace.iss`
 /// inclui. O `common/` leva o manifesto de arquivos (`toolchain/files.json`),
@@ -636,14 +636,14 @@ fn inno_quote(text: &str) -> String {
 pub fn inno(
     toolchain: &Path,
     contents: &Contents,
-    lace: &Path,
+    aurora: &Path,
     out: &Path,
     web: Option<&Path>,
 ) -> anyhow::Result<()> {
     ensure_empty(out)?;
     fs::create_dir_all(out.join("bin"))?;
-    fs::copy(lace, out.join("bin/lace.exe"))
-        .with_context(|| format!("Copying {}", lace.display()))?;
+    fs::copy(aurora, out.join("bin/aurora.exe"))
+        .with_context(|| format!("Copying {}", aurora.display()))?;
 
     let pairs: Vec<(&str, &[String])> = contents
         .components
@@ -675,7 +675,7 @@ pub fn inno(
         .chain([CUSTOM_TYPE.to_owned()])
         .collect();
     iss.push_str(&format!(
-        "Name: \"lace\"; Description: \"{{cm:Comp_lace}}\"; Types: {}; Flags: fixed\n",
+        "Name: \"aurora\"; Description: \"{{cm:Comp_lace}}\"; Types: {}; Flags: fixed\n",
         all_types.join(" ")
     ));
     let mut ordered: Vec<&ContentsComponent> = Vec::new();
@@ -733,13 +733,13 @@ pub fn inno(
     iss.push_str("end;\n");
     iss.push_str(&inno_messages(&profiles, contents));
 
-    iss.push_str("\n[Files]\nSource: \"{#Stage}\\bin\\lace.exe\"; DestDir: \"{app}\\bin\"; Components: lace; Flags: ignoreversion\n");
+    iss.push_str("\n[Files]\nSource: \"{#Stage}\\bin\\aurora.exe\"; DestDir: \"{app}\\bin\"; Components: aurora; Flags: ignoreversion\n");
     // No assistente que baixa os aplicativos, o bundle não vai dentro dele.
     iss.push_str("#ifndef Web\n");
     let mut numbered = 0;
     for group in groups(contents) {
         let (dir, expr) = if group.components.is_empty() {
-            ("common".to_owned(), "lace".to_owned())
+            ("common".to_owned(), "aurora".to_owned())
         } else {
             numbered += 1;
             (
@@ -763,7 +763,7 @@ pub fn inno(
         ));
     }
     iss.push_str("#endif\n");
-    let manifest = files_manifest(toolchain, contents, lace)?;
+    let manifest = files_manifest(toolchain, contents, aurora)?;
     let manifest_path = out.join("common").join(files::INSTALLED);
     fs::create_dir_all(manifest_path.parent().expect("tem pai"))?;
     manifest.save(&manifest_path)?;
@@ -787,12 +787,12 @@ fn write_iss(path: &Path, text: &str) -> anyhow::Result<()> {
 /// publica: `AddDownloads` põe na página de download o índice, o pedaço
 /// sempre instalado e os pedaços dos componentes marcados, cada um com o
 /// SHA-256 dele; `SelectedApps` dá os componentes marcados, com os nomes do
-/// Lace, para o `lace setup`.
+/// Lace, para o `aurora setup`.
 fn web_script(installer: &Path, full: &dyn Fn(&str) -> String) -> anyhow::Result<String> {
     let payload = installer.join(PAYLOAD_DIR);
     let index = Index::load(&payload)?;
     let asset =
-        |file: &str| crate::payload::release_asset(&index.lace_version, &index.platform, file);
+        |file: &str| crate::payload::release_asset(&index.aurora_version, &index.platform, file);
     let mut iss = String::from(
         "; Gerado por aurora-pack a partir do payload da release. Não editar.\n\n[Code]\n\
          { O índice, o pedaço sempre instalado e os dos componentes marcados. }\n\
@@ -986,10 +986,10 @@ mod tests {
             fs::create_dir_all(p.parent().unwrap()).unwrap();
             fs::write(p, f).unwrap();
         }
-        let lace = dir.path().join("lace.exe");
-        fs::write(&lace, "exe").unwrap();
+        let aurora = dir.path().join("aurora.exe");
+        fs::write(&aurora, "exe").unwrap();
         let out = dir.path().join("stage");
-        inno(&toolchain, &c, &lace, &out, None).unwrap();
+        inno(&toolchain, &c, &aurora, &out, None).unwrap();
         let iss = fs::read_to_string(out.join("components.iss")).unwrap();
         assert!(iss.starts_with('\u{feff}'));
         let iss = iss.replace("\r\n", "\n");
@@ -1005,7 +1005,7 @@ mod tests {
             "{iss}"
         );
         assert!(
-            iss.contains("Name: \"lace\"; Description: \"{cm:Comp_lace}\"; Types: tudo sim avancada; Flags: fixed"),
+            iss.contains("Name: \"aurora\"; Description: \"{cm:Comp_lace}\"; Types: tudo sim avancada; Flags: fixed"),
             "{iss}"
         );
         assert!(

@@ -74,8 +74,8 @@ describe('Lace: Sintetizar', () => {
   });
 
   it('um aurora synth --open no terminal (o rtl-viewer.html aparece): o netlist abre na aba', async () => {
-    // O que o --open grava com LACE_OPENER=vscode, que a extensão põe no terminal.
-    assert.equal(process.env.LACE_OPENER ?? 'vscode', 'vscode');
+    // O que o --open grava com AURORA_OPENER=vscode, que a extensão põe no terminal.
+    assert.equal(process.env.AURORA_OPENER ?? 'vscode', 'vscode');
     // A pasta e os arquivos no mesmo instante, como na primeira síntese de um
     // alvo: o vigia do VS Code não veria (poller.ts); a extensão confere.
     const dir = join(workspace, '.aurora8', 'Temp', 'synth', 'soma');

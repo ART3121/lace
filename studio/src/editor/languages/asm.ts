@@ -2,10 +2,10 @@
  * asm.ts: o assembly do SAPHO (.asm) no Monaco da AURORA IDE.
  *
  * Portado da AURORA em 2026-10-03, de:
- *   lace/vendor/aurora/js/editor/monaco_editor.js   (setupASMLanguage, temas asm-dark/asm-light)
- *   lace/vendor/aurora/js/editor/editor_language.ts (.asm -> 'asm'; aqui o id é 'sapho-asm')
+ *   aurora/vendor/aurora/js/editor/monaco_editor.js   (setupASMLanguage, temas asm-dark/asm-light)
+ *   aurora/vendor/aurora/js/editor/editor_language.ts (.asm -> 'asm'; aqui o id é 'sapho-asm')
  *
- * Conferido contra o YANC: lace/vendor/yanc/Compilers/ASMComp/Sources/ASMComp.l,
+ * Conferido contra o YANC: aurora/vendor/yanc/Compilers/ASMComp/Sources/ASMComp.l,
  * APPComp/Sources/app.l e Compilers/common/isa.tsv (a tabela de referência da
  * ISA). Onde a AURORA e o YANC divergem vale o YANC, anotado no ponto. As
  * leituras da divisão (QUO, REM, F_QUO) são do YANC 6.0, em que DIV, MOD e

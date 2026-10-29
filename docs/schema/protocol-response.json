@@ -238,7 +238,7 @@
       "description": "O que `initialize` devolve.",
       "type": "object",
       "properties": {
-        "lace": {
+        "aurora": {
           "description": "A versão do Lace.",
           "type": "string"
         },
@@ -271,7 +271,7 @@
         }
       },
       "required": [
-        "lace",
+        "aurora",
         "protocol",
         "prefix",
         "experimental",
@@ -2351,7 +2351,7 @@
           "const": "synthesis_statistics"
         },
         {
-          "description": "O topo da placa que o Lace gera (`lace_board_top.v`).",
+          "description": "O topo da placa que o Lace gera (`aurora_board_top.v`).",
           "type": "string",
           "const": "board_top"
         },
@@ -4071,8 +4071,8 @@
           "format": "uint64",
           "minimum": 0
         },
-        "lace_version": {
-          "description": "A versão do Lace que gravou.",
+        "aurora_version": {
+          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nLace, que a `.lace` levada para a `.aurora8` traz.",
           "type": "string"
         },
         "project": {
@@ -4130,7 +4130,7 @@
         "command",
         "status",
         "duration_ms",
-        "lace_version",
+        "aurora_version",
         "project",
         "project_name",
         "bundle",
@@ -4848,7 +4848,7 @@
           "const": "settings"
         },
         {
-          "description": "A pasta declarada no ambiente (`LACE_TOOLCHAIN`).",
+          "description": "A pasta declarada no ambiente (`AURORA_TOOLCHAIN`).",
           "type": "string",
           "const": "environment"
         },
@@ -5650,7 +5650,7 @@
       "description": "O relatório do `aurora update` (`docs/schema/update.json`).",
       "type": "object",
       "properties": {
-        "lace": {
+        "aurora": {
           "description": "O Lace: este e o da última release.",
           "$ref": "#/$defs/AuroraVersions"
         },
@@ -5700,7 +5700,7 @@
         }
       },
       "required": [
-        "lace",
+        "aurora",
         "bundle",
         "components",
         "prefix",

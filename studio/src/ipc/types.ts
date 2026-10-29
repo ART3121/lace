@@ -65,7 +65,7 @@ export interface AppInfo {
   name: string;
   version: string;
   os: string;
-  lace_platform: string | null;
+  aurora_platform: string | null;
   config_dir: string | null;
   tauri_version: string;
   webview_version: string | null;
@@ -84,10 +84,10 @@ export interface Settings {
   compiler_dir: string | null;
   /** O Quartus Prime, como o `--quartus` da CLI; null: os locais padrão. */
   quartus_dir: string | null;
-  /** As trilhas do `aurora learn` de outra pasta, como o LACE_LEARN_DIR. */
+  /** As trilhas do `aurora learn` de outra pasta, como o AURORA_LEARN_DIR. */
   learn_dir: string | null;
   /** O programa `aurora` que o Studio abre como servidor; null: o da instalação. */
-  lace_path: string | null;
+  aurora_path: string | null;
   simulator: Simulator;
   open_wave_after_sim: boolean;
   /** Onde a onda abre: numa aba (cliente web do Surfer) ou em janela. */
@@ -109,7 +109,7 @@ export interface Settings {
    * procura no PATH e nas pastas dos instaladores. */
   assistant_claude: string | null;
   /** O `aurora` que serve as ferramentas ao assistente; null, o da instalação. */
-  assistant_lace: string | null;
+  assistant_aurora: string | null;
   /** O modelo do assistente (`--model` do Claude Code); null, o padrão. */
   assistant_model: string | null;
   /** O assistente pode editar e criar arquivos na pasta do projeto. */
@@ -513,7 +513,7 @@ export type TerminalMessage = { type: 'data'; data: string } | { type: 'exit'; c
 /** `aurora_agent::AgentEvent` (assistant.rs): o que acontece numa sessão do
  * assistente, na ordem. */
 export type AgentEvent =
-  | { type: 'ready'; session_id: string; model: string | null; tools: string[]; lace_connected: boolean | null }
+  | { type: 'ready'; session_id: string; model: string | null; tools: string[]; aurora_connected: boolean | null }
   | { type: 'text'; text: string }
   | { type: 'tool_use'; id: string; name: string; input: unknown }
   | { type: 'tool_result'; id: string; content: string; is_error: boolean }
@@ -535,7 +535,7 @@ export type AgentEvent =
 export interface AssistantInfo {
   claude: string | null;
   version: string | null;
-  lace: string | null;
+  aurora: string | null;
   project: string | null;
 }
 

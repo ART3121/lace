@@ -772,7 +772,7 @@ mod tests {
 
     #[test]
     fn the_summary_is_read_and_the_rest_is_testbench_output() {
-        let stdout = "FST info: dumpfile .aurora-learn/wave.fst opened for output.\r\nolá do testbench\r\nLACE-LEARN samples 8\r\nLACE-LEARN mismatched 4\r\nLACE-LEARN output y 4 25 1\r\nLACE-LEARN output z 0 -1 0\r\nLACE-LEARN reset 2\r\nLACE-LEARN end\r\nC:/x/tb.v:45: $finish called at 80000 (1ps)\r\n";
+        let stdout = "FST info: dumpfile .aurora-learn/wave.fst opened for output.\r\nolá do testbench\r\nAURORA-LEARN samples 8\r\nAURORA-LEARN mismatched 4\r\nAURORA-LEARN output y 4 25 1\r\nAURORA-LEARN output z 0 -1 0\r\nAURORA-LEARN reset 2\r\nAURORA-LEARN end\r\nC:/x/tb.v:45: $finish called at 80000 (1ps)\r\n";
         let summary = parse_summary(stdout);
         assert_eq!(summary.samples, 8);
         assert_eq!(summary.mismatched, 4);
@@ -800,7 +800,7 @@ mod tests {
 
     #[test]
     fn the_first_mismatch_is_read_once() {
-        let stdout = "LACE-LEARN first 25 -1\nLACE-LEARN first_in a 1\nLACE-LEARN first_in b 0101\nLACE-LEARN first_out y 1 0\nLACE-LEARN first 35 -1\nLACE-LEARN first_in a 0\nLACE-LEARN samples 8\nLACE-LEARN end\n";
+        let stdout = "AURORA-LEARN first 25 -1\nAURORA-LEARN first_in a 1\nAURORA-LEARN first_in b 0101\nAURORA-LEARN first_out y 1 0\nAURORA-LEARN first 35 -1\nAURORA-LEARN first_in a 0\nAURORA-LEARN samples 8\nAURORA-LEARN end\n";
         let summary = parse_summary(stdout);
         let first = summary.first.unwrap();
         assert_eq!(first.time_ns, 25);
@@ -811,7 +811,7 @@ mod tests {
         );
         assert_eq!(first.outputs, [("y".into(), "1".into(), "0".into())]);
         assert!(summary.other.is_empty(), "{:?}", summary.other);
-        let sequential = parse_summary("LACE-LEARN first 17 3\n").first.unwrap();
+        let sequential = parse_summary("AURORA-LEARN first 17 3\n").first.unwrap();
         assert_eq!(sequential.cycle, Some(3));
     }
 
@@ -877,7 +877,7 @@ mod tests {
 
     #[test]
     fn a_summary_without_end_is_not_ended() {
-        let summary = parse_summary("LACE-LEARN samples 3\n");
+        let summary = parse_summary("AURORA-LEARN samples 3\n");
         assert!(!summary.ended);
         assert_eq!(summary.samples, 3);
     }

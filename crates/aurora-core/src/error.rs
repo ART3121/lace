@@ -292,7 +292,7 @@ pub enum AuroraError {
     /// A onda que se quer abrir ainda não existe no disco: a simulação do
     /// projeto, ou a do processador, não rodou (ou não chegou ao fim), ou o
     /// arquivo pedido não existe. Vem de [`flows::open_wave`](crate::flows).
-    /// O texto não diz como simular: cada interface tem o seu caminho (`lace
+    /// O texto não diz como simular: cada interface tem o seu caminho (`aurora
     /// sim [-p X]`, o botão Simular do Studio).
     #[error("Waveform {path} does not exist yet{}; simulate first", processor.as_deref().map(|p| format!(" (processor {p})")).unwrap_or_default())]
     NoWaveform {
@@ -941,7 +941,7 @@ mod tests {
         );
         // Nenhuma mensagem cita um comando da CLI: a dica é de cada interface.
         for error in [&wave, &signal, &chosen, &elaborated] {
-            assert!(!error.to_string().contains("lace "), "{error}");
+            assert!(!error.to_string().contains("aurora "), "{error}");
         }
     }
 }

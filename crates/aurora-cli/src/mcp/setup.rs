@@ -22,7 +22,7 @@ pub struct SetupArgs {
     /// Start the server with --allow-update (update_apply and install_add)
     #[arg(long)]
     pub allow_update: bool,
-    /// Start the server inside this project (lace -C PATH mcp): the tools use it when a call names none
+    /// Start the server inside this project (aurora -C PATH mcp): the tools use it when a call names none
     #[arg(long, value_name = "PATH")]
     pub default_project: Option<Utf8PathBuf>,
     /// The config file to edit, instead of the client's own (for tests)
@@ -78,7 +78,7 @@ impl ServerEntry {
         allow_update: bool,
         project: Option<&Utf8Path>,
     ) -> anyhow::Result<ServerEntry> {
-        let exe = std::env::current_exe().context("Could not find the lace executable")?;
+        let exe = std::env::current_exe().context("Could not find the aurora executable")?;
         let exe = dunce::canonicalize(&exe).unwrap_or(exe);
         let command = Utf8PathBuf::from_path_buf(exe)
             .map_err(|p| anyhow::anyhow!("Path is not UTF-8: {}", p.display()))?;
@@ -106,7 +106,7 @@ impl ServerEntry {
             args.push("--allow-update".to_owned());
         }
         let env = toolchain_dir
-            .map(|dir| vec![("LACE_TOOLCHAIN".to_owned(), dir.to_string())])
+            .map(|dir| vec![("AURORA_TOOLCHAIN".to_owned(), dir.to_string())])
             .unwrap_or_default();
         ServerEntry { command, args, env }
     }
@@ -127,7 +127,7 @@ impl ServerEntry {
 
     /// O trecho inteiro, para colar num arquivo de configuração.
     pub(crate) fn snippet(&self) -> String {
-        serde_json::to_string_pretty(&json!({ "mcpServers": { "lace": self.json() } }))
+        serde_json::to_string_pretty(&json!({ "mcpServers": { "aurora": self.json() } }))
             .unwrap_or_default()
     }
 
@@ -136,7 +136,7 @@ impl ServerEntry {
         let mut args = vec![
             "mcp".to_owned(),
             "add".to_owned(),
-            "lace".to_owned(),
+            "aurora".to_owned(),
             "--scope".to_owned(),
             scope.as_str().to_owned(),
         ];
@@ -168,7 +168,7 @@ pub fn run(toolchain: &ToolchainArgs, args: &SetupArgs) -> anyhow::Result<()> {
                 None => desktop_config_path()?,
             };
             merge_server(&path, &entry.json())?;
-            println!("Registered the lace server in {path}");
+            println!("Registered the aurora server in {path}");
             println!("Restart Claude Desktop to see the Lace tools");
         }
         Client::ClaudeCode => {
@@ -178,7 +178,7 @@ pub fn run(toolchain: &ToolchainArgs, args: &SetupArgs) -> anyhow::Result<()> {
                     None => Utf8PathBuf::from(".mcp.json"),
                 };
                 merge_server(&path, &entry.json())?;
-                println!("Registered the lace server in {path} (shared with the folder)");
+                println!("Registered the aurora server in {path} (shared with the folder)");
                 return Ok(());
             }
             let add = entry.claude_add_args(args.scope);
@@ -197,7 +197,7 @@ pub fn run(toolchain: &ToolchainArgs, args: &SetupArgs) -> anyhow::Result<()> {
                         );
                     }
                     println!(
-                        "Registered the lace server in Claude Code ({} scope)",
+                        "Registered the aurora server in Claude Code ({} scope)",
                         args.scope.as_str()
                     );
                 }
@@ -211,7 +211,7 @@ pub fn run(toolchain: &ToolchainArgs, args: &SetupArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Mescla `mcpServers.lace` em `path`, mantendo o resto do arquivo. Cria a
+/// Mescla `mcpServers.aurora` em `path`, mantendo o resto do arquivo. Cria a
 /// pasta e o arquivo se não existem.
 pub(crate) fn merge_server(path: &Utf8Path, entry: &Value) -> anyhow::Result<()> {
     let mut root: Value = match std::fs::read_to_string(path) {
@@ -232,7 +232,7 @@ pub(crate) fn merge_server(path: &Utf8Path, entry: &Value) -> anyhow::Result<()>
     if !servers.is_object() {
         bail!("mcpServers in {path} is not an object");
     }
-    servers["lace"] = entry.clone();
+    servers["aurora"] = entry.clone();
     if let Some(parent) = path.parent().filter(|p| !p.as_str().is_empty()) {
         std::fs::create_dir_all(parent).with_context(|| format!("Creating {parent}"))?;
     }
@@ -312,13 +312,13 @@ mod tests {
 
     #[test]
     fn the_entry_has_the_command_the_args_and_the_env_only_when_needed() {
-        let plain = ServerEntry::new("/opt/lace/bin/lace".into(), None, false, None);
+        let plain = ServerEntry::new("/opt/aurora/bin/aurora".into(), None, false, None);
         assert_eq!(
             plain.json(),
-            json!({ "command": "/opt/lace/bin/lace", "args": ["mcp"] })
+            json!({ "command": "/opt/aurora/bin/aurora", "args": ["mcp"] })
         );
         let full = ServerEntry::new(
-            "C:/dev/lace.exe".into(),
+            "C:/dev/aurora.exe".into(),
             Some(Utf8Path::new("C:/bundle")),
             true,
             Some(Utf8Path::new("C:/p/soma.spf")),
@@ -326,9 +326,9 @@ mod tests {
         assert_eq!(
             full.json(),
             json!({
-                "command": "C:/dev/lace.exe",
+                "command": "C:/dev/aurora.exe",
                 "args": ["-C", "C:/p/soma.spf", "mcp", "--allow-update"],
-                "env": { "LACE_TOOLCHAIN": "C:/bundle" }
+                "env": { "AURORA_TOOLCHAIN": "C:/bundle" }
             })
         );
         assert_eq!(
@@ -336,13 +336,13 @@ mod tests {
             [
                 "mcp",
                 "add",
-                "lace",
+                "aurora",
                 "--scope",
                 "user",
                 "-e",
-                "LACE_TOOLCHAIN=C:/bundle",
+                "AURORA_TOOLCHAIN=C:/bundle",
                 "--",
-                "C:/dev/lace.exe",
+                "C:/dev/aurora.exe",
                 "-C",
                 "C:/p/soma.spf",
                 "mcp",
@@ -357,11 +357,11 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path =
             Utf8PathBuf::from_path_buf(dir.path().join("Claude").join("config.json")).unwrap();
-        let entry = json!({ "command": "lace", "args": ["mcp"] });
+        let entry = json!({ "command": "aurora", "args": ["mcp"] });
         merge_server(&path, &entry).unwrap();
         let written: Value =
             serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
-        assert_eq!(written, json!({ "mcpServers": { "lace": entry } }));
+        assert_eq!(written, json!({ "mcpServers": { "aurora": entry } }));
 
         std::fs::write(
             &path,
@@ -374,7 +374,7 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
         assert_eq!(written["preferences"]["theme"], "dark");
         assert_eq!(written["mcpServers"]["other"]["command"], "x");
-        assert_eq!(written["mcpServers"]["lace"], newer);
+        assert_eq!(written["mcpServers"]["aurora"], newer);
 
         std::fs::write(&path, "not json").unwrap();
         assert!(merge_server(&path, &entry).is_err());

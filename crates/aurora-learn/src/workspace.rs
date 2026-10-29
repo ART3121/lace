@@ -579,7 +579,7 @@ impl Workspace {
 
 /// O `.gitignore` da pasta: o que o Lace grava ao corrigir e simular.
 const GITIGNORE: &str =
-    "# Gerado pelo aurora learn: o que o Lace grava ao corrigir e simular.\n.lace/\n.aurora-learn/\n";
+    "# Gerado pelo aurora learn: o que o Lace grava ao corrigir e simular.\n.aurora/\n.aurora-learn/\n";
 
 /// O `README.md` de um exercício: o título e o enunciado, sem as dicas.
 fn prompt_text(exercise: &Exercise) -> String {

@@ -549,7 +549,7 @@ function runCli(flow: CliFlow, start: (onMessage: (m: JobMessage) => void) => Pr
   const startedAt = Date.now();
   useJobs.setState({
     running: { id: null, flow, phase: null, startedAt, command: '', statusKey: flow },
-    cliLog: { flow, command: `lace ${flow}`, lines: [] },
+    cliLog: { flow, command: `aurora ${flow}`, lines: [] },
   });
   useEditor.getState().openView('toolchain');
   return new Promise((resolve) => {
@@ -781,7 +781,7 @@ export const useJobs = create<JobsState>((set, get) => ({
       return null;
     }
     const report = outcome.result as UpdateReport;
-    const version = report.lace.latest;
+    const version = report.aurora.latest;
     if (report.action === 'updated') {
       const changes = report.method === 'components' ? report.changes : null;
       const text = changes

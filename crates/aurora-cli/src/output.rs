@@ -133,7 +133,7 @@ impl Output {
         let learn = error
             .chain()
             .find_map(|e| e.downcast_ref::<aurora_learn::LearnError>());
-        let lace = error
+        let aurora = error
             .chain()
             .find_map(|e| e.downcast_ref::<AuroraError>())
             .or(match learn {
@@ -152,8 +152,8 @@ impl Output {
             .find_map(|e| e.downcast_ref::<aurora_installer::Error>());
         let cancelled =
             crate::cancel::is(error) || installer.is_some_and(aurora_installer::Error::is_cancelled);
-        let (code, hint): (String, Option<String>) = match (lace, learn, info) {
-            (Some(lace), _, _) => (lace.code().to_owned(), hint(lace)),
+        let (code, hint): (String, Option<String>) = match (aurora, learn, info) {
+            (Some(aurora), _, _) => (aurora.code().to_owned(), hint(aurora)),
             (None, Some(learn), _) => {
                 let (code, hint) = crate::learn::error_info(learn);
                 (code.to_owned(), hint)
@@ -1034,7 +1034,7 @@ impl Output {
     }
 
     /// O HTML do RTL viewer: aberto no navegador ou, com `opener`
-    /// (LACE_OPENER), só gravado para quem a definiu.
+    /// (AURORA_OPENER), só gravado para quem a definiu.
     pub fn rtl_viewer(&self, html: &Utf8Path, opener: Option<&str>) {
         if self.json {
             return;
@@ -1216,7 +1216,7 @@ impl Output {
                 paint(BOLD, "Verilator compiler"),
                 paint(
                     WARNING,
-                    "not found on the system, so Verilator cannot run (set its location with --compiler <DIR> or LACE_COMPILER)"
+                    "not found on the system, so Verilator cannot run (set its location with --compiler <DIR> or AURORA_COMPILER)"
                 )
             ),
         }
@@ -1235,7 +1235,7 @@ impl Output {
                 paint(BOLD, "Quartus Prime"),
                 paint(
                     DIM,
-                    "not found; Intel FPGA boards need it (set its location with --quartus <DIR> or LACE_QUARTUS)"
+                    "not found; Intel FPGA boards need it (set its location with --quartus <DIR> or AURORA_QUARTUS)"
                 )
             ),
         }
@@ -1565,10 +1565,10 @@ fn chain_text(error: &anyhow::Error) -> String {
 const TITLE_TARGETS: usize = 5;
 
 /// A dica de um compilador do Verilator que não foi achado.
-const COMPILER_HINT: &str = "Or set its location with --compiler <DIR> or LACE_COMPILER";
+const COMPILER_HINT: &str = "Or set its location with --compiler <DIR> or AURORA_COMPILER";
 
 /// A dica de um Quartus que não foi achado.
-const QUARTUS_HINT: &str = "Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS";
+const QUARTUS_HINT: &str = "Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or AURORA_QUARTUS";
 
 /// O que fazer depois de um erro, quando o código diz. As mensagens do Core
 /// são neutras; os nomes de comando ficam aqui.

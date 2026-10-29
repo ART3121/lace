@@ -4,7 +4,7 @@
 // studio/scripts/gen-lace-types.mjs.
 //
 // Uso: npm run gen:types                  (o Lace deste repositório, em ../..)
-//      LACE_REPO=/outro/lace npm run gen:types
+//      AURORA_REPO=/outro/lace npm run gen:types
 //      npm run gen:types -- --check       (só confere; sai com 1 se o arquivo
 //                                          gravado não é o que os schemas geram)
 //
@@ -15,7 +15,7 @@ import { join, resolve } from 'node:path';
 import { compile } from 'json-schema-to-typescript';
 
 const here = import.meta.dirname;
-const repo = resolve(process.env.LACE_REPO ?? join(here, '..', '..', '..'));
+const repo = resolve(process.env.AURORA_REPO ?? join(here, '..', '..', '..'));
 const dir = join(repo, 'docs', 'schema');
 const out = join(here, '..', 'src', 'lace', 'lace-types.ts');
 const check = process.argv.includes('--check');
