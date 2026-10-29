@@ -161,8 +161,8 @@ describe('o destaque de cada item', () => {
 describe('formatAuroraError', () => {
   it('põe a dica depois da mensagem', () => {
     assert.equal(
-      formatAuroraError({ code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new <name>' }),
-      'No Lace project here. Create one with: aurora new <name>',
+      formatAuroraError({ code: 'project_not_found', message: 'Na AURORA project here', hint: 'Create one with: aurora new <name>' }),
+      'Na AURORA project here. Create one with: aurora new <name>',
     );
     assert.equal(formatAuroraError({ code: 'invalid_name', message: 'Invalid name', hint: null }), 'Invalid name');
   });

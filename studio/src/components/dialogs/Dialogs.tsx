@@ -328,7 +328,7 @@ function NewVerilogDialog({
   const t = useT();
   const snapshot = useProject((s) => s.snapshot)!;
   const [testbench, setTestbench] = useState(initialTb || !!initialCocotb);
-  // O testbench em Verilog ou em Python (cocotb, que o Lace roda no Icarus).
+  // O testbench em Verilog ou em Python (cocotb, que a AURORA roda no Icarus).
   const [cocotb, setCocotb] = useState(!!initialCocotb);
   const [folder, setFolder] = useState(initialFolder ?? '');
   const suggested = (tb: boolean, py: boolean) => {

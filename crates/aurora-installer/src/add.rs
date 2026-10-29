@@ -3,7 +3,7 @@
 //! Só os pedaços dos componentes novos são extraídos, numa pasta provisória
 //! dentro da instalação, e mesclados em `toolchain/`: um arquivo que já existe
 //! (uma biblioteca que o componente divide com outro instalado) fica como
-//! está. Depois o Lace confere os hashes de todos os executáveis do bundle.
+//! está. Depois a AURORA confere os hashes de todos os executáveis do bundle.
 //! Se algo falha no meio, os arquivos acrescentados saem, e a instalação fica
 //! como estava. O pedaço sempre instalado (o `aurora` e o cabeçalho do bundle)
 //! não entra. É o que `aurora install` usa.
@@ -59,7 +59,7 @@ pub struct AddReport {
     pub added: Vec<String>,
     /// Todos os componentes instalados agora.
     pub components: Vec<String>,
-    /// O atalho do Lace Studio no menu de aplicativos, se o Studio entrou e
+    /// O atalho da AURORA IDE no menu de aplicativos, se o Studio entrou e
     /// o atalho foi criado ([`crate::desktop`]).
     pub shortcut: Option<PathBuf>,
     /// Quantos executáveis tiveram o hash conferido.
@@ -81,7 +81,7 @@ pub fn installed(index: &Index, toolchain: &Path) -> anyhow::Result<Selection> {
     if manifest.bundle != index.bundle || manifest.platform != index.platform {
         bail!(
             "The installed bundle is {} ({}), and the apps offered are from bundle {} ({}); \
-             to change bundles, update Lace",
+             to change bundles, update AURORA",
             manifest.bundle,
             manifest.platform,
             index.bundle,
@@ -309,7 +309,7 @@ impl DiskPayload {
                 .with_context(|| format!("Extracting {path}"))?;
             return Ok(find_payload(work)
                 .map(plain)
-                .with_context(|| format!("{path} does not contain a Lace installer"))?);
+                .with_context(|| format!("{path} does not contain an AURORA installer"))?);
         }
         if path.is_dir()
             && let Some(prefix) = release_prefix(path)?
@@ -321,7 +321,7 @@ impl DiskPayload {
             });
         }
         Err(anyhow::anyhow!(
-            "{path} is not a Lace installer (its folder, its payload/ folder, the release .tar.gz, \
+            "{path} is not an AURORA installer (its folder, its payload/ folder, the release .tar.gz, \
              or a folder with the release files of this platform)"
         )
         .into())
@@ -387,7 +387,7 @@ fn release_prefix(dir: &Utf8Path) -> Result<Option<String>> {
         0 => Ok(None),
         1 => Ok(found.pop()),
         _ => {
-            Err(anyhow::anyhow!("{dir} has the release files of more than one Lace version").into())
+            Err(anyhow::anyhow!("{dir} has the release files of more than one AURORA version").into())
         }
     }
 }
@@ -462,9 +462,9 @@ impl ChunkSource for ReleasePayload {
 /// De onde vêm os pedaços do `aurora install`.
 #[derive(Debug, Clone, Copy)]
 pub enum Payload<'a> {
-    /// A release do Lace desta versão, pela rede.
+    /// A release da AURORA desta versão, pela rede.
     Release {
-        /// A versão deste Lace.
+        /// A versão desta AURORA.
         version: &'a str,
     },
     /// Um instalador no disco.

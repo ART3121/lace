@@ -1,6 +1,6 @@
-# Metodologia: como o Lace cresce
+# Metodologia: como a AURORA cresce
 
-Este documento diz como o código do Lace se organiza e como a API dele muda
+Este documento diz como o código da AURORA se organiza e como a API dele muda
 sem quebrar quem a usa. Ele vale para quem vai acrescentar uma função nova,
 mudar uma existente ou revisar a mudança de outra pessoa.
 
@@ -36,12 +36,12 @@ Cinco regras seguem dessa figura.
 
 1. **A regra mora no core.** Toda decisão é uma função do `aurora-core`, com
    teste lá: o que rodar, em que ordem, o que validar, que arquivo escolher.
-   Se um `if` de uma interface muda o que o Lace faz, ele está no lugar
+   Se um `if` de uma interface muda o que a AURORA faz, ele está no lugar
    errado.
 2. **As interfaces só traduzem.** A CLI e o `aurora serve` abrem o projeto,
    chamam o core e mostram ou devolvem o resultado; o Studio e a extensão
    pedem ao `aurora serve` e mostram a resposta. Elas escolhem como mostrar,
-   nunca o que fazer. O Studio não linka o core: o único crate do Lace que
+   nunca o que fazer. O Studio não linka o core: o único crate da AURORA que
    ele linka é o `aurora-agent`, do assistente, até a 1.0.
 3. **Uma camada não conhece a de cima.** O core não sabe que existe
    protocolo, CLI nem Studio. As mensagens dele não citam comandos: a dica
@@ -55,9 +55,9 @@ Cinco regras seguem dessa figura.
    o da extensão são gerados; o que se escreve à mão é só o que existe
    apenas numa interface.
 
-## 2. O que é uma API do Lace
+## 2. O que é uma API da AURORA
 
-Uma API do Lace é um **método do protocolo**. Ele tem seis peças, sempre as
+Uma API da AURORA é um **método do protocolo**. Ele tem seis peças, sempre as
 mesmas. O exemplo é o `history.compare`, que compara dois relatórios.
 
 | Peça | Onde mora | No exemplo |
@@ -72,7 +72,7 @@ mesmas. O exemplo é o `history.compare`, que compara dois relatórios.
 Um comando da CLI não é uma API. Ele é uma interface para pessoas, com texto
 e `--json`, e pode juntar vários métodos ou mostrar um só de outro jeito. O
 contrato do `--json` da CLI continua valendo, como diz o CONTRIBUTING.md,
-mas quem escreve um programa que fala com o Lace usa o protocolo.
+mas quem escreve um programa que fala com a AURORA usa o protocolo.
 
 ## 3. Nomes
 
@@ -119,7 +119,7 @@ Há três números de versão, e cada um diz uma coisa diferente.
 
 | Número | Onde | Quando sobe |
 |---|---|---|
-| Versão do Lace | os seis lugares de [RELEASE.md](RELEASE.md), seção 6.1 | a cada release, pelas regras da seção 2 de [RELEASE.md](RELEASE.md) |
+| Versão da AURORA | os seis lugares de [RELEASE.md](RELEASE.md), seção 6.1 | a cada release, pelas regras da seção 2 de [RELEASE.md](RELEASE.md) |
 | `PROTOCOL_VERSION` | `crates/aurora-protocol/src/lib.rs`, devolvido pelo `initialize` | só quando um cliente antigo deixaria de funcionar |
 | Versão da extensão | `editors/vscode/package.json` | a cada `.vsix` publicado com mudança, para o editor reconhecer a atualização |
 
@@ -148,7 +148,7 @@ da 1.0, só numa versão maior, depois do período de obsoleto.
 por geração e nunca são editados à mão. Toda revisão de uma mudança de
 contrato lê esse diff e confere, com a tabela acima, se ela é compatível.
 
-Um cliente descobre o que o Lace sabe fazer pela lista de métodos que o
+Um cliente descobre o que a AURORA sabe fazer pela lista de métodos que o
 `initialize` devolve, não comparando versões. A extensão do VS Code ainda
 compara versões quando usa a CLI direto, pela tabela `FEATURES` de
 `editors/vscode/src/aurora/version.ts`. Uma função nova que depende da CLI
@@ -216,7 +216,7 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
 7. **As interfaces que vão usar o método.** Só as que precisam dele agora.
    - CLI: a receita "Acrescentar um comando ou uma opção à CLI" do
      CONTRIBUTING.md; o comando chama a mesma função do core que o braço.
-   - Studio: a receita "Uma operação do Lace na interface" do
+   - Studio: a receita "Uma operação da AURORA na interface" do
      DEVELOPMENT.md. A função do `api.ts` pede o método pelo `aurora_call`, e
      o backend não ganha comando.
    - Extensão do VS Code: o método na interface `AuroraClient`
@@ -316,7 +316,7 @@ Cada fase vale sozinha e pode parar ali.
    extensão, e deixou de linkar o core, o `aurora-learn` e o instalador. O
    despacho é um só, o de `crates/aurora-cli/src/serve.rs`, e o `aurora serve`
    e o `aurora mcp` são a mesma porta (o primeiro pedido diz se a sessão é do
-   protocolo do Lace ou MCP). No Studio, os comandos que repetiam o
+   protocolo da AURORA ou MCP). No Studio, os comandos que repetiam o
    despacho deram lugar ao `aurora_call`; ficaram próprios os comandos que
    são do Studio: as operações longas com canal, os arquivos, o terminal, o
    vigia de arquivos, as preferências e a janela. A CLI chama direto as

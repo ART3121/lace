@@ -1,11 +1,11 @@
-//! A pasta de exercícios do aluno: um projeto Lace por exercício, o estado
+//! A pasta de exercícios do aluno: um projeto AURORA por exercício, o estado
 //! (o exercício atual e os resolvidos) e as soluções liberadas.
 //!
 //! ```text
 //! aurora-learn/                          a pasta que o `init` cria
 //!   .aurora-learn.json                   o estado
 //!   .gitignore
-//!   exercises/02_basico/mux2/          um projeto Lace por exercício
+//!   exercises/02_basico/mux2/          um projeto AURORA por exercício
 //!     mux2.spf
 //!     mux2.v                           o que o aluno edita
 //!     README.md                        o enunciado
@@ -32,7 +32,7 @@ use crate::track::{self, Exercise, Track};
 
 /// O estado, na raiz da pasta de exercícios.
 pub const STATE_FILE: &str = ".aurora-learn.json";
-/// O formato do estado que este Lace grava.
+/// O formato do estado que esta AURORA grava.
 pub const STATE_FORMAT: u32 = 1;
 /// A pasta, em cada exercício, do que o `aurora learn` gera.
 pub const HIDDEN_DIR: &str = ".aurora-learn";
@@ -267,7 +267,7 @@ impl Workspace {
 
     /// A pasta de exercícios que contém `start` ([`Workspace::discover`]),
     /// aberta e em dia com a trilha ([`Workspace::open`]), com as trilhas de
-    /// onde o Lace as acha ([`track::tracks_dir`]): o começo de cada
+    /// onde a AURORA as acha ([`track::tracks_dir`]): o começo de cada
     /// operação, na CLI e no servidor.
     ///
     /// # Erros
@@ -438,7 +438,7 @@ impl Workspace {
             .collect()
     }
 
-    /// A pasta do exercício (o projeto Lace dele).
+    /// A pasta do exercício (o projeto AURORA dele).
     pub fn exercise_dir(&self, exercise: &Exercise) -> Utf8PathBuf {
         self.root
             .join(EXERCISES_DIR)
@@ -466,7 +466,7 @@ impl Workspace {
         self.exercise_dir(exercise).join(testbench::WAVE_FILE)
     }
 
-    /// O projeto Lace do exercício.
+    /// O projeto AURORA do exercício.
     ///
     /// # Erros
     ///
@@ -577,9 +577,9 @@ impl Workspace {
     }
 }
 
-/// O `.gitignore` da pasta: o que o Lace grava ao corrigir e simular.
+/// O `.gitignore` da pasta: o que a AURORA grava ao corrigir e simular.
 const GITIGNORE: &str =
-    "# Gerado pelo aurora learn: o que o Lace grava ao corrigir e simular.\n.aurora/\n.aurora-learn/\n";
+    "# Gerado pelo aurora learn: o que a AURORA grava ao corrigir e simular.\n.aurora8/\n.aurora-learn/\n";
 
 /// O `README.md` de um exercício: o título e o enunciado, sem as dicas.
 fn prompt_text(exercise: &Exercise) -> String {
@@ -609,7 +609,7 @@ fn read_state(root: &Utf8Path) -> Result<State> {
         return Err(LearnError::InvalidState {
             path,
             reason: format!(
-                "format {} is not supported by this Lace (it reads format {STATE_FORMAT})",
+                "format {} is not supported by this AURORA (it reads format {STATE_FORMAT})",
                 state.format
             ),
         });
@@ -634,5 +634,5 @@ fn write_if_changed(path: &Utf8Path, text: &str) -> Result<()> {
 fn canonical(path: &Utf8Path) -> Result<Utf8PathBuf> {
     let canonical = dunce::canonicalize(path).map_err(LearnError::io("Reading", path))?;
     Utf8PathBuf::from_path_buf(canonical)
-        .map_err(|p| LearnError::Lace(aurora_core::AuroraError::NonUtf8Path(p.display().to_string())))
+        .map_err(|p| LearnError::AURORA(aurora_core::AuroraError::NonUtf8Path(p.display().to_string())))
 }

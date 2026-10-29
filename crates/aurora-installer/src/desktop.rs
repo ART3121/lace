@@ -25,7 +25,7 @@ pub const DESKTOP_FILE: &str = "aurora-ide.desktop";
 /// O `.app` do Studio no macOS (o `productName` do `tauri.conf.json`).
 pub const APP_NAME: &str = "AURORA IDE.app";
 /// A linha do `.desktop` que diz de que instalação ele é.
-const PREFIX_KEY: &str = "X-Lace-Prefix=";
+const PREFIX_KEY: &str = "X-AURORA-Prefix=";
 /// O lançador que o atalho do Linux abre, ao lado do `aurora-ide`
 /// ([`write_launcher`]).
 const LAUNCHER: &str = "aurora-ide-launch";
@@ -127,7 +127,7 @@ fn write_shortcut(shortcut: &Path, studio: &Path, prefix: &Path) -> anyhow::Resu
          Type=Application\n\
          Name=AURORA IDE\n\
          GenericName=Hardware development environment\n\
-         Comment=Verilog projects and SAPHO processors, with the Lace tools\n\
+         Comment=Verilog projects and SAPHO processors, with the AURORA tools\n\
          Exec={exec}\n\
          Icon={icon}\n\
          Terminal=false\n\
@@ -156,7 +156,7 @@ fn write_launcher(studio: &Path) -> anyhow::Result<PathBuf> {
     .fix();
     let script = format!(
         "#!/bin/sh\n\
-         # Abre a AURORA IDE pelo atalho do menu (gravado pelo instalador do Lace).\n\
+         # Abre a AURORA IDE pelo atalho do menu (gravado pelo instalador da AURORA).\n\
          # Sem uma biblioteca do sistema, o Studio não abre, e o erro iria para\n\
          # um terminal que não existe: aqui ele aparece numa janela.\n\
          studio={studio}\n\
@@ -281,7 +281,7 @@ fn install_command() -> Option<Vec<String>> {
 /// terminal se o instala agora e, com o sim, roda o comando do gerenciador
 /// de pacotes com o terminal dele (a senha do `sudo`, a confirmação do
 /// gerenciador). Sem terminal ou sem gerenciador conhecido, não pergunta: o
-/// aviso já saiu no resumo da instalação. Não falha: o Lace já está
+/// aviso já saiu no resumo da instalação. Não falha: a AURORA já está
 /// instalado, e o que der errado aqui sai como aviso.
 pub fn offer_runtime_install(studio_installed: bool) {
     use std::io::{BufRead, IsTerminal, Write};

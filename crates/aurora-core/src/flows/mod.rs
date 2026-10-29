@@ -16,7 +16,7 @@
 //! comando, na ordem em que acontece; o Studio só repassa a fase e cada
 //! build à interface, pelo [`delivery`](crate::delivery).
 //!
-//! `Err` é o Lace não conseguir rodar (bundle, projeto, E/S). Um fluxo que
+//! `Err` é a AURORA não conseguir rodar (bundle, projeto, E/S). Um fluxo que
 //! rodou e falhou é `Ok` com [`FlowOutcome::status`] diferente de
 //! `Succeeded`, e com o que cada fase deixou.
 
@@ -142,7 +142,7 @@ pub enum FlowRequest {
     },
     /// Corrige um exercício do `aurora learn` e grava se ele está resolvido;
     /// a correção vai em [`FlowOutcome::learn`]. Quem roda é o servidor do
-    /// Lace, que linka o aurora-learn: o [`run`] do core responde
+    /// AURORA, que linka o aurora-learn: o [`run`] do core responde
     /// `unsupported`. Sem relatório.
     Learn {
         /// A pasta de exercícios (ou uma pasta dentro dela).
@@ -635,7 +635,7 @@ pub struct SavedLayoutInfo {
     /// O arquivo.
     #[schemars(with = "String")]
     pub path: Utf8PathBuf,
-    /// O usuário salvou depois que o Lace o gerou: o Lace não o refaz.
+    /// O usuário salvou depois que a AURORA o gerou: a AURORA não o refaz.
     pub customized: bool,
 }
 

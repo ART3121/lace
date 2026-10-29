@@ -2,7 +2,7 @@
 # (packages/rtl-viewer/): tipos e lint, os testes unitários e de contrato nas
 # três plataformas e o teste de integração no Linux, num VS Code de verdade
 # sob xvfb. Roda quando muda a extensão, o viewer ou docs/schema/, que é o
-# contrato dela com o Lace.
+# contrato dela com a AURORA.
 
 name: vscode
 

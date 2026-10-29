@@ -1,4 +1,4 @@
-# Instala a última release do Lace no Windows 10 e 11 (x64).
+# Instala a última release da AURORA no Windows 10 e 11 (x64).
 #
 #   irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 #
@@ -138,10 +138,10 @@
     # os aplicativos escolhidos; o completo traz o bundle inteiro, e é o que
     # vem numa versão sem o web ou com AURORA_FULL_SETUP.
     $name = "lace-$version-windows-x64-web-setup.exe"
-    $what = 'the Lace {0} installer, which downloads only the apps you choose (windows-x64)' -f $version
+    $what = 'the AURORA {0} installer, which downloads only the apps you choose (windows-x64)' -f $version
     if ($env:AURORA_FULL_SETUP -or -not (& $listedAs $name)) {
         $name = "lace-$version-windows-x64-setup.exe"
-        $what = "Lace $version (windows-x64)"
+        $what = "AURORA $version (windows-x64)"
     }
     $setup = Join-Path $dir $name
 

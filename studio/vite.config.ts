@@ -8,7 +8,7 @@ import react from '@vitejs/plugin-react';
 // o Vite falha em vez de escolher outra que o Tauri não conhece.
 const host = process.env.TAURI_DEV_HOST;
 
-// O RTL viewer é um pacote do Lace fora do Studio (packages/rtl-viewer), que
+// O RTL viewer é um pacote da AURORA fora do Studio (packages/rtl-viewer), que
 // a extensão do VS Code e o `aurora synth --open` também usam. O Studio
 // compila o fonte dele direto.
 const rtlViewer = fileURLToPath(new URL('../packages/rtl-viewer/src', import.meta.url));

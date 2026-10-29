@@ -5,13 +5,13 @@ use aurora_core::AuroraError;
 
 /// O que pode dar errado ao carregar uma trilha, abrir a pasta de
 /// exercícios ou corrigir um exercício. As mensagens são em inglês, como as
-/// do Lace; o [`code`](LearnError::code) é o que as interfaces traduzem.
+/// da AURORA; o [`code`](LearnError::code) é o que as interfaces traduzem.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum LearnError {
     /// Um erro do aurora-core: ferramenta, projeto, I/O de uma operação.
     #[error(transparent)]
-    Lace(#[from] AuroraError),
+    AURORA(#[from] AuroraError),
 
     /// Ler ou gravar um arquivo falhou.
     #[error("{action} {path}: {source}")]
@@ -86,7 +86,7 @@ impl LearnError {
     /// interfaces traduzirem. Um erro do aurora-core leva o código dele.
     pub fn code(&self) -> &'static str {
         match self {
-            LearnError::Lace(error) => error.code(),
+            LearnError::AURORA(error) => error.code(),
             LearnError::Io { .. } => "io",
             LearnError::ComponentMissing => "learn_component_missing",
             LearnError::TrackNotFound { .. } => "track_not_found",

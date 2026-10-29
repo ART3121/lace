@@ -89,7 +89,7 @@ export class ActionBar implements vscode.Disposable {
         vscode.StatusBarAlignment.Left,
         FIRST_PRIORITY - i,
       );
-      item.name = `Lace: ${action.label}`;
+      item.name = `AURORA: ${action.label}`;
       this.items.set(action.kind, item);
     });
   }

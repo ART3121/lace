@@ -11,9 +11,9 @@
 //! operação é cancelada ou passa do prazo. Encerrar é encerrar tudo o que a
 //! ferramenta iniciou: o `iverilog` roda o `ivlpp` e o `ivl`, o Verilator
 //! roda o `make`, que roda o compilador C++. No Unix cada passo roda num
-//! grupo de processos próprio, e o Lace sinaliza o grupo. No Windows cada
+//! grupo de processos próprio, e a AURORA sinaliza o grupo. No Windows cada
 //! passo roda num Job Object ([`ProcessJob`]), que encerra a árvore inteira,
-//! também quando o próprio Lace morre (fechado à força, o Studio derrubado):
+//! também quando a própria AURORA morre (fechado à força, o Studio derrubado):
 //! o sistema fecha o handle do job, e o que estava nele termina junto.
 //!
 //! Nenhuma ferramenta abre janela de console ([`hide_console`]): a saída vai
@@ -31,14 +31,14 @@ use serde::Serialize;
 use crate::control::{CancelToken, Stream};
 use crate::error::{AuroraError, Result};
 
-/// De quanto em quanto tempo o Lace confere cancelamento e prazo.
+/// De quanto em quanto tempo a AURORA confere cancelamento e prazo.
 const POLL: Duration = Duration::from_millis(20);
 /// Quanto um processo tem para sair depois do pedido de término (SIGTERM),
 /// antes de ser morto (SIGKILL).
 const KILL_GRACE: Duration = Duration::from_secs(1);
 /// Quanto esperar pelo fim da saída depois que o processo terminou. Só
 /// passa disso se um processo que ele iniciou continua vivo segurando o
-/// pipe; aí o Lace para de ler.
+/// pipe; aí a AURORA para de ler.
 const DRAIN_LIMIT: Duration = Duration::from_secs(2);
 /// Quantos lotes lidos podem esperar por quem os recebe. Um lote é o que uma
 /// leitura do pipe trouxe, em linhas inteiras (até [`READ_CHUNK`] bytes).
@@ -48,14 +48,14 @@ const READ_CHUNK: usize = 64 * 1024;
 /// Até quanto de uma linha sem fim de linha espera o resto dela. Passado
 /// isso, o que chegou vai como uma linha, e o resto vem em outra.
 const LINE_LIMIT: usize = 64 * 1024;
-/// Quanto do começo e quanto do fim da saída de cada pipe o Lace guarda. Um
+/// Quanto do começo e quanto do fim da saída de cada pipe a AURORA guarda. Um
 /// testbench que imprime sem parar (`always #1 $display`) escrevia 33 MB em
 /// 5 s, e tudo ficava na memória até o fim; agora o meio sai, e o resultado
 /// diz quantos bytes ficaram de fora. Os erros dos compiladores vêm no
 /// começo; o `$finish` e o resumo da simulação, no fim.
 const OUTPUT_KEPT: usize = 2 * 1024 * 1024;
 
-/// Variáveis repassadas do ambiente do Lace ao filho. No Windows, sem
+/// Variáveis repassadas do ambiente da AURORA ao filho. No Windows, sem
 /// `SystemRoot` vários programas nem inicializam, e sem `ComSpec` o
 /// `system()` da biblioteca C não acha o `cmd.exe` (o `iverilog` roda o
 /// `ivlpp` e o `ivl` por ele). Sem `SystemDrive`, um caminho do registro
@@ -106,7 +106,7 @@ pub(crate) const GUI_ENV: &[&str] = &[
 ];
 
 /// Uma execução de programa, totalmente especificada: o registro exato do
-/// que o Lace rodou, presente em todo [`StepReport`](crate::StepReport).
+/// que a AURORA rodou, presente em todo [`StepReport`](crate::StepReport).
 ///
 /// Só o Core monta invocações; para os clientes o tipo é somente leitura.
 /// Reproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,
@@ -138,9 +138,9 @@ pub struct Invocation {
     /// a onda nele), por isso nunca é herdado.
     #[schemars(with = "String")]
     pub cwd: Utf8PathBuf,
-    /// Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.
+    /// Variáveis definidas pela AURORA, somadas às de `INHERITED_ENV`.
     pub env: Vec<(String, String)>,
-    /// Nomes de variáveis copiadas do ambiente do Lace, quando existirem.
+    /// Nomes de variáveis copiadas do ambiente da AURORA, quando existirem.
     /// Só os nomes aparecem no relatório.
     pub inherit: Vec<String>,
     // No Windows, nasce no nome curto (8.3) de `cwd` quando ele tem caractere
@@ -239,7 +239,7 @@ impl Invocation {
         self
     }
 
-    /// Copia do ambiente do Lace as variáveis `keys`, se existirem.
+    /// Copia do ambiente da AURORA as variáveis `keys`, se existirem.
     pub(crate) fn inherit(mut self, keys: &[&str]) -> Self {
         self.inherit.extend(keys.iter().map(|k| (*k).to_owned()));
         self
@@ -428,10 +428,10 @@ pub enum Termination {
     /// Terminou com um código NTSTATUS de exceção (só Windows), por exemplo
     /// `0xC0000005`, violação de acesso.
     Exception(u32),
-    /// O Lace encerrou o processo porque a operação foi cancelada
+    /// A AURORA encerrou o processo porque a operação foi cancelada
     /// ([`CancelToken::cancel`]).
     Cancelled,
-    /// O Lace encerrou o processo porque ele passou do prazo (por exemplo,
+    /// A AURORA encerrou o processo porque ele passou do prazo (por exemplo,
     /// [`SimulationOptions::timeout`](crate::SimulationOptions::timeout)).
     TimedOut,
     /// O sistema não informou nem código nem sinal.
@@ -501,7 +501,7 @@ pub(crate) struct Watch<'a> {
 ///
 /// `Err` só quando o processo nem começou (binário ausente, sem permissão,
 /// CWD inexistente). Um processo que roda e falha volta como `Ok` com a
-/// [`Termination`] correspondente; um que o Lace encerrou, com
+/// [`Termination`] correspondente; um que a AURORA encerrou, com
 /// [`Termination::Cancelled`] ou [`Termination::TimedOut`], e com tudo o que
 /// ele escreveu até ali.
 pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessOutput> {
@@ -539,7 +539,7 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
     let mut err = Capture::default();
     let mut status = None;
     let mut reading = true;
-    // Por que o Lace encerrou o processo, e quando mandou o SIGTERM.
+    // Por que a AURORA encerrou o processo, e quando mandou o SIGTERM.
     let mut stopped: Option<(Termination, Instant)> = None;
     let mut killed = false;
     let mut exited_at = None;
@@ -609,7 +609,7 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
                 break;
             }
             // Terminou, mas alguém que ele iniciou ainda segura o pipe: o
-            // Lace o encerra e para de ler. No Unix o número do grupo
+            // AURORA o encerra e para de ler. No Unix o número do grupo
             // continua reservado enquanto esse processo existir, então o
             // sinal não atinge outro; no Windows quem encerra é o job.
             if at.elapsed() >= DRAIN_LIMIT {
@@ -634,7 +634,7 @@ pub(crate) fn run(invocation: &Invocation, watch: &Watch<'_>) -> Result<ProcessO
         termination = reason;
     } else if !termination.success() && watch.cancel.is_some_and(CancelToken::is_cancelled) {
         // O filho morreu sozinho enquanto o cancelamento era pedido, antes
-        // de o Lace encerrá-lo: no Windows, quando o Lace tem console, o
+        // de a AURORA encerrá-lo: no Windows, quando a AURORA tem console, o
         // filho divide esse console (`hide_console`), e o Ctrl+C chega aos
         // dois.
         termination = Termination::Cancelled;
@@ -684,7 +684,7 @@ impl Capture {
                 text.push('\n');
             }
             text.push_str(&format!(
-                "[Lace: {dropped} bytes of output left out here]\n"
+                "[AURORA: {dropped} bytes of output left out here]\n"
             ));
         }
         text.push_str(&decode_text(&tail));
@@ -815,8 +815,8 @@ fn windows_1252(byte: u8) -> char {
 }
 
 /// Põe o filho num grupo de processos próprio, para encerrar depois tudo o
-/// que ele iniciar. Fora do grupo do Lace, o Ctrl+C do terminal não chega ao
-/// filho: quem o encerra é o Lace, ao ver o cancelamento.
+/// que ele iniciar. Fora do grupo da AURORA, o Ctrl+C do terminal não chega ao
+/// filho: quem o encerra é a AURORA, ao ver o cancelamento.
 #[cfg(unix)]
 fn own_process_group(command: &mut Command) {
     use std::os::unix::process::CommandExt;
@@ -828,12 +828,12 @@ fn own_process_group(_command: &mut Command) {}
 
 /// Faz `command` rodar sem janela de console no Windows.
 ///
-/// Um programa de console iniciado por um programa gráfico, como o Lace
+/// Um programa de console iniciado por um programa gráfico, como a AURORA
 /// Studio, ganharia uma janela própria por ferramenta, e fechar essa janela
 /// mataria a ferramenta. Sem console, então, o filho vai com
 /// `CREATE_NO_WINDOW`: um console próprio, sem janela, que os processos que
 /// ele iniciar herdam. Com console (`has_console`: o de um terminal, ou o
-/// que quem criou o Lace lhe deu), o filho divide o do Lace, como sempre: não
+/// que quem criou a AURORA lhe deu), o filho divide o da AURORA, como sempre: não
 /// abre janela nenhuma, e o `CREATE_NO_WINDOW` só custaria um console novo
 /// (um `conhost.exe`) por ferramenta, uns 16 ms em cada uma. A saída vai
 /// pelos pipes nos dois casos. Fora do Windows não faz nada.
@@ -849,7 +849,7 @@ pub fn hide_console(command: &mut Command) {
     let _ = command;
 }
 
-/// O Lace tem console, com janela ou sem, mesmo com os três fluxos padrão
+/// A AURORA tem console, com janela ou sem, mesmo com os três fluxos padrão
 /// redirecionados. O `CONOUT$`, a tela do console do processo, só abre
 /// quando ele existe: é o jeito de saber sem código `unsafe`.
 #[cfg(windows)]
@@ -866,7 +866,7 @@ fn has_console() -> bool {
 /// sistema (`xdg-open` no Linux, `open` no macOS, o Explorer no Windows), a
 /// única exceção à regra de só rodar ferramentas do bundle: o navegador do
 /// usuário não vem no bundle, e é o sistema que sabe qual é. Não espera o
-/// programa aberto, que continua depois que o Lace sai.
+/// programa aberto, que continua depois que a AURORA sai.
 ///
 /// # Erros
 ///
@@ -903,7 +903,7 @@ pub fn open_with_system(path: &Utf8Path) -> Result<()> {
 /// No Windows é um Job Object com `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`:
 /// [`ProcessJob::kill`] encerra a árvore inteira, e soltar o valor também.
 /// Como o sistema fecha os handles de um processo que morre, as ferramentas
-/// terminam junto com o Lace mesmo quando ele é encerrado à força (o Studio
+/// terminam junto com a AURORA mesmo quando ele é encerrado à força (o Studio
 /// fechado pelo Gerenciador de Tarefas, o `child.kill()` de uma extensão de
 /// editor) em vez de ficarem órfãs. Fora do Windows não faz nada: lá cada
 /// passo roda num grupo de processos próprio.
@@ -1853,12 +1853,12 @@ mod windows_tests {
             .unwrap();
         let pid = wait_for_pid(&pid_file);
         // Como o Gerenciador de Tarefas: TerminateProcess, sem chance de o
-        // Lace limpar nada.
+        // AURORA limpar nada.
         aurora.kill().unwrap();
         aurora.wait().unwrap();
         assert!(
             gone(pid),
-            "a ferramenta ficou órfã depois que o Lace morreu"
+            "a ferramenta ficou órfã depois que a AURORA morreu"
         );
     }
 
@@ -1874,12 +1874,12 @@ mod windows_tests {
         if std::env::var_os("AURORA_TEST_CONSOLE").is_none() {
             return;
         }
-        let script = "Add-Type -Namespace Lace -Name Console -MemberDefinition \
+        let script = "Add-Type -Namespace AURORA -Name Console -MemberDefinition \
                       '[DllImport(\"kernel32.dll\")] public static extern System.IntPtr GetConsoleWindow(); \
                        [DllImport(\"kernel32.dll\")] public static extern uint GetConsoleProcessList(uint[] list, uint count);'; \
                       $list = [uint32[]]::new(64); \
-                      $n = [Lace.Console]::GetConsoleProcessList($list, 64); \
-                      [Console]::Out.WriteLine([Lace.Console]::GetConsoleWindow()); \
+                      $n = [AURORA.Console]::GetConsoleProcessList($list, 64); \
+                      [Console]::Out.WriteLine([AURORA.Console]::GetConsoleWindow()); \
                       [Console]::Out.WriteLine($list[0..($n - 1)] -join ',')";
         let out = run(&powershell(script).inherit(GUI_ENV)).unwrap();
         let mut lines = out.stdout.lines();
@@ -1890,9 +1890,9 @@ mod windows_tests {
         );
     }
 
-    /// O que a ferramenta viu, iniciada por um Lace (o processo auxiliar)
+    /// O que a ferramenta viu, iniciada por uma AURORA (o processo auxiliar)
     /// criado com `flags`: a janela de console dela, os processos do console
-    /// dela e o PID do Lace.
+    /// dela e o PID da AURORA.
     fn tool_console_under(flags: u32) -> (String, Vec<u32>, u32) {
         use std::os::windows::process::CommandExt;
         let aurora = Command::new(std::env::current_exe().unwrap())
@@ -1931,7 +1931,7 @@ mod windows_tests {
 
     #[test]
     fn without_a_console_the_tool_gets_no_window() {
-        // Um Lace sem console, como o Studio: sem CREATE_NO_WINDOW, a
+        // Uma AURORA sem console, como o Studio: sem CREATE_NO_WINDOW, a
         // ferramenta ganharia um console novo, com janela.
         const DETACHED_PROCESS: u32 = 0x0000_0008;
         let (window, attached, _) = tool_console_under(DETACHED_PROCESS);
@@ -1941,8 +1941,8 @@ mod windows_tests {
 
     #[test]
     fn with_a_console_the_tool_shares_it() {
-        // Um Lace com console, aqui um sem janela e com os três fluxos fora
-        // dele, como o de uma IDE: a ferramenta divide o console do Lace em
+        // Uma AURORA com console, aqui um sem janela e com os três fluxos fora
+        // dele, como o de uma IDE: a ferramenta divide o console da AURORA em
         // vez de ganhar um próprio, que custaria um conhost.exe por
         // ferramenta.
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
@@ -1950,7 +1950,7 @@ mod windows_tests {
         assert_eq!(window, "0", "a ferramenta abriu janela de console");
         assert!(
             attached.contains(&aurora),
-            "a ferramenta não divide o console do Lace: {attached:?}"
+            "a ferramenta não divide o console da AURORA: {attached:?}"
         );
     }
 

@@ -3,7 +3,7 @@
 //!
 //! O receptor de eventos do core roda no meio da operação e tem de ser
 //! rápido (API.md, 5.8). O [`Dispatcher`] dá a qualquer cliente o desenho
-//! que o Lace Studio usava por conta própria: o receptor só põe o evento numa
+//! que a AURORA IDE usava por conta própria: o receptor só põe o evento numa
 //! fila, e uma thread de entrega junta os eventos em lotes (no máximo a cada
 //! [`Limits::flush_every`] ou [`Limits::max_batch`] eventos) e os entrega em
 //! ordem, pela função que o cliente deu, com as fases e os resultados de
@@ -34,7 +34,7 @@ use crate::flows::{Phase, Progress};
 use crate::{BuildResult, CancelToken, Control, Event};
 use crate::{Step, Tool};
 
-/// Os números da entrega. O padrão é o que o Lace Studio calibrou.
+/// Os números da entrega. O padrão é o que a AURORA IDE calibrou.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Limits {
     /// Intervalo máximo entre dois lotes de eventos.
@@ -76,7 +76,7 @@ impl Default for Limits {
 }
 
 /// O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.
-/// Os nomes são os que o Lace Studio manda à interface dele.
+/// Os nomes são os que a AURORA IDE manda à interface dele.
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Notification {
@@ -105,7 +105,7 @@ pub enum Notification {
         /// O resultado.
         result: BuildResult,
     },
-    /// Progresso de uma instalação ou atualização do Lace (o evento do
+    /// Progresso de uma instalação ou atualização da AURORA (o evento do
     /// instalador, serializado por ele; o core não conhece o tipo).
     Install {
         /// O evento, em JSON.

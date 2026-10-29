@@ -1,7 +1,7 @@
 //! Placas FPGA: compilar um projeto para uma placa e gravar nela.
 //!
 //! O projeto diz a placa e a ligação das portas do topo aos sinais da placa
-//! no `fpga.json` ([`config`]), ao lado do `.spf`; a AURORA não o lê. O Lace
+//! no `fpga.json` ([`config`]), ao lado do `.spf`; a AURORA não o lê. A AURORA
 //! gera um topo da placa ([`wrapper`]) que instancia o topo do projeto com
 //! essas ligações (invertendo, cortando e completando larguras), e o
 //! compila ([`build()`]) e grava na placa ([`program()`]) pelo Quartus Prime

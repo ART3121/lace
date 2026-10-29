@@ -29,11 +29,11 @@ export async function removeFromProject(
   first: unknown,
   all: unknown,
 ): Promise<AuroraRun<RemoveReport> | undefined> {
-  // O caminho da seleção (do VS Code) no nome que o Lace registrou.
+  // O caminho da seleção (do VS Code) no nome que a AURORA registrou.
   const registered = new Map(registeredPaths(deps.status.report).map((path) => [pathKey(path), path]));
   const paths = targetPaths(first, all).flatMap((path) => registered.get(pathKey(path)) ?? []);
   if (paths.length === 0) {
-    void vscode.window.showWarningMessage('Lace: escolha um ou mais arquivos do projeto.');
+    void vscode.window.showWarningMessage('AURORA: escolha um ou mais arquivos do projeto.');
     return undefined;
   }
   const client = clientFor(deps, 'files');
@@ -44,7 +44,7 @@ export async function removeFromProject(
   const run = await runAndRefresh(deps, () => client.remove(project.spf, paths));
   if (run?.status === 'succeeded') {
     const what = run.result.removed.length === 1 ? basename(run.result.removed[0]) : `${run.result.removed.length} arquivos`;
-    vscode.window.setStatusBarMessage(`$(remove) Lace: ${what} saiu do projeto; continua no disco`, 8000);
+    vscode.window.setStatusBarMessage(`$(remove) AURORA: ${what} saiu do projeto; continua no disco`, 8000);
   }
   return run;
 }
@@ -60,7 +60,7 @@ export async function reorder(
   const path = listedPath(target);
   const list = path === undefined ? undefined : listOf(deps.status.report, path);
   if (path === undefined || list === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um arquivo do RTL ou dos testbenches na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um arquivo do RTL ou dos testbenches na vista Fontes.');
     return undefined;
   }
   const position = positionFor(list, path, move);
@@ -146,7 +146,7 @@ export async function renameInProject(
 ): Promise<AuroraRun<MoveReport> | undefined> {
   const from = listedPath(target) ?? unregisteredPath(target);
   if (from === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um arquivo na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um arquivo na vista Fontes.');
     return undefined;
   }
   const client = clientFor(deps, 'files');
@@ -232,7 +232,7 @@ export async function followInEditors(from: string, to: string): Promise<void> {
   }
   if (dirty.length > 0) {
     void vscode.window.showWarningMessage(
-      `Lace: ${dirty.join(', ')} tem alterações não salvas e continua aberto no caminho antigo. Use Salvar como.`,
+      `AURORA: ${dirty.join(', ')} tem alterações não salvas e continua aberto no caminho antigo. Use Salvar como.`,
     );
   }
 }
@@ -289,7 +289,7 @@ export class ExplorerFollower implements vscode.Disposable {
       );
       if (processor) {
         void vscode.window.showWarningMessage(
-          `Lace: o Lace acha o processador ${processor.name} pelo nome da pasta e do fonte. ` +
+          `AURORA: a AURORA acha o processador ${processor.name} pelo nome da pasta e do fonte. ` +
             `Com ${basename(from)} renomeado, o projeto não acha mais o processador: volte o nome (Desfazer).`,
         );
         continue;
@@ -308,7 +308,7 @@ export class ExplorerFollower implements vscode.Disposable {
         const old = connection.kind === 'ready' && !connection.features.moveAfter;
         if (run.error.code === 'cli' && old) {
           void vscode.window.showWarningMessage(
-            `Lace: o Lace ${connection.version} não registra o que foi renomeado fora dele ` +
+            `AURORA: a AURORA ${connection.version} não registra o que foi renomeado fora dele ` +
               `(precisa do ${FEATURES.moveAfter}): o .spf ainda aponta para ${basename(from)}. ` +
               'Volte o nome e use Renomear na vista Fontes.',
           );
@@ -338,7 +338,7 @@ export class ExplorerFollower implements vscode.Disposable {
       showAuroraError(run.error);
     } else if (run.status === 'succeeded') {
       const what = gone.length === 1 ? basename(gone[0]) : `${gone.length} arquivos`;
-      vscode.window.setStatusBarMessage(`$(remove) Lace: ${what} apagado e tirado do projeto`, 8000);
+      vscode.window.setStatusBarMessage(`$(remove) AURORA: ${what} apagado e tirado do projeto`, 8000);
     }
     await this.deps.status.refresh();
   }
@@ -350,7 +350,7 @@ export class ExplorerFollower implements vscode.Disposable {
     return project && status && samePath(status.spf, project.spf) ? { project, status } : {};
   }
 
-  /** Sem aviso: o explorador não pediu nada ao Lace. */
+  /** Sem aviso: o explorador não pediu nada à AURORA. */
   private client() {
     const connection = this.deps.connection.state;
     return connection.kind === 'ready' && connection.features.files ? connection.client : undefined;

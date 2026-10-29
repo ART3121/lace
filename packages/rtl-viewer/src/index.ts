@@ -1,4 +1,4 @@
-// O RTL viewer do Lace: o esquemático interativo do netlist que o Yosys
+// O RTL viewer da AURORA: o esquemático interativo do netlist que o Yosys
 // grava na síntese. Quem o abriga (o Studio, a extensão do VS Code, o HTML
 // do `aurora synth --open`) cria o estado, configura o worker do layout e
 // monta o componente; o CSS vem de rtl-viewer.css.

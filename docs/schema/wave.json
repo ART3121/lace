@@ -62,7 +62,7 @@
           "type": "string"
         },
         "customized": {
-          "description": "O usuário salvou depois que o Lace o gerou: o Lace não o refaz\n(`aurora wave --reset-layout` volta ao gerado).",
+          "description": "O usuário salvou depois que a AURORA o gerou: a AURORA não o refaz\n(`aurora wave --reset-layout` volta ao gerado).",
           "type": "boolean"
         }
       },

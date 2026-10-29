@@ -1,7 +1,7 @@
 //! Comandos do bundle: o equivalente do `aurora tools`, e instalar
-//! componentes e atualizar o Lace.
+//! componentes e atualizar a AURORA.
 //!
-//! Instalar e atualizar são pedidos ao servidor do Lace (`install.add`,
+//! Instalar e atualizar são pedidos ao servidor da AURORA (`install.add`,
 //! `update.apply`), que roda a biblioteca do instalador com a regra da CLI.
 //! Rodam como operação (`jobs.rs`): o progresso chega à interface como
 //! `install` (o evento do instalador) e, para o console, como `cli_output`
@@ -28,7 +28,7 @@ pub async fn toolchain_info(app: AppHandle) -> IpcResult<Value> {
     .await
 }
 
-/// `aurora update --check`: o Lace, o bundle e cada aplicativo comparados com
+/// `aurora update --check`: a AURORA, o bundle e cada aplicativo comparados com
 /// a última release e com o upstream (o `update.check` do servidor). Precisa
 /// de rede; cada consulta tem prazo. `prefix` vem preenchido quando o
 /// servidor é o `aurora` de uma instalação do instalador: é por ele que a
@@ -44,7 +44,7 @@ pub async fn aurora_update_check(app: AppHandle) -> IpcResult<Value> {
 }
 
 /// `aurora install <componentes>`: instala aplicativos do bundle na
-/// instalação do Lace, sem reinstalar (o `install.add` do servidor, que
+/// instalação da AURORA, sem reinstalar (o `install.add` do servidor, que
 /// recusa um nome que não é do bundle antes de baixar). Cancelar vale até
 /// o último pedaço entrar, e o que entrou sai.
 #[tauri::command]
@@ -63,7 +63,7 @@ pub async fn aurora_install(
     })
 }
 
-/// `aurora update --yes`: troca a instalação pela da última release do Lace,
+/// `aurora update --yes`: troca a instalação pela da última release da AURORA,
 /// com o bundle e os mesmos componentes (o `update.apply` do servidor). Vai
 /// por componentes quando dá: só os pedaços com arquivos que mudaram são
 /// baixados e trocados, também no Windows, e o resultado diz o que mudou

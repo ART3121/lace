@@ -1,4 +1,4 @@
-// Os projetos do Lace do workspace (os .spf) e qual deles está ativo. Com um
+// Os projetos da AURORA do workspace (os .spf) e qual deles está ativo. Com um
 // só, ele é o ativo; com mais de um, o usuário escolhe, e a escolha fica
 // guardada no workspace.
 
@@ -16,7 +16,7 @@ export interface AuroraProject {
 }
 
 const ACTIVE_KEY = 'aurora.activeProject';
-// O .aurora8/ é do próprio Lace (temporários, relatórios), nunca um projeto.
+// O .aurora8/ é da própria AURORA (temporários, relatórios), nunca um projeto.
 const EXCLUDE = '**/{node_modules,.git,.aurora8}/**';
 
 export class Projects implements vscode.Disposable {
@@ -64,7 +64,7 @@ export class Projects implements vscode.Disposable {
 
   async select(): Promise<AuroraProject | undefined> {
     if (this.list.length === 0) {
-      void vscode.window.showInformationMessage('Nenhum projeto do Lace (.spf) neste workspace.');
+      void vscode.window.showInformationMessage('Nenhum projeto da AURORA (.spf) neste workspace.');
       return undefined;
     }
     const items = this.list.map((project) => ({
@@ -74,7 +74,7 @@ export class Projects implements vscode.Disposable {
       project,
     }));
     const pick = await vscode.window.showQuickPick(items, {
-      title: 'Projeto ativo do Lace',
+      title: 'Projeto ativo da AURORA',
       placeHolder: 'Os comandos e a vista Fontes usam este projeto',
     });
     if (pick) {
@@ -84,7 +84,7 @@ export class Projects implements vscode.Disposable {
   }
 
   /**
-   * O projeto cuja pasta contém o arquivo, o mais fundo: o .spf que o Lace
+   * O projeto cuja pasta contém o arquivo, o mais fundo: o .spf que a AURORA
    * acharia subindo as pastas a partir do arquivo.
    */
   owner(file: string): AuroraProject | undefined {

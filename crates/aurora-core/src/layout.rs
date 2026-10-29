@@ -7,7 +7,7 @@
 //! a 7.1 a estrutura é a do próprio YANC: o que a pessoa escreve fica em
 //! `<proc>/`, e tudo o que o YANC gera numa pasta de saída plana,
 //! `<proc>/<proc>/` (ver o módulo `project`). Um projeto antigo não compila
-//! sem a conversão: o fonte não está onde o Lace o procura.
+//! sem a conversão: o fonte não está onde a AURORA o procura.
 //!
 //! A conversão é a da AURORA (`js/project/estrutura_antiga.ts`), para que um
 //! projeto convertido por uma abra igual na outra:

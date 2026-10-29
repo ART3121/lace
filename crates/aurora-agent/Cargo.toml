@@ -1,6 +1,6 @@
 [package]
 name = "aurora-agent"
-description = "O assistente do Lace: uma sessão do Claude Code com as ferramentas do aurora mcp, para o Studio e para o aurora chat"
+description = "O assistente da AURORA: uma sessão do Claude Code com as ferramentas do aurora mcp, para o Studio e para o aurora chat"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

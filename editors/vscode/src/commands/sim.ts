@@ -1,4 +1,4 @@
-// "Lace: Simular": `aurora sim` no projeto (o testbench simulado), num
+// "AURORA: Simular": `aurora sim` no projeto (o testbench simulado), num
 // testbench (que passa a ser o do projeto) ou num processador. O que o
 // testbench escreve sai ao vivo, depois de "|"; no fim, as saídas das
 // portas do processador, os testes cocotb e a onda.
@@ -64,18 +64,18 @@ export async function simulate(
   const { run } = done;
   const output = 'Saída';
   if (run.status === 'error') {
-    void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(run.error)}`);
+    void vscode.window.showErrorMessage(`AURORA: ${formatAuroraError(run.error)}`);
   } else if (run.status === 'cancelled') {
-    vscode.window.setStatusBarMessage('Lace: simulação cancelada', 5000);
+    vscode.window.setStatusBarMessage('AURORA: simulação cancelada', 5000);
   } else if (run.status === 'failed') {
     void vscode.window
-      .showErrorMessage(`Lace: a simulação falhou: ${summary?.summary}.`, output)
+      .showErrorMessage(`AURORA: a simulação falhou: ${summary?.summary}.`, output)
       .then((choice) => choice === output && deps.runs.output.show());
   } else {
     const wave = 'Abrir a onda';
     const actions = run.result.simulation?.waveform ? [wave, output] : [output];
     void vscode.window
-      .showInformationMessage(`Lace: ${summary?.summary}.`, ...actions)
+      .showInformationMessage(`AURORA: ${summary?.summary}.`, ...actions)
       .then((choice) => {
         if (choice === wave) {
           void openWave(deps, target.kind === 'processor' ? target : { kind: 'project' });
@@ -146,7 +146,7 @@ export function summarizeSim(output: vscode.OutputChannel, run: AuroraRun<SimRep
 export function simulateTestbench(deps: RunDeps, target?: unknown): Promise<AuroraRun<SimReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
-    void vscode.window.showWarningMessage('Lace: escolha um testbench para simular.');
+    void vscode.window.showWarningMessage('AURORA: escolha um testbench para simular.');
     return Promise.resolve(undefined);
   }
   return simulate(deps, { kind: 'testbench', path: uri.fsPath });
@@ -155,7 +155,7 @@ export function simulateTestbench(deps: RunDeps, target?: unknown): Promise<Auro
 export function simulateProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<SimReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um processador na vista Fontes.');
     return Promise.resolve(undefined);
   }
   return simulate(deps, { kind: 'processor', name });

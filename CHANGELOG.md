@@ -2,6 +2,11 @@
 
 ## Não publicada
 
+- O nome Lace sai do texto: a documentação, as mensagens da CLI, os textos
+  da IDE, da extensão e do instalador passam a dizer AURORA. Ficam com o
+  nome antigo só as menções ao que veio do Lace (a pasta `.lace` que a
+  abertura renomeia, o `settings.json` do Lace Studio que a IDE copia, os
+  atalhos antigos que o instalador apaga).
 - Extensão do VS Code: passa a se chamar AURORA, e as configurações, os
   comandos e os contextos passam de `lace.*` para `aurora.*` (`lace.path`
   vira `aurora.path`). Ela fala com o `aurora` pelo protocolo 2, e o

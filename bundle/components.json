@@ -7,7 +7,7 @@
     "exclude: caminhos que não entram, mesmo que casem com select ou data.",
     "keep: exceções ao exclude: entram mesmo casando com ele (alguns pacotes do site-packages do Python, sem os outros).",
     "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora, AURORA IDE).",
-    "run: os executáveis que o Lace roda; o SHA-256 de cada um vai para o manifesto.",
+    "run: os executáveis que a AURORA roda; o SHA-256 de cada um vai para o manifesto.",
     "Padrões: caminho exato, 'dir/**' para tudo abaixo de dir, ou glob de fnmatch.",
     "Chaves de plataforma: linux-x64, darwin-arm64, windows-x64; 'unix' vale para as duas primeiras.",
     "common: arquivos de um pacote que vão com qualquer componente dele (no macOS, o realpath que os lançadores usam).",
@@ -23,7 +23,7 @@
     {
       "name": "sapho",
       "label": "SAPHO",
-      "description": "Every Lace app",
+      "description": "Every AURORA app",
       "audience": "People who build SAPHO processors and program them in C±, with the Verilog tools around them: simulation, synthesis, waves, FPGA boards and the exercises",
       "components": ["yanc", "icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "aurora-learn", "rtl-viewer"]
     },
@@ -60,7 +60,7 @@
       "profiles": {
         "sapho": {
           "label": "SAPHO",
-          "description": "Todos os aplicativos do Lace",
+          "description": "Todos os aplicativos da AURORA",
           "audience": "Quem constrói processadores SAPHO e os programa em C±, com as ferramentas de Verilog em volta: simulação, síntese, ondas, placas FPGA e os exercícios"
         },
         "verilog": {
@@ -255,7 +255,7 @@
     },
     {
       "name": "aurora-learn",
-      "label": "Lace Learn",
+      "label": "AURORA Learn",
       "description": "Verilog exercises in the style of rustlings: aurora learn and the Exercises view of the Studio",
       "requires": ["icarus"],
       "package": "aurora-learn",

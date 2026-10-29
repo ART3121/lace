@@ -15,7 +15,7 @@ use aurora_installer::pack::{self, Contents};
 
 #[derive(Parser, Debug)]
 #[command(name = "aurora-pack", version = aurora_installer::AURORA_VERSION)]
-/// Build the Lace installers
+/// Build the AURORA installers
 struct Args {
     #[command(subcommand)]
     command: Command,
@@ -32,7 +32,7 @@ struct Common {
         help = "The contents index [default: <toolchain>.contents.json]"
     )]
     contents: Option<PathBuf>,
-    /// The Lace executable for the platform
+    /// The AURORA executable for the platform
     #[arg(long, value_name = "FILE")]
     aurora: PathBuf,
     /// Where to build (must be empty)

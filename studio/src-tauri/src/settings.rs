@@ -39,7 +39,7 @@ pub struct Settings {
     #[serde(default)]
     pub aurora_themes: bool,
     /// Outro bundle no lugar do instalado, como o `--toolchain` da CLI.
-    /// `None`: procura a instalação do Lace (ver `toolchain.rs`).
+    /// `None`: procura a instalação da AURORA (ver `toolchain.rs`).
     pub toolchain_dir: Option<String>,
     /// Onde estão `perl`, `make` e o compilador C++ do Verilator, como o
     /// `--compiler` da CLI. No Windows, a raiz de um MSYS2.
@@ -75,7 +75,7 @@ pub struct Settings {
     pub verbose: bool,
     /// Reabrir o último projeto ao iniciar.
     pub restore_last_project: bool,
-    /// Procurar Lace mais novo ao abrir o Studio e, com ele aberto, a cada
+    /// Procurar AURORA mais nova ao abrir o Studio e, com ele aberto, a cada
     /// 12 horas (`aurora update --check`), e oferecer a atualização.
     pub check_updates: bool,
     /// O shell do terminal no Windows: `powershell` (o Windows PowerShell)
@@ -106,7 +106,7 @@ pub struct Settings {
     /// O modelo do assistente (`--model` do Claude Code); `None` é o padrão.
     pub assistant_model: Option<String>,
     /// O assistente pode editar e criar arquivos na pasta do projeto, além
-    /// de usar as ferramentas do Lace e ler arquivos.
+    /// de usar as ferramentas da AURORA e ler arquivos.
     pub assistant_allow_edits: bool,
     /// Projetos abertos recentemente, do mais novo para o mais antigo.
     pub recent_projects: Vec<RecentProject>,

@@ -14,7 +14,7 @@
 //! O resultado de uma ferramenta vai em `content` como um resumo em texto
 //! ([`summary`]: passou ou falhou, onde, qual relatório) e em
 //! `structuredContent` como o JSON do resultado, com a saída dos passos
-//! cortada; `isError` marca o Lace que não conseguiu rodar, com o
+//! cortada; `isError` marca a AURORA que não conseguiu rodar, com o
 //! `ErrorInfo` no texto. As ferramentas que mudam a instalação
 //! (`update_apply`, `install_add`) só existem com `--allow-update`.
 //!
@@ -72,7 +72,7 @@ const SHUTDOWN_WAIT: Duration = Duration::from_secs(3);
 pub struct McpArgs {
     #[command(subcommand)]
     pub command: Option<McpCommand>,
-    /// Also expose update_apply and install_add, which change the Lace installation
+    /// Also expose update_apply and install_add, which change the AURORA installation
     #[arg(long)]
     pub allow_update: bool,
 }
@@ -80,7 +80,7 @@ pub struct McpArgs {
 /// Os subcomandos de `aurora mcp`.
 #[derive(clap::Subcommand, Debug, Clone)]
 pub enum McpCommand {
-    /// Register the Lace MCP server in a client (Claude Code, Claude Desktop) or print the entry
+    /// Register the AURORA MCP server in a client (Claude Code, Claude Desktop) or print the entry
     Setup(SetupArgs),
 }
 
@@ -95,7 +95,7 @@ struct Tool {
 }
 
 impl Tool {
-    /// Muda a instalação do Lace: só aparece com `--allow-update` (a
+    /// Muda a instalação da AURORA: só aparece com `--allow-update` (a
     /// marcação `agent_update` do método).
     fn needs_allow_update(&self) -> bool {
         method_info(self.method).is_some_and(|info| info.agent == Agent::AllowUpdate)
@@ -240,7 +240,7 @@ pub(crate) fn serve_session(
 
 type Job = Box<dyn FnOnce() + Send>;
 
-/// O servidor MCP: o despacho do Lace mais o schema dos pedidos, de onde
+/// O servidor MCP: o despacho da AURORA mais o schema dos pedidos, de onde
 /// saem as ferramentas.
 pub(crate) struct Mcp {
     server: Server,
@@ -465,7 +465,7 @@ impl Mcp {
             "capabilities": { "tools": { "listChanged": false } },
             "serverInfo": { "name": "aurora", "version": env!("CARGO_PKG_VERSION") },
             "instructions": format!(
-                "Lace orchestrates Verilog and SAPHO processor projects. {project} Use build, \
+                "AURORA orchestrates Verilog and SAPHO processor projects. {project} Use build, \
                  check, sim and synth for the flows (each returns a text summary and the full \
                  result in structuredContent), project_status to read the project, history_show \
                  to read a past report. Long calls report progress when the request carries a \
@@ -492,7 +492,7 @@ impl Mcp {
             1,
             json!({
                 "name": PROJECT_FIND,
-                "description": "Lists the Lace projects (.spf files) under a folder, to find the \
+                "description": "Lists the AURORA projects (.spf files) under a folder, to find the \
                     project path the other tools take.",
                 "inputSchema": {
                     "type": "object",
@@ -627,7 +627,7 @@ impl Mcp {
     }
 
     /// Roda uma ferramenta. `Err` é um pedido que o MCP recusa (ferramenta
-    /// desconhecida); um erro do Lace volta como resultado com `isError`.
+    /// desconhecida); um erro da AURORA volta como resultado com `isError`.
     pub(crate) fn call(
         &self,
         name: &str,
@@ -752,7 +752,7 @@ impl Mcp {
         find_spf(&dir, depth, &mut found);
         found.sort();
         let text = if found.is_empty() {
-            format!("No Lace project (.spf) under {dir} within {depth} level(s).\n")
+            format!("Na AURORA project (.spf) under {dir} within {depth} level(s).\n")
         } else {
             let mut text = format!("{} project(s) under {dir}:\n", found.len());
             for spf in &found {
@@ -831,7 +831,7 @@ fn progress_message(notification: &Notification) -> Option<String> {
                             .collect::<Vec<_>>()
                             .join(", "))
                         .filter(|c| !c.is_empty())
-                        .unwrap_or_else(|| "Lace".to_owned())
+                        .unwrap_or_else(|| "AURORA".to_owned())
                 )),
                 "replacing" => Some("replacing files".to_owned()),
                 "verifying" => Some("verifying the executables".to_owned()),
@@ -872,7 +872,7 @@ fn find_spf(dir: &Utf8Path, depth: u64, into: &mut Vec<Utf8PathBuf>) {
     }
 }
 
-/// Um resultado de ferramenta que é erro do Lace (ou do adaptador).
+/// Um resultado de ferramenta que é erro da AURORA (ou do adaptador).
 fn tool_error(code: &str, message: &str) -> Value {
     json!({
         "content": [{ "type": "text", "text": format!("{message} ({code})") }],
@@ -1181,7 +1181,7 @@ mod tests {
             PROJECT_FIND,
             json!({ "dir": parent, "depth": 0 }),
         );
-        assert!(text_of(&reply).starts_with("No Lace project"), "{reply}");
+        assert!(text_of(&reply).starts_with("Na AURORA project"), "{reply}");
 
         // history_list no projeto novo: vazio, com o resumo.
         let reply = call(&mcp, &rx, 6, "history_list", json!({ "project": spf }));

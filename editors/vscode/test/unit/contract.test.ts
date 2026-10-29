@@ -1,4 +1,4 @@
-// O contrato com o Lace: as respostas que o aurora falso devolve são as que o
+// O contrato com a AURORA: as respostas que o aurora falso devolve são as que o
 // aurora de verdade deu, e têm de continuar valendo contra docs/schema/. Se o
 // schema muda, este teste quebra, e a correção é gravar de novo
 // (npm run record:fixtures), gerar os tipos (npm run gen:types) e conferir
@@ -39,7 +39,7 @@ const validators = new Map<string, ValidateFunction>();
 
 /**
  * O validador do schema, mais estrito que ele: um objeto com `properties`
- * não aceita campo fora delas. Assim, um campo que o Lace renomeia ou tira
+ * não aceita campo fora delas. Assim, um campo que a AURORA renomeia ou tira
  * quebra o teste, em vez de passar calado.
  */
 function validator(file: string): ValidateFunction {

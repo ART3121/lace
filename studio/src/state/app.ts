@@ -1,4 +1,4 @@
-// O estado do aplicativo: versão, preferências, bundle do Lace e recentes.
+// O estado do aplicativo: versão, preferências, bundle da AURORA e recentes.
 // As preferências moram no backend (settings.json); aqui fica a cópia que a
 // interface usa, e cada mudança é gravada lá.
 

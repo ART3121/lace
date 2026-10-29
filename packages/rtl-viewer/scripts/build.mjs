@@ -59,7 +59,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="generator" content="Lace RTL viewer">
+<meta name="generator" content="AURORA RTL viewer">
 <title>RTL viewer</title>
 <style>
 ${css}

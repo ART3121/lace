@@ -24,7 +24,7 @@
       }
     },
     "not_installed": {
-      "description": "Os componentes que este Lace conhece e que não estão instalados.",
+      "description": "Os componentes que esta AURORA conhece e que não estão instalados.",
       "type": "array",
       "items": {
         "type": "string"
@@ -111,7 +111,7 @@
           "default": null
         },
         "files": {
-          "description": "SHA-256 dos executáveis do componente que o Lace roda, por caminho\nrelativo ao bundle, conferido por [`Toolchain::verify`].",
+          "description": "SHA-256 dos executáveis do componente que a AURORA roda, por caminho\nrelativo ao bundle, conferido por [`Toolchain::verify`].",
           "type": "object",
           "additionalProperties": {
             "type": "string"

@@ -56,7 +56,7 @@ fn confirm(prefix: &Utf8Path) -> anyhow::Result<()> {
     if !std::io::stdin().is_terminal() {
         bail!("No terminal to confirm: use aurora uninstall --yes");
     }
-    eprint!("Remove Lace and its bundle from {prefix}? [y/N] ");
+    eprint!("Remove AURORA and its bundle from {prefix}? [y/N] ");
     std::io::stderr().flush()?;
     let mut answer = String::new();
     std::io::stdin().lock().read_line(&mut answer)?;

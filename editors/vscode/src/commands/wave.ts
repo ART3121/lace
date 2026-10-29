@@ -1,4 +1,4 @@
-// "Lace: Abrir a onda": `aurora wave`, que abre o surfer-aurora e volta com
+// "AURORA: Abrir a onda": `aurora wave`, que abre o surfer-aurora e volta com
 // ele aberto (o aurora espera 1,5 s para ver se o Surfer ficou de pé). A onda
 // do projeto é a do testbench simulado; a de um processador, a da simulação
 // dele; e um .vcd, .fst ou .ghw abre direto, com ou sem projeto.
@@ -38,11 +38,11 @@ export async function openWave(deps: RunDeps, target: WaveTarget): Promise<Auror
       return undefined;
     }
     if (run.status === 'succeeded') {
-      vscode.window.setStatusBarMessage(`$(pulse) Lace: ${basename(run.result.waveform)} aberta no surfer-aurora`, 6000);
+      vscode.window.setStatusBarMessage(`$(pulse) AURORA: ${basename(run.result.waveform)} aberta no surfer-aurora`, 6000);
     } else if (run.status === 'error') {
       showAuroraError(run.error);
     } else {
-      void vscode.window.showErrorMessage(`Lace: aurora wave terminou como ${run.status}.`);
+      void vscode.window.showErrorMessage(`AURORA: aurora wave terminou como ${run.status}.`);
     }
     return run;
   } catch (error) {
@@ -54,7 +54,7 @@ export async function openWave(deps: RunDeps, target: WaveTarget): Promise<Auror
 export function openProcessorWave(deps: RunDeps, target?: unknown): Promise<AuroraRun<WaveReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um processador na vista Fontes.');
     return Promise.resolve(undefined);
   }
   return openWave(deps, { kind: 'processor', name });
@@ -63,7 +63,7 @@ export function openProcessorWave(deps: RunDeps, target?: unknown): Promise<Auro
 export function openWaveFile(deps: RunDeps, target?: unknown): Promise<AuroraRun<WaveReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
-    void vscode.window.showWarningMessage('Lace: escolha um arquivo .vcd, .fst ou .ghw.');
+    void vscode.window.showWarningMessage('AURORA: escolha um arquivo .vcd, .fst ou .ghw.');
     return Promise.resolve(undefined);
   }
   return openWave(deps, { kind: 'file', path: uri.fsPath });

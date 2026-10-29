@@ -11,7 +11,7 @@
 //!
 //! Cada processador é uma string (formato antigo) ou um objeto com `name`,
 //! `language` (`"cpp"` ou ausente), `sourceFile`/`cmmFile`, `clk` (MHz),
-//! `numClocks` e `showArrays`. O Lace lê só isso e preserva o resto do
+//! `numClocks` e `showArrays`. A AURORA lê só isso e preserva o resto do
 //! documento intacto ao regravar, para a AURORA continuar abrindo o projeto.
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -215,7 +215,7 @@ pub(crate) fn positive_int(
     }
     .ok_or_else(|| bad("is not a number"))?;
     // O asmcomp só aceita inteiro em -f e -c. A AURORA trunca em silêncio
-    // (parseInt); o Lace recusa para não compilar com um valor que ninguém
+    // (parseInt); a AURORA recusa para não compilar com um valor que ninguém
     // escolheu.
     if n.fract() != 0.0 || n < 1.0 || n > f64::from(u32::MAX) {
         return Err(bad(&format!("must be a positive integer (it is {n})")));
@@ -241,8 +241,8 @@ pub(crate) fn write(path: &Utf8Path, doc: &Value) -> Result<()> {
     write_json(path, doc, "Writing project")
 }
 
-/// Como [`write`], para outro JSON do Lace: `context` é o que o erro de I/O
-/// diz que o Lace fazia ("Writing settings").
+/// Como [`write`], para outro JSON da AURORA: `context` é o que o erro de I/O
+/// diz que a AURORA fazia ("Writing settings").
 pub(crate) fn write_json(path: &Utf8Path, doc: &Value, context: &'static str) -> Result<()> {
     let mut text = serde_json::to_string_pretty(doc).map_err(|e| invalid(path, e))?;
     text.push('\n');

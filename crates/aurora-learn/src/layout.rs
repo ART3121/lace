@@ -4,7 +4,7 @@
 //! primeiro erro.
 //!
 //! Os comandos são os do parser do surfer-aurora (`variable_add`,
-//! `divider_add`, `cursor_set`, `marker_set_at`, `zoom_fit`); o Lace passa o
+//! `divider_add`, `cursor_set`, `marker_set_at`, `zoom_fit`); a AURORA passa o
 //! arquivo com `-c`, e o Studio, na aba da onda.
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -19,7 +19,7 @@ use crate::workspace::HIDDEN_DIR;
 pub const LAYOUT_FILE: &str = ".aurora-learn/wave.sucl";
 
 /// O layout de uma onda de exercício: com a onda em `.aurora-learn/` e o
-/// `wave.sucl` da última correção ao lado dela. É como o Lace e o Studio
+/// `wave.sucl` da última correção ao lado dela. É como a AURORA e o Studio
 /// abrem a onda de um exercício já arrumada, por qualquer caminho.
 pub fn layout_of(waveform: &Utf8Path) -> Option<Utf8PathBuf> {
     let dir = waveform.parent()?;

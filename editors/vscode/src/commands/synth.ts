@@ -1,4 +1,4 @@
-// "Lace: Sintetizar": `aurora synth` no topo do projeto ou num processador, no
+// "AURORA: Sintetizar": `aurora synth` no topo do projeto ou num processador, no
 // Yosys, e o RTL viewer com o netlist que ela grava (SynthesisResult.netlist).
 // Com aurora.synth.schematic, também o esquemático do Graphviz (`--svg`). As
 // estatísticas são as células genéricas do Yosys, sem mapeamento para FPGA.
@@ -50,16 +50,16 @@ export async function synthesize(deps: RunDeps, target: SynthTarget): Promise<Au
   await deps.status.refresh();
   const { run } = done;
   if (run.status === 'error') {
-    void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(run.error)}`);
+    void vscode.window.showErrorMessage(`AURORA: ${formatAuroraError(run.error)}`);
   } else if (run.status === 'cancelled') {
-    vscode.window.setStatusBarMessage('Lace: síntese cancelada', 5000);
+    vscode.window.setStatusBarMessage('AURORA: síntese cancelada', 5000);
   } else if (run.status === 'failed') {
     const output = 'Saída';
     void vscode.window
-      .showErrorMessage(`Lace: a síntese falhou: ${summary?.summary}.`, output)
+      .showErrorMessage(`AURORA: a síntese falhou: ${summary?.summary}.`, output)
       .then((choice) => choice === output && deps.runs.output.show());
   } else {
-    vscode.window.setStatusBarMessage(`$(pass) Lace: ${summary?.summary}`, 8000);
+    vscode.window.setStatusBarMessage(`$(pass) AURORA: ${summary?.summary}`, 8000);
     const netlist = run.result.synthesis?.netlist;
     if (netlist) {
       lastNetlist.set(targetKey(done.project.spf, target), netlist);
@@ -76,9 +76,9 @@ export async function synthesize(deps: RunDeps, target: SynthTarget): Promise<Au
 }
 
 /**
- * "Lace: Abrir o RTL viewer": o netlist da última síntese do alvo. Nesta
+ * "AURORA: Abrir o RTL viewer": o netlist da última síntese do alvo. Nesta
  * sessão, o que o JSON do synth disse; de antes, o que ficou no disco, em
- * `.aurora8/Temp/synth/<alvo>/hierarchy.json` (onde o Lace grava, e onde o
+ * `.aurora8/Temp/synth/<alvo>/hierarchy.json` (onde a AURORA grava, e onde o
  * Studio também procura, em SchematicView); sem nenhum, sintetiza.
  */
 export async function openRtlViewer(deps: RunDeps, target: SynthTarget): Promise<void> {
@@ -149,7 +149,7 @@ export function summarizeSynth(output: vscode.OutputChannel, run: AuroraRun<Synt
 export function synthesizeProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<SynthReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um processador na vista Fontes.');
     return Promise.resolve(undefined);
   }
   return synthesize(deps, { kind: 'processor', name });

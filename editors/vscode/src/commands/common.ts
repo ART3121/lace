@@ -1,4 +1,4 @@
-// O que todo comando faz antes de chamar o Lace: conferir que o aurora está
+// O que todo comando faz antes de chamar a AURORA: conferir que o aurora está
 // pronto e tem o recurso, achar o projeto e o arquivo do clique.
 
 import { basename } from 'node:path';
@@ -25,12 +25,12 @@ export interface CommandDeps {
 export function clientFor(deps: CommandDeps, feature: Feature): AuroraClient | undefined {
   const connection = deps.connection.state;
   if (connection.kind !== 'ready') {
-    void vscode.window.showWarningMessage('Lace: o aurora não está disponível. Veja a saída Lace.');
+    void vscode.window.showWarningMessage('AURORA: o aurora não está disponível. Veja a saída AURORA.');
     return undefined;
   }
   if (!connection.features[feature]) {
     void vscode.window.showWarningMessage(
-      `Lace: isto precisa do Lace ${FEATURES[feature]} ou mais novo, e o instalado é o ${connection.version}.`,
+      `AURORA: isto precisa da AURORA ${FEATURES[feature]} ou mais novo, e o instalado é o ${connection.version}.`,
     );
     return undefined;
   }
@@ -54,7 +54,7 @@ export async function chooseProject(projects: Projects, file?: string): Promise<
   const useOwner = `Usar ${owner.name}`;
   const keep = `Manter ${active.name}`;
   const choice = await vscode.window.showWarningMessage(
-    `Lace: ${basename(file)} está na pasta do projeto ${owner.name}, e o projeto ativo é ${active.name}.`,
+    `AURORA: ${basename(file)} está na pasta do projeto ${owner.name}, e o projeto ativo é ${active.name}.`,
     useOwner,
     keep,
   );
@@ -103,12 +103,12 @@ export function processorOf(target: unknown): string | undefined {
 }
 
 export function showAuroraError(error: ErrorInfo): void {
-  void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(error)}`);
+  void vscode.window.showErrorMessage(`AURORA: ${formatAuroraError(error)}`);
 }
 
-/** O aurora não rodou, ou saiu fora do contrato: a mensagem vai para a tela e para a saída Lace. */
+/** O aurora não rodou, ou saiu fora do contrato: a mensagem vai para a tela e para a saída AURORA. */
 export function showProcessError(deps: CommandDeps, error: unknown): void {
   const message = (error as Error).message;
   deps.log.error(message);
-  void vscode.window.showErrorMessage(`Lace: ${message}`);
+  void vscode.window.showErrorMessage(`AURORA: ${message}`);
 }

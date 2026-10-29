@@ -617,7 +617,7 @@ fn add_verilog_creates_module_and_makes_it_top() {
     std::fs::write(&path, AND_GATE).unwrap();
     let again = project.add_verilog(None, &path, false).unwrap();
     assert!(!again.created);
-    assert_eq!(read(&path), AND_GATE, "o Lace não sobrescreve");
+    assert_eq!(read(&path), AND_GATE, "a AURORA não sobrescreve");
 
     let reopened = Project::open(project.spf_path()).unwrap();
     assert_eq!(reopened.files(FileRole::Synthesizable).len(), 1);

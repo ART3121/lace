@@ -23,7 +23,7 @@
 //! ```
 //!
 //! A AURORA desenha com o netlistsvg (JavaScript, com um fork próprio e cerca
-//! de 50 skins). O Lace usa o `show` do Yosys e o `dot` do Graphviz, que vêm
+//! de 50 skins). A AURORA usa o `show` do Yosys e o `dot` do Graphviz, que vêm
 //! no bundle, em vez de exigir Node (decisão do autor, 2026-09-29). O visual é
 //! o do Graphviz, diferente do da AURORA.
 

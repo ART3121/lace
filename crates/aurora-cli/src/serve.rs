@@ -40,7 +40,7 @@
 //!
 //! Códigos JSON-RPC: `-32700` JSON inválido, `-32600` pedido malformado,
 //! `-32601` método desconhecido, `-32602` parâmetros inválidos, `-32000` um
-//! erro do Lace (o `ErrorInfo` em `error.data`, com `code` e `hint`),
+//! erro da AURORA (o `ErrorInfo` em `error.data`, com `code` e `hint`),
 //! `-32001` cancelado antes de começar, `-32002` sessão não inicializada,
 //! `-32003` servidor encerrando.
 
@@ -107,7 +107,7 @@ pub(crate) mod rpc {
         (INVALID_PARAMS, "parâmetros que o método não aceita"),
         (
             AURORA,
-            "o Lace não conseguiu atender: o `ErrorInfo` vai em `error.data`",
+            "a AURORA não conseguiu atender: o `ErrorInfo` vai em `error.data`",
         ),
         (CANCELLED, "cancelado com `$/cancel` antes de começar"),
         (NOT_INITIALIZED, "pedido antes do `initialize`"),
@@ -121,7 +121,7 @@ pub struct ServeArgs {
     /// Print the JSON Schema of the protocol (requests and responses) and exit
     #[arg(long)]
     pub schema: bool,
-    /// In an MCP session, also expose update_apply and install_add, which change the Lace installation
+    /// In an MCP session, also expose update_apply and install_add, which change the AURORA installation
     #[arg(long)]
     pub allow_update: bool,
 }
@@ -130,7 +130,7 @@ pub struct ServeArgs {
 /// servidor do jeito certo: cancela o que roda, espera e sai.
 ///
 /// O primeiro pedido diz o idioma da sessão: o `initialize` do MCP traz
-/// `protocolVersion`, e o do protocolo do Lace não traz. Uma sessão MCP vai
+/// `protocolVersion`, e o do protocolo da AURORA não traz. Uma sessão MCP vai
 /// para o tradutor do `aurora mcp`, com `project_dir` (o `-C` global) como o
 /// projeto padrão das ferramentas; o idioma MCP é o do assistente de IA e
 /// exige o recurso experimental `assistant`.
@@ -207,7 +207,7 @@ fn first_line(input: &mut impl BufRead) -> Option<String> {
 }
 
 /// A linha é o `initialize` de um cliente MCP: ele traz `protocolVersion`,
-/// e o do protocolo do Lace não traz.
+/// e o do protocolo da AURORA não traz.
 fn is_mcp_initialize(line: &str) -> bool {
     let line = line.strip_prefix('\u{feff}').unwrap_or(line);
     serde_json::from_str::<Value>(line)
@@ -263,7 +263,7 @@ enum Out {
 pub(crate) struct Writer {
     tx: SyncSender<Out>,
     /// Sem notificações: o `aurora mcp` usa o despacho do servidor, mas o
-    /// stdout dele é do MCP, que não entende as notificações do Lace.
+    /// stdout dele é do MCP, que não entende as notificações da AURORA.
     quiet: bool,
     /// O cliente fechou a saída: não há mais a quem responder.
     closed: Arc<AtomicBool>,
@@ -414,13 +414,13 @@ type Job = Box<dyn FnOnce() + Send>;
 /// Por que um pedido não deu certo: um erro do core (que ganha a dica da
 /// CLI ao sair) ou um já em forma de [`ErrorInfo`].
 pub(crate) enum Failure {
-    Lace(Box<AuroraError>),
+    AURORA(Box<AuroraError>),
     Info(Box<ErrorInfo>),
 }
 
 impl From<AuroraError> for Failure {
     fn from(error: AuroraError) -> Self {
-        Failure::Lace(Box::new(error))
+        Failure::AURORA(Box::new(error))
     }
 }
 
@@ -439,7 +439,7 @@ impl From<aurora_installer::Error> for Failure {
 impl Failure {
     pub(crate) fn into_info(self) -> ErrorInfo {
         match self {
-            Failure::Lace(error) => crate::output::error_info(&error),
+            Failure::AURORA(error) => crate::output::error_info(&error),
             Failure::Info(info) => *info,
         }
     }
@@ -823,7 +823,7 @@ impl Server {
         Ok(locate::resolve(&lookup)?.toolchain)
     }
 
-    /// Atende um pedido. `Err` é o Lace não conseguir rodar.
+    /// Atende um pedido. `Err` é a AURORA não conseguir rodar.
     pub(crate) fn handle(&self, id: &Value, request: Request, cancel: CancelToken) -> Handled {
         self.handle_with(id, request, cancel, None)
     }
@@ -919,7 +919,7 @@ impl Server {
             }
             Request::ProcessorCheckName { name } => {
                 // A mesma regra do processor.add: a do YANC e, fora dela,
-                // os nomes das pastas do Lace.
+                // os nomes das pastas da AURORA.
                 Response::Name(name_check(aurora_core::validate_new_processor_name(&name)))
             }
             Request::ProcessorAdd { project, spec } => {
@@ -1574,7 +1574,7 @@ fn open_project(path: &Utf8Path) -> Result<Project, Failure> {
             ErrorInfo::new(
                 "spf_missing",
                 format!(
-                    "The project file {path} does not exist anymore: without it Lace cannot build, simulate or change the project"
+                    "The project file {path} does not exist anymore: without it AURORA cannot build, simulate or change the project"
                 ),
             )
             .into()
@@ -2312,7 +2312,7 @@ mod tests {
         // Sem overwrite, o destino que existe é recusado.
         let reply = ask(1, json!({ "from": a, "to": b }));
         assert_eq!(reply["error"]["data"]["code"], "path_exists", "{reply}");
-        // O .spf é do que o Lace mantém no lugar: nada vai para a lixeira.
+        // O .spf é do que a AURORA mantém no lugar: nada vai para a lixeira.
         let reply = ask(2, json!({ "from": a, "to": spf, "overwrite": true }));
         assert_eq!(reply["error"]["data"]["code"], "cannot_replace", "{reply}");
         assert!(spf.is_file() && a.is_file());

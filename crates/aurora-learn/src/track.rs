@@ -36,7 +36,7 @@ pub const TRACKS_ENV: &str = "AURORA_LEARN_DIR";
 /// A trilha que o `aurora learn init` usa quando nenhuma é pedida.
 pub const DEFAULT_TRACK: &str = "verilog";
 
-/// O formato de trilha que este Lace entende (`track.json`).
+/// O formato de trilha que esta AURORA entende (`track.json`).
 pub const TRACK_FORMAT: u32 = 1;
 
 /// O arquivo que marca a pasta de uma trilha.
@@ -215,7 +215,7 @@ impl Track {
             return Err(LearnError::track(
                 &manifest,
                 format!(
-                    "format {} is not supported by this Lace (it reads format {TRACK_FORMAT})",
+                    "format {} is not supported by this AURORA (it reads format {TRACK_FORMAT})",
                     format.format
                 ),
             ));
@@ -335,8 +335,8 @@ pub(crate) fn interface_in(file: &Utf8Path, module: &str) -> Result<ModuleInterf
 ///
 /// 1. a de [`TRACKS_ENV`], se definida e não vazia;
 /// 2. numa build de desenvolvimento (`cargo build`, `tauri dev`), a pasta
-///    `aurora-learn/` do repositório de onde o Lace foi compilado, se ela
-///    estiver lá: quem roda o Lace do fonte vê a trilha do fonte, sem
+///    `aurora-learn/` do repositório de onde a AURORA foi compilada, se ela
+///    estiver lá: quem roda a AURORA do fonte vê a trilha do fonte, sem
 ///    instalar o componente. [`TRACKS_ENV`] definida e vazia desliga isto;
 /// 3. a do componente `aurora-learn` do bundle.
 ///

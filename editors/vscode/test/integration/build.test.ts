@@ -15,7 +15,7 @@ import { activate, lastCall, resetFake, run, setFakeState, spf, workspace } from
 
 const soma = { kind: 'entry', entry: { role: 'processor', label: 'soma', path: null } } as unknown as SourceNode;
 
-describe('Lace: Compilar', () => {
+describe('AURORA: Compilar', () => {
   let api: AuroraExtensionApi;
   const source = vscode.Uri.file(join(workspace, 'soma', 'soma.cmm'));
 
@@ -31,7 +31,7 @@ describe('Lace: Compilar', () => {
     assert.deepEqual(lastCall('build'), ['-C', spf, '--events', 'build']);
     assert.equal(api.runs.state('build').last?.summary, '2 processadores compilados');
     assert.equal(api.status?.processors.find((p) => p.name === 'filtro')?.built, true);
-    // O Lace registrou o .v e o testbench que o filtro gerou.
+    // A AURORA registrou o .v e o testbench que o filtro gerou.
     assert.ok(api.status?.synthesizable.some((f) => f.path.endsWith('filtro.v')));
     assert.deepEqual(
       result?.status === 'succeeded' && result.result.registered.map((f) => [f.role, f.selected]),

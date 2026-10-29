@@ -1,4 +1,4 @@
-//! As placas que o Lace conhece: o FPGA, o cabo de gravação e os sinais da
+//! As placas que a AURORA conhece: o FPGA, o cabo de gravação e os sinais da
 //! placa ligados ao FPGA, com os pinos.
 //!
 //! Cada placa é um JSON em `crates/aurora-core/boards/<id>.json`, embutido no

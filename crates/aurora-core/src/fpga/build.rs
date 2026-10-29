@@ -16,7 +16,7 @@
 //! ```
 //!
 //! Os quatro são os comandos que a interface do Quartus roda ao compilar (o
-//! `Flow Log` do relatório dela), um por passo, na pasta da placa. O Lace
+//! `Flow Log` do relatório dela), um por passo, na pasta da placa. A AURORA
 //! nunca os executou: não havia Quartus na máquina em que foi escrito.
 
 use std::time::Instant;

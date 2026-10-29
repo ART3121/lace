@@ -298,12 +298,12 @@
               "type": "string"
             },
             "after": {
-              "description": "O movimento já aconteceu fora do Lace.",
+              "description": "O movimento já aconteceu fora da AURORA.",
               "type": "boolean",
               "default": false
             },
             "overwrite": {
-              "description": "Se o destino existe, ele vai para a lixeira do sistema e o\nmovimento acontece; sem isso, `path_exists`. O que o Lace mantém\nno lugar, a pasta do projeto e uma pasta que contém a origem não\nsão substituídos (`cannot_replace`). Não vale com `after`.",
+              "description": "Se o destino existe, ele vai para a lixeira do sistema e o\nmovimento acontece; sem isso, `path_exists`. O que a AURORA mantém\nno lugar, a pasta do projeto e uma pasta que contém a origem não\nsão substituídos (`cannot_replace`). Não vale com `after`.",
               "type": "boolean",
               "default": false
             }
@@ -762,7 +762,7 @@
       ]
     },
     {
-      "description": "O layout do Lace para uma onda, para um visualizador próprio (a aba de\nonda do Studio): o gerado dos processadores SAPHO, o salvo no projeto\nda onda (que o gerado atualiza enquanto o usuário não salvar o dele)\ne o de um exercício do `aurora learn`. Resposta: [`WaveLayoutInfo`].",
+      "description": "O layout da AURORA para uma onda, para um visualizador próprio (a aba de\nonda do Studio): o gerado dos processadores SAPHO, o salvo no projeto\nda onda (que o gerado atualiza enquanto o usuário não salvar o dele)\ne o de um exercício do `aurora learn`. Resposta: [`WaveLayoutInfo`].",
       "type": "object",
       "properties": {
         "method": {
@@ -814,7 +814,7 @@
       ]
     },
     {
-      "description": "Quais nomes de arquivo são de testbench pela regra do Lace\n(`tb_<nome>.v`, `<nome>_tb.v`). Resposta: um sim ou não por nome, na\nordem.",
+      "description": "Quais nomes de arquivo são de testbench pela regra da AURORA\n(`tb_<nome>.v`, `<nome>_tb.v`). Resposta: um sim ou não por nome, na\nordem.",
       "type": "object",
       "properties": {
         "method": {
@@ -1299,7 +1299,7 @@
       ]
     },
     {
-      "description": "As versões: este Lace, a última release, o bundle, cada componente.\nResposta: o relatório do instalador.",
+      "description": "As versões: esta AURORA, a última release, o bundle, cada componente.\nResposta: o relatório do instalador.",
       "type": "object",
       "properties": {
         "method": {
@@ -1336,7 +1336,7 @@
               "default": null
             },
             "reopen_ide": {
-              "description": "No Windows, quando o assistente de instalação roda: abrir o Lace\nStudio quando ele terminar (o `--reopen-ide` da CLI). O Studio\npede isso e fecha, para o assistente trocar os arquivos dele.",
+              "description": "No Windows, quando o assistente de instalação roda: abrir a AURORA\nStudio quando ele terminar (o `--reopen-ide` da CLI). O Studio\npede isso e fecha, para o assistente trocar os arquivos dele.",
               "type": "boolean",
               "default": false
             }
@@ -2003,7 +2003,7 @@
           ]
         },
         {
-          "description": "Corrige um exercício do `aurora learn` e grava se ele está resolvido;\na correção vai em [`FlowOutcome::learn`]. Quem roda é o servidor do\nLace, que linka o aurora-learn: o [`run`] do core responde\n`unsupported`. Sem relatório.",
+          "description": "Corrige um exercício do `aurora learn` e grava se ele está resolvido;\na correção vai em [`FlowOutcome::learn`]. Quem roda é o servidor do\nAURORA, que linka o aurora-learn: o [`run`] do core responde\n`unsupported`. Sem relatório.",
           "type": "object",
           "properties": {
             "root": {

@@ -1,6 +1,6 @@
 # Placas FPGA
 
-O Lace leva um projeto para uma placa FPGA: confere as ligações das portas
+A AURORA leva um projeto para uma placa FPGA: confere as ligações das portas
 do topo aos sinais da placa, gera o topo da placa, compila pelo Quartus
 Prime, sem abrir a interface dele, e grava pelo cabo USB da placa. Este
 documento descreve as placas, o `fpga.json`, `aurora fpga boards`, `aurora fpga
@@ -15,7 +15,7 @@ aurora experimental enable fpga
 
 ou no Studio, em Preferências > Experimental > Placa FPGA. O que se liga
 num vale para o outro: os dois leem o `experimental.json` da pasta de
-configuração do Lace ([CLI.md](CLI.md), "Componentes experimentais").
+configuração da AURORA ([CLI.md](CLI.md), "Componentes experimentais").
 Desligado, todo `aurora fpga` sai com 2 e diz como ligar
 (`experimental_disabled`), e o Studio tira da janela a aba Placa FPGA, o
 botão FPGA da barra de ferramentas, as ações do menu Fluxo e da paleta, a
@@ -44,7 +44,7 @@ placas, e `aurora fpga boards <placa>` mostra os sinais com os pinos, o padrão
 de I/O e quais são ativos em nível baixo. Com `--json`, os dados completos.
 
 Os dados de cada placa ficam em `crates/aurora-core/boards/<placa>.json`,
-embutidos no Lace. Uma placa nova é um arquivo novo nessa pasta e uma linha
+embutidos na AURORA. Uma placa nova é um arquivo novo nessa pasta e uma linha
 em `board.rs`; os testes conferem nomes, pinos repetidos e clocks.
 
 **Na C5G** (Cyclone V GX Starter Kit), as chaves SW, os botões KEY e os
@@ -99,7 +99,7 @@ Regras:
   display). Porta `inout` não é ligada.
 - Com faixa dos dois lados, as larguras têm de ser iguais. Com faixa de um
   lado só, ou de nenhum, ligam-se os bits de baixo: a entrada que sobra
-  recebe 0 e a saída que sobra não chega à placa. O Lace avisa cada ajuste.
+  recebe 0 e a saída que sobra não chega à placa. A AURORA avisa cada ajuste.
 - Um bit de entrada do topo tem uma ligação só; um bit de saída da placa
   também. Uma saída do topo pode dirigir mais de um sinal da placa.
 - Entrada do topo sem ligação recebe 0, com aviso. Bit de saída da placa
@@ -130,7 +130,7 @@ compilado (`aurora build`).
 
 ## O topo da placa
 
-O Lace gera um módulo, `aurora_board_top`, que tem como portas só os sinais
+A AURORA gera um módulo, `aurora_board_top`, que tem como portas só os sinais
 da placa usados e instancia o topo do projeto com as ligações. É ele que
 vai para o Quartus, com um pino por bit de cada sinal. `aurora fpga check --show-top`
 mostra o Verilog. Ele é gerado de novo a cada compilação: não edite.
@@ -138,9 +138,9 @@ mostra o Verilog. Ele é gerado de novo a cada compilação: não edite.
 ## O Quartus Prime
 
 Para as placas Intel, o bitstream sai do Quartus Prime, que não tem
-alternativa aberta para o Cyclone IV. O Lace roda o Quartus sem abrir a
+alternativa aberta para o Cyclone IV. A AURORA roda o Quartus sem abrir a
 interface. Ele não vai no bundle (é proprietário e grande): é a segunda
-exceção à regra do bundle, depois do compilador do Verilator. O Lace o
+exceção à regra do bundle, depois do compilador do Verilator. A AURORA o
 procura nesta ordem:
 
 1. `--quartus <DIR>` ou `AURORA_QUARTUS`: a pasta da versão
@@ -201,7 +201,7 @@ placa ligado ao topo, com o período do oscilador. Os três arquivos são
 gravados de novo a cada compilação, em inglês e só com ASCII, por
 precaução: não se sabe em que codificação o Quartus os lê.
 
-Depois do Fitter, antes de gerar o arquivo de gravação, o Lace lê o `.pin`
+Depois do Fitter, antes de gerar o arquivo de gravação, a AURORA lê o `.pin`
 (onde o Quartus de fato pôs cada sinal) e confere cada bit contra a placa:
 o pino, a direção, o padrão de I/O e que a posição veio da atribuição, e
 não de uma escolha do Fitter. Qualquer diferença reprova a compilação no
@@ -212,12 +212,12 @@ do `.sof` e de tudo o que entrou nele (os fontes, a biblioteca SAPHO, as
 memórias `.mif` dos processadores, o `fpga.json` e a definição da placa).
 É por ele que a gravação sabe se o `.sof` ainda descreve o projeto.
 
-Depois de compilar, o Lace mostra os erros e avisos do Quartus com arquivo e
+Depois de compilar, a AURORA mostra os erros e avisos do Quartus com arquivo e
 linha (os `Info`, centenas, ficam de fora; o aviso repetido em cada canto de
 tempo aparece uma vez), os recursos da FPGA do resumo do Fitter e, por
 clock, a frequência pedida, a Fmax e as folgas de setup e de hold no pior
 canto. Folga negativa não reprova a compilação: o Quartus gera o `.sof` do
-mesmo jeito, e o Lace avisa que o design pode falhar na placa nessa
+mesmo jeito, e a AURORA avisa que o design pode falhar na placa nessa
 frequência.
 
 Saída real de `aurora fpga build` no projeto `bcd_prot`, com o Quartus Prime
@@ -253,7 +253,7 @@ Conferido em 2026-10-09 com o Quartus Prime 25.1 Lite no Windows e uma
 DE2-115, compilando e gravando. Ainda não conferido:
 
 - a DE10-Nano com o Quartus, e o Quartus no Linux, em que as variáveis de
-  ambiente que o Lace passa (a pasta e o nome do usuário, o idioma e a pasta
+  ambiente que a AURORA passa (a pasta e o nome do usuário, o idioma e a pasta
   temporária) são dedução; o relatório de cada passo mostra quais foram;
 - caminhos com acento: o simulador já os recusa num projeto com
   processadores; no Quartus, não se sabe.
@@ -294,7 +294,7 @@ gravar pela primeira vez:
 
 Sem cabo, o erro é `no_cable`; sem a compilação, `no_bitstream`.
 
-No Linux, não testado: o Lace procura o Quartus em `~/intelFPGA_lite`,
+No Linux, não testado: a AURORA procura o Quartus em `~/intelFPGA_lite`,
 `~/intelFPGA`, `~/altera_lite`, `~/altera` e nas mesmas pastas em `/opt`, e
 roda os programas de `quartus/bin`. O código compila para Linux sem aviso.
 Para gravar, o Quartus no Linux pede uma regra do udev que dê ao usuário
@@ -309,19 +309,19 @@ Conferido em 2026-10-09 na DE2-115, com os relatórios da compilação real do
 
 | Risco | O que impede |
 |---|---|
-| Uma saída da FPGA num pino que a placa liga a uma chave, a um botão ou ao oscilador: curto quando os dois lados divergem | Cada sinal da placa tem direção no arquivo dela, e o Lace só liga uma saída do topo a um sinal de saída da placa (LEDs, displays). Porta `inout` não é ligada. |
+| Uma saída da FPGA num pino que a placa liga a uma chave, a um botão ou ao oscilador: curto quando os dois lados divergem | Cada sinal da placa tem direção no arquivo dela, e a AURORA só liga uma saída do topo a um sinal de saída da placa (LEDs, displays). Porta `inout` não é ligada. |
 | Pino errado no arquivo da placa | Os pinos e os padrões de I/O foram conferidos com o manual e com o `.qsf` da Terasic, um a um. |
 | Uma atribuição que o Quartus não aplica, e o Fitter escolhe o pino | A conferência do `.pin` depois do Fitter reprova a compilação antes do `.sof`. |
 | Um pino sem uso dirigindo o que está ligado nele | Os pinos sem uso ficam como entrada em alta impedância, com pull-up fraco, escrito no `.qsf`. No `.pin` da compilação real: 447 pinos `RESERVED_INPUT_WITH_WEAK_PULLUP`. |
 | Gravar um design diferente do que está no projeto | A gravação recusa um `.sof` velho, trocado ou de outra placa (`stale_bitstream`). |
-| Perder o projeto de fábrica da placa | A gravação é pela JTAG, direto na FPGA (`.sof`), e some ao desligar. A memória EPCS64, que guarda o projeto que a placa carrega ao ligar, só é gravada com a chave em PROG e um `.pof` (manual da DE2-115, seção 4.1); o Lace nunca faz isso. |
+| Perder o projeto de fábrica da placa | A gravação é pela JTAG, direto na FPGA (`.sof`), e some ao desligar. A memória EPCS64, que guarda o projeto que a placa carrega ao ligar, só é gravada com a chave em PROG e um `.pof` (manual da DE2-115, seção 4.1); a AURORA nunca faz isso. |
 
 Com a chave JP3 na posição de fábrica (pinos 1 e 2), a cadeia JTAG da
 DE2-115 tem só a FPGA, e o `@1` da gravação é ela. Na gravação real, o
 Quartus Programmer leu o código JTAG da FPGA (`Device 1 contains JTAG ID
 code 0x020F70DD`) antes de configurar.
 
-O que o Lace não detecta: um jumper mudado. Os padrões de I/O das chaves,
+O que a AURORA não detecta: um jumper mudado. Os padrões de I/O das chaves,
 dos botões, dos LEDs e de parte dos displays seguem o JP7 de fábrica (2,5 V
 nos bancos 5 e 6); com o JP7 em outra tensão, esses padrões deixam de
 corresponder à placa.
@@ -338,7 +338,7 @@ OSS CAD Suite, nas três plataformas, no componente opcional
 - No Linux, o acesso ao cabo pede uma regra do udev, que precisa de root. O
   OSS CAD Suite não traz a do openFPGALoader.
 - No Windows, o driver do USB-Blaster que o Quartus instala não é o que o
-  openFPGALoader usa (libusb). Por isso o Lace grava só pelo `quartus_pgm`,
+  openFPGALoader usa (libusb). Por isso a AURORA grava só pelo `quartus_pgm`,
   e sem o Quartus a gravação dá `quartus_missing`. Falta testar com as
   placas.
 
@@ -354,4 +354,4 @@ OSS CAD Suite, nas três plataformas, no componente opcional
 - Guardar a compilação para a placa no histórico (`aurora report`).
 - O fluxo aberto para o Cyclone V (Yosys e `nextpnr-mistral`), adiado: o
   `nextpnr-mistral` não vem no OSS CAD Suite 2026-10-22, em nenhuma
-  plataforma, então teria de ser compilado pelo Lace.
+  plataforma, então teria de ser compilado pela AURORA.

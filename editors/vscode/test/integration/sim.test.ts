@@ -1,4 +1,4 @@
-// "Lace: Simular" dentro do VS Code, com o aurora falso: o botão Sim da barra
+// "AURORA: Simular" dentro do VS Code, com o aurora falso: o botão Sim da barra
 // de status roda `aurora sim` pelo --events e guarda como terminou.
 
 import * as assert from 'node:assert/strict';
@@ -12,7 +12,7 @@ import type { SimReport } from '../../src/aurora/aurora-types';
 import type { SourceNode } from '../../src/sources/provider';
 import { activate, lastCall, resetFake, run, spf, workspace } from './helpers';
 
-describe('Lace: Simular', () => {
+describe('AURORA: Simular', () => {
   let api: AuroraExtensionApi;
 
   before(async () => {

@@ -1,4 +1,4 @@
-//! Os recursos experimentais: partes do Lace que ainda mudam muito e que
+//! Os recursos experimentais: partes da AURORA que ainda mudam muito e que
 //! ficam desligadas até o usuário ligar. Hoje há dois: a placa FPGA
 //! ([`Feature::Fpga`]: as ligações do `fpga.json`, a compilação pelo Quartus
 //! Prime e a gravação na placa, [`crate::fpga`]) e o assistente de IA
@@ -6,7 +6,7 @@
 //! do Studio, tudo o que passa pelo crate `aurora-agent`).
 //!
 //! O que está ligado fica em `experimental.json`, na pasta de configuração
-//! do Lace do usuário: `%APPDATA%\aurora` no Windows, `$XDG_CONFIG_HOME/aurora`
+//! da AURORA do usuário: `%APPDATA%\aurora` no Windows, `$XDG_CONFIG_HOME/aurora`
 //! (ou `~/.config/aurora`) no Linux e `~/Library/Application Support/aurora` no
 //! macOS. A CLI liga e desliga com `aurora experimental enable|disable
 //! <recurso>`, e o Studio, em Preferências > Experimental; os dois leem o
@@ -32,7 +32,7 @@ use serde_json::Value;
 
 use crate::error::{AuroraError, Result};
 
-/// O nome do arquivo, na pasta de configuração do Lace.
+/// O nome do arquivo, na pasta de configuração da AURORA.
 pub const SETTINGS_FILE: &str = "experimental.json";
 
 /// A lista do arquivo com os recursos ligados.
@@ -48,7 +48,7 @@ pub enum Feature {
     /// Prime e a gravação na placa (`aurora fpga`, a aba Placa FPGA do
     /// Studio).
     Fpga,
-    /// O assistente de IA: o `aurora mcp` (as ferramentas do Lace para um
+    /// O assistente de IA: o `aurora mcp` (as ferramentas da AURORA para um
     /// agente), o `aurora chat` e a vista Assistente do Studio, sobre o
     /// Claude Code instalado na máquina (o crate `aurora-agent`).
     Assistant,
@@ -86,7 +86,7 @@ impl Feature {
                 "FPGA boards: the fpga.json connections, the Quartus Prime build and board programming"
             }
             Feature::Assistant => {
-                "AI assistant: aurora chat, the Assistant view of AURORA IDE and aurora mcp, the Lace tools for an agent such as Claude Code"
+                "AI assistant: aurora chat, the Assistant view of AURORA IDE and aurora mcp, the AURORA tools for an agent such as Claude Code"
             }
         }
     }
@@ -121,7 +121,7 @@ pub struct ExperimentalInfo {
 }
 
 /// O arquivo do que está ligado: `experimental.json` na pasta de
-/// configuração do Lace. `None` se o sistema não diz onde ela fica (sem
+/// configuração da AURORA. `None` se o sistema não diz onde ela fica (sem
 /// `APPDATA` no Windows, sem `HOME` nos outros).
 pub fn settings_path() -> Option<Utf8PathBuf> {
     crate::paths::user_config_dir().map(|dir| dir.join(SETTINGS_FILE))
@@ -170,7 +170,7 @@ pub fn info() -> ExperimentalInfo {
 /// ou se ela ou o arquivo não podem ser gravados.
 pub fn set_enabled(feature: Feature, enabled: bool) -> Result<()> {
     let path = settings_path().ok_or_else(|| AuroraError::Io {
-        context: "Finding the Lace settings folder",
+        context: "Finding the AURORA settings folder",
         path: SETTINGS_FILE.into(),
         source: std::io::Error::new(
             std::io::ErrorKind::NotFound,

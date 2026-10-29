@@ -1,6 +1,6 @@
-//! `aurora experimental`: os recursos experimentais do Lace, desligados até o
+//! `aurora experimental`: os recursos experimentais da AURORA, desligados até o
 //! usuário ligar (`aurora_core::experimental`). O que a CLI liga vale também
-//! para o Lace Studio: os dois leem o mesmo `experimental.json`.
+//! para a AURORA IDE: os dois leem o mesmo `experimental.json`.
 
 use anyhow::anyhow;
 use clap::builder::PossibleValuesParser;

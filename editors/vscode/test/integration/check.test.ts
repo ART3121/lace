@@ -1,4 +1,4 @@
-// "Lace: Verificar" dentro do VS Code, com o aurora falso: o comando roda
+// "AURORA: Verificar" dentro do VS Code, com o aurora falso: o comando roda
 // `aurora check` pelo --events e põe os diagnósticos no painel Problemas.
 
 import * as assert from 'node:assert/strict';
@@ -11,14 +11,14 @@ import type { CheckReport } from '../../src/aurora/aurora-types';
 import type { SourceNode } from '../../src/sources/provider';
 import { activate, lastCall, resetFake, run, spf, workspace } from './helpers';
 
-/** Os diagnósticos da extensão (as fontes são as ferramentas do Lace). */
+/** Os diagnósticos da extensão (as fontes são as ferramentas da AURORA). */
 function laceDiagnostics(): [vscode.Uri, vscode.Diagnostic[]][] {
   return vscode.languages
     .getDiagnostics()
     .filter(([, list]) => list.some((d) => d.source === 'iverilog' || d.source === 'verilator'));
 }
 
-describe('Lace: Verificar', () => {
+describe('AURORA: Verificar', () => {
   before(async () => {
     await resetFake(await activate());
   });

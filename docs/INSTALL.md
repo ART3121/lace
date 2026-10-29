@@ -1,7 +1,7 @@
-# Instalar o Lace
+# Instalar a AURORA
 
 Cada release traz um instalador para o Linux, um para o macOS e dois para o
-Windows. O instalador põe o Lace, a
+Windows. O instalador põe a AURORA, a
 AURORA IDE e o bundle de ferramentas (as versões exatas, ver
 [BUNDLE.md](BUNDLE.md)) numa pasta só, e deixa escolher o que instalar: o
 Studio e cada ferramenta do bundle são componentes, e só a linha de comando
@@ -25,7 +25,7 @@ nele.
 | macOS, Apple Silicon | macOS 13 | nada |
 | Windows x64 | Windows 10 ou 11 | o WebView2, que vem com o Windows 11 e com o Windows 10 atualizado |
 
-O webkit2gtk 4.1 não vem com o Lace. O GNOME costuma já tê-lo; o KDE
+O webkit2gtk 4.1 não vem com a AURORA. O GNOME costuma já tê-lo; o KDE
 Plasma, o Arch e os ambientes leves, em geral, não:
 
 ```sh
@@ -58,17 +58,17 @@ WebView do Studio falta, sem deixar de instalar.
 
 ## Quem tem o Solar 0.1.0
 
-A 0.1.0 saiu com o nome Solar. O Lace 0.2.0 é a versão seguinte, com outro
+A 0.1.0 saiu com o nome Solar. A AURORA 0.2.0 é a versão seguinte, com outro
 nome, outra pasta e outro executável, e não troca o Solar sozinho: os dois
 ficam instalados lado a lado até o Solar sair.
 
 - **Linux e macOS:** `~/.local/share/solar/uninstall.sh` (ou
-  `sudo /opt/solar/uninstall.sh`), e instalar o Lace.
+  `sudo /opt/solar/uninstall.sh`), e instalar a AURORA.
 - **Windows:** Configurações > Aplicativos > Solar > Desinstalar, que tira
-  também a entrada do Solar no PATH, e instalar o Lace.
+  também a entrada do Solar no PATH, e instalar a AURORA.
 
 A configuração do Solar (`~/.config/solar/config.json`) nenhuma versão do
-Lace lê; ela pode ser apagada à mão. Os projetos (`.spf`) não mudam.
+AURORA lê; ela pode ser apagada à mão. Os projetos (`.spf`) não mudam.
 
 ## Em um comando
 
@@ -113,31 +113,31 @@ ele serve.
 | **Custom** (avançada; no assistente em português, Personalizada) | uso avançado, para quem sabe de quais componentes precisa | os marcados |
 
 Com um perfil, a lista fica travada: ela só mostra o que vai ser instalado.
-Só o Custom deixa marcar e desmarcar. O Lace (CLI & Core), a linha de
+Só o Custom deixa marcar e desmarcar. A AURORA (CLI & Core), a linha de
 comando e o Core, vem sempre marcado e travado, em qualquer perfil. Na
 instalação guiada do Linux e do macOS, o perfil sob o cursor mostra cada
 aplicativo com `[x]` ou `[ ]`, e o Custom abre a lista para marcar.
 
 | Componente | O que é | SAPHO | Verilog |
 |---|---|---|---|
-| Lace (CLI & Core) | a linha de comando e o Core; sempre instalado, porque é ele que instala, atualiza e desinstala (`aurora install`, `aurora update`, `aurora uninstall`) | sim | sim |
+| AURORA (CLI & Core) | a linha de comando e o Core; sempre instalado, porque é ele que instala, atualiza e desinstala (`aurora install`, `aurora update`, `aurora uninstall`) | sim | sim |
 | AURORA IDE | o ambiente gráfico: editor, compilação, simulação, ondas; atalho no menu de aplicativos | sim | sim |
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim | não |
 | Icarus Verilog | simulador Verilog, o padrão da AURORA | sim | sim |
 | Verilator | simulador compilado; no Linux e no macOS precisa de compilador C++, `make` e Perl do sistema, no Windows vem com eles | sim | sim |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`aurora sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`aurora sim --verilator`) | sim | sim |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. A AURORA roda os testes no Icarus (`aurora sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`aurora sim --verilator`) | sim | sim |
 | Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim | sim |
 | RTL viewer | o esquemático interativo do netlist da síntese no navegador (`aurora synth --open`); precisa do Yosys | sim | sim |
 | surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim | sim |
 | openFPGALoader | grava as placas FPGA pelo cabo USB delas ([FPGA.md](FPGA.md)); no Linux, o acesso ao cabo pede uma regra do udev | sim | sim |
-| Lace Learn | os exercícios de Verilog do `aurora learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | sim | sim |
+| AURORA Learn | os exercícios de Verilog do `aurora learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | sim | sim |
 
 O Verilator, no Linux e no macOS, só funciona com o compilador do sistema
 instalado (ver [BUNDLE.md](BUNDLE.md), seção 4); no Windows ele traz o g++,
 o `make` e o Perl, uns 630 MiB. Quem não quer o Verilator usa o Custom.
 Marcar o Graphviz ou o RTL viewer marca o Yosys; desmarcar o Yosys desmarca
-os dois. Do mesmo jeito, marcar o cocotb ou o Lace Learn marca o Icarus.
+os dois. Do mesmo jeito, marcar o cocotb ou o AURORA Learn marca o Icarus.
 
 Os perfis ficam em `bundle/components.json` (`profiles`), com o nome, o
 texto de cada um e os componentes; o primeiro é o padrão e o recomendado. Os
@@ -181,8 +181,8 @@ plataforma, e a página de componentes do assistente, o da seleção.
      para instalar sem rede (o `irm ... | iex` o usa com
      `$env:AURORA_FULL_SETUP = "1"`).
 2. Escolha instalar só para você (padrão, sem administrador, em
-   `%LOCALAPPDATA%\Programs\Lace`) ou para todos os usuários (pede
-   administrador, em `C:\Lace`). Para todos os usuários, a pasta fica com
+   `%LOCALAPPDATA%\Programs\AURORA`) ou para todos os usuários (pede
+   administrador, em `C:\AURORA`). Para todos os usuários, a pasta fica com
    permissões próprias: os administradores e o sistema escrevem nela, os
    outros usuários só leem e executam. Sem isso, ela herdaria de `C:\` a
    escrita de qualquer usuário, e o `aurora.exe`, no PATH do sistema, poderia
@@ -191,7 +191,7 @@ plataforma, e a página de componentes do assistente, o da seleção.
 4. Na página **Choose a profile** (Escolha um perfil), escolha o perfil na
    caixa: a lista embaixo mostra, travada, os aplicativos que ele instala.
    Para escolher à mão, use o **Custom** (Personalizada), para uso avançado.
-5. Deixe marcada a tarefa **Add Lace to PATH** para usar `aurora` em
+5. Deixe marcada a tarefa **Add AURORA to PATH** para usar `aurora` em
    qualquer terminal novo. Com o Studio, o assistente põe o atalho no menu
    Iniciar e oferece um na área de trabalho.
 
@@ -201,10 +201,10 @@ se a pasta escolhida tiver. Com o Studio marcado e sem o WebView2 no
 computador, ele avisa antes de instalar.
 
 O assistente recusa uma pasta que já tem uma `toolchain` que não é de uma
-instalação do Lace (sem `toolchain\bundle.json` nem `bin\aurora.exe`):
+instalação da AURORA (sem `toolchain\bundle.json` nem `bin\aurora.exe`):
 instalar trocaria essa pasta inteira, sem passar pela lixeira.
 
-Numa pasta que já tem o Lace, a primeira página diz de que versão para qual
+Numa pasta que já tem a AURORA, a primeira página diz de que versão para qual
 ele atualiza, e os aplicativos que a pasta tem vêm marcados, inclusive os
 que o `aurora install` acrescentou: uma seleção que não é a de nenhum perfil
 fica no Custom. O mesmo vale numa instalação silenciosa sem `/COMPONENTS`.
@@ -220,22 +220,22 @@ MSYS2 do lace-toolchain): não é preciso instalar o MSYS2.
 
 **Instalar aplicativos do bundle:** `aurora install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, openFPGALoader, AURORA IDE, Lace Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
+surfer-aurora, openFPGALoader, AURORA IDE, AURORA Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `aurora install verilator` instala direto, sem a lista,
-com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
+com o que o aplicativo exige (`graphviz` traz o Yosys). A AURORA não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
 `toolchain/`, e uma falha no meio desfaz o que entrou.
 
-Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
+Os aplicativos vêm da release desta versão da AURORA no GitHub, que publica
 o bundle em pedaços (`aurora-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
-instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
+instalador da AURORA no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `AURORA_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
 mais nova, que o `aurora update` lê no lugar do GitHub. O espelho é
 `https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
-os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
+os downloads vem dele também, e a AURORA recusa `http://`. O bundle de lá
 precisa ser o instalado; outro bundle é atualizar (`aurora update`).
 
 No Windows, o Studio instalado pelo `aurora install studio` não ganha atalho
@@ -264,8 +264,8 @@ e os componentes instalados vêm marcados, os do assistente e os que o
 **Mudar os componentes:** rode o instalador de novo. Ele lembra a pasta e a
 seleção anteriores; o que for desmarcado é removido.
 
-**Remover:** `aurora uninstall`, Configurações > Aplicativos > Lace, ou
-`<pasta>\unins000.exe`; os três abrem o mesmo desinstalador. Sai o Lace,
+**Remover:** `aurora uninstall`, Configurações > Aplicativos > AURORA, ou
+`<pasta>\unins000.exe`; os três abrem o mesmo desinstalador. Sai a AURORA,
 o bundle inteiro e a entrada do PATH. `aurora uninstall --yes` desinstala sem
 perguntar.
 
@@ -274,7 +274,7 @@ perguntar.
 ```
 aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
 aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
-aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="aurora,yanc,icarus,verilator,studio" /DIR=D:\Lace
+aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="aurora,yanc,icarus,verilator,studio" /DIR=D:\AURORA
 ```
 
 O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
@@ -327,8 +327,8 @@ pôr no `~/.bashrc` ou `~/.zshrc`, e o comando do fish
 por padrão.
 
 O instalador só escreve numa pasta nova, vazia ou com uma instalação do
-Lace. Ele extrai tudo numa pasta provisória, confere o hash de cada
-executável com o próprio Lace e só então troca a instalação anterior: uma
+AURORA. Ele extrai tudo numa pasta provisória, confere o hash de cada
+executável com a própria AURORA e só então troca a instalação anterior: uma
 falha no meio não estraga o que já estava instalado.
 
 **Sem interação:**
@@ -346,29 +346,29 @@ instala também o Yosys, e avisa).
 
 **Instalar aplicativos do bundle:** `aurora install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
-surfer-aurora, openFPGALoader, AURORA IDE, Lace Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
+surfer-aurora, openFPGALoader, AURORA IDE, AURORA Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
 `Space` e confirme. `aurora install verilator` instala direto, sem a lista,
-com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
+com o que o aplicativo exige (`graphviz` traz o Yosys). A AURORA não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
 `toolchain/`, e uma falha no meio desfaz o que entrou. O
 `aurora install studio` também cria o atalho do Studio no menu.
 
-Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
+Os aplicativos vêm da release desta versão da AURORA no GitHub, que publica
 o bundle em pedaços (`aurora-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
-instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
+instalador da AURORA no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `AURORA_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
 mais nova, que o `aurora update` lê no lugar do GitHub. O espelho é
 `https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
-os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
+os downloads vem dele também, e a AURORA recusa `http://`. O bundle de lá
 precisa ser o instalado; outro bundle é atualizar (`aurora update`).
 
 **Atualizar:** a AURORA IDE procura versão nova ao abrir, oferece a
 atualização e reinicia na versão nova; o `aurora`, num terminal, avisa no fim
 de um comando, uma vez por dia ([CLI.md](CLI.md), "Bundle").
-`aurora update --check` mostra se há Lace mais novo e,
+`aurora update --check` mostra se há AURORA mais nova e,
 para cada aplicativo, a versão instalada, a do bundle da última release e a
 última upstream. `aurora update` atualiza por componentes (abaixo). Numa
 instalação anterior à 0.7.0, ou com `aurora update --full`, ele reinstala
@@ -376,7 +376,7 @@ pela release nova, com os mesmos aplicativos, a mesma pasta e o mesmo
 atalho. Uma ferramenta mais nova
 upstream não é instalada sozinha: o bundle compila o YANC e o surfer-aurora e
 divide o OSS CAD Suite por ferramenta, então cada versão nova passa pelo
-`bundle.py` e pelo CI e chega numa release nova do Lace.
+`bundle.py` e pelo CI e chega numa release nova da AURORA.
 
 **Mudar os componentes:** rode o instalador de novo na mesma pasta; a
 instalação é trocada pela nova seleção. Com um perfil (e com
@@ -384,7 +384,7 @@ instalação é trocada pela nova seleção. Com um perfil (e com
 tem ficam, junto dos do perfil; para tirar algum, use o Custom.
 
 **Remover:** `aurora uninstall` (pergunta antes; `--yes` não pergunta) ou
-`<pasta>/uninstall.sh`. Sai o Lace, o bundle inteiro (`toolchain/`), o
+`<pasta>/uninstall.sh`. Sai a AURORA, o bundle inteiro (`toolchain/`), o
 atalho, o do Studio no menu e a pasta; uma instalação do sistema (`/opt/aurora`) pede
 `sudo aurora uninstall`.
 
@@ -425,23 +425,23 @@ publica também o seu (`aurora-<versão>-<plataforma>-files.json`). O
 `aurora update` compara os dois, para os aplicativos instalados:
 
 ```
-Lace 0.7.0 to 0.8.0 by components: Lace, Lace Studio, Lace Learn
+AURORA 0.7.0 to 0.8.0 by components: AURORA, AURORA IDE, AURORA Learn
 3 of 15 chunks to download (14 MiB), 412 files in, 3 out
-Update Lace 0.7.0 to 0.8.0 in /home/ana/.local/share/lace? [y/N] y
-  [1/3] Lace  [##############################] 100%  2.3/2.3 MiB
-  [2/3] Lace Studio  [#############.................]  45%  5.1/11.3 MiB
+Update AURORA 0.7.0 to 0.8.0 in /home/ana/.local/share/lace? [y/N] y
+  [1/3] AURORA  [##############################] 100%  2.3/2.3 MiB
+  [2/3] AURORA IDE  [#############.................]  45%  5.1/11.3 MiB
 ```
 
 Só os pedaços com algum arquivo novo ou mudado são baixados, conferidos
 pelo `SHA256SUMS` da release, e dentro deles só esses arquivos são
 extraídos, numa pasta provisória (`.instalando-<pid>`), e conferidos com o
 manifesto novo. Depois os arquivos são trocados no lugar, os antigos vão
-para `.antigo-<pid>`, os que a versão nova não tem saem, e o Lace confere
+para `.antigo-<pid>`, os que a versão nova não tem saem, e a AURORA confere
 os executáveis do bundle. Uma falha em qualquer passo devolve os arquivos
 antigos, e a instalação fica como estava; aí o `aurora update` passa para o
 instalador inteiro.
 
-Antes de trocar, o Lace grava o que vai fazer num diário
+Antes de trocar, a AURORA grava o que vai fazer num diário
 (`.atualizando.json`, na pasta da instalação). Se o processo morre no meio
 da troca (o terminal fechado, falta de energia), o próximo `aurora update` ou
 `aurora install` desfaz o que ficou feito com o diário: os arquivos antigos
@@ -452,7 +452,7 @@ enquanto uma atualização ou instalação dela está rodando.
 
 O próprio `aurora` é um dos arquivos trocados. No Windows, um executável em
 uso pode ser renomeado, mas não apagado: o `aurora.exe` antigo fica na pasta
-`.antigo-<pid>` até o próximo `aurora install` ou `aurora update`. Se o Lace
+`.antigo-<pid>` até o próximo `aurora install` ou `aurora update`. Se a AURORA
 Studio estiver aberto durante a atualização, feche e abra de novo para usar
 a versão nova.
 

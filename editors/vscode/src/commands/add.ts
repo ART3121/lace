@@ -1,6 +1,6 @@
 // Pôr arquivos Verilog no projeto: `aurora add`. Vem do + dos não
 // registrados, do botão direito no explorador, de "Novo arquivo Verilog"
-// (que o Lace cria a partir do modelo) e do aviso que aparece quando surge
+// (que a AURORA cria a partir do modelo) e do aviso que aparece quando surge
 // um .v novo fora do projeto.
 
 import { existsSync, statSync } from 'node:fs';
@@ -13,14 +13,14 @@ import type { AddReport, AddedFile } from '../aurora/aurora-types';
 import { nameSuggestsTestbench } from '../verilog';
 import { chooseProject, clientFor, showAuroraError, showProcessError, targetPaths, type CommandDeps } from './common';
 
-/** `aurora add` com os arquivos; abre no editor os que o Lace criou do modelo. */
+/** `aurora add` com os arquivos; abre no editor os que a AURORA criou do modelo. */
 export async function addFiles(
   deps: CommandDeps,
   files: readonly string[],
   testbench = false,
 ): Promise<AuroraRun<AddReport> | undefined> {
   if (files.length === 0) {
-    void vscode.window.showWarningMessage('Lace: escolha um ou mais arquivos .v ou .sv para pôr no projeto.');
+    void vscode.window.showWarningMessage('AURORA: escolha um ou mais arquivos .v ou .sv para pôr no projeto.');
     return undefined;
   }
   const client = clientFor(deps, 'add');
@@ -30,18 +30,18 @@ export async function addFiles(
   }
   try {
     const run = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: 'Lace: pondo no projeto' },
+      { location: vscode.ProgressLocation.Window, title: 'AURORA: pondo no projeto' },
       () => client.add(project.spf, files, { testbench }),
     );
     if (run.status === 'succeeded') {
-      vscode.window.setStatusBarMessage(`$(add) Lace: ${describeAdded(run.result.files)}`, 8000);
+      vscode.window.setStatusBarMessage(`$(add) AURORA: ${describeAdded(run.result.files)}`, 8000);
       for (const file of run.result.files.filter((f) => f.created)) {
         await vscode.window.showTextDocument(vscode.Uri.file(file.path), { preview: false });
       }
     } else if (run.status === 'error') {
       showAuroraError(run.error);
     } else {
-      void vscode.window.showErrorMessage(`Lace: aurora add terminou como ${run.status}.`);
+      void vscode.window.showErrorMessage(`AURORA: aurora add terminou como ${run.status}.`);
     }
     return run;
   } catch (error) {
@@ -69,7 +69,7 @@ interface NewFileArgs {
 }
 
 /**
- * "Lace: Novo arquivo Verilog": pergunta o caminho e o tipo e deixa o
+ * "AURORA: Novo arquivo Verilog": pergunta o caminho e o tipo e deixa o
  * `aurora add` criar o arquivo do modelo (o módulo com portas de exemplo que
  * compilam, ou o testbench que instancia o módulo testado).
  */
@@ -145,7 +145,7 @@ export async function offerToAdd(deps: CommandDeps, paths: readonly string[]): P
     const all = 'Adicionar todos';
     const names = paths.map((p) => basename(p)).join(', ');
     const choice = await vscode.window.showInformationMessage(
-      `Lace: ${paths.length} arquivos Verilog novos fora do projeto: ${names}.`,
+      `AURORA: ${paths.length} arquivos Verilog novos fora do projeto: ${names}.`,
       all,
       never,
     );
@@ -160,7 +160,7 @@ export async function offerToAdd(deps: CommandDeps, paths: readonly string[]): P
   const name = basename(path);
   // Um arquivo vazio (o "Novo arquivo" do explorador) pode sair do modelo,
   // como no `aurora add` de um arquivo que não existe.
-  // Sem --tb, o Lace decide pelo conteúdo: não há como forçar módulo.
+  // Sem --tb, a AURORA decide pelo conteúdo: não há como forçar módulo.
   const template = 'Adicionar com o modelo';
   const add = 'Adicionar';
   const asBench = 'Adicionar como testbench';
@@ -170,7 +170,7 @@ export async function offerToAdd(deps: CommandDeps, paths: readonly string[]): P
       ? [asBench, add]
       : [add, asBench];
   const choice = await vscode.window.showInformationMessage(
-    `Lace: ${name} é um arquivo novo fora do projeto.`,
+    `AURORA: ${name} é um arquivo novo fora do projeto.`,
     ...actions,
     never,
   );
@@ -185,7 +185,7 @@ export async function offerToAdd(deps: CommandDeps, paths: readonly string[]): P
 
 /**
  * Apaga o arquivo vazio e deixa o `aurora add` criá-lo do modelo, que decide
- * entre módulo e testbench pelo nome. Se o Lace recusa, o arquivo vazio
+ * entre módulo e testbench pelo nome. Se a AURORA recusa, o arquivo vazio
  * volta.
  */
 async function addFromTemplate(deps: CommandDeps, path: string): Promise<void> {

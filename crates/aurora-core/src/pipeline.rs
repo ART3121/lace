@@ -115,7 +115,7 @@ pub enum Status {
     /// O cancelamento foi pedido ([`CancelToken`](crate::CancelToken)): o
     /// passo que rodava foi encerrado e os seguintes não rodaram.
     Cancelled,
-    /// Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o
+    /// Um passo passou do prazo e a AURORA o encerrou. Numa simulação, é o
     /// testbench que não chega ao `$finish`.
     TimedOut,
 }
@@ -168,7 +168,7 @@ pub enum ArtifactKind {
     Schematic,
     /// As estatísticas do `stat -json` do Yosys (`stat.json`).
     SynthesisStatistics,
-    /// O topo da placa que o Lace gera (`aurora_board_top.v`).
+    /// O topo da placa que a AURORA gera (`aurora_board_top.v`).
     BoardTop,
     /// As configurações do projeto do Quartus (`.qsf`): a FPGA, os fontes e
     /// os pinos.
@@ -318,7 +318,7 @@ impl<'a> Runner<'a> {
             &planned.invocation.cwd,
             &mut self.diagnostics[first_new..],
         );
-        // O iverilog sai com 0 depois de um erro que o Lace promove (macro
+        // O iverilog sai com 0 depois de um erro que a AURORA promove (macro
         // indefinida): o passo falha do mesmo jeito.
         let promoted = planned.tool == Tool::Iverilog
             && self.diagnostics[first_new..]

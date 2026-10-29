@@ -1,7 +1,7 @@
 import type { ErrorInfo } from './aurora/aurora-types';
 
 /**
- * Um erro do Lace numa linha, com a dica depois da mensagem. As duas vêm em
+ * Um erro da AURORA numa linha, com a dica depois da mensagem. As duas vêm em
  * inglês, como a CLI as escreve. A notificação do VS Code não quebra linha.
  */
 export function formatAuroraError(error: ErrorInfo): string {

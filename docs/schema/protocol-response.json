@@ -239,7 +239,7 @@
       "type": "object",
       "properties": {
         "aurora": {
-          "description": "A versão do Lace.",
+          "description": "A versão da AURORA.",
           "type": "string"
         },
         "protocol": {
@@ -249,7 +249,7 @@
           "minimum": 0
         },
         "prefix": {
-          "description": "A pasta da instalação do Lace, quando o servidor é o `aurora`\ninstalado.",
+          "description": "A pasta da instalação da AURORA, quando o servidor é o `aurora`\ninstalado.",
           "type": [
             "string",
             "null"
@@ -500,7 +500,7 @@
           "type": "string"
         },
         "temp_dir": {
-          "description": "`<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
+          "description": "`<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
           "type": "string"
         },
         "frequency_mhz": {
@@ -1030,7 +1030,7 @@
           "type": "string"
         },
         "temp_dir": {
-          "description": "`<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
+          "description": "`<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
           "type": "string"
         },
         "frequency_mhz": {
@@ -1195,7 +1195,7 @@
       ]
     },
     "WaveLayoutInfo": {
-      "description": "`wave.layout`: o que um visualizador próprio precisa para mostrar a\nonda com o layout do Lace.",
+      "description": "`wave.layout`: o que um visualizador próprio precisa para mostrar a\nonda com o layout da AURORA.",
       "type": "object",
       "properties": {
         "layout": {
@@ -1358,7 +1358,7 @@
           "type": "string"
         },
         "customized": {
-          "description": "O usuário salvou o estado depois da última vez que o Lace o gerou: o\nLace o deixa como está.",
+          "description": "O usuário salvou o estado depois da última vez que a AURORA o gerou: o\nAURORA o deixa como está.",
           "type": "boolean"
         }
       },
@@ -1701,7 +1701,7 @@
           "const": "cancelled"
         },
         {
-          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "description": "Um passo passou do prazo e a AURORA o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
           "type": "string",
           "const": "timed_out"
         }
@@ -1918,7 +1918,7 @@
       ]
     },
     "Tool": {
-      "description": "As ferramentas que o Lace sabe orquestrar.\n\nEm JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do\nprograma ([`Tool::binary_name`]).",
+      "description": "As ferramentas que a AURORA sabe orquestrar.\n\nEm JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do\nprograma ([`Tool::binary_name`]).",
       "oneOf": [
         {
           "description": "Compilador C± do YANC: `.cmm` para `.asm`.",
@@ -1993,7 +1993,7 @@
       ]
     },
     "Invocation": {
-      "description": "Uma execução de programa, totalmente especificada: o registro exato do\nque o Lace rodou, presente em todo [`StepReport`](crate::StepReport).\n\nSó o Core monta invocações; para os clientes o tipo é somente leitura.\nReproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,\ncom um ambiente vazio mais `env` e as variáveis de `inherit`.\n\nEm JSON:\n\n```json\n{ \"program\": \"/opt/yanc/bin/cmmcomp\",\n  \"args\": [\"-i\", \"soma.cmm\", \"-n\", \"soma\", \"-p\", \"/p/soma\", \"...\"],\n  \"cwd\": \"/p/soma\",\n  \"env\": [],\n  \"inherit\": [] }\n```",
+      "description": "Uma execução de programa, totalmente especificada: o registro exato do\nque a AURORA rodou, presente em todo [`StepReport`](crate::StepReport).\n\nSó o Core monta invocações; para os clientes o tipo é somente leitura.\nReproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,\ncom um ambiente vazio mais `env` e as variáveis de `inherit`.\n\nEm JSON:\n\n```json\n{ \"program\": \"/opt/yanc/bin/cmmcomp\",\n  \"args\": [\"-i\", \"soma.cmm\", \"-n\", \"soma\", \"-p\", \"/p/soma\", \"...\"],\n  \"cwd\": \"/p/soma\",\n  \"env\": [],\n  \"inherit\": [] }\n```",
       "type": "object",
       "properties": {
         "program": {
@@ -2012,7 +2012,7 @@
           "type": "string"
         },
         "env": {
-          "description": "Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.",
+          "description": "Variáveis definidas pela AURORA, somadas às de `INHERITED_ENV`.",
           "type": "array",
           "items": {
             "type": "array",
@@ -2029,7 +2029,7 @@
           }
         },
         "inherit": {
-          "description": "Nomes de variáveis copiadas do ambiente do Lace, quando existirem.\nSó os nomes aparecem no relatório.",
+          "description": "Nomes de variáveis copiadas do ambiente da AURORA, quando existirem.\nSó os nomes aparecem no relatório.",
           "type": "array",
           "items": {
             "type": "string"
@@ -2103,7 +2103,7 @@
           ]
         },
         {
-          "description": "O Lace encerrou o processo porque a operação foi cancelada\n([`CancelToken::cancel`]).",
+          "description": "A AURORA encerrou o processo porque a operação foi cancelada\n([`CancelToken::cancel`]).",
           "type": "object",
           "properties": {
             "kind": {
@@ -2116,7 +2116,7 @@
           ]
         },
         {
-          "description": "O Lace encerrou o processo porque ele passou do prazo (por exemplo,\n[`SimulationOptions::timeout`](crate::SimulationOptions::timeout)).",
+          "description": "A AURORA encerrou o processo porque ele passou do prazo (por exemplo,\n[`SimulationOptions::timeout`](crate::SimulationOptions::timeout)).",
           "type": "object",
           "properties": {
             "kind": {
@@ -2144,7 +2144,7 @@
       ]
     },
     "Diagnostic": {
-      "description": "Uma mensagem de uma ferramenta, com os campos que deu para extrair.\n\n`file`, `line` e `column` são opcionais porque o `cmmcomp` não informa\narquivo nem coluna, e várias mensagens não informam nem a linha. Quando a\nferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila\num fonte só), `file` vem preenchido pelo Lace.\n\nEm JSON:\n\n```json\n{ \"tool\": \"cmmcomp\", \"severity\": \"error\",\n  \"message\": \"c'mon dude, declare the variable 'total' properly!\",\n  \"file\": \"/p/conta/conta.cmm\", \"line\": 15, \"column\": null,\n  \"raw\": \"Error on line 15: c'mon dude, declare the variable 'total' properly!\" }\n```\n\nNo fluxo C, o `cppcomp` cita o arquivo e a linha do fonte, ou do\ncabeçalho incluído onde está o erro.",
+      "description": "Uma mensagem de uma ferramenta, com os campos que deu para extrair.\n\n`file`, `line` e `column` são opcionais porque o `cmmcomp` não informa\narquivo nem coluna, e várias mensagens não informam nem a linha. Quando a\nferramenta não cita o arquivo mas a AURORA sabe qual é (o `cmmcomp` compila\num fonte só), `file` vem preenchido pela AURORA.\n\nEm JSON:\n\n```json\n{ \"tool\": \"cmmcomp\", \"severity\": \"error\",\n  \"message\": \"c'mon dude, declare the variable 'total' properly!\",\n  \"file\": \"/p/conta/conta.cmm\", \"line\": 15, \"column\": null,\n  \"raw\": \"Error on line 15: c'mon dude, declare the variable 'total' properly!\" }\n```\n\nNo fluxo C, o `cppcomp` cita o arquivo e a linha do fonte, ou do\ncabeçalho incluído onde está o erro.",
       "type": "object",
       "properties": {
         "tool": {
@@ -2156,11 +2156,11 @@
           "$ref": "#/$defs/Severity"
         },
         "message": {
-          "description": "A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma\nda ferramenta (inglês: o Lace sempre pede inglês ao YANC).",
+          "description": "A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma\nda ferramenta (inglês: a AURORA sempre pede inglês ao YANC).",
           "type": "string"
         },
         "file": {
-          "description": "O arquivo a que a mensagem se refere, como a ferramenta o escreveu\n(normalmente absoluto, porque o Lace passa caminhos absolutos).",
+          "description": "O arquivo a que a mensagem se refere, como a ferramenta o escreveu\n(normalmente absoluto, porque a AURORA passa caminhos absolutos).",
           "type": [
             "string",
             "null"
@@ -2351,7 +2351,7 @@
           "const": "synthesis_statistics"
         },
         {
-          "description": "O topo da placa que o Lace gera (`aurora_board_top.v`).",
+          "description": "O topo da placa que a AURORA gera (`aurora_board_top.v`).",
           "type": "string",
           "const": "board_top"
         },
@@ -2766,7 +2766,7 @@
       ]
     },
     "WaveformFormat": {
-      "description": "O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A\nextensão é a do formato, menos quando o testbench nomeia a onda com uma\nexpressão que o Lace não resolve: aí o Icarus grava VCD no nome que o\ntestbench der.",
+      "description": "O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A\nextensão é a do formato, menos quando o testbench nomeia a onda com uma\nexpressão que a AURORA não resolve: aí o Icarus grava VCD no nome que o\ntestbench der.",
       "oneOf": [
         {
           "description": "Value Change Dump, texto.",
@@ -3315,7 +3315,7 @@
           "type": "string"
         },
         "customized": {
-          "description": "O usuário salvou depois que o Lace o gerou: o Lace não o refaz.",
+          "description": "O usuário salvou depois que a AURORA o gerou: a AURORA não o refaz.",
           "type": "boolean"
         }
       },
@@ -4072,7 +4072,7 @@
           "minimum": 0
         },
         "aurora_version": {
-          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nLace, que a `.lace` levada para a `.aurora8` traz.",
+          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nAURORA, que a `.lace` levada para a `.aurora8` traz.",
           "type": "string"
         },
         "project": {
@@ -4209,7 +4209,7 @@
       ]
     },
     "Environment": {
-      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
+      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: a AURORA só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
       "type": "object",
       "properties": {
         "hostname": {
@@ -4310,7 +4310,7 @@
           "minimum": 0
         },
         "total_ms": {
-          "description": "A simulação inteira, medida à parte: com a preparação do Lace.",
+          "description": "A simulação inteira, medida à parte: com a preparação da AURORA.",
           "type": [
             "integer",
             "null"
@@ -4749,14 +4749,14 @@
           }
         },
         "not_installed": {
-          "description": "Os componentes que o Lace conhece e que não estão instalados.",
+          "description": "Os componentes que a AURORA conhece e que não estão instalados.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "tools": {
-          "description": "Cada ferramenta que o Lace roda.",
+          "description": "Cada ferramenta que a AURORA roda.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/ToolStatus"
@@ -4903,7 +4903,7 @@
           "default": null
         },
         "files": {
-          "description": "SHA-256 dos executáveis do componente que o Lace roda, por caminho\nrelativo ao bundle, conferido por [`Toolchain::verify`].",
+          "description": "SHA-256 dos executáveis do componente que a AURORA roda, por caminho\nrelativo ao bundle, conferido por [`Toolchain::verify`].",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -5089,7 +5089,7 @@
           "const": "fpga"
         },
         {
-          "description": "O assistente de IA: o `aurora mcp` (as ferramentas do Lace para um\nagente), o `aurora chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `aurora-agent`).",
+          "description": "O assistente de IA: o `aurora mcp` (as ferramentas da AURORA para um\nagente), o `aurora chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `aurora-agent`).",
           "type": "string",
           "const": "assistant"
         }
@@ -5651,7 +5651,7 @@
       "type": "object",
       "properties": {
         "aurora": {
-          "description": "O Lace: este e o da última release.",
+          "description": "A AURORA: este e o da última release.",
           "$ref": "#/$defs/AuroraVersions"
         },
         "bundle": {
@@ -5710,7 +5710,7 @@
       ]
     },
     "AuroraVersions": {
-      "description": "As versões do Lace em `aurora update`.",
+      "description": "As versões da AURORA em `aurora update`.",
       "type": "object",
       "properties": {
         "installed": {
@@ -5770,7 +5770,7 @@
           "type": "string"
         },
         "package": {
-          "description": "O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,\n`yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que\neste Lace não conhece.",
+          "description": "O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,\n`yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que\nesta AURORA não conhece.",
           "type": [
             "string",
             "null"
@@ -5788,7 +5788,7 @@
           ]
         },
         "release_newer": {
-          "description": "`release` é mais nova que `installed`: chega atualizando o Lace.",
+          "description": "`release` é mais nova que `installed`: chega atualizando a AURORA.",
           "type": "boolean"
         },
         "upstream": {
@@ -5799,7 +5799,7 @@
           ]
         },
         "upstream_newer": {
-          "description": "`upstream` é mais nova que `installed` e que `release`: só chega num\nbundle novo, numa release nova do Lace. Sem `release`, `false` quando\nhá Lace mais novo, cujo bundle pode já trazê-la.",
+          "description": "`upstream` é mais nova que `installed` e que `release`: só chega num\nbundle novo, numa release nova da AURORA. Sem `release`, `false` quando\nhá AURORA mais nova, cujo bundle pode já trazê-la.",
           "type": "boolean"
         }
       },
@@ -5822,7 +5822,7 @@
           "const": "checked"
         },
         {
-          "description": "Não há Lace mais novo publicado: nada mudou.",
+          "description": "Não há AURORA mais nova publicado: nada mudou.",
           "type": "string",
           "const": "up_to_date"
         },
@@ -5858,7 +5858,7 @@
       "type": "object",
       "properties": {
         "components": {
-          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `aurora` é o próprio Lace e o cabeçalho do bundle.",
+          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `aurora` é a própria AURORA e o cabeçalho do bundle.",
           "type": "array",
           "items": {
             "type": "string"
@@ -6489,7 +6489,7 @@
       ]
     },
     "Notification": {
-      "description": "O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.\nOs nomes são os que o Lace Studio manda à interface dele.",
+      "description": "O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.\nOs nomes são os que a AURORA IDE manda à interface dele.",
       "oneOf": [
         {
           "description": "Uma fase começou.",
@@ -6579,7 +6579,7 @@
           ]
         },
         {
-          "description": "Progresso de uma instalação ou atualização do Lace (o evento do\ninstalador, serializado por ele; o core não conhece o tipo).",
+          "description": "Progresso de uma instalação ou atualização da AURORA (o evento do\ninstalador, serializado por ele; o core não conhece o tipo).",
           "type": "object",
           "properties": {
             "event": {
@@ -6696,7 +6696,7 @@
           ]
         },
         {
-          "description": "Uma linha que o processo escreveu, sem o fim de linha. Linhas de\nstdout e de stderr chegam na ordem em que o Lace as leu, que pode não\nser exatamente a ordem em que o processo as escreveu.",
+          "description": "Uma linha que o processo escreveu, sem o fim de linha. Linhas de\nstdout e de stderr chegam na ordem em que a AURORA as leu, que pode não\nser exatamente a ordem em que o processo as escreveu.",
           "type": "object",
           "properties": {
             "step": {

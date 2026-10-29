@@ -2,7 +2,7 @@
 //!
 //! Depois de uma operação (compilar, verificar, simular, sintetizar), a
 //! interface chama [`record`] com o que cada fase devolveu ([`Operation`]).
-//! O Lace grava o relatório em texto, para quem lê, e o que a comparação usa,
+//! A AURORA grava o relatório em texto, para quem lê, e o que a comparação usa,
 //! em JSON, numa pasta nova do histórico:
 //!
 //! ```text
@@ -28,8 +28,8 @@
 //! chamado de regressão, nem menor de melhora.
 //!
 //! É a função de relatório do Alpha-Solar (`solar report`), com os nomes e os
-//! formatos do Lace: JSON no lugar dos `.dat`; `run-` no lugar de `build-`,
-//! porque no Lace "build" é compilar processador; milissegundos, que é o que
+//! formatos da AURORA: JSON no lugar dos `.dat`; `run-` no lugar de `build-`,
+//! porque na AURORA "build" é compilar processador; milissegundos, que é o que
 //! os passos medem; e o tempo simulado em femtossegundos, que cabe as
 //! escalas do Icarus.
 
@@ -55,7 +55,7 @@ use crate::toolchain::{Tool, Toolchain};
 /// A pasta do histórico, relativa à raiz do projeto.
 pub const REPORTS_DIR: &str = ".aurora8/reports";
 
-/// O formato do `record.json` que este Lace grava e entende.
+/// O formato do `record.json` que esta AURORA grava e entende.
 pub const RECORD_SCHEMA: u32 = 1;
 
 const RECORD_FILE: &str = "record.json";
@@ -270,7 +270,7 @@ pub struct RunMetadata {
     /// Quanto levou, do começo ao fim, em milissegundos.
     pub duration_ms: u64,
     /// A versão que gravou. `lace_version` nos relatórios gravados pelo
-    /// Lace, que a `.lace` levada para a `.aurora8` traz.
+    /// AURORA, que a `.lace` levada para a `.aurora8` traz.
     #[serde(alias = "lace_version")]
     pub aurora_version: String,
     /// O que identifica o projeto: um hash da raiz dele. Relatórios de
@@ -325,7 +325,7 @@ pub struct SimulationContext {
 }
 
 /// A máquina onde a operação rodou. O que o sistema não informa sem rodar
-/// outro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,
+/// outro programa fica `null`: a AURORA só lê arquivos do sistema (no Linux,
 /// `/proc` e `/etc/os-release`) e o `uname`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema, Deserialize)]
 #[non_exhaustive]
@@ -362,7 +362,7 @@ pub struct SimulationTimings {
     pub compile_ms: Option<u64>,
     /// O passo que roda o testbench (`vvp` ou o modelo do Verilator).
     pub execution_ms: Option<u64>,
-    /// A simulação inteira, medida à parte: com a preparação do Lace.
+    /// A simulação inteira, medida à parte: com a preparação da AURORA.
     pub total_ms: Option<u64>,
     /// O tempo simulado no `$finish`, em femtossegundos, quando o simulador
     /// o informa (o `vvp` informa; o Verilator, não).
@@ -827,7 +827,7 @@ fn read_record(dir: &Utf8Path, id: &str) -> Result<RunRecord> {
     let schema = value.get("schema").and_then(|s| s.as_u64());
     if schema != Some(u64::from(RECORD_SCHEMA)) {
         return Err(invalid(format!(
-            "format {} (this Lace reads format {RECORD_SCHEMA})",
+            "format {} (this AURORA reads format {RECORD_SCHEMA})",
             schema.map_or("unknown".into(), |s| s.to_string())
         )));
     }
@@ -1158,7 +1158,7 @@ fn compare_records(
             _ => {}
         }
     }
-    warn_if(b.aurora_version != c.aurora_version, "Lace versions differ");
+    warn_if(b.aurora_version != c.aurora_version, "AURORA versions differ");
 
     Ok(RunComparison {
         current_id: current.id.clone(),
@@ -1566,7 +1566,7 @@ fn render(
         format!("{} ({} ms)", duration(m.duration_ms), m.duration_ms)
     };
     field(&mut out, "Total wall time", &total);
-    field(&mut out, "Lace version", &m.aurora_version);
+    field(&mut out, "AURORA version", &m.aurora_version);
     field(&mut out, "Started (UTC)", &utc_seconds(operation.started));
     field(&mut out, "Finished (UTC)", &utc_seconds(finished));
 
@@ -1749,7 +1749,7 @@ fn timing_section(out: &mut String, phases: &[Phase], total_ms: u64) {
             phase.duration_ms,
         );
     }
-    timing_row(out, "TOTAL", "Lace operation", total_ms);
+    timing_row(out, "TOTAL", "AURORA operation", total_ms);
     let _ = writeln!(out, "\n  Tool runs");
     let mut any = false;
     for phase in phases {
@@ -1782,7 +1782,7 @@ fn timing_section(out: &mut String, phases: &[Phase], total_ms: u64) {
     let _ = writeln!(
         out,
         "\n  Scope: monotonic wall time. Tool runs include process launch, wait and output drain.\n  \
-         Phase times also include Lace's preparation and artifact checks.\n  \
+         Phase times also include AURORA's preparation and artifact checks.\n  \
          A single run is not a statistical benchmark; repeat under controlled load before publishing numbers."
     );
 }

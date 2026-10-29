@@ -79,7 +79,7 @@ pub async fn fs_read_dir(app: AppHandle, path: String) -> IpcResult<Vec<DirEntry
     .await
 }
 
-/// Marca os arquivos com nome de testbench, pela regra do Lace, numa
+/// Marca os arquivos com nome de testbench, pela regra da AURORA, numa
 /// pergunta só ao servidor. Sem servidor, a lista sai sem a marca: a árvore
 /// funciona do mesmo jeito.
 fn mark_testbenches(state: &AppState, entries: &mut [DirEntry]) {

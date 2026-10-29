@@ -661,7 +661,7 @@ fn update(value: &Value) -> String {
     line(
         &mut out,
         format!(
-            "Lace {} installed, latest release {}{}",
+            "AURORA {} installed, latest release {}{}",
             str_of(&aurora, "installed"),
             str_of(&aurora, "latest"),
             if newer { " (newer)" } else { " (up to date)" }

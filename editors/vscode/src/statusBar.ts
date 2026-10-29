@@ -10,20 +10,20 @@ export class AuroraStatusBar implements vscode.Disposable {
   private readonly item = vscode.window.createStatusBarItem('aurora.project', vscode.StatusBarAlignment.Left, 100);
 
   constructor() {
-    this.item.name = 'Projeto do Lace';
+    this.item.name = 'Projeto da AURORA';
   }
 
   update(connection: Connection, projects: Projects): void {
     const item = this.item;
     switch (connection.kind) {
       case 'checking':
-        item.text = '$(sync~spin) Lace';
+        item.text = '$(sync~spin) AURORA';
         item.tooltip = 'Procurando o aurora';
         item.command = undefined;
         break;
       case 'missing':
       case 'unsupported':
-        item.text = '$(warning) Lace';
+        item.text = '$(warning) AURORA';
         item.tooltip = `${connection.reason}. Clique para configurar aurora.path.`;
         item.command = { command: 'workbench.action.openSettings', title: 'Configurar', arguments: ['aurora.path'] };
         break;
@@ -33,10 +33,10 @@ export class AuroraStatusBar implements vscode.Disposable {
           return;
         }
         const active = projects.active;
-        item.text = active ? `$(project) ${active.name}` : '$(project) Lace: escolher o projeto';
+        item.text = active ? `$(project) ${active.name}` : '$(project) AURORA: escolher o projeto';
         item.tooltip = active
-          ? `Projeto ativo do Lace: ${active.spf}\nlace ${connection.version}. Clique para trocar.`
-          : 'Este workspace tem mais de um projeto do Lace. Clique para escolher o ativo.';
+          ? `Projeto ativo da AURORA: ${active.spf}\nlace ${connection.version}. Clique para trocar.`
+          : 'Este workspace tem mais de um projeto da AURORA. Clique para escolher o ativo.';
         item.command = 'aurora.selectProject';
         break;
       }

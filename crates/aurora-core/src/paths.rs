@@ -19,7 +19,7 @@ use crate::error::{AuroraError, Result};
 ///   comportamento documentado do Windows para programas sem o manifesto
 ///   `longPathAware`.
 ///
-/// O Lace confere cada arquivo que um compilador vai abrir ou criar (fonte,
+/// A AURORA confere cada arquivo que um compilador vai abrir ou criar (fonte,
 /// `.asm`, Verilog, memórias, testbench, intermediários), não só os
 /// diretórios.
 #[cfg(windows)]
@@ -65,7 +65,7 @@ pub(crate) fn real_path(path: &Utf8Path) -> Utf8PathBuf {
 }
 
 /// `a` e `b` são o mesmo arquivo, talvez por caminhos diferentes. O `.spf`
-/// guarda o caminho real (ver `Project::absolute`), e o Lace monta o dos
+/// guarda o caminho real (ver `Project::absolute`), e a AURORA monta o dos
 /// arquivos de um processador pela pasta dele, que pode ser um link ou uma
 /// junção.
 pub(crate) fn same_file(a: &Utf8Path, b: &Utf8Path) -> bool {
@@ -78,7 +78,7 @@ pub(crate) fn to_utf8(path: impl AsRef<Path>) -> Result<Utf8PathBuf> {
         .map_err(|p| AuroraError::NonUtf8Path(p.display().to_string()))
 }
 
-/// A pasta de cache do Lace, só do usuário (o `/tmp` do Linux é de todos):
+/// A pasta de cache da AURORA, só do usuário (o `/tmp` do Linux é de todos):
 /// `$XDG_CACHE_HOME/aurora` ou `~/.cache/aurora` no Linux,
 /// `~/Library/Caches/aurora` no macOS, `%TEMP%\aurora` no Windows. Não é
 /// criada aqui.
@@ -98,7 +98,7 @@ pub(crate) fn user_cache_dir() -> Result<Utf8PathBuf> {
     to_utf8(base.join("aurora"))
 }
 
-/// A pasta de configuração do Lace, só do usuário: `%APPDATA%\aurora` no
+/// A pasta de configuração da AURORA, só do usuário: `%APPDATA%\aurora` no
 /// Windows, `~/Library/Application Support/aurora` no macOS,
 /// `$XDG_CONFIG_HOME/aurora` ou `~/.config/aurora` no Linux. Não é criada aqui.
 /// `None` sem a variável de onde ela sai (`APPDATA`, `HOME`).
@@ -185,7 +185,7 @@ pub(crate) struct RunLock(#[allow(dead_code)] std::fs::File);
 
 /// Trava `<base>.lock` (a pasta temporária de um processador, a do projeto,
 /// uma pasta de trabalho) para quem grava no que ela protege: um build, uma
-/// simulação, uma síntese. Sem esperar: se outra operação do Lace a segura,
+/// simulação, uma síntese. Sem esperar: se outra operação da AURORA a segura,
 /// de outro processo ou desta mesma (o Studio e a CLI),
 /// [`AuroraError::OperationInProgress`] com `name`.
 pub(crate) fn run_lock(base: &Utf8Path, name: &str) -> Result<RunLock> {

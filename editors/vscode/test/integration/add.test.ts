@@ -13,7 +13,7 @@ import type { AuroraRun } from '../../src/aurora/client';
 import type { AddReport } from '../../src/aurora/aurora-types';
 import { activate, lastCall, resetFake, run, setFakeState, spf, workspace } from './helpers';
 
-describe('Lace: Adicionar ao projeto', () => {
+describe('AURORA: Adicionar ao projeto', () => {
   let api: AuroraExtensionApi;
 
   beforeEach(async () => {
@@ -38,7 +38,7 @@ describe('Lace: Adicionar ao projeto', () => {
     assert.deepEqual(lastCall('add'), ['-C', spf, '--json', 'add', velho, '--tb']);
   });
 
-  it('Novo arquivo Verilog: o Lace cria do modelo, e o arquivo abre no editor', async () => {
+  it('Novo arquivo Verilog: a AURORA cria do modelo, e o arquivo abre no editor', async () => {
     const novo = join(workspace, 'rtl', 'novo.v');
     const result = await run<AuroraRun<AddReport>>('aurora.newFile', { path: 'rtl/novo.v' });
     assert.equal(result?.status === 'succeeded' && result.result.files[0].created, true);

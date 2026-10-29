@@ -1,4 +1,4 @@
-//! As operações longas: o Studio as pede ao servidor do Lace
+//! As operações longas: o Studio as pede ao servidor da AURORA
 //! ([`crate::server`]) e repassa à interface, por um `Channel` do Tauri, as
 //! notificações que o servidor manda enquanto elas rodam e, no fim, o
 //! resultado. Cancelar é o `$/cancel` do protocolo.
@@ -51,7 +51,7 @@ pub enum JobMessage {
         /// O resultado.
         outcome: Value,
     },
-    /// O Lace não conseguiu rodar a operação.
+    /// A AURORA não conseguiu rodar a operação.
     Failed {
         /// O erro.
         error: IpcError,

@@ -17,7 +17,7 @@ pub enum Error {
         exe: Utf8PathBuf,
     },
     /// Outra instalação ou atualização está mexendo na mesma pasta.
-    #[error("Another installation or update of Lace is running in {prefix}; wait for it to finish")]
+    #[error("Another installation or update of AURORA is running in {prefix}; wait for it to finish")]
     InstallInProgress {
         /// A pasta da instalação.
         prefix: Utf8PathBuf,
@@ -25,7 +25,7 @@ pub enum Error {
     /// Uma atualização interrompida foi desfeita agora: quem roda pode ser o
     /// `aurora` novo, que a troca já tinha posto no lugar, e a operação para.
     #[error(
-        "An update to Lace {to} stopped in the middle, and its changes were undone: the \
+        "An update to AURORA {to} stopped in the middle, and its changes were undone: the \
          installation in {prefix} is back to the version it had. Run aurora update again"
     )]
     InterruptedUpdateUndone {
@@ -43,10 +43,10 @@ pub enum Error {
         reason: String,
     },
     /// O `curl` não está no sistema.
-    #[error("Lace downloads with curl, which was not found; install curl")]
+    #[error("AURORA downloads with curl, which was not found; install curl")]
     CurlMissing,
-    /// A última versão do Lace não pôde ser consultada.
-    #[error("Could not get the latest Lace version (no network, or GitHub is down)")]
+    /// A última versão da AURORA não pôde ser consultada.
+    #[error("Could not get the latest AURORA version (no network, or GitHub is down)")]
     NoLatestVersion,
     /// Um arquivo baixado não confere com o `SHA256SUMS` da release.
     #[error("The SHA-256 of {file} does not match the SHA256SUMS of release v{version}")]

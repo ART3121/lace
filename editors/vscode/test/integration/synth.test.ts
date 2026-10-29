@@ -1,4 +1,4 @@
-// "Lace: Sintetizar" dentro do VS Code, com o aurora falso: `aurora synth`, o RTL
+// "AURORA: Sintetizar" dentro do VS Code, com o aurora falso: `aurora synth`, o RTL
 // viewer numa aba (o webview tem de desenhar: é o que prova que o worker do
 // layout roda lá dentro) e, com aurora.synth.schematic, o SVG do Graphviz.
 
@@ -33,7 +33,7 @@ function within<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
 
 const processor = { kind: 'entry', entry: { role: 'processor', label: 'soma', path: null } } as unknown as SourceNode;
 
-describe('Lace: Sintetizar', () => {
+describe('AURORA: Sintetizar', () => {
   let api: AuroraExtensionApi;
 
   before(async () => {

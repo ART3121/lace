@@ -1,5 +1,5 @@
-// "Lace: Novo projeto": `aurora new`, a partir do botão da vista Fontes numa
-// pasta sem .spf (ou da paleta). O Lace cria `<pasta>/<nome>/<nome>.spf`; se
+// "AURORA: Novo projeto": `aurora new`, a partir do botão da vista Fontes numa
+// pasta sem .spf (ou da paleta). A AURORA cria `<pasta>/<nome>/<nome>.spf`; se
 // a pasta `<nome>` já existe, o .spf vai para dentro dela, e é assim que a
 // própria pasta aberta vira o projeto.
 
@@ -16,7 +16,7 @@ import { clientFor, showAuroraError, showProcessError, type CommandDeps } from '
 /**
  * O nome que `aurora new` aceita (docs/CLI.md, "Projeto"): letras sem acento,
  * dígitos, `_` e `-`, começando por letra, até 64. Só decide se "Nesta pasta"
- * aparece na lista; quem confere o nome é o Lace.
+ * aparece na lista; quem confere o nome é a AURORA.
  */
 const PROJECT_NAME = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 
@@ -42,7 +42,7 @@ export async function newProject(deps: CommandDeps, target?: unknown): Promise<A
   let run: AuroraRun<NewReport>;
   try {
     run = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: 'Lace: criando o projeto' },
+      { location: vscode.ProgressLocation.Window, title: 'AURORA: criando o projeto' },
       () => client.newProject(place.name, place.dir),
     );
   } catch (error) {
@@ -84,7 +84,7 @@ async function askPlace(): Promise<NewProjectArgs | undefined> {
   }
   items.push({ where: 'elsewhere', label: 'Em outra pasta...', description: 'Escolha onde criar a pasta do projeto' });
 
-  const choice = items.length === 1 ? items[0] : await vscode.window.showQuickPick(items, { title: 'Novo projeto do Lace: onde criar?' });
+  const choice = items.length === 1 ? items[0] : await vscode.window.showQuickPick(items, { title: 'Novo projeto da AURORA: onde criar?' });
   if (!choice) {
     return undefined;
   }
@@ -109,7 +109,7 @@ async function askPlace(): Promise<NewProjectArgs | undefined> {
     dir = picked[0].fsPath;
   }
   const name = await vscode.window.showInputBox({
-    title: 'Novo projeto do Lace',
+    title: 'Novo projeto da AURORA',
     prompt: `O nome do projeto e da pasta dele, em ${dir}: letras sem acento, dígitos, _ e -, começando por letra`,
     placeHolder: 'contador',
     validateInput: (value) => (value.trim() === '' ? 'Digite o nome do projeto' : undefined),
@@ -129,7 +129,7 @@ async function afterCreated(deps: CommandDeps, created: NewReport): Promise<void
     if (project) {
       await deps.projects.setActive(project);
     }
-    vscode.window.setStatusBarMessage(`$(pass) Lace: projeto ${basename(created.root)} criado`, 6000);
+    vscode.window.setStatusBarMessage(`$(pass) AURORA: projeto ${basename(created.root)} criado`, 6000);
     return;
   }
   const open = 'Abrir';
@@ -137,7 +137,7 @@ async function afterCreated(deps: CommandDeps, created: NewReport): Promise<void
   const add = 'Acrescentar ao workspace';
   const actions = vscode.workspace.workspaceFolders?.length ? [open, newWindow, add] : [open, newWindow];
   const choice = await vscode.window.showInformationMessage(
-    `Lace: projeto ${basename(created.root)} criado em ${created.root}.`,
+    `AURORA: projeto ${basename(created.root)} criado em ${created.root}.`,
     ...actions,
   );
   if (choice === open || choice === newWindow) {

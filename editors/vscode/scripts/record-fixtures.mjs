@@ -108,7 +108,7 @@ try {
   record(demo, 'wave-arquivo.json', ['--json', 'wave', at('contador_tb.fst')], { schema: 'wave.json' });
 
   // Pôr no projeto: um .v que já existe (muda o status), um como testbench
-  // e um que não existe, que o Lace cria do modelo.
+  // e um que não existe, que a AURORA cria do modelo.
   record(demo, 'add-sobra.json', ['--json', 'add', at('rtl', 'sobra.v')], {
     schema: 'add.json',
     state: 'initial',
@@ -197,7 +197,7 @@ try {
   });
   restore();
   record(files, 'remove-sobra.json', ['--json', 'remove', file('rtl', 'sobra.v')], { schema: 'error.json' });
-  // Renomear pelo Lace (o aurora falso move o arquivo) e registrar o que o
+  // Renomear pela AURORA (o aurora falso move o arquivo) e registrar o que o
   // explorador do VS Code já renomeou (--after): o mesmo status depois.
   record(files, 'move-somador.json', ['--json', 'move', file('rtl', 'somador.v'), file('rtl', 'adder.v')], {
     schema: 'move.json',
@@ -216,7 +216,7 @@ try {
   });
   renameSync(file('rtl', 'adder.v'), file('rtl', 'somador.v'));
   restore();
-  // O --after de um arquivo que não foi movido: o Lace recusa.
+  // O --after de um arquivo que não foi movido: a AURORA recusa.
   record(files, 'move-after-nao-movido.json', ['--json', 'move', '--after', file('rtl', 'mux.sv'), file('rtl', 'adder.v')], {
     schema: 'error.json',
   });

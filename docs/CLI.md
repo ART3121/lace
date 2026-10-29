@@ -19,7 +19,7 @@ aurora <comando> --help                    # detalhes de um comando
 
 ## Primeiro uso
 
-Um projeto do Lace é um projeto Verilog. Processadores SAPHO, quando
+Um projeto da AURORA é um projeto Verilog. Processadores SAPHO, quando
 existem, são uma etapa a mais: o YANC os compila antes de verificar, simular
 ou sintetizar. Os dois fluxos usam os mesmos comandos e cabem no mesmo
 projeto.
@@ -57,7 +57,7 @@ aurora wave -p soma                # abre a onda da simulação do processador
 
 ### Regras
 
-**De onde rodar:** de qualquer pasta do projeto, não só da raiz. O Lace
+**De onde rodar:** de qualquer pasta do projeto, não só da raiz. A AURORA
 procura o `.spf` na pasta atual e, se não achar, nas de cima, como o git
 acha o repositório. Fora de qualquer projeto, o erro é `project_not_found`.
 `-C` aponta outro lugar para começar a busca.
@@ -115,7 +115,7 @@ Valem em qualquer comando, antes ou depois dele.
 
 | Opção | Padrão | Efeito |
 |---|---|---|
-| `-C, --project <CAMINHO>` | `.` | o `.spf` do projeto, ou uma pasta dentro dele: o Lace sobe até achar o `.spf` |
+| `-C, --project <CAMINHO>` | `.` | o `.spf` do projeto, ou uma pasta dentro dele: a AURORA sobe até achar o `.spf` |
 | `--json` | não | um objeto JSON no stdout, nada mais ([JSON](#json)) |
 | `--events` | não | um objeto JSON por linha no stdout: os eventos das ferramentas enquanto rodam e, na última linha, o resultado ([Eventos](#eventos)). Com `--json` junto, vale o `--events` |
 | `-v`, `-vv` | não | `-v`: o comando e toda a saída de cada passo enquanto roda, mensagens `info`, artefatos intermediários, módulos da síntese e log `info` no stderr; `-vv`: log de depuração |
@@ -130,13 +130,13 @@ Bundle (o `--compiler` e o `--quartus` ficam entre as opções globais do `--hel
 
 ## De onde vêm as ferramentas
 
-Do bundle instalado com o Lace (`toolchain/` ao lado de `bin/`), e só dele.
+Do bundle instalado com a AURORA (`toolchain/` ao lado de `bin/`), e só dele.
 `aurora tools` mostra o bundle, as versões e onde está cada ferramenta;
 `aurora tools --verify` confere os hashes. Como instalar: [INSTALL.md](INSTALL.md). O que o bundle traz e como montá-lo:
 [BUNDLE.md](BUNDLE.md).
 
 A exceção é o compilador do sistema, que o Verilator usa no Linux e no
-macOS. O Lace o procura nos locais padrão ([BUNDLE.md](BUNDLE.md), seção 4)
+macOS. A AURORA o procura nos locais padrão ([BUNDLE.md](BUNDLE.md), seção 4)
 e nunca no `PATH`. Fora deles, `--compiler <DIR>` diz onde ele está: o
 diretório com `perl`, `make` e `g++` ou `clang++`. No Windows o compilador
 vem no bundle, com o Verilator, e `--compiler` recebe a raiz de um MSYS2
@@ -155,11 +155,11 @@ set -Ux AURORA_COMPILER /opt/gcc/bin                   # fish: vale para as pró
 
 `aurora tools` mostra qual compilador foi encontrado e se ele é do bundle ou
 do sistema. O compilador e o bundle não têm arquivo de configuração: o único
-arquivo de configuração do Lace é o `experimental.json`
+arquivo de configuração da AURORA é o `experimental.json`
 ([Componentes experimentais](#componentes-experimentais-lace-experimental)).
 
 A segunda exceção é o Quartus Prime, que compila para as placas Intel e não
-pode ir no bundle. O Lace usa o de `--quartus <DIR>` (ou `AURORA_QUARTUS`),
+pode ir no bundle. A AURORA usa o de `--quartus <DIR>` (ou `AURORA_QUARTUS`),
 que é erro se não tiver o `quartus_sh`; senão o de `QUARTUS_ROOTDIR`, que o
 instalador da Intel cria; senão o das pastas padrão do instalador, a versão
 mais nova ([FPGA.md](FPGA.md)). `aurora tools` mostra o que achou.
@@ -202,7 +202,7 @@ pasta do projeto é gravado no `.spf` com caminho relativo (`../../rtl/x.v`)
 quando está no mesmo repositório git do projeto, e absoluto quando não.
 As portas
 que o testbench-modelo instancia são lidas pelo Yosys, quando ele está
-instalado; sem ele, por um leitor de portas no estilo ANSI do próprio Lace.
+instalado; sem ele, por um leitor de portas no estilo ANSI da própria AURORA.
 
 `remove` avisa quais arquivos não estavam registrados e sai com código 2 se
 nenhum estava.
@@ -217,7 +217,7 @@ a pasta de saída e o fonte (`cannot_move`); o destino
 que existe não é sobrescrito (`path_exists`). As origens anteriores à que
 falhou já foram movidas.
 
-`move --after` é para o que já foi movido fora do Lace, no explorador de um
+`move --after` é para o que já foi movido fora da AURORA, no explorador de um
 editor ou com o `mv`: o disco fica como está e só o `.spf` acompanha, como
 o `hg mv --after`. A origem não pode mais existir (`cannot_move`) e o
 destino tem que existir (`invalid_project`). Como uma pasta no destino pode
@@ -236,7 +236,7 @@ módulos, o que tem o nome do arquivo. Sem nenhum dos dois, é erro
 |---|---|---|
 | `proc add <NOME> [--lang cmm\|cpp] [--inputs N] [--outputs N] [--nubits N] [--nbmant N] [--nbexpo N] [--nugain N] [--ndstac N] [--sdepth N]` | cria a pasta `<NOME>/`, o fonte-modelo `<NOME>/<NOME>.cmm` (ou `.cpp`) e a entrada no `.spf`; a pasta de saída, `<NOME>/<NOME>/`, nasce no primeiro build | `Project::add_processor` |
 | `proc set [NOME] [--freq MHZ] [--clocks N] [--arrays true\|false]` | grava frequência, clocks e exportação de arrays no `.spf`; valem a partir do próximo build. Sem `NOME`, o processador da pasta | `Project::configure_processor` |
-| `proc remove <NOME> [--delete [--yes]]` | tira o processador do projeto: a entrada no `.spf`, o Verilog e o testbench gerados das listas (com a escolha de topo e de testbench que apontava para eles) e a pasta temporária do Lace. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer como não registrados no `aurora status`. Com `--delete`, a pasta vai para a lixeira do sistema; antes, pergunta no terminal, e sem terminal exige `--yes` | `Project::remove_processor` |
+| `proc remove <NOME> [--delete [--yes]]` | tira o processador do projeto: a entrada no `.spf`, o Verilog e o testbench gerados das listas (com a escolha de topo e de testbench que apontava para eles) e a pasta temporária da AURORA. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer como não registrados no `aurora status`. Com `--delete`, a pasta vai para a lixeira do sistema; antes, pergunta no terminal, e sem terminal exige `--yes` | `Project::remove_processor` |
 
 As opções `--nubits` a `--sdepth` são só de C±; com `--lang cpp`, o comando
 recusa (código 2). Os padrões são os da AURORA (23, 16, 6, 128). O
@@ -247,7 +247,7 @@ só `--nbmant` ou `--nbexpo`, `--nubits` acompanha (`#NBMANT + #NBEXPO + 1`,
 o único que o `asmcomp` aceita). O Core recusa, antes de criar qualquer
 coisa, nome que o YANC 7.1 recusa como módulo (palavra do Verilog ou do
 SystemVerilog, começo com dígito ou com `__`), módulo da biblioteca SAPHO,
-nome reservado do Windows, nome de uma pasta do Lace (`synth`, `hierarchy`,
+nome reservado do Windows, nome de uma pasta da AURORA (`synth`, `hierarchy`,
 `lint`, `wave`, `surfer`, `cocotb`, em qualquer caixa), mais de 64
 caracteres, e parâmetro fora do que o YANC
 compila (`invalid_parameter`: `#NUBITS` diferente da soma ou acima de 32,
@@ -307,7 +307,7 @@ VCD (ver [Onde fica a onda](#onde-fica-a-onda)).
 passar desse tempo, sem contar a elaboração e a compilação; sem ele, não há
 limite, e um testbench sem `$finish` roda até o Ctrl+C. No Linux e no
 macOS, o prazo pede ao simulador que saia (SIGTERM), e o que o testbench
-escreveu até ali aparece. No Windows não há esse pedido: o Lace encerra o
+escreveu até ali aparece. No Windows não há esse pedido: a AURORA encerra o
 simulador na hora, e o que ainda estava no buffer de saída dele se perde
 (um `$fflush` no testbench o escreve antes). `--open` abre a onda
 no surfer-aurora ao terminar. O esquemático sempre traz a largura dos
@@ -320,7 +320,7 @@ na velocidade do simulador. O testbench Verilog, do projeto ou de um
 processador (`-p`), roda no Verilator, com ou sem `--verilator`, compilado
 sem `--trace` num `obj_dir_fast_<topo>` à parte do da simulação com onda;
 os `$dumpfile` e `$dumpvars` dele não gravam nada (o Verilator avisa, na
-saída, que os ignora), e o Lace não injeta o dump padrão. Como na AURORA, o
+saída, que os ignora), e a AURORA não injeta o dump padrão. Como na AURORA, o
 `$display` do testbench chega em blocos, e não linha a linha: o flush de
 cada linha chegava a dobrar o tempo de um testbench que imprime a cada
 ciclo. Um testbench cocotb roda os testes sem o módulo que grava a onda: no Icarus, com `vvp
@@ -339,7 +339,7 @@ Fast simulation of contador_tb (Verilator): finished in 383 ms
 
 `--open` mostra o netlist da síntese no RTL viewer, o esquemático
 interativo que o Studio tem numa aba: entrar nos submódulos, buscar, destacar
-uma rede, exportar o SVG. O Lace grava `rtl-viewer.html` ao lado do netlist
+uma rede, exportar o SVG. A AURORA grava `rtl-viewer.html` ao lado do netlist
 (`.aurora8/Temp/synth/<alvo>/`), um arquivo só, com o viewer e o netlist dentro,
 que abre em qualquer navegador sem servidor e sem rede, e o abre no navegador
 padrão pelo abridor do sistema (`xdg-open`, `open`, o Explorer). Fora do
@@ -436,7 +436,7 @@ passo. Avisos, do Icarus ou do Verilator, não fazem o `check` falhar. O
   repete o último valor);
 - sem `-p`, um aviso quando o Icarus grava a onda em VCD e ela passa de
   100 MB, com a sugestão de `$dumpfile("<nome>.fst")`. Só acontece quando o
-  Lace não consegue trocar a extensão do `$dumpfile` (a chamada quebrada em
+  AURORA não consegue trocar a extensão do `$dumpfile` (a chamada quebrada em
   linhas);
 - uma linha `ERROR: ...` que o testbench escreve com `$display` sai como as
   outras (`| ERROR: ...`) e não reprova; só o `$error` e o `$fatal` do
@@ -460,7 +460,7 @@ Report run-000002: aurora report show 2
 A simulação falha, com código 1, quando o Verilog não elabora, quando o
 simulador sai com código diferente de 0 e quando o `vvp` escreve uma linha
 `ERROR:` ou `FATAL:`, que é o que `$error` e `$fatal` fazem no Icarus. O
-`vvp` sai com 0 depois de um `$error`; o Lace conta isso como falha. Passar
+`vvp` sai com 0 depois de um `$error`; a AURORA conta isso como falha. Passar
 do `--timeout` também sai com 1.
 
 #### Onde fica a onda
@@ -468,14 +468,14 @@ do `--timeout` também sai com 1.
 O nome vem do `$dumpfile` do testbench, relativo à raiz do projeto; a
 extensão é a do formato que o simulador grava: `.fst` no Icarus, `.vcd` no
 Verilator (o FST do Verilator exige a lz4, que o bundle não traz). Um
-`$dumpfile("saida.vcd")` simulado no Icarus grava `saida.fst`: o Lace troca
+`$dumpfile("saida.vcd")` simulado no Icarus grava `saida.fst`: a AURORA troca
 a extensão numa cópia do testbench, e o arquivo do usuário não muda. O
 testbench-modelo do `aurora add` grava `<testbench>.fst`. Num testbench sem
-`$dumpfile`, o Lace simula uma cópia com `$dumpfile("<tb>.fst")` (`<tb>.vcd`
+`$dumpfile`, a AURORA simula uma cópia com `$dumpfile("<tb>.fst")` (`<tb>.vcd`
 com o Verilator) e `$dumpvars(0, <tb>)`, em que `<tb>` é o módulo do
 testbench: a onda fica na raiz, com todos os sinais, inclusive os do módulo
 testado. Com as duas extensões no disco, `aurora wave` abre a mais recente.
-Com um `$dumpfile` que é uma expressão que o Lace não resolve, a onda vai
+Com um `$dumpfile` que é uma expressão que a AURORA não resolve, a onda vai
 para onde o testbench mandar, em VCD, e `aurora wave` pede o arquivo.
 
 Com `-p`, o testbench é o que o YANC gerou, `<NOME>/<NOME>/<NOME>_tb.v`, e
@@ -490,7 +490,7 @@ outro testbench roda na raiz, para onde vão as memórias e o
 #### Testbench cocotb
 
 Um `.py` registrado como testbench é um testbench cocotb: só os testes
-(`@cocotb.test()`), e o Lace monta a simulação, como a AURORA. Os testes
+(`@cocotb.test()`), e a AURORA monta a simulação, como a AURORA. Os testes
 recebem como `dut` o módulo da linha `# aurora-toplevel: <módulo>` do
 arquivo (a diretiva da AURORA, um comentário para o Python) ou, sem ela, o
 módulo de topo do projeto, com um aviso. `aurora sim test_alu.py` (ou `aurora
@@ -567,7 +567,7 @@ texto lista cada processador do layout. `aurora sim --open` faz o mesmo.
 **O layout salvo.** Numa onda de testbench do projeto, o layout fica em
 `wave/<testbench>.surf.ron`, na pasta do projeto: o Surfer abre com ele e
 salva nele (Ctrl+S, ou File > Save state). Na primeira abertura o arquivo
-nasce com o layout gerado, e o Lace o refaz a cada abertura enquanto você
+nasce com o layout gerado, e a AURORA o refaz a cada abertura enquanto você
 não salva (a escolha de sinais ou os processadores podem ter mudado).
 Depois que você salva, ele fica como está; `aurora wave --reset-layout` o
 apaga e volta ao gerado. O texto diz qual dos dois abriu.
@@ -589,7 +589,7 @@ aurora wave select --all                     # volta a gravar tudo
 Sem escolha, a onda grava todos os sinais, como antes. Com escolha, a
 simulação grava só ela, numa cópia do testbench: o primeiro `$dumpvars`
 dele vira o da escolha, os outros viram comentário, e sem `$dumpvars` a
-escolha entra no dump que o Lace injeta; o arquivo do testbench não muda.
+escolha entra no dump que a AURORA injeta; o arquivo do testbench não muda.
 Um processador SAPHO do design entra sempre com os sinais do escopo dele,
 que o layout das instruções e das variáveis usa. O layout mostra só os
 escolhidos, um grupo por escopo. Um item que o design não tem mais fica de
@@ -600,7 +600,7 @@ Verilator, que ignora a lista do `$dumpvars`, a onda grava tudo e o layout
 mostra só a escolha. A escolha vale para a simulação do projeto; a de um
 processador (`aurora sim -p`) grava o que o testbench gerado pelo YANC escolhe.
 
-Sem `ONDA`, o Lace abre o arquivo em que a simulação grava a onda (ver
+Sem `ONDA`, a AURORA abre o arquivo em que a simulação grava a onda (ver
 [Onde fica a onda](#onde-fica-a-onda)); ele não simula. O comando retorna logo, sem esperar o Surfer
 fechar. Se o Surfer fechar em menos de 1,5 s (sem display, onda inválida), o
 comando falha com código 2 (`process_exited_early`) e mostra o fim do log do
@@ -723,7 +723,7 @@ A compilação e a gravação para a placa não entram no histórico
 
 ### Componentes experimentais: `aurora experimental`
 
-Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
+Partes da AURORA que ainda mudam muito ficam desligadas até o usuário ligar.
 Hoje há dois: `fpga` (as placas FPGA: `aurora fpga` e, no Studio, a aba Placa
 FPGA) e `assistant` (o assistente de IA: `aurora chat`, `aurora mcp` e, no
 Studio, a vista Assistente).
@@ -735,7 +735,7 @@ Studio, a vista Assistente).
 | `aurora experimental disable <componente>` | desliga |
 
 O que está ligado fica em `experimental.json`, na pasta de configuração do
-Lace (`%APPDATA%\aurora` no Windows, `$XDG_CONFIG_HOME/aurora` ou
+AURORA (`%APPDATA%\aurora` no Windows, `$XDG_CONFIG_HOME/aurora` ou
 `~/.config/aurora` no Linux, `~/Library/Application Support/aurora` no macOS):
 `{"enabled": ["fpga"]}`. A página Experimental das Preferências do Studio
 liga e desliga o mesmo arquivo. Sem o arquivo, ou com ele ilegível, nada
@@ -746,8 +746,8 @@ está ligado.
 | Comando | Faz |
 |---|---|
 | `aurora tools [--verify]` | o bundle (identificador, plataforma, componentes instalados com versão e origem, e os não instalados), cada ferramenta (`OK`, `--` se o componente dela não foi instalado ou, no `quartus`, se não há Quartus, `!!` se falta o executável), o compilador do Verilator, com `(bundle)` ou `(system)`, e o Quartus Prime, se encontrado (no macOS, onde não existe, a linha some). Com `--verify`, confere o SHA-256 de cada executável e sai com 1 se algum não conferir |
-| `aurora install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, aurora-learn, rtl-viewer) na instalação de onde este `aurora` roda, sem reinstalar o Lace e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `AURORA_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador, ou uma pasta com os arquivos que a release publica), com a barra de cada download. Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `aurora` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
-| `aurora update [--check] [--yes] [--full] [--from CAMINHO]` | compara o Lace, o bundle e cada aplicativo instalado com a última release (o `bundle/versions.json` da tag dela) e com a última versão upstream (releases do OSS CAD Suite, do lace-toolchain e do YANC no GitHub, tags do surfer-aurora e releases do Graphviz no GitLab), e marca `(new)` o que é mais novo; `?` é uma fonte que não respondeu. Com `--check`, só mostra. Sem ele, se há Lace mais novo, atualiza por componentes: compara o manifesto de arquivos da instalação (`toolchain/files.json`) com o da release, mostra o que muda e quanto baixar, pergunta (sem terminal, exige `--yes`) e baixa só os pedaços com arquivos que mudaram, conferidos pelo `SHA256SUMS`. Os arquivos trocam no lugar, o próprio `aurora` também, e o bundle é conferido; uma falha no meio devolve a instalação ao que era. Sem o manifesto (uma instalação anterior à 0.7.0), com `--full` ou se a atualização por componentes falha, baixa o instalador inteiro da release: no Linux e no macOS reinstala com os mesmos aplicativos, a mesma pasta e o mesmo atalho; no Windows abre o assistente. `--from` atualiza por componentes a partir de um instalador no disco (como no `aurora install --from`), sem rede. Ferramenta mais nova upstream não é instalada: chega num bundle novo, numa release nova do Lace. Sem rede ou com o GitHub fora, sai com 2. Recusa atualizar um `aurora` que não foi instalado pelo instalador |
+| `aurora install [APLICATIVO...] [--from CAMINHO]` | instala aplicativos do bundle (yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, aurora-learn, rtl-viewer) na instalação de onde este `aurora` roda, sem reinstalar a AURORA e sem tirar nenhum. Sem nomes, abre no terminal a lista com os instalados travados; com nomes, instala direto, com o que eles exigem. Só os pedaços dos aplicativos novos são baixados (da release desta versão, conferidos pelo `SHA256SUMS`; `AURORA_RELEASE_URL` troca a origem por um espelho) ou lidos de `--from` (a pasta, o `.tar.gz` ou o `payload/` de um instalador, ou uma pasta com os arquivos que a release publica), com a barra de cada download. Uma falha no meio desfaz o que entrou. O `studio` ganha o atalho no menu de aplicativos (Linux e macOS). Recusa um `aurora` que não foi instalado pelo instalador, um nome que não é do bundle e um bundle diferente do instalado |
+| `aurora update [--check] [--yes] [--full] [--from CAMINHO]` | compara a AURORA, o bundle e cada aplicativo instalado com a última release (o `bundle/versions.json` da tag dela) e com a última versão upstream (releases do OSS CAD Suite, do lace-toolchain e do YANC no GitHub, tags do surfer-aurora e releases do Graphviz no GitLab), e marca `(new)` o que é mais novo; `?` é uma fonte que não respondeu. Com `--check`, só mostra. Sem ele, se há AURORA mais nova, atualiza por componentes: compara o manifesto de arquivos da instalação (`toolchain/files.json`) com o da release, mostra o que muda e quanto baixar, pergunta (sem terminal, exige `--yes`) e baixa só os pedaços com arquivos que mudaram, conferidos pelo `SHA256SUMS`. Os arquivos trocam no lugar, o próprio `aurora` também, e o bundle é conferido; uma falha no meio devolve a instalação ao que era. Sem o manifesto (uma instalação anterior à 0.7.0), com `--full` ou se a atualização por componentes falha, baixa o instalador inteiro da release: no Linux e no macOS reinstala com os mesmos aplicativos, a mesma pasta e o mesmo atalho; no Windows abre o assistente. `--from` atualiza por componentes a partir de um instalador no disco (como no `aurora install --from`), sem rede. Ferramenta mais nova upstream não é instalada: chega num bundle novo, numa release nova da AURORA. Sem rede ou com o GitHub fora, sai com 2. Recusa atualizar um `aurora` que não foi instalado pelo instalador |
 | `aurora uninstall [--yes]` | remove a instalação de onde este `aurora` roda, com o bundle inteiro: no Linux e no macOS roda o `uninstall.sh` da pasta (sai `toolchain/`, `bin/aurora`, o atalho e a pasta), no Windows abre o desinstalador do Inno (que também tira a pasta do PATH). Pergunta antes; sem terminal, exige `--yes`. Recusa um `aurora` que não foi instalado pelo instalador. Também apaga o `~/.config/aurora/config.json` de um build anterior à 0.2.0, e tira o atalho do Studio no menu. Os projetos ficam |
 
 O compilador do sistema para o Verilator (Linux e macOS), quando está fora
@@ -755,12 +755,12 @@ do local padrão, é declarado com `--compiler <DIR>` ou `AURORA_COMPILER`
 ([De onde vêm as ferramentas](#de-onde-vêm-as-ferramentas)).
 
 Um `aurora` instalado pelo instalador procura sozinho, uma vez por dia, se há
-Lace mais novo publicado (a mesma consulta do `aurora update`). A consulta
+AURORA mais nova publicado (a mesma consulta do `aurora update`). A consulta
 roda enquanto o comando roda, e no fim, se há versão nova, uma linha no
 stderr avisa:
 
 ```
-Lace 0.8.0 is available (this is 0.7.0): update with aurora update
+AURORA 0.8.0 is available (this is 0.7.0): update with aurora update
 ```
 
 O aviso de uma versão sai uma vez por dia até a atualização. Se a consulta
@@ -792,17 +792,17 @@ aurora completions bash > ~/.local/share/bash-completion/completions/aurora
 ### A API para outros programas: `aurora serve` e `aurora mcp`
 
 Um programa que não é Rust (a extensão do VS Code, um agente, um script)
-fala com o Lace por um processo vivo em vez de um processo por comando. O
+fala com a AURORA por um processo vivo em vez de um processo por comando. O
 Studio é cliente do `aurora serve`, como a extensão; a CLI chama direto as
 mesmas funções do Core que o despacho do servidor chama
 ([API.md, seção 5.11](API.md#511-os-fluxos-compostos-a-entrega-a-busca-do-bundle-e-o-contrato)).
 
 | Comando | Faz |
 |---|---|
-| `aurora serve [--schema] [--allow-update]` | o servidor do Lace: atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. O primeiro pedido diz o idioma da sessão: um cliente MCP, cujo `initialize` traz `protocolVersion`, recebe a mesma sessão do `aurora mcp`, com as mesmas ferramentas, o projeto do `-C` como padrão e `--allow-update` para as que mudam a instalação. Esse idioma é o do assistente de IA e exige o recurso experimental `assistant`; desligado, o `initialize` volta com o erro e a dica. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
+| `aurora serve [--schema] [--allow-update]` | o servidor da AURORA: atende pedidos JSON-RPC 2.0 por stdin e stdout, uma mensagem JSON por linha (o enquadramento do MCP, não o `Content-Length` do LSP). Cada pedido traz o caminho do projeto; não há projeto atual. O primeiro pedido diz o idioma da sessão: um cliente MCP, cujo `initialize` traz `protocolVersion`, recebe a mesma sessão do `aurora mcp`, com as mesmas ferramentas, o projeto do `-C` como padrão e `--allow-update` para as que mudam a instalação. Esse idioma é o do assistente de IA e exige o recurso experimental `assistant`; desligado, o `initialize` volta com o erro e a dica. `--schema` escreve o JSON Schema do protocolo (os pedidos e as respostas) e sai |
 | `aurora mcp [--allow-update]` | o mesmo servidor, sempre em MCP, e o nome que os agentes já têm na configuração: o mesmo contrato como servidor MCP (Model Context Protocol, versão `2025-06-18`) para um agente: `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/cancelled`. Uma ferramenta por método que serve a um agente (`project_status`, `history_show`, ...), com o `inputSchema` tirado do schema do protocolo, e o `flow.run` desdobrado em `build`, `check`, `hierarchy`, `sim` e `synth`, mais `project_find`. Não viram ferramenta o `project.check_name`, o `processor.check_name`, o `wave.open`, o `wave.reset_layout`, o `history.plan_cleanup`, o `history.clean`, o `experimental.set` e o `fpga.cables`, nem os fluxos `schematic`, `fpga_build` e `fpga_program`. `update_apply` e `install_add`, que mudam a instalação, só existem com `--allow-update` |
 | `aurora mcp setup <claude-code\|claude-desktop\|print> [--scope local\|user\|project] [--allow-update] [--default-project PATH]` | registra o servidor no cliente, com o caminho deste `aurora` e, se o bundle não é o instalado ao lado dele, a variável `AURORA_TOOLCHAIN`. `claude-code` roda `claude mcp add` (ou grava o `.mcp.json` da pasta com `--scope project`; sem o `claude` no `PATH`, imprime o comando); `claude-desktop` mescla a entrada no `claude_desktop_config.json`, mantendo o resto do arquivo; `print` só imprime o trecho JSON |
-| `aurora chat [--model M] [--resume ID] [--allow-edits] [--allow-update] [--claude PATH]` | o assistente do Lace no terminal: uma tela com a conversa, o que o assistente faz (cada ferramenta chamada, com o resultado) e o campo de texto. Quem responde é o Claude Code instalado na máquina, aberto como processo filho com o `aurora mcp` desta pasta (ou do `-C`) como ferramentas; quem autentica é ele (a conta, ou `ANTHROPIC_API_KEY`), e o Lace não guarda chave. Sem o Claude Code, diz como instalar. `--allow-edits` deixa o assistente editar e criar arquivos na pasta do projeto, além de usar as ferramentas do Lace e ler; `--allow-update` expõe `update_apply` e `install_add`. No fim imprime o `session_id`, que `--resume` retoma. Enter envia, Esc interrompe a resposta, PgUp e PgDn rolam, Ctrl+Q sai |
+| `aurora chat [--model M] [--resume ID] [--allow-edits] [--allow-update] [--claude PATH]` | o assistente da AURORA no terminal: uma tela com a conversa, o que o assistente faz (cada ferramenta chamada, com o resultado) e o campo de texto. Quem responde é o Claude Code instalado na máquina, aberto como processo filho com o `aurora mcp` desta pasta (ou do `-C`) como ferramentas; quem autentica é ele (a conta, ou `ANTHROPIC_API_KEY`), e a AURORA não guarda chave. Sem o Claude Code, diz como instalar. `--allow-edits` deixa o assistente editar e criar arquivos na pasta do projeto, além de usar as ferramentas da AURORA e ler; `--allow-update` expõe `update_apply` e `install_add`. No fim imprime o `session_id`, que `--resume` retoma. Enter envia, Esc interrompe a resposta, PgUp e PgDn rolam, Ctrl+Q sai |
 
 Os dois são processos filhos que o cliente abre quando precisa e fecha
 quando termina, como um editor faz com um servidor de linguagem: sem
@@ -877,7 +877,7 @@ Uma sessão do `serve`:
   devolve o resultado com `status: "cancelled"`, como o Ctrl+C na CLI.
 - **Erros.** O `error.code` do JSON-RPC: `-32700` JSON inválido, `-32600`
   pedido malformado, `-32601` método desconhecido, `-32602` parâmetros
-  inválidos, `-32000` um erro do Lace, com o `ErrorInfo` (`code`,
+  inválidos, `-32000` um erro da AURORA, com o `ErrorInfo` (`code`,
   `message`, `hint`, `data`) em `error.data`, `-32001` cancelado antes de
   começar, `-32002` sessão não inicializada, `-32003` servidor encerrando.
   Um parâmetro que o método não tem é `-32602`, com o nome mais parecido
@@ -915,8 +915,8 @@ print(sim["result"]["status"], sim["result"]["report"])
 aurora.stdin.close()
 ```
 
-A extensão do VS Code usa o `serve` quando o Lace instalado é a 0.9.0 ou
-mais nova (`aurora.transport`); com um Lace mais antigo continua chamando um
+A extensão do VS Code usa o `serve` quando a AURORA instalada é a 0.9.0 ou
+mais nova (`aurora.transport`); com uma AURORA mais antiga continua chamando um
 processo por comando (`--json` e `--events`), que seguem como estão.
 
 O `aurora mcp`, para um agente:
@@ -934,7 +934,7 @@ O `aurora mcp`, para um agente:
   testes), a síntese (netlist, células), o relatório gravado; o retrato do
   projeto; a lista de relatórios; o bundle. `structuredContent` traz o JSON
   inteiro do resultado, com o `stdout` e o `stderr` de cada passo cortados
-  aos últimos 2 KiB. Um erro do Lace vem com `isError`, a mensagem, o
+  aos últimos 2 KiB. Um erro da AURORA vem com `isError`, a mensagem, o
   código e a dica.
 - **Progresso e cancelamento.** As chamadas rodam uma de cada vez, fora da
   thread que lê a entrada: `ping` responde durante uma simulação longa.
@@ -959,10 +959,10 @@ aurora mcp setup claude-desktop
 O `aurora chat` e a vista Assistente do Studio usam o mesmo motor
 (`crates/aurora-agent`): o Claude Code em modo `--print`, com entrada e saída
 em JSON por linha, o `aurora mcp` configurado como servidor de ferramentas e
-as instruções do Lace no prompt do sistema. Só as ferramentas do Lace e a
+as instruções da AURORA no prompt do sistema. Só as ferramentas da AURORA e a
 leitura de arquivos são permitidas por padrão; a edição, só com
 `--allow-edits` (ou a preferência do Studio). O Claude Code só inicia a
-sessão quando recebe a primeira mensagem, e o Lace a manda em seguida; a
+sessão quando recebe a primeira mensagem, e a AURORA a manda em seguida; a
 sessão fica aberta entre as mensagens e fecha ao sair, com o que o Claude
 Code tiver iniciado.
 
@@ -1046,7 +1046,7 @@ CLI acrescenta o comando que resolve:
 | `board_not_found` | `List them with: aurora fpga boards` |
 | `no_fpga_config` | um exemplo de `fpga.json` e `see the signals with: aurora fpga boards <board>` |
 | `invalid_fpga_config` | nenhuma: a mensagem traz um problema por linha |
-| `invalid_board` | `This is a bug in Lace; please report it` |
+| `invalid_board` | `This is a bug in AURORA; please report it` |
 | `no_bitstream` | `Build for the board first with: aurora fpga build` |
 | `stale_bitstream` | `Build for the board again with: aurora fpga build, then program` |
 | `no_cable` | `Connect the board through its USB-Blaster port, turn it on and set its RUN/PROG switch to RUN; on Windows the USB-Blaster driver is in the drivers folder of Quartus, and on Linux the cable needs a udev rule (see docs/FPGA.md)` |
@@ -1099,7 +1099,7 @@ no schema; os resultados de operação são os tipos do Core serializados
 | `fpga program --list` | `fpga-cables.json` | os cabos ligados (`cables`), como o `quartus_pgm -l` os escreve |
 | `experimental` (e `enable`, `disable`) | `experimental.json` | o arquivo do que está ligado (`path`) e cada componente (`components`: `feature`, `enabled`, `description`), já com a mudança |
 | `install` | `install.json` | a pasta, os aplicativos instalados depois e os que entraram. Exige nomes: com `--json` não há lista |
-| `update` | `update.json` | o Lace (instalado, último publicado, se é mais novo), o bundle (instalado e o da última release), cada aplicativo com a versão instalada, a da release e a upstream (`null` quando a consulta falhou), e o que o comando fez (`checked`, `up_to_date`, `updated`, `wizard_opened`). O que o instalador escreve vai para o stderr |
+| `update` | `update.json` | a AURORA (instalado, último publicado, se é mais novo), o bundle (instalado e o da última release), cada aplicativo com a versão instalada, a da release e a upstream (`null` quando a consulta falhou), e o que o comando fez (`checked`, `up_to_date`, `updated`, `wizard_opened`). O que o instalador escreve vai para o stderr |
 | `uninstall` | `uninstall.json` | a pasta da instalação e se ela já saiu (`false` no Windows, onde o desinstalador termina depois que o `aurora` sai). O que o `uninstall.sh` escreve vai para o stderr |
 | qualquer erro (código 2) | `error.json` | o erro, com o código estável e, quando há, a dica |
 | cada linha do `--events` | `events.json` | um evento do Core, ou a linha final com o resultado ([Eventos](#eventos)) |
@@ -1140,7 +1140,7 @@ A exceção são os erros de argumento (opção desconhecida, valor inválido): 
 `clap` os detecta antes de o comando começar e escreve a mensagem no stderr,
 em texto, com código 2.
 
-Com `--json`, o Lace não acompanha a saída das ferramentas enquanto rodam:
+Com `--json`, a AURORA não acompanha a saída das ferramentas enquanto rodam:
 o `vvp` fica com o buffer do stdout, que é mais rápido, e o `$display` do
 testbench só aparece no fim, no `stdout` do passo `simulate`. Em texto e com
 `--events`, o `vvp` roda com `-i`, sem buffer, para cada linha sair na hora.
@@ -1180,7 +1180,7 @@ cortado):
 ### Interromper
 
 Ctrl+C (SIGINT), SIGTERM e, no Unix, SIGHUP (o do terminal que fecha)
-cancelam o comando: o Lace encerra a ferramenta que está rodando, com tudo
+cancelam o comando: a AURORA encerra a ferramenta que está rodando, com tudo
 o que ela iniciou, não começa os passos seguintes e mostra o que chegou a
 rodar, com o título `cancelled after <tempo>, <ferramenta> stopped`. O código
 de saída é 130. Com `--json` e `--events`, o objeto do resultado sai do
@@ -1214,8 +1214,8 @@ preso a ele, e nenhuma ferramenta abre janela de console.
 |---|---|
 | 0 | deu certo |
 | 1 | a operação rodou e falhou: erro de compilação, Verilog que não elabora, simulação que falhou (inclusive por `$error`) ou que passou do `--timeout` |
-| 2 | o Lace não conseguiu rodar: bundle, projeto, arquivo, opção inválida |
-| 130 | cancelado: o Lace recebeu Ctrl+C, SIGTERM ou, no Unix, SIGHUP durante o comando; o `aurora serve` e o `aurora mcp` encerram pelo sinal e saem com 0 |
+| 2 | a AURORA não conseguiu rodar: bundle, projeto, arquivo, opção inválida |
+| 130 | cancelado: a AURORA recebeu Ctrl+C, SIGTERM ou, no Unix, SIGHUP durante o comando; o `aurora serve` e o `aurora mcp` encerram pelo sinal e saem com 0 |
 
 ### Log
 

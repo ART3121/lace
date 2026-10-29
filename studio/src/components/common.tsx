@@ -1,5 +1,5 @@
 // Componentes pequenos usados em toda a interface: botões, campos,
-// marcadores, seções recolhíveis, o menu de contexto e o símbolo do Lace.
+// marcadores, seções recolhíveis, o menu de contexto e o símbolo da AURORA.
 
 import { Check, ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react';
 import {

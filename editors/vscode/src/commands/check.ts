@@ -1,4 +1,4 @@
-// "Lace: Verificar": `aurora check` no projeto, num arquivo ou num
+// "AURORA: Verificar": `aurora check` no projeto, num arquivo ou num
 // processador. A saída sai ao vivo, os problemas vão para o painel, e um
 // check novo cancela o que ainda roda (o resultado dele já estaria velho).
 
@@ -58,13 +58,13 @@ export async function check(
   const what = describeScope(scope, project.name);
   if (run.status === 'error') {
     if (interactive) {
-      void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(run.error)}`);
+      void vscode.window.showErrorMessage(`AURORA: ${formatAuroraError(run.error)}`);
     }
   } else if (run.status === 'failed' && interactive) {
     const problems = 'Problemas';
     const output = 'Saída';
     void vscode.window
-      .showErrorMessage(`Lace: o check de ${what} falhou: ${summary?.summary}.`, problems, output)
+      .showErrorMessage(`AURORA: o check de ${what} falhou: ${summary?.summary}.`, problems, output)
       .then((choice) => {
         if (choice === problems) {
           void vscode.commands.executeCommand('workbench.actions.view.problems');
@@ -73,7 +73,7 @@ export async function check(
         }
       });
   } else if (run.status === 'succeeded') {
-    vscode.window.setStatusBarMessage(`$(pass) Lace: ${what} sem erros (${summary?.summary})`, 6000);
+    vscode.window.setStatusBarMessage(`$(pass) AURORA: ${what} sem erros (${summary?.summary})`, 6000);
   }
   return run;
 }
@@ -116,7 +116,7 @@ function summarizeCheck(
 export function checkFile(deps: RunDeps, target?: unknown): Promise<AuroraRun<CheckReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
-    void vscode.window.showWarningMessage('Lace: escolha um arquivo .v ou .sv para verificar.');
+    void vscode.window.showWarningMessage('AURORA: escolha um arquivo .v ou .sv para verificar.');
     return Promise.resolve(undefined);
   }
   return check(deps, { kind: 'file', file: uri.fsPath });
@@ -125,7 +125,7 @@ export function checkFile(deps: RunDeps, target?: unknown): Promise<AuroraRun<Ch
 export function checkProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<CheckReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um processador na vista Fontes.');
     return Promise.resolve(undefined);
   }
   return check(deps, { kind: 'processor', name });

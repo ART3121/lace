@@ -5,9 +5,9 @@
 //! [`Hooks`] e mostra o progresso pelos [`Event`].
 //!
 //! As ferramentas de terceiros vêm no bundle, fechado e versionado por
-//! release do Lace (`bundle/versions.json` fixa a versão e o hash de cada
+//! release da AURORA (`bundle/versions.json` fixa a versão e o hash de cada
 //! pacote). Uma versão nova de uma ferramenta só chega ao usuário num bundle
-//! novo, publicado numa release nova do Lace. Por isso a atualização não
+//! novo, publicado numa release nova da AURORA. Por isso a atualização não
 //! instala nada direto do upstream: ela só mostra, para cada componente, a
 //! versão instalada, a do bundle da última release e a última upstream.
 //!
@@ -57,7 +57,7 @@ macro_rules! fail {
 /// O relatório do `aurora update` (`docs/schema/update.json`).
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct UpdateReport {
-    /// O Lace: este e o da última release.
+    /// A AURORA: este e o da última release.
     pub aurora: AuroraVersions,
     /// O bundle de ferramentas: o instalado e o da última release.
     pub bundle: BundleVersions,
@@ -91,7 +91,7 @@ pub enum UpdateMethod {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct UpdateChanges {
     /// Os componentes com arquivos que entraram ou saíram, na ordem do
-    /// bundle; `aurora` é o próprio Lace e o cabeçalho do bundle.
+    /// bundle; `aurora` é a própria AURORA e o cabeçalho do bundle.
     pub components: Vec<String>,
     /// Bytes baixados.
     pub download_bytes: u64,
@@ -113,7 +113,7 @@ impl UpdateChanges {
     }
 }
 
-/// As versões do Lace em `aurora update`.
+/// As versões da AURORA em `aurora update`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct AuroraVersions {
     /// A versão deste `aurora`.
@@ -144,19 +144,19 @@ pub struct ComponentVersions {
     pub name: String,
     /// O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,
     /// `yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que
-    /// este Lace não conhece.
+    /// esta AURORA não conhece.
     pub package: Option<String>,
     /// A versão instalada.
     pub installed: String,
     /// A versão no bundle da última release; `null` se não pôde ser lida.
     pub release: Option<String>,
-    /// `release` é mais nova que `installed`: chega atualizando o Lace.
+    /// `release` é mais nova que `installed`: chega atualizando a AURORA.
     pub release_newer: bool,
     /// A última versão upstream; `null` se a consulta falhou.
     pub upstream: Option<String>,
     /// `upstream` é mais nova que `installed` e que `release`: só chega num
-    /// bundle novo, numa release nova do Lace. Sem `release`, `false` quando
-    /// há Lace mais novo, cujo bundle pode já trazê-la.
+    /// bundle novo, numa release nova da AURORA. Sem `release`, `false` quando
+    /// há AURORA mais nova, cujo bundle pode já trazê-la.
     pub upstream_newer: bool,
 }
 
@@ -166,7 +166,7 @@ pub struct ComponentVersions {
 pub enum UpdateAction {
     /// `--check`: só comparou as versões.
     Checked,
-    /// Não há Lace mais novo publicado: nada mudou.
+    /// Não há AURORA mais nova publicado: nada mudou.
     UpToDate,
     /// A instalação foi trocada (por componentes, ou pelo instalador no
     /// Linux e no macOS). O `aurora` em uso é o antigo: quem chamou termina e
@@ -220,7 +220,7 @@ pub fn package_of(name: &str, platform: &str) -> Option<&'static str> {
 }
 
 /// Consulta as versões e monta o relatório, com `action` em `Checked` e sem
-/// `prefix`. Sem a última versão do Lace é erro ([`Error::NoLatestVersion`]);
+/// `prefix`. Sem a última versão da AURORA é erro ([`Error::NoLatestVersion`]);
 /// sem o bundle da release ou sem uma versão upstream, a coluna fica vazia.
 /// Cada consulta upstream roda numa thread, junto com a do GitHub.
 pub fn check(
@@ -265,7 +265,7 @@ pub fn check(
         Ok(latest) => latest,
         Err(Error::Cancelled) => return Err(Error::Cancelled),
         Err(error) => {
-            tracing::info!("No latest Lace version: {error:#}");
+            tracing::info!("No latest AURORA version: {error:#}");
             return Err(Error::NoLatestVersion);
         }
     };
@@ -295,7 +295,7 @@ pub fn check(
             let release_newer = in_release
                 .as_deref()
                 .is_some_and(|r| is_newer(r, &c.version));
-            // Sem o bundle da release, só dá para dizer quando não há Lace
+            // Sem o bundle da release, só dá para dizer quando não há AURORA
             // mais novo: o bundle dele pode já trazer a versão upstream.
             let upstream_newer = upstream.as_deref().is_some_and(|u| {
                 is_newer(u, &c.version)
@@ -375,7 +375,7 @@ pub struct Prepared {
 
 impl Prepared {
     /// O nome de um componente para mostrar, com os rótulos do índice novo:
-    /// `Lace` para o `aurora`.
+    /// `AURORA` para o `aurora`.
     pub fn label(&self, name: &str) -> String {
         label_of(&self.index, name)
     }
@@ -402,7 +402,7 @@ impl std::fmt::Debug for Prepared {
 
 fn label_of(index: &Index, name: &str) -> String {
     if name == super::AURORA {
-        return "Lace".to_owned();
+        return "AURORA".to_owned();
     }
     index
         .component(name)
@@ -414,7 +414,7 @@ fn label_of(index: &Index, name: &str) -> String {
 pub fn installed_manifest(prefix: &Utf8Path) -> Result<Option<FilesManifest>> {
     let path = prefix.join(files::INSTALLED);
     if !path.is_file() {
-        tracing::info!("{path} does not exist: the installation is older than Lace 0.7.0");
+        tracing::info!("{path} does not exist: the installation is older than AURORA 0.7.0");
         return Ok(None);
     }
     Ok(FilesManifest::load(path.as_std_path()).map(Some)?)
@@ -441,7 +441,7 @@ pub fn prepare(
         return Ok(None);
     };
     let platform = Platform::current()
-        .context("No Lace release for this platform")?
+        .context("Na AURORA release for this platform")?
         .as_str();
     let work = network.work_dir()?;
     let dir = utf8_dir(&work)?;
@@ -454,7 +454,7 @@ pub fn prepare(
         .with_context(|| format!("Invalid index in release v{version}"))?;
     if index.aurora_version != version {
         fail!(
-            "The index of release v{version} is for Lace {}",
+            "The index of release v{version} is for AURORA {}",
             index.aurora_version
         );
     }
@@ -494,7 +494,7 @@ pub struct PreparedFromDisk {
 }
 
 /// `aurora update --from`: a versão do instalador em `path`, por componentes e
-/// sem rede. Recusa um instalador mais velho que este Lace.
+/// sem rede. Recusa um instalador mais velho que esta AURORA.
 pub fn prepare_from_disk(
     network: &Network,
     prefix: &Utf8Path,
@@ -509,19 +509,19 @@ pub fn prepare_from_disk(
     let index = disk.index()?;
     let new = disk.files()?.with_context(|| {
         format!(
-            "The installer in {path} has no file manifest (files.json): it is older than Lace \
+            "The installer in {path} has no file manifest (files.json): it is older than AURORA \
              0.7.0, and updates only with the installer itself"
         )
     })?;
     let installed = installed_manifest(prefix)?.with_context(|| {
         format!(
-            "The installation in {prefix} has no file manifest (it is older than Lace 0.7.0): \
+            "The installation in {prefix} has no file manifest (it is older than AURORA 0.7.0): \
              update it with the installer, or with aurora update --full"
         )
     })?;
     if is_newer(this_version, &index.aurora_version) {
         fail!(
-            "The installer in {path} is Lace {}, older than this Lace ({this_version})",
+            "The installer in {path} is AURORA {}, older than this AURORA ({this_version})",
             index.aurora_version
         );
     }
@@ -579,7 +579,7 @@ pub struct AppliedUpdate {
     /// O que mudou, para o relatório.
     pub changes: UpdateChanges,
     /// A lista de programas instalados do Windows não pôde ser atualizada
-    /// (o Lace em si está atualizado); `None` quando foi, ou fora do
+    /// (a AURORA em si está atualizado); `None` quando foi, ou fora do
     /// Windows.
     pub registry_warning: Option<String>,
 }
@@ -612,7 +612,7 @@ pub fn apply(
             tracing::info!("The list of installed apps: {error:#}");
             Some(format!(
                 "The list of installed apps still shows the previous version ({error:#}); \
-                 Lace itself is updated"
+                 AURORA itself is updated"
             ))
         }
     };
@@ -626,7 +626,7 @@ pub fn apply(
 /// Quem o instalador abre de novo quando termina (o assistente do Windows).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Reopen {
-    /// O Lace Studio, que fechou para a atualização.
+    /// A AURORA IDE, que fechou para a atualização.
     Studio,
 }
 
@@ -861,7 +861,7 @@ fn wizard_components(
         fail!("the installed components are unknown");
     }
     let platform = Platform::current()
-        .context("No Lace installer for this platform")?
+        .context("Na AURORA installer for this platform")?
         .as_str();
     let file = payload::release_asset(version, platform, payload::INDEX_FILE);
     let path = remote.release_file(version, &file, work, &mut |_| {}, cancel)?;
@@ -907,7 +907,7 @@ fn extract(archive: &Utf8Path, dir: &Utf8Path) -> Result<Utf8PathBuf> {
             return Ok(path);
         }
     }
-    fail!("{archive} has no Lace installer (a folder with the install program)")
+    fail!("{archive} has na AURORA installer (a folder with the install program)")
 }
 
 /// Desfaz a atualização que morreu no meio da troca dos arquivos (o Studio
@@ -992,7 +992,7 @@ pub struct RunOptions<'a> {
 
 /// O `aurora update` inteiro, na ordem da CLI: desfaz uma atualização
 /// interrompida; com `from`, planeja do disco; senão consulta as versões
-/// ([`check`]) e, com Lace mais novo e uma instalação, tenta por
+/// ([`check`]) e, com AURORA mais nova e uma instalação, tenta por
 /// componentes e cai para o instalador inteiro quando não dá. `prefix` é a
 /// instalação de onde o `aurora` roda, ou o erro de não haver uma: a consulta
 /// funciona sem ela (`prefix: null` no relatório), atualizar não.
@@ -1077,7 +1077,7 @@ pub fn run(
                 on(Event::Fallback {
                     reason: format!(
                         "Could not prepare the update by components ({error:#}); \
-                         updating with the installer of Lace {version}"
+                         updating with the installer of AURORA {version}"
                     ),
                 });
                 None
@@ -1098,7 +1098,7 @@ pub fn run(
                 Err(error) => on(Event::Fallback {
                     reason: format!(
                         "Could not update by components ({error:#}); the installation was \
-                         left as it was. The installer of Lace {version} can update instead"
+                         left as it was. The installer of AURORA {version} can update instead"
                     ),
                 }),
             }
@@ -1307,7 +1307,7 @@ mod tests {
         assert_eq!(package_of("aurora-learn", "windows-x64"), Some("aurora-learn"));
         assert_eq!(package_of("rtl-viewer", "linux-x64"), Some("rtl-viewer"));
         assert_eq!(package_of("outro", "linux-x64"), None);
-        // Todo componente que o Lace conhece sai de algum pacote.
+        // Todo componente que a AURORA conhece sai de algum pacote.
         for name in component::ALL {
             for platform in ["linux-x64", "darwin-arm64", "windows-x64"] {
                 assert!(package_of(name, platform).is_some(), "{name} em {platform}");
@@ -1421,7 +1421,7 @@ mod tests {
         assert!(upstream_news(&report.components).is_empty());
 
         // Upstream mais nova que a instalada, mas não que a da release: o
-        // que falta chega atualizando o Lace, e não é marcado.
+        // que falta chega atualizando a AURORA, e não é marcado.
         let sources = Fake::new(
             Some("0.2.0"),
             Some(VERSIONS),
@@ -1465,14 +1465,14 @@ mod tests {
         assert_eq!(icarus.upstream, None);
         assert!(!icarus.release_newer && !icarus.upstream_newer);
 
-        // Sem o bundle da release e sem Lace mais novo, a upstream se
+        // Sem o bundle da release e sem AURORA mais nova, a upstream se
         // compara com a instalada.
         let yanc = row(&report, "yanc");
         assert_eq!(yanc.release, None);
         assert_eq!(yanc.upstream.as_deref(), Some("v5.7"));
         assert!(yanc.upstream_newer);
 
-        // Com Lace mais novo, não dá para saber: o bundle dele pode já
+        // Com AURORA mais nova, não dá para saber: o bundle dele pode já
         // trazer o YANC novo.
         let sources = Fake::new(Some("0.2.0"), None, &[("yanc", "v5.7")]);
         let newer = check(&sources, "0.1.0", Some(&installed), &never()).unwrap();
@@ -1505,7 +1505,7 @@ mod tests {
         let error = check(&sources, "0.1.0", Some(&installed), &never()).unwrap_err();
         assert_eq!(error.code(), "no_latest_version");
         let message = error.to_string();
-        assert!(message.contains("latest Lace version"), "{message}");
+        assert!(message.contains("latest AURORA version"), "{message}");
         assert!(message.contains("GitHub"), "{message}");
     }
 

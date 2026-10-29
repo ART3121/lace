@@ -26,7 +26,7 @@
 //! fim do arquivo. É a hierarquia que o simulador vai usar, inclusive a da
 //! biblioteca SAPHO que o `-y` trouxe, e não uma leitura do fonte.
 //!
-//! A AURORA monta a hierarquia com o Yosys. O Lace usa o Icarus porque é o
+//! A AURORA monta a hierarquia com o Yosys. A AURORA usa o Icarus porque é o
 //! que o [`check`](crate::check) já roda, é rápido e não sintetiza nada.
 
 use std::collections::HashMap;

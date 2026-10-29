@@ -99,7 +99,7 @@ impl Flow<'_> {
     }
 }
 
-/// Roda um fluxo. `Err` é o Lace não conseguir rodar (bundle, projeto, E/S,
+/// Roda um fluxo. `Err` é a AURORA não conseguir rodar (bundle, projeto, E/S,
 /// um recurso experimental desligado); um fluxo que rodou e falhou é `Ok`
 /// com [`FlowOutcome::status`] diferente de `Succeeded`.
 pub fn run(
@@ -198,7 +198,7 @@ pub fn run(
         }
         FlowRequest::Learn { .. } => {
             return Err(AuroraError::Unsupported(
-                "The learn flow runs in the Lace server (aurora serve), which links aurora-learn"
+                "The learn flow runs in the AURORA server (aurora serve), which links aurora-learn"
                     .into(),
             ));
         }
@@ -213,7 +213,7 @@ pub fn run(
 /// dele: o recurso experimental do fluxo, os processadores que o pedido
 /// nomeia e, num `build` de projeto sem processadores, nada a compilar (o
 /// resultado sai sem o bundle). `toolchain` é como quem chama acha o bundle,
-/// e o erro dele sai com o tipo de quem chama: a CLI e o servidor do Lace
+/// e o erro dele sai com o tipo de quem chama: a CLI e o servidor da AURORA
 /// seguem a mesma ordem.
 pub fn run_with<E: From<AuroraError>>(
     project: &mut Project,

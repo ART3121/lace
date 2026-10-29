@@ -137,7 +137,7 @@ impl Output {
             .chain()
             .find_map(|e| e.downcast_ref::<AuroraError>())
             .or(match learn {
-                Some(aurora_learn::LearnError::Lace(e)) => Some(e),
+                Some(aurora_learn::LearnError::AURORA(e)) => Some(e),
                 _ => None,
             });
         // Um erro que já atravessou uma fronteira (o de um fluxo, que o core
@@ -1621,7 +1621,7 @@ fn hint(error: &AuroraError) -> Option<String> {
         AuroraError::NoFpgaConfig(_) => {
             "Write fpga.json next to the .spf with the board and the connections, e.g. {\"board\": \"de2-115\", \"connect\": {\"clk\": \"CLOCK_50\", \"rst\": \"!KEY[0]\"}}; see the signals with: aurora fpga boards <board>".into()
         }
-        AuroraError::InvalidBoard { .. } => "This is a bug in Lace; please report it".into(),
+        AuroraError::InvalidBoard { .. } => "This is a bug in AURORA; please report it".into(),
         AuroraError::NoBitstream(_) => "Build for the board first with: aurora fpga build".into(),
         AuroraError::StaleBitstream { .. } => {
             "Build for the board again with: aurora fpga build, then program".into()
@@ -2060,7 +2060,7 @@ fn headline(
     limit_ms: Option<u64>,
 ) -> String {
     let after = duration(ms);
-    // O passo que o Lace encerrou é o último que rodou.
+    // O passo que a AURORA encerrou é o último que rodou.
     let stopped = steps
         .last()
         .filter(|s| Some(s.step) == failed_step && !s.termination.success());

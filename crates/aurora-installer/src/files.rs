@@ -45,7 +45,7 @@ pub const INSTALLED: &str = "toolchain/files.json";
 pub struct FilesManifest {
     /// [`FILES_SCHEMA`].
     pub schema: u32,
-    /// Versão do Lace.
+    /// Versão da AURORA.
     pub aurora_version: String,
     /// Identificador do bundle.
     pub bundle: String,
@@ -87,7 +87,7 @@ impl FilesManifest {
         let manifest: FilesManifest = serde_json::from_str(text)?;
         if manifest.schema != FILES_SCHEMA {
             bail!(
-                "the file manifest has format {}; this Lace reads format {FILES_SCHEMA}",
+                "the file manifest has format {}; this AURORA reads format {FILES_SCHEMA}",
                 manifest.schema
             );
         }

@@ -1,6 +1,6 @@
 // As chamadas ao backend, com os tipos de entrada e saída. O resto da
 // interface só fala com o backend por aqui. Cada função chama um comando
-// Tauri do Studio ou, por `aurora()`, um método do protocolo do Lace, que o
+// Tauri do Studio ou, por `aurora()`, um método do protocolo da AURORA, que o
 // backend repassa ao servidor (`aurora serve`). Referência: docs/IPC.md.
 
 import { Channel, invoke } from '@tauri-apps/api/core';
@@ -76,7 +76,7 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   }
 }
 
-/** Um método do protocolo do Lace, pelo servidor do Studio (`server.rs`):
+/** Um método do protocolo da AURORA, pelo servidor do Studio (`server.rs`):
  * o mesmo pedido e a mesma resposta do `aurora serve` (docs/PROTOCOL.md). Sem
  * `project` nos parâmetros, vale o projeto aberto. */
 function aurora<T>(method: string, params?: Record<string, unknown>): Promise<T> {
@@ -194,7 +194,7 @@ export const api = {
     verilogModules: (text: string) => aurora<string[]>('verilog.modules', { text }),
     /** Move ou renomeia (`Project::move_path` do Core): `to` é o caminho
      * final. Erro `path_exists` se ele já existe, sem `overwrite`; com, o
-     * destino vai para a lixeira, menos o que o Lace mantém no lugar
+     * destino vai para a lixeira, menos o que a AURORA mantém no lugar
      * (`cannot_replace`). */
     move: (from: string, to: string, overwrite = false) =>
       aurora<MovedPath>('project.move', { from, to, overwrite }),
@@ -263,7 +263,7 @@ export const api = {
     reset: (root: string, name: string) => aurora<void>('learn.reset', { root, name }),
   },
 
-  /** Os recursos experimentais do Lace, pelo servidor: o mesmo
+  /** Os recursos experimentais da AURORA, pelo servidor: o mesmo
    * `experimental.json` do `aurora experimental` da CLI. */
   experimental: {
     list: () => aurora<ExperimentalReport>('experimental.list'),

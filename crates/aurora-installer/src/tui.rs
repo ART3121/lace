@@ -65,7 +65,7 @@ pub enum Command {
 /// Como terminou.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Finished {
-    /// Uma instalação do Lace.
+    /// Uma instalação da AURORA.
     Installed(Report),
     /// Aplicativos acrescentados a uma instalação.
     Added(AddReport),
@@ -398,7 +398,7 @@ impl App {
                     ..
                 }) => {
                     let what = if components.is_empty() {
-                        "Lace".to_owned()
+                        "AURORA".to_owned()
                     } else {
                         components
                             .iter()
@@ -477,12 +477,12 @@ impl App {
         let area = centered(frame.area(), 92, 30);
         let title = if self.adding.is_some() {
             format!(
-                " Lace · apps from bundle {} ({}) ",
+                " AURORA · apps from bundle {} ({}) ",
                 self.index.bundle, self.index.platform
             )
         } else {
             format!(
-                " Lace {} · installer ({}) ",
+                " AURORA {} · installer ({}) ",
                 self.index.aurora_version, self.index.platform
             )
         };
@@ -550,7 +550,7 @@ impl App {
         let mark = brand::mark(MARK_COLS);
         let beside = [
             Span::raw(""),
-            Span::styled("Lace", bold().fg(brand::cream())),
+            Span::styled("AURORA", bold().fg(brand::cream())),
             Span::styled("NIPS-CERN · UFJF", dim()),
         ];
         let mut lines: Vec<Line> = mark
@@ -568,10 +568,10 @@ impl App {
             .collect();
         lines.extend([
             Line::from(""),
-            Line::from(Span::styled("Welcome to the Lace installer", bold())),
+            Line::from(Span::styled("Welcome to the AURORA installer", bold())),
             Line::from(""),
             Line::from(format!(
-                "Lace drives the SAPHO development tools. This installer has: {tools}."
+                "AURORA drives the SAPHO development tools. This installer has: {tools}."
             )),
             Line::from(""),
             Line::from(format!(
@@ -587,8 +587,8 @@ impl App {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 format!(
-                    "There is already a Lace {} installation in {} ({}). It will be replaced \
-                     by Lace {}; with a profile, the apps it has stay.",
+                    "There is already an AURORA {} installation in {} ({}). It will be replaced \
+                     by AURORA {}; with a profile, the apps it has stay.",
                     r.aurora_version,
                     self.prefix,
                     r.components.join(", "),
@@ -852,7 +852,7 @@ impl App {
         frame.render_widget(
             Paragraph::new(vec![
                 Line::from(Span::styled(
-                    "A new folder, an empty one, or one with a Lace installation. Avoid spaces in the path: Verilator's make does not accept them.",
+                    "A new folder, an empty one, or one with an AURORA installation. Avoid spaces in the path: Verilator's make does not accept them.",
                     dim(),
                 )),
                 Line::from(""),
@@ -881,7 +881,7 @@ impl App {
                 ),
                 Line::from(""),
                 Line::from(Span::styled(
-                    "Only the marked apps are downloaded and extracted; Lace itself does not change.",
+                    "Only the marked apps are downloaded and extracted; AURORA itself does not change.",
                     dim(),
                 )),
             ];
@@ -913,7 +913,7 @@ impl App {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 format!(
-                    "Replaces the Lace {} installed there ({}).",
+                    "Replaces the AURORA {} installed there ({}).",
                     r.aurora_version,
                     r.components.join(", ")
                 ),
@@ -1044,7 +1044,7 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
     let mut lines = vec![
         Line::from(Span::styled(
             format!(
-                "Lace {} installed in {}",
+                "AURORA {} installed in {}",
                 index.aurora_version,
                 report.prefix.display()
             ),
@@ -1112,9 +1112,9 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
     lines
 }
 
-/// O nome do Lace nas listas de aplicativos: sempre instalado, em qualquer
+/// O nome da AURORA nas listas de aplicativos: sempre instalado, em qualquer
 /// perfil.
-const AURORA_LABEL: &str = "Lace (CLI & Core)";
+const AURORA_LABEL: &str = "AURORA (CLI & Core)";
 
 /// A largura da marca na tela de boas-vindas, em colunas.
 const MARK_COLS: usize = 20;
@@ -1243,10 +1243,10 @@ mod tests {
         assert!(text.contains("For quem usa sapho."), "{text}");
         // Todos os aplicativos, um por linha, marcados pelo perfil.
         assert!(
-            text.contains("SAPHO installs Lace (CLI & Core) and 5 of the 5 apps:"),
+            text.contains("SAPHO installs AURORA (CLI & Core) and 5 of the 5 apps:"),
             "{text}"
         );
-        assert!(text.contains("[x] Lace (CLI & Core)"), "{text}");
+        assert!(text.contains("[x] AURORA (CLI & Core)"), "{text}");
         assert!(
             text.contains("[x] YANC ") && text.contains("[x] VERILATOR "),
             "{text}"
@@ -1255,7 +1255,7 @@ mod tests {
         let text = screen_text(&app);
         assert!(text.contains("For quem usa verilog."), "{text}");
         assert!(
-            text.contains("VERILOG installs Lace (CLI & Core) and 3 of the 5 apps:"),
+            text.contains("VERILOG installs AURORA (CLI & Core) and 3 of the 5 apps:"),
             "{text}"
         );
         assert!(
@@ -1362,8 +1362,8 @@ mod tests {
         assert!(text.contains("apps from bundle teste"), "{text}");
         assert!(text.contains("Installed"), "{text}");
         assert!(
-            !text.contains("[x] Lace"),
-            "o Lace não é um aplicativo do bundle:\n{text}"
+            !text.contains("[x] AURORA"),
+            "a AURORA não é um aplicativo do bundle:\n{text}"
         );
 
         // Nada novo marcado: Enter não segue.
@@ -1399,7 +1399,7 @@ mod tests {
             text.contains("YOSYS") && text.contains("GRAPHVIZ"),
             "{text}"
         );
-        assert!(text.contains("Lace itself does not change"), "{text}");
+        assert!(text.contains("AURORA itself does not change"), "{text}");
         app.handle(key(KeyCode::Esc));
         assert_eq!(app.screen, Screen::Components);
         app.handle(key(KeyCode::Enter));

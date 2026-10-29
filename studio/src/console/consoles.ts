@@ -112,7 +112,7 @@ export function setLinkHandler(handler: LinkHandler): void {
 }
 
 // `caminho/arquivo.ext:linha[:coluna]`, como o Icarus, o Verilator, o Yosys
-// e o Lace escrevem. Um caminho absoluto (`C:\...`, `C:/...`, `/...`) pode ter
+// e a AURORA escrevem. Um caminho absoluto (`C:\...`, `C:/...`, `/...`) pode ter
 // espaço, acento e símbolos (`C:/Users/Ana/Área de Trabalho/p/a.v:7`): vai do
 // começo dele até o primeiro `.ext:linha`, sem passar pelo que um nome do
 // Windows não tem (`:`, `"`, `<`, `>`, `|`, `*`, `?`). Um relativo

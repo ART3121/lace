@@ -1,19 +1,17 @@
 <h1 align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="studio/public/brand/lace-lockup-reverse.svg">
-    <img src="studio/public/brand/lace-lockup.svg" alt="Lace" width="260">
-  </picture>
+  <img src="studio/public/brand/aurora-icon.svg" alt="" width="88"><br>
+  AURORA
 </h1>
 
 <p align="center">
-  <a href="https://github.com/ART3121/lace/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=2e4374" alt="Versão"></a>
-  <a href="https://nipscern.com"><img src="https://img.shields.io/badge/NIPS--CERN-UFJF-2e4374" alt="NIPS-CERN, UFJF"></a>
+  <a href="https://github.com/ART3121/lace/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=236ADE" alt="Versão"></a>
+  <a href="https://nipscern.com"><img src="https://img.shields.io/badge/NIPS--CERN-UFJF-236ADE" alt="NIPS-CERN, UFJF"></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Linux-x64-2e4374?logo=linux&logoColor=white" alt="Linux x64">
-  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-2e4374?logo=apple&logoColor=white" alt="macOS Apple Silicon">
-  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-2e4374" alt="Windows 10 e 11 x64">
+  <img src="https://img.shields.io/badge/Linux-x64-236ADE?logo=linux&logoColor=white" alt="Linux x64">
+  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-236ADE?logo=apple&logoColor=white" alt="macOS Apple Silicon">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-236ADE" alt="Windows 10 e 11 x64">
 </p>
 
 Orquestrador do desenvolvimento em Verilog e de processadores SAPHO, o
@@ -25,10 +23,10 @@ Duas interfaces sobre o mesmo núcleo (`aurora-core`): a linha de comando
 `aurora` e a [AURORA IDE](studio/README.md), o ambiente gráfico (editor,
 compilação, simulação e ondas numa janela), em `studio/`. O instalador
 traz os dois. Para quem prefere o VS Code, a
-[extensão do Lace](editors/vscode/README.md) usa a linha de comando e se
+[extensão da AURORA](editors/vscode/README.md) usa a linha de comando e se
 instala à parte ([abaixo](#extensão-do-vs-code)).
 
-O Lace só executa as ferramentas do bundle instalado com ele, nas versões
+A AURORA só executa as ferramentas do bundle instalado com ela, nas versões
 exatas do bundle (ver [docs/BUNDLE.md](docs/BUNDLE.md)). No Linux e no macOS
 o bundle acompanha o OSS CAD Suite, e a exceção é o Verilator, que compila
 com o compilador C++, o `make` e o Perl do sistema. No Windows o Icarus e o
@@ -70,7 +68,7 @@ no macOS, o assistente no Windows. Nos dois, primeiro se escolhe um perfil
 (abaixo): o **SAPHO** é o recomendado, e o **Custom**, para uso avançado,
 deixa marcar os componentes. O assistente do Windows pergunta antes o
 idioma, inglês ou português. No Linux e no macOS,
-instala em `~/.local/share/aurora`, com o atalho `~/.local/bin/aurora`. O Lace
+instala em `~/.local/share/aurora`, com o atalho `~/.local/bin/aurora`. A AURORA
 Studio entra no menu de aplicativos.
 
 Sem perguntas (scripts, laboratórios, CI):
@@ -97,13 +95,13 @@ No macOS, troque `linux-x64` por `darwin-arm64`. Baixe pelo `curl`, não
 pelo navegador: o instalador não é assinado, e o macOS recusa abrir um
 arquivo baixado pelo navegador (ver [docs/INSTALL.md](docs/INSTALL.md)).
 
-Para remover o Lace com o bundle inteiro: `aurora uninstall`.
+Para remover a AURORA com o bundle inteiro: `aurora uninstall`.
 
 ### Perfis e componentes
 
 A instalação começa por um perfil, que marca os aplicativos de um tipo de
 trabalho; a lista inteira aparece, com os do perfil marcados e travados. O
-Lace (CLI & Core) vem sempre.
+AURORA (CLI & Core) vem sempre.
 
 | Perfil | Para quem | Deixa de fora |
 |---|---|---|
@@ -117,27 +115,27 @@ Lace (CLI & Core) vem sempre.
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO |
 | Icarus Verilog | simulador Verilog, o padrão do `aurora sim`, e a verificação do `aurora check` |
 | Verilator | simulador compilado e o `aurora check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`aurora sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`aurora sim --verilator`) |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. A AURORA roda os testes no Icarus (`aurora sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`aurora sim --verilator`) |
 | Yosys | síntese; lê as portas para o testbench-modelo do `aurora add` |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys |
 | surfer-aurora | visualizador de formas de onda |
-| openFPGALoader | gravador de placas FPGA pelo cabo USB; o Lace ainda não o chama (as placas Intel são gravadas pelo `quartus_pgm` do Quartus) |
-| Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`aurora learn`, e a vista Exercícios do Studio); precisa do Icarus |
+| openFPGALoader | gravador de placas FPGA pelo cabo USB; a AURORA ainda não o chama (as placas Intel são gravadas pelo `quartus_pgm` do Quartus) |
+| AURORA Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`aurora learn`, e a vista Exercícios do Studio); precisa do Icarus |
 | RTL viewer | o esquemático interativo do netlist da síntese, no navegador (`aurora synth --open`); precisa do Yosys |
 
-Para instalar um aplicativo do bundle depois, sem reinstalar o Lace:
+Para instalar um aplicativo do bundle depois, sem reinstalar a AURORA:
 `aurora install`, que abre a lista no terminal, ou `aurora install verilator`.
-Para ver se há versão nova do Lace e das ferramentas: `aurora update --check`.
+Para ver se há versão nova da AURORA e das ferramentas: `aurora update --check`.
 
 Detalhes, remoção e problemas conhecidos: [docs/INSTALL.md](docs/INSTALL.md).
-Quem tem o Solar 0.1.0 (o nome anterior do Lace) desinstala o Solar antes:
+Quem tem o Solar 0.1.0 (o nome anterior da AURORA) desinstala o Solar antes:
 [docs/INSTALL.md, Quem tem o Solar 0.1.0](docs/INSTALL.md#quem-tem-o-solar-010).
 
 ### Extensão do VS Code
 
 A extensão ainda não está no Marketplace: o arquivo dela,
-`aurora-vscode-<versão>.vsix`, vai anexado à release do Lace. Ela precisa do
-Lace instalado (acima) e do VS Code 1.90 ou mais novo.
+`aurora-vscode-<versão>.vsix`, vai anexado à release da AURORA. Ela precisa do
+AURORA instalada (acima) e do VS Code 1.90 ou mais novo.
 
 ```sh
 curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/aurora-vscode-0.1.0.vsix
@@ -154,7 +152,7 @@ pela aba Extensões.
 A extensão ativa numa pasta com `.spf` e procura o `aurora` no `PATH`. Se o
 VS Code não o achar (no Linux e no macOS, aberto pelo menu do sistema, ele
 pode não ver o `~/.local/bin`), ponha o caminho do executável na
-configuração `aurora.path`. O que ela faz, e o que cada versão do Lace
+configuração `aurora.path`. O que ela faz, e o que cada versão da AURORA
 habilita: [editors/vscode/README.md](editors/vscode/README.md).
 
 ## Depois de instalar
@@ -163,7 +161,7 @@ habilita: [editors/vscode/README.md](editors/vscode/README.md).
 aurora tools --verify        # o bundle, as versões e a conferência dos hashes
 ```
 
-Um projeto do Lace é Verilog; processadores SAPHO são uma etapa a mais, que
+Um projeto da AURORA é Verilog; processadores SAPHO são uma etapa a mais, que
 o YANC compila antes de verificar, simular ou sintetizar. Verilog:
 
 ```sh
@@ -224,14 +222,14 @@ as ferramentas rodam. O formato de cada um está em
   <a href="docs/img/mapa.svg">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/img/mapa-escuro.svg">
-      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o aurora-protocol por cima do aurora-core, do aurora-learn e do aurora-installer; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
+      <img src="docs/img/mapa.svg" alt="Mapa da AURORA: as interfaces em cima; no meio, as bibliotecas Rust, com o aurora-protocol por cima do aurora-core, do aurora-learn e do aurora-installer; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
     </picture>
   </a>
 </p>
 
 A linha de comando `aurora` linka as bibliotecas e chama as funções do
 `aurora-core`. Os outros programas falam com um processo filho, o servidor do
-Lace (`aurora serve`), por JSON-RPC: a AURORA IDE, que o abre sozinha, a
+AURORA (`aurora serve`), por JSON-RPC: a AURORA IDE, que o abre sozinha, a
 extensão do VS Code e scripts. Os pedidos e as respostas são os do crate
 `aurora-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA
 fala com o mesmo servidor em MCP: o `aurora serve` reconhece o idioma pelo
@@ -288,10 +286,10 @@ O que montar o bundle exige está em [docs/BUNDLE.md](docs/BUNDLE.md).
 
 ## Licença
 
-O Lace e a AURORA IDE estão sob a licença MIT ([LICENSE](LICENSE)).
+A AURORA e a AURORA IDE estão sob a licença MIT ([LICENSE](LICENSE)).
 As ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys,
 Graphviz, surfer-aurora, openFPGALoader) seguem as licenças delas. O
-Quartus Prime não vem com o Lace: cada um instala o seu, sob a licença da
+Quartus Prime não vem com a AURORA: cada um instala o seu, sob a licença da
 Intel.
 
 NIPS-CERN, Núcleo de Instrumentação e Processamento de Sinais, Faculdade de

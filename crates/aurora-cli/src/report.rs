@@ -343,7 +343,7 @@ pub struct SavedLayoutReport {
     /// O arquivo.
     #[schemars(with = "String")]
     pub path: Utf8PathBuf,
-    /// O usuário salvou depois que o Lace o gerou: o Lace não o refaz
+    /// O usuário salvou depois que a AURORA o gerou: a AURORA não o refaz
     /// (`aurora wave --reset-layout` volta ao gerado).
     pub customized: bool,
 }
@@ -428,7 +428,7 @@ pub struct ToolsReport {
     pub platform: String,
     /// Os componentes instalados.
     pub components: Vec<BundleComponent>,
-    /// Os componentes que este Lace conhece e que não estão instalados.
+    /// Os componentes que esta AURORA conhece e que não estão instalados.
     pub not_installed: Vec<String>,
     /// Cada ferramenta, pelo nome do executável.
     pub tools: BTreeMap<String, ToolEntry>,
@@ -470,7 +470,7 @@ pub struct ErrorReport {
     pub error: ErrorInfo,
 }
 
-/// Um erro do Lace: o ErrorInfo do core, com code, message, hint (o comando
+/// Um erro da AURORA: o ErrorInfo do core, com code, message, hint (o comando
 /// que resolve) e, quando existem, os campos da variante (data).
 pub use aurora_core::ErrorInfo;
 
@@ -642,7 +642,7 @@ pub struct FpgaCheckReport {
     pub config: Utf8PathBuf,
     /// As ligações, bit a bit.
     pub resolved: Resolved,
-    /// O Verilog do topo da placa que o Lace gera.
+    /// O Verilog do topo da placa que a AURORA gera.
     pub board_top: String,
     /// Cada ligação como texto: o que vai em cada entrada do topo e em cada
     /// sinal de saída da placa.
@@ -677,7 +677,7 @@ pub struct FpgaCablesReport {
 #[derive(Serialize, JsonSchema)]
 pub struct ExperimentalReport {
     /// O arquivo do que está ligado (`experimental.json`, na pasta de
-    /// configuração do Lace); `null` se o sistema não diz onde fica essa
+    /// configuração da AURORA); `null` se o sistema não diz onde fica essa
     /// pasta.
     #[schemars(with = "Option<String>")]
     pub path: Option<Utf8PathBuf>,

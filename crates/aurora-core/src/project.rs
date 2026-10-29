@@ -11,7 +11,7 @@
 //!       <processador>.asm, .v, _data.mif, _inst.mif, _tb.v
 //!       prog_log.txt, src_lines.txt, trad_opcode.txt, app_log.txt,
 //!       pc_<processador>_mem.txt, output_N.txt, toma_K.txt, a onda
-//!   .aurora8/Temp/<processador>/  # o que só o Lace usa (o .vvp, o modelo do
+//!   .aurora8/Temp/<processador>/  # o que só a AURORA usa (o .vvp, o modelo do
 //!                              # Verilator, a cópia instrumentada do testbench)
 //! ```
 //!
@@ -26,7 +26,7 @@
 //!
 //! # Compatibilidade com a AURORA
 //!
-//! Um projeto criado pelo Lace abre na AURORA e vice-versa. O Lace lê o
+//! Um projeto criado pela AURORA abre na AURORA e vice-versa. A AURORA lê o
 //! `.spf` com a mesma tolerância (comentários, vírgula sobrando, BOM), grava
 //! de forma atômica com indentação de 2 espaços, e preserva os campos que não
 //! entende (`commandOverrides`, `metadata.lastOpened`, ...) e a ordem das
@@ -78,7 +78,7 @@ pub const MAX_CLOCKS: u32 = i32::MAX as u32;
 pub const MAX_FREQUENCY_MHZ: u32 = 500_000;
 
 /// Mais portas de entrada ou de saída que um processador novo pode ter. É
-/// um teto do Lace, folgado para os projetos do laboratório: o `asmcomp`
+/// um teto da AURORA, folgado para os projetos do laboratório: o `asmcomp`
 /// estoura um buffer e gera testbench corrompido muito antes do limite do
 /// `int` (com 100000 portas, 904 erros de sintaxe).
 pub const MAX_PORTS: u32 = 256;
@@ -90,22 +90,26 @@ pub const MAX_PORTS: u32 = 256;
 pub const MAX_PROJECT_NAME: usize = 64;
 
 /// Maior nome de processador. O `cmmcomp` guarda o nome em buffers de 100 a
-/// 128 bytes e morre com sinal 11 acima de 97 caracteres; o Lace deixa
+/// 128 bytes e morre com sinal 11 acima de 97 caracteres; a AURORA deixa
 /// folga.
 pub const MAX_PROCESSOR_NAME: usize = 64;
 
 /// A pasta do projeto que é só nossa: intermediários (`Temp/`), relatórios,
 /// projetos de placa e a trava do `.spf`. O nome tem o 8 porque a `.aurora`
 /// é da AURORA 7, que pode abrir o mesmo projeto; até a renomeação, era a
-/// `.aurora`.
+/// `.lace`.
 pub const PROJECT_DIR: &str = ".aurora8";
 
-/// Leva a `.aurora` de um projeto do Lace para a [`PROJECT_DIR`], quando ela
+/// A pasta que o Lace usava no lugar da [`PROJECT_DIR`]. Nunca a `.aurora`,
+/// que é da AURORA 7 e não se toca.
+const LACE_PROJECT_DIR: &str = ".lace";
+
+/// Leva a `.lace` de um projeto do Lace para a [`PROJECT_DIR`], quando ela
 /// ainda não existe, com o que tinha dentro (relatórios, placas). É melhor
 /// esforço: se o renomear falhar (no Windows, um arquivo aberto lá dentro),
-/// a `.aurora` fica, e a pasta nova nasce vazia no primeiro uso.
+/// a `.lace` fica, e a pasta nova nasce vazia no primeiro uso.
 pub(crate) fn migrate_project_dir(root: &Utf8Path) {
-    let old = root.join(".aurora");
+    let old = root.join(LACE_PROJECT_DIR);
     let new = root.join(PROJECT_DIR);
     if old.is_dir() && !new.exists() {
         let _ = std::fs::rename(&old, &new);
@@ -173,7 +177,7 @@ pub struct Processor {
     /// simulação, que roda nela.
     #[schemars(with = "String")]
     pub output_dir: Utf8PathBuf,
-    /// `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+    /// `<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do
     /// Verilator, a cópia instrumentada do testbench, a trava de execução).
     #[schemars(with = "String")]
     pub temp_dir: Utf8PathBuf,
@@ -257,7 +261,7 @@ impl Processor {
     }
 
     /// Cria a pasta do processador, a de saída e a temporária, se faltarem.
-    /// O YANC 7.1 cria a de saída sozinho, mas o Lace confere antes que
+    /// O YANC 7.1 cria a de saída sozinho, mas a AURORA confere antes que
     /// nenhuma delas é um arquivo.
     pub fn ensure_dirs(&self) -> Result<()> {
         for dir in [
@@ -608,7 +612,7 @@ impl NewProcessor {
 /// Os métodos que alteram o projeto (`add_processor`, `add_file`,
 /// `set_top_level`, ...) gravam o `.spf` na hora; não há "salvar". Cada um
 /// trava `.aurora8/spf.lock`, relê o `.spf` do disco, aplica a mudança e grava:
-/// duas gravações ao mesmo tempo (o Lace Studio e a CLI no terminal, dois
+/// duas gravações ao mesmo tempo (a AURORA IDE e a CLI no terminal, dois
 /// `aurora add`) entram uma depois da outra, e nenhuma perde a da outra. Para
 /// ler o que outro programa mudou sem gravar, abra de novo: o `Project` só
 /// relê ao gravar.
@@ -618,7 +622,7 @@ pub struct Project {
     pub(crate) root: Utf8PathBuf,
     spf_path: Utf8PathBuf,
     processors: Vec<Processor>,
-    /// O `.spf` inteiro, para regravar sem perder o que o Lace não entende.
+    /// O `.spf` inteiro, para regravar sem perder o que a AURORA não entende.
     #[serde(skip)]
     pub(crate) document: Value,
     /// A trava de gravação, de [`Project::begin_write`] até o `save`.
@@ -631,7 +635,7 @@ impl Project {
     /// (`<dir>/<nome-do-dir>.spf`, ou o único `.spf` do diretório).
     ///
     /// Não regrava o `.spf`, ao contrário da AURORA 7. A única escrita é a
-    /// da pasta `.aurora` de um projeto do Lace, que vira a [`PROJECT_DIR`]
+    /// da pasta `.lace` de um projeto do Lace, que vira a [`PROJECT_DIR`]
     /// ([`migrate_project_dir`]). Os diretórios dos processadores não
     /// precisam existir para abrir; eles são criados no primeiro
     /// [`build`](crate::build).
@@ -931,14 +935,14 @@ impl Project {
     ///   [`validate_new_processor_name`]: não é um identificador (a AURORA
     ///   aceita `-`, mas o lexer do `cmmcomp` não), passa de
     ///   [`MAX_PROCESSOR_NAME`] caracteres, é palavra do C± ou do Verilog,
-    ///   módulo da biblioteca SAPHO, ou nome de uma pasta do Lace;
+    ///   módulo da biblioteca SAPHO, ou nome de uma pasta da AURORA;
     /// - [`AuroraError::InvalidParameter`] se um parâmetro não passar em
     ///   [`NewProcessor::validate`];
     /// - [`AuroraError::ProcessorExists`] se o nome já estiver no projeto,
     ///   inclusive com outra caixa (`Soma` e `soma` colidem no Windows e no
     ///   macOS);
     /// - [`AuroraError::InvalidProject`] se o fonte já existir no disco: o
-    ///   Lace nunca sobrescreve código do usuário.
+    ///   AURORA nunca sobrescreve código do usuário.
     pub fn add_processor(&mut self, spec: &NewProcessor) -> Result<&Processor> {
         self.begin_write()?;
         validate_new_processor_name(&spec.name)?;
@@ -957,7 +961,7 @@ impl Project {
         if processor.source.exists() {
             return Err(AuroraError::InvalidProject {
                 path: processor.source,
-                reason: "The source already exists; Lace does not overwrite code".into(),
+                reason: "The source already exists; AURORA does not overwrite code".into(),
             });
         }
         if processor.dir.exists() && !processor.dir.is_dir() {
@@ -1198,7 +1202,7 @@ impl Project {
     /// `structure.processors`, saem das listas os arquivos registrados de
     /// dentro da pasta dele (o Verilog e o testbench que o build gerou), com
     /// a escolha de topo ou de testbench que apontava para eles, e sai o que
-    /// só o Lace guardava dele (`.aurora8/Temp/<nome>`).
+    /// só a AURORA guardava dele (`.aurora8/Temp/<nome>`).
     ///
     /// A pasta do processador, com o fonte e as entradas, fica no disco, como
     /// um arquivo em [`Project::remove_verilog`]. Quem quiser apagá-la usa
@@ -1504,7 +1508,7 @@ pub(crate) fn validate_identifier(name: &str, context: &str) -> Result<()> {
 /// [`Project::add_processor`]. O nome vira a pasta, o fonte, os arquivos e
 /// o módulo Verilog `<nome>` (e `<nome>_tb`), então precisa servir para
 /// todos. A regra é a do YANC 7.1 (`Compilers/common/proc_name.c`), que
-/// recusa o fonte com outro nome, mais o que o Lace sabe que quebra depois:
+/// recusa o fonte com outro nome, mais o que a AURORA sabe que quebra depois:
 ///
 /// - identificador: letras sem acento, dígitos e `_`, sem dígito no começo
 ///   (a AURORA de antes aceitava `-`), e sem `__` no começo (o YANC guarda
@@ -1579,10 +1583,10 @@ pub fn validate_processor_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-/// As pastas do próprio Lace com nome que um processador poderia ter:
+/// As pastas da própria AURORA com nome que um processador poderia ter:
 /// `.aurora8/Temp/<nome>` (o lint, a síntese, a hierarquia, a árvore de sinais,
 /// os layouts do Surfer, o cocotb) e `wave/` na raiz, com as escolhas de
-/// sinais. Um processador assim dividiria a pasta com uma operação do Lace:
+/// sinais. Um processador assim dividiria a pasta com uma operação da AURORA:
 /// a hierarquia apaga `.aurora8/Temp/hierarchy`, que seria a pasta temporária
 /// do processador `hierarchy`, com a onda dele; remover o processador
 /// `synth` apagava a síntese do projeto; e a pasta do processador `wave` é a
@@ -1592,7 +1596,7 @@ const AURORA_FOLDERS: [&str; 6] = ["synth", "hierarchy", "lint", "wave", "surfer
 
 /// Confere o nome de um processador novo: a regra do YANC
 /// ([`validate_processor_name`]) e, sem diferença de maiúsculas (no Windows
-/// e no macOS a pasta é a mesma), fora os nomes das pastas do Lace (`synth`,
+/// e no macOS a pasta é a mesma), fora os nomes das pastas da AURORA (`synth`,
 /// `hierarchy`, `lint`, `wave`, `surfer`, `cocotb`). Um processador que já
 /// existe com um desses nomes continua abrindo e compilando.
 ///
@@ -1614,7 +1618,7 @@ pub fn validate_new_processor_name(name: &str) -> Result<()> {
     if AURORA_FOLDERS.iter().any(|f| f.eq_ignore_ascii_case(name)) {
         return Err(AuroraError::InvalidName {
             name: name.to_owned(),
-            reason: "Lace keeps a folder with this name for its own work (.aurora8/Temp/<name>, or wave/ for the signal choices), and the processor would share it".into(),
+            reason: "AURORA keeps a folder with this name for its own work (.aurora8/Temp/<name>, or wave/ for the signal choices), and the processor would share it".into(),
         });
     }
     Ok(())
@@ -2032,7 +2036,7 @@ fn is_windows_reserved(name: &str) -> bool {
 ///
 /// O nome vira a pasta, o `.spf` e parte do caminho de tudo que as
 /// ferramentas recebem; espaço e acento num caminho exigem que cada script e
-/// cada ferramenta citem o argumento direito, e o Lace prefere recusar o nome
+/// cada ferramenta citem o argumento direito, e a AURORA prefere recusar o nome
 /// (decisão de 2026-10-04). Projetos que já existem com outros nomes, como
 /// os da AURORA, continuam abrindo: a regra só vale para criar.
 ///
@@ -2146,26 +2150,47 @@ mod tests {
         (dir, path)
     }
 
-    /// A `.aurora` de um projeto do Lace vira a `.aurora8` ao abrir, com o que
-    /// tinha dentro; com as duas, nenhuma muda.
+    /// A `.lace` de um projeto do Lace vira a `.aurora8` ao abrir, com o que
+    /// tinha dentro; com as duas, nenhuma muda. A `.aurora`, da AURORA 7,
+    /// fica onde está.
     #[test]
     fn opening_moves_the_lace_folder_to_aurora8() {
         let (_guard, dir) = tmp();
         let project = Project::create(&dir, "demo").unwrap();
         let root = project.root().to_owned();
         let _ = std::fs::remove_dir_all(root.join(PROJECT_DIR));
-        let report = root.join(".aurora/reports/run-000001/report.json");
+        let report = root.join(".lace/reports/run-000001/report.json");
         std::fs::create_dir_all(report.parent().unwrap()).unwrap();
         std::fs::write(&report, "{}").unwrap();
+        let memory = root.join(".aurora/memory/notas.md");
+        std::fs::create_dir_all(memory.parent().unwrap()).unwrap();
+        std::fs::write(&memory, "da AURORA 7").unwrap();
 
         Project::open(project.spf_path()).unwrap();
-        assert!(!root.join(".aurora").exists());
+        assert!(!root.join(".lace").exists());
         assert!(root.join(".aurora8/reports/run-000001/report.json").is_file());
+        assert!(memory.is_file(), "a .aurora da AURORA 7 não muda");
 
-        std::fs::create_dir_all(root.join(".aurora/fpga")).unwrap();
+        std::fs::create_dir_all(root.join(".lace/fpga")).unwrap();
         Project::open(project.spf_path()).unwrap();
-        assert!(root.join(".aurora/fpga").is_dir());
+        assert!(root.join(".lace/fpga").is_dir());
         assert!(root.join(".aurora8/reports").is_dir());
+    }
+
+    /// Num projeto só da AURORA 7, abrir não mexe na `.aurora` dela.
+    #[test]
+    fn opening_leaves_the_aurora_7_folder_alone() {
+        let (_guard, dir) = tmp();
+        let project = Project::create(&dir, "demo").unwrap();
+        let root = project.root().to_owned();
+        let _ = std::fs::remove_dir_all(root.join(PROJECT_DIR));
+        let temp = root.join(".aurora/Temp/obj_dir_tb/Vtb.mk");
+        std::fs::create_dir_all(temp.parent().unwrap()).unwrap();
+        std::fs::write(&temp, "").unwrap();
+
+        Project::open(project.spf_path()).unwrap();
+        assert!(temp.is_file());
+        assert!(!root.join(PROJECT_DIR).exists());
     }
 
     #[test]

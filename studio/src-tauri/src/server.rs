@@ -1,5 +1,5 @@
-//! O servidor do Lace no Studio: um `aurora serve` filho que atende, para a
-//! interface, os métodos do protocolo do Lace (`aurora_protocol`). O
+//! O servidor da AURORA no Studio: um `aurora serve` filho que atende, para a
+//! interface, os métodos do protocolo da AURORA (`aurora_protocol`). O
 //! Studio não tem despacho próprio desses métodos: manda o pedido ao
 //! servidor e devolve a resposta, como a extensão do VS Code faz. A
 //! interface chama [`aurora_call`] com o método e os parâmetros do protocolo.
@@ -13,7 +13,7 @@
 //!
 //! No `initialize`, o Studio confere a versão do protocolo: um `aurora` de
 //! outro protocolo é recusado com `aurora_incompatible`. Um `aurora` de outra
-//! versão do Lace, com o mesmo protocolo, só gera um aviso no log.
+//! versão da AURORA, com o mesmo protocolo, só gera um aviso no log.
 //!
 //! No Windows o servidor roda sem janela de console e num Job Object, e
 //! morre junto com o Studio. O job deixa um processo sair dele
@@ -38,11 +38,11 @@ use crate::settings::Settings;
 use crate::state::{AppState, blocking};
 use crate::toolchain;
 
-/// A versão do protocolo do Lace que este Studio fala
+/// A versão do protocolo da AURORA que este Studio fala
 /// (`aurora_protocol::PROTOCOL_VERSION`).
 const PROTOCOL_VERSION: u64 = 2;
 
-/// O schema dos pedidos do protocolo, gerado do código do Lace
+/// O schema dos pedidos do protocolo, gerado do código da AURORA
 /// (`docs/schema/protocol-request.json`): é por ele que o Studio sabe quais
 /// métodos têm `project`.
 const REQUEST_SCHEMA: &str = include_str!("../../../docs/schema/protocol-request.json");
@@ -113,7 +113,7 @@ impl AuroraServer {
     }
 
     /// O que o servidor disse no `initialize` (`ServerInfo`): a versão do
-    /// Lace, do protocolo, os métodos.
+    /// AURORA, do protocolo, os métodos.
     pub fn info(&self, settings: &Settings) -> IpcResult<Value> {
         let session = self.session(settings)?;
         let info = session.info.lock().expect("info lock").clone();
@@ -357,7 +357,7 @@ impl Session {
             return Err(IpcError::new(
                 codes::AURORA_INCOMPATIBLE,
                 format!(
-                    "{} speaks protocol {}, and this AURORA IDE speaks {PROTOCOL_VERSION}: use an aurora of the same version as the IDE (Settings > Lace bundle)",
+                    "{} speaks protocol {}, and this AURORA IDE speaks {PROTOCOL_VERSION}: use an aurora of the same version as the IDE (Settings > AURORA bundle)",
                     session.key.aurora,
                     protocol.map_or_else(|| "?".to_owned(), |p| p.to_string()),
                 ),
@@ -553,7 +553,7 @@ impl Session {
     }
 }
 
-/// O erro de uma resposta do servidor como erro do Studio: o código do Lace
+/// O erro de uma resposta do servidor como erro do Studio: o código da AURORA
 /// (`error.data.code`) quando há, senão um pelo código do JSON-RPC.
 fn ipc_error(error: &Value) -> IpcError {
     let data = error.get("data");
@@ -651,7 +651,7 @@ fn with_project(state: &AppState, method: &str, params: Option<Value>) -> IpcRes
     Ok(params)
 }
 
-/// Um método do protocolo do Lace, pelo servidor. Sem `project` nos
+/// Um método do protocolo da AURORA, pelo servidor. Sem `project` nos
 /// parâmetros, vale o projeto aberto. Os fluxos, a atualização e a
 /// instalação vão pelas operações, que mostram o progresso.
 #[tauri::command]

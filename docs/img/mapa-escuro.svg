@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="942" viewBox="0 0 1000 942" role="img" aria-labelledby="titulo descricao">
-<title id="titulo">Mapa do Lace</title>
-<desc id="descricao">A linha de comando aurora e o aurora serve linkam as bibliotecas Rust do Lace: aurora-protocol, aurora-core, aurora-learn, aurora-installer e aurora-agent. O aurora-protocol, o contrato do aurora serve (pedidos, respostas e schemas), usa os tipos do aurora-core, do aurora-learn e do aurora-installer. O Lace Studio abre o aurora serve como processo filho e fala com ele por JSON-RPC, como a extensão do VS Code; do Lace, o Studio só linka o aurora-agent, do Assistente. Um agente de IA, como o Claude Code, fala com o mesmo servidor em MCP, pelo aurora mcp. O aurora-agent, do aurora chat e da vista Assistente, abre o Claude Code com o aurora mcp. O aurora-core executa as ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora) e o Quartus Prime, e lê e grava os arquivos do projeto. O aurora-installer baixa das releases do GitHub e instala e atualiza o bundle.</desc>
+<title id="titulo">Mapa da AURORA</title>
+<desc id="descricao">A linha de comando aurora e o aurora serve linkam as bibliotecas Rust da AURORA: aurora-protocol, aurora-core, aurora-learn, aurora-installer e aurora-agent. O aurora-protocol, o contrato do aurora serve (pedidos, respostas e schemas), usa os tipos do aurora-core, do aurora-learn e do aurora-installer. A AURORA IDE abre o aurora serve como processo filho e fala com ele por JSON-RPC, como a extensão do VS Code; da AURORA, o Studio só linka o aurora-agent, do Assistente. Um agente de IA, como o Claude Code, fala com o mesmo servidor em MCP, pelo aurora mcp. O aurora-agent, do aurora chat e da vista Assistente, abre o Claude Code com o aurora mcp. O aurora-core executa as ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora) e o Quartus Prime, e lê e grava os arquivos do projeto. O aurora-installer baixa das releases do GitHub e instala e atualiza o bundle.</desc>
 <defs><marker id="seta" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/></marker></defs>
 <rect width="1000" height="942" rx="12" fill="#0d1117"/>
 <rect x="20" y="262" width="960" height="282" rx="12" fill="#161b22" stroke="#30363d"/>
@@ -36,7 +36,7 @@
 <text x="130" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#aab7d9" text-anchor="middle">crates/aurora-cli</text>
 <text x="130" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">linha de comando, aurora chat</text>
 <rect x="260" y="24" width="220" height="80" rx="8" fill="#1b2540" stroke="#6f86c6" stroke-width="1.5"/>
-<text x="370" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">Lace Studio</text>
+<text x="370" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">AURORA IDE</text>
 <text x="370" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#aab7d9" text-anchor="middle">studio/</text>
 <text x="370" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">editor, fluxos, ondas, Assistente</text>
 <rect x="500" y="24" width="230" height="80" rx="8" fill="#1b2540" stroke="#6f86c6" stroke-width="1.5"/>
@@ -159,7 +159,7 @@
 <rect x="475.48" y="877" width="22" height="14" rx="4" fill="#0d1117" stroke="#30363d" stroke-width="1.5"/>
 <text x="505.48" y="888" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">arquivo do projeto</text>
 <rect x="620.6400000000001" y="877" width="22" height="14" rx="4" fill="#0d1117" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="650.64" y="888" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">fora do Lace</text>
+<text x="650.64" y="888" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">fora da AURORA</text>
 <text x="775.24" y="888" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">quem chama, linka ou abre quem</text>
 <rect x="25.631" y="901" width="74.738" height="18" rx="9" fill="#272115" stroke="#9e6a03"/>
 <text x="63" y="914" font-size="10" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#d29922" text-anchor="middle" font-weight="600">experimental</text>

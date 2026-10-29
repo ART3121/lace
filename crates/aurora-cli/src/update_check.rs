@@ -1,5 +1,5 @@
 //! A verificação automática de atualização: um `aurora` instalado pelo
-//! instalador, rodando num terminal, procura uma vez por dia se há Lace mais
+//! instalador, rodando num terminal, procura uma vez por dia se há AURORA mais
 //! novo publicado e, se há, avisa no fim do comando, no stderr.
 //!
 //! A consulta é a mesma do `aurora update` (`Sources::latest_aurora` da biblioteca do instalador: a
@@ -39,7 +39,7 @@ const RETRY: u64 = 60 * 60;
 const WAIT: Duration = Duration::from_millis(1500);
 /// A variável que desliga a verificação.
 pub const DISABLE_VAR: &str = "AURORA_NO_UPDATE_CHECK";
-/// O arquivo do estado, na pasta de cache do Lace.
+/// O arquivo do estado, na pasta de cache da AURORA.
 const STATE_FILE: &str = "update-check.json";
 
 /// O que a verificação guarda entre um comando e outro. As horas são
@@ -110,7 +110,7 @@ pub fn start(wanted: bool) -> Option<Pending> {
 }
 
 /// No fim do comando: espera a consulta, se houver uma, por [`WAIT`] no
-/// máximo, e avisa se há Lace mais novo.
+/// máximo, e avisa se há AURORA mais nova.
 pub fn finish(pending: Option<Pending>) {
     let Some(Pending {
         path,
@@ -186,7 +186,7 @@ fn now() -> u64 {
         .map_or(0, |d| d.as_secs())
 }
 
-/// `update-check.json` na pasta de cache do Lace: `%LOCALAPPDATA%\aurora` no
+/// `update-check.json` na pasta de cache da AURORA: `%LOCALAPPDATA%\aurora` no
 /// Windows; nos outros, `$XDG_CACHE_HOME/aurora` ou `~/.cache/aurora`, como a
 /// pasta dos downloads do `aurora update` (`Network::work_dir`).
 fn state_path() -> Option<PathBuf> {

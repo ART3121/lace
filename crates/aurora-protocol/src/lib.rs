@@ -1,7 +1,7 @@
-//! O contrato do Lace: o que um cliente pede, o que recebe de volta e o que
+//! O contrato da AURORA: o que um cliente pede, o que recebe de volta e o que
 //! ouve enquanto espera, em tipos com schema.
 //!
-//! Quem fala com o Lace por um processo usa este contrato em JSON: o
+//! Quem fala com a AURORA por um processo usa este contrato em JSON: o
 //! `aurora serve` (JSON-RPC 2.0 por linhas sobre stdio) e o `aurora mcp`, para
 //! um agente. Aqui moram só os tipos; quem despacha um [`Request`] é o
 //! servidor, na CLI. O crate fica acima do `aurora-core`, do `aurora-installer`
@@ -61,7 +61,7 @@ pub enum Agent {
     No,
     /// Vira ferramenta (o `flow.run`, uma por fluxo).
     Tool,
-    /// Vira ferramenta só com `--allow-update`: muda a instalação do Lace.
+    /// Vira ferramenta só com `--allow-update`: muda a instalação da AURORA.
     AllowUpdate,
 }
 
@@ -74,7 +74,7 @@ pub struct MethodInfo {
     /// Só lê (o disco, o bundle) e não roda ferramenta: um servidor pode
     /// atendê-lo em paralelo com um fluxo longo do mesmo projeto, sem fila.
     pub read_only: bool,
-    /// Mexe na instalação do Lace (instalar, atualizar): um servidor o
+    /// Mexe na instalação da AURORA (instalar, atualizar): um servidor o
     /// enfileira sozinho, com a trava da instalação.
     pub installation: bool,
     /// Como aparece para um agente.
@@ -163,7 +163,7 @@ macro_rules! methods {
                 }
             }
 
-            /// O pedido mexe na instalação do Lace (a marcação `install`): um
+            /// O pedido mexe na instalação da AURORA (a marcação `install`): um
             /// servidor o enfileira sozinho, com a trava da instalação.
             pub fn is_installation(&self) -> bool {
                 match self {
@@ -342,11 +342,11 @@ pub enum Request {
         /// Para onde (o caminho final).
         #[schemars(with = "String")]
         to: Utf8PathBuf,
-        /// O movimento já aconteceu fora do Lace.
+        /// O movimento já aconteceu fora da AURORA.
         #[serde(default)]
         after: bool,
         /// Se o destino existe, ele vai para a lixeira do sistema e o
-        /// movimento acontece; sem isso, `path_exists`. O que o Lace mantém
+        /// movimento acontece; sem isso, `path_exists`. O que a AURORA mantém
         /// no lugar, a pasta do projeto e uma pasta que contém a origem não
         /// são substituídos (`cannot_replace`). Não vale com `after`.
         #[serde(default)]
@@ -492,7 +492,7 @@ pub enum Request {
         #[schemars(with = "String")]
         waveform: Utf8PathBuf,
     },
-    /// O layout do Lace para uma onda, para um visualizador próprio (a aba de
+    /// O layout da AURORA para uma onda, para um visualizador próprio (a aba de
     /// onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto
     /// da onda (que o gerado atualiza enquanto o usuário não salvar o dele)
     /// e o de um exercício do `aurora learn`. Resposta: [`WaveLayoutInfo`].
@@ -510,7 +510,7 @@ pub enum Request {
         /// O texto.
         text: String,
     },
-    /// Quais nomes de arquivo são de testbench pela regra do Lace
+    /// Quais nomes de arquivo são de testbench pela regra da AURORA
     /// (`tb_<nome>.v`, `<nome>_tb.v`). Resposta: um sim ou não por nome, na
     /// ordem.
     #[serde(rename = "verilog.testbench_names")]
@@ -657,7 +657,7 @@ pub enum Request {
         top: Option<String>,
     },
 
-    /// As versões: este Lace, a última release, o bundle, cada componente.
+    /// As versões: esta AURORA, a última release, o bundle, cada componente.
     /// Resposta: o relatório do instalador.
     #[serde(rename = "update.check")]
     UpdateCheck,
@@ -673,7 +673,7 @@ pub enum Request {
         #[serde(default)]
         #[schemars(with = "Option<String>")]
         from: Option<Utf8PathBuf>,
-        /// No Windows, quando o assistente de instalação roda: abrir o Lace
+        /// No Windows, quando o assistente de instalação roda: abrir a AURORA
         /// Studio quando ele terminar (o `--reopen-ide` da CLI). O Studio
         /// pede isso e fecha, para o assistente trocar os arquivos dele.
         #[serde(default)]
@@ -896,11 +896,11 @@ pub enum Response {
 /// O que `initialize` devolve.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ServerInfo {
-    /// A versão do Lace.
+    /// A versão da AURORA.
     pub aurora: String,
     /// A versão do protocolo ([`PROTOCOL_VERSION`]).
     pub protocol: u32,
-    /// A pasta da instalação do Lace, quando o servidor é o `aurora`
+    /// A pasta da instalação da AURORA, quando o servidor é o `aurora`
     /// instalado.
     #[schemars(with = "Option<String>")]
     pub prefix: Option<Utf8PathBuf>,
@@ -911,7 +911,7 @@ pub struct ServerInfo {
 }
 
 /// `wave.layout`: o que um visualizador próprio precisa para mostrar a
-/// onda com o layout do Lace.
+/// onda com o layout da AURORA.
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct WaveLayoutInfo {
     /// O layout dos processadores SAPHO, gerado da onda; `None` sem

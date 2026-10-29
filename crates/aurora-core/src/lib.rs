@@ -1,6 +1,6 @@
-//! Lace-Core: a API que orquestra a toolchain do processador SAPHO.
+//! AURORA-Core: a API que orquestra a toolchain do processador SAPHO.
 //!
-//! O Lace substitui a lógica de orquestração da AURORA por uma biblioteca.
+//! A AURORA substitui a lógica de orquestração da AURORA por uma biblioteca.
 //! As interfaces (a CLI `aurora` hoje, uma GUI e um LSP depois) só chamam estas
 //! funções e mostram o resultado; nenhuma regra de negócio mora nelas.
 //!
@@ -22,7 +22,7 @@
 //! As placas FPGA são um recurso experimental ([`experimental`]), desligado
 //! até o usuário ligar: a CLI e o Studio só as oferecem ligadas.
 //!
-//! Todas as ferramentas saem do bundle versionado instalado com o Lace
+//! Todas as ferramentas saem do bundle versionado instalado com a AURORA
 //! ([`Toolchain`]); nenhuma do `PATH`. As exceções são o compilador C++ do
 //! Verilator no Linux e no macOS, que vem do sistema ([`SystemCompiler`]; no
 //! Windows ele também vem no bundle), e o Quartus Prime, para as placas
@@ -33,7 +33,7 @@
 //! ```no_run
 //! use aurora_core::*;
 //!
-//! // 1. O bundle instalado com o Lace. Nada vem do PATH.
+//! // 1. O bundle instalado com a AURORA. Nada vem do PATH.
 //! let exe = camino::Utf8PathBuf::try_from(std::env::current_exe()?)?;
 //! let toolchain = Toolchain::locate(&exe)?;
 //!
@@ -69,7 +69,7 @@
 //!
 //! Toda operação devolve `Result<Resultado, AuroraError>`:
 //!
-//! - `Err(`[`AuroraError`]`)`: o Lace não conseguiu rodar (toolchain, projeto,
+//! - `Err(`[`AuroraError`]`)`: a AURORA não conseguiu rodar (toolchain, projeto,
 //!   I/O). É problema do ambiente.
 //! - `Ok(resultado)` com [`Status`] diferente de `Succeeded`: as ferramentas
 //!   rodaram e recusaram a entrada (ou foram canceladas, ou passaram do
@@ -92,7 +92,7 @@
 //!   <processador>/            fonte .cmm ou .cpp, input_<n>.txt, arquivos de arrays (usuário)
 //!   <processador>/<processador>/  tudo o que o YANC gera (.asm, .v, .mif, testbench,
 //!                             tabelas) e o que a simulação grava (output_<n>.txt, a onda)
-//!   .aurora8/Temp/<processador>/ o que só o Lace usa: .vvp, modelo do Verilator, testbench instrumentado
+//!   .aurora8/Temp/<processador>/ o que só a AURORA usa: .vvp, modelo do Verilator, testbench instrumentado
 //!   .aurora8/Temp/               simulação do projeto, síntese (synth/<topo>/), hierarquia (hierarchy/)
 //!   .aurora8/fpga/<placa>/       o projeto do Quartus e os arquivos de gravação (fpga::build)
 //! ```
@@ -112,15 +112,15 @@
 //!   recusa se o arquivo já existir. Artefatos gerados (a pasta de saída de
 //!   cada processador, `Temp/`) são reescritos a cada operação.
 //! - **Compatível com a AURORA.** O `.spf` é lido e gravado no formato dela,
-//!   preservando o que o Lace não entende.
+//!   preservando o que a AURORA não entende.
 //! - **Síncrono, cancelável e ao vivo.** Cada operação bloqueia até as
 //!   ferramentas terminarem (menos [`open_waveform`]). Numa GUI, chame numa
 //!   thread; os tipos são `Send`. O [`Control`] passado a cada operação
 //!   cancela ([`CancelToken`]) e avisa cada linha que as ferramentas
 //!   escrevem enquanto rodam ([`Event`]). Cancelar encerra o processo e tudo
-//!   o que ele iniciou: nenhum processo do Lace sobra depois da operação. No
+//!   o que ele iniciou: nenhum processo da AURORA sobra depois da operação. No
 //!   Windows a árvore fica num Job Object ([`ProcessJob`]) e termina também
-//!   quando o processo do Lace morre, e nenhuma ferramenta abre janela de
+//!   quando o processo da AURORA morre, e nenhuma ferramenta abre janela de
 //!   console ([`hide_console`]).
 //!
 //! # Plataformas

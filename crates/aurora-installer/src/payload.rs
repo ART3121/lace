@@ -28,7 +28,7 @@ pub fn release_asset(aurora_version: &str, platform: &str, file: &str) -> String
 pub struct Index {
     /// [`INDEX_SCHEMA`].
     pub schema: u32,
-    /// Versão do Lace.
+    /// Versão da AURORA.
     pub aurora_version: String,
     /// Identificador do bundle de ferramentas.
     pub bundle: String,
@@ -87,7 +87,7 @@ pub struct ComponentInfo {
     pub label: String,
     /// Uma linha sobre o que ele faz.
     pub description: String,
-    /// Faz parte do perfil padrão? Vem do primeiro perfil; o Lace anterior
+    /// Faz parte do perfil padrão? Vem do primeiro perfil; a AURORA anterior
     /// aos perfis lê o índice da release nova no `aurora update` e exige o
     /// campo.
     pub recommended: bool,

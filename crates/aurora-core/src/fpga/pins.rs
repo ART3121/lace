@@ -1,6 +1,6 @@
 //! A conferência do que o Quartus fez com os pinos, depois do Fitter: o
 //! `<revisão>.pin` diz onde cada sinal ficou, em que direção e com que padrão
-//! de I/O. O Lace compara com a placa ([`super::Board`]) antes de gerar o
+//! de I/O. A AURORA compara com a placa ([`super::Board`]) antes de gerar o
 //! arquivo de gravação.
 //!
 //! É a proteção da placa contra o que o `.qsf` não garante sozinho: uma

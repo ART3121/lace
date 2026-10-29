@@ -1708,7 +1708,7 @@ body.is-dragging * {
   color: var(--text-0);
 }
 
-/* Lace mais novo publicado, ou a atualização esperando o reinício. */
+/* AURORA mais nova publicado, ou a atualização esperando o reinício. */
 .statusbar__update {
   color: var(--brand-text);
 }
@@ -1852,7 +1852,7 @@ body.is-dragging * {
   color: var(--text-2);
 }
 
-/* Há um Lace mais novo: o texto e, ao lado, o botão de atualizar. */
+/* Há uma AURORA mais nova: o texto e, ao lado, o botão de atualizar. */
 .update-offer {
   display: flex;
   flex-wrap: wrap;

@@ -2,7 +2,7 @@
 //! aberto, os recentes e a vigia da pasta), a pasta padrão e a hierarquia.
 //! O resto (os arquivos Verilog, o topo, o testbench, os processadores,
 //! mover) são métodos do protocolo, que a interface chama pelo servidor do
-//! Lace ([`crate::server`]).
+//! AURORA ([`crate::server`]).
 //!
 //! O retrato ([`ProjectSnapshot`]) é o `aurora status --json` com alguns
 //! campos a mais que a interface usa para habilitar botões.

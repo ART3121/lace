@@ -18,7 +18,7 @@ pub struct AppInfo {
     pub version: String,
     /// O sistema e a arquitetura (`linux-x86_64`).
     pub os: String,
-    /// A plataforma do Lace (`linux-x64`): a do bundle, pelo servidor.
+    /// A plataforma da AURORA (`linux-x64`): a do bundle, pelo servidor.
     pub aurora_platform: Option<String>,
     /// Onde ficam as preferências.
     pub config_dir: Option<Utf8PathBuf>,
@@ -31,7 +31,7 @@ pub struct AppInfo {
     pub debug: bool,
 }
 
-/// A versão e a plataforma. A do Lace vem do bundle, pelo servidor.
+/// A versão e a plataforma. A da AURORA vem do bundle, pelo servidor.
 #[tauri::command]
 pub async fn app_info(app: AppHandle) -> IpcResult<AppInfo> {
     let aurora_platform = blocking(app.clone(), |_, state| {

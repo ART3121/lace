@@ -1,4 +1,4 @@
-//! O YANC que o Lace sabe usar: o 7.1 e os seguintes.
+//! O YANC que a AURORA sabe usar: o 7.1 e os seguintes.
 //!
 //! O YANC 7.1 mudou a linha de comando, os compiladores e as pastas. O fonte é
 //! o argumento sem opção, o processador se chama como o arquivo (o `#PRNAME`
@@ -6,7 +6,7 @@
 //! `Macros/`, `Header/`) ao lado do próprio executável, não há `appcomp` (o
 //! `asmcomp` faz as duas passadas) nem `cpppp` (o `cppcomp` pré-processa), e
 //! tudo o que é gerado vai para uma pasta só, a de saída (`-o`), com os
-//! arquivos citados pelo caminho relativo a ela. O projeto do Lace segue a
+//! arquivos citados pelo caminho relativo a ela. O projeto da AURORA segue a
 //! mesma estrutura (ver o módulo `project`).
 //!
 //! Até a 6.x a interface era outra (`-p`, `-t`, `-n`, `appcomp`, `cpppp`) e
@@ -17,12 +17,12 @@
 use crate::error::{AuroraError, Result};
 use crate::toolchain::{Toolchain, component};
 
-/// A menor versão do YANC que o Lace usa.
+/// A menor versão do YANC que a AURORA usa.
 pub(crate) const MINIMUM: (u32, u32) = (7, 1);
 
 /// A versão do YANC do bundle, lida do manifesto do componente (`v7.1`,
 /// `v7.1.2`): `(maior, menor)`. `None` sem o componente ou com uma versão
-/// que não começa por número (um bundle de desenvolvimento), que o Lace
+/// que não começa por número (um bundle de desenvolvimento), que a AURORA
 /// trata como atual.
 fn parse_version(version: &str) -> Option<(u32, u32)> {
     let mut numbers = version.trim_start_matches(['v', 'V']).split(['.', '-']);

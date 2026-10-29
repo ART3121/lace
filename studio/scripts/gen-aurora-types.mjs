@@ -1,11 +1,11 @@
-// Gera src/ipc/aurora-types.ts a partir dos JSON Schemas do Lace
-// (lace/docs/schema/*.json), que o próprio Lace gera dos tipos do Core.
+// Gera src/ipc/aurora-types.ts a partir dos JSON Schemas da AURORA
+// (lace/docs/schema/*.json), que a própria AURORA gera dos tipos do Core.
 // Assim a interface usa o mesmo contrato da CLI.
 //
-// Uso: npm run gen:types            (o Lace deste repositório, em ..)
+// Uso: npm run gen:types            (a AURORA deste repositório, em ..)
 //      AURORA_REPO=/outro/lace npm run gen:types
 //
-// Rode de novo sempre que o Lace mudar um tipo público e confira o diff.
+// Rode de novo sempre que a AURORA mudar um tipo público e confira o diff.
 
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -53,7 +53,7 @@ ts = ts.replace(/export interface AuroraSchemas \{\}\n?/, '');
 const header = `// GERADO por scripts/gen-aurora-types.mjs a partir de lace/docs/schema/.
 // Não edite à mão: rode \`npm run gen:types\`.
 //
-// São os tipos do Core do Lace serializados (o mesmo JSON do \`--json\` da
+// São os tipos do Core da AURORA serializados (o mesmo JSON do \`--json\` da
 // CLI). Os nomes seguem os tipos Rust: BuildResult, SimulationResult,
 // Diagnostic, Event, RunComparison.
 

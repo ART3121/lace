@@ -1,11 +1,11 @@
 //! # aurora-learn
 //!
 //! Exercícios de Verilog no estilo do rustlings, corrigidos pelo
-//! [`aurora_core`]. É a API que o `aurora learn` e a vista Exercícios do Lace
+//! [`aurora_core`]. É a API que o `aurora learn` e a vista Exercícios da AURORA
 //! Studio usam; as trilhas (os exercícios em si) vêm do componente
 //! `aurora-learn` do bundle, ou da pasta de [`TRACKS_ENV`].
 //!
-//! Cada exercício vira um projeto Lace na pasta de exercícios do aluno
+//! Cada exercício vira um projeto AURORA na pasta de exercícios do aluno
 //! ([`Workspace`]): o módulo que ele escreve, e em `.aurora-learn/` um
 //! testbench que aplica o mesmo estímulo a ele e a uma referência (a
 //! solução, com os módulos renomeados) e compara as saídas a cada amostra.

@@ -1,7 +1,7 @@
 // GERADO por scripts/gen-aurora-types.mjs a partir de lace/docs/schema/.
 // Não edite à mão: rode `npm run gen:types`.
 //
-// São os tipos do Core do Lace serializados (o mesmo JSON do `--json` da
+// São os tipos do Core da AURORA serializados (o mesmo JSON do `--json` da
 // CLI). Os nomes seguem os tipos Rust: BuildResult, SimulationResult,
 // Diagnostic, Event, RunComparison.
 
@@ -56,7 +56,7 @@ export type Language = 'cmm' | 'cpp';
  */
 export type Status = 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
 /**
- * As ferramentas que o Lace sabe orquestrar.
+ * As ferramentas que a AURORA sabe orquestrar.
  *
  * Em JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do
  * programa ([`Tool::binary_name`]).
@@ -793,7 +793,7 @@ export type IssueKind =
 /**
  * O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
  * extensão é a do formato, menos quando o testbench nomeia a onda com uma
- * expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
+ * expressão que a AURORA não resolve: aí o Icarus grava VCD no nome que o
  * testbench der.
  *
  * This interface was referenced by `AuroraSchemas`'s JSON-Schema
@@ -861,7 +861,7 @@ export type Change =
 export type UpdateAction = 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
 /**
  * O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.
- * Os nomes são os que o Lace Studio manda à interface dele.
+ * Os nomes são os que a AURORA IDE manda à interface dele.
  *
  * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Notification".
@@ -1148,12 +1148,12 @@ export type Request =
          */
         to: string;
         /**
-         * O movimento já aconteceu fora do Lace.
+         * O movimento já aconteceu fora da AURORA.
          */
         after?: boolean;
         /**
          * Se o destino existe, ele vai para a lixeira do sistema e o
-         * movimento acontece; sem isso, `path_exists`. O que o Lace mantém
+         * movimento acontece; sem isso, `path_exists`. O que a AURORA mantém
          * no lugar, a pasta do projeto e uma pasta que contém a origem não
          * são substituídos (`cannot_replace`). Não vale com `after`.
          */
@@ -1797,7 +1797,7 @@ export type Request =
          */
         from?: string | null;
         /**
-         * No Windows, quando o assistente de instalação roda: abrir o Lace
+         * No Windows, quando o assistente de instalação roda: abrir a AURORA
          * Studio quando ele terminar (o `--reopen-ide` da CLI). O Studio
          * pede isso e fecha, para o assistente trocar os arquivos dele.
          */
@@ -2094,11 +2094,11 @@ export interface Invocation {
    */
   cwd: string;
   /**
-   * Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.
+   * Variáveis definidas pela AURORA, somadas às de `INHERITED_ENV`.
    */
   env: [unknown, unknown][];
   /**
-   * Nomes de variáveis copiadas do ambiente do Lace, quando existirem.
+   * Nomes de variáveis copiadas do ambiente da AURORA, quando existirem.
    * Só os nomes aparecem no relatório.
    */
   inherit: string[];
@@ -2108,8 +2108,8 @@ export interface Invocation {
  *
  * `file`, `line` e `column` são opcionais porque o `cmmcomp` não informa
  * arquivo nem coluna, e várias mensagens não informam nem a linha. Quando a
- * ferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila
- * um fonte só), `file` vem preenchido pelo Lace.
+ * ferramenta não cita o arquivo mas a AURORA sabe qual é (o `cmmcomp` compila
+ * um fonte só), `file` vem preenchido pela AURORA.
  *
  * Em JSON:
  *
@@ -2151,12 +2151,12 @@ export interface Diagnostic {
   severity: 'error' | 'warning' | 'info' | 'unknown';
   /**
    * A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma
-   * da ferramenta (inglês: o Lace sempre pede inglês ao YANC).
+   * da ferramenta (inglês: a AURORA sempre pede inglês ao YANC).
    */
   message: string;
   /**
    * O arquivo a que a mensagem se refere, como a ferramenta o escreveu
-   * (normalmente absoluto, porque o Lace passa caminhos absolutos).
+   * (normalmente absoluto, porque a AURORA passa caminhos absolutos).
    */
   file: string | null;
   /**
@@ -2231,7 +2231,7 @@ export interface Artifact {
 }
 /**
  * Uma execução de programa, totalmente especificada: o registro exato do
- * que o Lace rodou, presente em todo [`StepReport`](crate::StepReport).
+ * que a AURORA rodou, presente em todo [`StepReport`](crate::StepReport).
  *
  * Só o Core monta invocações; para os clientes o tipo é somente leitura.
  * Reproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,
@@ -2268,11 +2268,11 @@ export interface Invocation1 {
    */
   cwd: string;
   /**
-   * Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.
+   * Variáveis definidas pela AURORA, somadas às de `INHERITED_ENV`.
    */
   env: [unknown, unknown][];
   /**
-   * Nomes de variáveis copiadas do ambiente do Lace, quando existirem.
+   * Nomes de variáveis copiadas do ambiente da AURORA, quando existirem.
    * Só os nomes aparecem no relatório.
    */
   inherit: string[];
@@ -2455,11 +2455,11 @@ export interface Invocation2 {
    */
   cwd: string;
   /**
-   * Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.
+   * Variáveis definidas pela AURORA, somadas às de `INHERITED_ENV`.
    */
   env: [unknown, unknown][];
   /**
-   * Nomes de variáveis copiadas do ambiente do Lace, quando existirem.
+   * Nomes de variáveis copiadas do ambiente da AURORA, quando existirem.
    * Só os nomes aparecem no relatório.
    */
   inherit: string[];
@@ -3532,7 +3532,7 @@ export interface FpgaConfig {
  */
 export interface ServerInfo {
   /**
-   * A versão do Lace.
+   * A versão da AURORA.
    */
   aurora: string;
   /**
@@ -3540,7 +3540,7 @@ export interface ServerInfo {
    */
   protocol: number;
   /**
-   * A pasta da instalação do Lace, quando o servidor é o `aurora`
+   * A pasta da instalação da AURORA, quando o servidor é o `aurora`
    * instalado.
    */
   prefix: string | null;
@@ -3666,7 +3666,7 @@ export interface ProcessorStatus {
    */
   output_dir: string;
   /**
-   * `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * `<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do
    * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;
@@ -3911,7 +3911,7 @@ export interface Processor {
    */
   output_dir: string;
   /**
-   * `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * `<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do
    * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;
@@ -4133,8 +4133,8 @@ export interface SavedLayout {
    */
   state: string;
   /**
-   * O usuário salvou o estado depois da última vez que o Lace o gerou: o
-   * Lace o deixa como está.
+   * O usuário salvou o estado depois da última vez que a AURORA o gerou: o
+   * AURORA o deixa como está.
    */
   customized: boolean;
 }
@@ -4749,7 +4749,7 @@ export interface SavedLayoutInfo {
    */
   path: string;
   /**
-   * O usuário salvou depois que o Lace o gerou: o Lace não o refaz.
+   * O usuário salvou depois que a AURORA o gerou: a AURORA não o refaz.
    */
   customized: boolean;
 }
@@ -5102,7 +5102,7 @@ export interface RunMetadata {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * Lace, que a `.lace` levada para a `.aurora8` traz.
+   * AURORA, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**
@@ -5253,7 +5253,7 @@ export interface SimulationTimings {
    */
   execution_ms: number | null;
   /**
-   * A simulação inteira, medida à parte: com a preparação do Lace.
+   * A simulação inteira, medida à parte: com a preparação da AURORA.
    */
   total_ms: number | null;
   /**
@@ -5314,7 +5314,7 @@ export interface RunMetadata1 {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * Lace, que a `.lace` levada para a `.aurora8` traz.
+   * AURORA, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**
@@ -5371,7 +5371,7 @@ export interface RunMetadata2 {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * Lace, que a `.lace` levada para a `.aurora8` traz.
+   * AURORA, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**
@@ -5707,11 +5707,11 @@ export interface ToolchainInfo {
    */
   components: BundleComponent[];
   /**
-   * Os componentes que o Lace conhece e que não estão instalados.
+   * Os componentes que a AURORA conhece e que não estão instalados.
    */
   not_installed: string[];
   /**
-   * Cada ferramenta que o Lace roda.
+   * Cada ferramenta que a AURORA roda.
    */
   tools: ToolStatus[];
   /**
@@ -5772,7 +5772,7 @@ export interface BundleComponent {
    */
   sha256: string | null;
   /**
-   * SHA-256 dos executáveis do componente que o Lace roda, por caminho
+   * SHA-256 dos executáveis do componente que a AURORA roda, por caminho
    * relativo ao bundle, conferido por [`Toolchain::verify`].
    */
   files: {
@@ -5988,7 +5988,7 @@ export interface UpdateReport {
   changes: UpdateChanges | null;
 }
 /**
- * O Lace: este e o da última release.
+ * A AURORA: este e o da última release.
  */
 export interface AuroraVersions {
   /**
@@ -6037,7 +6037,7 @@ export interface ComponentVersions {
   /**
    * O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,
    * `yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que
-   * este Lace não conhece.
+   * esta AURORA não conhece.
    */
   package: string | null;
   /**
@@ -6049,7 +6049,7 @@ export interface ComponentVersions {
    */
   release: string | null;
   /**
-   * `release` é mais nova que `installed`: chega atualizando o Lace.
+   * `release` é mais nova que `installed`: chega atualizando a AURORA.
    */
   release_newer: boolean;
   /**
@@ -6058,8 +6058,8 @@ export interface ComponentVersions {
   upstream: string | null;
   /**
    * `upstream` é mais nova que `installed` e que `release`: só chega num
-   * bundle novo, numa release nova do Lace. Sem `release`, `false` quando
-   * há Lace mais novo, cujo bundle pode já trazê-la.
+   * bundle novo, numa release nova da AURORA. Sem `release`, `false` quando
+   * há AURORA mais nova, cujo bundle pode já trazê-la.
    */
   upstream_newer: boolean;
 }
@@ -6072,7 +6072,7 @@ export interface ComponentVersions {
 export interface UpdateChanges {
   /**
    * Os componentes com arquivos que entraram ou saíram, na ordem do
-   * bundle; `aurora` é o próprio Lace e o cabeçalho do bundle.
+   * bundle; `aurora` é a própria AURORA e o cabeçalho do bundle.
    */
   components: string[];
   /**
@@ -6257,7 +6257,7 @@ export interface ExerciseSnapshot {
  */
 export interface ServerInfo1 {
   /**
-   * A versão do Lace.
+   * A versão da AURORA.
    */
   aurora: string;
   /**
@@ -6265,7 +6265,7 @@ export interface ServerInfo1 {
    */
   protocol: number;
   /**
-   * A pasta da instalação do Lace, quando o servidor é o `aurora`
+   * A pasta da instalação da AURORA, quando o servidor é o `aurora`
    * instalado.
    */
   prefix: string | null;
@@ -6520,7 +6520,7 @@ export interface Processor1 {
    */
   output_dir: string;
   /**
-   * `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * `<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do
    * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;
@@ -6553,7 +6553,7 @@ export interface ProcessorRemoval1 {
 }
 /**
  * `wave.layout`: o que um visualizador próprio precisa para mostrar a
- * onda com o layout do Lace.
+ * onda com o layout da AURORA.
  *
  * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveLayoutInfo".
@@ -6860,7 +6860,7 @@ export interface RunMetadata3 {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * Lace, que a `.lace` levada para a `.aurora8` traz.
+   * AURORA, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**
@@ -6897,7 +6897,7 @@ export interface RunMetadata3 {
 }
 /**
  * A máquina onde a operação rodou. O que o sistema não informa sem rodar
- * outro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,
+ * outro programa fica `null`: a AURORA só lê arquivos do sistema (no Linux,
  * `/proc` e `/etc/os-release`) e o `uname`.
  *
  * This interface was referenced by `AuroraSchemas`'s JSON-Schema
@@ -7059,11 +7059,11 @@ export interface ToolchainInfo1 {
    */
   components: BundleComponent[];
   /**
-   * Os componentes que o Lace conhece e que não estão instalados.
+   * Os componentes que a AURORA conhece e que não estão instalados.
    */
   not_installed: string[];
   /**
-   * Cada ferramenta que o Lace roda.
+   * Cada ferramenta que a AURORA roda.
    */
   tools: ToolStatus[];
   /**
@@ -7192,7 +7192,7 @@ export interface UpdateReport1 {
   changes: UpdateChanges | null;
 }
 /**
- * As versões do Lace em `aurora update`.
+ * As versões da AURORA em `aurora update`.
  *
  * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "AuroraVersions".
@@ -7485,7 +7485,7 @@ export interface SavedLayoutReport {
    */
   path: string;
   /**
-   * O usuário salvou depois que o Lace o gerou: o Lace não o refaz
+   * O usuário salvou depois que a AURORA o gerou: a AURORA não o refaz
    * (`aurora wave --reset-layout` volta ao gerado).
    */
   customized: boolean;
@@ -7687,7 +7687,7 @@ export interface ErrorInfo2 {
 export interface ExperimentalReport {
   /**
    * O arquivo do que está ligado (`experimental.json`, na pasta de
-   * configuração do Lace); `null` se o sistema não diz onde fica essa
+   * configuração da AURORA); `null` se o sistema não diz onde fica essa
    * pasta.
    */
   path: string | null;
@@ -7758,7 +7758,7 @@ export interface FpgaCheckReport {
   config: string;
   resolved: Resolved2;
   /**
-   * O Verilog do topo da placa que o Lace gera.
+   * O Verilog do topo da placa que a AURORA gera.
    */
   board_top: string;
   /**
@@ -8434,7 +8434,7 @@ export interface ToolsReport {
    */
   components: BundleComponent[];
   /**
-   * Os componentes que este Lace conhece e que não estão instalados.
+   * Os componentes que esta AURORA conhece e que não estão instalados.
    */
   not_installed: string[];
   /**

@@ -1,6 +1,6 @@
 [package]
 name = "aurora-installer"
-description = "Instalador do Lace para Linux e macOS, e o empacotador dos instaladores"
+description = "Instalador da AURORA para Linux e macOS, e o empacotador dos instaladores"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

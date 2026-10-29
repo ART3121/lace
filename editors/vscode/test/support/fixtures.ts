@@ -10,7 +10,7 @@ export const FIXTURES = join(EXTENSION_ROOT, 'test', 'fixtures');
 export const RESPONSES = join(FIXTURES, 'responses');
 /** O aurora falso, que devolve as respostas gravadas. */
 export const FAKE_AURORA = join(FIXTURES, 'fake-aurora', 'aurora.mjs');
-/** O repositório do Lace, de onde vêm os schemas. */
+/** O repositório da AURORA, de onde vêm os schemas. */
 export const AURORA_REPO = resolve(process.env.AURORA_REPO ?? join(EXTENSION_ROOT, '..', '..'));
 
 export interface RecordedCase {

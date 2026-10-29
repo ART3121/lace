@@ -1,5 +1,5 @@
 //! O assistente: uma sessão do Claude Code com as ferramentas do `aurora mcp`.
-//! É o recurso experimental `assistant` do Lace: desligado, a vista nem
+//! É o recurso experimental `assistant` da AURORA: desligado, a vista nem
 //! aparece, e `assistant_start` recusa com `experimental_disabled`.
 //!
 //! (`aurora_agent`), aberta pela vista Assistente. Cada sessão é um processo
@@ -7,7 +7,7 @@
 //! vive até a interface pedir para fechar ou o Studio sair.
 //!
 //! O que o assistente pode fazer vem das preferências: só as ferramentas do
-//! Lace e ler arquivos, ou também editar os arquivos do projeto.
+//! AURORA e ler arquivos, ou também editar os arquivos do projeto.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -255,7 +255,7 @@ fn aurora_for(settings: &Settings) -> IpcResult<Utf8PathBuf> {
 }
 
 /// O assistente está ligado (`experimental.list` do servidor); desligado, o
-/// erro `experimental_disabled`, como o do Lace.
+/// erro `experimental_disabled`, como o da AURORA.
 fn require_assistant(state: &AppState, settings: &Settings) -> IpcResult<()> {
     let report = state
         .server

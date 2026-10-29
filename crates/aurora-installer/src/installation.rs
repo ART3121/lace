@@ -89,7 +89,7 @@ pub fn open_wizard(command: &mut std::process::Command) -> std::io::Result<()> {
     command.spawn().map(|_| ())
 }
 
-/// A chave do Lace na lista de programas instalados do Windows, que o Inno
+/// A chave da AURORA na lista de programas instalados do Windows, que o Inno
 /// Setup cria com o `AppId` do `installer/windows/aurora.iss`.
 #[cfg(windows)]
 const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{E34F1510-EC32-4839-8048-14CA03F9EFBB}_is1";
@@ -122,7 +122,7 @@ pub fn register_version(prefix: &Utf8Path, version: &str, reg: Option<&Utf8Path>
         }
         for (name, value) in [
             ("DisplayVersion", version.to_owned()),
-            ("DisplayName", format!("Lace {version}")),
+            ("DisplayName", format!("AURORA {version}")),
         ] {
             let mut add = std::process::Command::new(&reg);
             add.args(["add", &key, "/v", name, "/t", "REG_SZ", "/d", &value, "/f"])

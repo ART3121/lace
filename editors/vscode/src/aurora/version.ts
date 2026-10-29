@@ -1,9 +1,9 @@
-// Que versão do Lace cada recurso da extensão exige. A extensão tem versão
-// própria e precisa funcionar com um Lace instalado mais antigo que ela: o
+// Que versão da AURORA cada recurso da extensão exige. A extensão tem versão
+// própria e precisa funcionar com uma AURORA instalada mais antigo que ela: o
 // que a versão instalada não suporta fica desligado.
 
 /**
- * A primeira versão do Lace com cada recurso, no formato de JSON que a
+ * A primeira versão da AURORA com cada recurso, no formato de JSON que a
  * extensão lê. A 0.2.0 é a primeira com `aurora status`, `aurora top`, `-C` e
  * `--events` (a 0.1.0 ainda se chamava Solar); os schemas de `status`,
  * `top`, `add`, `new`, `remove`, `order`, `move`, `build`, `proc` e `error`
@@ -46,8 +46,8 @@ export const FEATURES = {
   /** Sintetizar: `aurora synth`, com o esquemático (`--svg`). */
   synth: '0.3.0',
   /**
-   * O `aurora serve`: a API do Lace por JSON-RPC em um processo só, em vez de
-   * um processo por comando. Com um Lace sem ele a extensão usa a CLI.
+   * O `aurora serve`: a API da AURORA por JSON-RPC em um processo só, em vez de
+   * um processo por comando. Com uma AURORA sem ele a extensão usa a CLI.
    */
   serve: '0.9.0',
 } as const;
@@ -90,7 +90,7 @@ export function supportedFeatures(version: string): FeatureSet {
 
 /**
  * O que a extensão exige para funcionar: algum recurso dos comandos. O
- * `serve` é transporte, não recurso: um Lace que só o tivesse não serviria.
+ * `serve` é transporte, não recurso: uma AURORA que só o tivesse não serviria.
  */
 export function usable(features: FeatureSet): boolean {
   return (Object.keys(features) as Feature[]).some((feature) => feature !== 'serve' && features[feature]);

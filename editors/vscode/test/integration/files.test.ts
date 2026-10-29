@@ -20,7 +20,7 @@ const node = (role: string, path: string) =>
 const order = (api: AuroraExtensionApi) => api.status?.synthesizable.map((f) => basename(f.path));
 const count = (command: string) => calls().filter((argv) => argv.includes(command)).length;
 
-describe('Lace: arquivos do projeto', () => {
+describe('AURORA: arquivos do projeto', () => {
   let api: AuroraExtensionApi;
 
   beforeEach(async () => {
@@ -81,7 +81,7 @@ describe('Lace: arquivos do projeto', () => {
     assert.ok(api.status?.synthesizable.some((f) => f.path === rtl('adder.v')));
   });
 
-  it('um arquivo fora do projeto renomeado no explorador: nada no Lace', async () => {
+  it('um arquivo fora do projeto renomeado no explorador: nada na AURORA', async () => {
     const moves = count('move');
     const edit = new vscode.WorkspaceEdit();
     edit.renameFile(vscode.Uri.file(rtl('sobra.v')), vscode.Uri.file(rtl('sobra2.v')));

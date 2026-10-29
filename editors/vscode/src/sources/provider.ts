@@ -1,4 +1,4 @@
-// A vista "Lace: fontes": os grupos de model.ts como árvore do VS Code.
+// A vista "AURORA: fontes": os grupos de model.ts como árvore do VS Code.
 //
 // A descrição ao lado do nome não aceita cor na API do VS Code; o que se
 // destaca é o nome (a cor) e o selo à direita, que vêm de um provedor de

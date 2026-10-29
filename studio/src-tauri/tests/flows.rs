@@ -1,18 +1,18 @@
 //! Os fluxos do Studio (`src/flows.rs`) rodando de verdade: o pedido que a
-//! interface manda vai ao servidor do Lace (`aurora serve`), que roda o fluxo
-//! com o bundle sobre cópias dos exemplos do Lace (`examples/`, na raiz do
+//! interface manda vai ao servidor da AURORA (`aurora serve`), que roda o fluxo
+//! com o bundle sobre cópias dos exemplos da AURORA (`examples/`, na raiz do
 //! repositório), e a resposta volta como a interface a lê.
 //!
 //! O servidor é o `aurora` de `AURORA_IDE_CLI` ou, sem ela, o build de
 //! desenvolvimento em `target/debug` da raiz do repositório. O bundle é o
-//! que o Studio acharia sozinho (a instalação do Lace) ou o de
+//! que o Studio acharia sozinho (a instalação da AURORA) ou o de
 //! `AURORA_TEST_BUNDLE`. Sem um dos dois, os testes avisam e passam, como os
-//! do Lace; com a variável `CI` definida, falham, porque lá não podem
+//! da AURORA; com a variável `CI` definida, falham, porque lá não podem
 //! pular.
 //!
 //! ```sh
 //! cargo build -p aurora-cli                                  # na raiz
-//! cargo test --test flows                                  # instalação do Lace
+//! cargo test --test flows                                  # instalação da AURORA
 //! AURORA_TEST_BUNDLE=/caminho/do/toolchain cargo test --test flows
 //! ```
 
@@ -55,7 +55,7 @@ fn settings() -> Option<Settings> {
     let info = toolchain::info(&AuroraServer::default(), &settings);
     if info["found"] != true {
         return skip(&format!(
-            "sem bundle do Lace ({}). Defina AURORA_TEST_BUNDLE.",
+            "sem bundle da AURORA ({}). Defina AURORA_TEST_BUNDLE.",
             info["error"]["message"]
         ));
     }
@@ -139,7 +139,7 @@ fn run(server: &AuroraServer, request: Value, settings: &Settings, spf: &Utf8Pat
     }
 }
 
-/// O erro de um fluxo que o Lace não conseguiu rodar (`failed`).
+/// O erro de um fluxo que a AURORA não conseguiu rodar (`failed`).
 fn fail(server: &AuroraServer, request: &Value, settings: &Settings, spf: &Utf8Path) -> IpcError {
     match finish(server, request, settings, spf) {
         JobMessage::Failed { error } => error,
@@ -468,7 +468,7 @@ fn fpga_build_refuses_before_building() {
     );
     let (_dir, spf) = example("soma");
     // Com a placa desligada nesta máquina, o fluxo recusa antes de olhar o
-    // projeto (o Lace confere o recurso experimental, como a CLI).
+    // projeto (a AURORA confere o recurso experimental, como a CLI).
     let experimental = server
         .call(&settings, "experimental.list", Value::Null)
         .unwrap();

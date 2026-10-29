@@ -11,7 +11,7 @@
 //!   dentro da raiz, como a AURORA faz.
 //! - `structure.topLevelFile`: o arquivo do módulo de topo, que a síntese
 //!   usa; o módulo é o único do arquivo, o que tem o nome dele ou, se foi
-//!   escolhido pelo nome, `structure.topLevelModule` (campo do Lace).
+//!   escolhido pelo nome, `structure.topLevelModule` (campo da AURORA).
 //! - `structure.testbenchFile`: o testbench que a simulação do projeto roda.
 //!
 //! Um `.py` só entra como testbench: é um testbench cocotb, como na AURORA
@@ -835,7 +835,7 @@ impl Project {
 
     /// Troca no documento os absolutos de outra máquina achados pela cauda
     /// (ver [`Project::resolve_path`]) pelo caminho de hoje, na forma em que
-    /// o Lace grava. Chamado antes de cada gravação: o `.spf` sai consertado
+    /// a AURORA grava. Chamado antes de cada gravação: o `.spf` sai consertado
     /// na primeira mudança, e abrir continua só lendo.
     pub(crate) fn repair_rescued(&mut self) {
         let root = self.root.clone();
@@ -897,7 +897,7 @@ impl Project {
                 if path.exists() {
                     return Err(AuroraError::InvalidProject {
                         path,
-                        reason: "The file already exists; Lace does not overwrite it".into(),
+                        reason: "The file already exists; AURORA does not overwrite it".into(),
                     });
                 }
                 if let Some(parent) = path.parent() {
@@ -1243,7 +1243,7 @@ impl Project {
         Ok(MovedPath { from, to, files })
     }
 
-    /// Registra no `.spf` um movimento que já aconteceu fora do Lace: o
+    /// Registra no `.spf` um movimento que já aconteceu fora da AURORA: o
     /// arquivo ou a pasta foi renomeado no explorador de uma IDE, ou com o
     /// `mv`, e os registrados que estavam em `from` passam a estar em `to`.
     /// É o [`move_path`](Self::move_path) sem mexer no disco, como o
@@ -1330,7 +1330,7 @@ impl Project {
             && crate::paths::canonicalize(&from).is_ok_and(|real| real == to);
         if std::fs::symlink_metadata(&from).is_ok() && !case_only {
             return Err(refuse(
-                "It is still there: move it first, or move it with Lace",
+                "It is still there: move it first, or move it with AURORA",
             ));
         }
 
@@ -1404,7 +1404,7 @@ impl Project {
             return Some("The project file stays in the project folder");
         }
         if path.starts_with(self.root.join(".aurora8")) {
-            return Some("The .aurora8 folder belongs to Lace");
+            return Some("The .aurora8 folder belongs to AURORA");
         }
         for processor in self.processors() {
             if path == processor.dir {
@@ -1514,7 +1514,7 @@ impl Project {
     }
 }
 
-/// Campo do `.spf` (do Lace, fora do formato da AURORA) com o módulo de
+/// Campo do `.spf` (da AURORA, fora do formato da AURORA) com o módulo de
 /// topo escolhido pelo nome, para arquivos com vários módulos.
 const TOP_MODULE_KEY: &str = "topLevelModule";
 

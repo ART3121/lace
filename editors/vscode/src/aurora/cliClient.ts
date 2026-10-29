@@ -46,7 +46,7 @@ export interface AuroraCommand {
   args: readonly string[];
 }
 
-/** Onde o cliente registra o que roda (no VS Code, o canal de saída Lace). */
+/** Onde o cliente registra o que roda (no VS Code, o canal de saída AURORA). */
 export interface AuroraLog {
   info(message: string): void;
   warn(message: string): void;

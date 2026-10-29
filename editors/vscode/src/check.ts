@@ -15,7 +15,7 @@ const SEVERITIES: Record<Severity, vscode.DiagnosticSeverity> = {
   error: vscode.DiagnosticSeverity.Error,
   warning: vscode.DiagnosticSeverity.Warning,
   info: vscode.DiagnosticSeverity.Information,
-  // Uma linha que o Lace não reconheceu: fica visível, sem pesar como erro.
+  // Uma linha que a AURORA não reconheceu: fica visível, sem pesar como erro.
   unknown: vscode.DiagnosticSeverity.Information,
 };
 

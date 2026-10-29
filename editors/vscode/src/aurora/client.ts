@@ -1,4 +1,4 @@
-// O que a extensão pede ao Lace. Vistas e comandos dependem só desta
+// O que a extensão pede à AURORA. Vistas e comandos dependem só desta
 // interface: uma implementação roda a CLI, um processo por comando
 // (cliClient.ts); a outra fala com um `aurora serve` em segundo plano
 // (serveClient.ts). A conexão escolhe (connection.ts, `aurora.transport`).
@@ -22,7 +22,7 @@ import type {
 } from './aurora-types';
 
 /**
- * Como terminou um comando do Lace, pelo código de saída (docs/CLI.md,
+ * Como terminou um comando da AURORA, pelo código de saída (docs/CLI.md,
  * "Códigos de saída").
  */
 export type AuroraRun<T> =
@@ -39,7 +39,7 @@ export type AuroraRun<T> =
    * `kill` encerra o aurora na hora).
    */
   | { status: 'cancelled'; result: T | null }
-  /** 2: o Lace não conseguiu rodar. `error.code` é estável; `hint`, o comando que resolve. */
+  /** 2: a AURORA não conseguiu rodar. `error.code` é estável; `hint`, o comando que resolve. */
   | { status: 'error'; error: ErrorInfo };
 
 export interface RunOptions {
@@ -143,7 +143,7 @@ export interface AuroraClient {
   /**
    * `aurora move`: move ou renomeia, e os registrados continuam no projeto.
    * Com `after`, o arquivo já foi movido (pelo explorador do VS Code) e o
-   * Lace só atualiza o `.spf` (`aurora move --after`).
+   * AURORA só atualiza o `.spf` (`aurora move --after`).
    */
   move(spf: string, from: string, to: string, options?: RunOptions & { after?: boolean }): Promise<AuroraRun<MoveReport>>;
   /** `aurora build`: compila os processadores com o YANC. */
@@ -163,7 +163,7 @@ export interface AuroraClient {
 /**
  * O aurora não pôde ser executado, ou saiu de um jeito que o contrato da CLI
  * não prevê: código de saída desconhecido, morte por sinal, saída que não é
- * JSON. Um erro do Lace (código 2) não é isto: volta como `status: 'error'`.
+ * JSON. Um erro da AURORA (código 2) não é isto: volta como `status: 'error'`.
  */
 export class AuroraProcessError extends Error {
   constructor(

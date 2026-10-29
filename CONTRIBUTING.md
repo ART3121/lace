@@ -1,8 +1,8 @@
-# Contribuir com o Lace
+# Contribuir com a AURORA
 
-Guia para quem vai mexer no código do Lace pela primeira vez: como preparar
+Guia para quem vai mexer no código da AURORA pela primeira vez: como preparar
 a máquina, onde mora cada coisa, como fazer as mudanças mais comuns e o que
-conferir antes de mandar. O que o Lace faz para o usuário está no
+conferir antes de mandar. O que a AURORA faz para o usuário está no
 [README](README.md).
 
 A referência da API está em [docs/API.md](docs/API.md) e na documentação do
@@ -57,7 +57,7 @@ um caminho absoluto: o `cargo test` roda cada teste no diretório do crate,
 então um caminho relativo aponta para o lugar errado. Há dois jeitos de ter
 um bundle.
 
-**Usar o de uma instalação do Lace.** Instale pelo [README](README.md) e
+**Usar o de uma instalação da AURORA.** Instale pelo [README](README.md) e
 aponte para a pasta `toolchain/` da instalação. Não compila nada.
 
 ```sh
@@ -65,7 +65,7 @@ export AURORA_TEST_BUNDLE="$HOME/.local/share/aurora/toolchain"            # Lin
 ```
 
 ```powershell
-$env:AURORA_TEST_BUNDLE = "$env:LOCALAPPDATA\Programs\Lace\toolchain"     # Windows
+$env:AURORA_TEST_BUNDLE = "$env:LOCALAPPDATA\Programs\AURORA\toolchain"     # Windows
 ```
 
 Confira com `aurora tools` que o identificador do bundle instalado é o mesmo
@@ -210,7 +210,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `learn.rs` | `aurora learn`: os subcomandos e a saída deles, sobre o `aurora-learn` |
 | `learn_tui.rs` | o modo watch do `aurora learn`: a tela de terminal no estilo do rustlings |
 | `wave_choice.rs` | `aurora wave signals`, `select` e `unselect`: a escolha dos sinais da onda |
-| `update_check.rs` | a verificação automática de atualização: uma consulta por dia e o aviso de Lace mais novo no fim do comando |
+| `update_check.rs` | a verificação automática de atualização: uma consulta por dia e o aviso de AURORA mais nova no fim do comando |
 | `progress.rs` | a barra que mostra que uma ferramenta está rodando, no stderr de um terminal |
 | `meter.rs` | a linha de progresso dos downloads do `aurora install` e do `aurora update` |
 | `cancel.rs` | o Ctrl+C nas perguntas dos comandos que mexem na instalação: o pedido de `main` (`set`) e o `Cancelled`, que vira a saída 130 |
@@ -253,7 +253,7 @@ a onda.
 | `pack.rs` | o `aurora-pack`: os pedaços da TUI (`tui`), o estágio do Inno Setup (`inno`) e os arquivos da release (`release_assets`) |
 | `tui.rs` | a instalação guiada no terminal (`App`), também a lista do `aurora install` (`App::for_adding`) |
 | `desktop.rs` | o atalho da AURORA IDE no menu de aplicativos, no Linux e no macOS |
-| `brand.rs` | as cores e a marca do Lace no terminal |
+| `brand.rs` | as cores e a marca da AURORA no terminal |
 | `error.rs` | `Error`: os erros que atravessam a fronteira, com código próprio |
 | `main.rs`, `bin/aurora-pack.rs` | os executáveis `aurora-installer` (o `install` do instalador de Linux e macOS) e `aurora-pack` |
 
@@ -279,7 +279,7 @@ a onda.
 | `docs/schema/` | o JSON Schema de cada comando, gerado dos tipos; não edite à mão |
 | `docs/PROTOCOL.md` | a referência do protocolo do `aurora serve`, gerada dos tipos do `aurora-protocol` por `crates/aurora-cli/src/protocol_doc.rs`; não edite à mão |
 | `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `aurora synth --open`, que vira o componente `rtl-viewer` |
-| `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pelo `aurora serve` ou, com um Lace sem ele (ou `aurora.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
+| `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com a AURORA pelo `aurora serve` ou, com uma AURORA sem ele (ou `aurora.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
 | `crates/aurora-installer/tests/` | `install.rs` (empacota um bundle pequeno e instala de verdade) e `update.rs` (duas versões de um bundle pequeno: instala a primeira e atualiza para a segunda trocando só o que mudou) |
 | `studio/` | a AURORA IDE (antes Lace Studio), em Tauri: o backend em Rust (`studio/src-tauri/`, fora do workspace, com o próprio `Cargo.lock`) e a interface em React (`studio/src/`); o guia é o [studio/docs/DEVELOPMENT.md](studio/docs/DEVELOPMENT.md) |
 | `examples/` | os projetos `soma`, `com_erro` e `contador`, usados pelos testes |
@@ -289,7 +289,7 @@ a onda.
 | `installer/windows/aurora.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
 | `.github/workflows/` | `release.yml` (publica a release numa tag) e o `installers.yml` que ele chama (bundle e instaladores, sem testes); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); `vscode.yml` (a extensão do VS Code e o RTL viewer, a cada push que muda `editors/vscode/`, `packages/rtl-viewer/` ou `docs/schema/`); fora esse, não há CI a cada push |
-| `docs/` | API, CLI, bundle, instalação, release, metodologia, placas FPGA, `aurora learn`, as pendências de fora do Lace e o desenho das partes (`img/`) |
+| `docs/` | API, CLI, bundle, instalação, release, metodologia, placas FPGA, `aurora learn`, as pendências de fora da AURORA e o desenho das partes (`img/`) |
 
 ### Como uma operação anda
 
@@ -327,7 +327,7 @@ teste são os de hoje; procure-os com `grep -rn "fn <nome>" crates`.
 
 ### Acrescentar um método à API
 
-Uma capacidade nova do Lace, que um cliente vai pedir pelo `aurora serve`,
+Uma capacidade nova da AURORA, que um cliente vai pedir pelo `aurora serve`,
 pelo `aurora mcp` ou pelo Studio, é um método do protocolo. O passo a passo,
 com os arquivos e a lista de "pronto quando", está em
 [docs/METODOLOGIA.md](docs/METODOLOGIA.md), seção 6. Mudar a forma de um
@@ -404,7 +404,7 @@ herdada do ambiente do usuário.
 
 ### Interpretar uma mensagem nova de uma ferramenta
 
-Quando uma ferramenta escreve algo que o Lace mostra como `unknown`, ou com
+Quando uma ferramenta escreve algo que a AURORA mostra como `unknown`, ou com
 a gravidade errada:
 
 1. `crates/aurora-core/src/diagnostics.rs`: `parse_line` escolhe o
@@ -503,7 +503,7 @@ rodando os testes nesses sistemas, à mão.
 
 ### Acrescentar um erro novo
 
-Antes, decida se é mesmo um erro: `Err(AuroraError)` é para quando o Lace
+Antes, decida se é mesmo um erro: `Err(AuroraError)` é para quando a AURORA
 não consegue rodar. Se a ferramenta rodou e recusou o código do usuário, o
 lugar é um diagnóstico no resultado.
 
@@ -584,7 +584,7 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
   JSON (`classify`, `TESTBENCH_THRESHOLD`, `no_top_level`, `failed_step`,
   `classification_follows_the_aurora_scores`). As mensagens das asserções
   dos testes são em português. As mensagens do YANC chegam em inglês porque
-  o Lace sempre pede `--lang=en`.
+  a AURORA sempre pede `--lang=en`.
 - **Três plataformas.** O código compila para Linux, macOS e Windows; o que
   muda por sistema vai em `cfg(windows)` (veja `INHERITED_ENV` em
   `process.rs` e `YANC_PATH_LIMIT` em `paths.rs`). A release compila nos
@@ -626,7 +626,7 @@ let control = Control::new()
   Passou dele: `Status::TimedOut`, com o que a ferramenta escreveu até ali.
 - **Eventos**: `StepStarted` (com o comando), `Output` (uma linha, com
   `stream` e `diagnostic`) e `StepFinished` (com o `Termination` e a
-  duração). `diagnostic` é `true` nas linhas que o Lace reconhece como
+  duração). `diagnostic` é `true` nas linhas que a AURORA reconhece como
   mensagem da ferramenta e que voltam em `diagnostics`; `false` é saída do
   programa, como o `$display` do testbench. O receptor roda na thread da
   operação: precisa ser rápido.

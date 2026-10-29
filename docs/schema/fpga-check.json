@@ -13,7 +13,7 @@
       "$ref": "#/$defs/Resolved"
     },
     "board_top": {
-      "description": "O Verilog do topo da placa que o Lace gera.",
+      "description": "O Verilog do topo da placa que a AURORA gera.",
       "type": "string"
     },
     "connections": {

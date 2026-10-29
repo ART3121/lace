@@ -1,5 +1,5 @@
 //! `aurora install`: instala aplicativos do bundle (Verilator, Yosys, ...) na
-//! instalação de onde este `aurora` roda, sem reinstalar o Lace.
+//! instalação de onde este `aurora` roda, sem reinstalar a AURORA.
 //!
 //! Sem nomes, abre no terminal a lista dos aplicativos do bundle, com os
 //! instalados marcados e travados (a TUI de `aurora-installer`,
@@ -9,7 +9,7 @@
 //! `toolchain/` (`aurora_installer::add`): o `aurora` não muda, e uma falha no
 //! meio desfaz o que entrou. Os pedaços vêm:
 //!
-//! - da release do Lace desta versão no GitHub, que publica o índice e cada
+//! - da release da AURORA desta versão no GitHub, que publica o índice e cada
 //!   pedaço do payload (`aurora-<versão>-<plataforma>-<arquivo>`), conferidos
 //!   pelo `SHA256SUMS` dela; ou
 //! - com `--from`, de um instalador no disco: a pasta, o `.tar.gz` da release
@@ -165,7 +165,7 @@ pub(crate) fn show(meter: &mut Meter, event: &Event, label: &dyn Fn(&str) -> Str
             download,
         } => {
             let what = if components.is_empty() {
-                "Lace".to_owned()
+                "AURORA".to_owned()
             } else {
                 components
                     .iter()

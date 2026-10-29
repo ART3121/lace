@@ -261,7 +261,7 @@ fn a_name_line_left_from_yanc_6_is_the_compiler_error() {
     assert!(!processor.output_dir.join("outro.v").exists());
 }
 
-/// A lista de módulos SAPHO do Lace acompanha a do YANC do bundle: um
+/// A lista de módulos SAPHO da AURORA acompanha a do YANC do bundle: um
 /// processador com o nome de um módulo da biblioteca se instanciaria.
 #[test]
 fn no_processor_takes_the_name_of_a_sapho_module() {

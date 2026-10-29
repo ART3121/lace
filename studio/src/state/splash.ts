@@ -26,7 +26,7 @@ export function splashRemaining(min: number): number {
   return Math.max(0, min - performance.now());
 }
 
-/** O que aparece embaixo do logo: "Procurando o Lace", "Reabrindo contador".
+/** O que aparece embaixo do logo: "Procurando a AURORA", "Reabrindo contador".
  * Vai com a hora: o splash ignora o que sobrou de uma abertura anterior. */
 export function splashStatus(text: string): void {
   try {

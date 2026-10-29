@@ -201,7 +201,7 @@ pub fn recover(prefix: &Path) -> anyhow::Result<Option<String>> {
     }
     if let Some(first) = failed.first() {
         bail!(
-            "An update to Lace {} was interrupted, and {} of its files could not be put back \
+            "An update to AURORA {} was interrupted, and {} of its files could not be put back \
              (the first: {first}); the next aurora update tries again",
             saved.to,
             failed.len()
@@ -268,7 +268,7 @@ pub struct Applied {
     pub removed: usize,
     /// Quantos executáveis tiveram o hash conferido.
     pub verified: usize,
-    /// O atalho do Lace Studio no menu de aplicativos, se há um ([`crate::desktop`]).
+    /// O atalho da AURORA IDE no menu de aplicativos, se há um ([`crate::desktop`]).
     pub shortcut: Option<PathBuf>,
 }
 
@@ -565,7 +565,7 @@ fn stage(
         for (rel, expected) in &planned.files {
             if &files::digest(&staging.join(rel))? != expected {
                 bail!(
-                    "{rel} in {} does not match the file manifest of Lace {}",
+                    "{rel} in {} does not match the file manifest of AURORA {}",
                     planned.chunk.file,
                     plan.to
                 );

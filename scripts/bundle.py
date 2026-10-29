@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Monta o bundle de ferramentas do Lace para uma plataforma.
+"""Monta o bundle de ferramentas da AURORA para uma plataforma.
 
-O bundle é o único lugar de onde o Lace executa ferramentas. Este script é o
-único lugar que baixa ou compila alguma coisa: o Lace, em uso, só lê o
+O bundle é o único lugar de onde a AURORA executa ferramentas. Este script é o
+único lugar que baixa ou compila alguma coisa: a AURORA, em uso, só lê o
 bundle já montado.
 
     python3 scripts/bundle.py --out dist/toolchain
@@ -29,14 +29,14 @@ Os pacotes, com as versões exatas, estão em bundle/versions.json:
   pacote da plataforma, que o workflow publica;
 - graphviz: só no Windows, onde o OSS CAD Suite não traz o dot; zip oficial
   conferido pelo SHA-256 publicado;
-- studio: o Lace Studio, compilado de studio/ deste repositório
+- studio: a AURORA IDE, compilado de studio/ deste repositório
   (npm ci e tauri build); a versão de versions.json tem que ser a do
   studio/package.json e a do tauri.conf.json;
 - aurora-learn: as trilhas de exercícios do `aurora learn`, copiadas de
-  aurora-learn/ deste repositório. Só dados: quem as corrige é o Lace.
+  aurora-learn/ deste repositório. Só dados: quem as corrige é a AURORA.
 - rtl-viewer: o modelo do HTML do RTL viewer (`aurora synth --open`),
   gerado de packages/rtl-viewer/ deste repositório (npm ci e npm run
-  build). Só dados: quem o preenche com o netlist é o Lace.
+  build). Só dados: quem o preenche com o netlist é a AURORA.
 
 Os componentes que o instalador oferece estão em bundle/components.json. O
 OSS CAD Suite vira quatro (icarus, verilator, yosys, graphviz): cada um leva
@@ -201,7 +201,7 @@ def build_surfer(spec, plat, cache):
     """Compila o surfer-aurora do commit fixado; devolve o executável e o fonte."""
     src = checkout(spec["repository"], spec["commit"], cache, "surfer-aurora")
     target = cache / "surfer-target"
-    # No Windows, o runtime do Visual C++ dentro do executável, como o do Lace
+    # No Windows, o runtime do Visual C++ dentro do executável, como o da AURORA
     # (.cargo/config.toml): sem ele, o surfer-aurora pede o VCRUNTIME140.dll.
     env = dict(
         os.environ,
@@ -247,7 +247,7 @@ def pkg_surfer_aurora(spec, plat, work, cache):
         shutil.copy2(binary, stage / f"surfer-aurora{exe}")
         for lic in src.glob("LICENSE*"):
             shutil.copy2(lic, stage / lic.name)
-    # O cliente web (WASM) da mesma tag, que a CI do fork publica: o Lace
+    # O cliente web (WASM) da mesma tag, que a CI do fork publica: a AURORA
     # Studio o mostra numa aba, ligado a um `surfer-aurora server`. Um zip
     # só serve às três plataformas, e cliente e servidor precisam ser da
     # mesma versão.
@@ -262,7 +262,7 @@ def pkg_surfer_aurora(spec, plat, work, cache):
 
 
 def pkg_studio(spec, plat, work, cache):
-    """O Lace Studio, compilado de studio/ deste repositório pelo Tauri (a
+    """A AURORA IDE, compilado de studio/ deste repositório pelo Tauri (a
     interface pelo Vite, embutida no executável). No macOS sai o
     `AURORA IDE.app`; no Linux e no Windows, o executável, que usa o
     WebView do sistema (webkit2gtk 4.1, WebView2)."""
@@ -274,7 +274,7 @@ def pkg_studio(spec, plat, work, cache):
             sys.exit(f"studio: bundle/versions.json diz {spec['version']}, e {spec['path']}/{where} diz {version}")
     npm = shutil.which("npm")
     if not npm:
-        sys.exit("studio: o build do Lace Studio precisa do Node.js (npm)")
+        sys.exit("studio: o build da AURORA IDE precisa do Node.js (npm)")
     if not (src / "node_modules").is_dir():
         run([npm, "ci", "--no-audit", "--no-fund"], cwd=src)
     target = cache / "studio-target"
@@ -294,7 +294,7 @@ def pkg_studio(spec, plat, work, cache):
         shutil.copy2(target / "release" / f"aurora-ide{exe}", stage / f"aurora-ide{exe}")
         # O ícone que o instalador põe no atalho do menu de aplicativos.
         shutil.copy2(src / "src-tauri" / "icons" / "128x128.png", stage / "aurora-ide.png")
-    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+    return stage, {"source": f"{spec['path']}/ (AURORA {spec['version']})"}
 
 
 def pkg_aurora_learn(spec, plat, work, cache):
@@ -306,7 +306,7 @@ def pkg_aurora_learn(spec, plat, work, cache):
     stage = work / "aurora-learn"
     shutil.rmtree(stage, ignore_errors=True)
     shutil.copytree(src, stage, ignore=shutil.ignore_patterns(".*"))
-    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+    return stage, {"source": f"{spec['path']}/ (AURORA {spec['version']})"}
 
 
 def pkg_rtl_viewer(spec, plat, work, cache):
@@ -327,7 +327,7 @@ def pkg_rtl_viewer(spec, plat, work, cache):
     shutil.rmtree(stage, ignore_errors=True)
     stage.mkdir(parents=True)
     shutil.copy2(template, stage / "rtl-viewer.html")
-    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+    return stage, {"source": f"{spec['path']}/ (AURORA {spec['version']})"}
 
 
 def pkg_graphviz(spec, plat, work, cache):
@@ -520,7 +520,7 @@ class Package:
                 if rel in self.present:
                     return rel, False
             return None, False
-        # Windows: a pasta do binário e o PATH que o Lace monta (bin;lib).
+        # Windows: a pasta do binário e o PATH que a AURORA monta (bin;lib).
         for d in (here, "bin", "lib"):
             rel = f"{d}/{name}".lower() if d else name.lower()
             if rel in self.lower:
@@ -784,7 +784,7 @@ def main():
     (out / "components").mkdir()
     profiles = platform_profiles(catalog, {c["name"] for c in components})
     # O primeiro perfil é o padrão. O campo `recommended` dos componentes é
-    # o pertencer a ele, para o Lace anterior aos perfis, que lê o índice da
+    # o pertencer a ele, para a AURORA anterior aos perfis, que lê o índice da
     # release nova no `aurora update` e exige o campo.
     default = set(profiles[0]["components"]) if profiles else set()
     contents = []

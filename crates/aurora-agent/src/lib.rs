@@ -1,5 +1,5 @@
-//! O assistente do Lace: uma sessão do Claude Code, rodando como processo
-//! filho, com as ferramentas do `aurora mcp`. É o motor do chat do Lace
+//! O assistente da AURORA: uma sessão do Claude Code, rodando como processo
+//! filho, com as ferramentas do `aurora mcp`. É o motor do chat da AURORA
 //! Studio e do `aurora chat` no terminal.
 //!
 //! O Claude Code já faz o laço do modelo com as ferramentas, a autenticação

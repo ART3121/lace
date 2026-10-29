@@ -30,7 +30,7 @@ export default defineConfig(
     languageOptions: { globals: globals.node },
   },
   // As duas decisões de arquitetura que o lint cobra: um único módulo cria
-  // processos (um `aurora lsp` futuro troca só ele), e o cliente do Lace não
+  // processos (um `aurora lsp` futuro troca só ele), e o cliente da AURORA não
   // depende do VS Code.
   {
     files: ['src/**/*.ts'],

@@ -1,4 +1,4 @@
-//! Remover uma instalação do Lace, com o bundle (`aurora uninstall`).
+//! Remover uma instalação da AURORA, com o bundle (`aurora uninstall`).
 //!
 //! Quem sabe remover é o desinstalador que o instalador deixou na pasta, e
 //! aqui só se chama:
@@ -77,7 +77,7 @@ fn remove(prefix: &Utf8Path, options: &UninstallOptions) -> Result<bool> {
 #[cfg(windows)]
 fn remove(prefix: &Utf8Path, options: &UninstallOptions) -> Result<bool> {
     let exe = installation::uninstaller_exe(prefix)
-        .context("The Lace uninstaller is not in the folder")?;
+        .context("The AURORA uninstaller is not in the folder")?;
     let mut command = std::process::Command::new(exe.as_std_path());
     if options.silent {
         command.arg("/SILENT");

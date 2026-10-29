@@ -1,4 +1,4 @@
-# RTL viewer do Lace
+# RTL viewer da AURORA
 
 O esquemático interativo do netlist que o Yosys grava na síntese
 (`hierarchy.json`, o `SynthesisResult.netlist` do `aurora synth --json`):

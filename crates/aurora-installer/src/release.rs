@@ -1,9 +1,9 @@
-//! As releases do Lace na rede: a última versão, e baixar um arquivo de uma
+//! As releases da AURORA na rede: a última versão, e baixar um arquivo de uma
 //! release conferindo o SHA-256 pelo `SHA256SUMS` dela. Também baixa o que
 //! mais o `aurora install` e o `aurora update` precisam ler.
 //!
 //! Baixa com o `curl` do sistema, o mesmo que o `install.sh` usa (no Windows
-//! 10 e 11 ele vem no `System32`): o Lace não traz cliente HTTP próprio.
+//! 10 e 11 ele vem no `System32`): a AURORA não traz cliente HTTP próprio.
 //!
 //! A biblioteca não lê o ambiente por conta própria: a [`Network`] é montada
 //! por quem chama (a CLI das variáveis, com [`Network::from_env`]; o Studio
@@ -107,7 +107,7 @@ impl Network {
     /// do GitHub.
     pub fn asset_url(&self, version: &str, file: &str) -> Result<String> {
         if !is_version(version) {
-            return Err(anyhow::anyhow!("Not a Lace version: {}", version.escape_debug()).into());
+            return Err(anyhow::anyhow!("Not an AURORA version: {}", version.escape_debug()).into());
         }
         if !is_asset_name(file) {
             return Err(
@@ -138,7 +138,7 @@ impl Network {
     /// O `curl`, com prazo para conectar: uma rede que pendura em vez de
     /// recusar não trava o comando. Só por `https` (e `file`, o espelho no
     /// disco), também nos redirecionamentos: um redirecionamento para `http`
-    /// não troca o que o Lace baixa no caminho.
+    /// não troca o que a AURORA baixa no caminho.
     fn curl(&self) -> std::process::Command {
         let program = self
             .curl
@@ -163,7 +163,7 @@ impl Network {
     }
 }
 
-/// Uma versão como as do Lace: começa por dígito e tem só letras, dígitos,
+/// Uma versão como as da AURORA: começa por dígito e tem só letras, dígitos,
 /// `.`, `-` e `+` (`0.9.0`, `0.9.0-rc.1`). É o que vai no caminho das URLs e
 /// no nome dos arquivos baixados, e o que o terminal mostra: uma resposta do
 /// espelho com `/`, `..` ou uma sequência de escape não passa.
@@ -261,9 +261,9 @@ pub enum Bar {
 /// De onde vêm as versões e os arquivos das releases: a rede, em
 /// [`Remote`]; um substituto nos testes.
 pub trait Sources: Send + Sync {
-    /// A última versão do Lace publicada (a tag sem o `v`).
+    /// A última versão da AURORA publicada (a tag sem o `v`).
     fn latest_aurora(&self, cancel: &CancelToken) -> Result<String>;
-    /// O `bundle/versions.json` da release `v<version>` do Lace.
+    /// O `bundle/versions.json` da release `v<version>` da AURORA.
     fn release_versions(&self, version: &str, cancel: &CancelToken) -> Result<String>;
     /// A última versão upstream de um pacote de `bundle/versions.json`.
     fn upstream(&self, package: &str, cancel: &CancelToken) -> Result<String>;
@@ -292,12 +292,12 @@ pub mod package {
     pub const GRAPHVIZ: &str = "graphviz";
     /// O bloco MSYS2 do lace-toolchain (Windows).
     pub const MSYS: &str = "msys";
-    /// O Lace Studio, do próprio repositório: a versão é a do Lace.
+    /// A AURORA IDE, do próprio repositório: a versão é a da AURORA.
     pub const STUDIO: &str = "studio";
     /// As trilhas do `aurora learn`, do próprio repositório: a versão é a do
-    /// Lace.
+    /// AURORA.
     pub const AURORA_LEARN: &str = "aurora-learn";
-    /// O modelo do RTL viewer, do próprio repositório: a versão é a do Lace.
+    /// O modelo do RTL viewer, do próprio repositório: a versão é a da AURORA.
     pub const RTL_VIEWER: &str = "rtl-viewer";
 }
 
@@ -453,7 +453,7 @@ impl Sources for Remote {
                 Ok(text) if !text.trim().is_empty() => {
                     let version = text.trim().trim_start_matches('v');
                     if !is_version(version) {
-                        return Err(anyhow::anyhow!("{url} does not hold a Lace version").into());
+                        return Err(anyhow::anyhow!("{url} does not hold an AURORA version").into());
                     }
                     return Ok(version.to_owned());
                 }
@@ -465,7 +465,7 @@ impl Sources for Remote {
         let version = tag.trim_start_matches('v');
         if !is_version(version) {
             return Err(anyhow::anyhow!(
-                "The latest release of {} is not tagged with a Lace version",
+                "The latest release of {} is not tagged with an AURORA version",
                 self.0.repo
             )
             .into());
@@ -489,7 +489,7 @@ impl Sources for Remote {
             package::OSS_CAD_SUITE => self.latest_github_tag("YosysHQ/oss-cad-suite-build", cancel),
             package::MSYS => self.latest_github_tag(AURORA_TOOLCHAIN, cancel),
             package::YANC => self.latest_github_tag("nipscernlab/yanc", cancel),
-            // O Studio, as trilhas e o RTL viewer saem com o Lace: o mais
+            // O Studio, as trilhas e o RTL viewer saem com a AURORA: o mais
             // novo é o da última release.
             package::STUDIO | package::AURORA_LEARN | package::RTL_VIEWER => self.latest_aurora(cancel),
             package::SURFER_AURORA => {
@@ -539,7 +539,7 @@ struct GitlabRelease {
 
 /// A chave de ordem de uma versão: os grupos de dígitos, como números, na
 /// ordem em que aparecem. Serve aos formatos do bundle (`2026-09-29`, `v5.6`,
-/// `v0.7.0-nips.10`, `16.1.0`) e ao do Lace (`0.1.0`). Um sufixo com dígitos
+/// `v0.7.0-nips.10`, `16.1.0`) e ao da AURORA (`0.1.0`). Um sufixo com dígitos
 /// fica depois da versão sem ele (`v0.7.0` < `v0.7.0-nips.1`), como nas tags
 /// do surfer-aurora; numa pré-versão no estilo do semver (`0.2.0-rc.1`), essa
 /// seria a ordem errada.

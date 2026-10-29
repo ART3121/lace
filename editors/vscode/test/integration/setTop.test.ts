@@ -1,4 +1,4 @@
-// "Lace: Definir como topo" dentro do VS Code, com o aurora falso: o comando
+// "AURORA: Definir como topo" dentro do VS Code, com o aurora falso: o comando
 // roda `aurora top` no projeto ativo e relê o projeto.
 
 import * as assert from 'node:assert/strict';
@@ -12,7 +12,7 @@ import type { TopReport } from '../../src/aurora/aurora-types';
 import type { SourceNode } from '../../src/sources/provider';
 import { activate, calls, lastCall, resetFake, run, spf, workspace } from './helpers';
 
-describe('Lace: Definir como topo', () => {
+describe('AURORA: Definir como topo', () => {
   let api: AuroraExtensionApi;
 
   before(async () => {
@@ -40,7 +40,7 @@ describe('Lace: Definir como topo', () => {
     assert.equal(api.status?.top_module, 'contador');
   });
 
-  it('com um testbench: devolve o erro do Lace e o topo não muda', async () => {
+  it('com um testbench: devolve o erro da AURORA e o topo não muda', async () => {
     const result = await run<AuroraRun<TopReport>>('aurora.setTop', vscode.Uri.file(join(workspace, 'tb', 'contador_tb.v')));
     assert.equal(result?.status === 'error' && result.error.code, 'invalid_name');
     assert.equal(api.status?.top_module, 'contador');

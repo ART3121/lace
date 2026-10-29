@@ -1,6 +1,6 @@
 [package]
 name = "aurora-protocol"
-description = "O contrato do Lace: os pedidos, as respostas e as notificações do aurora serve e do aurora mcp, com schema"
+description = "O contrato da AURORA: os pedidos, as respostas e as notificações do aurora serve e do aurora mcp, com schema"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

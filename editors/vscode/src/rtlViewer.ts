@@ -1,4 +1,4 @@
-// O RTL viewer do Lace numa aba do VS Code: o bundle de packages/rtl-viewer
+// O RTL viewer da AURORA numa aba do VS Code: o bundle de packages/rtl-viewer
 // (media/rtl-viewer, copiado pelo esbuild.mjs) num webview, com as cores do
 // tema do editor (theme-vscode.css). A extensão lê o netlist que o
 // `aurora synth` gravou (SynthesisResult.netlist) e o manda ao webview; se ele
@@ -122,7 +122,7 @@ export class RtlViewerPanel implements vscode.Disposable {
         });
         if (target) {
           await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(message.svg));
-          vscode.window.setStatusBarMessage(`Lace: SVG exportado em ${target.fsPath}`, 6000);
+          vscode.window.setStatusBarMessage(`AURORA: SVG exportado em ${target.fsPath}`, 6000);
         }
         break;
       }
@@ -149,7 +149,7 @@ export class RtlViewerPanel implements vscode.Disposable {
       });
     } catch (error) {
       this.log.error(`RTL viewer: não deu para ler ${path}: ${(error as Error).message}`);
-      void vscode.window.showErrorMessage(`Lace: não deu para ler o netlist ${path}.`);
+      void vscode.window.showErrorMessage(`AURORA: não deu para ler o netlist ${path}.`);
     }
   }
 

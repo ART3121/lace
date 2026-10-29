@@ -5,12 +5,12 @@
 //!
 //! Sem isso a placa podia receber um design diferente do que está na tela: o
 //! `.sof` de antes de uma mudança no Verilog, no programa de um processador
-//! (as memórias `.mif`) ou nas ligações, ou o de uma versão do Lace com
+//! (as memórias `.mif`) ou nas ligações, ou o de uma versão da AURORA com
 //! outros pinos para a mesma placa. A comparação é pelo conteúdo, e não pela
 //! data: um build que regrava os mesmos arquivos não invalida a compilação.
 //!
 //! Fora do registro ficam os arquivos que um `$readmemh` do usuário lê: o
-//! Lace não sabe quais são.
+//! AURORA não sabe quais são.
 
 use std::collections::BTreeMap;
 

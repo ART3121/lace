@@ -3,7 +3,7 @@
 // em cima). A página aberta é lembrada (state/settingsPage.ts). Cada
 // preferência é uma linha: o nome e a descrição à esquerda, o controle à
 // direita (settingsParts.tsx). A página Experimental é outra coisa: liga os
-// recursos experimentais do Lace, que o Core guarda fora do settings.json e
+// recursos experimentais da AURORA, que o Core guarda fora do settings.json e
 // que valem também para a CLI (state/experimental.ts).
 
 import { open } from '@tauri-apps/plugin-dialog';
@@ -408,7 +408,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
 
 /**
  * O assistente: onde está o Claude Code, o `aurora` das ferramentas, o modelo
- * e o que ele pode fazer nos arquivos. O Lace não guarda chave: quem
+ * e o que ele pode fazer nos arquivos. A AURORA não guarda chave: quem
  * autentica é o Claude Code (o login da conta, ou ANTHROPIC_API_KEY).
  */
 function AssistantPage({ settings }: { settings: Settings }) {
@@ -468,7 +468,7 @@ function AssistantPage({ settings }: { settings: Settings }) {
 }
 
 /**
- * Os recursos experimentais do Lace, um interruptor por recurso. Ligar ou
+ * Os recursos experimentais da AURORA, um interruptor por recurso. Ligar ou
  * desligar grava no experimental.json do Core e vale na hora: o que é do
  * recurso aparece ou some da janela, e a CLI passa a aceitar ou recusar os
  * comandos dele.

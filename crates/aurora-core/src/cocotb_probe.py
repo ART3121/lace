@@ -1,8 +1,8 @@
-"""Sonda do Lace: o que o simulador precisa para carregar o cocotb deste Python.
+"""Sonda da AURORA: o que o simulador precisa para carregar o cocotb deste Python.
 
 Escreve uma linha de JSON no stdout: a VPI do cocotb para o Icarus (o -m do
 vvp), a do Verilator e o main.cpp que o modelo dele liga, a biblioteca do
-Python e o resto do ambiente. O Lace (crates/aurora-core/src/cocotb.rs) guarda
+Python e o resto do ambiente. A AURORA (crates/aurora-core/src/cocotb.rs) guarda
 o resultado em .aurora8/Temp/cocotb/probe.json e roda a sonda de novo quando o
 Python do bundle muda. Funciona com o cocotb 1 (cocotb.config) e o 2
 (cocotb_tools.config), que nomeiam a biblioteca e o ambiente de jeitos

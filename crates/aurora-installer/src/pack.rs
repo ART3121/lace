@@ -47,7 +47,7 @@ pub struct ContentsComponent {
     pub label: String,
     /// O que ele faz.
     pub description: String,
-    /// Faz parte do perfil padrão? O `bundle.py` grava; o Lace anterior aos
+    /// Faz parte do perfil padrão? O `bundle.py` grava; a AURORA anterior aos
     /// perfis precisa dele no índice.
     pub recommended: bool,
     /// Dependências.
@@ -297,7 +297,7 @@ fn write_chunk(out: &Path, entries: &[Entry], level: i32) -> anyhow::Result<()> 
 
 /// Texto que acompanha o instalador de Linux e macOS.
 const README: &str = "\
-Lace {version} installer ({platform}), tool bundle {bundle}
+AURORA {version} installer ({platform}), tool bundle {bundle}
 
   ./install                      Guided installation in the terminal
   ./install --yes                The default profile, no questions
@@ -500,8 +500,8 @@ pub const CUSTOM_TYPE: &str = "avancada";
 /// `installer/windows/aurora.iss`, que são o mesmo. O inglês é o texto base.
 pub const INNO_LANGUAGES: [&str; 2] = ["en", "pt"];
 
-/// O nome do Lace na lista de componentes, sempre marcado.
-const AURORA_LABEL: &str = "Lace (CLI & Core)";
+/// O nome da AURORA na lista de componentes, sempre marcado.
+const AURORA_LABEL: &str = "AURORA (CLI & Core)";
 
 /// Os textos fixos do `components.iss` em cada idioma.
 struct InnoTexts {
@@ -522,7 +522,7 @@ fn inno_texts(lang: &str) -> InnoTexts {
             custom_type: "Personalizada (avançada): você escolhe os componentes",
             profile: |label, marked, total| {
                 format!(
-                    "O {label} instala o {AURORA_LABEL} e os {marked} aplicativos marcados \
+                    "O {label} instala a {AURORA_LABEL} e os {marked} aplicativos marcados \
                      abaixo, de {total}."
                 )
             },
@@ -531,7 +531,7 @@ fn inno_texts(lang: &str) -> InnoTexts {
                 format!(
                     "A instalação personalizada é para uso avançado, para quem sabe de quais \
                      componentes precisa: marque abaixo os aplicativos a instalar, de {total}. \
-                     O {AURORA_LABEL} é sempre instalado."
+                     A {AURORA_LABEL} é sempre instalada."
                 )
             },
         },
@@ -787,7 +787,7 @@ fn write_iss(path: &Path, text: &str) -> anyhow::Result<()> {
 /// publica: `AddDownloads` põe na página de download o índice, o pedaço
 /// sempre instalado e os pedaços dos componentes marcados, cada um com o
 /// SHA-256 dele; `SelectedApps` dá os componentes marcados, com os nomes do
-/// Lace, para o `aurora setup`.
+/// AURORA, para o `aurora setup`.
 fn web_script(installer: &Path, full: &dyn Fn(&str) -> String) -> anyhow::Result<String> {
     let payload = installer.join(PAYLOAD_DIR);
     let index = Index::load(&payload)?;
@@ -821,7 +821,7 @@ fn web_script(installer: &Path, full: &dyn Fn(&str) -> String) -> anyhow::Result
         }
     }
     iss.push_str(
-        "end;\n\n{ Os componentes marcados, com os nomes do Lace, separados por vírgula. }\n\
+        "end;\n\n{ Os componentes marcados, com os nomes da AURORA, separados por vírgula. }\n\
          function SelectedApps: String;\nbegin\n  Result := '';\n",
     );
     for c in &index.components {
@@ -889,7 +889,7 @@ mod tests {
                     name: "sim".into(),
                     label: "Sim".into(),
                     description: "só simular".into(),
-                    audience: "quem só simula, na aula d'O Lace".into(),
+                    audience: "quem só simula, na aula d'A AURORA".into(),
                     translations: Default::default(),
                     components: ["icarus", "surfer-aurora"].map(String::from).to_vec(),
                 },
@@ -1027,11 +1027,11 @@ mod tests {
             "en.Type_tudo=Tudo (Recommended): todos os \"apps\"",
             "pt.Type_tudo=Tudo (Recomendado): todos os apps",
             "en.Type_sim=Sim: só simular",
-            "en.Detail_sim=Sim installs Lace (CLI & Core) and the 2 apps marked below, of 5. For quem só simula, na aula d'O Lace.",
-            "pt.Detail_tudo=O Tudo (Recomendado) instala o Lace (CLI & Core) e os 5 aplicativos marcados abaixo, de 5. Para quem usa o SAPHO, em português.",
+            "en.Detail_sim=Sim installs AURORA (CLI & Core) and the 2 apps marked below, of 5. For quem só simula, na aula d'A AURORA.",
+            "pt.Detail_tudo=O Tudo (Recomendado) instala a AURORA (CLI & Core) e os 5 aplicativos marcados abaixo, de 5. Para quem usa o SAPHO, em português.",
             "en.Type_Custom=Custom (advanced): choose the components yourself",
             "pt.Type_Custom=Personalizada (avançada): você escolhe os componentes",
-            "en.Comp_lace=Lace (CLI & Core)",
+            "en.Comp_lace=AURORA (CLI & Core)",
             "en.Comp_yosys=YOSYS: o \"yosys\"",
             "pt.Comp_yosys=YOSYS: a síntese",
             "pt.Comp_icarus=ICARUS: o \"icarus\"",

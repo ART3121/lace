@@ -1,4 +1,4 @@
-// A atualização do Lace pelo Studio: a busca da release nova (`aurora update
+// A atualização da AURORA pelo Studio: a busca da release nova (`aurora update
 // --check`) ao abrir e a cada 12 horas, a oferta, a atualização (`aurora
 // update --yes`, em jobs.ts) e o reinício do Studio na versão nova.
 //
@@ -55,7 +55,7 @@ interface UpdatesState {
 /** As versões já oferecidas nesta sessão. */
 const offered = new Set<string>();
 
-/** Há Lace mais novo, e esta instalação veio do instalador. */
+/** Há AURORA mais nova, e esta instalação veio do instalador. */
 export function canUpdate(report: UpdateReport | null): report is UpdateReport {
   return !!report && report.aurora.newer && !!report.prefix;
 }

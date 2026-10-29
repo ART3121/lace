@@ -10,8 +10,8 @@ tipo de mudança. A arquitetura está em [ARCHITECTURE.md](ARCHITECTURE.md).
 | Rust | 1.90 ou mais novo (`rust-version` do `src-tauri/Cargo.toml`) | o backend; o Tauri 2.12 pede 1.90 |
 | Node.js | 22 | a interface (Vite, TypeScript) |
 | Dependências de sistema do Tauri | ver abaixo | WebView e GTK |
-| O repositório do Lace | o Studio está em `studio/` dele | o servidor que o Studio abre (`aurora serve`, do `crates/aurora-cli`), o `aurora-agent` do assistente, que entra por caminho (`../../crates/`, em `src-tauri/Cargo.toml`), e os tipos, que saem de `../docs/schema` |
-| Uma instalação do Lace | qualquer | o bundle das ferramentas, para rodar o Studio e os testes de fluxo; ou um bundle em `AURORA_TEST_BUNDLE` |
+| O repositório da AURORA | o Studio está em `studio/` dele | o servidor que o Studio abre (`aurora serve`, do `crates/aurora-cli`), o `aurora-agent` do assistente, que entra por caminho (`../../crates/`, em `src-tauri/Cargo.toml`), e os tipos, que saem de `../docs/schema` |
+| Uma instalação da AURORA | qualquer | o bundle das ferramentas, para rodar o Studio e os testes de fluxo; ou um bundle em `AURORA_TEST_BUNDLE` |
 
 Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
 (<https://v2.tauri.app/start/prerequisites/>), confira lá a lista atual:
@@ -21,7 +21,7 @@ Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
 - **macOS:** as Command Line Tools do Xcode.
 - **Windows:** as Build Tools do Visual Studio com o C++ e o WebView2 (já vem no Windows 10 e 11 atualizados).
 
-O Studio está no repositório do Lace, em `studio/`:
+O Studio está no repositório da AURORA, em `studio/`:
 
 ```
 aurora/
@@ -37,19 +37,19 @@ e da CLI não precisarem do WebView nem da interface compilada. Os testes
 dos fluxos do Studio pedem o bundle instalado (`AURORA_TEST_BUNDLE`) e um
 `aurora` para servir, e rodam à mão.
 
-O Studio não linka o Core: tudo do Lace é pedido ao servidor, um `aurora
+O Studio não linka o Core: tudo da AURORA é pedido ao servidor, um `aurora
 serve` filho (ARCHITECTURE.md, seção 3.2). Em desenvolvimento, o servidor
 precisa ser o `aurora` do mesmo repositório, que fala os métodos que o Studio
 pede; o da instalação é de outra versão. Compile antes, na raiz, e aponte o
 Studio para ele com `AURORA_IDE_CLI` (ou a preferência Programa aurora, em
-Preferências > Bundle do Lace):
+Preferências > Bundle da AURORA):
 
 ```sh
 cargo build -p aurora-cli          # na raiz: target/debug/aurora
 AURORA_IDE_CLI=../target/debug/aurora npm run tauri dev
 ```
 
-O bundle é o da instalação do Lace, achado pelo Studio e passado ao
+O bundle é o da instalação da AURORA, achado pelo Studio e passado ao
 servidor em `--toolchain`, ou o de `AURORA_TOOLCHAIN` ou da preferência.
 
 ## 2. Rodar
@@ -65,7 +65,7 @@ salvar um de `src-tauri/` recompila e reabre o aplicativo. A primeira
 compilação do backend leva vários minutos (o Tauri e o WebKitGTK).
 
 Log do backend no terminal: `RUST_LOG=aurora_ide_lib=debug npm run tauri dev`. O
-stderr do servidor do Lace sai no mesmo log, com o alvo `aurora_serve`.
+stderr do servidor da AURORA sai no mesmo log, com o alvo `aurora_serve`.
 O inspetor da WebView abre com Ctrl+Shift+I, só na build de
 desenvolvimento (o menu de contexto do navegador fica desligado fora dos
 campos de texto, em `src/main.tsx`).
@@ -80,8 +80,8 @@ campos de texto, em `src/main.tsx`).
 | `cd src-tauri && cargo test` | os testes do backend: unidade e os fluxos de verdade |
 | `npm run tauri build` | o aplicativo inteiro e os instaladores da plataforma |
 
-Os testes de `src-tauri/tests/flows.rs` rodam, pelo servidor do Lace,
-check, sim, synth e build sobre cópias dos exemplos do Lace, a correção de
+Os testes de `src-tauri/tests/flows.rs` rodam, pelo servidor da AURORA,
+check, sim, synth e build sobre cópias dos exemplos da AURORA, a correção de
 um exercício (`learn`) sobre a trilha de teste do `aurora-learn` e as recusas
 do `fpga_build`, com o bundle que o Studio acharia sozinho ou com
 `AURORA_TEST_BUNDLE=/caminho/do/toolchain`. O servidor é o `aurora` de
@@ -175,12 +175,12 @@ precisa esperar esse tempo.
    `src/components/layout/MenuBar.tsx`. A paleta de comandos e a tabela de
    atalhos a pegam sozinhas.
 
-### Uma operação do Lace na interface
+### Uma operação da AURORA na interface
 
-O que é do Lace (o projeto, os fluxos, o histórico, a placa, os
+O que é da AURORA (o projeto, os fluxos, o histórico, a placa, os
 exercícios) não ganha comando no backend: é um método do protocolo, que a
 interface pede pelo `aurora_call`. Se o método ainda não existe, ele nasce no
-Lace, com o passo a passo de
+AURORA, com o passo a passo de
 [docs/METODOLOGIA.md](../../docs/METODOLOGIA.md), seção 6, e chega ao
 Studio pelo servidor.
 
@@ -204,7 +204,7 @@ Para o que só existe no Studio (janela, arquivo, terminal, preferência):
    Studio vai à mão em `src/ipc/types.ts`.
 4. Documente em [IPC.md](IPC.md).
 5. Lógica de orquestração (que ferramenta rodar, em que ordem) não entra
-   aqui: vai para o Lace, como método. Se precisar mesmo, isole-a em
+   aqui: vai para a AURORA, como método. Se precisar mesmo, isole-a em
    `flows.rs` e anote em ARCHITECTURE.md, seção 8.
 
 ### Uma vista nova (aba central)
@@ -268,19 +268,19 @@ AURORA: onde as duas divergem há um comentário dizendo o que vale.
 ## 5. Convenções
 
 - Comentários e documentação em português; identificadores em inglês, como
-  no Lace.
+  na AURORA.
 - Texto de interface sempre por `t('chave')`, nunca literal no componente.
 - Sem travessão nem emoji em texto de interface, comentário ou documento.
 - Rust: `cargo fmt`, `clippy` sem aviso, `#![forbid(unsafe_code)]`.
-- Um commit por assunto, com a mensagem em português, como no Lace.
+- Um commit por assunto, com a mensagem em português, como na AURORA.
 
 ## 6. Versão e distribuição
 
-A versão do Studio é a do Lace e está em cinco lugares, que andam juntos:
+A versão do Studio é a da AURORA e está em cinco lugares, que andam juntos:
 `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`,
 `src-tauri/tauri.conf.json` e o pacote `studio` de `bundle/versions.json` da
 raiz. O `bundle.py` recusa o Studio com versões diferentes, e o
-`release.yml` recusa a tag se o Studio não tiver a versão do Lace
+`release.yml` recusa a tag se o Studio não tiver a versão da AURORA
 ([docs/RELEASE.md](../../docs/RELEASE.md), seção 6.1). Anote a mudança em
 [CHANGELOG.md](../CHANGELOG.md).
 
@@ -295,7 +295,7 @@ for f in src-tauri/icons/*; do cp "/tmp/lace-icons/$(basename "$f")" "$f"; done
 
 `npm run tauri build` gera os instaladores da plataforma em que roda
 (`.deb`, `.rpm` e AppImage no Linux; `.dmg` no macOS; `.msi` e `.exe` no
-Windows). Eles não vão para os usuários: o Studio sai no instalador do Lace,
+Windows). Eles não vão para os usuários: o Studio sai no instalador da AURORA,
 compilado pelo `scripts/bundle.py` da raiz (`tauri build --no-bundle`, e só o
 `.app` no macOS) nas três plataformas, no workflow
 `.github/workflows/installers.yml`, que o `release.yml` chama numa tag.

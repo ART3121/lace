@@ -2,9 +2,9 @@ import * as assert from 'node:assert/strict';
 
 import { insidePart, isInside, pathKey, samePath } from '../../src/paths';
 
-describe('caminhos do Lace e do VS Code', () => {
+describe('caminhos da AURORA e do VS Code', () => {
   it('no Windows, a letra do drive, a caixa e a barra não importam', () => {
-    // O Lace devolve o canônico; o Uri.fsPath, a letra em minúscula.
+    // A AURORA devolve o canônico; o Uri.fsPath, a letra em minúscula.
     assert.ok(samePath('C:\\Users\\Aluno\\p\\a.v', 'c:\\Users\\Aluno\\p\\a.v', true));
     assert.ok(samePath('C:\\Users\\Aluno\\P\\A.v', 'c:/users/aluno/p/a.v', true));
     assert.ok(samePath('C:\\p\\', 'c:\\p', true));

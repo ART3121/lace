@@ -2,7 +2,7 @@
 //! netlist que [`synthesize`](crate::synthesize) gera, para o relatório e
 //! para comparar uma síntese com outra ([`crate::history`]).
 //!
-//! O Lace roda `stat -json -top <topo>` no fim do script da síntese e lê o
+//! A AURORA roda `stat -json -top <topo>` no fim do script da síntese e lê o
 //! JSON, e não o texto: as chaves do JSON não mudam com a formatação da
 //! tabela. Os números são da seção `design`, que soma os submódulos; num
 //! Yosys sem ela, os do módulo de topo.

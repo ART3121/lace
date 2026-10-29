@@ -1,4 +1,4 @@
-//! `aurora mcp setup`: registra o servidor MCP do Lace num cliente, com o
+//! `aurora mcp setup`: registra o servidor MCP da AURORA num cliente, com o
 //! caminho certo do `aurora` e do bundle, em vez de a pessoa escrever a
 //! configuração à mão.
 
@@ -169,7 +169,7 @@ pub fn run(toolchain: &ToolchainArgs, args: &SetupArgs) -> anyhow::Result<()> {
             };
             merge_server(&path, &entry.json())?;
             println!("Registered the aurora server in {path}");
-            println!("Restart Claude Desktop to see the Lace tools");
+            println!("Restart Claude Desktop to see the AURORA tools");
         }
         Client::ClaudeCode => {
             if args.scope == Scope::Project || args.config.is_some() {

@@ -82,7 +82,7 @@ describe('CliAuroraClient', () => {
     assert.equal(run.status, 'error');
     if (run.status === 'error') {
       assert.equal(run.error.code, 'project_not_found');
-      assert.match(run.error.message, /No Lace project here/);
+      assert.match(run.error.message, /Na AURORA project here/);
       assert.match(run.error.hint ?? '', /^Create one with: aurora new/);
     }
   });
@@ -343,7 +343,7 @@ describe('CliAuroraClient', () => {
       assert.deepEqual(order, ['somador.v', 'contador.v', 'mux.sv', 'soma.v']);
     });
 
-    it('move --after: só o .spf; com o arquivo ainda no lugar, o Lace recusa', async () => {
+    it('move --after: só o .spf; com o arquivo ainda no lugar, a AURORA recusa', async () => {
       const moved = await client.move(spf, rtl('somador.v'), rtl('adder.v'), { after: true });
       const refused = await client.move(spf, rtl('mux.sv'), rtl('adder.v'), { after: true });
       assert.deepEqual(laceCalls(log), [

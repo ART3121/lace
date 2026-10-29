@@ -318,7 +318,7 @@ fn project_simulation_injects_dump_when_missing() {
         .find(|s| s.step == Step::Simulate)
         .unwrap();
     assert!(vvp.stdout.contains("q = 10"), "{}", vvp.stdout);
-    // Sem `$dumpfile`, o Lace injeta `<testbench>.fst` na raiz, com
+    // Sem `$dumpfile`, a AURORA injeta `<testbench>.fst` na raiz, com
     // `$dumpvars(0, ...)`: o testbench e o contador.
     let wave = result.waveform.unwrap();
     assert_eq!(wave.path, root.join("contador_tb.fst"));
@@ -377,7 +377,7 @@ fn project_simulation_with_verilator() {
 }
 
 /// A simulação rápida do testbench do projeto: no Verilator, sem o dump que
-/// o Lace injetaria e sem gravar o `$dumpfile` do testbench.
+/// a AURORA injetaria e sem gravar o `$dumpfile` do testbench.
 #[test]
 fn fast_project_simulation_writes_no_waveform() {
     let Some(toolchain) = common::toolchain_with(&[Tool::Verilator]) else {

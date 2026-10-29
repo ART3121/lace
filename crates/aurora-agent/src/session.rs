@@ -37,12 +37,12 @@ use serde_json::{Value, json};
 use crate::locate::Claude;
 use crate::{AgentError, Result};
 
-/// O que o assistente pode fazer além das ferramentas do Lace.
+/// O que o assistente pode fazer além das ferramentas da AURORA.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum Permission {
     /// As ferramentas do `aurora mcp` e ler arquivos (`Read`, `Grep`,
-    /// `Glob`). Nada é escrito fora do que o Lace faz.
+    /// `Glob`). Nada é escrito fora do que a AURORA faz.
     #[default]
     AuroraOnly,
     /// Também editar e criar arquivos na pasta do projeto (`Edit`, `Write`,
@@ -73,13 +73,13 @@ pub struct SessionOptions {
     pub model: Option<String>,
     /// Retomar uma conversa pelo `session_id` de um [`AgentEvent::Done`].
     pub resume: Option<String>,
-    /// Instruções a mais, depois das do Lace ([`SYSTEM_PROMPT`]).
+    /// Instruções a mais, depois das da AURORA ([`SYSTEM_PROMPT`]).
     pub system_prompt: Option<String>,
 }
 
 /// As instruções que toda sessão leva (`--append-system-prompt`), com
 /// `{project}` trocado pelo projeto ou por "no project is open".
-pub const SYSTEM_PROMPT: &str = "You are the Lace assistant, inside the Lace tools for Verilog and \
+pub const SYSTEM_PROMPT: &str = "You are the AURORA assistant, inside the AURORA tools for Verilog and \
 SAPHO (C±) processor projects. Current project: {project}. Use the aurora tools \
 (mcp__aurora__*) for everything about the project: project_status to see it, build to compile \
 the processors with the YANC, check for the Verilog, sim to simulate, synth to synthesize, \

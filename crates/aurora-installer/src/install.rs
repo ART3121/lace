@@ -14,7 +14,7 @@
 //! ([`crate::desktop`]).
 //!
 //! A instalação extrai os pedaços num diretório provisório dentro do
-//! prefixo, confere os hashes dos executáveis com o próprio Lace
+//! prefixo, confere os hashes dos executáveis com a própria AURORA
 //! ([`aurora_core::Toolchain::verify`]) e só então troca a instalação
 //! anterior, se houver. Um erro no meio deixa a instalação anterior intacta.
 
@@ -38,7 +38,7 @@ pub const UNINSTALL_SCRIPT: &str = "uninstall.sh";
 /// O que está instalado num prefixo.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Receipt {
-    /// Versão do Lace.
+    /// Versão da AURORA.
     pub aurora_version: String,
     /// Identificador do bundle.
     pub bundle: String,
@@ -52,7 +52,7 @@ pub struct Receipt {
 }
 
 impl Receipt {
-    /// O recibo em `prefix`, se lá houver uma instalação do Lace.
+    /// O recibo em `prefix`, se lá houver uma instalação da AURORA.
     pub fn load(prefix: &Path) -> Option<Receipt> {
         let text = fs::read_to_string(prefix.join(RECEIPT_FILE)).ok()?;
         serde_json::from_str(&text).ok()
@@ -109,7 +109,7 @@ pub fn expand_home(input: &str) -> PathBuf {
 }
 
 /// Confere se dá para instalar em `prefix`: caminho absoluto, e uma pasta
-/// nova, vazia ou com uma instalação do Lace (devolvida). O instalador não
+/// nova, vazia ou com uma instalação da AURORA (devolvida). O instalador não
 /// escreve numa pasta com outras coisas.
 pub fn check_prefix(prefix: &Path) -> anyhow::Result<Option<Receipt>> {
     if !prefix.is_absolute() {
@@ -133,7 +133,7 @@ pub fn check_prefix(prefix: &Path) -> anyhow::Result<Option<Receipt>> {
                 Ok(None)
             } else {
                 bail!(
-                    "{} already has files and is not a Lace installation: choose a new or empty folder",
+                    "{} already has files and is not an AURORA installation: choose a new or empty folder",
                     prefix.display()
                 )
             }
@@ -160,7 +160,7 @@ pub enum Event {
         index: usize,
         /// Quantos pedaços.
         count: usize,
-        /// Os componentes que usam o pedaço (vazio: o Lace).
+        /// Os componentes que usam o pedaço (vazio: a AURORA).
         components: Vec<String>,
         /// Bytes do `.tar.zst` (zero: desconhecido), para a barra do download.
         download: u64,
@@ -233,7 +233,7 @@ impl Event {
                 download,
             } => {
                 let what = if components.is_empty() {
-                    "Lace".to_owned()
+                    "AURORA".to_owned()
                 } else {
                     components
                         .iter()
@@ -261,12 +261,12 @@ impl Event {
     }
 }
 
-/// O nome de um componente para mostrar: `Lace` para o próprio Lace, o
+/// O nome de um componente para mostrar: `AURORA` para a própria AURORA, o
 /// rótulo do índice da versão, ou o nome, quando o índice não o tem ou ainda
 /// não se sabe.
 pub fn label(index: Option<&Index>, name: &str) -> String {
     if name == crate::update::AURORA {
-        return "Lace".to_owned();
+        return "AURORA".to_owned();
     }
     index
         .and_then(|i| i.component(name))
@@ -295,7 +295,7 @@ pub struct Report {
     pub link: LinkOutcome,
     /// Os componentes instalados.
     pub components: Vec<String>,
-    /// O atalho do Lace Studio no menu de aplicativos, se foi criado.
+    /// O atalho da AURORA IDE no menu de aplicativos, se foi criado.
     pub shortcut: Option<PathBuf>,
     /// Quantos executáveis tiveram o hash conferido.
     pub verified: usize,
@@ -493,7 +493,7 @@ pub fn install_bundle(
     // ferramenta, e ela iria inteira embora no fim, sem passar pela lixeira.
     if fs::symlink_metadata(&dest).is_ok() && !is_lace_installation(prefix) {
         bail!(
-            "{} already exists and is not the bundle of a Lace installation; \
+            "{} already exists and is not the bundle of an AURORA installation; \
              choose another folder, or move it away first",
             dest.display()
         );
@@ -531,7 +531,7 @@ pub fn install_bundle(
     Ok(verified)
 }
 
-/// `prefix` tem uma instalação do Lace: o cabeçalho do bundle
+/// `prefix` tem uma instalação da AURORA: o cabeçalho do bundle
 /// (`toolchain/bundle.json`) ou o `aurora` em `bin/`.
 pub fn is_lace_installation(prefix: &Path) -> bool {
     let aurora = format!("bin/lace{}", std::env::consts::EXE_SUFFIX);
@@ -669,7 +669,7 @@ fn write_uninstaller(prefix: &Path, link: Option<&Path>) -> anyhow::Result<()> {
     let shortcut_part = crate::desktop::uninstall_lines(sh_quote);
     let script = format!(
         "#!/bin/sh\n\
-         # Remove o Lace instalado nesta pasta (gerado pelo instalador).\n\
+         # Remove a AURORA instalada nesta pasta (gerado pelo instalador).\n\
          set -e\n\
          prefix={prefix}\n\
          {link_part}\
@@ -682,7 +682,7 @@ fn write_uninstaller(prefix: &Path, link: Option<&Path>) -> anyhow::Result<()> {
          rmdir \"$prefix/bin\" 2>/dev/null || true\n\
          rm -f \"$prefix/{UNINSTALL_SCRIPT}\"\n\
          rmdir \"$prefix\" 2>/dev/null || true\n\
-         echo \"Removed Lace from $prefix\"\n",
+         echo \"Removed AURORA from $prefix\"\n",
         prefix = sh_quote(prefix),
     );
     let path = prefix.join(UNINSTALL_SCRIPT);

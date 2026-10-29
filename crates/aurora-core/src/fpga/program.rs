@@ -145,7 +145,7 @@ fn state_of(toolchain: &Toolchain, project: &Project, board: &Board) -> Result<B
         .and_then(|d| u64::try_from(d.as_millis()).ok());
     state.reasons = match manifest::read(&dir) {
         None => vec![
-            "the last build for this board did not finish, or was made by an earlier Lace"
+            "the last build for this board did not finish, or was made by an earlier AURORA"
                 .to_owned(),
         ],
         Some(built) => {

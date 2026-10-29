@@ -79,7 +79,7 @@ export interface ServeClientOptions {
   /** Quanto esperar o `shutdown` no `dispose`. */
   shutdownWaitMs?: number;
   /**
-   * O servidor da reabertura é outro Lace (a versão mudou): o binário foi
+   * O servidor da reabertura é outra AURORA (a versão mudou): o binário foi
    * trocado por fora. A conexão refaz a sondagem.
    */
   onServerChanged?: (version: string) => void;
@@ -118,7 +118,7 @@ export class ServeAuroraClient implements AuroraClient {
     this.spawnServe = options.spawn ?? defaultSpawn;
   }
 
-  /** A versão do Lace, do `initialize`; abre o processo se preciso. */
+  /** A versão da AURORA, do `initialize`; abre o processo se preciso. */
   async version(): Promise<string> {
     const info = await this.connect();
     return info.aurora;

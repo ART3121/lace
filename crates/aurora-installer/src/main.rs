@@ -1,11 +1,11 @@
-//! `install`: o instalador do Lace para Linux e macOS.
+//! `install`: o instalador da AURORA para Linux e macOS.
 //!
 //! Sem opções, abre a instalação guiada no terminal. Com `--yes`, instala sem
 //! perguntar: o perfil padrão, o de `--profile`, ou os componentes de
 //! `--components` (instalação Custom).
 //!
 //! Para acrescentar aplicativos do bundle a uma instalação que já existe, sem
-//! reinstalar o Lace, o caminho é `aurora install`.
+//! reinstalar a AURORA, o caminho é `aurora install`.
 
 use std::io::IsTerminal;
 use std::path::PathBuf;
@@ -18,7 +18,7 @@ use aurora_installer::payload::{Index, PAYLOAD_DIR};
 use aurora_installer::plan::{self, Selection};
 use aurora_installer::tui::{self, App};
 
-/// Installer for Lace and its tool bundle.
+/// Installer for AURORA and its tool bundle.
 #[derive(Parser, Debug)]
 #[command(
     name = "install",
@@ -175,7 +175,7 @@ fn has_studio(components: &[String]) -> bool {
 
 fn list(index: &Index) {
     println!(
-        "Lace {} ({}), bundle {}\n",
+        "AURORA {} ({}), bundle {}\n",
         index.aurora_version, index.platform, index.bundle
     );
     println!("Profiles (--profile):\n");
@@ -203,7 +203,7 @@ fn list(index: &Index) {
             println!("  {:<25}  For: {}", "", p.audience);
         }
         println!(
-            "  {:<25}  Installs: Lace (CLI & Core), {}\n",
+            "  {:<25}  Installs: AURORA (CLI & Core), {}\n",
             "",
             labels.join(", ")
         );
@@ -234,7 +234,7 @@ fn unattended(
     target: &Target,
 ) -> anyhow::Result<()> {
     println!(
-        "Installing Lace {} in {} with: {}",
+        "Installing AURORA {} in {} with: {}",
         index.aurora_version,
         target.prefix.display(),
         if selection.is_empty() {

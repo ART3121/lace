@@ -61,8 +61,8 @@ let activeConnection: AuroraConnection | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<AuroraExtensionApi> {
   registerSaphoAssembly(context);
-  const log = vscode.window.createOutputChannel('Lace', { log: true });
-  const tools = vscode.window.createOutputChannel('Lace: ferramentas');
+  const log = vscode.window.createOutputChannel('AURORA', { log: true });
+  const tools = vscode.window.createOutputChannel('AURORA: ferramentas');
   const connection = new AuroraConnection(log, String(context.extension.packageJSON.version ?? '0.0.0'));
   activeConnection = connection;
   const projects = new Projects(context.workspaceState);

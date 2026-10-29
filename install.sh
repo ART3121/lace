@@ -1,5 +1,5 @@
 #!/bin/sh
-# Instala a última release do Lace (Linux x64, macOS Apple Silicon).
+# Instala a última release da AURORA (Linux x64, macOS Apple Silicon).
 #
 #   curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh
 #   curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes
@@ -21,7 +21,7 @@ die() {
 case "$(uname -s) $(uname -m)" in
     "Linux x86_64") platform=linux-x64 ;;
     "Darwin arm64") platform=darwin-arm64 ;;
-    *) die "No Lace installer for $(uname -s) $(uname -m) (only Linux x64 and macOS Apple Silicon; on Windows, use install.ps1)" ;;
+    *) die "Na AURORA installer for $(uname -s) $(uname -m) (only Linux x64 and macOS Apple Silicon; on Windows, use install.ps1)" ;;
 esac
 
 command -v curl >/dev/null 2>&1 || die "curl is required"
@@ -61,7 +61,7 @@ tmp=$(mktemp -d "$cache/lace-install.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 trap 'exit 130' INT TERM
 
-echo "Downloading Lace $version ($platform)"
+echo "Downloading AURORA $version ($platform)"
 curl -fL --progress-bar -o "$tmp/$name.tar.gz" "$base/$name.tar.gz" ||
     die "Could not download $base/$name.tar.gz"
 curl -fsSL -o "$tmp/SHA256SUMS" "$base/SHA256SUMS" ||

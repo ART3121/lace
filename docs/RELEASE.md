@@ -1,12 +1,12 @@
-# Releases do Lace
+# Releases da AURORA
 
-Este documento define o número de cada release do Lace, quando lançar, o
+Este documento define o número de cada release da AURORA, quando lançar, o
 passo a passo e o que fazer quando uma release sai com defeito. Vale para
 quem lança e para quem revisa uma mudança que vai entrar numa release.
 
 O que conta como mudança compatível no protocolo do `aurora serve` está em
 [METODOLOGIA.md](METODOLOGIA.md), seção 5. A seção 2 daqui usa aquela
-tabela e a estende ao resto do Lace: a linha de comando, os projetos, a
+tabela e a estende ao resto da AURORA: a linha de comando, os projetos, a
 instalação e o bundle.
 
 ## 1. Os números de versão
@@ -21,13 +21,13 @@ instalação e o bundle.
 | surfer-aurora pré-compilado | a versão do fork, `vA.B.C-nips.N` | a tag `surfer-aurora-<versão>`, uma pré-release deste repositório | quando o commit do surfer-aurora em `bundle/versions.json` muda (`.github/workflows/surfer-aurora.yml`) |
 | Pacote msys do Windows | `ucrt64-vN` | uma release do repositório `lace-toolchain`, apontada em `bundle/versions.json` | quando o Icarus, o Verilator ou o resto do bloco MSYS2 mudam no Windows ([BUNDLE.md](BUNDLE.md), seção 6) |
 
-O Lace tem um número só. A CLI, o core, o instalador, o `aurora learn` com as
+A AURORA tem um número só. A CLI, o core, o instalador, o `aurora learn` com as
 trilhas, o assistente, o Studio e o RTL viewer saem juntos, na mesma
 versão; não há release só do Studio nem só da CLI. A extensão do VS Code é
 a única peça com versão própria, e mesmo ela é publicada dentro da release
-do Lace.
+da AURORA.
 
-As tags que começam com `v` são só das releases do Lace: o `release.yml`
+As tags que começam com `v` são só das releases da AURORA: o `release.yml`
 roda em toda tag `v*`. Os outros artefatos usam prefixo próprio, como o
 `surfer-aurora-`.
 
@@ -105,7 +105,7 @@ Antes da 1.0, onde a tabela diz `X.0.0`, sobe o do meio (seção 2.4).
 
 ### 2.3 O que conta como quebra
 
-Os contratos do Lace, e o que quebra cada um:
+Os contratos da AURORA, e o que quebra cada um:
 
 | Contrato | Onde está | Quebra |
 |---|---|---|
@@ -119,7 +119,7 @@ Os contratos do Lace, e o que quebra cada um:
 | Sistemas | Ubuntu 22.04 (glibc 2.35), macOS 13 em Apple Silicon e Windows 10, no `installers.yml` e no `installer/windows/aurora.iss` | deixar de atender um deles |
 | Preferências | o `settings.json` do Studio, o `experimental.json` | a versão nova perder o que a anterior gravou |
 
-O texto que o Lace mostra para pessoas, como mensagens, ajuda e a cara do
+O texto que a AURORA mostra para pessoas, como mensagens, ajuda e a cara do
 Studio, fica fora dos contratos: mudar uma frase não quebra nada.
 
 O contrato mais frágil é o da atualização. Cada `aurora update` já publicado
@@ -190,7 +190,7 @@ gerados) e o RTL viewer de `packages/rtl-viewer/`:
 git diff --stat v0.9.0 -- editors/vscode packages/rtl-viewer
 ```
 
-A release do Lace leva o `.vsix` mesmo quando a extensão não mudou: o
+A release da AURORA leva o `.vsix` mesmo quando a extensão não mudou: o
 README aponta para ele dentro da release de cada versão
 (`releases/download/v<versão>/aurora-vscode-<versão da extensão>.vsix`).
 
@@ -212,7 +212,7 @@ semana; o ritmo normal é uma a cada duas a quatro semanas.
 na `main` e o defeito atrapalha quem usa:
 
 - no mesmo dia ou no seguinte, quando o defeito impede instalar, atualizar
-  ou abrir o Lace ou o Studio; apaga ou sobrescreve arquivo do usuário; dá
+  ou abrir a AURORA ou o Studio; apaga ou sobrescreve arquivo do usuário; dá
   resultado errado sem avisar (build, simulação, síntese, a correção do
   `aurora learn`); ou é uma falha de segurança;
 - nos outros casos, junto com outras correções, em até duas semanas. Se a
@@ -259,7 +259,7 @@ release/0.10     criada da main para a 0.10.0; só o commit da release e correç
   `aurora update` procuram. Corrigir uma linha antiga exige antes o
   `--latest=false` no `gh release create` do `release.yml`.
 - **Tags.** `vX.Y.Z`, anotada, no commit da release:
-  `git tag -a v0.10.0 -m "Lace 0.10.0"`. Depois que a release foi
+  `git tag -a v0.10.0 -m "AURORA 0.10.0"`. Depois que a release foi
   publicada, a tag nunca se move nem se apaga.
 - **As branches antigas.** Até a 0.9.0, as releases saíram de branches
   `lace-X.Y.Z`, da `main` e da `feat/core-api`. Elas ficam como estão; da
@@ -267,7 +267,7 @@ release/0.10     criada da main para a 0.10.0; só o commit da release e correç
 
 ## 5. CHANGELOG
 
-- **Dois arquivos.** O `CHANGELOG.md` é do Lace inteiro, e é dele que o
+- **Dois arquivos.** O `CHANGELOG.md` é da AURORA inteira, e é dele que o
   `release.yml` tira as notas da release. O `studio/CHANGELOG.md` tem os
   detalhes do Studio, no formato do Keep a Changelog. A extensão do VS Code
   não tem CHANGELOG próprio: as mudanças dela vão no `CHANGELOG.md`, com a
@@ -368,7 +368,7 @@ rodar, como um sistema que ninguém tinha, vai escrito nas notas da release
 
 ```bash
 git push -u origin release/0.10
-git tag -a v0.10.0 -m "Lace 0.10.0"
+git tag -a v0.10.0 -m "AURORA 0.10.0"
 git push origin v0.10.0
 ```
 
@@ -496,7 +496,7 @@ pelo SHA-256 que o `aurora-pack inno --web` pôs no `web.iss`. Os pedaços
 publicados precisam ser exatamente os dessa montagem. Para testar sem
 publicar, sirva a pasta `dist\apps` como `<espelho>/v<versão>/` e rode o
 assistente com `/MIRROR=<espelho>`; com `/DAppGuid=<outro GUID>` no `ISCC`,
-a instalação de teste não mexe na entrada do Lace de verdade na lista de
+a instalação de teste não mexe na entrada da AURORA de verdade na lista de
 programas.
 
 O `aurora-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
@@ -543,7 +543,7 @@ estágio do Inno Setup: cada instalação fica com o da versão dela, em
 ## 10. Testar sem Windows
 
 O instalador de Windows compila e instala no Wine. No Wine 11, o `dot.exe`
-do Graphviz 16.1.0 trava quando o ambiente não tem `LANG`, e o Lace roda as
+do Graphviz 16.1.0 trava quando o ambiente não tem `LANG`, e a AURORA roda as
 ferramentas com ambiente limpo: o esquemático não sai no Wine. Num Windows
 de verdade o `LANG` normalmente nem existe. O `installers.yml` não roda
 teste: quem confirma que o esquemático funciona lá é o

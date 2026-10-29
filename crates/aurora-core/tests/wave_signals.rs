@@ -45,7 +45,7 @@ module mux2 (
 endmodule
 ";
 
-/// Sem `$dumpfile`: o Lace injeta o dump.
+/// Sem `$dumpfile`: a AURORA injeta o dump.
 const MUX2_TB: &str = "\
 module mux2_tb;
     reg a = 0, b = 1, sel = 0;

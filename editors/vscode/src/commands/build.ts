@@ -1,4 +1,4 @@
-// "Lace: Compilar": `aurora build`, os processadores com o YANC (C± ou C para
+// "AURORA: Compilar": `aurora build`, os processadores com o YANC (C± ou C para
 // Verilog, memórias e testbench). Todos, pelo botão Build da barra de status,
 // ou um, pelo processador na vista. Os erros vão para o painel Problemas,
 // com o arquivo e a linha do fonte.
@@ -39,14 +39,14 @@ export async function build(deps: RunDeps, target: BuildTarget): Promise<AuroraR
   await deps.status.refresh();
   const { run } = done;
   if (run.status === 'error') {
-    void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(run.error)}`);
+    void vscode.window.showErrorMessage(`AURORA: ${formatAuroraError(run.error)}`);
   } else if (run.status === 'failed') {
     const problems = 'Problemas';
     void vscode.window
-      .showErrorMessage(`Lace: ${summary?.summary}.`, problems)
+      .showErrorMessage(`AURORA: ${summary?.summary}.`, problems)
       .then((choice) => choice === problems && vscode.commands.executeCommand('workbench.actions.view.problems'));
   } else if (run.status === 'succeeded') {
-    vscode.window.setStatusBarMessage(`$(pass) Lace: ${summary?.summary}`, 6000);
+    vscode.window.setStatusBarMessage(`$(pass) AURORA: ${summary?.summary}`, 6000);
   }
   return run;
 }
@@ -54,7 +54,7 @@ export async function build(deps: RunDeps, target: BuildTarget): Promise<AuroraR
 export function buildProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<BuildReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um processador na vista Fontes.');
     return Promise.resolve(undefined);
   }
   return build(deps, { kind: 'processor', name });
@@ -94,8 +94,8 @@ export function summarizeBuild(output: vscode.OutputChannel, run: AuroraRun<Buil
 }
 
 /**
- * O `.v` e o testbench que o build gerou e o Lace pôs no `.spf` agora.
- * Um Lace sem isso (até a 0.6.0) não manda o campo.
+ * O `.v` e o testbench que o build gerou e a AURORA pôs no `.spf` agora.
+ * Uma AURORA sem isso (até a 0.6.0) não manda o campo.
  */
 export function writeRegistered(output: vscode.OutputChannel, files: readonly AddedFile[] | undefined): void {
   for (const file of files ?? []) {

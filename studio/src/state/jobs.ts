@@ -327,7 +327,7 @@ function handleEvent(event: Event): void {
 
 /** O resumo de um build, como a linha de título da CLI. Os diagnósticos vão
  * junto porque a mensagem do YANC não traz o arquivo (`Error on line 16`); o
- * Lace o preenche, e a linha com `arquivo:linha` vira link. Nas outras fases a
+ * AURORA o preenche, e a linha com `arquivo:linha` vira link. Nas outras fases a
  * ferramenta já escreveu o arquivo e a linha ao vivo, e o resumo não repete. */
 function writeBuild(result: BuildResult): void {
   const failedStep = result.failed_step as Step | null;

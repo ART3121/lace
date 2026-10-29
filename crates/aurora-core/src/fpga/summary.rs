@@ -3,7 +3,7 @@
 //! (as tabelas do `<revisão>.sta.rpt` do Timing Analyzer).
 //!
 //! Os formatos foram conferidos em relatórios publicados, não numa
-//! compilação do Lace: o resumo do Fitter do Quartus II 10.1 e as tabelas do
+//! compilação da AURORA: o resumo do Fitter do Quartus II 10.1 e as tabelas do
 //! Timing Analyzer do Quartus Prime 18.1, as mesmas desde o TimeQuest do
 //! Quartus II 14.0. O que não der para ler fica de fora, sem erro: o
 //! relatório completo continua na pasta da placa.

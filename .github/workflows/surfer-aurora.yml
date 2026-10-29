@@ -81,7 +81,7 @@ jobs:
           else
             gh release create "$tag" ./*.tar.gz SHA256SUMS --prerelease --latest=false \
               --target "$GITHUB_SHA" --title "surfer-aurora $version, pré-compilado" \
-              --notes "O surfer-aurora $version compilado do commit fixado em bundle/versions.json, para o bundle do Lace não compilá-lo a cada release. Não é uma versão do Lace."
+              --notes "O surfer-aurora $version compilado do commit fixado em bundle/versions.json, para o bundle da AURORA não compilá-lo a cada release. Não é uma versão da AURORA."
           fi
           {
             echo "### SHA-256 para o prebuilt do surfer-aurora em bundle/versions.json"

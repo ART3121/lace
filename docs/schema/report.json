@@ -100,7 +100,7 @@
           "minimum": 0
         },
         "aurora_version": {
-          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nLace, que a `.lace` levada para a `.aurora8` traz.",
+          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nAURORA, que a `.lace` levada para a `.aurora8` traz.",
           "type": "string"
         },
         "project": {
@@ -198,7 +198,7 @@
           "const": "cancelled"
         },
         {
-          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "description": "Um passo passou do prazo e a AURORA o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
           "type": "string",
           "const": "timed_out"
         }
@@ -287,7 +287,7 @@
       ]
     },
     "Environment": {
-      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
+      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: a AURORA só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
       "type": "object",
       "properties": {
         "hostname": {
@@ -524,7 +524,7 @@
           "minimum": 0
         },
         "total_ms": {
-          "description": "A simulação inteira, medida à parte: com a preparação do Lace.",
+          "description": "A simulação inteira, medida à parte: com a preparação da AURORA.",
           "type": [
             "integer",
             "null"

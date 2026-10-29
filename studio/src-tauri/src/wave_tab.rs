@@ -19,7 +19,7 @@
 //! A aba é identificada por um segredo aleatório: o servidor só entrega o
 //! que foi registrado para uma aba aberta.
 //!
-//! O layout vem do servidor do Lace (`wave.layout`): o gerado dos
+//! O layout vem do servidor da AURORA (`wave.layout`): o gerado dos
 //! processadores SAPHO, o de um exercício do `aurora learn` e, numa onda de
 //! testbench do projeto, o salvo em `wave/<testbench>.surf.ron`. Com o
 //! salvo, os comandos de partida registram `state_save_url_set
@@ -134,7 +134,7 @@ pub struct WaveTab {
     /// O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
     /// Ctrl+S da aba salva; `null` numa onda fora de projeto.
     pub saved_layout: Option<Utf8PathBuf>,
-    /// O usuário salvou o layout depois que o Lace o gerou: a aba abre com
+    /// O usuário salvou o layout depois que a AURORA o gerou: a aba abre com
     /// o dele.
     pub customized: bool,
     /// A escolha de sinais que o layout segue; vazia: todos.
@@ -142,7 +142,7 @@ pub struct WaveTab {
 }
 
 /// Prepara `path` para uma aba e devolve a página do cliente web, com o
-/// layout do Lace quando houver (o `wave.layout` do servidor).
+/// layout da AURORA quando houver (o `wave.layout` do servidor).
 ///
 /// Erros: `surfer_web_missing` quando o bundle não traz o cliente web, e
 /// `wave_too_large` acima de [`MAX_TAB_WAVE`]; nos dois, a interface oferece
@@ -171,7 +171,7 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
         let web_dir = toolchain::surfer_web(&state.server, &settings).ok_or_else(|| {
             IpcError::new(
                 codes::SURFER_WEB_MISSING,
-                "The Lace bundle has no Surfer web client; open the waveform in a window",
+                "The AURORA bundle has no Surfer web client; open the waveform in a window",
             )
         })?;
         let reply = state

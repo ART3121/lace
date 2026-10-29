@@ -2,7 +2,7 @@
 //!
 //! Um `.py` em `testbenchFiles` é um testbench cocotb, como na AURORA
 //! (`js/compilation/cocotb_da_onda.ts`): o arquivo só tem os testes
-//! (`@cocotb.test()`), e quem monta a simulação é o Lace. Os testes recebem
+//! (`@cocotb.test()`), e quem monta a simulação é a AURORA. Os testes recebem
 //! como `dut` o módulo da diretiva `# aurora-toplevel: <módulo>` do `.py`
 //! ([`toplevel_directive`]) ou, sem ela, o topo do projeto, com um aviso. O
 //! nome do arquivo é o nome do módulo Python que o cocotb importa, então
@@ -31,7 +31,7 @@
 //! precisão é de 1 s. No Icarus, o `aurora_cocotb_dump` grava a onda na raiz,
 //! `<módulo de teste>.fst`, com todos os sinais do DUT; no Verilator, quem
 //! grava é o `main` do cocotb (`verilator.cpp`), em `<módulo de teste>.vcd`,
-//! com as outras flags do Lace (`--timing`, `-O3`; ver
+//! com as outras flags da AURORA (`--timing`, `-O3`; ver
 //! [`simulate`](crate::simulate)). A VPI do cocotb sobe o Python do bundle
 //! dentro da simulação e roda os testes; o resultado sai em
 //! `<build>/results.xml` (JUnit), que vira [`TestReport`], e cada teste que
@@ -55,7 +55,7 @@
 //! No Windows, o Python que roda dentro do modelo do Verilator não acharia as
 //! DLLs das extensões dele (a do `zlib`, que o `binascii` carrega): o Python
 //! não as procura no `PATH`, e o modelo, ao contrário do `vvp`, não fica na
-//! pasta do Python. O Lace põe no `PYTHONPATH` um `sitecustomize.py` que
+//! pasta do Python. A AURORA põe no `PYTHONPATH` um `sitecustomize.py` que
 //! acrescenta essa pasta (`os.add_dll_directory`).
 
 use std::time::Duration;
@@ -149,7 +149,7 @@ pub fn is_testbench(path: &Utf8Path) -> bool {
 /// cocotb, a da AURORA (`parseCocotbToplevelDirective`, em
 /// `js/compilation/compilation_helpers.ts`): uma linha só de comentário, com
 /// `:` ou `=`, sem distinção de caixa. Para o Python é comentário, então o
-/// mesmo `.py` roda fora do Lace. `None` sem ela.
+/// mesmo `.py` roda fora da AURORA. `None` sem ela.
 ///
 /// ```
 /// use aurora_core::cocotb::toplevel_directive;
@@ -228,7 +228,7 @@ async def basic_test(dut):
     let name = &dut.name;
     let mut out = format!(
         "# Testbench cocotb de {name}: os testes recebem o módulo da linha abaixo\n\
-         # como `dut` (a diretiva da AURORA, que o Lace também lê).\n\
+         # como `dut` (a diretiva da AURORA, que a AURORA também lê).\n\
          # aurora-toplevel: {name}\n\n\
          import cocotb\n"
     );
@@ -508,7 +508,7 @@ pub(crate) fn prepare(
         Some(wave) if simulator == Simulator::Icarus => {
             let path = build.join(format!("{DUMP_MODULE}.v"));
             let dump = format!(
-                "// Gerado pelo Lace: grava a onda do testbench cocotb {file}.\n\
+                "// Gerado pela AURORA: grava a onda do testbench cocotb {file}.\n\
                  module {DUMP_MODULE};\n\
                  \x20   initial begin\n\
                  \x20       $dumpfile(\"{wave}\");\n\
@@ -606,7 +606,7 @@ fn dll_directory_site(dir: &Utf8Path, python: &str) -> Result<Utf8PathBuf> {
     std::fs::write(
         &script,
         format!(
-            "# Gerado pelo Lace: o Python dentro do modelo do Verilator procura as\n\
+            "# Gerado pela AURORA: o Python dentro do modelo do Verilator procura as\n\
              # DLLs das extensões na pasta dele, e não no PATH.\n\
              import os\n\
              os.add_dll_directory(\"{}\")\n",
@@ -618,7 +618,7 @@ fn dll_directory_site(dir: &Utf8Path, python: &str) -> Result<Utf8PathBuf> {
 }
 
 /// A sonda do cocotb, guardada em `dir/probe.json` enquanto a chave (o
-/// bundle, o Python e a versão do Lace) não muda e as bibliotecas continuam
+/// bundle, o Python e a versão da AURORA) não muda e as bibliotecas continuam
 /// no lugar. Vem com o comando que a rodou, para os erros. `None` se o
 /// cancelamento foi pedido.
 fn probe(

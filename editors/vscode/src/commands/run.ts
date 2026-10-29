@@ -49,7 +49,7 @@ export async function runOperation<T>(
     if (run === 'busy') {
       const cancel = 'Cancelar a que está rodando';
       void vscode.window
-        .showInformationMessage(`Lace: já há ${BUSY[kind]} rodando.`, cancel)
+        .showInformationMessage(`AURORA: já há ${BUSY[kind]} rodando.`, cancel)
         .then((choice) => choice === cancel && deps.runs.cancel(kind));
       return undefined;
     }

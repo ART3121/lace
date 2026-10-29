@@ -15,7 +15,7 @@ import { activate, lastCall, resetFake, run, spf, workspace } from './helpers';
 
 const soma = { kind: 'entry', entry: { role: 'processor', label: 'soma', path: null } } as unknown as SourceNode;
 
-describe('Lace: processadores', () => {
+describe('AURORA: processadores', () => {
   let api: AuroraExtensionApi;
 
   beforeEach(async () => {
@@ -39,7 +39,7 @@ describe('Lace: processadores', () => {
     }
   });
 
-  it('um nome que já existe: o erro do Lace', async () => {
+  it('um nome que já existe: o erro da AURORA', async () => {
     const result = await run<AuroraRun<Processor>>('aurora.newProcessor', { name: 'soma', language: 'cmm' });
     assert.equal(result?.status === 'error' && result.error.code, 'processor_exists');
   });

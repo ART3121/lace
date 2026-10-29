@@ -6,15 +6,15 @@ devolve. São duas coisas:
 - os comandos do Studio, um por linha das tabelas abaixo: as janelas, os
   arquivos, o terminal, a vigia da pasta, as preferências, a onda numa aba e
   as operações longas;
-- o `aurora_call`, que leva um método do protocolo do Lace ao servidor do
-  Lace (`aurora serve`, aberto pelo Studio como processo filho) e devolve a
+- o `aurora_call`, que leva um método do protocolo da AURORA ao servidor do
+  AURORA (`aurora serve`, aberto pelo Studio como processo filho) e devolve a
   resposta dele. O projeto, os processadores, o histórico, os sinais da
   onda, a placa FPGA e os exercícios passam por aqui.
 
 Na interface, cada coisa tem uma função em `src/ipc/api.ts`, menos
 `log_frontend` e `dev_smoke_script`, chamados com `invoke` direto; os tipos
 estão em `src/ipc/types.ts` (os do Studio) e `src/ipc/aurora-types.ts` (os do
-protocolo, gerados do schema do Lace).
+protocolo, gerados do schema da AURORA).
 
 Convenções:
 
@@ -24,21 +24,21 @@ Convenções:
   (`request`, `settings`) e os parâmetros de um método do protocolo vão em
   `snake_case`, como estão nos tipos.
 - Caminhos são absolutos, do sistema (com `\` no Windows).
-- Tudo pode falhar com `IpcError { code, message }`. Os códigos do Lace são
-  os de `AuroraError::code()` (API.md do Lace, seção 8) e os do servidor; os
+- Tudo pode falhar com `IpcError { code, message }`. Os códigos da AURORA são
+  os de `AuroraError::code()` (API.md da AURORA, seção 8) e os do servidor; os
   do Studio estão em `src-tauri/src/error.rs` e na última seção daqui.
 - Os comandos que tocam o disco, rodam ferramenta ou falam com o servidor
   rodam numa thread de bloqueio (`state::blocking`), fora da thread da
   interface; nenhum comando trava a janela.
 
-## O servidor do Lace (`server.rs`)
+## O servidor da AURORA (`server.rs`)
 
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
 | `aurora_call` | `method` (`project.status`, `history.show`, ...), `params?` | o resultado do método | um pedido ao `aurora serve` |
 
 Cada método, com os parâmetros, o resultado e os tipos, está em
-`docs/PROTOCOL.md` do Lace, gerado do código. O `aurora_call` não aceita os
+`docs/PROTOCOL.md` da AURORA, gerado do código. O `aurora_call` não aceita os
 métodos da sessão (`initialize`, `shutdown`) nem os longos, que têm
 progresso: `flow.run`, `learn.check`, `update.check`, `update.apply` e
 `install.add` vão pelas operações e pelos comandos do bundle.
@@ -96,7 +96,7 @@ O que vale saber de alguns métodos, do lado da interface:
   processadores e uma pasta para dentro dela mesma (`cannot_move`), caminho
   fora do projeto (`outside_project`) e destino que existe (`path_exists`).
   Com `overwrite`, o destino vai para a lixeira e o movimento é tentado de
-  novo, menos o que o Lace mantém no lugar, a pasta do projeto e uma pasta
+  novo, menos o que a AURORA mantém no lugar, a pasta do projeto e uma pasta
   que contém a origem (`cannot_replace`, e nada vai para a lixeira).
 - `wave.choose` com `set` confere os caminhos na árvore do testbench
   elaborado pelo Icarus, como `wave.signals`; a lista vazia apaga a escolha
@@ -107,7 +107,7 @@ O que vale saber de alguns métodos, do lado da interface:
   exatamente aquela lista (`history.clean`). Um relatório gravado entre as
   duas não sai sem ter sido mostrado.
 - Os recursos experimentais ficam no `experimental.json` da pasta de
-  configuração do Lace, e não no `settings.json` do Studio: ligar aqui vale
+  configuração da AURORA, e não no `settings.json` do Studio: ligar aqui vale
   também para a CLI, e o contrário. A placa FPGA é um deles: desligada, os
   métodos `fpga.*` respondem `experimental_disabled`.
 - As trilhas do `aurora learn` vêm da preferência `learn_dir`, de
@@ -119,7 +119,7 @@ O que vale saber de alguns métodos, do lado da interface:
 
 | Comando | Argumentos | Devolve |
 |---|---|---|
-| `app_info` | | `AppInfo`: nome, versão, sistema, a plataforma do bundle do Lace (pelo servidor; `null` sem ele), pasta das preferências, versões do Tauri e do motor de páginas, se é build de desenvolvimento |
+| `app_info` | | `AppInfo`: nome, versão, sistema, a plataforma do bundle da AURORA (pelo servidor; `null` sem ele), pasta das preferências, versões do Tauri e do motor de páginas, se é build de desenvolvimento |
 | `settings_get` | | `Settings` |
 | `settings_set` | `settings: Settings` | `Settings` como ficou (a lista de recentes enviada é ignorada) |
 | `recent_projects` | | `RecentStatus[]`: `spf`, `name`, `opened_at_ms`, `exists` |
@@ -135,7 +135,7 @@ mostrado num aviso. `dev_smoke_script` alimenta o roteiro de fumaça
 (DEVELOPMENT.md, seção 3).
 
 `app_exit` sai do Studio pelo caminho de sempre (a operação rodando é
-cancelada, os terminais fecham e o servidor do Lace recebe `shutdown`) e,
+cancelada, os terminais fecham e o servidor da AURORA recebe `shutdown`) e,
 com `restart`, abre de novo o executável com que ele começou, guardado ao
 abrir: depois do `aurora update`, é o da versão nova. A interface grava os
 arquivos e a sessão antes de chamar. Sem `restart`, só fecha: é o que o
@@ -178,7 +178,7 @@ usuário mexeu depois de aplicar um layout) não passa pelo backend: fica no
 |---|---|---|---|
 | `project_default_parent` | | a pasta padrão para criar e abrir projetos (`Projetos` na pasta do usuário), criada se não existe | |
 | `project_open` | `path`: o `.spf` ou a pasta | `ProjectSnapshot` | o `project.status` do servidor |
-| `project_create` | `parent`, `name` | `ProjectSnapshot`; `invalid_name` se o nome não passar na regra do Lace (letras sem acento, dígitos, `_` e `-`, começando por letra) | `aurora new`, o `project.create` do servidor |
+| `project_create` | `parent`, `name` | `ProjectSnapshot`; `invalid_name` se o nome não passar na regra da AURORA (letras sem acento, dígitos, `_` e `-`, começando por letra) | `aurora new`, o `project.create` do servidor |
 | `project_close` | | | |
 | `project_hierarchy` | | `HierarchyResult` | `aurora hierarchy --json`, o fluxo `hierarchy` do servidor |
 
@@ -190,10 +190,10 @@ design, cada testbench registrado e o testbench de cada processador
 compilado, elaborados pelo Icarus. Não compila os processadores nem grava
 relatório. Os tipos (`HierarchyResult`, `Elaboration`, `ModuleInstance`)
 estão em `src/ipc/aurora-types.ts`; a descrição de cada campo, na API.md do
-Lace, seção 5.4.1.
+AURORA, seção 5.4.1.
 
 `ProjectSnapshot` é o `ProjectStatus` do protocolo (`Project::status` do
-Lace), de onde a CLI monta o `StatusReport` do `aurora status --json`:
+AURORA), de onde a CLI monta o `StatusReport` do `aurora status --json`:
 
 | Campo | Conteúdo |
 |---|---|
@@ -203,17 +203,17 @@ Lace), de onde a CLI monta o `StatusReport` do `aurora status --json`:
 | `selected_testbench`, `testbench_module` | o testbench simulado e o módulo dele |
 | `wave_selection` | a escolha de sinais da onda desse testbench (`wave/<testbench>.json`); vazia, a onda grava todos. Os botões Sinais mostram quantos itens ela tem |
 | `unregistered` | os `.v` e `.sv` da pasta fora do `.spf`, e os `.py` com `@cocotb.test` |
-| `processors` | `ProcessorStatus[]`: os campos do `Processor` do Lace, mais `built`, `inputs` e `outputs` (`{ port, path }`), `missing_inputs`, `waveform` e `generated` (o que o build gerou e existe: `verilog`, `testbench`, `assembly`, `memories[]`, `intermediates[]`, os `.txt` e `.log` da pasta de saída `<proc>/<proc>/`, sem as saídas da simulação) |
+| `processors` | `ProcessorStatus[]`: os campos do `Processor` da AURORA, mais `built`, `inputs` e `outputs` (`{ port, path }`), `missing_inputs`, `waveform` e `generated` (o que o build gerou e existe: `verilog`, `testbench`, `assembly`, `memories[]`, `intermediates[]`, os `.txt` e `.log` da pasta de saída `<proc>/<proc>/`, sem as saídas da simulação) |
 | `waveform` | a onda da simulação do projeto, se já existe |
-| `top_candidates` | os Verilog que podem ser o topo pela regra do Lace (qualquer um, menos nome de testbench e testbench cocotb `.py`): registrados, o gerado de cada processador e os de fora do `.spf` |
-| `issues` | `ProjectIssue[]` do Lace (`Project::issues`): `kind` (`rescued_path`, `selection_not_registered`, `testbench_as_top`, `invalid_processor_name`, `duplicate_file`, `nested_project`, `legacy_layout`), `path`, `detail`, `message`; o painel Problemas mostra como aviso, traduzido pelo `kind`. Com `legacy_layout`, o Studio oferece a conversão ao abrir o projeto |
+| `top_candidates` | os Verilog que podem ser o topo pela regra da AURORA (qualquer um, menos nome de testbench e testbench cocotb `.py`): registrados, o gerado de cada processador e os de fora do `.spf` |
+| `issues` | `ProjectIssue[]` da AURORA (`Project::issues`): `kind` (`rescued_path`, `selection_not_registered`, `testbench_as_top`, `invalid_processor_name`, `duplicate_file`, `nested_project`, `legacy_layout`), `path`, `detail`, `message`; o painel Problemas mostra como aviso, traduzido pelo `kind`. Com `legacy_layout`, o Studio oferece a conversão ao abrir o projeto |
 
 `NewProcessorRequest` (o `spec` do `processor.add`): `name`, `language`
 (`cmm` ou `cpp`) e, opcionais, `input_ports`, `output_ports`, `nubits`,
 `nbmant`, `nbexpo`, `nugain`, `ndstac`, `sdepth`. Ausente fica com o padrão
-do Lace (`processor.defaults`), e, sem `nubits`, com `nbmant` ou `nbexpo`
+da AURORA (`processor.defaults`), e, sem `nubits`, com `nbmant` ou `nbexpo`
 dados, `nubits` vira `nbmant + nbexpo + 1`; `ndstac` e `sdepth` ausentes
-ficam fora do fonte, e o YANC calcula as pilhas pelo programa. O Lace
+ficam fora do fonte, e o YANC calcula as pilhas pelo programa. A AURORA
 recusa nome e parâmetro que o YANC não compila (`invalid_name`,
 `invalid_parameter`).
 
@@ -272,7 +272,7 @@ O `FlowRequest` do protocolo, com o tipo no campo `flow`:
 | `fpga_build` | nenhum | `aurora fpga build`: confere o `fpga.json`, a placa e o Quartus (`no_fpga_config`, `board_not_found`, `quartus_missing` antes de compilar), compila os processadores e depois o projeto para a placa; sem relatório, como na CLI |
 | `fpga_program` | `cable?` | `aurora fpga program [--cable NOME]`: grava o `.sof` da última compilação (`no_bitstream`, `no_cable` antes de gravar); sem relatório |
 
-A composição é a do Lace, a mesma da CLI, e roda no servidor; `flows.rs` só
+A composição é a da AURORA, a mesma da CLI, e roda no servidor; `flows.rs` só
 escolhe o programa do comando e se a onda abre em janela ou numa aba.
 `simulate`, `synthesize` e `fpga_build` compilam antes os processadores que
 têm fonte e param no primeiro build que falhar; `check` não compila,
@@ -290,13 +290,13 @@ notificações do servidor, como ele as manda:
 |---|---|---|
 | `started` | `job`, `command` | logo depois de `flow_start` |
 | `phase` | `phase`: `build`, `check`, `hierarchy`, `simulate`, `synthesize`, `schematic`, `rtl_viewer`, `wave`, `learn`, `fpga`, `program` | uma fase começou |
-| `events` | `events: Event[]` | lotes de eventos do Lace (`step_started`, `output`, `step_finished`; API.md do Lace, 5.8), no máximo a cada 30 ms ou 500 eventos |
+| `events` | `events: Event[]` | lotes de eventos da AURORA (`step_started`, `output`, `step_finished`; API.md da AURORA, 5.8), no máximo a cada 30 ms ou 500 eventos |
 | `output_omitted` | `step`, `tool`, `lines` | linhas de `output` que ficaram de fora, no lugar delas: passam 20 000 de uma vez e depois 5 000 por segundo, em blocos, com um aviso a cada meio segundo (uma linha longa conta uma a mais a cada 1 KiB); o resultado final ainda traz o fim da saída de cada passo |
 | `build` | `result: BuildResult` | um processador terminou de compilar |
 | `install` | `event` | o progresso de `aurora_install` e `aurora_update`: um evento do instalador (etiquetado por `event`: `start`, `chunk`, `downloading`, `progress`, `replacing`, `verifying`, `fallback`, `fallback_download`, `wizard_selection`, `installer_output`, `warning`) |
 | `cli_output` | `stream`, `line` | só em `aurora_install` e `aurora_update`: a linha do console para o evento, com os nomes dos aplicativos (o `line` da notificação `install`) |
 | `finished` | `outcome` | fim: um `FlowOutcome` (ou o resultado de `aurora_install` e `aurora_update`) |
-| `failed` | `error: IpcError` | fim: o Lace não conseguiu rodar |
+| `failed` | `error: IpcError` | fim: a AURORA não conseguiu rodar |
 
 Toda operação termina com exatamente um `finished` ou um `failed`.
 
@@ -313,7 +313,7 @@ O `FlowOutcome` do protocolo, com `wave_tab`, que o Studio acrescenta:
 | `registered` | `AddedFile[]`: o `.v` e o testbench que esses builds geraram e entraram no `.spf` agora |
 | `lint_missing` | com `lint`, o componente do Verilator que falta quando nenhum passo dele rodou |
 | `hierarchy`, `not_built` | a hierarquia do fluxo `hierarchy` e os processadores com fonte e sem build que ficaram de fora |
-| `check`, `simulation`, `synthesis`, `schematic` | o resultado de cada fase que rodou, ou `null`; com um testbench cocotb, `simulation.tests` traz os testes (`TestReport` do Lace) |
+| `check`, `simulation`, `synthesis`, `schematic` | o resultado de cada fase que rodou, ou `null`; com um testbench cocotb, `simulation.tests` traz os testes (`TestReport` da AURORA) |
 | `outputs` | `PortValues[]` (`port`, `path`, `values`, `error`), na simulação de um processador que deu certo |
 | `wave`, `wave_error` | a onda aberta em janela, ou por que não abriu |
 | `wave_tab` | a onda que a interface abre numa aba (`wave_viewer: tab`), no lugar da janela |
@@ -321,8 +321,8 @@ O `FlowOutcome` do protocolo, com `wave_tab`, que o Studio acrescenta:
 | `rtl_viewer`, `rtl_viewer_error` | o HTML do RTL viewer, com `open_viewer`, ou por que não saiu; a síntese vale |
 | `report`, `report_error` | o relatório gravado (`run-000042`), ou por que não foi |
 | `learn` | a correção de um exercício (fluxo `learn`): o `Grade` do aurora-learn |
-| `fpga` | a compilação para a placa (fluxo `fpga_build`): o `FpgaBuildResult` do Lace, com os passos do Quartus, os recursos e o tempo |
-| `fpga_program` | a gravação na placa (fluxo `fpga_program`): o `FpgaProgramResult` do Lace |
+| `fpga` | a compilação para a placa (fluxo `fpga_build`): o `FpgaBuildResult` da AURORA, com os passos do Quartus, os recursos e o tempo |
+| `fpga_program` | a gravação na placa (fluxo `fpga_program`): o `FpgaProgramResult` da AURORA |
 
 O `stdout` e o `stderr` de cada passo vêm cortados em 256 KiB, guardando o
 fim (o `step_output_limit` do `flow.run`); o que foi cortado já chegou
@@ -335,7 +335,7 @@ cancelled` e as listas vazias.
 | Comando | Argumentos | Devolve | Equivale a |
 |---|---|---|---|
 | `toolchain_info` | | `ToolchainInfo` (nunca falha: sem bundle, ou sem servidor, `found: false` e o erro) | `aurora tools --json`, o `toolchain.info` do servidor |
-| `aurora_update_check` | | o `UpdateReport` (`docs/schema/update.json` do Lace), com `prefix` quando o servidor é o `aurora` de uma instalação do instalador | `aurora update --check --json`, o `update.check` do servidor |
+| `aurora_update_check` | | o `UpdateReport` (`docs/schema/update.json` da AURORA), com `prefix` quando o servidor é o `aurora` de uma instalação do instalador | `aurora update --check --json`, o `update.check` do servidor |
 | `aurora_install` | `components: string[]`, `channel` | o identificador da operação | `aurora install <componentes> --json`, o `install.add` do servidor |
 | `aurora_update` | `channel` | o identificador da operação | `aurora update --yes --json`, o `update.apply` do servidor |
 
@@ -430,7 +430,7 @@ UTF-16, o que o xterm já escreveu, e o backend para de ler o shell quando a
 interface fica 128 Ki atrás, até o atraso cair para 16 Ki; o programa que
 escreve no terminal espera. O shell é o do usuário
 (`$SHELL`) no Linux e no macOS e, no Windows, o PowerShell ou o `cmd.exe`, pela preferência `terminal_shell`, com a pasta `bin/`
-da instalação do Lace no começo do `PATH` e `AURORA_IDE=1`.
+da instalação da AURORA no começo do `PATH` e `AURORA_IDE=1`.
 
 ## Assistente (`assistant.rs`)
 
@@ -448,12 +448,12 @@ servidor).
 | `assistant_stop` | `id` | encerra a sessão (espera o Claude Code sair por até 3 s, depois mata) |
 
 A sessão é um processo filho do Claude Code (`crates/aurora-agent`, o único
-crate do Lace que o Studio linka, até a 1.0), aberto em modo `--print` com
+crate da AURORA que o Studio linka, até a 1.0), aberto em modo `--print` com
 entrada e saída em JSON por linha, o `aurora mcp` como servidor de
 ferramentas (a preferência `assistant_aurora`, ou o mesmo `aurora` do servidor
 do Studio), o `.spf` aberto como projeto padrão e a pasta do projeto como
 pasta de trabalho. O que ele pode fazer vem da preferência
-`assistant_allow_edits`: só as ferramentas do Lace e ler arquivos, ou
+`assistant_allow_edits`: só as ferramentas da AURORA e ler arquivos, ou
 também editar e criar na pasta do projeto. Quem autentica é o Claude Code;
 o Studio não guarda chave.
 
@@ -493,17 +493,17 @@ e a próxima mensagem abre outra. Ao sair, o Studio encerra todas.
 | `assistant` | o assistente: o Claude Code não foi achado, o `aurora` das ferramentas não existe, ou a sessão já terminou |
 | `aurora_missing` | o programa `aurora` do servidor não foi achado ou não abriu |
 | `aurora_incompatible` | o `aurora` achado fala outra versão do protocolo |
-| `server_gone` | o servidor do Lace saiu no meio de um pedido; o seguinte o abre de novo |
+| `server_gone` | o servidor da AURORA saiu no meio de um pedido; o seguinte o abre de novo |
 | `cancelled` | o pedido foi cancelado antes de começar |
 
-Os erros do Lace chegam com o código dele (`AuroraError::code`, API.md do
-Lace, seção 8, e os do servidor): por exemplo `invalid_name` (nome de
+Os erros da AURORA chegam com o código dele (`AuroraError::code`, API.md do
+AURORA, seção 8, e os do servidor): por exemplo `invalid_name` (nome de
 projeto fora da regra), `spf_missing` (o `.spf` do projeto aberto foi
 apagado depois de aberto: os métodos de projeto e os fluxos recusam, e os
 `fs_*` continuam, pela pasta), `cannot_move`, `cannot_replace`,
 `path_exists` e `outside_project` (do `project.move`), `no_waveform` (a
 onda pedida ainda não existe; `wave.open` e `wave_tab_open` devolvem o
-mesmo código), `bundle_not_found` (nenhuma instalação do Lace foi achada,
+mesmo código), `bundle_not_found` (nenhuma instalação da AURORA foi achada,
 com onde procurou) e `experimental_disabled` (os métodos e os fluxos da
 placa FPGA com ela desligada, e `assistant_start` com o assistente
 desligado; a interface relê os recursos e tira o recurso da janela). Os do

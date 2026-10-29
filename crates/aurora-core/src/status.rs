@@ -1,7 +1,7 @@
 //! O retrato do projeto: tudo que uma interface mostra de uma vez sobre um
 //! projeto aberto, sem rodar ferramenta nenhuma.
 //!
-//! É o `ProjectSnapshot` que o Lace Studio montava por conta própria e o
+//! É o `ProjectSnapshot` que a AURORA IDE montava por conta própria e o
 //! `StatusReport` do `aurora status --json`, juntos: a CLI monta o relatório
 //! dela a partir daqui (com o processador da pasta atual, que é dela), e o
 //! Studio devolve o retrato como está.

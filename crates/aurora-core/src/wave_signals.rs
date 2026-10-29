@@ -20,7 +20,7 @@
 //! primeiro `$dumpvars` do testbench vira `$dumpvars(0, <itens>)` e os
 //! outros viram comentário; sem `$dumpvars`, a lista entra depois do
 //! `$dumpfile`; sem dump nenhum, no lugar do `$dumpvars(0, <topo>)` que o
-//! Lace injeta. Um processador SAPHO do design que a escolha não cobre entra
+//! AURORA injeta. Um processador SAPHO do design que a escolha não cobre entra
 //! sempre com os sinais do escopo dele (`$dumpvars(1, <processador>)`):
 //! o layout das instruções, das variáveis e do I/O precisa deles, como na
 //! AURORA, onde esses grupos aparecem com qualquer escolha. Um item que o
@@ -120,7 +120,7 @@ pub fn read_selection(project: &Project, module: &str) -> Result<Vec<String>> {
         return Err(AuroraError::InvalidProject {
             path,
             reason: format!(
-                "The signal choice has format {}; this Lace reads format {SELECTION_SCHEMA}",
+                "The signal choice has format {}; this AURORA reads format {SELECTION_SCHEMA}",
                 file.schema
             ),
         });
@@ -798,7 +798,7 @@ impl DumpChoice {
                 format!("{}{lines}", self.calls)
             } else {
                 format!(
-                    "/* Lace, {}: {} */",
+                    "/* AURORA, {}: {} */",
                     WAVE_DIR,
                     original.replace("*/", "* /")
                 )
@@ -1040,7 +1040,7 @@ v0000027b2435eb34_0 .var "z", 3 0;
             "{out}"
         );
         assert!(
-            out.contains("/* Lace, wave: $dumpvars(1, tb.b); */"),
+            out.contains("/* AURORA, wave: $dumpvars(1, tb.b); */"),
             "{out}"
         );
         assert!(out.contains("// $dumpvars(0, tb) no comentário"), "{out}");

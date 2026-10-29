@@ -27,7 +27,7 @@ describe('Numa pasta sem .spf', () => {
     assert.equal(api.status, undefined);
   });
 
-  it('Novo projeto com um nome que o Lace recusa: o erro dele, e nada criado', async () => {
+  it('Novo projeto com um nome que a AURORA recusa: o erro dele, e nada criado', async () => {
     const result = await run<AuroraRun<NewReport>>('aurora.newProject', { name: '9x', dir: workspace });
     assert.equal(result?.status === 'error' && result.error.code, 'invalid_name');
     assert.equal(api.status, undefined);

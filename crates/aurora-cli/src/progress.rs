@@ -2,7 +2,7 @@
 //! animação e o tempo decorrido, numa linha do stderr que se reescreve.
 //!
 //! Só aparece em texto e com o stderr num terminal: num pipe, num log do CI
-//! ou com `--json`, não há barra. É indeterminada, porque o Lace não sabe
+//! ou com `--json`, não há barra. É indeterminada, porque a AURORA não sabe
 //! quanto falta: nem o `vvp` nem o modelo do Verilator informam o progresso
 //! da simulação. Só aparece depois de [`DELAY`], para um passo rápido (um
 //! compilador do YANC, alguns ms) não piscar na tela.

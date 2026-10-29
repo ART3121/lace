@@ -1,6 +1,6 @@
-// "Lace: Definir como topo": `aurora top <arquivo>` no projeto ativo. Vem do
+// "AURORA: Definir como topo": `aurora top <arquivo>` no projeto ativo. Vem do
 // explorador, do editor, da aba e da vista de fontes; quem decide se o
-// arquivo pode ser topo é o Lace, e o erro dele aparece com a dica.
+// arquivo pode ser topo é a AURORA, e o erro dele aparece com a dica.
 
 import { basename } from 'node:path';
 
@@ -18,7 +18,7 @@ import { chooseProject, clientFor, showAuroraError, showProcessError, targetUri,
 export async function setTop(deps: CommandDeps, target?: unknown): Promise<AuroraRun<TopReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
-    void vscode.window.showWarningMessage('Lace: escolha um arquivo .v ou .sv para definir como topo.');
+    void vscode.window.showWarningMessage('AURORA: escolha um arquivo .v ou .sv para definir como topo.');
     return undefined;
   }
   const client = clientFor(deps, 'setTop');
@@ -28,7 +28,7 @@ export async function setTop(deps: CommandDeps, target?: unknown): Promise<Auror
   }
   try {
     const run = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: 'Lace: definindo o topo' },
+      { location: vscode.ProgressLocation.Window, title: 'AURORA: definindo o topo' },
       () => client.setTop(project.spf, uri.fsPath),
     );
     show(run, uri.fsPath);
@@ -46,9 +46,9 @@ function show(run: AuroraRun<TopReport>, file: string): void {
     case 'succeeded': {
       const { module, module_error: moduleError } = run.result;
       if (moduleError) {
-        void vscode.window.showWarningMessage(`Lace: ${formatAuroraError(moduleError)}`);
+        void vscode.window.showWarningMessage(`AURORA: ${formatAuroraError(moduleError)}`);
       } else {
-        vscode.window.setStatusBarMessage(`Lace: topo ${module ?? basename(file)}`, 5000);
+        vscode.window.setStatusBarMessage(`AURORA: topo ${module ?? basename(file)}`, 5000);
       }
       return;
     }
@@ -56,6 +56,6 @@ function show(run: AuroraRun<TopReport>, file: string): void {
       showAuroraError(run.error);
       return;
     default:
-      void vscode.window.showErrorMessage(`Lace: aurora top terminou como ${run.status}.`);
+      void vscode.window.showErrorMessage(`AURORA: aurora top terminou como ${run.status}.`);
   }
 }

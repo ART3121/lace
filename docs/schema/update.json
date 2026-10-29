@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "aurora": {
-      "description": "O Lace: este e o da última release.",
+      "description": "A AURORA: este e o da última release.",
       "$ref": "#/$defs/AuroraVersions"
     },
     "bundle": {
@@ -64,7 +64,7 @@
   ],
   "$defs": {
     "AuroraVersions": {
-      "description": "As versões do Lace em `aurora update`.",
+      "description": "As versões da AURORA em `aurora update`.",
       "type": "object",
       "properties": {
         "installed": {
@@ -124,7 +124,7 @@
           "type": "string"
         },
         "package": {
-          "description": "O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,\n`yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que\neste Lace não conhece.",
+          "description": "O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`,\n`yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que\nesta AURORA não conhece.",
           "type": [
             "string",
             "null"
@@ -142,7 +142,7 @@
           ]
         },
         "release_newer": {
-          "description": "`release` é mais nova que `installed`: chega atualizando o Lace.",
+          "description": "`release` é mais nova que `installed`: chega atualizando a AURORA.",
           "type": "boolean"
         },
         "upstream": {
@@ -153,7 +153,7 @@
           ]
         },
         "upstream_newer": {
-          "description": "`upstream` é mais nova que `installed` e que `release`: só chega num\nbundle novo, numa release nova do Lace. Sem `release`, `false` quando\nhá Lace mais novo, cujo bundle pode já trazê-la.",
+          "description": "`upstream` é mais nova que `installed` e que `release`: só chega num\nbundle novo, numa release nova da AURORA. Sem `release`, `false` quando\nhá AURORA mais nova, cujo bundle pode já trazê-la.",
           "type": "boolean"
         }
       },
@@ -176,7 +176,7 @@
           "const": "checked"
         },
         {
-          "description": "Não há Lace mais novo publicado: nada mudou.",
+          "description": "Não há AURORA mais nova publicado: nada mudou.",
           "type": "string",
           "const": "up_to_date"
         },
@@ -212,7 +212,7 @@
       "type": "object",
       "properties": {
         "components": {
-          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `aurora` é o próprio Lace e o cabeçalho do bundle.",
+          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `aurora` é a própria AURORA e o cabeçalho do bundle.",
           "type": "array",
           "items": {
             "type": "string"

@@ -72,7 +72,7 @@ export class AuroraConnection implements vscode.Disposable {
     if (next.kind === 'missing' || next.kind === 'unsupported') {
       this.log.warn(next.reason);
       const configure = 'Configurar aurora.path';
-      void vscode.window.showWarningMessage(`Lace: ${next.reason}.`, configure).then((choice) => {
+      void vscode.window.showWarningMessage(`AURORA: ${next.reason}.`, configure).then((choice) => {
         if (choice === configure) {
           void vscode.commands.executeCommand('workbench.action.openSettings', 'aurora.path');
         }
@@ -94,7 +94,7 @@ export class AuroraConnection implements vscode.Disposable {
     if (command === undefined) {
       return { kind: 'missing', reason: 'o aurora não está no PATH, e aurora.path está vazio' };
     }
-    // O --version é barato e é a única forma de saber a versão de um Lace
+    // O --version é barato e é a única forma de saber a versão de uma AURORA
     // sem o serve.
     const cli = new CliAuroraClient(command, this.log);
     let version: string;

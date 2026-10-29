@@ -1,5 +1,5 @@
 // As operações que rodam ferramentas (build, check, sim, wave, synth): uma de cada
-// tipo por vez, a saída ao vivo no canal "Lace: ferramentas", o
+// tipo por vez, a saída ao vivo no canal "AURORA: ferramentas", o
 // cancelamento (SIGTERM ao aurora) e o estado que os botões da barra de status
 // mostram.
 

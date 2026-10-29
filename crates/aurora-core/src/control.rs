@@ -143,7 +143,7 @@ pub enum Event {
         command: Invocation,
     },
     /// Uma linha que o processo escreveu, sem o fim de linha. Linhas de
-    /// stdout e de stderr chegam na ordem em que o Lace as leu, que pode não
+    /// stdout e de stderr chegam na ordem em que a AURORA as leu, que pode não
     /// ser exatamente a ordem em que o processo as escreveu.
     Output {
         /// O passo que escreveu.
@@ -184,7 +184,7 @@ type EventSink = Box<dyn Fn(&Event) + Send + Sync>;
 ///
 /// O receptor de eventos roda na thread da operação, no meio dela: ele deve
 /// ser rápido (mandar o evento por um canal, escrever uma linha) e não pode
-/// chamar outra operação do Lace.
+/// chamar outra operação da AURORA.
 #[derive(Default)]
 pub struct Control {
     cancel: CancelToken,

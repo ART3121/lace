@@ -23,7 +23,7 @@
 //! ([`Processor::files_read_by_verilog`]).
 //!
 //! O `cppcomp` procura os `#include` na pasta do fonte e, por último, no
-//! `Header/` ao lado dele. O Lace pede as mensagens em inglês (`--lang=en`)
+//! `Header/` ao lado dele. A AURORA pede as mensagens em inglês (`--lang=en`)
 //! mesmo com `YANC_LANG=pt` no ambiente: o parser trabalha sobre um idioma
 //! só.
 
@@ -126,7 +126,7 @@ impl BuildResult {
 /// Verilog sintetizável, às memórias e ao testbench, todos na pasta de saída
 /// do processador (`<nome>/<nome>/`).
 ///
-/// Antes de rodar qualquer compilador, o Lace confere:
+/// Antes de rodar qualquer compilador, a AURORA confere:
 ///
 /// 1. que o YANC do bundle é o 7.1 ou mais novo;
 /// 2. que o processador está na estrutura do YANC 7.1, e não na de antes,
@@ -143,7 +143,7 @@ impl BuildResult {
 /// quando `control` pede o cancelamento (`status = Cancelled`).
 ///
 /// Um `#PRNAME` ou `#pragma yanc prname` que sobrou de um fonte da 6.x é erro
-/// do compilador, que diz para apagar a linha; o Lace deixa a mensagem vir
+/// do compilador, que diz para apagar a linha; a AURORA deixa a mensagem vir
 /// dele, com a linha, como qualquer erro do fonte.
 ///
 /// # Erros
@@ -357,7 +357,7 @@ impl<'a> Plan<'a> {
     fn steps(&self) -> Result<Vec<PlannedStep>> {
         let p = self.processor;
         let tc = self.toolchain;
-        // O inglês das mensagens, que o Lace interpreta, mesmo com
+        // O inglês das mensagens, que a AURORA interpreta, mesmo com
         // `YANC_LANG=pt` no ambiente.
         let lang = "--lang=en";
         // O fonte com o caminho completo: a pasta dele é a dos arquivos da

@@ -1,8 +1,8 @@
-//! Onde está o Lace: a busca do bundle e a descrição dele, para qualquer
+//! Onde está a AURORA: a busca do bundle e a descrição dele, para qualquer
 //! programa que não seja a CLI instalada ao lado do bundle.
 //!
 //! A CLI acha o bundle ao lado do próprio executável ([`Toolchain::locate`]).
-//! O Studio, e qualquer outro cliente, procura a instalação do Lace numa
+//! O Studio, e qualquer outro cliente, procura a instalação da AURORA numa
 //! ordem fixa e fica com a primeira que abrir:
 //!
 //! 1. A pasta declarada numa preferência ([`Lookup::settings`]). Declarada e
@@ -38,7 +38,7 @@ use crate::fpga::Quartus;
 use crate::toolchain::{BundleComponent, SystemCompiler, Tool, Toolchain, component};
 use crate::{ErrorInfo, AuroraError, MANIFEST_FILE, Result};
 
-/// De onde o Lace pode estar, na ordem de busca do módulo. Tudo vem de quem
+/// De onde a AURORA pode estar, na ordem de busca do módulo. Tudo vem de quem
 /// chama; o core não lê o ambiente.
 #[derive(Debug, Clone, Default)]
 pub struct Lookup {
@@ -71,9 +71,9 @@ pub struct Lookup {
 }
 
 impl Lookup {
-    /// As pastas onde o instalador do Lace põe o bundle, por plataforma:
-    /// `%LOCALAPPDATA%\Programs\Lace\toolchain` e
-    /// `%ProgramFiles%\Lace\toolchain` no Windows;
+    /// As pastas onde o instalador da AURORA põe o bundle, por plataforma:
+    /// `%LOCALAPPDATA%\Programs\AURORA\toolchain` e
+    /// `%ProgramFiles%\AURORA\toolchain` no Windows;
     /// `$XDG_DATA_HOME/aurora/toolchain` e `~/.local/share/aurora/toolchain` nos
     /// outros. `var` lê uma variável de ambiente (`None` quando ausente ou
     /// vazia): o core não a lê sozinho.
@@ -81,8 +81,8 @@ impl Lookup {
         let mut dirs = Vec::new();
         if cfg!(windows) {
             for (name, sub) in [
-                ("LOCALAPPDATA", "Programs/Lace/toolchain"),
-                ("ProgramFiles", "Lace/toolchain"),
+                ("LOCALAPPDATA", "Programs/AURORA/toolchain"),
+                ("ProgramFiles", "AURORA/toolchain"),
             ] {
                 if let Some(base) = var(name) {
                     dirs.push(base.join(sub));
@@ -310,9 +310,9 @@ pub struct ToolchainInfo {
     pub platform: Option<String>,
     /// Os componentes instalados.
     pub components: Vec<BundleComponent>,
-    /// Os componentes que o Lace conhece e que não estão instalados.
+    /// Os componentes que a AURORA conhece e que não estão instalados.
     pub not_installed: Vec<String>,
-    /// Cada ferramenta que o Lace roda.
+    /// Cada ferramenta que a AURORA roda.
     pub tools: Vec<ToolStatus>,
     /// O compilador do Verilator: do sistema no Linux e no macOS, do bundle
     /// no Windows (`bundled`).
@@ -574,8 +574,8 @@ mod tests {
             assert_eq!(
                 dirs,
                 [
-                    Utf8PathBuf::from("C:/u/AppData/Local/Programs/Lace/toolchain"),
-                    Utf8PathBuf::from("C:/Program Files/Lace/toolchain")
+                    Utf8PathBuf::from("C:/u/AppData/Local/Programs/AURORA/toolchain"),
+                    Utf8PathBuf::from("C:/Program Files/AURORA/toolchain")
                 ]
             );
         } else {

@@ -1,4 +1,4 @@
-// A aba Sobre: o que é a AURORA IDE, as versões (dela, do Lace e dos
+// A aba Sobre: o que é a AURORA IDE, as versões (dela, da AURORA e dos
 // componentes do bundle, do Tauri e do motor de páginas), onde ficam as
 // preferências e o bundle, e os links. "Copiar informações" junta tudo num
 // texto, para anexar a um relato de problema.
@@ -17,17 +17,17 @@ import { copyText } from '../../util/clipboard';
 import { Button, IconButton } from '../common';
 
 /** O texto de "Copiar informações", sempre em inglês, como as mensagens do
- * Lace: é para quem vai ler o relato. */
+ * AURORA: é para quem vai ler o relato. */
 function diagnostics(info: AppInfo | null, toolchain: ToolchainInfo | null): string {
   const lines = [`AURORA IDE ${info?.version ?? '?'}${info?.debug ? ' (development build)' : ''}`];
   lines.push(`System: ${info?.os ?? '?'}`);
   if (toolchain?.found) {
-    lines.push(`Lace bundle: ${toolchain.bundle} (${toolchain.platform}), from ${toolchain.origin ?? '?'}: ${toolchain.root}`);
+    lines.push(`AURORA bundle: ${toolchain.bundle} (${toolchain.platform}), from ${toolchain.origin ?? '?'}: ${toolchain.root}`);
     lines.push(`Components: ${toolchain.components.map((c) => `${c.name} ${c.version}`).join(', ') || 'none'}`);
     if (toolchain.not_installed.length) lines.push(`Not installed: ${toolchain.not_installed.join(', ')}`);
     lines.push(`aurora CLI: ${toolchain.aurora_cli ?? 'not found'}`);
   } else {
-    lines.push(`Lace bundle: not found${toolchain?.error ? ` (${toolchain.error.message})` : ''}`);
+    lines.push(`AURORA bundle: not found${toolchain?.error ? ` (${toolchain.error.message})` : ''}`);
   }
   lines.push(`Tauri ${info?.tauri_version ?? '?'}, ${info ? engineName(info.os) : 'web engine'} ${info?.webview_version ?? 'unknown'}`);
   if (info?.config_dir) lines.push(`Settings: ${info.config_dir}`);

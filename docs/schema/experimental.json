@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "path": {
-      "description": "O arquivo do que está ligado (`experimental.json`, na pasta de\nconfiguração do Lace); `null` se o sistema não diz onde fica essa\npasta.",
+      "description": "O arquivo do que está ligado (`experimental.json`, na pasta de\nconfiguração da AURORA); `null` se o sistema não diz onde fica essa\npasta.",
       "type": [
         "string",
         "null"
@@ -56,7 +56,7 @@
           "const": "fpga"
         },
         {
-          "description": "O assistente de IA: o `aurora mcp` (as ferramentas do Lace para um\nagente), o `aurora chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `aurora-agent`).",
+          "description": "O assistente de IA: o `aurora mcp` (as ferramentas da AURORA para um\nagente), o `aurora chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `aurora-agent`).",
           "type": "string",
           "const": "assistant"
         }

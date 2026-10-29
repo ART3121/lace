@@ -1,4 +1,4 @@
-// A tela inicial: começar, recentes e o estado da instalação do Lace.
+// A tela inicial: começar, recentes e o estado da instalação da AURORA.
 
 import { Compass, Cpu, FileCode, FolderOpen, FolderPlus, Wrench, X } from 'lucide-react';
 

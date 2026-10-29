@@ -48,7 +48,7 @@ import { extension, isAbsolutePath, normalizeDots, resolveFrom } from './util/pa
  * Mostra a janela, uma vez, e fecha o splash. Ela nasce escondida
  * (`visible: false` em tauri.conf.json), com o splash na frente (a janela
  * `splash`, public/splash.html), e só aparece com o Studio pronto: a
- * interface desenhada no tema e no zoom das preferências, o Lace achado e o
+ * interface desenhada no tema e no zoom das preferências, a AURORA achada e o
  * último projeto reaberto, ou depois de REVEAL_WAIT_MS, o que vier antes. O
  * splash fica pelo menos SPLASH_MIN_MS na tela, contados de quando ele
  * aparece: o desenho do logo e uma volta inteira do sinal pelos fios. Se a
@@ -58,7 +58,7 @@ import { extension, isAbsolutePath, normalizeDots, resolveFrom } from './util/pa
 let revealed = false;
 const REVEAL_WAIT_MS = 8000;
 const SPLASH_MIN_MS = 3200;
-/** Quanto a abertura espera o Lace ser achado (a tela inicial e a barra de
+/** Quanto a abertura espera a AURORA ser achado (a tela inicial e a barra de
  * status já nascem com o bundle). */
 const TOOLCHAIN_WAIT_MS = 4000;
 function reveal() {
@@ -132,7 +132,7 @@ async function start(): Promise<() => void> {
   await getCurrentWebview()
     .setZoom(useLayout.getState().zoom)
     .catch(() => undefined);
-  // Tema e zoom aplicados. A janela espera o Lace ser achado e o último
+  // Tema e zoom aplicados. A janela espera a AURORA ser achado e o último
   // projeto reabrir, para o primeiro quadro já ser o de trabalho, mas no
   // máximo REVEAL_WAIT_MS: um projeto grande não segura a abertura (o
   // splash cobre a espera).
@@ -189,7 +189,7 @@ async function start(): Promise<() => void> {
   cleanups.push(unlistenDrop);
 
   // Fechar a janela com arquivos não salvos pergunta antes. Durante uma
-  // atualização ou instalação do Lace, não fecha: o `aurora` que troca os
+  // atualização ou instalação da AURORA, não fecha: o `aurora` que troca os
   // arquivos morreria junto, com a instalação pela metade.
   const window_ = getCurrentWindow();
   const unlistenClose = await window_.onCloseRequested(async (event) => {
@@ -235,7 +235,7 @@ async function start(): Promise<() => void> {
   // layout padrão (state/tour.ts).
   if (settings && !settings.tour_done) useTour.getState().start();
 
-  // Lace mais novo publicado: procura logo depois de abrir e a cada 12
+  // AURORA mais nova publicado: procura logo depois de abrir e a cada 12
   // horas, e oferece a atualização (state/updates.ts).
   cleanups.push(startUpdateChecks());
 

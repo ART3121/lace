@@ -1,4 +1,4 @@
-//! Instalador do Lace para Linux e macOS, e o empacotador dos instaladores.
+//! Instalador da AURORA para Linux e macOS, e o empacotador dos instaladores.
 //!
 //! O instalador é um diretório com o executável `install` e o `payload/`:
 //!
@@ -35,10 +35,10 @@
 //! - [`installation`]: a pasta de uma instalação feita pelo instalador;
 //! - [`uninstall`]: remover uma instalação;
 //! - [`error`]: os erros com código que atravessam a fronteira;
-//! - [`desktop`]: o atalho do Lace Studio no menu de aplicativos;
+//! - [`desktop`]: o atalho da AURORA IDE no menu de aplicativos;
 //! - [`pack`]: montar o payload e o estágio do Inno Setup a partir do bundle;
 //! - `tui` (com o recurso `tui`): a interface de terminal;
-//! - `brand` (idem): as cores e a marca do Lace na interface de terminal.
+//! - `brand` (idem): as cores e a marca da AURORA na interface de terminal.
 //!
 //! A CLI, o Studio e o `aurora serve` chamam esta biblioteca em processo: a
 //! regra do que é atualizar mora aqui uma vez só. Nada aqui escreve no
@@ -66,7 +66,7 @@ pub mod update;
 
 pub use error::Error;
 
-/// Versão do Lace que este instalador instala (a do workspace).
+/// Versão da AURORA que este instalador instala (a do workspace).
 pub const AURORA_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// A primeira letra em minúscula, para a frase vir depois de dois-pontos ou

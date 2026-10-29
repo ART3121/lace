@@ -14,7 +14,7 @@ Sumário:
 5. [Os botões do fluxo](#5-os-botões-do-fluxo)
 6. [INFO, terminais, problemas e shell](#6-info-terminais-problemas-e-shell)
 7. [Esquemático, síntese e relatórios](#7-esquemático-síntese-e-relatórios)
-8. [Ferramentas do Lace](#8-ferramentas-do-lace)
+8. [Ferramentas da AURORA](#8-ferramentas-do-lace)
 9. [Preferências](#9-preferências)
 10. [Atalhos](#10-atalhos)
 11. [Problemas comuns](#11-problemas-comuns)
@@ -23,20 +23,20 @@ Sumário:
 
 ## 1. Antes de começar
 
-O Studio usa as ferramentas do Lace, e só elas: precisa do Lace instalado
-com o bundle ([instalação do Lace](https://github.com/ART3121/lace#instalar)).
+O Studio usa as ferramentas da AURORA, e só elas: precisa da AURORA instalada
+com o bundle ([instalação da AURORA](https://github.com/ART3121/lace#instalar)).
 Ele acha a instalação sozinho; o estado aparece na tela inicial e na barra de
-status (`Bundle 2026.09.29`, ou `Lace não encontrado`). Se o Lace estiver
-numa pasta fora do padrão, indique-a em Preferências > Bundle do Lace.
+status (`Bundle 2026.09.29`, ou `AURORA não encontrada`). Se a AURORA estiver
+numa pasta fora do padrão, indique-a em Preferências > Bundle da AURORA.
 
-Os projetos são os `.spf` da AURORA: um projeto da AURORA abre no Studio, e
-o que o Studio grava continua legível pela AURORA. Os temporários ficam em
-`.aurora8/` (a AURORA usava `.aurora/`).
+Os projetos são os `.spf` da AURORA: um projeto da AURORA 7 abre na IDE, e
+o que a IDE grava continua legível pela AURORA 7. Os temporários ficam em
+`.aurora8/`; a `.aurora/` é da AURORA 7, e a IDE não mexe nela.
 
 **Abertura.** Enquanto o Studio abre, uma janela pequena mostra o logo do
-Lace sendo desenhado, com um sinal que corre pelos fios, e o que está
+AURORA sendo desenhado, com um sinal que corre pelos fios, e o que está
 carregando. Ela fica pelo menos uns 3 segundos, o tempo da animação, e a
-janela principal aparece quando o Lace foi achado e o último projeto
+janela principal aparece quando a AURORA foi achada e o último projeto
 reabriu, ou depois de 8 segundos, o que vier antes; aí a pequena fecha.
 
 **Tour pela interface.** Na primeira vez que o Studio abre num computador,
@@ -80,7 +80,7 @@ e item pode ser escondido (seção 2.4).
   compilar, simular, a onda e o hardware. Há outros dois modelos, com o
   botão Executar na barra de título ou no editor (seção 2.4).
 - **Barra de atividades**, à esquerda: as vistas da barra lateral esquerda
-  em cima; Ferramentas do Lace e Preferências embaixo. Clicar na vista
+  em cima; Ferramentas da AURORA e Preferências embaixo. Clicar na vista
   aberta esconde a barra lateral (Ctrl+B faz o mesmo).
 - **Explorador**, com três modos (seção 2.1): *Fontes*, *Hierarquia* e
   *Arquivos*. Os botões de cada modo ficam na linha do título, à direita.
@@ -99,7 +99,7 @@ e item pode ser escondido (seção 2.4).
   numa aba do editor. Ctrl+Alt+B esconde e mostra.
 - **Barra de status**: o que está sendo feito agora e há quanto tempo, ou
   como terminou a última operação. Clicar nos contadores de problemas abre
-  o painel Problemas; clicar no bundle abre as Ferramentas do Lace. No
+  o painel Problemas; clicar no bundle abre as Ferramentas da AURORA. No
   fim, três botões mostram e escondem a barra lateral esquerda, o painel e
   a barra lateral direita, como Ctrl+B, Ctrl+J e Ctrl+Alt+B; o da região
   escondida fica apagado.
@@ -109,7 +109,7 @@ Duplo clique num divisor volta ao tamanho do layout em uso.
 
 ### 2.1 Explorador
 
-**Fontes** mostra o projeto como o Lace o vê:
+**Fontes** mostra o projeto como a AURORA o vê:
 
 - *Módulos*: os sintetizáveis registrados, com o topo marcado pelo nome do
   módulo, e o Verilog que o build de cada processador gerou
@@ -167,7 +167,7 @@ pastas que você abre ficam lembradas por projeto.
 
 Com um arquivo do mesmo nome no destino, o Studio pergunta antes de
 substituir, e o que estava lá vai para a lixeira. O `.spf`, a pasta `.aurora8`
-e as pastas dos processadores não se movem: o Lace os acha pelo lugar.
+e as pastas dos processadores não se movem: a AURORA os acha pelo lugar.
 
 **Se o `.spf` for apagado** com o projeto aberto (pelo gerenciador de
 arquivos, pelo terminal, por um `git`), o Studio avisa que sem ele não há
@@ -342,9 +342,9 @@ a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
    Windows), criada se falta; Abrir projeto começa nela também. O nome usa
    só letras sem acento, números, `_` e `-`, começando por letra: ele vira
    pasta, `.spf` e parte do caminho que as ferramentas recebem. A regra é a
-   do Lace (`aurora new` recusa igual), e o diálogo avisa enquanto você digita.
+   da AURORA (`aurora new` recusa igual), e o diálogo avisa enquanto você digita.
 2. **Projeto > Novo módulo Verilog**: dê o nome do arquivo (`contador.v`).
-   O Lace cria o módulo a partir do modelo; o primeiro módulo vira o topo.
+   A AURORA cria o módulo a partir do modelo; o primeiro módulo vira o topo.
 3. Escreva o módulo e salve (Ctrl+S).
 4. **Projeto > Novo testbench**: o nome sugerido é `<topo>_tb.v`. Um
    testbench `X_tb.v` ou `tb_X.v` já sai instanciando o módulo `X` com todas
@@ -361,7 +361,7 @@ a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
 Arquivos que já existem entram por **Projeto > Adicionar arquivos Verilog
 ou cocotb** ou arrastando-os para Módulos ou Testbenches, no explorador
 (seção 2.1). O
-Lace decide pelo conteúdo se cada um é módulo ou testbench (a regra da
+AURORA decide pelo conteúdo se cada um é módulo ou testbench (a regra da
 AURORA); soltar em Testbenches marca o arquivo como testbench. Um arquivo de
 fora da pasta do projeto é registrado no lugar, sem cópia: no mesmo
 repositório git do projeto, o `.spf` guarda o caminho relativo
@@ -468,7 +468,7 @@ processador com o `clk` e o `rst`, as portas (I/O), as **instruções** e as
   ligada, na aba do processador).
 
 O layout sai das tabelas que o YANC deixa ao compilar; sem elas (um
-processador compilado fora do Lace), o PC e a linha aparecem como números.
+processador compilado fora da AURORA), o PC e a linha aparecem como números.
 Também aparecem como números quando o processador foi compilado de novo
 depois da simulação, porque as tabelas novas deslocariam o assembly e a
 linha: o resumo da aba avisa "compilado depois desta simulação", e basta
@@ -536,7 +536,7 @@ Os botões são os da barra de ferramentas clássica. Nos outros dois modelos
 (seção 2.4), as mesmas etapas ficam no menu da seta do **Executar**, com as
 mesmas teclas.
 
-| Botão | Tecla | Faz | Comando equivalente do Lace |
+| Botão | Tecla | Faz | Comando equivalente da AURORA |
 |---|---|---|---|
 | C± | F6 | compila os processadores (o alvo, ou todos) | `aurora build [-p NOME]` |
 | Verilog | F7 | verifica o Verilog com o Icarus, sem compilar os processadores (o Verilog do YANC entra como está no disco; compile antes com F6); com um processador no alvo, verifica o Verilog dele com o testbench do YANC | `aurora check [-p NOME]` |
@@ -547,7 +547,7 @@ mesmas teclas.
 | Sinais | | escolhe os sinais que a onda do projeto grava e mostra (seção 4.1); o número no botão é quantos itens a escolha tem | `aurora wave signals`, `aurora wave select` |
 | RTLViewer | F10 | compila, sintetiza e abre o esquemático (seção 7) | `aurora synth [-p NOME]`; o `--svg` desenha com o Graphviz |
 | (menu Fluxo) | F5 | compila os processadores, verifica e, se passar, simula | |
-| Parar | Shift+F5 | cancela a operação; a ferramenta é encerrada com tudo o que iniciou. A atualização do Lace não para no meio | Ctrl+C na CLI |
+| Parar | Shift+F5 | cancela a operação; a ferramenta é encerrada com tudo o que iniciou. A atualização da AURORA não para no meio | Ctrl+C na CLI |
 
 Antes de cada operação, o Studio salva os arquivos abertos: compila o que
 está na tela. Uma operação por vez; os botões ficam desabilitados enquanto
@@ -631,7 +631,7 @@ do cabeçalho; Exibir > Consoles também abre qualquer um.
 clicar abre o arquivo na linha. As mensagens `info` aparecem marcando a
 caixa "info". No topo ficam os avisos do `.spf` do projeto aberto (ferramenta
 `.spf`), que valem enquanto ele está aberto: um caminho de outra máquina
-(`C:\...`) achado dentro da pasta do projeto, que o Lace grava como o de
+(`C:\...`) achado dentro da pasta do projeto, que a AURORA grava como o de
 hoje na próxima mudança; um topo ou testbench escolhido fora da lista, que é
 ignorado; um processador com nome que não compila.
 
@@ -703,7 +703,7 @@ reinicia o terminal aberto com o shell novo.
 A vista **Exercícios** (Exibir > Exercícios, ou Ferramentas > Exercícios)
 é o `aurora learn` no Studio: exercícios curtos de Verilog, corrigidos a cada
 gravação contra uma solução de referência
-([docs/LEARN.md](../../docs/LEARN.md) do Lace). Eles vêm no componente
+([docs/LEARN.md](../../docs/LEARN.md) da AURORA). Eles vêm no componente
 `aurora-learn`; sem ele, a vista oferece instalá-lo.
 
 - **Criar a pasta de exercícios** escolhe onde, e cria lá a pasta
@@ -740,7 +740,7 @@ gravação contra uma solução de referência
   **Próximo** vai ao próximo exercício por resolver.
 
 Sem o componente, a vista também deixa escolher a pasta das trilhas. Quem
-escreve exercícios aponta Preferências > Bundle do Lace > **Pasta das
+escreve exercícios aponta Preferências > Bundle da AURORA > **Pasta das
 trilhas de exercícios** para a pasta `aurora-learn` do repositório, e testa a
 trilha sem instalar o componente. No `npm run tauri dev`, sem essa
 preferência, o Studio já usa a pasta `aurora-learn` do repositório.
@@ -754,7 +754,7 @@ vale para o outro (um comando dado num terminal fora do Studio vale quando
 a janela volta a ter o foco). Desligada, a placa sai da janela: a aba Placa
 FPGA, o botão **FPGA** da barra de ferramentas, as ações do menu Fluxo e da
 paleta, a seção FPGA do Fluxo, o terminal **Placa** e o Quartus Prime das
-Preferências e das Ferramentas do Lace. Desligar com a aba aberta a fecha.
+Preferências e das Ferramentas da AURORA. Desligar com a aba aberta a fecha.
 O `fpga.json` do projeto fica como está.
 
 A aba **Placa FPGA** (o botão **FPGA** na barra de ferramentas, ou Fluxo >
@@ -788,12 +788,12 @@ Quartus vai para o INFO (e para o terminal **Placa**, se ele estiver
 aberto), e os erros, para Problemas. No fim
 aparecem os recursos da FPGA e, por clock, a frequência pedida, a Fmax e as
 folgas. Sem o Quartus, os botões ficam desligados (Preferências > Bundle do
-Lace > Quartus Prime). Se o topo é um processador ainda não compilado, as
+AURORA > Quartus Prime). Se o topo é um processador ainda não compilado, as
 portas aparecem depois de **Compilar os processadores**.
 
-## 8. Ferramentas do Lace
+## 8. Ferramentas da AURORA
 
-A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
+A aba **Ferramentas da AURORA** (chave inglesa na barra de atividades) é o
 `aurora tools` com botões:
 
 - o bundle, a plataforma, a pasta e como o Studio a achou;
@@ -809,7 +809,7 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
 - **Procurar atualizações**: o `aurora update --check`, com a versão
   instalada, a da última release e a upstream de cada componente. O
   resultado aparece no alto da tela;
-- **Atualizar para X**: aparece depois da busca, quando há um Lace mais
+- **Atualizar para X**: aparece depois da busca, quando há uma AURORA mais
   novo publicado. Pede confirmação e roda o `aurora update` da sua
   instalação, que baixa só os pedaços do bundle com arquivos que mudaram e
   troca esses arquivos no lugar, nos três sistemas; cada pedaço aparece
@@ -820,11 +820,11 @@ A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
   componentes; no Windows, abre o assistente de instalação.
 
 O Studio procura sozinho: uns segundos depois de abrir e, aberto, a cada 12
-horas, ele roda o `aurora update --check` sem mostrar nada. Achando um Lace
+horas, ele roda o `aurora update --check` sem mostrar nada. Achando uma AURORA
 mais novo, oferece a atualização num diálogo, com **Atualizar e reiniciar**
 e **Depois**; se outro diálogo estiver aberto ou uma operação rodando, o
 aviso vem no canto da janela. A oferta de cada versão aparece uma vez por
-sessão, e o indicador **Lace X disponível**, na barra de status, fica até a
+sessão, e o indicador **AURORA X disponível**, na barra de status, fica até a
 atualização: o clique nele abre o diálogo de novo. Sem rede, a busca só
 tenta de novo na próxima vez. Preferências > Geral > Procurar atualizações
 desliga a busca automática; o botão desta tela continua valendo.
@@ -858,9 +858,9 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem), o modelo da barra de ferramentas e os itens dela e da barra de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
-| Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`), a pasta das trilhas de exercícios (o `AURORA_LEARN_DIR` da CLI; seção 7.1) e, com a placa FPGA ligada, a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
+| Bundle da AURORA | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`), a pasta das trilhas de exercícios (o `AURORA_LEARN_DIR` da CLI; seção 7.1) e, com a placa FPGA ligada, a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
 | Assistente | só com o Assistente de IA ligado (página Experimental): o executável do Claude Code, o modelo, se ele pode editar os arquivos do projeto e o executável `aurora` das ferramentas. Quem autentica é o Claude Code; o Studio não guarda chave |
-| Experimental | os recursos do Lace que ainda mudam muito, desligados por padrão: hoje, a **Placa FPGA** (seção 7.2) e o **Assistente de IA** (a vista Assistente, uma conversa com o Claude Code instalado na máquina sobre o projeto aberto, com as ferramentas do Lace; ligado, ganha a própria página de Preferências). Ficam no `experimental.json` da pasta de configuração do Lace (o caminho aparece na página), não no `settings.json`, e valem também para a CLI (`aurora experimental`) |
+| Experimental | os recursos da AURORA que ainda mudam muito, desligados por padrão: hoje, a **Placa FPGA** (seção 7.2) e o **Assistente de IA** (a vista Assistente, uma conversa com o Claude Code instalado na máquina sobre o projeto aberto, com as ferramentas da AURORA; ligado, ganha a própria página de Preferências). Ficam no `experimental.json` da pasta de configuração da AURORA (o caminho aparece na página), não no `settings.json`, e valem também para a CLI (`aurora experimental`) |
 
 As preferências ficam em `settings.json`, na pasta de configuração do
 aplicativo: `~/.config/com.nipscern.aurora-ide/` no Linux,
@@ -898,11 +898,11 @@ Gruvbox, Solarized) ou, num tema sem par, para o Atlas Branco ou o Atlas.
 
 ## 9.1 Sobre
 
-Ajuda > Sobre a AURORA IDE abre uma aba com a versão da IDE, a do bundle do Lace e a
+Ajuda > Sobre a AURORA IDE abre uma aba com a versão da IDE, a do bundle da AURORA e a
 de cada componente (com os que faltam instalar), as do Tauri e do motor de
 páginas do sistema (WebKitGTK, WebView2 ou WKWebView), as pastas das
 preferências e do bundle (o botão ao lado abre a pasta) e os links da
-documentação do Lace, do manual do SAPHO e do NIPS-CERN. **Copiar
+documentação da AURORA, do manual do SAPHO e do NIPS-CERN. **Copiar
 informações** põe tudo isso, em inglês, na área de transferência, para
 anexar a um relato de problema.
 
@@ -972,12 +972,12 @@ status está escondida; Esc duas vezes não sai do zen, Ctrl+K Z sai.
 
 | Sintoma | O que fazer |
 |---|---|
-| "Lace não encontrado" | instale o Lace, ou indique a pasta do bundle em Preferências > Bundle do Lace (a que tem `bundle.json`) |
-| "Falta um componente do bundle" | Ferramentas do Lace > Não instalados > Instalar |
+| "AURORA não encontrada" | instale a AURORA, ou indique a pasta do bundle em Preferências > Bundle da AURORA (a que tem `bundle.json`) |
+| "Falta um componente do bundle" | Ferramentas da AURORA > Não instalados > Instalar |
 | A simulação não termina | o testbench chega ao `$finish`? Use Parar, ou defina um prazo em Preferências > Simulação |
 | "O projeto não tem módulo de topo" | botão direito num módulo, no explorador > Definir como topo; ou Projeto > Escolher o módulo de topo |
 | "O processador ainda não foi compilado" | C± (F6) com o processador no alvo |
-| O Verilator falha por falta de compilador | instale g++ (ou clang++), make e Perl; ou indique a pasta deles em Preferências > Bundle do Lace > Compilador do Verilator |
+| O Verilator falha por falta de compilador | instale g++ (ou clang++), make e Perl; ou indique a pasta deles em Preferências > Bundle da AURORA > Compilador do Verilator |
 | O surfer-aurora fecha logo ao abrir | sem display gráfico, ou onda inválida; o log dele fica em `.aurora8/Temp/surfer/<onda>.log` |
 | A aba da onda diz que o bundle não traz o cliente web | o bundle é anterior ao cliente web do Surfer; a onda abre em janela até um bundle novo |
 | A aba da onda recusa uma onda grande | acima de 256 MB a onda abre em janela (o ícone de janela, no alto da aba) |

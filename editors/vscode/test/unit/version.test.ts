@@ -10,7 +10,7 @@ import {
   type FeatureSet,
 } from '../../src/aurora/version';
 
-describe('versão do Lace', () => {
+describe('versão da AURORA', () => {
   it('lê a linha do aurora --version', () => {
     assert.equal(parseVersionLine('aurora 0.6.0\n'), '0.6.0');
     assert.equal(parseVersionLine('aurora 1.2.3-dev.4'), '1.2.3');

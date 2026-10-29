@@ -1,4 +1,4 @@
-//! A cara do Lace no terminal: as cores da marca e a marca desenhada em
+//! A cara da AURORA no terminal: as cores da marca e a marca desenhada em
 //! braille, das mesmas linhas do `studio/public/brand/lace-icon.svg`.
 
 use std::sync::OnceLock;
@@ -41,7 +41,7 @@ pub fn accent() -> Color {
     }
 }
 
-/// O creme da marca (`#f4efe6`): o nome do Lace ao lado da marca.
+/// O creme da marca (`#f4efe6`): o nome da AURORA ao lado da marca.
 pub fn cream() -> Color {
     if truecolor() {
         Color::Rgb(0xf4, 0xef, 0xe6)

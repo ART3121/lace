@@ -153,7 +153,7 @@ fn installs_the_selection_and_replaces_it_later() {
             "uninstall.sh",
         ]
     );
-    // O Lace instalado abre o bundle: só os componentes escolhidos.
+    // A AURORA instalada abre o bundle: só os componentes escolhidos.
     let tc = aurora_core::Toolchain::open(prefix.join("toolchain").to_str().unwrap()).unwrap();
     assert!(tc.component("graphviz").is_none());
     #[cfg(unix)]
@@ -229,7 +229,7 @@ fn refuses_folders_that_are_not_lace_installations() {
     )
     .unwrap_err()
     .to_string();
-    assert!(err.contains("is not a Lace installation"), "{err}");
+    assert!(err.contains("is not an AURORA installation"), "{err}");
     assert_eq!(files_under(&prefix), ["tese.tex"]);
 }
 
@@ -385,7 +385,7 @@ fn adds_bundle_apps_without_reinstalling_aurora() {
     let mut other = index.clone();
     other.bundle = "outro".into();
     let err = add::installed(&other, &toolchain).unwrap_err();
-    assert!(err.to_string().contains("update Lace"), "{err}");
+    assert!(err.to_string().contains("update AURORA"), "{err}");
 }
 
 #[test]
@@ -408,7 +408,7 @@ fn install_events_have_the_console_line_with_the_labels() {
         components: Vec::new(),
         download: 0,
     };
-    assert_eq!(aurora.console_line(&label).as_deref(), Some("  [1/5] Lace"));
+    assert_eq!(aurora.console_line(&label).as_deref(), Some("  [1/5] AURORA"));
     assert_eq!(
         Event::Verifying.console_line(&label).as_deref(),
         Some("  Verifying the executables")
@@ -417,6 +417,6 @@ fn install_events_have_the_console_line_with_the_labels() {
     assert_eq!(Event::Progress { done: 10 }.console_line(&label), None);
     assert_eq!(
         aurora_installer::install::label(None, aurora_installer::update::AURORA),
-        "Lace"
+        "AURORA"
     );
 }

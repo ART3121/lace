@@ -33,7 +33,7 @@ impl Meter {
         }
     }
 
-    /// Começa um item: `label` (`[2/3] Lace Studio`), com `total` bytes a
+    /// Começa um item: `label` (`[2/3] AURORA IDE`), com `total` bytes a
     /// baixar (zero: desconhecido). Termina o anterior, se havia.
     pub fn start(&mut self, label: String, total: u64) {
         self.finish();
@@ -138,17 +138,17 @@ mod tests {
     fn the_line_fits_the_terminal() {
         for room in [39, 59, 79, 119] {
             for done in [0, 3_000_000, 14_000_000] {
-                let text = line("[2/3] Lace Studio", done, 14_000_000, room);
+                let text = line("[2/3] AURORA IDE", done, 14_000_000, room);
                 assert!(text.chars().count() <= room, "{room}: {text}");
                 assert!(text.contains('['), "{room}: {text}");
             }
         }
-        let text = line("[2/3] Lace Studio", 7_000_000, 14_000_000, 79);
+        let text = line("[2/3] AURORA IDE", 7_000_000, 14_000_000, 79);
         assert!(text.contains(" 50%"), "{text}");
         assert!(text.contains("6.7/13.4 MiB"), "{text}");
         assert_eq!(
-            line("[1/1] Lace", 1_048_576, 0, 79),
-            "  [1/1] Lace  1.0 MiB"
+            line("[1/1] AURORA", 1_048_576, 0, 79),
+            "  [1/1] AURORA  1.0 MiB"
         );
     }
 }

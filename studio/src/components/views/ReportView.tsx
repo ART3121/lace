@@ -1,4 +1,4 @@
-// Um relatório do histórico (`aurora report show`): o texto que o Lace grava
+// Um relatório do histórico (`aurora report show`): o texto que a AURORA grava
 // em .aurora8/reports/run-NNNNNN/report.txt.
 
 import { GitCompare, FileText } from 'lucide-react';

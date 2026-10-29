@@ -41,7 +41,7 @@
   },
   "contributes": {
     "configuration": {
-      "title": "Lace",
+      "title": "AURORA",
       "properties": {
         "aurora.path": {
           "type": "string",
@@ -58,7 +58,7 @@
           ],
           "default": "auto",
           "scope": "machine",
-          "markdownDescription": "Como a extensão fala com o aurora. `auto`: um `aurora serve` em segundo plano quando a versão instalada o tem (0.9.0 ou mais nova), senão um processo por comando. `cli`: sempre um processo por comando (`aurora --json` e `--events`). `serve`: só o `aurora serve`; com um Lace mais antigo a extensão fica indisponível."
+          "markdownDescription": "Como a extensão fala com o aurora. `auto`: um `aurora serve` em segundo plano quando a versão instalada o tem (0.9.0 ou mais nova), senão um processo por comando. `cli`: sempre um processo por comando (`aurora --json` e `--events`). `serve`: só o `aurora serve`; com uma AURORA mais antiga a extensão fica indisponível."
         },
         "aurora.check.lint": {
           "type": "boolean",
@@ -99,7 +99,7 @@
         "aurora.synth.openViewer": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Abre o RTL viewer, o esquemático interativo do Lace, depois de cada síntese."
+          "markdownDescription": "Abre o RTL viewer, o esquemático interativo da AURORA, depois de cada síntese."
         }
       }
     },
@@ -150,198 +150,198 @@
       {
         "command": "aurora.setTop",
         "title": "Definir como topo",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(target)"
       },
       {
         "command": "aurora.build",
         "title": "Compilar os processadores",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(tools)"
       },
       {
         "command": "aurora.buildProcessor",
         "title": "Compilar o processador",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(tools)"
       },
       {
         "command": "aurora.newProcessor",
         "title": "Novo processador SAPHO...",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(add)"
       },
       {
         "command": "aurora.configureProcessor",
         "title": "Configurar o processador...",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(settings-gear)"
       },
       {
         "command": "aurora.check",
         "title": "Verificar o projeto",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(checklist)"
       },
       {
         "command": "aurora.checkLint",
         "title": "Verificar o projeto com lint (Verilator)",
-        "category": "Lace"
+        "category": "AURORA"
       },
       {
         "command": "aurora.checkFile",
         "title": "Verificar este arquivo",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(checklist)"
       },
       {
         "command": "aurora.checkProcessor",
         "title": "Verificar o processador",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(checklist)"
       },
       {
         "command": "aurora.sim",
         "title": "Simular o projeto",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(play)"
       },
       {
         "command": "aurora.simFast",
         "title": "Simular o projeto rápido (Verilator, sem onda)",
-        "category": "Lace"
+        "category": "AURORA"
       },
       {
         "command": "aurora.simTestbench",
         "title": "Simular este testbench",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(play)"
       },
       {
         "command": "aurora.simProcessor",
         "title": "Simular o processador",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(play)"
       },
       {
         "command": "aurora.synth",
         "title": "Sintetizar o projeto",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(circuit-board)"
       },
       {
         "command": "aurora.synthProcessor",
         "title": "Sintetizar o processador",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(circuit-board)"
       },
       {
         "command": "aurora.rtlViewer",
         "title": "Abrir o RTL viewer",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(circuit-board)"
       },
       {
         "command": "aurora.wave",
         "title": "Abrir a onda",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(pulse)"
       },
       {
         "command": "aurora.waveProcessor",
         "title": "Abrir a onda do processador",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(pulse)"
       },
       {
         "command": "aurora.waveFile",
         "title": "Abrir no surfer-aurora",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(pulse)"
       },
       {
         "command": "aurora.cancel",
         "title": "Cancelar o que está rodando",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(debug-stop)"
       },
       {
         "command": "aurora.cancelRun",
         "title": "Cancelar",
-        "category": "Lace"
+        "category": "AURORA"
       },
       {
         "command": "aurora.add",
         "title": "Adicionar ao projeto",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(add)"
       },
       {
         "command": "aurora.addTestbench",
         "title": "Adicionar ao projeto como testbench",
-        "category": "Lace"
+        "category": "AURORA"
       },
       {
         "command": "aurora.newFile",
         "title": "Novo arquivo Verilog...",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(new-file)"
       },
       {
         "command": "aurora.remove",
         "title": "Tirar do projeto",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(remove)"
       },
       {
         "command": "aurora.rename",
         "title": "Renomear ou mover...",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(edit)"
       },
       {
         "command": "aurora.moveUp",
         "title": "Subir na ordem de compilação",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(arrow-up)"
       },
       {
         "command": "aurora.moveDown",
         "title": "Descer na ordem de compilação",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(arrow-down)"
       },
       {
         "command": "aurora.moveFirst",
         "title": "Primeiro na ordem de compilação",
-        "category": "Lace"
+        "category": "AURORA"
       },
       {
         "command": "aurora.moveLast",
         "title": "Último na ordem de compilação",
-        "category": "Lace"
+        "category": "AURORA"
       },
       {
         "command": "aurora.newProject",
         "title": "Novo projeto",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(new-folder)"
       },
       {
         "command": "aurora.refresh",
         "title": "Atualizar",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(refresh)"
       },
       {
         "command": "aurora.selectProject",
         "title": "Escolher o projeto ativo",
-        "category": "Lace"
+        "category": "AURORA"
       },
       {
         "command": "aurora.showTools",
         "title": "Mostrar a saída das ferramentas",
-        "category": "Lace",
+        "category": "AURORA",
         "icon": "$(output)"
       }
     ],
@@ -349,7 +349,7 @@
       "activitybar": [
         {
           "id": "aurora",
-          "title": "Lace",
+          "title": "AURORA",
           "icon": "media/lace.svg"
         }
       ]
@@ -370,17 +370,17 @@
       },
       {
         "view": "aurora.sources",
-        "contents": "O executável aurora não foi encontrado.\n[Configurar aurora.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Instalar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
+        "contents": "O executável aurora não foi encontrado.\n[Configurar aurora.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Instalar a AURORA](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
         "when": "aurora.state == missing"
       },
       {
         "view": "aurora.sources",
-        "contents": "Esta versão do aurora não serve para a extensão. Os detalhes estão na saída Lace.\n[Configurar aurora.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Atualizar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
+        "contents": "Esta versão do aurora não serve para a extensão. Os detalhes estão na saída AURORA.\n[Configurar aurora.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Atualizar a AURORA](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
         "when": "aurora.state == unsupported"
       },
       {
         "view": "aurora.sources",
-        "contents": "Esta pasta não tem um projeto do Lace (.spf).\n[Novo projeto](command:aurora.newProject)",
+        "contents": "Esta pasta não tem um projeto da AURORA (.spf).\n[Novo projeto](command:aurora.newProject)",
         "when": "aurora.state == noProject && workspaceFolderCount > 0"
       },
       {
@@ -390,7 +390,7 @@
       },
       {
         "view": "aurora.sources",
-        "contents": "Este workspace tem mais de um projeto do Lace.\n[Escolher o projeto ativo](command:aurora.selectProject)",
+        "contents": "Este workspace tem mais de um projeto da AURORA.\n[Escolher o projeto ativo](command:aurora.selectProject)",
         "when": "aurora.state == chooseProject"
       },
       {
@@ -774,7 +774,7 @@
     "colors": [
       {
         "id": "aurora.topForeground",
-        "description": "O arquivo de topo na vista Fontes do Lace.",
+        "description": "O arquivo de topo na vista Fontes da AURORA.",
         "defaults": {
           "dark": "charts.yellow",
           "light": "charts.yellow",
@@ -783,7 +783,7 @@
       },
       {
         "id": "aurora.simulatedForeground",
-        "description": "O testbench simulado na vista Fontes do Lace.",
+        "description": "O testbench simulado na vista Fontes da AURORA.",
         "defaults": {
           "dark": "charts.blue",
           "light": "charts.blue",
@@ -792,7 +792,7 @@
       },
       {
         "id": "aurora.builtForeground",
-        "description": "Um processador compilado na vista Fontes do Lace.",
+        "description": "Um processador compilado na vista Fontes da AURORA.",
         "defaults": {
           "dark": "charts.green",
           "light": "charts.green",
@@ -801,7 +801,7 @@
       },
       {
         "id": "aurora.notBuiltForeground",
-        "description": "Um processador não compilado na vista Fontes do Lace.",
+        "description": "Um processador não compilado na vista Fontes da AURORA.",
         "defaults": {
           "dark": "charts.orange",
           "light": "charts.orange",
@@ -810,7 +810,7 @@
       },
       {
         "id": "aurora.unregisteredForeground",
-        "description": "Um arquivo fora do projeto na vista Fontes do Lace.",
+        "description": "Um arquivo fora do projeto na vista Fontes da AURORA.",
         "defaults": {
           "dark": "gitDecoration.untrackedResourceForeground",
           "light": "gitDecoration.untrackedResourceForeground",

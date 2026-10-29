@@ -6,7 +6,7 @@
 // Cada item pode ser escondido pelo layout (o menu de contexto da barra, ou
 // Preferências > Layout da janela). A espera de um atalho de duas etapas e a
 // linha do Vim aparecem sempre: sem elas, o teclado parece não responder. O
-// aviso de Lace mais novo também, até a atualização.
+// aviso de AURORA mais nova também, até a atualização.
 
 import {
   CircleAlert,
@@ -86,7 +86,7 @@ function RegionToggles() {
   );
 }
 
-/** Lace mais novo publicado: o clique oferece a atualização. Depois dela,
+/** AURORA mais nova publicado: o clique oferece a atualização. Depois dela,
  * se o Studio não conseguiu sair (um arquivo que não gravou), o clique
  * reinicia ou fecha. */
 function UpdateIndicator() {

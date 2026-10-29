@@ -1,4 +1,4 @@
-// "Lace: Abrir a onda" dentro do VS Code, com o aurora falso (que não abre
+// "AURORA: Abrir a onda" dentro do VS Code, com o aurora falso (que não abre
 // Surfer nenhum: devolve o JSON que o aurora de verdade deu).
 
 import * as assert from 'node:assert/strict';
@@ -11,7 +11,7 @@ import type { WaveReport } from '../../src/aurora/aurora-types';
 import type { SourceNode } from '../../src/sources/provider';
 import { activate, lastCall, resetFake, run, spf, workspace } from './helpers';
 
-describe('Lace: Abrir a onda', () => {
+describe('AURORA: Abrir a onda', () => {
   before(async () => {
     await resetFake(await activate());
   });

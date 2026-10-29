@@ -1,8 +1,8 @@
-//! Os casos de teste do próprio YANC, rodados pelo Lace.
+//! Os casos de teste do próprio YANC, rodados pela AURORA.
 //!
 //! - `CMMComp/Tests/<nome>/<nome>.cmm`: precisa compilar até o fim, e o
 //!   `.asm` tem que ser idêntico ao `golden.asm` (o mesmo critério do
-//!   `Scripts/regress.sh`). Isso confere que o Lace chama o `cmmcomp` do
+//!   `Scripts/regress.sh`). Isso confere que a AURORA chama o `cmmcomp` do
 //!   mesmo jeito que o YANC se testa. Os fontes vêm de `AURORA_TEST_YANC_SRC`
 //!   (padrão: `vendor/yanc`), que tem que ser da versão do YANC do bundle.
 //! - `CMMComp/NegTests/manifest.txt`: cada fixture tem que ser recusada com a
@@ -13,7 +13,7 @@ mod common;
 use camino::Utf8Path;
 use aurora_core::{BuildOptions, Control, Project, Severity, Status, build};
 
-/// Monta o caso como um processador do Lace em `processor`: o caso do YANC
+/// Monta o caso como um processador da AURORA em `processor`: o caso do YANC
 /// 7.1 já tem a estrutura dele, com o fonte e os arquivos (os de arrays, as
 /// entradas) lado a lado. O que o regress compara (`golden*`) fica de fora.
 fn copy_case(case: &Utf8Path, processor: &Utf8Path) {
@@ -120,7 +120,7 @@ fn cmm_negative_tests_are_rejected_with_expected_message() {
         // `begin.cmm`, `bad-name.cmm`).
         let source = std::fs::read_to_string(neg.join(fixture)).unwrap();
         let name = fixture.trim_end_matches(".cmm").to_owned();
-        // Um nome que o Lace não aceita para processador: recusado antes do
+        // Um nome que a AURORA não aceita para processador: recusado antes do
         // cmmcomp, que o recusaria também.
         if aurora_core::validate_processor_name(&name).is_err() {
             continue;

@@ -118,7 +118,7 @@ fn commands_without_tools_match_their_schemas() {
     assert_eq!(error["error"]["code"], "cli");
     conforms("error", &error);
 
-    // Os recursos experimentais, com a pasta de configuração do Lace numa
+    // Os recursos experimentais, com a pasta de configuração da AURORA numa
     // pasta só do teste: a placa FPGA desligada e depois ligada.
     let (_config_guard, config) = tempdir();
     let experimental = || {

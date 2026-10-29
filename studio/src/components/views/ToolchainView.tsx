@@ -1,4 +1,4 @@
-// O bundle do Lace: o equivalente gráfico do `aurora tools`, com a conferência
+// O bundle da AURORA: o equivalente gráfico do `aurora tools`, com a conferência
 // dos hashes, a busca de atualização (`aurora update --check`), a atualização
 // (`aurora update --yes`, depois de confirmar, e o reinício do Studio, em
 // state/updates.ts) e a instalação de componentes (`aurora install`). A saída
@@ -167,7 +167,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
             </thead>
             <tbody>
               <tr>
-                <td>Lace</td>
+                <td>AURORA</td>
                 <td className="mono">{updates.aurora.installed}</td>
                 <td className="mono">
                   {updates.aurora.latest} {updates.aurora.newer && <Badge tone="warn">new</Badge>}

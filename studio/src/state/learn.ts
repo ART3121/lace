@@ -2,7 +2,7 @@
 // entre as sessões), a última correção de cada exercício e as dicas à
 // mostra.
 //
-// Cada exercício é um projeto Lace. Escolher um torna-o o atual e abre o
+// Cada exercício é um projeto AURORA. Escolher um torna-o o atual e abre o
 // projeto dele, o arquivo do aluno à esquerda e o enunciado à direita, sem
 // corrigir. Cada gravação do arquivo (no Studio ou fora dele, pelo vigia de
 // arquivos) corrige, como o modo watch do `aurora learn`. A correção é a

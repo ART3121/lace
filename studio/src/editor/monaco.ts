@@ -1,5 +1,5 @@
 // O Monaco: workers, linguagens, temas, um modelo de texto por arquivo e os
-// marcadores dos diagnósticos do Lace.
+// marcadores dos diagnósticos da AURORA.
 //
 // Há uma instância só do editor (MonacoHost); cada arquivo aberto é um
 // modelo, identificado pelo caminho. Trocar de aba troca o modelo e
@@ -323,7 +323,7 @@ function applyMarkers(model: monaco.editor.ITextModel): void {
   );
 }
 
-/** Troca os marcadores do Lace pelos diagnósticos da última operação. Só os
+/** Troca os marcadores da AURORA pelos diagnósticos da última operação. Só os
  * que têm arquivo e linha viram marcador; o resto fica no painel Problemas. */
 export function setDiagnostics(diagnostics: Diagnostic[]): void {
   const next = new Map<string, monaco.editor.IMarkerData[]>();

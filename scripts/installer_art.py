@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gera as imagens do assistente de instalação do Windows a partir da marca.
 
-Lê os SVG de studio/public/brand (os fios da marca e o nome "Lace") e grava
+Lê os SVG de studio/public/brand (os fios da marca e o nome "AURORA") e grava
 em installer/windows/art/ os PNG que o aurora.iss usa:
 
   wizard-164.png, wizard-328.png   a faixa da esquerda das páginas de
@@ -87,7 +87,7 @@ def flatten(d):
 
 
 def brand_paths():
-    """Os fios da marca (polilinhas) e o nome "Lace" (polígonos), no quadro
+    """Os fios da marca (polilinhas) e o nome "AURORA" (polígonos), no quadro
     do lockup (206 por 64)."""
     svg = (BRAND / "lace-lockup.svg").read_text(encoding="utf-8")
     stroke_group = re.search(r'<g fill="none" stroke="[^"]+"[^>]*>(.*?)</g>', svg, re.S).group(1)

@@ -1,5 +1,5 @@
 // As regras de nome de arquivo que decidem onde "Definir como topo" aparece.
-// Repetem as do Core para o menu sumir antes de o Lace recusar; quem decide
+// Repetem as do Core para o menu sumir antes de a AURORA recusar; quem decide
 // continua sendo o `aurora top`. A mesma regra está, como expressão regular,
 // nas cláusulas `when` do package.json, e um teste confere que as duas batem.
 

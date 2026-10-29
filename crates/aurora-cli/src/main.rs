@@ -1,4 +1,4 @@
-//! `aurora`: a linha de comando do Lace. Casca fina sobre o `aurora-core`:
+//! `aurora`: a linha de comando da AURORA. Casca fina sobre o `aurora-core`:
 //! parseia argumentos, chama o Core e formata a saída. Nenhuma regra de
 //! negócio mora aqui.
 
@@ -38,7 +38,7 @@ use settings::ToolchainArgs;
 /// Código de saída quando a operação rodou e não deu certo (erro de
 /// compilação, simulação que falhou ou passou do prazo).
 const EXIT_FAILED: u8 = 1;
-/// Código de saída quando o Lace nem conseguiu rodar (toolchain, projeto, I/O).
+/// Código de saída quando a AURORA nem conseguiu rodar (toolchain, projeto, I/O).
 const EXIT_ERROR: u8 = 2;
 /// Código de saída quando o usuário cancelou (Ctrl+C ou SIGTERM), o
 /// mesmo que o shell usa para um programa interrompido pelo Ctrl+C.
@@ -188,11 +188,11 @@ enum Command {
     Fpga(FpgaCommand),
     /// Turn experimental components on and off (no subcommand: list them)
     Experimental(ExperimentalArgs),
-    /// Serve the Lace API to another program over stdin and stdout: the Lace protocol (JSON-RPC 2.0, one message per line), or MCP when the client is an AI agent
+    /// Serve the AURORA API to another program over stdin and stdout: the AURORA protocol (JSON-RPC 2.0, one message per line), or MCP when the client is an AI agent
     Serve(serve::ServeArgs),
-    /// Experimental, off by default: the Lace server always in MCP, for an AI agent; aurora serve also answers MCP (aurora experimental enable assistant)
+    /// Experimental, off by default: the AURORA server always in MCP, for an AI agent; aurora serve also answers MCP (aurora experimental enable assistant)
     Mcp(mcp::McpArgs),
-    /// Experimental, off by default: chat with the Lace assistant (Claude Code with the Lace tools) in the terminal (aurora experimental enable assistant)
+    /// Experimental, off by default: chat with the AURORA assistant (Claude Code with the AURORA tools) in the terminal (aurora experimental enable assistant)
     Chat(chat::ChatArgs),
     /// Show the bundled tools and their versions
     Tools {
@@ -202,7 +202,7 @@ enum Command {
     },
     /// Install bundle apps (none: choose from a list)
     Install(InstallArgs),
-    /// Update Lace and its bundle to the latest release
+    /// Update AURORA and its bundle to the latest release
     Update {
         /// Only compare installed and published versions
         #[arg(long)]
@@ -213,7 +213,7 @@ enum Command {
         /// Run the whole installer of the new version, instead of downloading only the files that changed
         #[arg(long)]
         full: bool,
-        /// Update from a local Lace installer of the new version (folder, .tar.gz, payload/, or a folder with the release files), without network
+        /// Update from a local AURORA installer of the new version (folder, .tar.gz, payload/, or a folder with the release files), without network
         #[arg(long, value_name = "PATH", conflicts_with = "full")]
         from: Option<Utf8PathBuf>,
         /// Run by AURORA IDE, which closes for the update: on Windows, the setup wizard opens it again when it finishes
@@ -233,7 +233,7 @@ enum Command {
         #[arg(long, value_name = "DIR")]
         prefix: Utf8PathBuf,
     },
-    /// Uninstall Lace and its bundle
+    /// Uninstall AURORA and its bundle
     Uninstall {
         /// Do not ask for confirmation
         #[arg(short, long)]
@@ -481,7 +481,7 @@ struct InstallArgs {
     /// yanc, icarus, verilator, cocotb, yosys, graphviz, surfer-aurora, openfpgaloader, studio, aurora-learn
     #[arg(value_name = "APP")]
     components: Vec<String>,
-    /// Install from a local Lace installer (folder, .tar.gz, payload/, or a folder with the release files) instead of downloading
+    /// Install from a local AURORA installer (folder, .tar.gz, payload/, or a folder with the release files) instead of downloading
     #[arg(long, value_name = "PATH")]
     from: Option<Utf8PathBuf>,
 }
@@ -638,7 +638,7 @@ fn main() -> ExitCode {
 }
 
 impl Command {
-    /// O comando avisa no fim quando há Lace mais novo (`update_check`). Fora
+    /// O comando avisa no fim quando há AURORA mais nova (`update_check`). Fora
     /// ficam o `aurora update`, que já compara as versões, o `aurora uninstall`
     /// e os comandos internos.
     fn checks_for_updates(&self) -> bool {
@@ -657,7 +657,7 @@ impl Command {
 
 /// Um erro que o clap achou nos argumentos. A ajuda e a versão saem como o
 /// clap as escreve. Os erros saem com `Error:` e `Tip:` em maiúscula, como os
-/// do Lace, e com cor nas mesmas condições que o clap usaria (o `anstream`
+/// da AURORA, e com cor nas mesmas condições que o clap usaria (o `anstream`
 /// tira os códigos fora de um terminal ou com `NO_COLOR`).
 fn usage_error(error: &clap::Error) -> ExitCode {
     use clap::error::ErrorKind;
@@ -738,7 +738,7 @@ fn capitalize(text: &str) -> String {
 /// iniciou, e o comando termina mostrando o que chegou a rodar. Com
 /// `exit_on_second`, o segundo sai na hora, com 130.
 ///
-/// Sem isto, o sinal mataria só o Lace: as ferramentas rodam num grupo de
+/// Sem isto, o sinal mataria só a AURORA: as ferramentas rodam num grupo de
 /// processos próprio e continuariam rodando sozinhas.
 fn cancel_on_signals(exit_on_second: bool) -> CancelToken {
     use signal_hook::consts::signal::{SIGINT, SIGTERM};

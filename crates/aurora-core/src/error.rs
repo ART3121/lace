@@ -2,7 +2,7 @@
 //!
 //! # Duas categorias de falha
 //!
-//! O Lace separa "não consegui rodar" de "rodei e deu errado":
+//! A AURORA separa "não consegui rodar" de "rodei e deu errado":
 //!
 //! - **`Err(AuroraError)`**: a operação nem começou ou foi interrompida por algo
 //!   fora do código do usuário. Bundle ausente, projeto mal formado, falha de
@@ -45,7 +45,7 @@ use serde_json::{Value, json};
 /// Atalho para `Result<T, AuroraError>`, usado em toda a API.
 pub type Result<T, E = AuroraError> = std::result::Result<T, E>;
 
-/// Tudo que impede uma operação do Lace de rodar.
+/// Tudo que impede uma operação da AURORA de rodar.
 ///
 /// O enum é `#[non_exhaustive]`: novas variantes podem surgir sem quebrar a
 /// API, então todo `match` precisa de um braço `_`. A mensagem de
@@ -54,18 +54,18 @@ pub type Result<T, E = AuroraError> = std::result::Result<T, E>;
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum AuroraError {
-    /// Não há bundle instalado junto com o Lace.
+    /// Não há bundle instalado junto com a AURORA.
     ///
-    /// Vem de [`Toolchain::locate`](crate::Toolchain::locate). O Lace só
+    /// Vem de [`Toolchain::locate`](crate::Toolchain::locate). A AURORA só
     /// executa ferramentas do bundle; sem ele, nada que dependa de ferramenta
     /// roda.
     #[error("Tool bundle not found (searched: {})", searched.iter().map(|p| p.as_str()).collect::<Vec<_>>().join(", "))]
     BundleNotFound {
-        /// Os diretórios em que o Lace procurou um `bundle.json`.
+        /// Os diretórios em que a AURORA procurou um `bundle.json`.
         searched: Vec<Utf8PathBuf>,
     },
 
-    /// O diretório não é um bundle válido para este Lace: sem `bundle.json`,
+    /// O diretório não é um bundle válido para esta AURORA: sem `bundle.json`,
     /// JSON inválido, formato desconhecido, montado para outra plataforma, ou
     /// com componente ausente ou apontando para fora do bundle.
     ///
@@ -78,7 +78,7 @@ pub enum AuroraError {
         reason: String,
     },
 
-    /// O Lace está rodando numa plataforma para a qual não há bundle (só
+    /// A AURORA está rodando numa plataforma para a qual não há bundle (só
     /// Linux x64, macOS arm64 e Windows x64).
     #[error(
         "Unsupported platform: {os} {arch} (bundles exist for linux-x64, darwin-arm64 and windows-x64)"
@@ -154,7 +154,7 @@ pub enum AuroraError {
 
     /// O projeto no disco não está como deveria: diretório ausente, arquivo
     /// onde deveria haver diretório, arquivo registrado que sumiu, arquivo que
-    /// o Lace se recusa a sobrescrever.
+    /// a AURORA se recusa a sobrescrever.
     #[error("Invalid project at {path}: {reason}")]
     InvalidProject {
         /// O caminho com problema.
@@ -185,7 +185,7 @@ pub enum AuroraError {
         reason: String,
     },
 
-    /// O destino já existe. Nada foi alterado: o Lace não sobrescreve.
+    /// O destino já existe. Nada foi alterado: a AURORA não sobrescreve.
     #[error("{0} already exists")]
     PathExists(Utf8PathBuf),
 
@@ -262,14 +262,14 @@ pub enum AuroraError {
     },
 
     /// O YANC do bundle é anterior à 7.1, que mudou a linha de comando e as
-    /// pastas: o Lace não sabe mais usá-lo.
+    /// pastas: a AURORA não sabe mais usá-lo.
     ///
     /// Vem de [`build`](crate::build), antes de rodar qualquer compilador.
-    #[error("The bundle has YANC {found}, and Lace needs YANC {minimum} or newer")]
+    #[error("The bundle has YANC {found}, and AURORA needs YANC {minimum} or newer")]
     YancTooOld {
         /// A versão do componente no manifesto do bundle.
         found: String,
-        /// A menor que o Lace usa.
+        /// A menor que a AURORA usa.
         minimum: String,
     },
 
@@ -405,13 +405,13 @@ pub enum AuroraError {
         reason: String,
     },
 
-    /// Outra operação do Lace (build ou simulação) está usando o mesmo
+    /// Outra operação da AURORA (build ou simulação) está usando o mesmo
     /// processador, ou o projeto: duas ao mesmo tempo regravariam os mesmos
     /// arquivos e quebrariam as duas. Vem de [`build`](crate::build),
     /// [`simulate`](crate::simulate) e
     /// [`simulate_project`](crate::simulate_project); nada foi alterado.
     #[error(
-        "Another Lace operation (a build, a simulation, a synthesis, maybe in another window) is using the files of {name}; try again when it finishes"
+        "Another AURORA operation (a build, a simulation, a synthesis, maybe in another window) is using the files of {name}; try again when it finishes"
     )]
     OperationInProgress {
         /// O processador ou o projeto.
@@ -446,7 +446,7 @@ pub enum AuroraError {
 
     /// Nenhuma pasta, da pedida até a raiz do sistema, tem um `.spf`
     /// ([`Project::discover`](crate::Project::discover)).
-    #[error("No Lace project here: no .spf file in {0} or in any folder above it")]
+    #[error("Na AURORA project here: no .spf file in {0} or in any folder above it")]
     ProjectNotFound(Utf8PathBuf),
 
     /// O projeto ainda não tem relatório guardado: nenhuma operação foi
@@ -459,7 +459,7 @@ pub enum AuroraError {
     ReportNotFound(String),
 
     /// Um relatório guardado não pôde ser lido: o `record.json` sumiu, não é
-    /// JSON, ou é de um formato que este Lace não entende.
+    /// JSON, ou é de um formato que esta AURORA não entende.
     #[error("Invalid report {path}: {reason}")]
     InvalidReport {
         /// O arquivo.
@@ -571,14 +571,14 @@ pub enum AuroraError {
     /// O pedido não é atendido aqui: a correção de um exercício
     /// ([`FlowRequest::Learn`](crate::flows::FlowRequest::Learn)) chega ao
     /// [`flows::run`](crate::flows::run), mas quem a roda é o servidor do
-    /// Lace, que linka o aurora-learn.
+    /// AURORA, que linka o aurora-learn.
     #[error("{0}")]
     Unsupported(String),
 
-    /// Falha de I/O do próprio Lace: criar diretório, ler ou gravar arquivo.
+    /// Falha de I/O da própria AURORA: criar diretório, ler ou gravar arquivo.
     #[error("{context}: {path}: {source}")]
     Io {
-        /// O que o Lace estava fazendo, em texto ("Creating directory").
+        /// O que a AURORA estava fazendo, em texto ("Creating directory").
         context: &'static str,
         /// O caminho envolvido.
         path: Utf8PathBuf,

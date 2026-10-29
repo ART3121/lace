@@ -1,7 +1,7 @@
-//! AURORA IDE: o backend do ambiente gráfico do Lace.
+//! AURORA IDE: o backend do ambiente gráfico da AURORA.
 //!
-//! O backend é um cliente do servidor do Lace (`aurora serve`), como a
-//! extensão do VS Code: o que é do Lace (o projeto, os fluxos, o histórico,
+//! O backend é um cliente do servidor da AURORA (`aurora serve`), como a
+//! extensão do VS Code: o que é da AURORA (o projeto, os fluxos, o histórico,
 //! instalar e atualizar) é um pedido do protocolo ao servidor, e o que fica
 //! aqui é do Studio: as janelas, os arquivos, o terminal, a vigia da pasta,
 //! as preferências e a onda numa aba. A interface (React, em `src/`) só
@@ -17,7 +17,7 @@
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
-//! | [`server`] | o servidor do Lace (`aurora serve`) e o `aurora_call`, por onde passam os métodos do protocolo |
+//! | [`server`] | o servidor da AURORA (`aurora serve`) e o `aurora_call`, por onde passam os métodos do protocolo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
 //! está em `docs/IPC.md`.
@@ -227,7 +227,7 @@ mod signals {
     //! SIGTERM, SIGINT e SIGHUP fecham o Studio do jeito certo: cancelam a
     //! operação rodando antes de sair. Sem isso, um sinal mataria só o
     //! Studio, e a ferramenta, num grupo de processos próprio, continuaria
-    //! rodando (API.md do Lace, 9, "Limites").
+    //! rodando (API.md da AURORA, 9, "Limites").
 
     use signal_hook::consts::{SIGHUP, SIGINT, SIGTERM};
     use signal_hook::iterator::Signals;

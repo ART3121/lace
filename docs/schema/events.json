@@ -43,7 +43,7 @@
           ]
         },
         {
-          "description": "Uma linha que o processo escreveu, sem o fim de linha. Linhas de\nstdout e de stderr chegam na ordem em que o Lace as leu, que pode não\nser exatamente a ordem em que o processo as escreveu.",
+          "description": "Uma linha que o processo escreveu, sem o fim de linha. Linhas de\nstdout e de stderr chegam na ordem em que a AURORA as leu, que pode não\nser exatamente a ordem em que o processo as escreveu.",
           "type": "object",
           "properties": {
             "step": {
@@ -203,7 +203,7 @@
       ]
     },
     "Tool": {
-      "description": "As ferramentas que o Lace sabe orquestrar.\n\nEm JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do\nprograma ([`Tool::binary_name`]).",
+      "description": "As ferramentas que a AURORA sabe orquestrar.\n\nEm JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do\nprograma ([`Tool::binary_name`]).",
       "oneOf": [
         {
           "description": "Compilador C± do YANC: `.cmm` para `.asm`.",
@@ -278,7 +278,7 @@
       ]
     },
     "Invocation": {
-      "description": "Uma execução de programa, totalmente especificada: o registro exato do\nque o Lace rodou, presente em todo [`StepReport`](crate::StepReport).\n\nSó o Core monta invocações; para os clientes o tipo é somente leitura.\nReproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,\ncom um ambiente vazio mais `env` e as variáveis de `inherit`.\n\nEm JSON:\n\n```json\n{ \"program\": \"/opt/yanc/bin/cmmcomp\",\n  \"args\": [\"-i\", \"soma.cmm\", \"-n\", \"soma\", \"-p\", \"/p/soma\", \"...\"],\n  \"cwd\": \"/p/soma\",\n  \"env\": [],\n  \"inherit\": [] }\n```",
+      "description": "Uma execução de programa, totalmente especificada: o registro exato do\nque a AURORA rodou, presente em todo [`StepReport`](crate::StepReport).\n\nSó o Core monta invocações; para os clientes o tipo é somente leitura.\nReproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,\ncom um ambiente vazio mais `env` e as variáveis de `inherit`.\n\nEm JSON:\n\n```json\n{ \"program\": \"/opt/yanc/bin/cmmcomp\",\n  \"args\": [\"-i\", \"soma.cmm\", \"-n\", \"soma\", \"-p\", \"/p/soma\", \"...\"],\n  \"cwd\": \"/p/soma\",\n  \"env\": [],\n  \"inherit\": [] }\n```",
       "type": "object",
       "properties": {
         "program": {
@@ -297,7 +297,7 @@
           "type": "string"
         },
         "env": {
-          "description": "Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`.",
+          "description": "Variáveis definidas pela AURORA, somadas às de `INHERITED_ENV`.",
           "type": "array",
           "items": {
             "type": "array",
@@ -314,7 +314,7 @@
           }
         },
         "inherit": {
-          "description": "Nomes de variáveis copiadas do ambiente do Lace, quando existirem.\nSó os nomes aparecem no relatório.",
+          "description": "Nomes de variáveis copiadas do ambiente da AURORA, quando existirem.\nSó os nomes aparecem no relatório.",
           "type": "array",
           "items": {
             "type": "string"
@@ -403,7 +403,7 @@
           ]
         },
         {
-          "description": "O Lace encerrou o processo porque a operação foi cancelada\n([`CancelToken::cancel`]).",
+          "description": "A AURORA encerrou o processo porque a operação foi cancelada\n([`CancelToken::cancel`]).",
           "type": "object",
           "properties": {
             "kind": {
@@ -416,7 +416,7 @@
           ]
         },
         {
-          "description": "O Lace encerrou o processo porque ele passou do prazo (por exemplo,\n[`SimulationOptions::timeout`](crate::SimulationOptions::timeout)).",
+          "description": "A AURORA encerrou o processo porque ele passou do prazo (por exemplo,\n[`SimulationOptions::timeout`](crate::SimulationOptions::timeout)).",
           "type": "object",
           "properties": {
             "kind": {

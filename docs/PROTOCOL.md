@@ -38,9 +38,9 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`wave.signals`](#metodo-wave-signals) | [`WaveSignals`](#tipo-wavesignals) | A árvore de sinais do testbench do projeto, com a escolha gravada. |
 | [`wave.choose`](#metodo-wave-choose) | [`WaveChoiceOutcome`](#tipo-wavechoiceoutcome) | Muda a escolha de sinais. |
 | [`wave.reset_layout`](#metodo-wave-reset-layout) | `boolean` | Apaga o layout salvo de uma onda. |
-| [`wave.layout`](#metodo-wave-layout) | [`WaveLayoutInfo`](#tipo-wavelayoutinfo) | O layout do Lace para uma onda, para um visualizador próprio (a aba de onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto da onda (que o gerado atualiza enquanto o usuário não salvar o dele) e o de um exercício do `aurora learn`. |
+| [`wave.layout`](#metodo-wave-layout) | [`WaveLayoutInfo`](#tipo-wavelayoutinfo) | O layout da AURORA para uma onda, para um visualizador próprio (a aba de onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto da onda (que o gerado atualiza enquanto o usuário não salvar o dele) e o de um exercício do `aurora learn`. |
 | [`verilog.modules`](#metodo-verilog-modules) | lista de `string` | Os módulos declarados num texto Verilog, sem os comentados, na ordem (o contorno de um editor). |
-| [`verilog.testbench_names`](#metodo-verilog-testbench-names) | lista de `boolean` | Quais nomes de arquivo são de testbench pela regra do Lace (`tb_<nome>.v`, `<nome>_tb.v`). |
+| [`verilog.testbench_names`](#metodo-verilog-testbench-names) | lista de `boolean` | Quais nomes de arquivo são de testbench pela regra da AURORA (`tb_<nome>.v`, `<nome>_tb.v`). |
 | [`history.list`](#metodo-history-list) | lista de [`RunSummary`](#tipo-runsummary) | Os relatórios do projeto, do mais novo para o mais antigo. |
 | [`history.show`](#metodo-history-show) | [`ReportView`](#tipo-reportview) | Um relatório (o mais novo sem `id`). |
 | [`history.compare`](#metodo-history-compare) | [`RunComparison`](#tipo-runcomparison) | Compara dois relatórios. |
@@ -58,7 +58,7 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`fpga.status`](#metodo-fpga-status) | [`BitstreamState`](#tipo-bitstreamstate) | O arquivo de gravação da última compilação e se serve. |
 | [`fpga.cables`](#metodo-fpga-cables) | lista de `string` | Os cabos de gravação ligados. |
 | [`fpga.top`](#metodo-fpga-top) | [`ModuleInterface`](#tipo-moduleinterface) | O módulo que vai para a placa e as portas dele, para montar as ligações antes de estarem certas. |
-| [`update.check`](#metodo-update-check) | [`UpdateReport`](#tipo-updatereport) | As versões: este Lace, a última release, o bundle, cada componente. |
+| [`update.check`](#metodo-update-check) | [`UpdateReport`](#tipo-updatereport) | As versões: esta AURORA, a última release, o bundle, cada componente. |
 | [`update.apply`](#metodo-update-apply) | [`UpdateReport`](#tipo-updatereport) | Atualiza a instalação. |
 | [`install.add`](#metodo-install-add) | [`InstallReport`](#tipo-installreport) | Instala componentes do bundle. |
 | [`learn.check`](#metodo-learn-check) | [`LearnCheckOutcome`](#tipo-learncheckoutcome) | Corrige um exercício do `aurora learn` (ou todos). |
@@ -205,8 +205,8 @@ dia; com `after`, só registra um movimento já feito. Resposta:
 | `project` | `string` | sim | O projeto. |
 | `from` | `string` | sim | De onde. |
 | `to` | `string` | sim | Para onde (o caminho final). |
-| `after` | `boolean` | não (padrão: `false`) | O movimento já aconteceu fora do Lace. |
-| `overwrite` | `boolean` | não (padrão: `false`) | Se o destino existe, ele vai para a lixeira do sistema e o movimento acontece; sem isso, `path_exists`. O que o Lace mantém no lugar, a pasta do projeto e uma pasta que contém a origem não são substituídos (`cannot_replace`). Não vale com `after`. |
+| `after` | `boolean` | não (padrão: `false`) | O movimento já aconteceu fora da AURORA. |
+| `overwrite` | `boolean` | não (padrão: `false`) | Se o destino existe, ele vai para a lixeira do sistema e o movimento acontece; sem isso, `path_exists`. O que a AURORA mantém no lugar, a pasta do projeto e uma pasta que contém a origem não são substituídos (`cannot_replace`). Não vale com `after`. |
 
 Resultado: [`MovedPath`](#tipo-movedpath).
 
@@ -409,7 +409,7 @@ Resultado: `boolean`.
 
 #### `wave.layout`
 
-O layout do Lace para uma onda, para um visualizador próprio (a aba de
+O layout da AURORA para uma onda, para um visualizador próprio (a aba de
 onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto
 da onda (que o gerado atualiza enquanto o usuário não salvar o dele)
 e o de um exercício do `aurora learn`. Resposta: [`WaveLayoutInfo`](#tipo-wavelayoutinfo).
@@ -439,7 +439,7 @@ Resultado: lista de `string`.
 
 #### `verilog.testbench_names`
 
-Quais nomes de arquivo são de testbench pela regra do Lace
+Quais nomes de arquivo são de testbench pela regra da AURORA
 (`tb_<nome>.v`, `<nome>_tb.v`). Resposta: um sim ou não por nome, na
 ordem.
 
@@ -677,7 +677,7 @@ Resultado: [`ModuleInterface`](#tipo-moduleinterface).
 
 #### `update.check`
 
-As versões: este Lace, a última release, o bundle, cada componente.
+As versões: esta AURORA, a última release, o bundle, cada componente.
 Resposta: o relatório do instalador.
 
 Sem parâmetros.
@@ -696,7 +696,7 @@ seguida: o binário dele foi trocado.
 |---|---|---|---|
 | `full` | `boolean` | não (padrão: `false`) | O instalador inteiro, sem tentar por componentes. |
 | `from` | `string` \| `null` | não (padrão: `null`) | Um instalador no disco, sem rede. |
-| `reopen_ide` | `boolean` | não (padrão: `false`) | No Windows, quando o assistente de instalação roda: abrir o Lace Studio quando ele terminar (o `--reopen-ide` da CLI). O Studio pede isso e fecha, para o assistente trocar os arquivos dele. |
+| `reopen_ide` | `boolean` | não (padrão: `false`) | No Windows, quando o assistente de instalação roda: abrir a AURORA Studio quando ele terminar (o `--reopen-ide` da CLI). O Studio pede isso e fecha, para o assistente trocar os arquivos dele. |
 
 Resultado: [`UpdateReport`](#tipo-updatereport).
 
@@ -843,7 +843,7 @@ Um processador terminou de compilar.
 
 ### `install`
 
-Progresso de uma instalação ou atualização do Lace (o evento do
+Progresso de uma instalação ou atualização da AURORA (o evento do
 instalador, serializado por ele; o core não conhece o tipo).
 
 | Campo | Tipo | Obrigatório | Descrição |
@@ -873,7 +873,7 @@ Cancela um pedido: `{"jsonrpc": "2.0", "method": "$/cancel", "params": {"id": 2}
 | `-32600` | o JSON não é um pedido JSON-RPC 2.0 |
 | `-32601` | método desconhecido |
 | `-32602` | parâmetros que o método não aceita |
-| `-32000` | o Lace não conseguiu atender: o `ErrorInfo` vai em `error.data` |
+| `-32000` | a AURORA não conseguiu atender: o `ErrorInfo` vai em `error.data` |
 | `-32001` | cancelado com `$/cancel` antes de começar |
 | `-32002` | pedido antes do `initialize` |
 | `-32003` | pedido depois do `shutdown` |
@@ -943,7 +943,7 @@ O papel de um arquivo produzido por uma operação. Em JSON, em
 | `"schematic_graph"` | Grafo do esquemático (`.dot`), gerado pelo Yosys. |
 | `"schematic"` | Esquemático SVG, desenhado pelo `dot`. |
 | `"synthesis_statistics"` | As estatísticas do `stat -json` do Yosys (`stat.json`). |
-| `"board_top"` | O topo da placa que o Lace gera (`aurora_board_top.v`). |
+| `"board_top"` | O topo da placa que a AURORA gera (`aurora_board_top.v`). |
 | `"quartus_project"` | As configurações do projeto do Quartus (`.qsf`): a FPGA, os fontes e os pinos. |
 | `"sram_object"` | O arquivo de gravação do Quartus (`.sof`, SRAM Object File), que o `quartus_pgm` grava. |
 | `"raw_binary"` | O bitstream cru, sem compressão (`.rbf`, Raw Binary File), que o openFPGALoader grava. |
@@ -953,7 +953,7 @@ O papel de um arquivo produzido por uma operação. Em JSON, em
 
 ### `AuroraVersions`
 
-As versões do Lace em `aurora update`.
+As versões da AURORA em `aurora update`.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -1089,7 +1089,7 @@ Um componente instalado (`components/<nome>.json`).
 | `dir` | `string` | sim | Diretório do componente, relativo ao bundle. Componentes do OSS CAD Suite dividem o mesmo. |
 | `source` | `string` | sim | De onde veio: URL do pacote, ou `git+<repositório>@<commit>` quando o empacotamento compilou do fonte. |
 | `sha256` | `string` \| `null` | sim (padrão: `null`) | SHA-256 do pacote de origem, quando foi baixado pronto. |
-| `files` | mapa de `string` para `string` | sim (padrão: `{}`) | SHA-256 dos executáveis do componente que o Lace roda, por caminho relativo ao bundle, conferido por `Toolchain::verify`. |
+| `files` | mapa de `string` para `string` | sim (padrão: `{}`) | SHA-256 dos executáveis do componente que a AURORA roda, por caminho relativo ao bundle, conferido por `Toolchain::verify`. |
 
 <a id="tipo-bundleversions"></a>
 
@@ -1259,12 +1259,12 @@ Um componente instalado em `aurora update`.
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `name` | `string` | sim | O componente (`yanc`, `icarus`, `verilator`, `yosys`, `graphviz`, `surfer-aurora`). |
-| `package` | `string` \| `null` | sim | O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`, `yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que este Lace não conhece. |
+| `package` | `string` \| `null` | sim | O pacote de `bundle/versions.json` de onde ele sai (`oss-cad-suite`, `yanc`, `surfer-aurora`, `graphviz`); `null` para um componente que esta AURORA não conhece. |
 | `installed` | `string` | sim | A versão instalada. |
 | `release` | `string` \| `null` | sim | A versão no bundle da última release; `null` se não pôde ser lida. |
-| `release_newer` | `boolean` | sim | `release` é mais nova que `installed`: chega atualizando o Lace. |
+| `release_newer` | `boolean` | sim | `release` é mais nova que `installed`: chega atualizando a AURORA. |
 | `upstream` | `string` \| `null` | sim | A última versão upstream; `null` se a consulta falhou. |
-| `upstream_newer` | `boolean` | sim | `upstream` é mais nova que `installed` e que `release`: só chega num bundle novo, numa release nova do Lace. Sem `release`, `false` quando há Lace mais novo, cujo bundle pode já trazê-la. |
+| `upstream_newer` | `boolean` | sim | `upstream` é mais nova que `installed` e que `release`: só chega num bundle novo, numa release nova da AURORA. Sem `release`, `false` quando há AURORA mais nova, cujo bundle pode já trazê-la. |
 
 <a id="tipo-connection"></a>
 
@@ -1324,8 +1324,8 @@ Uma mensagem de uma ferramenta, com os campos que deu para extrair.
 
 `file`, `line` e `column` são opcionais porque o `cmmcomp` não informa
 arquivo nem coluna, e várias mensagens não informam nem a linha. Quando a
-ferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila
-um fonte só), `file` vem preenchido pelo Lace.
+ferramenta não cita o arquivo mas a AURORA sabe qual é (o `cmmcomp` compila
+um fonte só), `file` vem preenchido pela AURORA.
 
 Em JSON:
 
@@ -1343,8 +1343,8 @@ cabeçalho incluído onde está o erro.
 |---|---|---|---|
 | `tool` | [`Tool`](#tipo-tool) | sim | A ferramenta que escreveu a mensagem. |
 | `severity` | [`Severity`](#tipo-severity) | sim | A gravidade. |
-| `message` | `string` | sim | A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma da ferramenta (inglês: o Lace sempre pede inglês ao YANC). |
-| `file` | `string` \| `null` | sim | O arquivo a que a mensagem se refere, como a ferramenta o escreveu (normalmente absoluto, porque o Lace passa caminhos absolutos). |
+| `message` | `string` | sim | A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma da ferramenta (inglês: a AURORA sempre pede inglês ao YANC). |
+| `file` | `string` \| `null` | sim | O arquivo a que a mensagem se refere, como a ferramenta o escreveu (normalmente absoluto, porque a AURORA passa caminhos absolutos). |
 | `line` | `integer` \| `null` | sim | Linha, a partir de 1. |
 | `column` | `integer` \| `null` | sim | Coluna, a partir de 1 (Verilator e compilador C++). |
 | `raw` | `string` | sim | O texto exatamente como a ferramenta o escreveu (várias linhas quando a ferramenta continua a mensagem em linhas indentadas). |
@@ -1368,7 +1368,7 @@ Uma chamada do `iverilog` e a árvore que saiu dela.
 ### `Environment`
 
 A máquina onde a operação rodou. O que o sistema não informa sem rodar
-outro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,
+outro programa fica `null`: a AURORA só lê arquivos do sistema (no Linux,
 `/proc` e `/etc/os-release`) e o `uname`.
 
 | Campo | Tipo | Obrigatório | Descrição |
@@ -1451,7 +1451,7 @@ Um passo começou: o processo vai ser iniciado.
 **`event: "output"`**
 
 Uma linha que o processo escreveu, sem o fim de linha. Linhas de
-stdout e de stderr chegam na ordem em que o Lace as leu, que pode não
+stdout e de stderr chegam na ordem em que a AURORA as leu, que pode não
 ser exatamente a ordem em que o processo as escreveu.
 
 | Campo | Tipo | Obrigatório | Descrição |
@@ -1513,7 +1513,7 @@ Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,
 | Valor | Descrição |
 |---|---|
 | `"fpga"` | A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus Prime e a gravação na placa (`aurora fpga`, a aba Placa FPGA do Studio). |
-| `"assistant"` | O assistente de IA: o `aurora mcp` (as ferramentas do Lace para um agente), o `aurora chat` e a vista Assistente do Studio, sobre o Claude Code instalado na máquina (o crate `aurora-agent`). |
+| `"assistant"` | O assistente de IA: o `aurora mcp` (as ferramentas da AURORA para um agente), o `aurora chat` e a vista Assistente do Studio, sobre o Claude Code instalado na máquina (o crate `aurora-agent`). |
 
 <a id="tipo-featurestate"></a>
 
@@ -1759,7 +1759,7 @@ sem relatório.
 
 Corrige um exercício do `aurora learn` e grava se ele está resolvido;
 a correção vai em `FlowOutcome::learn`. Quem roda é o servidor do
-Lace, que linka o aurora-learn: o `run` do core responde
+AURORA, que linka o aurora-learn: o `run` do core responde
 `unsupported`. Sem relatório.
 
 | Campo | Tipo | Obrigatório | Descrição |
@@ -1892,7 +1892,7 @@ O resultado de `hierarchy`.
 ### `Invocation`
 
 Uma execução de programa, totalmente especificada: o registro exato do
-que o Lace rodou, presente em todo [`StepReport`](#tipo-stepreport).
+que a AURORA rodou, presente em todo [`StepReport`](#tipo-stepreport).
 
 Só o Core monta invocações; para os clientes o tipo é somente leitura.
 Reproduzir um passo à mão é rodar `program` com `args`, dentro de `cwd`,
@@ -1913,8 +1913,8 @@ Em JSON:
 | `program` | `string` | sim | Caminho absoluto do executável. Nunca é procurado no `PATH`. |
 | `args` | lista de `string` | sim | Argumentos, na ordem. Caminhos já estão no formato que a ferramenta aceita: o nativo do sistema, menos os do `iverilog` no Windows, que vão com `/`. |
 | `cwd` | `string` | sim | Diretório de trabalho. Faz parte do contrato de várias ferramentas (o testbench do YANC lê e grava os arquivos dele relativo a ele, e grava a onda nele), por isso nunca é herdado. |
-| `env` | lista de (`string`, `string`) | sim | Variáveis definidas pelo Lace, somadas às de `INHERITED_ENV`. |
-| `inherit` | lista de `string` | sim | Nomes de variáveis copiadas do ambiente do Lace, quando existirem. Só os nomes aparecem no relatório. |
+| `env` | lista de (`string`, `string`) | sim | Variáveis definidas pela AURORA, somadas às de `INHERITED_ENV`. |
+| `inherit` | lista de `string` | sim | Nomes de variáveis copiadas do ambiente da AURORA, quando existirem. Só os nomes aparecem no relatório. |
 
 <a id="tipo-iostandard"></a>
 
@@ -2348,7 +2348,7 @@ pasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
 | `dir` | `string` | sim | `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos do C). |
 | `source` | `string` | sim | O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`. |
 | `output_dir` | `string` | sim | `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog, as memórias, o testbench, as tabelas da onda e as saídas da simulação, que roda nela. |
-| `temp_dir` | `string` | sim | `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
+| `temp_dir` | `string` | sim | `<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
 | `frequency_mhz` | `integer` | sim | Frequência de operação em MHz (`-f` do `asmcomp`). |
 | `clocks` | `integer` | sim | Clocks a simular (`-c` do `asmcomp`, vai para o testbench). |
 | `show_arrays` | `boolean` | sim | Exporta cada elemento de array como um sinal da onda (`--wave-arrays` do `cmmcomp`). |
@@ -2392,7 +2392,7 @@ Um processador, com o que uma interface precisa saber dele além do
 | `dir` | `string` | sim | `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos do C). |
 | `source` | `string` | sim | O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`. |
 | `output_dir` | `string` | sim | `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog, as memórias, o testbench, as tabelas da onda e as saídas da simulação, que roda nela. |
-| `temp_dir` | `string` | sim | `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
+| `temp_dir` | `string` | sim | `<raiz>/.aurora8/Temp/<nome>`: o que só a AURORA usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
 | `frequency_mhz` | `integer` | sim | Frequência de operação em MHz (`-f` do `asmcomp`). |
 | `clocks` | `integer` | sim | Clocks a simular (`-c` do `asmcomp`, vai para o testbench). |
 | `show_arrays` | `boolean` | sim | Exporta cada elemento de array como um sinal da onda (`--wave-arrays` do `cmmcomp`). |
@@ -2573,7 +2573,7 @@ O contexto de uma operação guardada.
 | `command` | `string` | sim | O comando. |
 | `status` | [`Status`](#tipo-status) | sim | Como terminou. |
 | `duration_ms` | `integer` | sim | Quanto levou, do começo ao fim, em milissegundos. |
-| `aurora_version` | `string` | sim | A versão que gravou. `lace_version` nos relatórios gravados pelo Lace, que a `.lace` levada para a `.aurora8` traz. |
+| `aurora_version` | `string` | sim | A versão que gravou. `lace_version` nos relatórios gravados pelo AURORA, que a `.lace` levada para a `.aurora8` traz. |
 | `project` | `string` | sim | O que identifica o projeto: um hash da raiz dele. Relatórios de projetos diferentes não se comparam. |
 | `project_name` | `string` | sim | O nome do projeto. |
 | `bundle` | `string` | sim | O bundle de ferramentas (`2026.09.29`) e a plataforma. |
@@ -2626,7 +2626,7 @@ O layout salvo no projeto para a onda de um testbench:
 |---|---|---|---|
 | `path` | `string` | sim | O arquivo, onde o Surfer salva o estado (Ctrl+S). |
 | `state` | `string` | sim | O estado que vai para o Surfer: o que o usuário salvou, ou o gerado. |
-| `customized` | `boolean` | sim | O usuário salvou o estado depois da última vez que o Lace o gerou: o Lace o deixa como está. |
+| `customized` | `boolean` | sim | O usuário salvou o estado depois da última vez que a AURORA o gerou: o AURORA o deixa como está. |
 
 <a id="tipo-savedlayoutinfo"></a>
 
@@ -2637,7 +2637,7 @@ O layout salvo no projeto para a onda aberta.
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `path` | `string` | sim | O arquivo. |
-| `customized` | `boolean` | sim | O usuário salvou depois que o Lace o gerou: o Lace não o refaz. |
+| `customized` | `boolean` | sim | O usuário salvou depois que a AURORA o gerou: a AURORA não o refaz. |
 
 <a id="tipo-schematicresult"></a>
 
@@ -2676,9 +2676,9 @@ O que `initialize` devolve.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `aurora` | `string` | sim | A versão do Lace. |
+| `aurora` | `string` | sim | A versão da AURORA. |
 | `protocol` | `integer` | sim | A versão do protocolo (`PROTOCOL_VERSION`). |
-| `prefix` | `string` \| `null` | sim | A pasta da instalação do Lace, quando o servidor é o `aurora` instalado. |
+| `prefix` | `string` \| `null` | sim | A pasta da instalação da AURORA, quando o servidor é o `aurora` instalado. |
 | `experimental` | mapa de `string` para `boolean` | sim | Cada recurso experimental e se está ligado. |
 | `methods` | lista de `string` | sim | Os métodos que este servidor atende. |
 
@@ -2829,7 +2829,7 @@ Os tempos de uma simulação, em milissegundos de relógio. O tempo simulado
 | `succeeded` | `boolean` | sim | A simulação terminou com sucesso. |
 | `compile_ms` | `integer` \| `null` | sim | O passo que compila o Verilog (`iverilog` ou `verilator --binary`). |
 | `execution_ms` | `integer` \| `null` | sim | O passo que roda o testbench (`vvp` ou o modelo do Verilator). |
-| `total_ms` | `integer` \| `null` | sim | A simulação inteira, medida à parte: com a preparação do Lace. |
+| `total_ms` | `integer` \| `null` | sim | A simulação inteira, medida à parte: com a preparação da AURORA. |
 | `simulated_fs` | `integer` \| `null` | sim | O tempo simulado no `$finish`, em femtossegundos, quando o simulador o informa (o `vvp` informa; o Verilator, não). |
 
 <a id="tipo-simulator"></a>
@@ -2869,7 +2869,7 @@ Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
 | `"crashed"` | Uma ferramenta morreu (sinal no Unix, exceção no Windows). É defeito da ferramenta, não do código do usuário. |
 | `"incomplete"` | As ferramentas terminaram bem, mas faltou algum artefato obrigatório. |
 | `"cancelled"` | O cancelamento foi pedido (`CancelToken`): o passo que rodava foi encerrado e os seguintes não rodaram. |
-| `"timed_out"` | Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o testbench que não chega ao `$finish`. |
+| `"timed_out"` | Um passo passou do prazo e a AURORA o encerrou. Numa simulação, é o testbench que não chega ao `$finish`. |
 
 <a id="tipo-step"></a>
 
@@ -3090,14 +3090,14 @@ Terminou com um código NTSTATUS de exceção (só Windows), por exemplo
 
 **`kind: "cancelled"`**
 
-O Lace encerrou o processo porque a operação foi cancelada
+A AURORA encerrou o processo porque a operação foi cancelada
 (`CancelToken::cancel`).
 
 Sem campos.
 
 **`kind: "timed_out"`**
 
-O Lace encerrou o processo porque ele passou do prazo (por exemplo,
+A AURORA encerrou o processo porque ele passou do prazo (por exemplo,
 `SimulationOptions::timeout`).
 
 Sem campos.
@@ -3177,7 +3177,7 @@ O tempo do design.
 
 ### `Tool`
 
-As ferramentas que o Lace sabe orquestrar.
+As ferramentas que a AURORA sabe orquestrar.
 
 Em JSON e em `Display`, cada uma aparece pelo nome do
 programa (`Tool::binary_name`).
@@ -3230,8 +3230,8 @@ falha: um bundle que não abriu vira `found: false` com o erro
 | `bundle` | `string` \| `null` | sim | A versão do bundle. |
 | `platform` | `string` \| `null` | sim | A plataforma do bundle (`linux-x64`, `darwin-arm64`, `windows-x64`). |
 | `components` | lista de [`BundleComponent`](#tipo-bundlecomponent) | sim | Os componentes instalados. |
-| `not_installed` | lista de `string` | sim | Os componentes que o Lace conhece e que não estão instalados. |
-| `tools` | lista de [`ToolStatus`](#tipo-toolstatus) | sim | Cada ferramenta que o Lace roda. |
+| `not_installed` | lista de `string` | sim | Os componentes que a AURORA conhece e que não estão instalados. |
+| `tools` | lista de [`ToolStatus`](#tipo-toolstatus) | sim | Cada ferramenta que a AURORA roda. |
 | `system_compiler` | [`SystemCompiler`](#tipo-systemcompiler) \| `null` | sim | O compilador do Verilator: do sistema no Linux e no macOS, do bundle no Windows (`bundled`). |
 | `compiler_error` | [`ErrorInfo`](#tipo-errorinfo) \| `null` | sim | O compilador declarado não serve. |
 | `quartus` | [`Quartus`](#tipo-quartus) \| `null` | sim | O Quartus Prime do sistema, se encontrado. |
@@ -3272,7 +3272,7 @@ O que `aurora update` fez.
 | Valor | Descrição |
 |---|---|
 | `"checked"` | `--check`: só comparou as versões. |
-| `"up_to_date"` | Não há Lace mais novo publicado: nada mudou. |
+| `"up_to_date"` | Não há AURORA mais nova publicado: nada mudou. |
 | `"updated"` | A instalação foi trocada (por componentes, ou pelo instalador no Linux e no macOS). O `aurora` em uso é o antigo: quem chamou termina e reinicia. |
 | `"wizard_opened"` | O assistente de instalação do Windows foi aberto e termina depois que quem chamou sai. |
 
@@ -3284,7 +3284,7 @@ O que a atualização por componentes trocou.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `components` | lista de `string` | sim | Os componentes com arquivos que entraram ou saíram, na ordem do bundle; `aurora` é o próprio Lace e o cabeçalho do bundle. |
+| `components` | lista de `string` | sim | Os componentes com arquivos que entraram ou saíram, na ordem do bundle; `aurora` é a própria AURORA e o cabeçalho do bundle. |
 | `download_bytes` | `integer` | sim | Bytes baixados. |
 | `files` | `integer` | sim | Arquivos que entraram (novos ou trocados). |
 | `removed` | `integer` | sim | Arquivos que saíram. |
@@ -3308,7 +3308,7 @@ O relatório do `aurora update` (`docs/schema/update.json`).
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `aurora` | [`AuroraVersions`](#tipo-auroraversions) | sim | O Lace: este e o da última release. |
+| `aurora` | [`AuroraVersions`](#tipo-auroraversions) | sim | A AURORA: este e o da última release. |
 | `bundle` | [`BundleVersions`](#tipo-bundleversions) | sim | O bundle de ferramentas: o instalado e o da última release. |
 | `components` | lista de [`ComponentVersions`](#tipo-componentversions) | sim | Cada componente instalado, na ordem do manifesto do bundle. Vazio sem bundle. |
 | `prefix` | `string` \| `null` | sim | A pasta da instalação; `null` se este `aurora` não foi instalado pelo instalador (um build em `target/`, por exemplo). |
@@ -3402,7 +3402,7 @@ O layout de uma onda, em memória.
 ### `WaveLayoutInfo`
 
 `wave.layout`: o que um visualizador próprio precisa para mostrar a
-onda com o layout do Lace.
+onda com o layout da AURORA.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -3545,7 +3545,7 @@ Uma onda gerada por simulação, pronta para
 
 O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
 extensão é a do formato, menos quando o testbench nomeia a onda com uma
-expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
+expressão que a AURORA não resolve: aí o Icarus grava VCD no nome que o
 testbench der.
 
 | Valor | Descrição |

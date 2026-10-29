@@ -3,7 +3,7 @@
 //! Cada ferramenta tem seu dialeto (todos conferidos executando-as):
 //!
 //! - `cmmcomp` e `asmcomp` (e o `appcomp` dos relatórios antigos) escrevem
-//!   frases em inglês (o Lace sempre passa `--lang=en`) com a linha no meio
+//!   frases em inglês (a AURORA sempre passa `--lang=en`) com a linha no meio
 //!   do texto e sem nome de arquivo:
 //!   `Error on line 42: there's no variable 'x'!`,
 //!   `Syntax error on line 3. You're a confused soul!`,
@@ -59,8 +59,8 @@ pub enum Severity {
 ///
 /// `file`, `line` e `column` são opcionais porque o `cmmcomp` não informa
 /// arquivo nem coluna, e várias mensagens não informam nem a linha. Quando a
-/// ferramenta não cita o arquivo mas o Lace sabe qual é (o `cmmcomp` compila
-/// um fonte só), `file` vem preenchido pelo Lace.
+/// ferramenta não cita o arquivo mas a AURORA sabe qual é (o `cmmcomp` compila
+/// um fonte só), `file` vem preenchido pela AURORA.
 ///
 /// Em JSON:
 ///
@@ -80,10 +80,10 @@ pub struct Diagnostic {
     /// A gravidade.
     pub severity: Severity,
     /// A mensagem, sem o prefixo de gravidade e de localização. Vem no idioma
-    /// da ferramenta (inglês: o Lace sempre pede inglês ao YANC).
+    /// da ferramenta (inglês: a AURORA sempre pede inglês ao YANC).
     pub message: String,
     /// O arquivo a que a mensagem se refere, como a ferramenta o escreveu
-    /// (normalmente absoluto, porque o Lace passa caminhos absolutos).
+    /// (normalmente absoluto, porque a AURORA passa caminhos absolutos).
     // No Windows, um caminho com acento vai relativo ao CWD da ferramenta
     // (`process::tool_path`), e o que ela escreve assim é resolvido a partir
     // do CWD do passo (`pipeline::resolve_relative_files`).

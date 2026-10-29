@@ -31,7 +31,7 @@ fn aurora_in(dir: &Utf8Path) -> Command {
 
 fn tempdir() -> (tempfile::TempDir, Utf8PathBuf) {
     let dir = tempfile::tempdir().unwrap();
-    // dunce: no Windows, `std::fs::canonicalize` devolve `\\?\C:\...`, e o Lace
+    // dunce: no Windows, `std::fs::canonicalize` devolve `\\?\C:\...`, e a AURORA
     // trabalha com `C:\...`.
     let path = Utf8PathBuf::from_path_buf(dunce::canonicalize(dir.path()).unwrap()).unwrap();
     (dir, path)
@@ -186,7 +186,7 @@ fn completions_are_generated() {
 }
 
 /// O que saiu da CLI é recusado pelo clap, com código 2 e `Error:`, como os
-/// erros do próprio Lace.
+/// erros da própria AURORA.
 #[test]
 fn removed_commands_and_flags_are_rejected() {
     let removed: &[&[&str]] = &[
@@ -283,7 +283,7 @@ fn top_without_top_level_shows_hint() {
     assert!(top["module"].is_null());
 }
 
-/// `aurora` com a pasta de configuração do Lace (a do `experimental.json`)
+/// `aurora` com a pasta de configuração da AURORA (a do `experimental.json`)
 /// em `config`: o teste não lê nem grava a do usuário.
 fn aurora_with_config(config: &Utf8Path) -> Command {
     let mut cmd = aurora();
@@ -392,7 +392,7 @@ fn proc_add_and_set_with_arrays() {
     assert!(source.contains("#pragma yanc nuioin 2"));
     assert!(!source.contains("prname"), "{source}");
 
-    // Nome repetido é erro do Lace, não do build: código 2, com o código estável.
+    // Nome repetido é erro da AURORA, não do build: código 2, com o código estável.
     let err = json(aurora_in(&root).args(["--json", "proc", "add", "alu"]), 2);
     assert_eq!(err["error"]["code"], "processor_exists");
 
@@ -1478,7 +1478,7 @@ fn every_operation_runs_in_a_folder_with_accents_and_other_scripts() {
     }
 }
 
-/// O `$display` do testbench sai sempre, sem -v, e as linhas que o Lace
+/// O `$display` do testbench sai sempre, sem -v, e as linhas que a AURORA
 /// interpreta (`$finish called at`) não se repetem nele.
 #[test]
 fn project_simulation_always_prints_testbench_stdout() {
@@ -1861,8 +1861,8 @@ fn events_report_errors_in_the_result_line() {
 }
 
 /// O Ctrl+C chega ao `aurora` e não ao simulador, que roda num grupo de
-/// processos próprio: quem encerra o vvp é o Lace. Sem isso, o vvp de um
-/// testbench sem `$finish` continuaria rodando depois que o Lace saísse.
+/// processos próprio: quem encerra o vvp é a AURORA. Sem isso, o vvp de um
+/// testbench sem `$finish` continuaria rodando depois que a AURORA saísse.
 #[cfg(unix)]
 #[test]
 fn interrupt_cancels_and_leaves_no_simulator_behind() {
@@ -1960,7 +1960,7 @@ fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
              rmdir \"$prefix/bin\" 2>/dev/null || true\n\
              rm -f \"$prefix/uninstall.sh\"\n\
              rmdir \"$prefix\" 2>/dev/null || true\n\
-             echo \"Removed Lace from $prefix\"\n"
+             echo \"Removed AURORA from $prefix\"\n"
         ),
     )
     .unwrap();
@@ -1993,7 +1993,7 @@ fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
     assert!(out.status.success(), "{out:?}");
     // O stdout é só o JSON; o que o script escreve vai para o stderr.
     let report: Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert!(String::from_utf8_lossy(&out.stderr).contains("Removed Lace"));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("Removed AURORA"));
     assert_eq!(report["removed"], true);
     assert_eq!(Utf8Path::new(report["prefix"].as_str().unwrap()), prefix);
     assert!(!prefix.exists(), "a instalação ficou");

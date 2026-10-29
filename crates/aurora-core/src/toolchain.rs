@@ -1,8 +1,8 @@
-//! O bundle de ferramentas instalado com o Lace, e só ele.
+//! O bundle de ferramentas instalado com a AURORA, e só ele.
 //!
-//! O Lace não executa programa do `PATH` nem de um caminho que o usuário
+//! A AURORA não executa programa do `PATH` nem de um caminho que o usuário
 //! configure. Toda ferramenta sai de um **bundle**: um diretório instalado com
-//! o Lace, com um manifesto que fixa a versão exata de cada componente, e um
+//! a AURORA, com um manifesto que fixa a versão exata de cada componente, e um
 //! executável num caminho fixo por plataforma.
 //!
 //! ```text
@@ -25,7 +25,7 @@
 //!
 //! O Verilator compila o modelo com um compilador C++, chamado pelo `make`,
 //! e o script dele roda pelo Perl ([`SystemCompiler`]). No Windows os três
-//! vêm no bundle, com o Verilator, e o Lace roda o `verilator_bin` sem o
+//! vêm no bundle, com o Verilator, e a AURORA roda o `verilator_bin` sem o
 //! script ([`Toolchain::invocation`]). No Linux e no macOS vêm do sistema, a
 //! única exceção à regra do bundle, procurados em locais padrão fixos, nunca
 //! no `PATH`.
@@ -56,7 +56,7 @@ use crate::error::{AuroraError, Result};
 use crate::paths;
 use crate::process::{GUI_ENV, Invocation, make_path};
 
-/// Versão do formato do manifesto que este Lace entende.
+/// Versão do formato do manifesto que esta AURORA entende.
 pub const BUNDLE_SCHEMA: u32 = 2;
 
 /// Nome do cabeçalho do manifesto dentro do diretório do bundle.
@@ -73,7 +73,7 @@ pub const COMPONENTS_DIR: &str = "components";
 /// cada um traz a sua parte do pacote, e as bibliotecas em comum vêm com
 /// qualquer um deles. No Windows, Icarus, Verilator e cocotb dividem do mesmo
 /// jeito o `msys/`, o bloco MSYS2 do lace-toolchain; o Yosys continua vindo
-/// do OSS CAD Suite. O Lace Studio (`studio`) é do próprio repositório.
+/// do OSS CAD Suite. A AURORA IDE (`studio`) é do próprio repositório.
 pub mod component {
     /// Os compiladores YANC e a biblioteca SAPHO.
     pub const YANC: &str = "yanc";
@@ -84,7 +84,7 @@ pub mod component {
     pub const VERILATOR: &str = "verilator";
     /// cocotb, para testbenches em Python, com o Python que o roda: no Linux
     /// e no macOS, o do OSS CAD Suite; no Windows, o do `msys/`, com a VPI do
-    /// Verilator que o lace-toolchain compila. O Lace roda o cocotb com o
+    /// Verilator que o lace-toolchain compila. A AURORA roda o cocotb com o
     /// Icarus ([`cocotb`](crate::cocotb)); com o Verilator, ainda não.
     pub const COCOTB: &str = "cocotb";
     /// Yosys.
@@ -97,13 +97,13 @@ pub mod component {
     /// O openFPGALoader, que grava as placas FPGA pelo cabo USB delas
     /// ([`crate::fpga`]), do OSS CAD Suite nas três plataformas.
     pub const OPENFPGALOADER: &str = "openfpgaloader";
-    /// O Lace Studio, o ambiente gráfico (`studio/` no repositório). Não é
-    /// ferramenta que o Lace roda: vai no bundle para o instalador e o
+    /// A AURORA IDE, o ambiente gráfico (`studio/` no repositório). Não é
+    /// ferramenta que a AURORA roda: vai no bundle para o instalador e o
     /// `aurora install` o oferecerem como os outros componentes, e o Studio
     /// instalado acha o bundle por estar dentro dele.
     pub const STUDIO: &str = "studio";
     /// As trilhas de exercícios do `aurora learn` (`aurora-learn/` no
-    /// repositório). Só dados: o código que as corrige está no Lace e no
+    /// repositório). Só dados: o código que as corrige está na AURORA e no
     /// Studio, no crate `aurora-learn`.
     pub const AURORA_LEARN: &str = "aurora-learn";
     /// O RTL viewer fora do Studio (`packages/rtl-viewer/` no repositório):
@@ -111,7 +111,7 @@ pub mod component {
     /// o netlist ([`crate::rtl_viewer`]). Só dados.
     pub const RTL_VIEWER: &str = "rtl-viewer";
 
-    /// Todos, na ordem em que o Lace os lista.
+    /// Todos, na ordem em que a AURORA os lista.
     pub const ALL: &[&str] = &[
         YANC,
         ICARUS,
@@ -153,7 +153,7 @@ pub enum Platform {
 }
 
 impl Platform {
-    /// A plataforma em que o Lace está rodando, se for suportada.
+    /// A plataforma em que a AURORA está rodando, se for suportada.
     pub fn current() -> Option<Platform> {
         match (std::env::consts::OS, std::env::consts::ARCH) {
             ("linux", "x86_64") => Some(Platform::LinuxX64),
@@ -199,7 +199,7 @@ impl fmt::Display for Platform {
     }
 }
 
-/// As ferramentas que o Lace sabe orquestrar.
+/// As ferramentas que a AURORA sabe orquestrar.
 ///
 /// Em JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do
 /// programa ([`Tool::binary_name`]).
@@ -365,7 +365,7 @@ impl fmt::Display for Tool {
 }
 
 /// O manifesto do bundle, escrito pelo empacotamento (`scripts/bundle.py`)
-/// e pelos instaladores, e só lido pelo Lace: o cabeçalho em `bundle.json` e
+/// e pelos instaladores, e só lido pela AURORA: o cabeçalho em `bundle.json` e
 /// um arquivo por componente instalado em `components/`.
 ///
 /// ```json
@@ -388,7 +388,7 @@ pub struct BundleManifest {
     /// Plataforma para a qual o bundle foi montado ([`Platform::as_str`]).
     pub platform: String,
     /// Os componentes instalados, na ordem de [`component::ALL`] (um nome
-    /// que este Lace não conhece vai para o fim). Lidos de `components/`,
+    /// que esta AURORA não conhece vai para o fim). Lidos de `components/`,
     /// não do `bundle.json`.
     #[serde(default, skip_deserializing)]
     pub components: Vec<BundleComponent>,
@@ -413,7 +413,7 @@ pub struct BundleComponent {
     /// SHA-256 do pacote de origem, quando foi baixado pronto.
     #[serde(default)]
     pub sha256: Option<String>,
-    /// SHA-256 dos executáveis do componente que o Lace roda, por caminho
+    /// SHA-256 dos executáveis do componente que a AURORA roda, por caminho
     /// relativo ao bundle, conferido por [`Toolchain::verify`].
     #[serde(default)]
     #[schemars(with = "std::collections::BTreeMap<String, String>")]
@@ -595,13 +595,13 @@ impl Toolchain {
             serde_json::from_str(&text).map_err(|e| invalid(format!("{MANIFEST_FILE}: {e}")))?;
         if manifest.schema != BUNDLE_SCHEMA {
             return Err(invalid(format!(
-                "Manifest format {} is not supported; this Lace reads format {BUNDLE_SCHEMA}",
+                "Manifest format {} is not supported; this AURORA reads format {BUNDLE_SCHEMA}",
                 manifest.schema
             )));
         }
         if manifest.platform != platform.as_str() {
             return Err(invalid(format!(
-                "Bundle built for {}, but Lace is running on {platform}",
+                "Bundle built for {}, but AURORA is running on {platform}",
                 manifest.platform
             )));
         }
@@ -647,7 +647,7 @@ impl Toolchain {
         Ok(toolchain)
     }
 
-    /// Acha o bundle instalado com o executável do Lace: `<dir do
+    /// Acha o bundle instalado com o executável da AURORA: `<dir do
     /// executável>/../toolchain` (instalação com `bin/`) ou `<dir do
     /// executável>/toolchain`, com os symlinks do caminho resolvidos.
     ///
@@ -738,7 +738,7 @@ impl Toolchain {
 
     /// O cliente web do Surfer (`surfer-aurora/web/`: `index.html`,
     /// `surfer.js`, `surfer_bg.wasm`), o mesmo Surfer compilado para
-    /// WebAssembly, que mostra uma onda numa página (a aba de onda do Lace
+    /// WebAssembly, que mostra uma onda numa página (a aba de onda da AURORA
     /// Studio). Vem no bundle junto do executável, da mesma versão: o
     /// `.surf.ron` do layout segue o formato dessa versão.
     ///
@@ -775,7 +775,7 @@ impl Toolchain {
 
     /// Biblioteca SAPHO (`yanc/SAPHO`): `-d` do `asmcomp`, `-y` do Icarus e
     /// do Verilator. Até a 5.6, o YANC copiava a mesma pasta também como
-    /// `HDL/`, para a AURORA; a 6.0 só traz `SAPHO/`, o nome que o Lace usa.
+    /// `HDL/`, para a AURORA; a 6.0 só traz `SAPHO/`, o nome que a AURORA usa.
     pub fn hdl_dir(&self) -> Result<Utf8PathBuf> {
         self.yanc_dir("SAPHO")
     }
@@ -838,7 +838,7 @@ impl Toolchain {
         let path = self.bundled_file(&dir, &rel, &format!("{tool} executable"))?;
         if tool == Tool::Verilator {
             // O script Perl roda o `verilator_bin` ao lado dele e, se não
-            // achar, procura no PATH. Sem o do bundle, o Lace recusa antes.
+            // achar, procura no PATH. Sem o do bundle, a AURORA recusa antes.
             let companion = format!("{rel}_bin{}", self.platform.exe());
             self.bundled_file(&dir, &companion, "verilator_bin for Verilator")?;
         }
@@ -872,7 +872,7 @@ impl Toolchain {
             .collect()
     }
 
-    /// As ferramentas que o Lace roda, na ordem de [`Tool::all`]: todas,
+    /// As ferramentas que a AURORA roda, na ordem de [`Tool::all`]: todas,
     /// menos o `appcomp` e o `cpppp`, que o YANC 7.1 não tem mais (o
     /// `asmcomp` faz as duas passadas e o `cppcomp` pré-processa). É a lista
     /// que um relatório do bundle mostra; uma ferramenta dela que
@@ -923,10 +923,10 @@ impl Toolchain {
     ///
     /// - Linux e macOS: os programas do OSS CAD Suite em `bin/` são lançadores
     ///   em bash que carregam o binário de `libexec/` com as bibliotecas do
-    ///   próprio pacote (no Linux, pelo `ld-linux` do pacote). O Lace roda o
+    ///   próprio pacote (no Linux, pelo `ld-linux` do pacote). A AURORA roda o
     ///   lançador do bundle pelo `/bin/bash` do sistema, com `PATH` fixo em
     ///   `/usr/bin:/bin` para o `dirname` e o `readlink` que ele usa.
-    /// - Windows: não há lançadores. O Lace roda o `.exe` com `PATH` no
+    /// - Windows: não há lançadores. A AURORA roda o `.exe` com `PATH` no
     ///   diretório dos programas e das DLLs do pacote (`ucrt64/bin` no
     ///   `msys/`; `bin;lib` no OSS CAD Suite, como o `environment.bat` faz) e
     ///   `%SystemRoot%\System32` no fim, para o `cmd.exe` do `system()`.
@@ -960,8 +960,8 @@ impl Toolchain {
                     // chega inteiro ao `verilator_bin`, e um fonte numa pasta
                     // com espaço ou acento vira outro caminho ("Cannot find
                     // file containing module: 'espaco\sp\a.v'"). Direto, os
-                    // argumentos chegam como o Lace os montou. O resto do que
-                    // o script faz não vale no Windows ou o Lace já faz: o
+                    // argumentos chegam como a AURORA os montou. O resto do que
+                    // o script faz não vale no Windows ou a AURORA já faz: o
                     // `ulimit -s` só existe num shell Unix, e o
                     // VERILATOR_ROOT, que ele deduz do próprio caminho, vai
                     // aqui no ambiente, pelo nome que o `make` aceita
@@ -1063,7 +1063,7 @@ impl Toolchain {
     /// lê a do sistema (`/etc/fonts`) e o desenho muda de máquina para
     /// máquina. O pacote de Linux traz fontes e um modelo de `fonts.conf`,
     /// que os lançadores gráficos dele (`xdot`, `gtkwave`) preenchem com o
-    /// caminho do pacote; o Lace faz o mesmo, gravando `fonts.conf` e o
+    /// caminho do pacote; a AURORA faz o mesmo, gravando `fonts.conf` e o
     /// cache do fontconfig em `work`. Os pacotes de macOS e o Graphviz de
     /// Windows não trazem fontes: lá o `dot` usa as do sistema, e esta função
     /// não devolve nada.

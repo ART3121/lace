@@ -5,7 +5,7 @@
 //! Prompt de Comando); nos outros sistemas, o do usuário (`$SHELL`).
 //!
 //! O shell abre na pasta do projeto, com a pasta `bin/` da instalação do
-//! Lace no começo do `PATH`, para o usuário poder rodar `aurora` direto. Ao
+//! AURORA no começo do `PATH`, para o usuário poder rodar `aurora` direto. Ao
 //! trocar de projeto, a interface pede [`terminal_cd`], que digita no shell
 //! o `cd` para a pasta nova, como o "abrir o terminal aqui" da AURORA: o
 //! histórico e o que estava na tela ficam.

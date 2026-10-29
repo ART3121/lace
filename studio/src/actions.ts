@@ -328,7 +328,7 @@ export async function openProjectDialog() {
     multiple: false,
     directory: false,
     defaultPath,
-    filters: [{ name: 'Lace (.spf)', extensions: ['spf'] }],
+    filters: [{ name: 'AURORA (.spf)', extensions: ['spf'] }],
   });
   if (typeof chosen === 'string') await useProject.getState().open(chosen);
 }
@@ -771,7 +771,7 @@ export const ACTIONS: Action[] = [
     category: 'flow',
     keys: 'Shift+F5',
     icon: CircleStop,
-    // A atualização do Lace não para no meio (commands/toolchain.rs).
+    // A atualização da AURORA não para no meio (commands/toolchain.rs).
     enabled: () => !idle() && useJobs.getState().running?.flow !== 'update',
     run: () => useJobs.getState().cancel(),
   },

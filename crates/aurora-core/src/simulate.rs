@@ -35,7 +35,7 @@
 //! traz no Windows e que no Linux e no macOS fica fora da exceção do
 //! compilador. Um `$dumpfile` com outra extensão, como o `.vcd` do
 //! testbench que o YANC gera simulado no Icarus, é trocado numa cópia do
-//! testbench; o arquivo dele não muda. Sem `$dumpfile`, o Lace injeta
+//! testbench; o arquivo dele não muda. Sem `$dumpfile`, a AURORA injeta
 //! `<topo>.fst` (`<topo>.vcd` no Verilator) com todos os sinais.
 //!
 //! A simulação rápida ([`SimulationOptions::fast`]), o Fast Sim da AURORA
@@ -80,7 +80,7 @@ pub enum Simulator {
 
 /// O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
 /// extensão é a do formato, menos quando o testbench nomeia a onda com uma
-/// expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
+/// expressão que a AURORA não resolve: aí o Icarus grava VCD no nome que o
 /// testbench der.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, JsonSchema, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -103,7 +103,7 @@ pub struct SimulationOptions {
     /// usa todos os núcleos (`-j 0`), como a AURORA.
     pub build_jobs: Option<u32>,
     /// Quanto a simulação pode durar: o `vvp` ou o executável do Verilator,
-    /// sem contar a elaboração e a compilação. Passou disso, o Lace a
+    /// sem contar a elaboração e a compilação. Passou disso, a AURORA a
     /// encerra e o resultado vem com
     /// [`Status::TimedOut`](crate::Status::TimedOut) e o que o testbench
     /// escreveu até ali. `None`, o padrão, é sem limite: um testbench sem
@@ -207,7 +207,7 @@ pub fn waveform_path(project: &Project, processor: Option<&Processor>) -> Result
         }
         Dump::Absent => {}
     }
-    // Onda injetada pelo Lace: `.fst` do Icarus ou `.vcd` do Verilator; vale
+    // Onda injetada pela AURORA: `.fst` do Icarus ou `.vcd` do Verilator; vale
     // a mais recente.
     let top = project
         .testbench_module()?
@@ -256,9 +256,9 @@ fn newest(candidates: &[Utf8PathBuf]) -> Utf8PathBuf {
 }
 
 /// Por que a onda de um testbench não tem caminho conhecido.
-const UNKNOWN_DUMP: &str = "The testbench names its waveform ($dumpfile) with an expression Lace cannot read; open the file it writes directly";
+const UNKNOWN_DUMP: &str = "The testbench names its waveform ($dumpfile) with an expression AURORA cannot read; open the file it writes directly";
 
-/// O nome da onda que o Lace injeta quando o testbench não grava, no formato
+/// O nome da onda que a AURORA injeta quando o testbench não grava, no formato
 /// do simulador ([`wave_extension`]).
 fn injected_wave(top: &str, simulator: Simulator) -> String {
     format!("{top}.{}", wave_extension(simulator))
@@ -469,7 +469,7 @@ pub fn simulate(
 /// (`hdl.c`).
 const END_OF_PROGRAM: &str = "end of program";
 
-/// Um aviso do próprio Lace, fora das ferramentas.
+/// Um aviso da própria AURORA, fora das ferramentas.
 fn note(
     severity: crate::diagnostics::Severity,
     message: String,
@@ -598,7 +598,7 @@ fn watch_inputs(
 /// O módulo de topo é o do testbench ([`Project::testbench_module`]: o único
 /// do arquivo, ou o que tem o nome dele). A simulação roda na raiz do
 /// projeto: a onda sai lá, com o nome do `$dumpfile`, e o `.vvp` ou o
-/// `obj_dir` ficam em [`Project::temp_dir`]. Antes de rodar, o Lace copia
+/// `obj_dir` ficam em [`Project::temp_dir`]. Antes de rodar, a AURORA copia
 /// para a raiz:
 ///
 /// - o `pc_<nome>_mem.txt` de cada processador compilado, que o `.v` dele lê
@@ -606,7 +606,7 @@ fn watch_inputs(
 /// - os arquivos que o testbench lê por nome relativo (`$readmemb/h("x")`,
 ///   `$fopen("x", "r")`), a partir da pasta do testbench.
 ///
-/// Se o testbench não grava onda (`$dumpfile`), o Lace simula uma cópia com
+/// Se o testbench não grava onda (`$dumpfile`), a AURORA simula uma cópia com
 /// `$dumpfile("<topo>.fst"); $dumpvars(0, <topo>);` antes do último
 /// `endmodule` (`.vcd` no Verilator): todos os sinais, inclusive os do
 /// módulo testado. A onda sai com a extensão do formato do simulador (`.fst`
@@ -625,7 +625,7 @@ fn watch_inputs(
 /// simulação, e a onda vem mesmo assim: é nela que se vê a falha.
 ///
 /// Na simulação rápida ([`SimulationOptions::fast`]) não há onda: o
-/// testbench Verilog roda no Verilator e o Lace não injeta o dump padrão; o
+/// testbench Verilog roda no Verilator e a AURORA não injeta o dump padrão; o
 /// testbench cocotb roda os testes sem gravar a onda.
 ///
 /// Os processadores não são compilados aqui: chame [`build`](crate::build)
@@ -785,13 +785,13 @@ pub fn simulate_project(
         notes.extend(choice.notes.iter().cloned());
     }
 
-    // Sem `$dumpfile`, o Lace injeta o dump numa cópia do testbench. A onda
+    // Sem `$dumpfile`, a AURORA injeta o dump numa cópia do testbench. A onda
     // injetada não é exigida: o testbench que termina no tempo 0 (antes do
     // `initial` injetado) não pediu onda e não reprova por falta dela.
     let original = testbench.clone();
     let dump = if options.fast {
         // Sem onda: o Verilator sem `--trace` ignora o `$dumpfile` e os
-        // `$dumpvars` do testbench, e o Lace não injeta o dele.
+        // `$dumpvars` do testbench, e a AURORA não injeta o dele.
         None
     } else {
         Some(dump_of(&text, &run_dir))
@@ -835,8 +835,8 @@ pub fn simulate_project(
                 None => (testbench, Some(wave), true, None),
             }
         }
-        // `$dumpfile(ONDA)` com um nome que o Lace não resolve: o testbench
-        // grava onde quiser, e o Lace não injeta outro dump (o `-fst` do
+        // `$dumpfile(ONDA)` com um nome que a AURORA não resolve: o testbench
+        // grava onde quiser, e a AURORA não injeta outro dump (o `-fst` do
         // injetado mudaria o formato do arquivo dele); a escolha de sinais
         // vale do mesmo jeito.
         Some(Dump::Unknown) => match choice.as_ref().and_then(|c| c.apply(&text)) {
@@ -893,7 +893,7 @@ pub fn simulate_project(
         cocotb: None,
     };
     let mut result = execute(toolchain, &plan, options, control, started)?;
-    // O Icarus só grava VCD quando o Lace não consegue trocar o nome do
+    // O Icarus só grava VCD quando a AURORA não consegue trocar o nome do
     // `$dumpfile` (a chamada quebrada em linhas). O FST seria várias vezes
     // menor; o VCD de centenas de MB demora para abrir, e a aba do Studio
     // não abre acima de 256 MB.
@@ -931,10 +931,10 @@ struct Plan {
     /// A simulação rápida: sem onda, e o Verilator sem `--trace`.
     fast: bool,
     /// Onde a onda vai aparecer; `None` na simulação rápida, e quando o
-    /// testbench a nomeia com uma expressão que o Lace não resolve.
+    /// testbench a nomeia com uma expressão que a AURORA não resolve.
     wave: Option<Utf8PathBuf>,
     /// A onda é do testbench (`$dumpfile` dele) e faltar é falha. A onda
-    /// que o Lace injeta não é exigida.
+    /// que a AURORA injeta não é exigida.
     wave_required: bool,
     /// Na ordem de compilação, testbench por último.
     files: Vec<Utf8PathBuf>,
@@ -1119,7 +1119,7 @@ fn execute(
                 // carrega a VPI do cocotb e deixa os testes em Python dirigirem
                 // o tempo; as flags são as do runner do cocotb
                 // (`cocotb_tools/runner.py`), com o executável no nome do
-                // modelo do Lace.
+                // modelo da AURORA.
                 Some(cocotb) => {
                     let mut model = verilate
                         .arg("--cc")
@@ -1160,7 +1160,7 @@ fn execute(
                 ));
             // O `verilated.mk` recusa compilar numa pasta com espaço
             // (`$(words $(CURDIR))`): o `make` não separa um caminho com
-            // espaço numa regra. O Lace passa ao `make` só caminhos relativos
+            // espaço numa regra. A AURORA passa ao `make` só caminhos relativos
             // à pasta do modelo e os da toolchain pelo nome curto
             // ([`make_path`]), e no Windows a pasta do modelo vai pelo nome
             // curto dela, que é a mesma pasta. Sem nome curto, fica a recusa
@@ -1424,7 +1424,7 @@ fn string_calls<'a>(code: &'a str, name: &str) -> Vec<(&'a str, &'a str)> {
 /// A onda com a extensão do formato que o simulador grava
 /// ([`wave_extension`]): com um `$dumpfile` de outra extensão, a onda ganha
 /// a do formato e vem o texto do testbench com o nome trocado. Com a extensão
-/// certa, ou com um `$dumpfile` que o Lace não acha no texto, nada muda.
+/// certa, ou com um `$dumpfile` que a AURORA não acha no texto, nada muda.
 fn named_by_format(
     testbench: &str,
     wave: Utf8PathBuf,
@@ -1538,11 +1538,11 @@ fn dumpfile_calls(text: &str) -> Vec<usize> {
 /// O `$dumpfile` de um testbench.
 #[derive(Debug, PartialEq, Eq)]
 enum Dump {
-    /// Não tem: o Lace injeta o dele.
+    /// Não tem: a AURORA injeta o dele.
     Absent,
     /// A onda vai para este caminho.
     Path(Utf8PathBuf),
-    /// Tem, com um nome que o Lace não resolve (uma expressão).
+    /// Tem, com um nome que a AURORA não resolve (uma expressão).
     Unknown,
 }
 
@@ -1678,7 +1678,7 @@ fn with_default_dump(testbench: &str, top: &str, wave: &str, choice: Option<&str
         None => format!("$dumpvars(0, {top});"),
     };
     let block = format!(
-        " /* Lace: dump padrão, o testbench não grava onda */ initial begin $dumpfile(\"{wave}\"); {dumpvars} end "
+        " /* AURORA: dump padrão, o testbench não grava onda */ initial begin $dumpfile(\"{wave}\"); {dumpvars} end "
     );
     match endmodule_of(testbench, top) {
         Some(at) => format!("{}{block}{}", &testbench[..at], &testbench[at..]),
@@ -1753,7 +1753,7 @@ fn endmodule_of(text: &str, top: &str) -> Option<usize> {
 /// Copia para a raiz (o CWD da simulação do projeto) os arquivos que o
 /// testbench lê por nome relativo e que estão na pasta dele. Não escreve
 /// fora da raiz, nem por cima de um arquivo que o usuário tem na raiz: só
-/// sobrescreve uma cópia que o próprio Lace fez antes (anotada em
+/// sobrescreve uma cópia que a própria AURORA fez antes (anotada em
 /// `<trabalho>/data_copies.txt`). Devolve os arquivos que faltam e os avisos
 /// do que não foi copiado.
 fn stage_data_files(
@@ -2137,7 +2137,7 @@ endmodule
             notes[0].message.contains("vetor.hex not copied"),
             "{notes:?}"
         );
-        // O novo.hex é copiado e anotado como cópia do Lace.
+        // O novo.hex é copiado e anotado como cópia da AURORA.
         assert_eq!(
             std::fs::read_to_string(root.join("novo.hex")).unwrap(),
             "11\n"
@@ -2156,7 +2156,7 @@ endmodule
             ]
         );
 
-        // Uma cópia do Lace pode ser atualizada; o arquivo do usuário, não.
+        // Uma cópia da AURORA pode ser atualizada; o arquivo do usuário, não.
         std::fs::write(tb_dir.join("novo.hex"), "22\n").unwrap();
         let (_, notes) = stage_data_files(tb, &tb_dir, &root, &work).unwrap();
         assert_eq!(

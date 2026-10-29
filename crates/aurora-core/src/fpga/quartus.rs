@@ -1,4 +1,4 @@
-//! O Quartus Prime instalado no sistema, que o Lace roda sem abrir a
+//! O Quartus Prime instalado no sistema, que a AURORA roda sem abrir a
 //! interface.
 //!
 //! É a segunda exceção à regra do bundle, depois do compilador C++ do
@@ -16,12 +16,12 @@ use crate::error::{AuroraError, Result};
 use crate::process::Invocation;
 use crate::toolchain::Platform;
 
-/// O que os programas do Quartus recebem do ambiente do Lace, além do que
+/// O que os programas do Quartus recebem do ambiente da AURORA, além do que
 /// todo processo recebe: a pasta e o nome do usuário, onde o Quartus guarda
 /// as preferências, e no Linux também o idioma e a pasta temporária.
 ///
 /// Deduzido do que programas de linha de comando costumam ler, e não
-/// conferido com o Quartus rodando: o Lace nunca o executou. Se faltar uma
+/// conferido com o Quartus rodando: a AURORA nunca o executou. Se faltar uma
 /// variável, o relatório do passo mostra as que foram (`inherit`).
 #[cfg(windows)]
 const QUARTUS_ENV: &[&str] = &[

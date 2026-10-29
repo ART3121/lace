@@ -98,8 +98,8 @@ pub struct SavedLayout {
     pub path: Utf8PathBuf,
     /// O estado que vai para o Surfer: o que o usuário salvou, ou o gerado.
     pub state: String,
-    /// O usuário salvou o estado depois da última vez que o Lace o gerou: o
-    /// Lace o deixa como está.
+    /// O usuário salvou o estado depois da última vez que a AURORA o gerou: o
+    /// AURORA o deixa como está.
     pub customized: bool,
 }
 
@@ -255,7 +255,7 @@ fn chosen<'a>(scope: &'a Scope, selection: &[String]) -> Vec<&'a Signal> {
         .collect()
 }
 
-/// O registro, em `.aurora8/`, do SHA-256 do layout que o Lace gravou por
+/// O registro, em `.aurora8/`, do SHA-256 do layout que a AURORA gravou por
 /// último em `wave/` para cada testbench: o arquivo que ainda tem esse
 /// conteúdo não foi salvo pelo usuário e pode ser refeito.
 const GENERATED_RECORD: &str = "wave/generated.json";
@@ -285,7 +285,7 @@ fn write_record(path: &Utf8Path, record: &BTreeMap<String, String>) -> Result<()
 ///
 /// O arquivo nasce com o layout gerado, na primeira vez que a onda abre, e
 /// é dele que o Surfer lê o estado e para ele que salva (Ctrl+S). Enquanto
-/// o usuário não salva, o Lace o refaz a cada abertura (a escolha de sinais
+/// o usuário não salva, a AURORA o refaz a cada abertura (a escolha de sinais
 /// ou os processadores podem ter mudado); depois que ele salva, o arquivo
 /// fica como está ([`SavedLayout::customized`]) até
 /// [`reset_saved_layout`].

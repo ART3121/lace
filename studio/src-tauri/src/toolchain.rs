@@ -1,4 +1,4 @@
-//! Onde está o Lace para o Studio: o programa `aurora`, que o Studio abre
+//! Onde está a AURORA para o Studio: o programa `aurora`, que o Studio abre
 //! como servidor ([`crate::server`]), e o bundle que o servidor recebe em
 //! `--toolchain`. Achar o servidor é do cliente, como a extensão do VS Code
 //! faz com o `aurora` dela; o resto (as ferramentas, os componentes, o
@@ -19,7 +19,7 @@ use crate::error::{IpcError, IpcResult, codes};
 use crate::server::AuroraServer;
 use crate::settings::Settings;
 
-/// O nome do executável do Lace neste sistema.
+/// O nome do executável da AURORA neste sistema.
 const AURORA_EXE: &str = if cfg!(windows) { "aurora.exe" } else { "aurora" };
 
 /// Quantas pastas acima do Studio procurar a instalação: o Studio fica em
@@ -76,7 +76,7 @@ fn installation_of(aurora: &Utf8Path) -> Option<Utf8PathBuf> {
     (bin.file_name() == Some("bin") && prefix.join("toolchain").is_dir()).then(|| prefix.to_owned())
 }
 
-/// A instalação do Lace: a do bundle das preferências, a do Studio, ou a
+/// A instalação da AURORA: a do bundle das preferências, a do Studio, ou a
 /// do `aurora` do `PATH`.
 fn installation(settings: &Settings) -> Option<Utf8PathBuf> {
     setting_path(&settings.toolchain_dir)
@@ -108,7 +108,7 @@ pub fn aurora_executable(settings: &Settings) -> IpcResult<Utf8PathBuf> {
         .ok_or_else(|| {
             IpcError::new(
                 codes::AURORA_MISSING,
-                "The aurora program was not found next to the Studio or in the PATH; set it in Preferences > Lace bundle",
+                "The aurora program was not found next to the Studio or in the PATH; set it in Preferences > AURORA bundle",
             )
         })
 }

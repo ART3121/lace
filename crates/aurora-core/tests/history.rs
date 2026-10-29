@@ -87,7 +87,7 @@ fn a_damaged_record_is_listed_as_unreadable() {
         history::load(&project, "1"),
         Err(AuroraError::InvalidReport { .. })
     ));
-    // Um formato que este Lace não conhece também não se lê.
+    // Um formato que esta AURORA não conhece também não se lê.
     std::fs::write(dir.join("record.json"), r#"{"schema": 99}"#).unwrap();
     assert!(matches!(
         history::load(&project, "1"),

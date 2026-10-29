@@ -463,14 +463,14 @@ describe('ServeAuroraClient', () => {
       server.fail(
         request.id as number,
         -32000,
-        'No Lace project here',
-        withData ? { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new' } : undefined,
+        'Na AURORA project here',
+        withData ? { code: 'project_not_found', message: 'Na AURORA project here', hint: 'Create one with: aurora new' } : undefined,
       ),
     );
     const run = await client.status(spf);
     assert.deepEqual(run, {
       status: 'error',
-      error: { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new' },
+      error: { code: 'project_not_found', message: 'Na AURORA project here', hint: 'Create one with: aurora new' },
     });
     withData = false;
     await assert.rejects(client.status(spf), AuroraProcessError);

@@ -109,7 +109,7 @@
           "const": "cancelled"
         },
         {
-          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "description": "Um passo passou do prazo e a AURORA o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
           "type": "string",
           "const": "timed_out"
         }

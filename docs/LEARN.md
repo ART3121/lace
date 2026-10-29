@@ -2,14 +2,14 @@
 
 O `aurora learn` é uma trilha de exercícios curtos de Verilog, no estilo do
 rustlings: cada exercício pede um módulo, com as portas já escritas, e o
-Lace corrige a cada gravação, simulando o módulo ao lado de uma solução de
+AURORA corrige a cada gravação, simulando o módulo ao lado de uma solução de
 referência com as mesmas entradas. Quando uma saída difere, ele diz em
 quantas amostras, mostra a primeira amostra errada (as entradas, o valor
 esperado e o seu) e a onda das duas versões lado a lado. Com o Verilator e
 o Yosys instalados, também avisa do que simula certo mas não é o circuito
 pretendido: os avisos do lint e o latch inferido.
 
-O código está no Lace (o crate `aurora-learn`, usado pela CLI e pelo Studio).
+O código está na AURORA (o crate `aurora-learn`, usado pela CLI e pelo Studio).
 Os exercícios vêm no componente `aurora-learn` do bundle, que é opcional.
 
 ## Para quem faz os exercícios
@@ -20,7 +20,7 @@ Os exercícios vêm no componente `aurora-learn` do bundle, que é opcional.
 aurora install aurora-learn
 ```
 
-ou marque "Lace Learn" no instalador. O componente exige o Icarus.
+ou marque "AURORA Learn" no instalador. O componente exige o Icarus.
 
 ### Na linha de comando
 
@@ -110,7 +110,7 @@ Sem o componente instalado, a vista oferece instalá-lo.
 ```
 aurora-learn/
   .aurora-learn.json                   o estado: a trilha, o exercício atual, os resolvidos
-  exercises/02_basico/porta_e/       cada exercício é um projeto Lace
+  exercises/02_basico/porta_e/       cada exercício é um projeto AURORA
     porta_e.spf
     porta_e.v                        o seu arquivo
     README.md                        o enunciado, sem as dicas
@@ -125,7 +125,7 @@ O seu arquivo só é escrito quando o exercício é criado e quando você pede
 para restaurar. O que está em `.aurora-learn/` e o `README.md` são da trilha:
 quando o componente é atualizado, o `aurora learn` (e o Studio, ao abrir a
 pasta) grava de novo o que mudou e cria os exercícios novos. Como cada
-exercício é um projeto Lace comum, `aurora sim`, `aurora wave`, `aurora synth` e o
+exercício é um projeto AURORA comum, `aurora sim`, `aurora wave`, `aurora synth` e o
 Studio inteiro funcionam nele.
 
 ### Como a correção funciona
@@ -298,18 +298,18 @@ trilhas do repositório (com `AURORA_TEST_BUNDLE`).
 `AURORA_LEARN_DIR` aponta a pasta das trilhas no lugar do componente, para
 testar uma trilha sem instalá-la: `aurora learn init`, `aurora learn` e os outros
 subcomandos passam a usá-la. No Studio, o mesmo é a preferência "Pasta das
-trilhas de exercícios" (Preferências > Bundle do Lace), que a vista
+trilhas de exercícios" (Preferências > Bundle da AURORA), que a vista
 Exercícios também oferece quando não acha trilha nenhuma.
 
 Numa build de desenvolvimento (`cargo run`, `npm run tauri dev`), sem
-`AURORA_LEARN_DIR` e sem a preferência, o Lace e o Studio usam sozinhos a
+`AURORA_LEARN_DIR` e sem a preferência, a AURORA e o Studio usam sozinhos a
 pasta `aurora-learn/` do repositório de onde foram compilados. Com
 `AURORA_LEARN_DIR` definida e vazia, isso desliga.
 
 ### Publicar
 
-As trilhas saem com o Lace: o pacote `aurora-learn` de `bundle/versions.json`
-tem a versão do Lace e o caminho `aurora-learn`, e o componente
+As trilhas saem com a AURORA: o pacote `aurora-learn` de `bundle/versions.json`
+tem a versão da AURORA e o caminho `aurora-learn`, e o componente
 `aurora-learn` de `bundle/components.json` leva a pasta inteira. Uma pasta de
 exercícios criada antes recebe os exercícios novos e os testbenches
 corrigidos na primeira vez que é aberta depois da atualização.

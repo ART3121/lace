@@ -1,5 +1,5 @@
 // Os tipos do próprio Studio, espelhando os structs Rust de src-tauri/src.
-// Os tipos do Core do Lace (BuildResult, SimulationResult, Event...) vêm
+// Os tipos do Core da AURORA (BuildResult, SimulationResult, Event...) vêm
 // gerados em ./aurora-types.ts. A referência de cada comando está em
 // docs/IPC.md.
 //
@@ -95,7 +95,7 @@ export interface Settings {
   sim_timeout_s: number | null;
   verbose: boolean;
   restore_last_project: boolean;
-  /** Procurar Lace mais novo ao abrir e a cada 12 horas (state/updates.ts). */
+  /** Procurar AURORA mais nova ao abrir e a cada 12 horas (state/updates.ts). */
   check_updates: boolean;
   /** Windows: `powershell` ou `cmd`. */
   terminal_shell: 'powershell' | 'cmd';
@@ -501,7 +501,7 @@ export interface WaveTab {
   /** O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o Ctrl+S
    * da aba salva; `null` numa onda fora de projeto. */
   saved_layout: string | null;
-  /** O usuário salvou o layout depois que o Lace o gerou. */
+  /** O usuário salvou o layout depois que a AURORA o gerou. */
   customized: boolean;
   /** A escolha de sinais que o layout segue; vazia: todos. */
   selection: string[];

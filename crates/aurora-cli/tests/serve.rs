@@ -28,7 +28,7 @@ impl Client {
         Client::spawn(toolchain, None)
     }
 
-    /// Com a pasta de configuração do Lace (a do `experimental.json`) em
+    /// Com a pasta de configuração da AURORA (a do `experimental.json`) em
     /// `config`: o teste não lê nem grava a do usuário.
     fn start_in(config: &Utf8Path) -> Client {
         Client::spawn(None, Some(config))
@@ -239,7 +239,7 @@ fn handshake_errors_and_exit_on_eof() {
     assert_eq!(reply["error"]["code"], -32601, "{reply}");
     let (reply, _) = client.call("project.status", json!({}));
     assert_eq!(reply["error"]["code"], -32602, "{reply}");
-    // Um erro do Lace: o ErrorInfo em data, com o código do core.
+    // Um erro da AURORA: o ErrorInfo em data, com o código do core.
     let (_guard, dir) = tempdir();
     let missing = dir.join("nao-existe");
     let (reply, _) = client.call("project.status", json!({ "project": missing }));
@@ -324,7 +324,7 @@ fn the_same_server_answers_mcp_when_the_client_speaks_it() {
     let (code, _) = client.close_and_wait();
     assert_eq!(code, 0);
 
-    // E o protocolo do Lace continua no mesmo comando.
+    // E o protocolo da AURORA continua no mesmo comando.
     let mut client = Client::start_in(&config);
     let info = client.initialize();
     assert_eq!(info["protocol"], 2, "{info}");

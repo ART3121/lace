@@ -1,5 +1,5 @@
 //! `aurora update`: compara as versões instaladas com as publicadas e, se há
-//! um Lace mais novo, atualiza a instalação de onde este `aurora` roda.
+//! uma AURORA mais nova, atualiza a instalação de onde este `aurora` roda.
 //!
 //! A regra do que é atualizar mora em `aurora_installer::update` (consultar,
 //! planejar por componentes, aplicar, cair para o instalador inteiro), e é
@@ -41,7 +41,7 @@ pub struct Options<'a> {
     pub full: bool,
     /// `--from`: um instalador no disco, sem rede.
     pub from: Option<&'a Utf8Path>,
-    /// `--reopen-ide`: quem pede é o Lace Studio, que fecha para a
+    /// `--reopen-ide`: quem pede é a AURORA IDE, que fecha para a
     /// atualização. No Windows, o assistente de instalação o abre de novo
     /// quando termina.
     pub reopen_ide: bool,
@@ -115,7 +115,7 @@ impl Hooks for CliHooks<'_> {
             format!("{} downloaded, ", aurora_installer::mib(plan.download()))
         };
         println!(
-            "Updated Lace to {} in {prefix}: {downloaded}{} files in, {} out, {} executables verified",
+            "Updated AURORA to {} in {prefix}: {downloaded}{} files in, {} out, {} executables verified",
             plan.to, applied.applied.replaced, applied.applied.removed, applied.applied.verified
         );
         if cfg!(windows) && plan.changed.iter().any(|c| c == component::STUDIO) {
@@ -200,12 +200,12 @@ pub fn run(
         match report.action {
             UpdateAction::Updated => {
                 let prefix = report.prefix.as_deref().unwrap_or(Utf8Path::new(""));
-                println!("Updated Lace to {version} in {prefix}");
+                println!("Updated AURORA to {version} in {prefix}");
             }
             UpdateAction::WizardOpened if selected => println!(
-                "Opened the Lace {version} setup wizard, with the installed components selected"
+                "Opened the AURORA {version} setup wizard, with the installed components selected"
             ),
-            UpdateAction::WizardOpened => println!("Opened the Lace {version} setup wizard"),
+            UpdateAction::WizardOpened => println!("Opened the AURORA {version} setup wizard"),
             UpdateAction::Checked | UpdateAction::UpToDate => {}
         }
     }
@@ -240,14 +240,14 @@ fn print_plan(plan: &Plan, index: &Index, local: bool) {
     println!();
     if plan.chunks.is_empty() && plan.stale.is_empty() {
         println!(
-            "The installation already has every file of Lace {}",
+            "The installation already has every file of AURORA {}",
             plan.to
         );
         return;
     }
     let what: Vec<String> = plan.changed.iter().map(|n| label_of(index, n)).collect();
     println!(
-        "Lace {} to {} by components: {}",
+        "AURORA {} to {} by components: {}",
         plan.from,
         plan.to,
         what.join(", ")
@@ -289,7 +289,7 @@ fn confirm_plan(plan: &Plan, prefix: &Utf8Path) -> anyhow::Result<()> {
         bail!("No terminal to confirm: use aurora update --yes");
     }
     eprint!(
-        "Update Lace {} to {} in {prefix}? [y/N] ",
+        "Update AURORA {} to {} in {prefix}? [y/N] ",
         plan.from, plan.to
     );
     std::io::stderr().flush()?;
@@ -303,7 +303,7 @@ fn confirm_plan(plan: &Plan, prefix: &Utf8Path) -> anyhow::Result<()> {
     }
 }
 
-/// A tabela: uma linha para o Lace, uma para o bundle e uma por componente,
+/// A tabela: uma linha para a AURORA, uma para o bundle e uma por componente,
 /// com a versão instalada, a da última release e a upstream. `(new)` marca a
 /// da release mais nova que a instalada e a upstream mais nova que a do
 /// bundle; `?`, a que não deu para consultar; `-`, o que não está instalado.
@@ -367,14 +367,14 @@ fn print_summary(report: &UpdateReport) {
     let aurora = &report.aurora;
     println!();
     if aurora.newer {
-        println!("Lace {} is available: update with aurora update", aurora.latest);
+        println!("AURORA {} is available: update with aurora update", aurora.latest);
     } else if is_newer(&aurora.installed, &aurora.latest) {
         println!(
-            "This Lace ({}) is newer than the latest release ({})",
+            "This AURORA ({}) is newer than the latest release ({})",
             aurora.installed, aurora.latest
         );
     } else {
-        println!("Lace is up to date ({})", aurora.latest);
+        println!("AURORA is up to date ({})", aurora.latest);
     }
     if report.bundle.installed.is_none() {
         println!("No bundle: no components to compare");
@@ -399,8 +399,8 @@ fn print_summary(report: &UpdateReport) {
         };
         println!("{what}: {list}");
         println!(
-            "Lace does not install tools straight from upstream: they come in a new bundle, \
-             with a new Lace release, which aurora update installs once it is out."
+            "AURORA does not install tools straight from upstream: they come in a new bundle, \
+             with a new AURORA release, which aurora update installs once it is out."
         );
     }
     let unknown =
@@ -411,14 +411,14 @@ fn print_summary(report: &UpdateReport) {
 }
 
 /// Pergunta no terminal. Sem terminal (um script, uma extensão), exige
-/// `--yes`, como o `aurora uninstall`: a atualização troca o Lace e o bundle
+/// `--yes`, como o `aurora uninstall`: a atualização troca a AURORA e o bundle
 /// inteiro.
 fn confirm(aurora: &AuroraVersions, prefix: &Utf8Path) -> anyhow::Result<()> {
     if !std::io::stdin().is_terminal() {
         bail!("No terminal to confirm: use aurora update --yes");
     }
     eprint!(
-        "Update Lace {} to {} in {prefix}, with its bundle? [y/N] ",
+        "Update AURORA {} to {} in {prefix}, with its bundle? [y/N] ",
         aurora.installed, aurora.latest
     );
     std::io::stderr().flush()?;

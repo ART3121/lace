@@ -1,11 +1,11 @@
 //! Os fluxos do Studio: o pedido da interface (o `FlowRequest` do
-//! protocolo, em JSON, com `flow`) vai ao servidor do Lace
+//! protocolo, em JSON, com `flow`) vai ao servidor da AURORA
 //! ([`crate::server`]) pelo `flow.run`, e o resultado volta com o que só o
 //! Studio acrescenta: a onda numa aba.
 //!
 //! A composição em si (compilar antes, parar no primeiro build que falhar,
 //! registrar o Verilog gerado, simular, ler as portas, gravar o relatório,
-//! abrir a onda, corrigir um exercício) é a do Lace, a mesma da CLI, e roda
+//! abrir a onda, corrigir um exercício) é a da AURORA, a mesma da CLI, e roda
 //! no servidor. Aqui ficam só as decisões da interface: o programa
 //! `aurora-ide` do comando que vai para o histórico, e se a onda abre em
 //! janela ou numa aba (preferência `wave_viewer`).
@@ -84,7 +84,7 @@ pub fn plan(
 impl Finisher {
     /// A mensagem final da interface: o `FlowOutcome` do servidor, com
     /// `wave_tab` (a onda que a interface abre numa aba, no lugar da
-    /// janela). `failed` é o Lace não conseguir rodar; um fluxo que rodou e
+    /// janela). `failed` é a AURORA não conseguir rodar; um fluxo que rodou e
     /// falhou é `finished` com `succeeded: false`, e um cancelado antes de
     /// começar também.
     pub fn finish(self, reply: IpcResult<Value>) -> JobMessage {

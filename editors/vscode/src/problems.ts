@@ -51,7 +51,7 @@ export function groupProblems(
       unplaced.push(d);
       continue;
     }
-    // O Lace passa caminhos absolutos às ferramentas; um relativo seria da raiz.
+    // A AURORA passa caminhos absolutos às ferramentas; um relativo seria da raiz.
     const file = isAbsolute(d.file) ? d.file : resolve(root, d.file);
     const key = JSON.stringify([file, d.line, d.column, d.severity, d.message]);
     if (seen.has(key)) {

@@ -53,7 +53,7 @@ pub mod codes {
     pub const AURORA_MISSING: &str = "aurora_missing";
     /// O `aurora` achado fala outra versão do protocolo.
     pub const AURORA_INCOMPATIBLE: &str = "aurora_incompatible";
-    /// O servidor do Lace saiu no meio de um pedido; o próximo o abre de novo.
+    /// O servidor da AURORA saiu no meio de um pedido; o próximo o abre de novo.
     pub const SERVER_GONE: &str = "server_gone";
     /// O pedido foi cancelado antes de começar (`-32001` do protocolo).
     pub const CANCELLED: &str = "cancelled";

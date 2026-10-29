@@ -128,7 +128,7 @@ fn fit_to(colors: Colors, color: Color) -> Color {
 /// As cores da tela. Com `NO_COLOR`, nenhuma: ficam o negrito e o inverso.
 #[derive(Debug, Clone, Copy)]
 struct Palette {
-    /// O azul do ATLAS, o destaque do Lace.
+    /// O azul do ATLAS, o destaque da AURORA.
     accent: Color,
     ok: Color,
     error: Color,
@@ -279,7 +279,7 @@ pub struct App {
     quit: bool,
     pal: Palette,
     /// As threads que corrigem, com o cancelamento de cada uma, também as de
-    /// uma correção trocada por outra: ao sair, o Lace espera elas
+    /// uma correção trocada por outra: ao sair, a AURORA espera elas
     /// encerrarem a ferramenta. No Unix, um `vvp` deixado para trás rodaria
     /// sozinho, no grupo de processos dele.
     workers: Vec<(CancelToken, std::thread::JoinHandle<()>)>,
@@ -768,7 +768,7 @@ impl App {
             .border_style(Style::default().fg(pal.accent))
             .title(Line::from(vec![
                 Span::raw(" "),
-                Span::styled("Lace learn", pal.accent()),
+                Span::styled("AURORA learn", pal.accent()),
                 Span::raw(" "),
             ]))
             .title(

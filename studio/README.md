@@ -1,6 +1,6 @@
 # AURORA IDE
 
-O ambiente gráfico do [Lace](https://github.com/ART3121/lace) para projetos
+O ambiente gráfico do [AURORA](https://github.com/ART3121/lace) para projetos
 Verilog e processadores SAPHO. Sucede a AURORA 7, feita em Electron: cria e abre projetos
 `.spf`, edita C±, C e Verilog, compila pelo YANC, verifica e simula com
 Icarus Verilog e Verilator, sintetiza com Yosys, desenha o esquemático com
@@ -10,26 +10,26 @@ operação.
 Até 2026-10-29 se chamava Lace Studio. A pasta `studio/`, o componente
 `studio` do bundle, o executável `aurora-ide`, o `AURORA IDE.app` do macOS
 e a pasta das preferências (`com.nipscern.aurora-ide`) ficam com o nome
-antigo até a versão que renomeia o Lace para AURORA, porque o instalador e
+antigo até a versão que renomeia a AURORA para AURORA, porque o instalador e
 a atualização dependem deles.
 
 É um aplicativo [Tauri 2](https://tauri.app): o backend em Rust usa o
 `aurora-core` como biblioteca, sem passar pela linha de comando, e a interface
-é React com o editor Monaco. A regra de negócio continua toda no Lace; o
+é React com o editor Monaco. A regra de negócio continua toda na AURORA; o
 Studio só pede e mostra.
 
-Estado: **em desenvolvimento**, na versão do Lace. O que já funciona e o que falta para
+Estado: **em desenvolvimento**, na versão da AURORA. O que já funciona e o que falta para
 cobrir tudo o que a AURORA fazia está em
 [docs/AURORA_PARITY.md](docs/AURORA_PARITY.md).
 
 ## Requisitos
 
-- O Studio vem no instalador do Lace, como o componente `studio`, marcado em
+- O Studio vem no instalador da AURORA, como o componente `studio`, marcado em
   todos os perfis ([instalação](../README.md#instalar)); numa
   instalação sem ele, `aurora install studio`. Instalado assim, ele fica no
   bundle (`toolchain/studio/`) e usa o bundle em que está. Fora do bundle
-  (o `npm run tauri dev`), acha a instalação do Lace sozinho
-  (`~/.local/share/aurora` no Linux e no macOS, `%LOCALAPPDATA%\Programs\Lace`
+  (o `npm run tauri dev`), acha a instalação da AURORA sozinho
+  (`~/.local/share/aurora` no Linux e no macOS, `%LOCALAPPDATA%\Programs\AURORA`
   no Windows) ou pela pasta indicada nas preferências.
 - No Linux, o webkit2gtk 4.1 do sistema (`libwebkit2gtk-4.1-0` no Debian e
   no Ubuntu, `webkit2gtk4.1` no Fedora); no Windows, o WebView2, que vem com
@@ -48,7 +48,7 @@ npm install
 npm run tauri dev                                      # abre o Studio, com recarga ao salvar
 ```
 
-O Studio que vai para os usuários sai do instalador do Lace: o
+O Studio que vai para os usuários sai do instalador da AURORA: o
 `scripts/bundle.py` da raiz compila o `studio/` (`tauri build`) e o põe no
 bundle. Só o Studio, sem o resto do bundle:
 

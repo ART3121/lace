@@ -1,7 +1,7 @@
-//! `aurora chat`: o assistente do Lace no terminal. Uma tela com a conversa,
+//! `aurora chat`: o assistente da AURORA no terminal. Uma tela com a conversa,
 //! o campo de texto e o que o assistente faz, sobre uma sessão do Claude
 //! Code com as ferramentas do `aurora mcp` (`aurora_agent`). O mesmo motor do
-//! chat do Lace Studio.
+//! chat da AURORA IDE.
 //!
 //! O projeto é o da pasta atual (ou do `-C`), passado ao assistente como
 //! padrão das ferramentas. Quem autentica é o Claude Code: a conta ou a
@@ -38,10 +38,10 @@ pub struct ChatArgs {
     /// Resume a conversation by the session id printed when a chat ends
     #[arg(long, value_name = "SESSION_ID")]
     pub resume: Option<String>,
-    /// Let the assistant edit and create files in the project folder (besides the Lace tools and reading)
+    /// Let the assistant edit and create files in the project folder (besides the AURORA tools and reading)
     #[arg(long)]
     pub allow_edits: bool,
-    /// Also expose the tools that change the Lace installation (update, install)
+    /// Also expose the tools that change the AURORA installation (update, install)
     #[arg(long)]
     pub allow_update: bool,
     /// The Claude Code executable (or its folder); default: PATH and the installer folders
@@ -230,7 +230,7 @@ impl App {
                 self.model = model;
                 if aurora_connected == Some(false) {
                     self.entries.push(Entry::Note(
-                        "The Lace tools did not connect: the assistant answers without them."
+                        "The AURORA tools did not connect: the assistant answers without them."
                             .to_owned(),
                     ));
                 }
