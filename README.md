@@ -1,6 +1,8 @@
 <h1 align="center">
-  <img src="studio/public/brand/aurora-icon.svg" alt="" width="88"><br>
-  AURORA
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="studio/public/brand/aurora-lockup-reverse.svg">
+    <img src="studio/public/brand/aurora-lockup.svg" alt="AURORA" width="300">
+  </picture>
 </h1>
 
 <p align="center">
