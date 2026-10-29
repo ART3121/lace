@@ -15,7 +15,6 @@
 
 use std::collections::BTreeMap;
 
-use camino::Utf8PathBuf;
 use aurora_core::experimental::FeatureState;
 use aurora_core::fpga::{Board, Connection, FpgaBuildResult, FpgaProgramResult, Quartus, Resolved};
 use aurora_core::history::{RunComparison, RunRecord, RunSummary};
@@ -25,6 +24,7 @@ use aurora_core::{
     SchematicResult, SimulationResult, SynthesisResult, SystemCompiler, WaveProcessor,
 };
 use aurora_learn::{DevReport, ExerciseStatus, Grade};
+use camino::Utf8PathBuf;
 use schemars::JsonSchema;
 use serde::Serialize;
 

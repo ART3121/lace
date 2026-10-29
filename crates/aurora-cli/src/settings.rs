@@ -20,9 +20,9 @@
 //! (`Quartus::detect`).
 
 use anyhow::Context;
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::Toolchain;
 use aurora_core::locate::{self, Found, Lookup};
+use camino::{Utf8Path, Utf8PathBuf};
 
 /// Opções globais de bundle.
 #[derive(clap::Args, Debug, Clone)]

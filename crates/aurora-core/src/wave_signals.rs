@@ -941,7 +941,11 @@ v0000027b2435eb34_0 .var "z", 3 0;
         let proc = &dut.scopes[0];
         assert!(proc.processor);
         assert!(proc.scopes.is_empty(), "{:?}", proc.scopes);
-        let real = proc.signals.iter().find(|s| s.kind == SignalKind::Real).unwrap();
+        let real = proc
+            .signals
+            .iter()
+            .find(|s| s.kind == SignalKind::Real)
+            .unwrap();
         assert_eq!(real.width, 64);
         assert!(proc.signals.iter().any(|s| s.kind == SignalKind::Integer));
         assert_eq!(dut.scopes[1].kind, ScopeKind::Generate);
@@ -952,7 +956,14 @@ v0000027b2435eb34_0 .var "z", 3 0;
     fn the_choice_is_normalized_and_checked_against_the_tree() {
         let list = |items: &[&str]| items.iter().map(|s| s.to_string()).collect::<Vec<_>>();
         assert_eq!(
-            normalize(&list(&[" tb.dut.q", "tb.dut", "tb.clk", "tb.dut", "", "tb.dutx"])),
+            normalize(&list(&[
+                " tb.dut.q",
+                "tb.dut",
+                "tb.clk",
+                "tb.dut",
+                "",
+                "tb.dutx"
+            ])),
             ["tb.clk", "tb.dut", "tb.dutx"]
         );
         assert!(covers("tb.dut", "tb.dut.q"));
@@ -961,7 +972,11 @@ v0000027b2435eb34_0 .var "z", 3 0;
         let root = parse_signals(VVP, "tb_proc_placa").unwrap();
         let (known, unknown) = split_known(
             &root,
-            &list(&["tb_proc_placa.SW", "tb_proc_placa.dut.g[0]", "tb_proc_placa.velho"]),
+            &list(&[
+                "tb_proc_placa.SW",
+                "tb_proc_placa.dut.g[0]",
+                "tb_proc_placa.velho",
+            ]),
         );
         assert_eq!(known, ["tb_proc_placa.SW", "tb_proc_placa.dut.g[0]"]);
         assert_eq!(unknown, ["tb_proc_placa.velho"]);
@@ -976,11 +991,17 @@ v0000027b2435eb34_0 .var "z", 3 0;
         assert!(!root.contains("tb_proc_placa.dut.nada"));
         assert!(!root.contains("outro.dut"));
         assert_eq!(
-            root.without(&list(&["tb_proc_placa.SW", "tb_proc_placa.KEY"]), "tb_proc_placa.SW"),
+            root.without(
+                &list(&["tb_proc_placa.SW", "tb_proc_placa.KEY"]),
+                "tb_proc_placa.SW"
+            ),
             Some(list(&["tb_proc_placa.KEY"]))
         );
         assert_eq!(
-            root.without(&list(&["tb_proc_placa.dut"]), "tb_proc_placa.dut.u_proc.valr2"),
+            root.without(
+                &list(&["tb_proc_placa.dut"]),
+                "tb_proc_placa.dut.u_proc.valr2"
+            ),
             Some(list(&[
                 "tb_proc_placa.dut.CLOCK_50",
                 "tb_proc_placa.dut.HEX0",
@@ -992,7 +1013,10 @@ v0000027b2435eb34_0 .var "z", 3 0;
                 "tb_proc_placa.dut.u_proc.me2_f_main_v_x_e_",
             ]))
         );
-        assert_eq!(root.without(&list(&["tb_proc_placa.SW"]), "tb_proc_placa.KEY"), None);
+        assert_eq!(
+            root.without(&list(&["tb_proc_placa.SW"]), "tb_proc_placa.KEY"),
+            None
+        );
     }
 
     #[test]
@@ -1063,10 +1087,17 @@ v0000027b2435eb34_0 .var "z", 3 0;
         let dir = crate::paths::canonicalize(Utf8Path::from_path(guard.path()).unwrap()).unwrap();
         let project = Project::create(&dir, "p").unwrap();
         assert!(read_selection(&project, "tb").unwrap().is_empty());
-        let items = vec!["tb.dut".to_owned(), "tb.dut.q".to_owned(), "tb.clk".to_owned()];
+        let items = vec![
+            "tb.dut".to_owned(),
+            "tb.dut.q".to_owned(),
+            "tb.clk".to_owned(),
+        ];
         let path = write_selection(&project, "tb", &items).unwrap().unwrap();
         assert_eq!(path, project.root().join("wave/tb.json"));
-        assert_eq!(read_selection(&project, "tb").unwrap(), ["tb.clk", "tb.dut"]);
+        assert_eq!(
+            read_selection(&project, "tb").unwrap(),
+            ["tb.clk", "tb.dut"]
+        );
         assert_eq!(write_selection(&project, "tb", &[]).unwrap(), None);
         assert!(!path.exists());
         assert!(!project.root().join(WAVE_DIR).exists());

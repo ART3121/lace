@@ -3,8 +3,8 @@
 //! para a AURORA IDE: os dois leem o mesmo `experimental.json`.
 
 use anyhow::anyhow;
-use clap::builder::PossibleValuesParser;
 use aurora_core::experimental::{self, Feature};
+use clap::builder::PossibleValuesParser;
 
 use crate::output::{BOLD, DIM, OK, Output, paint};
 use crate::report::ExperimentalReport;

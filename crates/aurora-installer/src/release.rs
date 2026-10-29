@@ -15,8 +15,8 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use anyhow::Context;
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::CancelToken;
+use camino::{Utf8Path, Utf8PathBuf};
 use sha2::{Digest, Sha256};
 
 use crate::error::{Error, Result};
@@ -107,7 +107,9 @@ impl Network {
     /// do GitHub.
     pub fn asset_url(&self, version: &str, file: &str) -> Result<String> {
         if !is_version(version) {
-            return Err(anyhow::anyhow!("Not an AURORA version: {}", version.escape_debug()).into());
+            return Err(
+                anyhow::anyhow!("Not an AURORA version: {}", version.escape_debug()).into(),
+            );
         }
         if !is_asset_name(file) {
             return Err(
@@ -491,7 +493,9 @@ impl Sources for Remote {
             package::YANC => self.latest_github_tag("nipscernlab/yanc", cancel),
             // O Studio, as trilhas e o RTL viewer saem com a AURORA: o mais
             // novo é o da última release.
-            package::STUDIO | package::AURORA_LEARN | package::RTL_VIEWER => self.latest_aurora(cancel),
+            package::STUDIO | package::AURORA_LEARN | package::RTL_VIEWER => {
+                self.latest_aurora(cancel)
+            }
             package::SURFER_AURORA => {
                 let text = self.fetch_text(SURFER_AURORA_TAGS, cancel)?;
                 let tags: Vec<GitlabTag> = serde_json::from_str(&text)

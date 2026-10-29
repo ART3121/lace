@@ -16,13 +16,13 @@
 //! AURORA_TEST_BUNDLE=/caminho/do/toolchain cargo test --test flows
 //! ```
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_ide_lib::error::IpcError;
 use aurora_ide_lib::flows;
 use aurora_ide_lib::jobs::JobMessage;
 use aurora_ide_lib::server::AuroraServer;
 use aurora_ide_lib::settings::Settings;
 use aurora_ide_lib::toolchain;
+use camino::{Utf8Path, Utf8PathBuf};
 use serde_json::{Value, json};
 
 fn skip(reason: &str) -> Option<Settings> {
@@ -41,7 +41,11 @@ fn settings() -> Option<Settings> {
         settings.toolchain_dir = Some(dir);
     }
     if std::env::var_os("AURORA_IDE_CLI").is_none() {
-        let exe = if cfg!(windows) { "aurora.exe" } else { "aurora" };
+        let exe = if cfg!(windows) {
+            "aurora.exe"
+        } else {
+            "aurora"
+        };
         let dev = Utf8Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../target/debug")
             .join(exe);
@@ -117,7 +121,12 @@ fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
 }
 
 /// O fluxo pelo servidor, como `jobs.rs` o roda: a mensagem final.
-fn finish(server: &AuroraServer, request: &Value, settings: &Settings, spf: &Utf8Path) -> JobMessage {
+fn finish(
+    server: &AuroraServer,
+    request: &Value,
+    settings: &Settings,
+    spf: &Utf8Path,
+) -> JobMessage {
     let (operation, finisher) =
         flows::plan(server, settings, spf, request.clone()).expect("o plano do fluxo");
     let reply = server.call_with(

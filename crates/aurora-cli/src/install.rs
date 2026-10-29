@@ -23,12 +23,12 @@ use std::io::IsTerminal;
 use std::sync::Arc;
 
 use anyhow::bail;
-use camino::Utf8Path;
 use aurora_core::{CancelToken, component};
 use aurora_installer::add::{self, AddPrepared, Payload};
 use aurora_installer::install::Event;
 use aurora_installer::release::Remote;
 use aurora_installer::tui;
+use camino::Utf8Path;
 
 use crate::installation::{self, lib_error};
 use crate::meter::Meter;

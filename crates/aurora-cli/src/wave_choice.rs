@@ -72,7 +72,11 @@ fn write(outcome: &aurora_core::flows::WaveChoiceOutcome, out: &Output) -> anyho
                 println!(
                     "The waveform of {module} records {} chosen {} ({file})",
                     selection.len(),
-                    if selection.len() == 1 { "item" } else { "items" }
+                    if selection.len() == 1 {
+                        "item"
+                    } else {
+                        "items"
+                    }
                 );
                 for item in selection {
                     println!("  {item}");

@@ -13,8 +13,6 @@ use std::io::{BufRead, IsTerminal, Write};
 use std::time::{Duration, SystemTime};
 
 use anyhow::bail;
-use camino::{Utf8Path, Utf8PathBuf};
-use clap::CommandFactory;
 use aurora_core::flows::{
     self, FlowOptions, FlowOutcome, FlowRequest, LayoutPolicy, Phase, Progress, WaveRequest,
     WaveSource,
@@ -25,6 +23,8 @@ use aurora_core::{
     Control, ErrorInfo, Language, ListPosition, NewProcessorFields, Processor, ProcessorConfig,
     Project, Simulator,
 };
+use camino::{Utf8Path, Utf8PathBuf};
+use clap::CommandFactory;
 
 use crate::output::Output;
 use crate::report::{
@@ -159,7 +159,12 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         )?,
         Command::Uninstall { yes } => crate::uninstall::run(out, *yes)?,
         Command::Completions { shell } => {
-            clap_complete::generate(*shell, &mut Cli::command(), "aurora", &mut std::io::stdout());
+            clap_complete::generate(
+                *shell,
+                &mut Cli::command(),
+                "aurora",
+                &mut std::io::stdout(),
+            );
         }
     }
     Ok(true)

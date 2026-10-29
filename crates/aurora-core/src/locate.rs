@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::fpga::Quartus;
 use crate::toolchain::{BundleComponent, SystemCompiler, Tool, Toolchain, component};
-use crate::{ErrorInfo, AuroraError, MANIFEST_FILE, Result};
+use crate::{AuroraError, ErrorInfo, MANIFEST_FILE, Result};
 
 /// De onde a AURORA pode estar, na ordem de busca do módulo. Tudo vem de quem
 /// chama; o core não lê o ambiente.
@@ -219,7 +219,11 @@ fn containing_bundle(exe: &Utf8Path) -> Option<Utf8PathBuf> {
 
 /// O `aurora` (ou `aurora.exe`) nas pastas do `PATH`.
 fn aurora_on_path(dirs: &[Utf8PathBuf]) -> Option<Utf8PathBuf> {
-    let name = if cfg!(windows) { "aurora.exe" } else { "aurora" };
+    let name = if cfg!(windows) {
+        "aurora.exe"
+    } else {
+        "aurora"
+    };
     dirs.iter()
         .map(|dir| dir.join(name))
         .find(|candidate| candidate.is_file())
@@ -285,7 +289,11 @@ fn apply_quartus(toolchain: Toolchain, lookup: &Lookup) -> (Toolchain, Option<Er
 
 /// O `aurora` da instalação do bundle: `<instalação>/bin/aurora`, se existe.
 pub fn aurora_cli(toolchain: &Toolchain) -> Option<Utf8PathBuf> {
-    let name = if cfg!(windows) { "aurora.exe" } else { "aurora" };
+    let name = if cfg!(windows) {
+        "aurora.exe"
+    } else {
+        "aurora"
+    };
     let candidate = toolchain.root().parent()?.join("bin").join(name);
     candidate.is_file().then_some(candidate)
 }
@@ -481,7 +489,11 @@ mod tests {
         // Pelo PATH: um `aurora` em `<inst>/bin`, e o bundle ao lado.
         let bin = root.join("inst/bin");
         std::fs::create_dir_all(&bin).unwrap();
-        let aurora = bin.join(if cfg!(windows) { "aurora.exe" } else { "aurora" });
+        let aurora = bin.join(if cfg!(windows) {
+            "aurora.exe"
+        } else {
+            "aurora"
+        });
         std::fs::write(&aurora, "").unwrap();
         let found = resolve(&Lookup {
             path_dirs: vec![root.join("nada"), bin.clone()],

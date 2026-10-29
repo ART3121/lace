@@ -3,8 +3,8 @@
 //! `bin/aurora`, `toolchain/` e o que ele deixa para desinstalar.
 
 use anyhow::Context;
-use camino::Utf8PathBuf;
 use aurora_installer::installation::prefix_of;
+use camino::Utf8PathBuf;
 
 /// A pasta da instalação: a de cima de `bin/`, onde está este executável.
 /// Erro para um `aurora` que não foi instalado pelo instalador (um build em

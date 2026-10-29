@@ -13,9 +13,9 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_agent::locate::Claude;
 use aurora_agent::{AgentEvent, Permission, Session, SessionOptions};
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};

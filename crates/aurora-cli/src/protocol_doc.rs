@@ -12,8 +12,8 @@
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
 
-use camino::Utf8Path;
 use aurora_protocol::{METHODS, PROTOCOL_VERSION, request_schema, response_schema, result_schema};
+use camino::Utf8Path;
 use serde_json::{Map, Value};
 
 use crate::serve::rpc;

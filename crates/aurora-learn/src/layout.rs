@@ -7,9 +7,9 @@
 //! `divider_add`, `cursor_set`, `marker_set_at`, `zoom_fit`); a AURORA passa o
 //! arquivo com `-c`, e o Studio, na aba da onda.
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::flows::{LayoutPolicy, WaveRequest, WaveSource};
 use aurora_core::verilog::{ModuleInterface, PortDirection};
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::testbench::{MISMATCH_SIGNAL, testbench_module};
 use crate::track::{Exercise, Kind};

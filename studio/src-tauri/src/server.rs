@@ -655,7 +655,11 @@ fn with_project(state: &AppState, method: &str, params: Option<Value>) -> IpcRes
 /// parâmetros, vale o projeto aberto. Os fluxos, a atualização e a
 /// instalação vão pelas operações, que mostram o progresso.
 #[tauri::command]
-pub async fn aurora_call(app: AppHandle, method: String, params: Option<Value>) -> IpcResult<Value> {
+pub async fn aurora_call(
+    app: AppHandle,
+    method: String,
+    params: Option<Value>,
+) -> IpcResult<Value> {
     blocking(app, move |_, state| {
         if NOT_THROUGH_CALL.contains(&method.as_str()) {
             return Err(IpcError::new(
@@ -694,7 +698,10 @@ mod tests {
 
     #[test]
     fn the_protocol_and_the_schema_are_the_lace_ones() {
-        assert_eq!(PROTOCOL_VERSION, u64::from(aurora_protocol::PROTOCOL_VERSION));
+        assert_eq!(
+            PROTOCOL_VERSION,
+            u64::from(aurora_protocol::PROTOCOL_VERSION)
+        );
         let embedded: Value = serde_json::from_str(REQUEST_SCHEMA).unwrap();
         let generated = serde_json::to_value(aurora_protocol::request_schema()).unwrap();
         assert_eq!(

@@ -10,8 +10,8 @@
 
 mod common;
 
-use camino::Utf8Path;
 use aurora_core::{BuildOptions, Control, Project, Severity, Status, build};
+use camino::Utf8Path;
 
 /// Monta o caso como um processador da AURORA em `processor`: o caso do YANC
 /// 7.1 já tem a estrutura dele, com o fonte e os arquivos (os de arrays, as

@@ -31,8 +31,8 @@ use std::io::BufRead;
 use std::process::Stdio;
 
 use anyhow::Context;
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{BundleManifest, CancelToken, Platform, component};
+use camino::{Utf8Path, Utf8PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -1304,7 +1304,10 @@ mod tests {
             Some("surfer-aurora")
         );
         assert_eq!(package_of("studio", "darwin-arm64"), Some("studio"));
-        assert_eq!(package_of("aurora-learn", "windows-x64"), Some("aurora-learn"));
+        assert_eq!(
+            package_of("aurora-learn", "windows-x64"),
+            Some("aurora-learn")
+        );
         assert_eq!(package_of("rtl-viewer", "linux-x64"), Some("rtl-viewer"));
         assert_eq!(package_of("outro", "linux-x64"), None);
         // Todo componente que a AURORA conhece sai de algum pacote.

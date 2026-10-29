@@ -408,7 +408,10 @@ fn install_events_have_the_console_line_with_the_labels() {
         components: Vec::new(),
         download: 0,
     };
-    assert_eq!(aurora.console_line(&label).as_deref(), Some("  [1/5] AURORA"));
+    assert_eq!(
+        aurora.console_line(&label).as_deref(),
+        Some("  [1/5] AURORA")
+    );
     assert_eq!(
         Event::Verifying.console_line(&label).as_deref(),
         Some("  Verifying the executables")

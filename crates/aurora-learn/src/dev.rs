@@ -4,8 +4,8 @@
 //! `start.v` não passa e a `solution.v` passa, sem latch e sem aviso (do
 //! Icarus e, com o Verilator instalado, do lint).
 
-use camino::Utf8Path;
 use aurora_core::Control;
+use camino::Utf8Path;
 use schemars::JsonSchema;
 use serde::Serialize;
 

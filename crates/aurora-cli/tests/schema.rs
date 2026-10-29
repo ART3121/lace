@@ -65,7 +65,10 @@ fn conforms(schema: &str, value: &Value) {
 fn bundle() -> Option<String> {
     let value = std::env::var("AURORA_TEST_BUNDLE").ok();
     if value.is_none() {
-        assert!(std::env::var_os("CI").is_none(), "CI sem AURORA_TEST_BUNDLE");
+        assert!(
+            std::env::var_os("CI").is_none(),
+            "CI sem AURORA_TEST_BUNDLE"
+        );
         eprintln!("PULADO: defina AURORA_TEST_BUNDLE");
     }
     value

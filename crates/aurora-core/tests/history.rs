@@ -9,12 +9,12 @@ mod common;
 
 use std::time::SystemTime;
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::history::{self, Availability, Change, Cleanup, Operation};
 use aurora_core::{
-    Control, DesignTarget, AuroraError, Project, SimulationOptions, Simulator, SynthesisMetric, Tool,
-    simulate_project, synthesize,
+    AuroraError, Control, DesignTarget, Project, SimulationOptions, Simulator, SynthesisMetric,
+    Tool, simulate_project, synthesize,
 };
+use camino::{Utf8Path, Utf8PathBuf};
 
 fn project() -> (tempfile::TempDir, Project) {
     let (guard, dir) = common::tempdir();

@@ -862,7 +862,10 @@ mod tests {
         interrupted(prefix);
         fs::remove_dir_all(prefix.join(".instalando-1")).unwrap();
         assert_eq!(recover(prefix).unwrap(), None);
-        assert_eq!(read(&prefix.join("bin/aurora")).as_deref(), Some("aurora novo"));
+        assert_eq!(
+            read(&prefix.join("bin/aurora")).as_deref(),
+            Some("aurora novo")
+        );
         assert!(!prefix.join(JOURNAL_FILE).exists());
     }
 
@@ -890,6 +893,9 @@ mod tests {
         let text = read(&path).unwrap().replace(".antigo-1", "../fora");
         fs::write(&path, text).unwrap();
         assert!(recover(prefix).is_err());
-        assert_eq!(read(&prefix.join("bin/aurora")).as_deref(), Some("aurora novo"));
+        assert_eq!(
+            read(&prefix.join("bin/aurora")).as_deref(),
+            Some("aurora novo")
+        );
     }
 }

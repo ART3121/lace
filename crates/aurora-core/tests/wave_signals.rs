@@ -11,13 +11,12 @@ use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::BufReader;
 
-use camino::{Utf8Path, Utf8PathBuf};
-use fst_reader::{FstHierarchyEntry, FstReader};
 use aurora_core::{
     Control, FileRole, PortDirection, Project, ScopeKind, SimulationOptions, Simulator, Status,
-    Tool, prepare_wave_layout, reset_saved_layout, simulate_project, wave_signals,
-    write_selection,
+    Tool, prepare_wave_layout, reset_saved_layout, simulate_project, wave_signals, write_selection,
 };
+use camino::{Utf8Path, Utf8PathBuf};
+use fst_reader::{FstHierarchyEntry, FstReader};
 
 const AND_GATE: &str = "\
 module and_gate (
@@ -149,7 +148,10 @@ fn the_choice_limits_what_the_simulation_records_and_the_layout_shows() {
     assert!(!chosen.contains("mux2_tb.dut.u1.t"), "{chosen:?}");
     assert!(!chosen.contains("mux2_tb.a"), "{chosen:?}");
     // O testbench do usuário não mudou.
-    assert_eq!(std::fs::read_to_string(root.join("mux2_tb.v")).unwrap(), MUX2_TB);
+    assert_eq!(
+        std::fs::read_to_string(root.join("mux2_tb.v")).unwrap(),
+        MUX2_TB
+    );
 
     // O layout mostra os escolhidos, um grupo por escopo, e nasce em wave/.
     let prepared = prepare_wave_layout(&wave).unwrap().unwrap();
@@ -196,7 +198,10 @@ fn an_unreadable_choice_does_not_stop_the_simulation() {
         .iter()
         .find(|d| d.file.as_deref() == Some(file.as_path()))
         .expect("um aviso sobre a escolha");
-    assert!(warning.message.contains("records every signal"), "{warning:?}");
+    assert!(
+        warning.message.contains("records every signal"),
+        "{warning:?}"
+    );
     // O arquivo fica como estava.
     assert_eq!(std::fs::read_to_string(&file).unwrap(), conflict);
 }

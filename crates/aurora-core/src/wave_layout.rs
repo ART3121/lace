@@ -2092,7 +2092,10 @@ $upscope $end $upscope $end $enddefinitions $end";
             }]
         );
         let names: Vec<&str> = layout.mappings.iter().map(|m| m.name.as_str()).collect();
-        assert_eq!(names, ["aurora_asm_soma", "aurora_src_soma", "aurora_complex"]);
+        assert_eq!(
+            names,
+            ["aurora_asm_soma", "aurora_src_soma", "aurora_complex"]
+        );
         assert_eq!(
             layout.mappings[0].content,
             "Name = aurora_asm_soma\nBits = 16\n0 NOP\n1 LOD 5\n"
@@ -2310,7 +2313,10 @@ $upscope $end $upscope $end $enddefinitions $end";
             .map(|e| e.unwrap().file_name().into_string().unwrap())
             .collect();
         written.sort();
-        assert_eq!(written, ["aurora_asm_soma", "aurora_complex", "aurora_src_soma"]);
+        assert_eq!(
+            written,
+            ["aurora_asm_soma", "aurora_complex", "aurora_src_soma"]
+        );
         let options = crate::ViewerOptions::with_layout(&prepared);
         assert_eq!(options.working_dir.as_deref(), Some(prepared.dir.as_path()));
     }

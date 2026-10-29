@@ -170,7 +170,7 @@ pub use build::{BuildOptions, BuildResult, OnFailure, build, build_processors, b
 pub use cocotb::{TestCase, TestReport, TestStatus};
 pub use control::{CancelToken, Control, Event, Stream};
 pub use diagnostics::{Diagnostic, Severity};
-pub use error::{ErrorInfo, AuroraError, Result};
+pub use error::{AuroraError, ErrorInfo, Result};
 pub use files::{
     AddedFile, FileRole, ListPosition, MovedPath, ProjectFile, RemoveOutcome, read_data_file,
 };
@@ -184,9 +184,8 @@ pub use process::{
 pub use project::{
     DEFAULT_CLOCKS, DEFAULT_FREQUENCY_MHZ, IssueKind, Language, MAX_CLOCKS, MAX_FREQUENCY_MHZ,
     MAX_PORTS, MAX_PROCESSOR_NAME, MAX_PROJECT_NAME, NewProcessor, NewProcessorFields, Processor,
-    ProcessorConfig,
-    Project, ProjectIssue, RemovedProcessor, validate_new_processor_name, validate_processor_name,
-    validate_project_name,
+    ProcessorConfig, Project, ProjectIssue, RemovedProcessor, validate_new_processor_name,
+    validate_processor_name, validate_project_name,
 };
 pub use simulate::{
     SimulationOptions, SimulationResult, Simulator, Waveform, WaveformFormat, missing_inputs,

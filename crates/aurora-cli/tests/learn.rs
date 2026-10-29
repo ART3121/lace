@@ -30,7 +30,10 @@ fn aurora_with_tools(dir: &Utf8Path) -> Option<Command> {
     let bundle = match std::env::var("AURORA_TEST_BUNDLE") {
         Ok(bundle) => bundle,
         Err(_) => {
-            assert!(std::env::var_os("CI").is_none(), "CI sem AURORA_TEST_BUNDLE");
+            assert!(
+                std::env::var_os("CI").is_none(),
+                "CI sem AURORA_TEST_BUNDLE"
+            );
             eprintln!("PULADO: defina AURORA_TEST_BUNDLE");
             return None;
         }
@@ -126,7 +129,10 @@ fn list_hint_and_reset_work_without_tools() {
     let file = ex.join("exercises/01_comb/mux2/mux2.v");
     std::fs::write(&file, "// meu\n").unwrap();
     // Sem --yes e sem terminal, recusa.
-    aurora(&ex).args(["learn", "reset", "mux2"]).assert().code(2);
+    aurora(&ex)
+        .args(["learn", "reset", "mux2"])
+        .assert()
+        .code(2);
     assert_eq!(std::fs::read_to_string(&file).unwrap(), "// meu\n");
     json(
         &mut aurora(&ex),

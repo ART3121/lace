@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::fpga::{FpgaBuildResult, FpgaProgramResult};
 use crate::{
-    AddedFile, BuildResult, CheckResult, ErrorInfo, HierarchyResult, AuroraError, SchematicResult,
+    AddedFile, AuroraError, BuildResult, CheckResult, ErrorInfo, HierarchyResult, SchematicResult,
     SimulationResult, Simulator, Status, SynthesisResult, WaveProcessor,
 };
 
@@ -744,7 +744,10 @@ mod tests {
             timeout_s: None,
             open_wave: true,
         };
-        assert_eq!(fast.command_line("aurora"), "aurora sim \"tb dir/t.v\" --fast");
+        assert_eq!(
+            fast.command_line("aurora"),
+            "aurora sim \"tb dir/t.v\" --fast"
+        );
         assert_eq!(
             FlowRequest::Check {
                 file: None,

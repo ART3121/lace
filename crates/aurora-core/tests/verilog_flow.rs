@@ -8,17 +8,17 @@
 
 mod common;
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::verilog::{
     ModuleInterface, PortDirection, classify, module_template, modules_in, read_interfaces,
     testbench_template,
 };
 use aurora_core::{
-    ArtifactKind, BuildOptions, CheckOptions, CheckResult, Control, DesignTarget, FileRole,
-    HierarchyOptions, AuroraError, Language, ModuleInstance, NewProcessor, Project, Severity,
+    ArtifactKind, AuroraError, BuildOptions, CheckOptions, CheckResult, Control, DesignTarget,
+    FileRole, HierarchyOptions, Language, ModuleInstance, NewProcessor, Project, Severity,
     SimulationOptions, Simulator, Status, Step, StepReport, Tool, WaveformFormat, build, check,
     hierarchy, simulate, simulate_project, synthesize, waveform_path,
 };
+use camino::{Utf8Path, Utf8PathBuf};
 
 use PortDirection::{Inout, Input, Output};
 
@@ -1185,7 +1185,10 @@ fn move_path_refuses_what_stays_in_place() {
         (root.join("b.v"), root.join(".aurora8/b.v")),
     ] {
         let err = project.move_path(&from, &to).unwrap_err();
-        assert!(matches!(err, AuroraError::CannotMove { .. }), "{from}: {err}");
+        assert!(
+            matches!(err, AuroraError::CannotMove { .. }),
+            "{from}: {err}"
+        );
         assert_eq!(err.code(), "cannot_move");
     }
     let err = project.move_path("b.v", "rtl/a.v").unwrap_err();

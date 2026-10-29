@@ -196,7 +196,9 @@ pub fn generate(exercise: &Exercise, interface: &ModuleInterface) -> Result<Stri
     ));
 
     // A comparação.
-    v.push_str("    task compare;\n        begin\n            aurora_samples = aurora_samples + 1;\n");
+    v.push_str(
+        "    task compare;\n        begin\n            aurora_samples = aurora_samples + 1;\n",
+    );
     v.push_str(&format!("            {MISMATCH_SIGNAL} = 0;\n"));
     for port in &outputs {
         let n = &port.name;

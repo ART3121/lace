@@ -20,7 +20,11 @@ use crate::server::AuroraServer;
 use crate::settings::Settings;
 
 /// O nome do executável da AURORA neste sistema.
-const AURORA_EXE: &str = if cfg!(windows) { "aurora.exe" } else { "aurora" };
+const AURORA_EXE: &str = if cfg!(windows) {
+    "aurora.exe"
+} else {
+    "aurora"
+};
 
 /// Quantas pastas acima do Studio procurar a instalação: o Studio fica em
 /// `<instalação>/toolchain/studio/` (no macOS, dentro de um `.app`).

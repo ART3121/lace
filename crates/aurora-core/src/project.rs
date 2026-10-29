@@ -2168,7 +2168,10 @@ mod tests {
 
         Project::open(project.spf_path()).unwrap();
         assert!(!root.join(".lace").exists());
-        assert!(root.join(".aurora8/reports/run-000001/report.json").is_file());
+        assert!(
+            root.join(".aurora8/reports/run-000001/report.json")
+                .is_file()
+        );
         assert!(memory.is_file(), "a .aurora da AURORA 7 não muda");
 
         std::fs::create_dir_all(root.join(".lace/fpga")).unwrap();
@@ -2891,7 +2894,10 @@ mod new_processor_json {
             r#"{"name":"f","language":"cpp","input_ports":2,"output_ports":0,"ndstac":4}"#,
         )
         .unwrap();
-        assert_eq!((spec.input_ports, spec.output_ports, spec.ndstac), (2, 0, Some(4)));
+        assert_eq!(
+            (spec.input_ports, spec.output_ports, spec.ndstac),
+            (2, 0, Some(4))
+        );
         assert!(spec.sdepth.is_none());
 
         // O JSON de saída continua completo, e volta igual.

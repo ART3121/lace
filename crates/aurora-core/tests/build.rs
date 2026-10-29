@@ -2,11 +2,11 @@
 
 mod common;
 
-use camino::Utf8Path;
 use aurora_core::{
-    BuildOptions, BuildResult, Control, FileRole, AuroraError, Language, NewProcessor, Project,
+    AuroraError, BuildOptions, BuildResult, Control, FileRole, Language, NewProcessor, Project,
     Severity, Status, Step, Toolchain, build,
 };
+use camino::Utf8Path;
 
 /// O resultado em JSON, com os caminhos da máquina trocados por marcadores
 /// e os fins de linha normalizados, para o snapshot ser o mesmo em Linux,
@@ -292,7 +292,10 @@ fn no_processor_takes_the_name_of_a_sapho_module() {
         .iter()
         .filter(|name| aurora_core::validate_processor_name(name).is_ok())
         .collect();
-    assert!(accepted.is_empty(), "nomes de módulo SAPHO aceitos: {accepted:?}");
+    assert!(
+        accepted.is_empty(),
+        "nomes de módulo SAPHO aceitos: {accepted:?}"
+    );
 }
 
 #[test]

@@ -279,7 +279,10 @@ fn adopt_lace_studio_settings(dir: &Utf8Path) {
     if new.exists() {
         return;
     }
-    let Some(old) = dir.parent().map(|parent| parent.join(LACE_STUDIO_DIR).join("settings.json")) else {
+    let Some(old) = dir
+        .parent()
+        .map(|parent| parent.join(LACE_STUDIO_DIR).join("settings.json"))
+    else {
         return;
     };
     if old.is_file() && std::fs::create_dir_all(dir).is_ok() {
@@ -561,8 +564,14 @@ mod tests {
             r#"{ "lace_path": "C:/aurora/target/debug/aurora.exe", "assistant_lace": "/opt/aurora/bin/aurora" }"#,
         )
         .unwrap();
-        assert_eq!(settings.aurora_path.as_deref(), Some("C:/aurora/target/debug/aurora.exe"));
-        assert_eq!(settings.assistant_aurora.as_deref(), Some("/opt/aurora/bin/aurora"));
+        assert_eq!(
+            settings.aurora_path.as_deref(),
+            Some("C:/aurora/target/debug/aurora.exe")
+        );
+        assert_eq!(
+            settings.assistant_aurora.as_deref(),
+            Some("/opt/aurora/bin/aurora")
+        );
         let saved = serde_json::to_value(&settings).unwrap();
         assert!(saved.get("lace_path").is_none());
         assert_eq!(saved["aurora_path"], "C:/aurora/target/debug/aurora.exe");

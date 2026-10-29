@@ -3,9 +3,9 @@
 //! `start.v` não passa, a `solution.v` passa). O `dev check` precisa do
 //! bundle em `AURORA_TEST_BUNDLE`; sem ele, avisa e passa.
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{Control, Toolchain};
 use aurora_learn::{available_tracks, check_track, load_track};
+use camino::{Utf8Path, Utf8PathBuf};
 
 fn tracks() -> Utf8PathBuf {
     Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../aurora-learn")

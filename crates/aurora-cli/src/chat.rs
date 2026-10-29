@@ -15,9 +15,9 @@ use std::sync::mpsc::{Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, bail};
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_agent::{AgentEvent, Permission, Session, SessionOptions};
 use aurora_core::{CancelToken, Project};
+use camino::{Utf8Path, Utf8PathBuf};
 use ratatui::crossterm::event::{
     self, Event as TermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };

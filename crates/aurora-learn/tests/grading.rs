@@ -2,9 +2,9 @@
 //! Os testes que simulam precisam do bundle em `AURORA_TEST_BUNDLE`, como os
 //! do aurora-core: sem ele, avisam e passam (com `CI`, falham).
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{Control, Severity, Toolchain};
 use aurora_learn::{Finding, Track, Verdict, Workspace, check_track, grade, load_track};
+use camino::{Utf8Path, Utf8PathBuf};
 
 fn toolchain() -> Option<Toolchain> {
     match std::env::var("AURORA_TEST_BUNDLE") {
@@ -69,7 +69,10 @@ fn init_creates_one_project_per_exercise_and_never_rewrites_the_student_file() {
     assert!(dir.join(".aurora-learn/mux2_ref.v").is_file());
     let project = workspace.project(&mux2).unwrap();
     assert_eq!(project.top_level(), Some(workspace.student_file(&mux2)));
-    assert_eq!(project.testbench(), Some(dir.join(".aurora-learn/tb_mux2.v")));
+    assert_eq!(
+        project.testbench(),
+        Some(dir.join(".aurora-learn/tb_mux2.v"))
+    );
     let soma4 = workspace.track().require("soma4").unwrap().clone();
     assert!(
         workspace

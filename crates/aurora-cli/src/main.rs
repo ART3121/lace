@@ -29,9 +29,9 @@ use std::process::ExitCode;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
+use aurora_core::CancelToken;
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
-use aurora_core::CancelToken;
 
 use settings::ToolchainArgs;
 

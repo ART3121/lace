@@ -20,8 +20,8 @@
 //! `.aurora-learn/` e o `README.md` são da trilha: [`Workspace::open`] os
 //! grava de novo quando a trilha muda, e cria os exercícios novos.
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{FileRole, Project};
+use camino::{Utf8Path, Utf8PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -578,8 +578,7 @@ impl Workspace {
 }
 
 /// O `.gitignore` da pasta: o que a AURORA grava ao corrigir e simular.
-const GITIGNORE: &str =
-    "# Gerado pelo aurora learn: o que a AURORA grava ao corrigir e simular.\n.aurora8/\n.aurora-learn/\n";
+const GITIGNORE: &str = "# Gerado pelo aurora learn: o que a AURORA grava ao corrigir e simular.\n.aurora8/\n.aurora-learn/\n";
 
 /// O `README.md` de um exercício: o título e o enunciado, sem as dicas.
 fn prompt_text(exercise: &Exercise) -> String {
@@ -633,6 +632,9 @@ fn write_if_changed(path: &Utf8Path, text: &str) -> Result<()> {
 /// compiladores não aceitam (como no aurora-core).
 fn canonical(path: &Utf8Path) -> Result<Utf8PathBuf> {
     let canonical = dunce::canonicalize(path).map_err(LearnError::io("Reading", path))?;
-    Utf8PathBuf::from_path_buf(canonical)
-        .map_err(|p| LearnError::AURORA(aurora_core::AuroraError::NonUtf8Path(p.display().to_string())))
+    Utf8PathBuf::from_path_buf(canonical).map_err(|p| {
+        LearnError::AURORA(aurora_core::AuroraError::NonUtf8Path(
+            p.display().to_string(),
+        ))
+    })
 }

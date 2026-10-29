@@ -1158,7 +1158,10 @@ fn compare_records(
             _ => {}
         }
     }
-    warn_if(b.aurora_version != c.aurora_version, "AURORA versions differ");
+    warn_if(
+        b.aurora_version != c.aurora_version,
+        "AURORA versions differ",
+    );
 
     Ok(RunComparison {
         current_id: current.id.clone(),

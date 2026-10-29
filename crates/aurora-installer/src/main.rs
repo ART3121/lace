@@ -11,12 +11,12 @@ use std::io::IsTerminal;
 use std::path::PathBuf;
 
 use anyhow::{Context, bail};
-use clap::Parser;
 use aurora_installer::desktop;
 use aurora_installer::install::{self, Event, Target};
 use aurora_installer::payload::{Index, PAYLOAD_DIR};
 use aurora_installer::plan::{self, Selection};
 use aurora_installer::tui::{self, App};
+use clap::Parser;
 
 /// Installer for AURORA and its tool bundle.
 #[derive(Parser, Debug)]
@@ -170,7 +170,9 @@ fn run(args: Args) -> anyhow::Result<()> {
 
 /// O Studio está entre os componentes instalados?
 fn has_studio(components: &[String]) -> bool {
-    components.iter().any(|c| c == aurora_core::component::STUDIO)
+    components
+        .iter()
+        .any(|c| c == aurora_core::component::STUDIO)
 }
 
 fn list(index: &Index) {

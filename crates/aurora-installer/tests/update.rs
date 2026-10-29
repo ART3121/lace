@@ -37,7 +37,13 @@ struct Spec<'a> {
 }
 
 /// Monta o bundle `specs` e empacota o instalador em `root/<name>`.
-fn build(root: &Path, name: &str, aurora: &str, specs: &[Spec], wrong_hash: Option<&str>) -> PathBuf {
+fn build(
+    root: &Path,
+    name: &str,
+    aurora: &str,
+    specs: &[Spec],
+    wrong_hash: Option<&str>,
+) -> PathBuf {
     let toolchain = root.join(format!("{name}-toolchain"));
     let write = |rel: &str, data: &str| {
         let p = toolchain.join(rel);
@@ -69,7 +75,10 @@ fn build(root: &Path, name: &str, aurora: &str, specs: &[Spec], wrong_hash: Opti
             "name": s.name, "version": "1", "dir": "oss", "source": "teste",
             "files": { s.exe: exe_hash },
         });
-        write(&format!("components/{}.json", s.name), &manifest.to_string());
+        write(
+            &format!("components/{}.json", s.name),
+            &manifest.to_string(),
+        );
         paths.push(format!("components/{}.json", s.name));
         contents_components.push(serde_json::json!({
             "name": s.name, "label": s.name.to_uppercase(), "description": format!("o {}", s.name),
@@ -308,7 +317,12 @@ fn only_the_chunks_with_changed_files_are_downloaded() {
     assert_eq!(text("toolchain/oss/bin/iverilog"), "iverilog 2");
     assert_eq!(text("toolchain/oss/share/icarus/new.txt"), "entra na v2");
     assert!(!after.contains_key("toolchain/oss/share/icarus/old.txt"));
-    assert!(!i.prefix.join("toolchain/oss/share/icarus").join("old.txt").exists());
+    assert!(
+        !i.prefix
+            .join("toolchain/oss/share/icarus")
+            .join("old.txt")
+            .exists()
+    );
     assert_eq!(text("toolchain/oss/bin/yosys"), "yosys 1");
     let aurora = if cfg!(windows) {
         "bin/aurora.exe"
@@ -333,7 +347,10 @@ fn only_the_chunks_with_changed_files_are_downloaded() {
     // De novo: nada a fazer, a não ser que um arquivo tenha sumido do disco.
     let installed = FilesManifest::load(&i.prefix.join(files::INSTALLED)).unwrap();
     let again = update::plan(&i.prefix, &installed, &index, &new).unwrap();
-    assert!(again.chunks.is_empty() && again.stale.is_empty(), "{again:?}");
+    assert!(
+        again.chunks.is_empty() && again.stale.is_empty(),
+        "{again:?}"
+    );
     fs::remove_file(i.prefix.join("toolchain/oss/bin/yosys")).unwrap();
     let repair = update::plan(&i.prefix, &installed, &index, &new).unwrap();
     assert_eq!(repair.changed, ["yosys"]);

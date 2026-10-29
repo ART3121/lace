@@ -1163,10 +1163,10 @@ impl RunningProcess {
 
     /// Bloqueia até o processo terminar.
     pub fn wait(&mut self) -> Result<Termination> {
-        self.child
-            .wait()
-            .map(termination)
-            .map_err(AuroraError::io("Waiting for process", &self.command.program))
+        self.child.wait().map(termination).map_err(AuroraError::io(
+            "Waiting for process",
+            &self.command.program,
+        ))
     }
 
     /// Encerra o processo. Não é erro se ele já tinha terminado.

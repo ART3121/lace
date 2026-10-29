@@ -54,14 +54,13 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::delivery::{Dispatcher, Limits, Notification, trim_step_output};
 use aurora_core::experimental::Feature;
 use aurora_core::flows::{self, FlowOptions, FlowRequest};
 use aurora_core::fpga::{self, FpgaConfig};
 use aurora_core::history;
 use aurora_core::locate;
-use aurora_core::{CancelToken, Control, ErrorInfo, AuroraError, NewProcessor, Project, Toolchain};
+use aurora_core::{AuroraError, CancelToken, Control, ErrorInfo, NewProcessor, Project, Toolchain};
 use aurora_installer::add::{self as installer_add, Payload};
 use aurora_installer::install::Event as InstallEvent;
 use aurora_installer::payload::Index;
@@ -74,6 +73,7 @@ use aurora_protocol::{
     METHODS, NameCheck, PROTOCOL_VERSION, ProcessorRemoval, Request, Response, ServerInfo,
     ShutdownReason, WaveLayoutInfo,
 };
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 

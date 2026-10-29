@@ -16,18 +16,20 @@ use std::time::Duration;
 
 use anstream::println;
 use anstyle::{AnsiColor, Style};
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::fpga::{FpgaBuildResult, FpgaProgramResult, ResourceUsage};
-use aurora_core::history::{Availability, MetricComparison, RunComparison, RunMetadata, RunSummary};
+use aurora_core::history::{
+    Availability, MetricComparison, RunComparison, RunMetadata, RunSummary,
+};
 use aurora_core::locate::ToolchainInfo;
 use aurora_core::{
-    AddedFile, Artifact, ArtifactKind, BuildResult, CancelToken, CheckResult, Control, Diagnostic,
-    Event, FileMismatch, FileRole, HierarchyResult, AuroraError, Language, LayoutConversion,
+    AddedFile, Artifact, ArtifactKind, AuroraError, BuildResult, CancelToken, CheckResult, Control,
+    Diagnostic, Event, FileMismatch, FileRole, HierarchyResult, Language, LayoutConversion,
     ModuleInstance, MovedPath, Platform, Project, ProjectFile, ProjectStatus, RemovedProcessor,
     SchematicResult, Severity, SimulationResult, Simulator, Status, Step, StepReport,
     SynthesisMetric, SynthesisResult, Termination, TestStatus, Tool,
 };
 use aurora_protocol::TopOutcome;
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 
 pub(crate) const ERROR: Style = AnsiColor::Red.on_default().bold();
@@ -150,8 +152,8 @@ impl Output {
         let installer = error
             .chain()
             .find_map(|e| e.downcast_ref::<aurora_installer::Error>());
-        let cancelled =
-            crate::cancel::is(error) || installer.is_some_and(aurora_installer::Error::is_cancelled);
+        let cancelled = crate::cancel::is(error)
+            || installer.is_some_and(aurora_installer::Error::is_cancelled);
         let (code, hint): (String, Option<String>) = match (aurora, learn, info) {
             (Some(aurora), _, _) => (aurora.code().to_owned(), hint(aurora)),
             (None, Some(learn), _) => {
@@ -511,7 +513,10 @@ impl Output {
         match (&top.top_level, &top.module, &top.module_error) {
             (None, _, _) => {
                 println!("No top module");
-                println!("  {}", paint(DIM, "Choose it with: aurora top <file|module>"));
+                println!(
+                    "  {}",
+                    paint(DIM, "Choose it with: aurora top <file|module>")
+                );
             }
             // O arquivo continua sendo o topo; o nome do módulo é que não
             // dá para saber (vários módulos, nenhum com o nome do arquivo).
@@ -533,7 +538,10 @@ impl Output {
             return;
         }
         println!("The project has no SAPHO processors");
-        println!("  {}", paint(DIM, "Create one with: aurora proc add <name>"));
+        println!(
+            "  {}",
+            paint(DIM, "Create one with: aurora proc add <name>")
+        );
     }
 
     /// O relatório que a operação gravou no histórico.

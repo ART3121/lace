@@ -17,7 +17,9 @@ pub enum Error {
         exe: Utf8PathBuf,
     },
     /// Outra instalação ou atualização está mexendo na mesma pasta.
-    #[error("Another installation or update of AURORA is running in {prefix}; wait for it to finish")]
+    #[error(
+        "Another installation or update of AURORA is running in {prefix}; wait for it to finish"
+    )]
     InstallInProgress {
         /// A pasta da instalação.
         prefix: Utf8PathBuf,

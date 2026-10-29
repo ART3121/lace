@@ -60,7 +60,9 @@ fn data_home() -> PathBuf {
 
 /// O que o atalho abre na instalação em `prefix`.
 fn studio_in(prefix: &Path) -> PathBuf {
-    let studio = prefix.join("toolchain").join(aurora_core::component::STUDIO);
+    let studio = prefix
+        .join("toolchain")
+        .join(aurora_core::component::STUDIO);
     if cfg!(target_os = "macos") {
         studio.join(APP_NAME)
     } else {

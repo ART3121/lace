@@ -15,15 +15,15 @@ use std::io::{BufRead, IsTerminal, Write};
 use std::rc::Rc;
 
 use anyhow::bail;
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{CancelToken, Toolchain, component};
 use aurora_installer::install::Event;
 use aurora_installer::payload::Index;
 use aurora_installer::release::{Bar, Network, Remote};
 use aurora_installer::update::{
-    AppliedUpdate, ChildOutput, Hooks, AuroraVersions, Plan, Prepared, Reopen, RunOptions,
+    AppliedUpdate, AuroraVersions, ChildOutput, Hooks, Plan, Prepared, Reopen, RunOptions,
     UpdateAction, UpdateMethod, UpdateReport, upstream_news,
 };
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::installation;
 use crate::meter::Meter;
@@ -367,7 +367,10 @@ fn print_summary(report: &UpdateReport) {
     let aurora = &report.aurora;
     println!();
     if aurora.newer {
-        println!("AURORA {} is available: update with aurora update", aurora.latest);
+        println!(
+            "AURORA {} is available: update with aurora update",
+            aurora.latest
+        );
     } else if is_newer(&aurora.installed, &aurora.latest) {
         println!(
             "This AURORA ({}) is newer than the latest release ({})",
@@ -434,9 +437,9 @@ fn confirm(aurora: &AuroraVersions, prefix: &Utf8Path) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use camino::Utf8Path;
     use aurora_core::BundleComponent;
     use aurora_installer::release::Sources;
+    use camino::Utf8Path;
     use serde_json::json;
 
     use super::*;
@@ -533,7 +536,10 @@ mod tests {
                 .unwrap();
         for (action, prefix) in [
             (UpdateAction::Checked, None),
-            (UpdateAction::Updated, Some(Utf8PathBuf::from("/opt/aurora"))),
+            (
+                UpdateAction::Updated,
+                Some(Utf8PathBuf::from("/opt/aurora")),
+            ),
         ] {
             report.action = action;
             report.prefix = prefix;

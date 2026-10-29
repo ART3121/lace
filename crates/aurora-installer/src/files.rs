@@ -108,7 +108,11 @@ impl FilesManifest {
         self.groups
             .iter()
             .filter(|g| g.needed_by(selection))
-            .flat_map(|g| g.files.iter().map(move |(p, h)| (p.as_str(), (h.as_str(), g))))
+            .flat_map(|g| {
+                g.files
+                    .iter()
+                    .map(move |(p, h)| (p.as_str(), (h.as_str(), g)))
+            })
             .collect()
     }
 }
@@ -172,7 +176,11 @@ mod tests {
             platform: "linux-x64".into(),
             groups: vec![
                 group("aurora.tar.zst", &[], &[("bin/aurora", "1")]),
-                group("c01.tar.zst", &["icarus", "yosys"], &[("toolchain/lib", "2")]),
+                group(
+                    "c01.tar.zst",
+                    &["icarus", "yosys"],
+                    &[("toolchain/lib", "2")],
+                ),
                 group("c02.tar.zst", &["yosys"], &[("toolchain/yosys", "3")]),
             ],
         };

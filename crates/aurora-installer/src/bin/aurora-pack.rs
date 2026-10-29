@@ -10,8 +10,8 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use clap::{Parser, Subcommand};
 use aurora_installer::pack::{self, Contents};
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(name = "aurora-pack", version = aurora_installer::AURORA_VERSION)]

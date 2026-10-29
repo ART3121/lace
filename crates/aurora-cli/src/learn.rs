@@ -9,7 +9,6 @@
 use std::io::{IsTerminal, Write};
 
 use anyhow::bail;
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::flows::WaveOpened;
 use aurora_core::{Control, Severity, Toolchain};
 use aurora_learn::flows;
@@ -17,6 +16,7 @@ use aurora_learn::{
     DevExercise, Exercise, Finding, Grade, LearnError, Verdict, Workspace, check_track, load_track,
     tracks_dir,
 };
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::output::{BOLD, DIM, ERROR, OK, Output, WARNING, paint};
 use crate::report::{
@@ -547,7 +547,9 @@ fn print_lines(text: &str) {
 /// O modo watch: a tela de terminal de `learn_tui.rs`.
 fn watch(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
     if !out.is_text() {
-        bail!("The watch mode has no JSON output; check an exercise with: aurora learn check --json");
+        bail!(
+            "The watch mode has no JSON output; check an exercise with: aurora learn check --json"
+        );
     }
     if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
         bail!("The watch mode needs a terminal; check an exercise with: aurora learn check");
@@ -573,9 +575,9 @@ pub fn error_info(error: &LearnError) -> (&'static str, Option<String>) {
             Some("Choose another folder: aurora learn init <folder>".into())
         }
         LearnError::TrackNotFound { .. } => Some("The installed track is: verilog".into()),
-        LearnError::NoWaveform { exercise, .. } => {
-            Some(format!("Check it first with: aurora learn check {exercise}"))
-        }
+        LearnError::NoWaveform { exercise, .. } => Some(format!(
+            "Check it first with: aurora learn check {exercise}"
+        )),
         _ => None,
     };
     (error.code(), hint)

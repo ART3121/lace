@@ -17,8 +17,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context, bail};
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{CancelToken, Platform, Toolchain};
+use camino::{Utf8Path, Utf8PathBuf};
 use schemars::JsonSchema;
 use serde::Serialize;
 
@@ -386,9 +386,9 @@ fn release_prefix(dir: &Utf8Path) -> Result<Option<String>> {
     match found.len() {
         0 => Ok(None),
         1 => Ok(found.pop()),
-        _ => {
-            Err(anyhow::anyhow!("{dir} has the release files of more than one AURORA version").into())
-        }
+        _ => Err(
+            anyhow::anyhow!("{dir} has the release files of more than one AURORA version").into(),
+        ),
     }
 }
 

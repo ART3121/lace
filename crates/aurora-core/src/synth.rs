@@ -780,7 +780,11 @@ pub(crate) fn processor_verilog(project: &Project, name: &str) -> Result<Utf8Pat
 /// O erro de um arquivo registrado que não existe: se é um dos que o build de
 /// um processador gera, o processador não foi compilado ([`AuroraError::NotBuilt`]);
 /// senão, o projeto aponta para um arquivo que sumiu.
-pub(crate) fn missing_registered(project: &Project, path: Utf8PathBuf, reason: &str) -> AuroraError {
+pub(crate) fn missing_registered(
+    project: &Project,
+    path: Utf8PathBuf,
+    reason: &str,
+) -> AuroraError {
     match project.generated_by(&path) {
         Some(processor) => AuroraError::NotBuilt {
             processor: processor.name.clone(),

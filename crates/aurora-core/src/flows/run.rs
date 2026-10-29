@@ -12,8 +12,8 @@ use super::{
 use crate::fpga::{self, FpgaConfig};
 use crate::history::{self, Operation};
 use crate::{
-    BuildOptions, BuildResult, CheckOptions, Control, DesignTarget, ErrorInfo, HierarchyOptions,
-    AuroraError, OnFailure, Processor, Project, Result, SchematicOptions, SimulationOptions,
+    AuroraError, BuildOptions, BuildResult, CheckOptions, Control, DesignTarget, ErrorInfo,
+    HierarchyOptions, OnFailure, Processor, Project, Result, SchematicOptions, SimulationOptions,
     SimulationResult, Status, Tool, Toolchain,
 };
 

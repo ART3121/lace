@@ -184,6 +184,9 @@ mod tests {
     fn outside_a_project_the_log_goes_to_the_user_cache() {
         let dir = user_log_dir().unwrap();
         assert!(dir.is_absolute(), "{dir}");
-        assert!(dir.ends_with(Utf8Path::new("aurora").join(LOG_DIR)), "{dir}");
+        assert!(
+            dir.ends_with(Utf8Path::new("aurora").join(LOG_DIR)),
+            "{dir}"
+        );
     }
 }

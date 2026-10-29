@@ -19,9 +19,9 @@
 //! Os textos (título, enunciado, dicas) saem dos `.md`; o testbench gerado
 //! do `exercise.json` está em [`testbench`](crate::testbench).
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::verilog::{ModuleInterface, read_interfaces};
 use aurora_core::{AuroraError, Toolchain};
+use camino::{Utf8Path, Utf8PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

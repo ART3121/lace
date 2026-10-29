@@ -7,8 +7,8 @@
 
 #![allow(dead_code)]
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{Tool, Toolchain};
+use camino::{Utf8Path, Utf8PathBuf};
 
 /// O bundle de teste.
 pub fn toolchain() -> Option<Toolchain> {
@@ -146,7 +146,10 @@ pub fn dumped_scopes(path: &Utf8Path) -> usize {
 /// avisa e passa; com `CI` definido, falha.
 pub fn toolchain_with_cocotb() -> Option<Toolchain> {
     let toolchain = toolchain_with(&[Tool::Iverilog, Tool::Vvp])?;
-    if toolchain.component(aurora_core::component::COCOTB).is_some() {
+    if toolchain
+        .component(aurora_core::component::COCOTB)
+        .is_some()
+    {
         return Some(toolchain);
     }
     assert!(

@@ -9,11 +9,11 @@
 
 use std::time::{Duration, Instant};
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::{
     CheckOptions, Control, DesignTarget, Diagnostic, Severity, SimulationOptions, Simulator,
     Status, Step, Tool, Toolchain,
 };
+use camino::{Utf8Path, Utf8PathBuf};
 use schemars::JsonSchema;
 use serde::Serialize;
 

@@ -1223,7 +1223,8 @@ impl Project {
         }
 
         if let Some(parent) = to.parent() {
-            std::fs::create_dir_all(parent).map_err(AuroraError::io("Creating directory", parent))?;
+            std::fs::create_dir_all(parent)
+                .map_err(AuroraError::io("Creating directory", parent))?;
         }
         rename_or_copy(&from, &to)?;
         let changed = self.rewrite_moved(&from, &to);

@@ -7,9 +7,9 @@ mod common;
 use std::time::Duration;
 
 use aurora_core::{
-    BuildOptions, CheckOptions, Control, DesignTarget, FileRole, AuroraError, Language, NewProcessor,
-    Project, SchematicOptions, Severity, SimulationOptions, Simulator, Status, Step, Tool,
-    ViewerOptions, WaveformFormat, build, check, open_waveform, render_schematic, simulate,
+    AuroraError, BuildOptions, CheckOptions, Control, DesignTarget, FileRole, Language,
+    NewProcessor, Project, SchematicOptions, Severity, SimulationOptions, Simulator, Status, Step,
+    Tool, ViewerOptions, WaveformFormat, build, check, open_waveform, render_schematic, simulate,
     simulate_project, synthesize, wave_layout,
 };
 
@@ -826,7 +826,10 @@ fn cocotb_testbench_runs_its_tests_on_icarus() {
     assert_eq!(wave.path, root.join("test_somador.fst"));
     assert_eq!(wave.format, WaveformFormat::Fst);
     assert!(common::is_fst(&wave.path));
-    assert_eq!(aurora_core::waveform_path(&project, None).unwrap(), wave.path);
+    assert_eq!(
+        aurora_core::waveform_path(&project, None).unwrap(),
+        wave.path
+    );
 
     // Corrigido, passa. Sem a diretiva, vale o topo do projeto, com aviso.
     std::fs::write(
@@ -929,7 +932,10 @@ fn cocotb_testbench_runs_its_tests_on_verilator() {
     let wave = result.waveform.clone().expect("a onda do teste que falhou");
     assert_eq!(wave.path, root.join("test_somador.vcd"));
     assert_eq!(wave.format, WaveformFormat::Vcd);
-    assert_eq!(aurora_core::waveform_path(&project, None).unwrap(), wave.path);
+    assert_eq!(
+        aurora_core::waveform_path(&project, None).unwrap(),
+        wave.path
+    );
     // Os avisos do compilador sobre a biblioteca do Verilator e a VPI do
     // cocotb, do bundle, não são do projeto.
     assert!(

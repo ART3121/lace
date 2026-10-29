@@ -10,7 +10,9 @@ use super::{
     LayoutPolicy, SavedLayoutInfo, WaveChoice, WaveChoiceOutcome, WaveOpened, WaveRequest,
     WaveSource,
 };
-use crate::{Control, AuroraError, Project, Result, Severity, SignalScope, Toolchain, ViewerOptions};
+use crate::{
+    AuroraError, Control, Project, Result, Severity, SignalScope, Toolchain, ViewerOptions,
+};
 
 /// Quanto esperar para saber se o surfer-aurora abriu: sem display ou com
 /// onda inválida, ele fecha em menos de um segundo.

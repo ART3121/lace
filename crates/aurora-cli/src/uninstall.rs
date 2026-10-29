@@ -11,9 +11,9 @@
 use std::io::{BufRead, IsTerminal, Write};
 
 use anyhow::bail;
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_installer::uninstall::{self, UninstallOptions};
 use aurora_installer::update::ChildOutput;
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::installation;
 use crate::output::Output;

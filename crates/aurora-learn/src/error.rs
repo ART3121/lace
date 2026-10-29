@@ -1,7 +1,7 @@
 //! Os erros do aurora-learn.
 
-use camino::{Utf8Path, Utf8PathBuf};
 use aurora_core::AuroraError;
+use camino::{Utf8Path, Utf8PathBuf};
 
 /// O que pode dar errado ao carregar uma trilha, abrir a pasta de
 /// exercícios ou corrigir um exercício. As mensagens são em inglês, como as

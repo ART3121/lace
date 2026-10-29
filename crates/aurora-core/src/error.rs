@@ -678,10 +678,14 @@ impl AuroraError {
     pub fn data(&self) -> Option<Value> {
         let data = match self {
             AuroraError::BundleNotFound { searched } => json!({ "searched": searched }),
-            AuroraError::InvalidBundle { path, reason } => json!({ "path": path, "reason": reason }),
+            AuroraError::InvalidBundle { path, reason } => {
+                json!({ "path": path, "reason": reason })
+            }
             AuroraError::UnsupportedPlatform { os, arch } => json!({ "os": os, "arch": arch }),
             AuroraError::ComponentMissing(component) => json!({ "component": component }),
-            AuroraError::ToolchainIncomplete { what, path } => json!({ "what": what, "path": path }),
+            AuroraError::ToolchainIncomplete { what, path } => {
+                json!({ "what": what, "path": path })
+            }
             AuroraError::SystemCompilerMissing
             | AuroraError::QuartusMissing
             | AuroraError::NoCable
@@ -690,7 +694,9 @@ impl AuroraError {
             }
             AuroraError::NoBitstream(path) => json!({ "path": path }),
             AuroraError::StaleBitstream { reasons } => json!({ "reasons": reasons }),
-            AuroraError::InvalidProject { path, reason } => json!({ "path": path, "reason": reason }),
+            AuroraError::InvalidProject { path, reason } => {
+                json!({ "path": path, "reason": reason })
+            }
             AuroraError::ProjectExists(path)
             | AuroraError::OutsideProject(path)
             | AuroraError::PathExists(path)

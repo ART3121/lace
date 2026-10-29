@@ -341,7 +341,9 @@ fn fpga_is_experimental_and_off_until_enabled() {
         .args(["experimental", "enable", "nada"])
         .assert()
         .code(2)
-        .stderr(predicate::str::contains("[possible values: fpga, assistant]"));
+        .stderr(predicate::str::contains(
+            "[possible values: fpga, assistant]",
+        ));
 }
 
 /// O `aurora mcp` e o `aurora chat` (o assistente de IA) são experimentais:
@@ -426,7 +428,10 @@ fn proc_add_and_set_with_arrays() {
 #[test]
 fn proc_remove_takes_the_processor_out_and_keeps_its_folder() {
     let (_guard, root) = new_project("p");
-    aurora_in(&root).args(["proc", "add", "soma"]).assert().success();
+    aurora_in(&root)
+        .args(["proc", "add", "soma"])
+        .assert()
+        .success();
     aurora_in(&root)
         .args(["proc", "add", "filtro", "--lang", "cpp"])
         .assert()
@@ -480,7 +485,10 @@ fn proc_remove_takes_the_processor_out_and_keeps_its_folder() {
         doc["structure"]["processors"],
         serde_json::json!([{"name": "filtro", "language": "cpp"}])
     );
-    assert_eq!(doc["structure"]["synthesizableFiles"], serde_json::json!([]));
+    assert_eq!(
+        doc["structure"]["synthesizableFiles"],
+        serde_json::json!([])
+    );
     assert_eq!(doc["structure"]["testbenchFiles"], serde_json::json!([]));
     assert_eq!(doc["structure"]["topLevelFile"], "");
     assert!(root.join("soma/soma.cmm").is_file());
@@ -962,7 +970,10 @@ fn move_keeps_files_in_the_project() {
         .assert()
         .code(2)
         .stderr(predicate::str::contains("must be an existing folder"));
-    let refused = json(aurora_in(&root).args(["--json", "move", "p.spf", "q.spf"]), 2);
+    let refused = json(
+        aurora_in(&root).args(["--json", "move", "p.spf", "q.spf"]),
+        2,
+    );
     assert_eq!(refused["error"]["code"], "cannot_move");
     let exists = json(
         aurora_in(&root).args(["--json", "move", "rtl/a.v", "sim/a_tb.v"]),
@@ -1998,7 +2009,10 @@ fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
     assert_eq!(Utf8Path::new(report["prefix"].as_str().unwrap()), prefix);
     assert!(!prefix.exists(), "a instalação ficou");
     assert!(std::fs::symlink_metadata(&link).is_err(), "o atalho ficou");
-    assert!(!config.join("aurora").exists(), "a configuração antiga ficou");
+    assert!(
+        !config.join("aurora").exists(),
+        "a configuração antiga ficou"
+    );
 }
 
 // Acrescentar componentes.
