@@ -1,9 +1,9 @@
-// As ferramentas de arquivo do projeto: tirar do projeto (`lace remove`, o
-// arquivo fica no disco), mudar a ordem de compilação (`lace order`, pelos
-// botões e arrastando na vista) e renomear ou mover (`lace move`). E o que
+// As ferramentas de arquivo do projeto: tirar do projeto (`aurora remove`, o
+// arquivo fica no disco), mudar a ordem de compilação (`aurora order`, pelos
+// botões e arrastando na vista) e renomear ou mover (`aurora move`). E o que
 // acontece no explorador do VS Code: um arquivo do projeto renomeado ou
-// movido lá é registrado no lugar novo (`lace move --after`); um apagado sai
-// do projeto (`lace remove`).
+// movido lá é registrado no lugar novo (`aurora move --after`); um apagado sai
+// do projeto (`aurora remove`).
 
 import { existsSync } from 'node:fs';
 import { basename, extname, isAbsolute, join, relative, resolve } from 'node:path';
@@ -23,7 +23,7 @@ export function registeredPaths(status: StatusReport | undefined): string[] {
   return status ? [...status.synthesizable, ...status.testbench].map((f) => f.path) : [];
 }
 
-/** "Tirar do projeto": `lace remove` dos registrados da seleção. O arquivo fica no disco. */
+/** "Tirar do projeto": `aurora remove` dos registrados da seleção. O arquivo fica no disco. */
 export async function removeFromProject(
   deps: CommandDeps,
   first: unknown,
@@ -70,7 +70,7 @@ export async function reorder(
   return order(deps, path, position);
 }
 
-/** A posição de `lace order` para o movimento; `undefined` se o arquivo já está lá. */
+/** A posição de `aurora order` para o movimento; `undefined` se o arquivo já está lá. */
 export function positionFor(list: readonly string[], path: string, move: OrderMove): ListPosition | undefined {
   const index = list.indexOf(path);
   switch (move) {
@@ -135,7 +135,7 @@ interface RenameArgs {
 }
 
 /**
- * "Renomear ou mover": `lace move`, que move no disco e mantém o arquivo
+ * "Renomear ou mover": `aurora move`, que move no disco e mantém o arquivo
  * no projeto, com o topo e o testbench simulado. O caminho é relativo à
  * pasta do projeto: trocar a pasta move. As abas abertas acompanham.
  */
@@ -239,8 +239,8 @@ export async function followInEditors(from: string, to: string): Promise<void> {
 
 /**
  * O que o explorador fez com arquivos do projeto ativo. Cada renomeação que
- * toca um registrado vira um `lace move --after`, e cada exclusão, um
- * `lace remove` dos registrados que se foram. Desligado com
+ * toca um registrado vira um `aurora move --after`, e cada exclusão, um
+ * `aurora remove` dos registrados que se foram. Desligado com
  * `lace.files.followExplorer`.
  */
 export class ExplorerFollower implements vscode.Disposable {

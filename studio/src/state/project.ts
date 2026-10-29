@@ -1,4 +1,4 @@
-// O projeto aberto: o retrato que o backend devolve (o `lace status`) e o
+// O projeto aberto: o retrato que o backend devolve (o `aurora status`) e o
 // alvo escolhido na barra (o projeto inteiro ou um processador).
 //
 // O retrato é relido do disco sempre que algo muda: depois de cada
@@ -97,7 +97,7 @@ function legacyProcessors(snapshot: ProjectSnapshot): string[] {
 }
 
 /** Converte o projeto da estrutura de pastas do YANC 6.x para a do 7.1
- * (`lace convert`), perguntando antes, e mostra o que mudou de lugar. */
+ * (`aurora convert`), perguntando antes, e mostra o que mudou de lugar. */
 export async function convertLayout(): Promise<void> {
   const snapshot = useProject.getState().snapshot;
   if (!snapshot) return;

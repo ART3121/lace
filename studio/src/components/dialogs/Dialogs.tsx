@@ -828,7 +828,7 @@ function PromptDialog({ options, resolve }: { options: PromptOptions; resolve: (
 
 // Relatórios ----------------------------------------------------------------
 
-/** `lace report clean`: todos, ou todos menos os mais novos. Mostra o que vai
+/** `aurora report clean`: todos, ou todos menos os mais novos. Mostra o que vai
  * sair (o plano do Core) antes de apagar. */
 function CleanReportsDialog() {
   const t = useT();

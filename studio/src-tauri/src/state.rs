@@ -34,8 +34,8 @@ pub struct AppState {
     pub watcher: Mutex<Option<RecommendedWatcher>>,
     /// As sessões do assistente abertas.
     assistants: crate::assistant::Assistants,
-    /// O servidor do Lace (`lace serve`) que atende os métodos do protocolo.
-    pub server: crate::server::LaceServer,
+    /// O servidor do Lace (`aurora serve`) que atende os métodos do protocolo.
+    pub server: crate::server::AuroraServer,
     next_id: AtomicU32,
 }
 
@@ -61,7 +61,7 @@ impl AppState {
             terminals: Mutex::new(HashMap::new()),
             watcher: Mutex::new(None),
             assistants: crate::assistant::Assistants::default(),
-            server: crate::server::LaceServer::default(),
+            server: crate::server::AuroraServer::default(),
             next_id: AtomicU32::new(1),
         }
     }

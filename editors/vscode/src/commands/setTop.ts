@@ -1,4 +1,4 @@
-// "Lace: Definir como topo": `lace top <arquivo>` no projeto ativo. Vem do
+// "Lace: Definir como topo": `aurora top <arquivo>` no projeto ativo. Vem do
 // explorador, do editor, da aba e da vista de fontes; quem decide se o
 // arquivo pode ser topo é o Lace, e o erro dele aparece com a dica.
 
@@ -12,7 +12,7 @@ import { formatLaceError } from '../messages';
 import { chooseProject, clientFor, showLaceError, showProcessError, targetUri, type CommandDeps } from './common';
 
 /**
- * Devolve como o `lace top` terminou, ou `undefined` se ele nem rodou. Os
+ * Devolve como o `aurora top` terminou, ou `undefined` se ele nem rodou. Os
  * testes de integração leem o retorno pelo `executeCommand`.
  */
 export async function setTop(deps: CommandDeps, target?: unknown): Promise<LaceRun<TopReport> | undefined> {
@@ -56,6 +56,6 @@ function show(run: LaceRun<TopReport>, file: string): void {
       showLaceError(run.error);
       return;
     default:
-      void vscode.window.showErrorMessage(`Lace: lace top terminou como ${run.status}.`);
+      void vscode.window.showErrorMessage(`Lace: aurora top terminou como ${run.status}.`);
   }
 }

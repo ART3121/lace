@@ -25,7 +25,7 @@ function diagnostics(info: AppInfo | null, toolchain: ToolchainInfo | null): str
     lines.push(`Lace bundle: ${toolchain.bundle} (${toolchain.platform}), from ${toolchain.origin ?? '?'}: ${toolchain.root}`);
     lines.push(`Components: ${toolchain.components.map((c) => `${c.name} ${c.version}`).join(', ') || 'none'}`);
     if (toolchain.not_installed.length) lines.push(`Not installed: ${toolchain.not_installed.join(', ')}`);
-    lines.push(`lace CLI: ${toolchain.lace_cli ?? 'not found'}`);
+    lines.push(`lace CLI: ${toolchain.aurora_cli ?? 'not found'}`);
   } else {
     lines.push(`Lace bundle: not found${toolchain?.error ? ` (${toolchain.error.message})` : ''}`);
   }
@@ -100,7 +100,7 @@ export function AboutView() {
         <Button icon={<Wrench size={14} />} onClick={() => useEditor.getState().openView('toolchain')}>
           {t('toolchain.title')}
         </Button>
-        <Button icon={<Download size={14} />} disabled={!toolchain?.lace_cli} onClick={() => runAction('checkUpdates')}>
+        <Button icon={<Download size={14} />} disabled={!toolchain?.aurora_cli} onClick={() => runAction('checkUpdates')}>
           {t('toolchain.checkUpdates')}
         </Button>
       </div>
@@ -150,7 +150,7 @@ export function AboutView() {
             <dt>{t('toolchain.root')}</dt>
             <PathValue path={toolchain?.root} />
             <dt>{t('toolchain.laceCli')}</dt>
-            <dd className="mono">{toolchain?.lace_cli ?? '-'}</dd>
+            <dd className="mono">{toolchain?.aurora_cli ?? '-'}</dd>
           </dl>
 
           <h2>{t('about.links')}</h2>

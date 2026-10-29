@@ -1,4 +1,4 @@
-// "Lace: Compilar": `lace build`, os processadores com o YANC (C± ou C para
+// "Lace: Compilar": `aurora build`, os processadores com o YANC (C± ou C para
 // Verilog, memórias e testbench). Todos, pelo botão Build da barra de status,
 // ou um, pelo processador na vista. Os erros vão para o painel Problemas,
 // com o arquivo e a linha do fonte.

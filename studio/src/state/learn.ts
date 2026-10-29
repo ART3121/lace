@@ -1,11 +1,11 @@
-// Os exercícios do `lace learn`: a pasta de exercícios aberta (lembrada
+// Os exercícios do `aurora learn`: a pasta de exercícios aberta (lembrada
 // entre as sessões), a última correção de cada exercício e as dicas à
 // mostra.
 //
 // Cada exercício é um projeto Lace. Escolher um torna-o o atual e abre o
 // projeto dele, o arquivo do aluno à esquerda e o enunciado à direita, sem
 // corrigir. Cada gravação do arquivo (no Studio ou fora dele, pelo vigia de
-// arquivos) corrige, como o modo watch do `lace learn`. A correção é a
+// arquivos) corrige, como o modo watch do `aurora learn`. A correção é a
 // operação `learn` (flows.rs): grava antes os arquivos abertos e põe os
 // erros no editor e na aba do enunciado.
 //

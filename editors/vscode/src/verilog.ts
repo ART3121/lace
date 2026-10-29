@@ -1,12 +1,12 @@
 // As regras de nome de arquivo que decidem onde "Definir como topo" aparece.
 // Repetem as do Core para o menu sumir antes de o Lace recusar; quem decide
-// continua sendo o `lace top`. A mesma regra está, como expressão regular,
+// continua sendo o `aurora top`. A mesma regra está, como expressão regular,
 // nas cláusulas `when` do package.json, e um teste confere que as duas batem.
 
 /**
- * O nome é de testbench pela regra que `lace top` usa para recusar: o nome
+ * O nome é de testbench pela regra que `aurora top` usa para recusar: o nome
  * sem extensão é `tb`, começa com `tb_` ou termina com `_tb`, sem
- * diferenciar caixa (`is_testbench_name`, em crates/lace-core/src/verilog.rs).
+ * diferenciar caixa (`is_testbench_name`, em crates/aurora-core/src/verilog.rs).
  * `test_alu.v` pode ser topo.
  */
 export function isTestbenchName(fileName: string): boolean {
@@ -17,9 +17,9 @@ export function isTestbenchName(fileName: string): boolean {
 
 /**
  * O nome tem `tb`, `test` ou `testbench` como palavra (`and_tb.v`,
- * `test_alu.v`; `contest.v` e `latest.v` não): a regra com que `lace add`
+ * `test_alu.v`; `contest.v` e `latest.v` não): a regra com que `aurora add`
  * cria um testbench em vez de um módulo (`name_suggests_testbench`, em
- * crates/lace-core/src/verilog.rs). Um arquivo que já existe é
+ * crates/aurora-core/src/verilog.rs). Um arquivo que já existe é
  * classificado pelo conteúdo, e o nome só soma pontos.
  */
 export function nameSuggestsTestbench(fileName: string): boolean {

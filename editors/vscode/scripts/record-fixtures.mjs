@@ -8,8 +8,8 @@
 // repositório, então grave com o lace compilado dele, apontando o bundle
 // instalado:
 //
-//   cargo build --release -p lace-cli
-//   LACE=../../target/release/lace LACE_TOOLCHAIN=~/.local/share/lace/toolchain \
+//   cargo build --release -p aurora-cli
+//   LACE=../../target/release/aurora LACE_TOOLCHAIN=~/.local/share/lace/toolchain \
 //     npm run record:fixtures
 //
 // Roda numa cópia de test/fixtures/projeto demo, numa pasta temporária com
@@ -340,7 +340,7 @@ function resultOf(name, root) {
   return JSON.parse(lines.at(-1).replaceAll('${ROOT}', JSON.stringify(root).slice(1, -1))).result;
 }
 
-/** O `lace new`, sem -C: a raiz das trocas por ${ROOT} é a pasta do --dir. */
+/** O `aurora new`, sem -C: a raiz das trocas por ${ROOT} é a pasta do --dir. */
 function recordNew(place, name, args, extra) {
   const result = run(args);
   const entry = {

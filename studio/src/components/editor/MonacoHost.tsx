@@ -16,7 +16,7 @@ import { learnSession } from '../../state/learnSession';
 const viewStates = new Map<string, monaco.editor.ICodeEditorViewState | null>();
 
 /** Gravar sozinho ao trocar de aba ou de janela: a preferência, menos numa
- * sessão de exercícios do lace learn, em que gravar é o que pede a correção
+ * sessão de exercícios do aurora learn, em que gravar é o que pede a correção
  * (state/learn.ts). */
 function autoSave(): boolean {
   return !!useApp.getState().settings?.editor.auto_save && !learnSession.active();

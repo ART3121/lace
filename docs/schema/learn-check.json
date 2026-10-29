@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "LearnCheckReport",
-  "description": "`lace learn check`: a correção de cada exercício pedido, que também\ngrava se ele está resolvido.",
+  "description": "`aurora learn check`: a correção de cada exercício pedido, que também\ngrava se ele está resolvido.",
   "type": "object",
   "properties": {
     "results": {

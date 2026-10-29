@@ -1,4 +1,4 @@
-// A comparação de dois relatórios (`lace report compare`): estatísticas de
+// A comparação de dois relatórios (`aurora report compare`): estatísticas de
 // síntese e tempos de simulação. Uma mudança é só descrita: tempo maior
 // não é chamado de regressão, como na CLI.
 

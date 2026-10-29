@@ -99,7 +99,7 @@ async function start(): Promise<() => void> {
   const os = useApp.getState().info?.os;
   if (os) await applyTitleBar(os);
   cleanups.push(await watchWindow());
-  // Um `lace experimental enable|disable` dado num terminal fora do Studio
+  // Um `aurora experimental enable|disable` dado num terminal fora do Studio
   // vale quando a janela volta a ter o foco. O projeto também é relido: a
   // pasta dele movida ou renomeada no Explorer não dá aviso à vigia, que
   // acompanha a pasta para onde ela for.
@@ -141,7 +141,7 @@ async function start(): Promise<() => void> {
   splashStatus(t('splash.toolchain'));
   await waitFor(() => useApp.getState().toolchain !== null, TOOLCHAIN_WAIT_MS);
 
-  // A pasta de exercícios do lace learn, se houver uma lembrada: a vista
+  // A pasta de exercícios do aurora learn, se houver uma lembrada: a vista
   // Exercícios e a aba do enunciado a usam mesmo sem a vista à mostra.
   void useLearn.getState().load();
 
@@ -189,7 +189,7 @@ async function start(): Promise<() => void> {
   cleanups.push(unlistenDrop);
 
   // Fechar a janela com arquivos não salvos pergunta antes. Durante uma
-  // atualização ou instalação do Lace, não fecha: o `lace` que troca os
+  // atualização ou instalação do Lace, não fecha: o `aurora` que troca os
   // arquivos morreria junto, com a instalação pela metade.
   const window_ = getCurrentWindow();
   const unlistenClose = await window_.onCloseRequested(async (event) => {

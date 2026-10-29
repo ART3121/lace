@@ -14,11 +14,11 @@
   ],
   "$defs": {
     "ErrorInfo": {
-      "description": "Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a\nmensagem do Studio para a interface, a resposta do `lace serve`. É o que\no código, o texto e os campos da variante viram quando o enum não vai.\n\n```json\n{ \"code\": \"processor_not_found\",\n  \"message\": \"No processor 'x' in the project (available: soma, filtro)\",\n  \"data\": { \"name\": \"x\", \"available\": [\"soma\", \"filtro\"] } }\n```\n\nA dica de cada interface (o comando `lace` que resolve, o botão do\nStudio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide\npelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da\nCLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.\n\n```\nuse lace_core::{ErrorInfo, LaceError};\n\nlet info = ErrorInfo::from(LaceError::ProcessorExists(\"soma\".into()));\nassert_eq!(info.code, \"processor_exists\");\nassert_eq!(info.data.unwrap()[\"name\"], \"soma\");\n```",
+      "description": "Um [`AuroraError`] pronto para atravessar uma fronteira: o JSON da CLI, a\nmensagem do Studio para a interface, a resposta do `aurora serve`. É o que\no código, o texto e os campos da variante viram quando o enum não vai.\n\n```json\n{ \"code\": \"processor_not_found\",\n  \"message\": \"No processor 'x' in the project (available: soma, filtro)\",\n  \"data\": { \"name\": \"x\", \"available\": [\"soma\", \"filtro\"] } }\n```\n\nA dica de cada interface (o comando `aurora` que resolve, o botão do\nStudio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide\npelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da\nCLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.\n\n```\nuse aurora_core::{ErrorInfo, AuroraError};\n\nlet info = ErrorInfo::from(AuroraError::ProcessorExists(\"soma\".into()));\nassert_eq!(info.code, \"processor_exists\");\nassert_eq!(info.data.unwrap()[\"name\"], \"soma\");\n```",
       "type": "object",
       "properties": {
         "code": {
-          "description": "O identificador estável: [`LaceError::code`], ou um código de quem\nchamou (`busy`, `cli`), sempre em `snake_case`.",
+          "description": "O identificador estável: [`AuroraError::code`], ou um código de quem\nchamou (`busy`, `cli`), sempre em `snake_case`.",
           "type": "string"
         },
         "message": {
@@ -26,14 +26,14 @@
           "type": "string"
         },
         "hint": {
-          "description": "O que fazer, quando quem mostra sabe: o comando `lace` que resolve,\nna CLI. O core não o preenche; a mensagem dele é neutra. Omitido no\nJSON quando não há.",
+          "description": "O que fazer, quando quem mostra sabe: o comando `aurora` que resolve,\nna CLI. O core não o preenche; a mensagem dele é neutra. Omitido no\nJSON quando não há.",
           "type": [
             "string",
             "null"
           ]
         },
         "data": {
-          "description": "Os campos estruturados da variante, quando ela os tem\n([`LaceError::data`]): `available`, `files`, `name`, `value`,\n`reason`, `path`, `component`. Omitido no JSON quando não há."
+          "description": "Os campos estruturados da variante, quando ela os tem\n([`AuroraError::data`]): `available`, `files`, `name`, `value`,\n`reason`, `path`, `component`. Omitido no JSON quando não há."
         }
       },
       "required": [

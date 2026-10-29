@@ -1,0 +1,19 @@
+[package]
+name = "aurora-protocol"
+description = "O contrato do Lace: os pedidos, as respostas e as notificações do aurora serve e do aurora mcp, com schema"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+aurora-core.workspace = true
+# Os resultados de `update.*` e `install.*`, sem a interface de terminal do
+# instalador.
+aurora-installer = { path = "../aurora-installer", default-features = false }
+# Os resultados de `learn.*`.
+aurora-learn.workspace = true
+camino.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true

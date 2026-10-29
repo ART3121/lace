@@ -1,4 +1,4 @@
-// O enunciado do exercício atual do `lace learn`, as dicas pedidas e a
+// O enunciado do exercício atual do `aurora learn`, as dicas pedidas e a
 // última correção: o veredito, cada saída que errou, os erros de compilação
 // (que levam à linha) e o que a correção percebeu. Os botões corrigem,
 // mostram a próxima dica, abrem a onda e o esquemático, restauram o arquivo

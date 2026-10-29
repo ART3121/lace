@@ -179,7 +179,7 @@ export function runBuild(processor?: string | null) {
 }
 
 /** Verifica o projeto ou, com um processador no alvo, só ele e o testbench
- * que o YANC gerou (`lace check -p`). Um arquivo pedido vale para o projeto. */
+ * que o YANC gerou (`aurora check -p`). Um arquivo pedido vale para o projeto. */
 export function runCheck(lint = false, file?: string) {
   const name = file ? null : target();
   const key = file ? `check:${file}` : `${lint ? 'lint' : 'check'}${name ? `:${name}` : ''}`;
@@ -242,12 +242,12 @@ export function runSynthesis(processor?: string | null) {
   );
 }
 
-/** A compilação para a placa do `fpga.json`, pelo Quartus (`lace fpga build`). */
+/** A compilação para a placa do `fpga.json`, pelo Quartus (`aurora fpga build`). */
 export function runFpgaBuild() {
   return useJobs.getState().run({ flow: 'fpga_build' }, 'fpgaBuild');
 }
 
-/** A gravação na placa do `.sof` da última compilação (`lace fpga program`). */
+/** A gravação na placa do `.sof` da última compilação (`aurora fpga program`). */
 export function runFpgaProgram() {
   return useJobs.getState().run({ flow: 'fpga_program' }, 'fpgaProgram');
 }
@@ -362,7 +362,7 @@ export async function newFolderIn(dir?: string) {
 }
 
 /** Escolhe arquivos .v e .sv, e testbenches cocotb (.py), no disco e os
- * registra (`lace add`). */
+ * registra (`aurora add`). */
 export async function addVerilogFiles(paths?: string[]) {
   const snapshot = useProject.getState().snapshot;
   if (!snapshot || (!paths && !isTauri())) return;
@@ -410,7 +410,7 @@ export async function addVerilogFiles(paths?: string[]) {
   await useProject.getState().refresh();
 }
 
-/** Tira um processador do projeto (`lace proc remove`), depois de perguntar
+/** Tira um processador do projeto (`aurora proc remove`), depois de perguntar
  * o que fazer com a pasta dele: ficar no disco ou ir para a lixeira. A aba
  * do processador fecha; com a pasta na lixeira, fecham também as abas dos
  * arquivos de dentro dela, como no apagar do Explorador. */
@@ -841,7 +841,7 @@ export const ACTIONS: Action[] = [
   },
   { id: 'cleanReports', label: 'action.cleanReports', category: 'tools', enabled: canRun, run: () => openDialog({ kind: 'cleanReports' }) },
 
-  // Exercícios (lace learn)
+  // Exercícios (aurora learn)
   { id: 'learnCheck', label: 'action.learnCheck', category: 'tools', keys: 'Ctrl+Alt+L', enabled: () => idle() && hasLearnExercise(), run: () => useLearn.getState().check() },
   {
     id: 'learnHint',

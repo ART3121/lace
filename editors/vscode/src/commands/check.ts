@@ -1,4 +1,4 @@
-// "Lace: Verificar": `lace check` no projeto, num arquivo ou num
+// "Lace: Verificar": `aurora check` no projeto, num arquivo ou num
 // processador. A saída sai ao vivo, os problemas vão para o painel, e um
 // check novo cancela o que ainda roda (o resultado dele já estaria velho).
 

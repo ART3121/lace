@@ -1,5 +1,5 @@
-// O histórico de relatórios do projeto (`lace report list`), do mais novo
-// para o mais antigo, com a limpeza (`lace report clean`): o botão da
+// O histórico de relatórios do projeto (`aurora report list`), do mais novo
+// para o mais antigo, com a limpeza (`aurora report clean`): o botão da
 // lixeira abre o diálogo de limpar, e o menu de cada relatório o apaga.
 
 import { GitCompare, RefreshCw, Trash2 } from 'lucide-react';

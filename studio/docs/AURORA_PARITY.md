@@ -11,7 +11,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | **Feito** | funciona no Studio |
 | **Parcial** | parte funciona; a nota diz o que falta |
 | **Fase 2**, **Fase 3** | planejado para a fase indicada (ver o fim da página) |
-| **Depende do Lace** | precisa de algo que o `lace-core` ainda não tem; a nota diz o quê |
+| **Depende do Lace** | precisa de algo que o `aurora-core` ainda não tem; a nota diz o quê |
 | **Diferente** | o Studio faz de outro jeito, por decisão do Lace ou do Studio |
 
 ## Projeto
@@ -40,7 +40,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | Frequência, número de clocks, arrays na onda, tempo estimado | Feito | aba do processador (duplo clique nele no explorador) |
 | Arquivos `input_<n>.txt` e `output_<n>.txt` | Feito | criar entrada, abrir, e os valores de cada saída depois da simulação |
 | "Processador ativo" pelo arquivo focado | Diferente | o alvo é escolhido na barra de ferramentas (projeto ou um processador) e lembrado por projeto |
-| Apagar processador | Feito | botão direito no processador > Remover processador, ou Projeto > Remover processador: sai do projeto, e a pasta fica no disco ou vai para a lixeira (`processor.remove`, `lace proc remove`) |
+| Apagar processador | Feito | botão direito no processador > Remover processador, ou Projeto > Remover processador: sai do projeto, e a pasta fica no disco ou vai para a lixeira (`processor.remove`, `aurora proc remove`) |
 | Renomear processador | Depende do Lace | o Core cria, configura e remove processador, mas não renomeia |
 | Nome com `-` | Feito | o YANC 7.1 recusa o arquivo, e a AURORA 7.1 e o Lace recusam o nome na hora de criar |
 | Estrutura de pastas do YANC 7.1 (`<proc>/` e `<proc>/<proc>/`) | Feito | a mesma da AURORA; o projeto antigo é convertido ao abrir, perguntando antes (`project.convert`) |
@@ -65,7 +65,7 @@ está. Atualize a linha no mesmo commit que mudar o estado de um recurso.
 | C± (F6) | Feito | C± (F6): `build` dos processadores, ou só o alvo |
 | Verilog (F7) | Feito | Verilog (F7): `check`, que roda só o Icarus e não compila os processadores (a AURORA compila); Shift+F7 acrescenta o lint do Verilator |
 | Wave (F8) | Feito | Wave (F8): simula e abre a onda no surfer-aurora |
-| Fast Sim (F9) | Feito | Rápida (F9): `lace sim --fast`, sem gravar onda; o testbench Verilog no Verilator, como na AURORA, mas sem exigir o Verilator escolhido; o cocotb no simulador escolhido |
+| Fast Sim (F9) | Feito | Rápida (F9): `aurora sim --fast`, sem gravar onda; o testbench Verilog no Verilator, como na AURORA, mas sem exigir o Verilator escolhido; o cocotb no simulador escolhido |
 | RTLViewer (F10) | Feito | síntese do Yosys, e o esquemático desenhado pelo próprio Studio a partir do netlist, com o layout do ELK (o motor do netlistsvg) e as cores do tema; não o netlistsvg (API.md seção 10) |
 | Full Build (F5) | Feito | F5: compila os processadores, se houver, verifica e, se passou, simula |
 | Cancelar (Shift+F5) | Feito | Parar (Shift+F5); o Core encerra a ferramenta com tudo o que ela iniciou |
@@ -91,7 +91,7 @@ próximas sessões.
 | TVERI | Feito | terminal de etapa Verilog |
 | TWAVE | Feito | terminal de etapa Wave; mostra também as saídas de cada porta do processador |
 | TRTLViewer | Feito | terminal de etapa RTLViewer |
-| TCMD (shell real) | Feito | aba Terminal: o shell do usuário (no Windows, o PowerShell ou o `cmd.exe`, pela preferência `terminal_shell`), com o `lace` no `PATH` |
+| TCMD (shell real) | Feito | aba Terminal: o shell do usuário (no Windows, o PowerShell ou o `cmd.exe`, pela preferência `terminal_shell`), com o `aurora` no `PATH` |
 | THTEST (teste de hardware) | Depende do Lace | não implementado no Lace (API.md, seção 10) |
 | Links `arquivo:linha` clicáveis | Feito | |
 | Modo verboso | Feito | preferência: mostra o comando de cada passo e as mensagens `info` |
@@ -156,13 +156,13 @@ próximas sessões.
 | Substituir nos arquivos | Fase 2 | |
 | Preferências: idioma, tema, editor, modo verboso | Feito | Preferências (Ctrl+,) |
 | Atalhos configuráveis | Fase 2 | a tabela já está em `actions.ts` |
-| Componentes: baixar, remover, conferir | Feito | Ferramentas do Lace: componentes, executáveis, compilador do Verilator, conferência dos hashes, instalar (`lace install`); remover componente o Lace não faz |
+| Componentes: baixar, remover, conferir | Feito | Ferramentas do Lace: componentes, executáveis, compilador do Verilator, conferência dos hashes, instalar (`aurora install`); remover componente o Lace não faz |
 | Inglês e português | Feito | o YANC roda sempre em inglês (`--lang=en`), por decisão do Lace |
 | Temas | Feito | a AURORA tinha só o escuro; o Studio tem 15, com o Atlas de padrão e o Aurora Legacy nas cores da AURORA |
-| Atualização | Feito | procura e instala atualização do Lace e do bundle (`lace update`), com o próprio Studio, que é um componente do bundle; procura sozinho ao abrir e a cada 12 horas (preferência `check_updates`), oferece a versão nova e reinicia nela; também em Ferramentas > Procurar atualizações |
+| Atualização | Feito | procura e instala atualização do Lace e do bundle (`aurora update`), com o próprio Studio, que é um componente do bundle; procura sozinho ao abrir e a cada 12 horas (preferência `check_updates`), oferece a versão nova e reinicia nela; também em Ferramentas > Procurar atualizações |
 | Manual offline num navegador interno | Fase 2 | hoje, Ajuda > Manual do SAPHO abre o site |
 | Sobre | Feito | |
-| Assistente (Aurora Intelligence) | Parcial | a vista Assistente, experimental (Preferências > Experimental > Assistente de IA): uma conversa com o Claude Code, que usa as ferramentas do Lace pelo `lace mcp`; operar o Studio pelas ações dele, Fase 3 (ver abaixo) |
+| Assistente (Aurora Intelligence) | Parcial | a vista Assistente, experimental (Preferências > Experimental > Assistente de IA): uma conversa com o Claude Code, que usa as ferramentas do Lace pelo `aurora mcp`; operar o Studio pelas ações dele, Fase 3 (ver abaixo) |
 | Painel de Git (GitHub e GitLab) | Fase 3 | |
 | Gerenciador de bibliotecas Python (cocotb) | Depende do Lace | o Lace já roda cocotb, com o Python do componente `cocotb`, mas o Core não instala pacotes nesse Python |
 | Tela de abertura | Feito | o splash: uma janela pequena com o logo animado enquanto o Studio abre (`public/splash.html`) |
@@ -177,9 +177,9 @@ Recursos que esta comparação não cobre, porque não estão no manual da AUROR
 | Recurso | De onde vem |
 |---|---|
 | Modo Vim no editor (`monaco-vim`), com `:w`, `:q`, `:wq` | pedido para o Studio |
-| Limpar relatórios (todos, ou todos menos os N mais novos) | `lace report clean`, do Lace |
+| Limpar relatórios (todos, ou todos menos os N mais novos) | `aurora report clean`, do Lace |
 | Hierarquia de cada testbench, além da do design | a elaboração do Icarus |
-| Mover arquivos na árvore mantendo o `.spf` | o `Project::move_path` do Core (`lace move`) |
+| Mover arquivos na árvore mantendo o `.spf` | o `Project::move_path` do Core (`aurora move`) |
 
 ## Fases
 
@@ -202,4 +202,4 @@ pontos de restauração, simulação interativa do esquemático.
 
 **Depende do Lace.** THTEST, command overrides, o gerenciador de bibliotecas
 Python do cocotb, renomear processador, renomear projeto.
-Cada um é uma proposta para o `lace-core` antes de ser um botão aqui.
+Cada um é uma proposta para o `aurora-core` antes de ser um botão aqui.

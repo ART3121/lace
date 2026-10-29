@@ -4,7 +4,7 @@
 //! mover) são métodos do protocolo, que a interface chama pelo servidor do
 //! Lace ([`crate::server`]).
 //!
-//! O retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns
+//! O retrato ([`ProjectSnapshot`]) é o `aurora status --json` com alguns
 //! campos a mais que a interface usa para habilitar botões.
 
 use camino::Utf8PathBuf;
@@ -16,7 +16,7 @@ use crate::state::{AppState, blocking};
 use crate::watcher;
 
 /// O projeto inteiro, como a interface o mostra: o retrato do protocolo
-/// (`project.status`), que é o `lace status --json` com os campos a mais
+/// (`project.status`), que é o `aurora status --json` com os campos a mais
 /// que a interface usa para habilitar botões.
 pub type ProjectSnapshot = Value;
 

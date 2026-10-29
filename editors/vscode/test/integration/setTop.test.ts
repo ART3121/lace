@@ -1,5 +1,5 @@
 // "Lace: Definir como topo" dentro do VS Code, com o lace falso: o comando
-// roda `lace top` no projeto ativo e relê o projeto.
+// roda `aurora top` no projeto ativo e relê o projeto.
 
 import * as assert from 'node:assert/strict';
 import { join } from 'node:path';
@@ -21,7 +21,7 @@ describe('Lace: Definir como topo', () => {
     assert.equal(api.status?.top_module, 'contador');
   });
 
-  it('pelo explorador: roda lace top com -C e o caminho, e relê o projeto', async () => {
+  it('pelo explorador: roda aurora top com -C e o caminho, e relê o projeto', async () => {
     const file = join(workspace, 'rtl', 'somador.v');
     const result = await run<LaceRun<TopReport>>('lace.setTop', vscode.Uri.file(file));
     assert.equal(result?.status, 'succeeded');

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "WaveReport",
-  "description": "`lace wave`.",
+  "description": "`aurora wave`.",
   "type": "object",
   "properties": {
     "waveform": {
@@ -62,7 +62,7 @@
           "type": "string"
         },
         "customized": {
-          "description": "O usuário salvou depois que o Lace o gerou: o Lace não o refaz\n(`lace wave --reset-layout` volta ao gerado).",
+          "description": "O usuário salvou depois que o Lace o gerou: o Lace não o refaz\n(`aurora wave --reset-layout` volta ao gerado).",
           "type": "boolean"
         }
       },

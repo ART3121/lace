@@ -1,4 +1,4 @@
-// A atualização do Lace pelo Studio: a busca da release nova (`lace update
+// A atualização do Lace pelo Studio: a busca da release nova (`aurora update
 // --check`) ao abrir e a cada 12 horas, a oferta, a atualização (`lace
 // update --yes`, em jobs.ts) e o reinício do Studio na versão nova.
 //
@@ -43,7 +43,7 @@ export interface PendingExit {
 }
 
 interface UpdatesState {
-  /** O último `lace update --check`, da busca automática ou do botão. */
+  /** O último `aurora update --check`, da busca automática ou do botão. */
   report: UpdateReport | null;
   checking: boolean;
   pending: PendingExit | null;
@@ -88,7 +88,7 @@ export const useUpdates = create<UpdatesState>((set, get) => ({
   },
 }));
 
-/** Oferece a atualização do último `lace update --check` e, com o sim,
+/** Oferece a atualização do último `aurora update --check` e, com o sim,
  * atualiza e reinicia. A oferta automática (`auto`) aparece sem ninguém ter
  * pedido, no meio do que a pessoa está digitando: começa com o foco em
  * "Depois", e um Enter que vinha para o editor não reinicia o Studio. */

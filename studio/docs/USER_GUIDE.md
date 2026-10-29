@@ -145,10 +145,10 @@ elaboração, o aviso no topo diz que ela está desatualizada. Uma elaboração
 que falha (um testbench com erro de sintaxe, por exemplo) aparece com o erro
 e a linha, e não esconde as outras. Ela precisa do Icarus instalado,
 qualquer que seja o simulador escolhido. É a mesma árvore do
-`lace hierarchy`.
+`aurora hierarchy`.
 
 **Arquivos** mostra a pasta do projeto: criar, renomear (F2), mandar para a
-lixeira (Delete), mostrar os ocultos. Renomear e mover são o `lace move`:
+lixeira (Delete), mostrar os ocultos. Renomear e mover são o `aurora move`:
 um `.v` registrado continua no projeto com o nome novo. O topo e o testbench simulado têm a
 marca deles, e um ponto azul marca os outros arquivos registrados no `.spf`.
 O arquivo da aba ativa aparece na árvore, com as pastas dele abertas, e as
@@ -231,7 +231,7 @@ fechar a janela.
 | Para | Faça |
 |---|---|
 | sair | Ctrl+K Z de novo, ou Esc duas vezes seguidas |
-| usar o terminal | Ctrl+` abre o shell numa gaveta embaixo do editor, o mesmo do painel (o `lace` está no `PATH`); Ctrl+` de novo fecha e o foco volta ao editor. A divisa entre os dois se arrasta |
+| usar o terminal | Ctrl+` abre o shell numa gaveta embaixo do editor, o mesmo do painel (o `aurora` está no `PATH`); Ctrl+` de novo fecha e o foco volta ao editor. A divisa entre os dois se arrasta |
 | trocar de arquivo | Ctrl+P, ou a paleta (Ctrl+Shift+P) |
 | rodar o fluxo | F5 a F10, como sempre |
 | ver o painel ou uma barra lateral | Ctrl+J, Ctrl+B, Ctrl+Alt+B; valem só enquanto o zen durar |
@@ -342,7 +342,7 @@ a janela de agora, com os tamanhos, é lembrada ao fechar o Studio.
    Windows), criada se falta; Abrir projeto começa nela também. O nome usa
    só letras sem acento, números, `_` e `-`, começando por letra: ele vira
    pasta, `.spf` e parte do caminho que as ferramentas recebem. A regra é a
-   do Lace (`lace new` recusa igual), e o diálogo avisa enquanto você digita.
+   do Lace (`aurora new` recusa igual), e o diálogo avisa enquanto você digita.
 2. **Projeto > Novo módulo Verilog**: dê o nome do arquivo (`contador.v`).
    O Lace cria o módulo a partir do modelo; o primeiro módulo vira o topo.
 3. Escreva o módulo e salve (Ctrl+S).
@@ -451,7 +451,7 @@ qual. A confirmação oferece duas saídas:
   onde dá para recuperar. As abas dos arquivos dela fecham.
 
 A aba do processador fecha nos dois casos. Durante uma operação, a remoção
-fica desabilitada. Na CLI, é o `lace proc remove`.
+fica desabilitada. Na CLI, é o `aurora proc remove`.
 
 ### 4.1 A onda
 
@@ -528,7 +528,7 @@ linha `#PRNAME` sai do fonte e o `.spf` passa a apontar para os lugares
 novos. Depois, uma janela diz o que mudou de lugar, o que ficou e por quê,
 e avisa quando o módulo Verilog de um processador mudou de nome. Recusada,
 a conversão fica em **Arquivo > Converter projeto para o YANC 7.1**, e o
-painel de problemas avisa até lá (`lace convert` faz o mesmo no terminal).
+painel de problemas avisa até lá (`aurora convert` faz o mesmo no terminal).
 
 ## 5. Os botões do fluxo
 
@@ -538,14 +538,14 @@ mesmas teclas.
 
 | Botão | Tecla | Faz | Comando equivalente do Lace |
 |---|---|---|---|
-| C± | F6 | compila os processadores (o alvo, ou todos) | `lace build [-p NOME]` |
-| Verilog | F7 | verifica o Verilog com o Icarus, sem compilar os processadores (o Verilog do YANC entra como está no disco; compile antes com F6); com um processador no alvo, verifica o Verilog dele com o testbench do YANC | `lace check [-p NOME]` |
-| (menu Fluxo) | Shift+F7 | o mesmo, com o lint do Verilator | `lace check [-p NOME] --lint` |
-| Wave | F8 | compila, simula e abre a onda | `lace sim [-p NOME] --open` |
-| Rápida | F9 | a simulação rápida, o Fast Sim da AURORA: compila e simula sem gravar onda, para ver a saída, as portas e os testes. O testbench Verilog e o de um processador rodam no Verilator, qualquer que seja o simulador escolhido; um testbench cocotb, no simulador escolhido. O navegador de fluxo mostra qual | `lace sim [-p NOME] --fast` |
-| Onda | Ctrl+F8 | abre a onda da última simulação | `lace wave [-p NOME]` |
-| Sinais | | escolhe os sinais que a onda do projeto grava e mostra (seção 4.1); o número no botão é quantos itens a escolha tem | `lace wave signals`, `lace wave select` |
-| RTLViewer | F10 | compila, sintetiza e abre o esquemático (seção 7) | `lace synth [-p NOME]`; o `--svg` desenha com o Graphviz |
+| C± | F6 | compila os processadores (o alvo, ou todos) | `aurora build [-p NOME]` |
+| Verilog | F7 | verifica o Verilog com o Icarus, sem compilar os processadores (o Verilog do YANC entra como está no disco; compile antes com F6); com um processador no alvo, verifica o Verilog dele com o testbench do YANC | `aurora check [-p NOME]` |
+| (menu Fluxo) | Shift+F7 | o mesmo, com o lint do Verilator | `aurora check [-p NOME] --lint` |
+| Wave | F8 | compila, simula e abre a onda | `aurora sim [-p NOME] --open` |
+| Rápida | F9 | a simulação rápida, o Fast Sim da AURORA: compila e simula sem gravar onda, para ver a saída, as portas e os testes. O testbench Verilog e o de um processador rodam no Verilator, qualquer que seja o simulador escolhido; um testbench cocotb, no simulador escolhido. O navegador de fluxo mostra qual | `aurora sim [-p NOME] --fast` |
+| Onda | Ctrl+F8 | abre a onda da última simulação | `aurora wave [-p NOME]` |
+| Sinais | | escolhe os sinais que a onda do projeto grava e mostra (seção 4.1); o número no botão é quantos itens a escolha tem | `aurora wave signals`, `aurora wave select` |
+| RTLViewer | F10 | compila, sintetiza e abre o esquemático (seção 7) | `aurora synth [-p NOME]`; o `--svg` desenha com o Graphviz |
 | (menu Fluxo) | F5 | compila os processadores, verifica e, se passar, simula | |
 | Parar | Shift+F5 | cancela a operação; a ferramenta é encerrada com tudo o que iniciou. A atualização do Lace não para no meio | Ctrl+C na CLI |
 
@@ -636,7 +636,7 @@ hoje na próxima mudança; um topo ou testbench escolhido fora da lista, que é
 ignorado; um processador com nome que não compila.
 
 **Terminal** é um shell de verdade, aberto na pasta do projeto, com o
-`lace` no `PATH`: `lace status`, `lace report compare`, tudo o que a CLI
+`aurora` no `PATH`: `aurora status`, `aurora report compare`, tudo o que a CLI
 faz. Ao abrir outro projeto, o terminal vai junto: o Studio digita no shell
 o `cd` para a pasta nova (`Set-Location` no PowerShell, `cd /d` no Prompt
 de Comando), e o histórico e o que estava na tela ficam. No Linux e no
@@ -692,7 +692,7 @@ reinicia o terminal aberto com o shell novo.
   diferença de síntese e de tempos contra o anterior comparável, com os
   avisos de contexto (fontes, versões, máquina diferentes).
 - **Limpar relatórios** (a lixeira no título dos Relatórios, ou Ferramentas
-  > Limpar relatórios): o `lace report clean`. Escolha manter os N mais
+  > Limpar relatórios): o `aurora report clean`. Escolha manter os N mais
   novos ou apagar todos; o diálogo mostra quais saem antes de apagar. O
   menu de cada relatório (botão direito) apaga só ele. O número de um
   relatório apagado não volta a ser usado. Com uma operação rodando, a
@@ -701,13 +701,13 @@ reinicia o terminal aberto com o shell novo.
 ## 7.1 Exercícios
 
 A vista **Exercícios** (Exibir > Exercícios, ou Ferramentas > Exercícios)
-é o `lace learn` no Studio: exercícios curtos de Verilog, corrigidos a cada
+é o `aurora learn` no Studio: exercícios curtos de Verilog, corrigidos a cada
 gravação contra uma solução de referência
 ([docs/LEARN.md](../../docs/LEARN.md) do Lace). Eles vêm no componente
-`lace-learn`; sem ele, a vista oferece instalá-lo.
+`aurora-learn`; sem ele, a vista oferece instalá-lo.
 
 - **Criar a pasta de exercícios** escolhe onde, e cria lá a pasta
-  `lace-learn`, com um projeto por exercício. **Abrir uma pasta de
+  `aurora-learn`, com um projeto por exercício. **Abrir uma pasta de
   exercícios** abre uma que já existe. A pasta fica lembrada.
 - A lista mostra os capítulos, os exercícios resolvidos (com a marca verde)
   e o atual. Clicar num exercício abre o projeto dele, o seu arquivo à
@@ -741,14 +741,14 @@ gravação contra uma solução de referência
 
 Sem o componente, a vista também deixa escolher a pasta das trilhas. Quem
 escreve exercícios aponta Preferências > Bundle do Lace > **Pasta das
-trilhas de exercícios** para a pasta `lace-learn` do repositório, e testa a
+trilhas de exercícios** para a pasta `aurora-learn` do repositório, e testa a
 trilha sem instalar o componente. No `npm run tauri dev`, sem essa
-preferência, o Studio já usa a pasta `lace-learn` do repositório.
+preferência, o Studio já usa a pasta `aurora-learn` do repositório.
 
 ## 7.2 Placa FPGA
 
 A placa FPGA é um recurso experimental e vem desligada. Ligue em
-Preferências > Experimental > **Placa FPGA**, ou com `lace experimental
+Preferências > Experimental > **Placa FPGA**, ou com `aurora experimental
 enable fpga` num terminal: os dois mexem no mesmo arquivo, e o que um liga
 vale para o outro (um comando dado num terminal fora do Studio vale quando
 a janela volta a ter o foco). Desligada, a placa sai da janela: a aba Placa
@@ -794,33 +794,33 @@ portas aparecem depois de **Compilar os processadores**.
 ## 8. Ferramentas do Lace
 
 A aba **Ferramentas do Lace** (chave inglesa na barra de atividades) é o
-`lace tools` com botões:
+`aurora tools` com botões:
 
 - o bundle, a plataforma, a pasta e como o Studio a achou;
 - os componentes instalados e os que faltam, com **Instalar** (roda o
-  `lace install` da sua instalação; a saída aparece nesta tela, em
-  **Saída de lace install**);
+  `aurora install` da sua instalação; a saída aparece nesta tela, em
+  **Saída de aurora install**);
 - cada executável e onde está;
 - o compilador do Verilator (do sistema no Linux e no macOS, do bundle no
   Windows);
 - com a placa FPGA ligada (seção 7.2), o Quartus Prime, quando encontrado,
   com a versão e a pasta;
-- **Conferir os hashes**: o `lace tools --verify`;
-- **Procurar atualizações**: o `lace update --check`, com a versão
+- **Conferir os hashes**: o `aurora tools --verify`;
+- **Procurar atualizações**: o `aurora update --check`, com a versão
   instalada, a da última release e a upstream de cada componente. O
   resultado aparece no alto da tela;
 - **Atualizar para X**: aparece depois da busca, quando há um Lace mais
-  novo publicado. Pede confirmação e roda o `lace update` da sua
+  novo publicado. Pede confirmação e roda o `aurora update` da sua
   instalação, que baixa só os pedaços do bundle com arquivos que mudaram e
   troca esses arquivos no lugar, nos três sistemas; cada pedaço aparece
   nesta tela enquanto baixa, e no fim o tamanho baixado e os aplicativos
   que mudaram. Se a atualização por componentes não der certo, a
   instalação fica como estava e vem o instalador inteiro da release: no
-  Linux e no macOS ele troca o `lace` e o bundle com os mesmos
+  Linux e no macOS ele troca o `aurora` e o bundle com os mesmos
   componentes; no Windows, abre o assistente de instalação.
 
 O Studio procura sozinho: uns segundos depois de abrir e, aberto, a cada 12
-horas, ele roda o `lace update --check` sem mostrar nada. Achando um Lace
+horas, ele roda o `aurora update --check` sem mostrar nada. Achando um Lace
 mais novo, oferece a atualização num diálogo, com **Atualizar e reiniciar**
 e **Depois**; se outro diálogo estiver aberto ou uma operação rodando, o
 aviso vem no canto da janela. A oferta de cada versão aparece uma vez por
@@ -839,10 +839,10 @@ fecha para o assistente trocar os arquivos dele (um diálogo avisa antes), e
 o assistente abre o Studio de novo quando a instalação termina.
 
 A atualização não para no meio: o Parar some e o Shift+F5 não faz nada
-enquanto ela roda, porque parar o `lace` no meio da troca deixaria a
-instalação pela metade. Um `lace` que não veio do instalador (um build
+enquanto ela roda, porque parar o `aurora` no meio da troca deixaria a
+instalação pela metade. Um `aurora` que não veio do instalador (um build
 local) não se atualiza por aqui, e a busca automática não oferece nada.
-Um `lace update` rodado num terminal, fora do Studio, não reinicia o
+Um `aurora update` rodado num terminal, fora do Studio, não reinicia o
 Studio aberto: ele vale depois de fechar e abrir o Studio.
 
 ## 9. Preferências
@@ -859,8 +859,8 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
 | Bundle do Lace | a pasta do bundle (o `--toolchain` da CLI), a do compilador do Verilator (o `--compiler`), a pasta das trilhas de exercícios (o `LACE_LEARN_DIR` da CLI; seção 7.1) e, com a placa FPGA ligada, a do Quartus Prime, que compila para as placas Intel (o `--quartus`) |
-| Assistente | só com o Assistente de IA ligado (página Experimental): o executável do Claude Code, o modelo, se ele pode editar os arquivos do projeto e o executável `lace` das ferramentas. Quem autentica é o Claude Code; o Studio não guarda chave |
-| Experimental | os recursos do Lace que ainda mudam muito, desligados por padrão: hoje, a **Placa FPGA** (seção 7.2) e o **Assistente de IA** (a vista Assistente, uma conversa com o Claude Code instalado na máquina sobre o projeto aberto, com as ferramentas do Lace; ligado, ganha a própria página de Preferências). Ficam no `experimental.json` da pasta de configuração do Lace (o caminho aparece na página), não no `settings.json`, e valem também para a CLI (`lace experimental`) |
+| Assistente | só com o Assistente de IA ligado (página Experimental): o executável do Claude Code, o modelo, se ele pode editar os arquivos do projeto e o executável `aurora` das ferramentas. Quem autentica é o Claude Code; o Studio não guarda chave |
+| Experimental | os recursos do Lace que ainda mudam muito, desligados por padrão: hoje, a **Placa FPGA** (seção 7.2) e o **Assistente de IA** (a vista Assistente, uma conversa com o Claude Code instalado na máquina sobre o projeto aberto, com as ferramentas do Lace; ligado, ganha a própria página de Preferências). Ficam no `experimental.json` da pasta de configuração do Lace (o caminho aparece na página), não no `settings.json`, e valem também para a CLI (`aurora experimental`) |
 
 As preferências ficam em `settings.json`, na pasta de configuração do
 aplicativo: `~/.config/com.nipscern.lace-studio/` no Linux,
@@ -935,7 +935,7 @@ No macOS, Ctrl é Cmd. A lista também está em Ajuda > Atalhos de teclado.
 | INFO, Terminal, Problemas | Ctrl+Shift+U, Ctrl+`, Ctrl+Shift+M |
 | Modo zen (entrar e sair) | Ctrl+K Z; Esc Esc também sai |
 | Histórico de relatórios | Ctrl+Shift+H |
-| Corrigir o exercício (lace learn) | Ctrl+Alt+L |
+| Corrigir o exercício (aurora learn) | Ctrl+Alt+L |
 | Zoom | Ctrl+=, Ctrl+-, Ctrl+0 |
 
 Dentro do Terminal, as teclas com Ctrl sozinho (Ctrl+C, Ctrl+W, Ctrl+P) vão

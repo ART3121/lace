@@ -770,7 +770,7 @@ export type PortDirection = 'input' | 'output' | 'inout';
  */
 export type Origin = 'settings' | 'environment' | 'bundled' | 'installation' | 'path' | 'beside';
 /**
- * Como `lace update` atualizou.
+ * Como `aurora update` atualizou.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UpdateMethod".
@@ -853,7 +853,7 @@ export type SynthesisMetric =
 export type Change =
   'unchanged' | 'increased' | 'decreased' | 'added' | 'removed' | 'not_comparable';
 /**
- * O que `lace update` fez.
+ * O que `aurora update` fez.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UpdateAction".
@@ -957,7 +957,7 @@ export type Notification =
     };
 /**
  * A fase de um fluxo que começou. Os nomes são os que o Studio mostra;
- * `Learn` é a correção de um exercício do lace-learn, que o Studio nomeia
+ * `Learn` é a correção de um exercício do aurora-learn, que o Studio nomeia
  * com o mesmo tipo.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -983,7 +983,7 @@ export type Phase =
  */
 export type ShutdownReason = 'requested' | 'signal' | 'updated';
 /**
- * Uma ferramenta em `lace tools`: onde está, ou por que não está.
+ * Uma ferramenta em `aurora tools`: onde está, ou por que não está.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ToolEntry".
@@ -1521,7 +1521,7 @@ export type Request =
               flow: 'learn';
             };
         /**
-         * O programa que começa o comando; sem ele, `lace`.
+         * O programa que começa o comando; sem ele, `aurora`.
          */
         program?: string | null;
       };
@@ -2383,8 +2383,8 @@ export interface RemovedNameLine {
   old_name: string;
 }
 /**
- * Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a
- * mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+ * Um [`AuroraError`] pronto para atravessar uma fronteira: o JSON da CLI, a
+ * mensagem do Studio para a interface, a resposta do `aurora serve`. É o que
  * o código, o texto e os campos da variante viram quando o enum não vai.
  *
  * ```json
@@ -2393,15 +2393,15 @@ export interface RemovedNameLine {
  *   "data": { "name": "x", "available": ["soma", "filtro"] } }
  * ```
  *
- * A dica de cada interface (o comando `lace` que resolve, o botão do
+ * A dica de cada interface (o comando `aurora` que resolve, o botão do
  * Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
  * pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
  * CLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.
  *
  * ```
- * use lace_core::{ErrorInfo, LaceError};
+ * use aurora_core::{ErrorInfo, AuroraError};
  *
- * let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+ * let info = ErrorInfo::from(AuroraError::ProcessorExists("soma".into()));
  * assert_eq!(info.code, "processor_exists");
  * assert_eq!(info.data.unwrap()["name"], "soma");
  * ```
@@ -2411,7 +2411,7 @@ export interface RemovedNameLine {
  */
 export interface ErrorInfo {
   /**
-   * O identificador estável: [`LaceError::code`], ou um código de quem
+   * O identificador estável: [`AuroraError::code`], ou um código de quem
    * chamou (`busy`, `cli`), sempre em `snake_case`.
    */
   code: string;
@@ -2420,14 +2420,14 @@ export interface ErrorInfo {
    */
   message: string;
   /**
-   * O que fazer, quando quem mostra sabe: o comando `lace` que resolve,
+   * O que fazer, quando quem mostra sabe: o comando `aurora` que resolve,
    * na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no
    * JSON quando não há.
    */
   hint?: string | null;
   /**
    * Os campos estruturados da variante, quando ela os tem
-   * ([`LaceError::data`]): `available`, `files`, `name`, `value`,
+   * ([`AuroraError::data`]): `available`, `files`, `name`, `value`,
    * `reason`, `path`, `component`. Omitido no JSON quando não há.
    */
   data?: {
@@ -2697,7 +2697,7 @@ export interface FpgaBuildResult {
   timing: TimingSummary | null;
   /**
    * Os ajustes das ligações do `fpga.json` (larguras completadas,
-   * entradas soltas), como em `lace fpga check`.
+   * entradas soltas), como em `aurora fpga check`.
    */
   notes: string[];
   /**
@@ -3443,7 +3443,7 @@ export interface ProcessorConfig {
  */
 export interface FlowOptions {
   /**
-   * O texto do comando para o histórico e para o console (`lace sim -p
+   * O texto do comando para o histórico e para o console (`aurora sim -p
    * soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um
    * cliente sem linha de comando monta com [`FlowRequest::command_line`].
    */
@@ -3540,7 +3540,7 @@ export interface ServerInfo {
    */
   protocol: number;
   /**
-   * A pasta da instalação do Lace, quando o servidor é o `lace`
+   * A pasta da instalação do Lace, quando o servidor é o `aurora`
    * instalado.
    */
   prefix: string | null;
@@ -4028,8 +4028,8 @@ export interface WaveLayoutInfo {
    */
   layout_error: string | null;
   /**
-   * Os comandos do Surfer de um exercício do `lace learn` (o
-   * `.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um.
+   * Os comandos do Surfer de um exercício do `aurora learn` (o
+   * `.aurora-learn/wave.sucl` ao lado da onda), quando a onda é de um.
    */
   exercise_layout: string | null;
 }
@@ -4283,7 +4283,7 @@ export interface FlowOutcome {
    */
   fpga_program: FpgaProgramResult | null;
   /**
-   * A correção de um exercício (`learn`): o `Grade` do lace-learn, em
+   * A correção de um exercício (`learn`): o `Grade` do aurora-learn, em
    * JSON (o core não conhece o tipo).
    */
   learn: {
@@ -5729,9 +5729,9 @@ export interface ToolchainInfo {
    */
   quartus_error: ErrorInfo | null;
   /**
-   * A CLI `lace` da instalação.
+   * A CLI `aurora` da instalação.
    */
-  lace_cli: string | null;
+  aurora_cli: string | null;
   /**
    * O cliente web do Surfer (`surfer-aurora/web`), para a onda numa aba;
    * `None` num bundle que não o traz.
@@ -5958,7 +5958,7 @@ export interface BitstreamState {
  * `update.check`, `update.apply`.
  */
 export interface UpdateReport {
-  lace: LaceVersions;
+  lace: AuroraVersions;
   bundle: BundleVersions;
   /**
    * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
@@ -5966,7 +5966,7 @@ export interface UpdateReport {
    */
   components: ComponentVersions[];
   /**
-   * A pasta da instalação; `null` se este `lace` não foi instalado pelo
+   * A pasta da instalação; `null` se este `aurora` não foi instalado pelo
    * instalador (um build em `target/`, por exemplo).
    */
   prefix: string | null;
@@ -5987,9 +5987,9 @@ export interface UpdateReport {
 /**
  * O Lace: este e o da última release.
  */
-export interface LaceVersions {
+export interface AuroraVersions {
   /**
-   * A versão deste `lace`.
+   * A versão deste `aurora`.
    */
   installed: string;
   /**
@@ -6020,7 +6020,7 @@ export interface BundleVersions {
   newer: boolean;
 }
 /**
- * Um componente instalado em `lace update`.
+ * Um componente instalado em `aurora update`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ComponentVersions".
@@ -6069,7 +6069,7 @@ export interface ComponentVersions {
 export interface UpdateChanges {
   /**
    * Os componentes com arquivos que entraram ou saíram, na ordem do
-   * bundle; `lace` é o próprio Lace e o cabeçalho do bundle.
+   * bundle; `aurora` é o próprio Lace e o cabeçalho do bundle.
    */
   components: string[];
   /**
@@ -6262,7 +6262,7 @@ export interface ServerInfo1 {
    */
   protocol: number;
   /**
-   * A pasta da instalação do Lace, quando o servidor é o `lace`
+   * A pasta da instalação do Lace, quando o servidor é o `aurora`
    * instalado.
    */
   prefix: string | null;
@@ -6572,8 +6572,8 @@ export interface WaveLayoutInfo1 {
    */
   layout_error: string | null;
   /**
-   * Os comandos do Surfer de um exercício do `lace learn` (o
-   * `.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um.
+   * Os comandos do Surfer de um exercício do `aurora learn` (o
+   * `.aurora-learn/wave.sucl` ao lado da onda), quando a onda é de um.
    */
   exercise_layout: string | null;
 }
@@ -6705,7 +6705,7 @@ export interface FlowOutcome1 {
    */
   fpga_program: FpgaProgramResult | null;
   /**
-   * A correção de um exercício (`learn`): o `Grade` do lace-learn, em
+   * A correção de um exercício (`learn`): o `Grade` do aurora-learn, em
    * JSON (o core não conhece o tipo).
    */
   learn: {
@@ -7018,7 +7018,7 @@ export interface CleanOutcome1 {
   kept: number;
 }
 /**
- * O que uma tela de ferramentas mostra: o `lace tools` em dados. Nunca
+ * O que uma tela de ferramentas mostra: o `aurora tools` em dados. Nunca
  * falha: um bundle que não abriu vira `found: false` com o erro
  * ([`describe_error`]).
  *
@@ -7080,9 +7080,9 @@ export interface ToolchainInfo1 {
    */
   quartus_error: ErrorInfo | null;
   /**
-   * A CLI `lace` da instalação.
+   * A CLI `aurora` da instalação.
    */
-  lace_cli: string | null;
+  aurora_cli: string | null;
   /**
    * O cliente web do Surfer (`surfer-aurora/web`), para a onda numa aba;
    * `None` num bundle que não o traz.
@@ -7155,13 +7155,13 @@ export interface BitstreamState1 {
   reasons: string[];
 }
 /**
- * O relatório do `lace update` (`docs/schema/update.json`).
+ * O relatório do `aurora update` (`docs/schema/update.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UpdateReport".
  */
 export interface UpdateReport1 {
-  lace: LaceVersions;
+  lace: AuroraVersions;
   bundle: BundleVersions;
   /**
    * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
@@ -7169,7 +7169,7 @@ export interface UpdateReport1 {
    */
   components: ComponentVersions[];
   /**
-   * A pasta da instalação; `null` se este `lace` não foi instalado pelo
+   * A pasta da instalação; `null` se este `aurora` não foi instalado pelo
    * instalador (um build em `target/`, por exemplo).
    */
   prefix: string | null;
@@ -7188,14 +7188,14 @@ export interface UpdateReport1 {
   changes: UpdateChanges | null;
 }
 /**
- * As versões do Lace em `lace update`.
+ * As versões do Lace em `aurora update`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
- * via the `definition` "LaceVersions".
+ * via the `definition` "AuroraVersions".
  */
-export interface LaceVersions1 {
+export interface AuroraVersions1 {
   /**
-   * A versão deste `lace`.
+   * A versão deste `aurora`.
    */
   installed: string;
   /**
@@ -7208,7 +7208,7 @@ export interface LaceVersions1 {
   newer: boolean;
 }
 /**
- * As versões do bundle em `lace update`.
+ * As versões do bundle em `aurora update`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "BundleVersions".
@@ -7229,7 +7229,7 @@ export interface BundleVersions1 {
   newer: boolean;
 }
 /**
- * `lace install` (`docs/schema/install.json`).
+ * `aurora install` (`docs/schema/install.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "InstallReport".
@@ -7421,8 +7421,8 @@ export interface PortValues {
   error: string | null;
 }
 /**
- * Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a
- * mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+ * Um [`AuroraError`] pronto para atravessar uma fronteira: o JSON da CLI, a
+ * mensagem do Studio para a interface, a resposta do `aurora serve`. É o que
  * o código, o texto e os campos da variante viram quando o enum não vai.
  *
  * ```json
@@ -7431,22 +7431,22 @@ export interface PortValues {
  *   "data": { "name": "x", "available": ["soma", "filtro"] } }
  * ```
  *
- * A dica de cada interface (o comando `lace` que resolve, o botão do
+ * A dica de cada interface (o comando `aurora` que resolve, o botão do
  * Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
  * pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
  * CLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.
  *
  * ```
- * use lace_core::{ErrorInfo, LaceError};
+ * use aurora_core::{ErrorInfo, AuroraError};
  *
- * let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+ * let info = ErrorInfo::from(AuroraError::ProcessorExists("soma".into()));
  * assert_eq!(info.code, "processor_exists");
  * assert_eq!(info.data.unwrap()["name"], "soma");
  * ```
  */
 export interface ErrorInfo1 {
   /**
-   * O identificador estável: [`LaceError::code`], ou um código de quem
+   * O identificador estável: [`AuroraError::code`], ou um código de quem
    * chamou (`busy`, `cli`), sempre em `snake_case`.
    */
   code: string;
@@ -7455,14 +7455,14 @@ export interface ErrorInfo1 {
    */
   message: string;
   /**
-   * O que fazer, quando quem mostra sabe: o comando `lace` que resolve,
+   * O que fazer, quando quem mostra sabe: o comando `aurora` que resolve,
    * na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no
    * JSON quando não há.
    */
   hint?: string | null;
   /**
    * Os campos estruturados da variante, quando ela os tem
-   * ([`LaceError::data`]): `available`, `files`, `name`, `value`,
+   * ([`AuroraError::data`]): `available`, `files`, `name`, `value`,
    * `reason`, `path`, `component`. Omitido no JSON quando não há.
    */
   data?: {
@@ -7482,12 +7482,12 @@ export interface SavedLayoutReport {
   path: string;
   /**
    * O usuário salvou depois que o Lace o gerou: o Lace não o refaz
-   * (`lace wave --reset-layout` volta ao gerado).
+   * (`aurora wave --reset-layout` volta ao gerado).
    */
   customized: boolean;
 }
 /**
- * `lace add`.
+ * `aurora add`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "AddReport".
@@ -7503,7 +7503,7 @@ export interface AddReport {
   files: AddedFile[];
 }
 /**
- * `lace build`.
+ * `aurora build`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "BuildReport".
@@ -7526,12 +7526,12 @@ export interface BuildReport {
   registered: AddedFile[];
   /**
    * O relatório gravado no histórico do projeto (`run-000042`), para
-   * `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
+   * `aurora report show`; `null` se nada rodou ou se não pôde ser gravado.
    */
   report: string | null;
 }
 /**
- * `lace check`.
+ * `aurora check`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "CheckReport".
@@ -7540,7 +7540,7 @@ export interface CheckReport {
   check: CheckResult1;
   /**
    * O relatório gravado no histórico do projeto (`run-000042`), para
-   * `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
+   * `aurora report show`; `null` se nada rodou ou se não pôde ser gravado.
    */
   report: string | null;
 }
@@ -7577,7 +7577,7 @@ export interface CheckResult1 {
   duration_ms: number;
 }
 /**
- * `lace convert`.
+ * `aurora convert`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ConvertReport".
@@ -7625,8 +7625,8 @@ export interface ErrorReport {
   error: ErrorInfo2;
 }
 /**
- * Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a
- * mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+ * Um [`AuroraError`] pronto para atravessar uma fronteira: o JSON da CLI, a
+ * mensagem do Studio para a interface, a resposta do `aurora serve`. É o que
  * o código, o texto e os campos da variante viram quando o enum não vai.
  *
  * ```json
@@ -7635,22 +7635,22 @@ export interface ErrorReport {
  *   "data": { "name": "x", "available": ["soma", "filtro"] } }
  * ```
  *
- * A dica de cada interface (o comando `lace` que resolve, o botão do
+ * A dica de cada interface (o comando `aurora` que resolve, o botão do
  * Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
  * pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
  * CLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.
  *
  * ```
- * use lace_core::{ErrorInfo, LaceError};
+ * use aurora_core::{ErrorInfo, AuroraError};
  *
- * let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+ * let info = ErrorInfo::from(AuroraError::ProcessorExists("soma".into()));
  * assert_eq!(info.code, "processor_exists");
  * assert_eq!(info.data.unwrap()["name"], "soma");
  * ```
  */
 export interface ErrorInfo2 {
   /**
-   * O identificador estável: [`LaceError::code`], ou um código de quem
+   * O identificador estável: [`AuroraError::code`], ou um código de quem
    * chamou (`busy`, `cli`), sempre em `snake_case`.
    */
   code: string;
@@ -7659,14 +7659,14 @@ export interface ErrorInfo2 {
    */
   message: string;
   /**
-   * O que fazer, quando quem mostra sabe: o comando `lace` que resolve,
+   * O que fazer, quando quem mostra sabe: o comando `aurora` que resolve,
    * na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no
    * JSON quando não há.
    */
   hint?: string | null;
   /**
    * Os campos estruturados da variante, quando ela os tem
-   * ([`LaceError::data`]): `available`, `files`, `name`, `value`,
+   * ([`AuroraError::data`]): `available`, `files`, `name`, `value`,
    * `reason`, `path`, `component`. Omitido no JSON quando não há.
    */
   data?: {
@@ -7674,7 +7674,7 @@ export interface ErrorInfo2 {
   };
 }
 /**
- * `lace experimental`: os recursos experimentais e se cada um está ligado,
+ * `aurora experimental`: os recursos experimentais e se cada um está ligado,
  * já com a mudança de `enable` ou `disable`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -7693,7 +7693,7 @@ export interface ExperimentalReport {
   components: FeatureState[];
 }
 /**
- * `lace fpga boards`: as placas conhecidas, ou a pedida.
+ * `aurora fpga boards`: as placas conhecidas, ou a pedida.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "FpgaBoardsReport".
@@ -7705,7 +7705,7 @@ export interface FpgaBoardsReport {
   boards: Board[];
 }
 /**
- * `lace fpga build`: os processadores, compilados antes, e a compilação
+ * `aurora fpga build`: os processadores, compilados antes, e a compilação
  * para a placa pelo Quartus.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -7729,7 +7729,7 @@ export interface FpgaBuildReport {
   fpga: FpgaBuildResult | null;
 }
 /**
- * `lace fpga program --list`: os cabos de gravação ligados.
+ * `aurora fpga program --list`: os cabos de gravação ligados.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "FpgaCablesReport".
@@ -7742,7 +7742,7 @@ export interface FpgaCablesReport {
   cables: string[];
 }
 /**
- * `lace fpga check`: o `fpga.json` conferido.
+ * `aurora fpga check`: o `fpga.json` conferido.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "FpgaCheckReport".
@@ -7798,7 +7798,7 @@ export interface Resolved2 {
   notes: string[];
 }
 /**
- * `lace learn check`: a correção de cada exercício pedido, que também
+ * `aurora learn check`: a correção de cada exercício pedido, que também
  * grava se ele está resolvido.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -7835,7 +7835,7 @@ export interface DevReport {
   exercises: DevExercise[];
 }
 /**
- * `lace learn hint`: as dicas de um exercício.
+ * `aurora learn hint`: as dicas de um exercício.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "LearnHintReport".
@@ -7855,7 +7855,7 @@ export interface LearnHintReport {
   hints: string[];
 }
 /**
- * `lace learn init`: a pasta de exercícios criada.
+ * `aurora learn init`: a pasta de exercícios criada.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "LearnInitReport".
@@ -7879,7 +7879,7 @@ export interface LearnInitReport {
   current: string;
 }
 /**
- * `lace learn list`: os exercícios e o que já foi resolvido.
+ * `aurora learn list`: os exercícios e o que já foi resolvido.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "LearnListReport".
@@ -7911,7 +7911,7 @@ export interface LearnListReport {
   exercises: ExerciseStatus[];
 }
 /**
- * `lace learn reset`: o arquivo que voltou ao começo.
+ * `aurora learn reset`: o arquivo que voltou ao começo.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "LearnResetReport".
@@ -7927,7 +7927,7 @@ export interface LearnResetReport {
   file: string;
 }
 /**
- * `lace learn wave`: a onda aberta no Surfer.
+ * `aurora learn wave`: a onda aberta no Surfer.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "LearnWaveReport".
@@ -7951,7 +7951,7 @@ export interface LearnWaveReport {
   pid: number;
 }
 /**
- * `lace move`.
+ * `aurora move`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "MoveReport".
@@ -7967,7 +7967,7 @@ export interface MoveReport {
   moved: MovedPath[];
 }
 /**
- * `lace new`: o projeto criado.
+ * `aurora new`: o projeto criado.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "NewReport".
@@ -7987,7 +7987,7 @@ export interface NewReport {
   root: string;
 }
 /**
- * `lace order`.
+ * `aurora order`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "OrderReport".
@@ -8003,7 +8003,7 @@ export interface OrderReport {
   files: ProjectFile[];
 }
 /**
- * `lace proc remove`: o processador que saiu do projeto e se a pasta dele
+ * `aurora proc remove`: o processador que saiu do projeto e se a pasta dele
  * foi para a lixeira (`--delete`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -8176,7 +8176,7 @@ export interface Responses {
   shutdown: ShutdownReason;
 }
 /**
- * `lace remove`.
+ * `aurora remove`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "RemoveReport".
@@ -8196,7 +8196,7 @@ export interface RemoveReport {
   not_registered: string[];
 }
 /**
- * `lace report clean`: os relatórios apagados.
+ * `aurora report clean`: os relatórios apagados.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ReportCleanReport".
@@ -8213,7 +8213,7 @@ export interface ReportCleanReport {
   kept: number;
 }
 /**
- * `lace report list`: os relatórios, do mais novo para o mais antigo.
+ * `aurora report list`: os relatórios, do mais novo para o mais antigo.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ReportListReport".
@@ -8225,7 +8225,7 @@ export interface ReportListReport {
   reports: RunSummary[];
 }
 /**
- * `lace report` e `lace report show`: um relatório guardado.
+ * `aurora report` e `aurora report show`: um relatório guardado.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ReportShowReport".
@@ -8268,7 +8268,7 @@ export interface RunRecord2 {
   simulation: SimulationTimings | null;
 }
 /**
- * `lace sim`.
+ * `aurora sim`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "SimReport".
@@ -8300,12 +8300,12 @@ export interface SimReport {
   surfer_pid: number | null;
   /**
    * O relatório gravado no histórico do projeto (`run-000042`), para
-   * `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
+   * `aurora report show`; `null` se nada rodou ou se não pôde ser gravado.
    */
   report: string | null;
 }
 /**
- * `lace status`: o projeto inteiro.
+ * `aurora status`: o projeto inteiro.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "StatusReport".
@@ -8341,7 +8341,7 @@ export interface StatusReport {
    */
   top_module: string | null;
   /**
-   * O testbench que `lace sim` simula.
+   * O testbench que `aurora sim` simula.
    */
   selected_testbench: string | null;
   /**
@@ -8370,7 +8370,7 @@ export interface StatusReport {
   issues: ProjectIssue[];
 }
 /**
- * `lace synth`.
+ * `aurora synth`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "SynthReport".
@@ -8402,12 +8402,12 @@ export interface SynthReport {
   rtl_viewer: string | null;
   /**
    * O relatório gravado no histórico do projeto (`run-000042`), para
-   * `lace report show`; `null` se nada rodou ou se não pôde ser gravado.
+   * `aurora report show`; `null` se nada rodou ou se não pôde ser gravado.
    */
   report: string | null;
 }
 /**
- * `lace tools`.
+ * `aurora tools`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "ToolsReport".
@@ -8456,7 +8456,7 @@ export interface ToolsReport {
   verify: FileMismatch[] | null;
 }
 /**
- * `lace top`.
+ * `aurora top`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "TopReport".
@@ -8477,7 +8477,7 @@ export interface TopReport {
   module_error: ErrorInfo | null;
 }
 /**
- * `lace uninstall` (`docs/schema/uninstall.json`).
+ * `aurora uninstall` (`docs/schema/uninstall.json`).
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "UninstallReport".
@@ -8495,7 +8495,7 @@ export interface UninstallReport {
   removed: boolean;
 }
 /**
- * `lace wave select` e `lace wave unselect`: a escolha de sinais depois da
+ * `aurora wave select` e `aurora wave unselect`: a escolha de sinais depois da
  * mudança.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
@@ -8517,7 +8517,7 @@ export interface WaveChoiceReport {
   selection: string[];
 }
 /**
- * `lace wave`.
+ * `aurora wave`.
  *
  * This interface was referenced by `LaceSchemas`'s JSON-Schema
  * via the `definition` "WaveReport".

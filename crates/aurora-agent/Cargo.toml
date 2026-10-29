@@ -1,0 +1,22 @@
+[package]
+name = "aurora-agent"
+description = "O assistente do Lace: uma sessão do Claude Code com as ferramentas do aurora mcp, para o Studio e para o aurora chat"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+aurora-core.workspace = true
+anyhow.workspace = true
+camino.workspace = true
+dunce.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# A pasta do mcp-config.json de cada sessão.
+tempfile.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

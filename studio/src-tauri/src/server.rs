@@ -1,18 +1,18 @@
-//! O servidor do Lace no Studio: um `lace serve` filho que atende, para a
-//! interface, os métodos do protocolo do Lace (`lace_protocol`). O
+//! O servidor do Lace no Studio: um `aurora serve` filho que atende, para a
+//! interface, os métodos do protocolo do Lace (`aurora_protocol`). O
 //! Studio não tem despacho próprio desses métodos: manda o pedido ao
 //! servidor e devolve a resposta, como a extensão do VS Code faz. A
 //! interface chama [`lace_call`] com o método e os parâmetros do protocolo.
 //!
-//! O servidor abre no primeiro pedido e reabre se cair. O `lace` é, nesta
+//! O servidor abre no primeiro pedido e reabre se cair. O `aurora` é, nesta
 //! ordem: o da variável `LACE_STUDIO_LACE`, o da preferência `lace_path` e
 //! o da instalação do bundle. O Studio passa ao servidor o bundle que ele
 //! mesmo achou e o compilador e o Quartus das preferências, para os dois
 //! verem as mesmas ferramentas; mudou uma dessas coisas, o pedido seguinte
 //! fecha o servidor e abre outro.
 //!
-//! No `initialize`, o Studio confere a versão do protocolo: um `lace` de
-//! outro protocolo é recusado com `lace_incompatible`. Um `lace` de outra
+//! No `initialize`, o Studio confere a versão do protocolo: um `aurora` de
+//! outro protocolo é recusado com `lace_incompatible`. Um `aurora` de outra
 //! versão do Lace, com o mesmo protocolo, só gera um aviso no log.
 //!
 //! No Windows o servidor roda sem janela de console e num Job Object, e
@@ -39,7 +39,7 @@ use crate::state::{AppState, blocking};
 use crate::toolchain;
 
 /// A versão do protocolo do Lace que este Studio fala
-/// (`lace_protocol::PROTOCOL_VERSION`).
+/// (`aurora_protocol::PROTOCOL_VERSION`).
 const PROTOCOL_VERSION: u64 = 1;
 
 /// O schema dos pedidos do protocolo, gerado do código do Lace
@@ -77,11 +77,11 @@ pub type Listener = Box<dyn Fn(&str, Value) + Send + Sync>;
 
 /// O servidor do Studio, aberto quando preciso.
 #[derive(Default)]
-pub struct LaceServer {
+pub struct AuroraServer {
     session: Mutex<Option<Arc<Session>>>,
 }
 
-impl LaceServer {
+impl AuroraServer {
     /// Um pedido ao servidor, que abre se preciso. Bloqueia até a resposta:
     /// chame numa thread de trabalho.
     pub fn call(&self, settings: &Settings, method: &str, params: Value) -> IpcResult<Value> {
@@ -91,7 +91,7 @@ impl LaceServer {
 
     /// Um pedido com notificações (os fluxos, a instalação): `listener`
     /// recebe cada uma, e `started` o `id` do pedido, para um
-    /// cancelamento ([`LaceServer::cancel`]).
+    /// cancelamento ([`AuroraServer::cancel`]).
     pub fn call_with(
         &self,
         settings: &Settings,
@@ -129,7 +129,7 @@ impl LaceServer {
     }
 
     /// O servidor certo para estas preferências: o aberto, se ainda vivo e
-    /// com o mesmo `lace`, bundle, compilador, Quartus e trilhas; senão um
+    /// com o mesmo `aurora`, bundle, compilador, Quartus e trilhas; senão um
     /// novo.
     fn session(&self, settings: &Settings) -> IpcResult<Arc<Session>> {
         let key = StartKey::of(settings)?;
@@ -156,7 +156,7 @@ struct StartKey {
     toolchain: Option<Utf8PathBuf>,
     compiler: Option<String>,
     quartus: Option<String>,
-    /// As trilhas do `lace learn` de outra pasta (preferência `learn_dir`),
+    /// As trilhas do `aurora learn` de outra pasta (preferência `learn_dir`),
     /// que o servidor recebe em `LACE_LEARN_DIR`.
     learn_dir: Option<String>,
 }
@@ -180,7 +180,7 @@ fn nonempty(value: &Option<String>) -> Option<String> {
         .map(str::to_owned)
 }
 
-/// O `CREATE_NO_WINDOW` do Windows para o servidor: sem ele, o `lace`, um
+/// O `CREATE_NO_WINDOW` do Windows para o servidor: sem ele, o `aurora`, um
 /// programa de console, abriria uma janela de console própria quando o
 /// Studio não tem console. As ferramentas que o servidor roda dividem esse
 /// console escondido. Fora do Windows não faz nada.
@@ -240,7 +240,7 @@ impl ProcessJob {
     }
 }
 
-/// Um processo `lace serve` vivo.
+/// Um processo `aurora serve` vivo.
 struct Session {
     key: StartKey,
     child: Mutex<Child>,
@@ -694,12 +694,12 @@ mod tests {
 
     #[test]
     fn the_protocol_and_the_schema_are_the_lace_ones() {
-        assert_eq!(PROTOCOL_VERSION, u64::from(lace_protocol::PROTOCOL_VERSION));
+        assert_eq!(PROTOCOL_VERSION, u64::from(aurora_protocol::PROTOCOL_VERSION));
         let embedded: Value = serde_json::from_str(REQUEST_SCHEMA).unwrap();
-        let generated = serde_json::to_value(lace_protocol::request_schema()).unwrap();
+        let generated = serde_json::to_value(aurora_protocol::request_schema()).unwrap();
         assert_eq!(
             embedded, generated,
-            "docs/schema/protocol-request.json está velho: LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli"
+            "docs/schema/protocol-request.json está velho: LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli"
         );
     }
 
@@ -713,7 +713,7 @@ mod tests {
         assert_eq!(project_field("wave.open"), ProjectField::Optional);
     }
 
-    /// O servidor de verdade, com o `lace` de `LACE_STUDIO_LACE`: cria um
+    /// O servidor de verdade, com o `aurora` de `LACE_STUDIO_LACE`: cria um
     /// projeto, lê, erra e fecha.
     #[test]
     fn a_real_server_answers_and_stops() {
@@ -724,7 +724,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
         let settings = Settings::default();
-        let server = LaceServer::default();
+        let server = AuroraServer::default();
         let status = server
             .call(
                 &settings,
@@ -758,7 +758,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
         let settings = Settings::default();
-        let server = LaceServer::default();
+        let server = AuroraServer::default();
         let call = |method: &str, mut params: Value| {
             params["project"] = json!(root.join("demo/demo.spf"));
             server.call(&settings, method, params)

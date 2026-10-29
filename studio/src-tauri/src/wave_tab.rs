@@ -20,7 +20,7 @@
 //! que foi registrado para uma aba aberta.
 //!
 //! O layout vem do servidor do Lace (`wave.layout`): o gerado dos
-//! processadores SAPHO, o de um exercício do `lace learn` e, numa onda de
+//! processadores SAPHO, o de um exercício do `aurora learn` e, numa onda de
 //! testbench do projeto, o salvo em `wave/<testbench>.surf.ron`. Com o
 //! salvo, os comandos de partida registram `state_save_url_set
 //! <origem>/save/<aba>`, e o "salvar estado" do Surfer (Ctrl+S, que fica com
@@ -192,7 +192,7 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
 
         let id = new_id();
         let name = waveform.file_name().unwrap_or("wave.vcd");
-        // A onda de um exercício do `lace learn` vem com os comandos da
+        // A onda de um exercício do `aurora learn` vem com os comandos da
         // correção: as saídas ao lado das da referência e o primeiro erro.
         let learn = info
             .exercise_layout
@@ -306,7 +306,7 @@ fn new_id() -> String {
 
 /// Os comandos de partida do cliente: carregar cada tradutor e depois o
 /// estado, que os usa; com o layout salvo no projeto (`saved`), o destino do
-/// salvar; numa onda de exercício do `lace learn`, os comandos da correção
+/// salvar; numa onda de exercício do `aurora learn`, os comandos da correção
 /// (`learn`). Vazio sem nenhum deles.
 fn startup_commands(
     origin: &str,

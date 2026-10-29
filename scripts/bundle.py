@@ -32,9 +32,9 @@ Os pacotes, com as versões exatas, estão em bundle/versions.json:
 - studio: o Lace Studio, compilado de studio/ deste repositório
   (npm ci e tauri build); a versão de versions.json tem que ser a do
   studio/package.json e a do tauri.conf.json;
-- lace-learn: as trilhas de exercícios do `lace learn`, copiadas de
-  lace-learn/ deste repositório. Só dados: quem as corrige é o Lace.
-- rtl-viewer: o modelo do HTML do RTL viewer (`lace synth --open`),
+- aurora-learn: as trilhas de exercícios do `aurora learn`, copiadas de
+  aurora-learn/ deste repositório. Só dados: quem as corrige é o Lace.
+- rtl-viewer: o modelo do HTML do RTL viewer (`aurora synth --open`),
   gerado de packages/rtl-viewer/ deste repositório (npm ci e npm run
   build). Só dados: quem o preenche com o netlist é o Lace.
 
@@ -298,12 +298,12 @@ def pkg_studio(spec, plat, work, cache):
 
 
 def pkg_lace_learn(spec, plat, work, cache):
-    """As trilhas do `lace learn`, de lace-learn/ deste repositório: textos,
+    """As trilhas do `aurora learn`, de aurora-learn/ deste repositório: textos,
     `.v` e `.json`, iguais nas três plataformas."""
     src = ROOT / spec["path"]
     if not any(src.glob("*/track.json")):
-        sys.exit(f"lace-learn: {src} não tem nenhuma trilha (<trilha>/track.json)")
-    stage = work / "lace-learn"
+        sys.exit(f"aurora-learn: {src} não tem nenhuma trilha (<trilha>/track.json)")
+    stage = work / "aurora-learn"
     shutil.rmtree(stage, ignore_errors=True)
     shutil.copytree(src, stage, ignore=shutil.ignore_patterns(".*"))
     return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
@@ -403,7 +403,7 @@ PACKAGES = {
     "surfer-aurora": pkg_surfer_aurora,
     "graphviz": pkg_graphviz,
     "studio": pkg_studio,
-    "lace-learn": pkg_lace_learn,
+    "aurora-learn": pkg_lace_learn,
     "rtl-viewer": pkg_rtl_viewer,
 }
 
@@ -785,7 +785,7 @@ def main():
     profiles = platform_profiles(catalog, {c["name"] for c in components})
     # O primeiro perfil é o padrão. O campo `recommended` dos componentes é
     # o pertencer a ele, para o Lace anterior aos perfis, que lê o índice da
-    # release nova no `lace update` e exige o campo.
+    # release nova no `aurora update` e exige o campo.
     default = set(profiles[0]["components"]) if profiles else set()
     contents = []
     for c in components:

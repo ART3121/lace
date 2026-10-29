@@ -628,7 +628,7 @@ export const pt = {
   'dialog.target.placeholder': 'O projeto inteiro ou um processador',
   'dialog.target.project': 'o testbench do projeto',
   'dialog.target.processor': 'processador SAPHO',
-  // Remover processador (lace proc remove): a lista e a confirmação.
+  // Remover processador (aurora proc remove): a lista e a confirmação.
   'dialog.removeProcessor.placeholder': 'Processador a remover do projeto',
   'dialog.removeProcessor.title': 'Remover o processador {name}?',
   'dialog.removeProcessor.message':
@@ -638,7 +638,7 @@ export const pt = {
   'dialog.layout.placeholder': 'Digite o nome de um layout',
   'dialog.noMatches': 'Nada encontrado',
   'dialog.install.title': 'Instalar componentes do bundle',
-  'dialog.install.hint': 'Roda "lace install" da sua instalação. Só os pacotes dos componentes novos são baixados, da release desta versão do Lace.',
+  'dialog.install.hint': 'Roda "aurora install" da sua instalação. Só os pacotes dos componentes novos são baixados, da release desta versão do Lace.',
   'dialog.update.title': 'Lace {version} disponível',
   'dialog.update.confirm': 'Atualizar e reiniciar',
   'dialog.update.later': 'Depois',
@@ -813,7 +813,7 @@ export const pt = {
   'reports.cleanCount': 'Saem {count}:',
   'reports.cleanNothing': 'Nenhum relatório sai com essa escolha.',
   'reports.cleanSubmit': 'Apagar ({count})',
-  'reports.cleanHint': 'Apaga de .aurora8/reports, como lace report clean. O número de um relatório apagado não volta.',
+  'reports.cleanHint': 'Apaga de .aurora8/reports, como aurora report clean. O número de um relatório apagado não volta.',
   'reports.openFile': 'Abrir o report.txt',
   'reports.unreadable': 'ilegível',
   'reports.synthesis': 'síntese',
@@ -968,24 +968,24 @@ export const pt = {
   'settings.toolchainDir': 'Pasta do bundle',
   'settings.toolchainDirHint': 'Vazio: a instalação do Lace (~/.local/share/lace no Linux e no macOS). Como o --toolchain da CLI.',
   'settings.lacePath': 'Programa lace',
-  'settings.lacePathHint': 'O lace que a IDE abre como servidor (lace serve) para ler, compilar e simular o projeto. Vazio: o da instalação do bundle. Para desenvolvimento, um build em target/.',
+  'settings.lacePathHint': 'O lace que a IDE abre como servidor (aurora serve) para ler, compilar e simular o projeto. Vazio: o da instalação do bundle. Para desenvolvimento, um build em target/.',
   'settings.compilerDir': 'Compilador do Verilator',
   'settings.compilerDirHint': 'Pasta com perl, make e g++ ou clang++ (no Windows, a raiz de um MSYS2). Vazio: os locais padrão. Como o --compiler da CLI.',
   'settings.quartusDir': 'Quartus Prime',
   'settings.quartusDirHint': 'A pasta de uma versão do Quartus (C:\\intelFPGA_lite\\22.1std), para compilar para as placas Intel. Vazio: QUARTUS_ROOTDIR e as pastas padrão do instalador. Como o --quartus da CLI.',
   'settings.saved': 'Preferências gravadas',
   // Preferências > Experimental: os recursos experimentais do Lace, que o
-  // Core guarda e a CLI também lê (lace experimental).
+  // Core guarda e a CLI também lê (aurora experimental).
   'settings.experimental.hint':
-    'Recursos do Lace que ainda mudam muito e podem quebrar de uma versão para outra. Ficam desligados até você ligar, e o que você liga aqui vale também para a CLI (lace experimental).',
+    'Recursos do Lace que ainda mudam muito e podem quebrar de uma versão para outra. Ficam desligados até você ligar, e o que você liga aqui vale também para a CLI (aurora experimental).',
   'settings.experimental.file': 'Guardado em',
   'settings.experimental.none': 'Esta versão do Lace não tem recursos experimentais.',
   'experimental.fpga': 'Placa FPGA',
   'experimental.fpga.hint':
-    'Compilar pelo Quartus Prime e gravar na placa. Ligada, aparecem a aba Placa FPGA, o botão FPGA da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle do Lace; na CLI, o lace fpga.',
+    'Compilar pelo Quartus Prime e gravar na placa. Ligada, aparecem a aba Placa FPGA, o botão FPGA da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle do Lace; na CLI, o aurora fpga.',
   'experimental.assistant': 'Assistente de IA',
   'experimental.assistant.hint':
-    'Uma conversa com o Claude Code instalado na máquina, com as ferramentas do Lace. Ligado, aparecem a vista Assistente (menu Exibir) e a página Assistente das Preferências; na CLI, o lace chat e o lace mcp.',
+    'Uma conversa com o Claude Code instalado na máquina, com as ferramentas do Lace. Ligado, aparecem a vista Assistente (menu Exibir) e a página Assistente das Preferências; na CLI, o aurora chat e o aurora mcp.',
 
   // Busca
   'search.placeholder': 'Buscar no projeto',
@@ -998,7 +998,7 @@ export const pt = {
   // Sobre
   'about.title': 'Sobre a AURORA IDE',
   'about.version': 'Versão {version}',
-  'about.description': 'O ambiente gráfico do Lace para Verilog e processadores SAPHO: edita, compila o C±, verifica, simula e sintetiza pelo lace-core, o mesmo da CLI lace. Sucede a AURORA 7, feita em Electron.',
+  'about.description': 'O ambiente gráfico do Lace para Verilog e processadores SAPHO: edita, compila o C±, verifica, simula e sintetiza pelo aurora-core, o mesmo da CLI lace. Sucede a AURORA 7, feita em Electron.',
   'about.os': 'Sistema',
   'about.config': 'Preferências em',
   'about.tab': 'Sobre',
@@ -1125,9 +1125,9 @@ export const pt = {
   'error.terminal_busy': 'Um programa está rodando no terminal.',
   'panel.terminalCdBusy': 'O terminal ficou na pasta anterior: um programa está rodando nele, e o cd para o projeto novo iria para o programa.',
 
-  // Exercícios (lace learn)
+  // Exercícios (aurora learn)
   'settings.learnDir': 'Pasta das trilhas de exercícios',
-  'settings.learnDirHint': 'Para quem escreve exercícios: as trilhas desta pasta no lugar das do componente lace-learn, como o LACE_LEARN_DIR da CLI. Vazio: as do componente.',
+  'settings.learnDirHint': 'Para quem escreve exercícios: as trilhas desta pasta no lugar das do componente aurora-learn, como o LACE_LEARN_DIR da CLI. Vazio: as do componente.',
   'sidebar.learn': 'Exercícios',
   'action.viewLearn': 'Exercícios',
   'action.learnCheck': 'Corrigir o exercício',
@@ -1149,13 +1149,13 @@ export const pt = {
   'learn.short.cancelled': 'cancelado',
   'learn.tab': 'Exercício',
   'learn.intro': 'Exercícios curtos de Verilog, corrigidos a cada gravação contra uma solução de referência, como no rustlings.',
-  'learn.missing': 'As trilhas de exercícios vêm no componente lace-learn, que não está instalado.',
-  'learn.install': 'Instalar o lace-learn',
+  'learn.missing': 'As trilhas de exercícios vêm no componente aurora-learn, que não está instalado.',
+  'learn.install': 'Instalar o aurora-learn',
   'learn.chooseTracks': 'Escolher a pasta das trilhas...',
   'learn.useComponent': 'Voltar às trilhas do componente',
   'learn.tracksFrom': 'Trilhas de {dir}',
   'learn.noTracks': 'A pasta {dir} não tem nenhuma trilha (uma pasta com track.json).',
-  'learn.tracksHint': 'Quem escreve exercícios usa as trilhas do repositório do Lace: escolha a pasta lace-learn dele.',
+  'learn.tracksHint': 'Quem escreve exercícios usa as trilhas do repositório do Lace: escolha a pasta aurora-learn dele.',
   'learn.create': 'Criar a pasta de exercícios...',
   'learn.open': 'Abrir uma pasta de exercícios...',
   'learn.closeFolder': 'Fechar a pasta de exercícios',
@@ -1200,8 +1200,8 @@ export const pt = {
   'learn.value': 'Valor',
   'learn.expected': 'Esperado',
   'learn.yours': 'O seu',
-  'error.learn_component_missing': 'O componente lace-learn, com as trilhas de exercícios, não está instalado.',
-  'error.no_learn_workspace': 'Esta pasta não é uma pasta de exercícios do lace learn.',
+  'error.learn_component_missing': 'O componente aurora-learn, com as trilhas de exercícios, não está instalado.',
+  'error.no_learn_workspace': 'Esta pasta não é uma pasta de exercícios do aurora learn.',
   'error.learn_workspace_exists': 'A pasta já existe e não está vazia.',
 
   // Assistente (components/assistant, state/assistant.ts)
@@ -1234,7 +1234,7 @@ export const pt = {
   'assistant.cost': 'US$ {cost}',
   'assistant.costHint': 'O custo desta conversa, pela conta do Claude Code',
   'settings.assistant': 'Assistente',
-  'settings.assistantHint': 'O assistente é o Claude Code instalado na máquina, com as ferramentas do Lace (lace mcp). Quem autentica é ele: a conta do Claude ou a ANTHROPIC_API_KEY do ambiente. O Lace não guarda chave.',
+  'settings.assistantHint': 'O assistente é o Claude Code instalado na máquina, com as ferramentas do Lace (aurora mcp). Quem autentica é ele: a conta do Claude ou a ANTHROPIC_API_KEY do ambiente. O Lace não guarda chave.',
   'settings.assistantClaude': 'Executável do Claude Code',
   'settings.assistantClaudeHint': 'Vazio: o claude do PATH ou das pastas dos instaladores (~/.local/bin, npm).',
   'settings.assistantModel': 'Modelo',

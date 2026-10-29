@@ -5,10 +5,10 @@ operação executa, o que lê e escreve no disco, o formato dos resultados e dos
 erros. A referência item a item está na documentação do código:
 
 ```
-cargo doc -p lace-core --no-deps --open
+cargo doc -p aurora-core --no-deps --open
 ```
 
-Todo item público do `lace-core` tem documentação (o crate compila com
+Todo item público do `aurora-core` tem documentação (o crate compila com
 `#![deny(missing_docs)]`), e os exemplos da documentação rodam como teste em
 `cargo test`.
 
@@ -40,7 +40,7 @@ A API tem quatro peças:
 
 Um projeto é Verilog; processadores SAPHO são opcionais. Quando existem, o
 cliente os compila com `build` antes de verificar, simular ou sintetizar,
-como a CLI faz. O módulo `lace_core::verilog` (4.2) trabalha sobre o texto
+como a CLI faz. O módulo `aurora_core::verilog` (4.2) trabalha sobre o texto
 Verilog: classifica arquivos, acha módulos, lê portas e gera os
 arquivos-modelo.
 
@@ -51,7 +51,7 @@ antes é erro (`NotBuilt`).
 O ciclo de uso é sempre o mesmo:
 
 ```rust
-use lace_core::*;
+use aurora_core::*;
 
 let exe = camino::Utf8PathBuf::try_from(std::env::current_exe()?)?;
 let toolchain = Toolchain::locate(&exe)?;      // <instalação>/toolchain
@@ -107,11 +107,11 @@ procurar, para o atalho `~/.local/bin/lace` do instalador funcionar.
 | Método | Devolve |
 |---|---|
 | `manifest()` | o `BundleManifest`: identificador, plataforma e os componentes instalados, na ordem de `component::ALL` (`BundleComponent`: nome, versão, diretório, origem, SHA-256 do pacote e o hash de cada executável) |
-| `component(nome)` | um componente instalado (nomes em `lace_core::component`), ou `None` |
+| `component(nome)` | um componente instalado (nomes em `aurora_core::component`), ou `None` |
 | `verified_files()` | quantos executáveis os manifestos listam |
 | `tool(Tool)` | o caminho do executável, conferido no disco agora; recusa um symlink que sai do bundle (`InvalidBundle`) e, para o Verilator, a falta do `bin/verilator_bin` que o script Perl chama (sem ele, o script o procuraria no `PATH`) |
 | `available()` | as ferramentas presentes |
-| `tools()` | as ferramentas que o Lace roda: todas, menos o `appcomp` e o `cpppp`, que o YANC 7.1 não tem mais (ficam em `Tool` para os relatórios antigos); é a lista do `lace tools` e da aba Toolchain do Studio |
+| `tools()` | as ferramentas que o Lace roda: todas, menos o `appcomp` e o `cpppp`, que o YANC 7.1 não tem mais (ficam em `Tool` para os relatórios antigos); é a lista do `aurora tools` e da aba Toolchain do Studio |
 | `hdl_dir()`, `macros_dir()`, `headers_dir()` | os diretórios do YANC (`SAPHO/`, `Macros/`, `Header/`) |
 | `surfer_web_dir()` | o cliente web do Surfer (`surfer-aurora/web/`: `index.html`, `surfer.js`, `surfer_bg.wasm`); `ToolchainIncomplete` num bundle que não o traz |
 | `system_compiler()` | o `SystemCompiler` do Verilator, se encontrado |
@@ -452,8 +452,8 @@ na AURORA (4.4).
 |---|---|
 | `add_verilog(toolchain, caminho, testbench) -> Result<AddedFile>` | registra um arquivo (`.v`, `.sv`, ou `.py`, testbench cocotb); se ele não existe, cria a partir do modelo |
 | `remove_verilog(caminho) -> Result<bool>` | tira das duas listas e das escolhas de topo e testbench, sem apagar do disco; diz se estava registrado |
-| `add_verilog_files(toolchain, caminhos, testbench) -> Result<Vec<AddedFile>>` | registra vários, na ordem, conferindo todos antes de registrar o primeiro: um nome ruim no meio da lista não deixa metade registrada (`lace add`, `project.add`) |
-| `remove_verilog_files(caminhos) -> Result<RemoveOutcome>` | tira vários, na ordem, e diz quais estavam registrados e quais não (`lace remove`, `project.remove`) |
+| `add_verilog_files(toolchain, caminhos, testbench) -> Result<Vec<AddedFile>>` | registra vários, na ordem, conferindo todos antes de registrar o primeiro: um nome ruim no meio da lista não deixa metade registrada (`aurora add`, `project.add`) |
+| `remove_verilog_files(caminhos) -> Result<RemoveOutcome>` | tira vários, na ordem, e diz quais estavam registrados e quais não (`aurora remove`, `project.remove`) |
 | `set_top(alvo) -> Result<Utf8PathBuf>` | escolhe o topo por arquivo ou por nome de módulo; devolve o arquivo |
 | `top_module() -> Result<Option<String>>` | o nome do módulo de topo |
 | `testbench_module() -> Result<Option<String>>` | o nome do módulo do testbench escolhido; num `.py`, o módulo Python dos testes (o nome do arquivo) |
@@ -605,7 +605,7 @@ caminho de hoje.
 
 ### 4.2 O módulo `verilog`
 
-`lace_core::verilog` trabalha sobre texto. Só `read_interfaces` executa
+`aurora_core::verilog` trabalha sobre texto. Só `read_interfaces` executa
 uma ferramenta, o Yosys, e só quando ele está instalado.
 
 | Função | Devolve |
@@ -1090,7 +1090,7 @@ Verilator 5.050 do bundle, nos dois simuladores; no Linux e no macOS, com o
 
 ### 5.3.1 `waveform_path(&Project, Option<&Processor>) -> Result<Utf8PathBuf>`
 
-Onde a simulação grava a onda, sem simular: é o que `lace wave` abre sem
+Onde a simulação grava a onda, sem simular: é o que `aurora wave` abre sem
 argumento. Com um processador, a do testbench que o `asmcomp` gerou
 (`<nome>/<nome>/<nome>_tb.fst` ou `.vcd`, na pasta de saída); sem, a do
 testbench do projeto: o nome do `$dumpfile` dele, ou, sem `$dumpfile`, a
@@ -1174,7 +1174,7 @@ arquivo, o único que o outro não instancia.
 Com `lint` e sem o Verilator instalado, a verificação roda do mesmo jeito,
 sem o passo `lint`, e um diagnóstico de aviso diz que o lint não rodou.
 
-Os processadores não são compilados aqui, nem pelo `lace check` (5.11):
+Os processadores não são compilados aqui, nem pelo `aurora check` (5.11):
 um processador sem o Verilog gerado num projeto com outro Verilog fica de
 fora, com um aviso, e, sem nada para verificar, o erro é `NotBuilt`.
 
@@ -1490,7 +1490,7 @@ Surfer): `<onda>.surf.ron` e os tradutores em `.surfer/mappings/<nome>`, sem
 os de antes. `ViewerOptions::with_layout(&preparado)` abre com ele:
 
 ```rust
-if let Some(layout) = lace_core::prepare_wave_layout(&onda)? {
+if let Some(layout) = aurora_core::prepare_wave_layout(&onda)? {
     open_waveform(&toolchain, &onda, &ViewerOptions::with_layout(&layout))?;
 }
 ```
@@ -1604,7 +1604,7 @@ clone do `CancelToken` (`Control`, `CancelToken` e `Event` são
 
 ```rust
 use std::sync::mpsc;
-use lace_core::*;
+use aurora_core::*;
 
 // toolchain e project abertos como na seção 1.
 let cancel = CancelToken::new();
@@ -1692,16 +1692,16 @@ em vez de a fila crescer na memória.
 Depois de uma operação, a interface chama `history::record` com o que cada
 fase devolveu, e o Lace grava um relatório no histórico do projeto. Nenhuma
 operação grava sozinha: quem decide é quem chama. Os fluxos de
-`lace_core::flows` (5.11), que a CLI, o Studio e o `lace serve` usam,
+`aurora_core::flows` (5.11), que a CLI, o Studio e o `aurora serve` usam,
 gravam depois de `build`, `check`, `simulate` e `synthesize`.
 
 ```rust
-use lace_core::history::{self, Operation};
+use aurora_core::history::{self, Operation};
 
 let started = std::time::SystemTime::now();
-let builds = lace_core::build_processors(&toolchain, project.buildable_processors(), &opts, OnFailure::Stop, &control, |_| {})?;
-let sim = lace_core::simulate_project(&toolchain, &project, &options, &control)?;
-let operation = Operation::new("lace sim", started)
+let builds = aurora_core::build_processors(&toolchain, project.buildable_processors(), &opts, OnFailure::Stop, &control, |_| {})?;
+let sim = aurora_core::simulate_project(&toolchain, &project, &options, &control)?;
+let operation = Operation::new("aurora sim", started)
     .with_builds(&builds)
     .with_simulation(&sim);
 let record = history::record(&project, &toolchain, &operation)?;   // run-000042
@@ -1725,7 +1725,7 @@ Apagar é em dois passos, para a interface mostrar e confirmar antes:
 escolhida. Um relatório gravado entre os dois não sai sem ter sido mostrado.
 
 ```rust
-use lace_core::history::{self, Cleanup};
+use aurora_core::history::{self, Cleanup};
 
 let doomed = history::plan_cleanup(&project, &Cleanup::KeepLatest(10))?;
 // mostrar `doomed` e confirmar
@@ -1738,9 +1738,9 @@ let removed = history::remove(&project, &doomed)?;
 | `list(&Project) -> Result<Vec<RunSummary>>` | os relatórios, do mais novo para o mais antigo; um `record.json` ilegível aparece com `readable: false` |
 | `load(&Project, id)`, `latest(&Project)` | um relatório (`run-000042` ou `42`), o mais novo |
 | `report_text(&Project, id)`, `report_path(&Project, id)` | o `report.txt` e onde ele fica |
-| `view(&Project, id) -> Result<ReportView>` | o relatório pedido, ou o mais novo sem `id`, com o texto e o caminho do `report.txt` (`lace report show`, `history.show`) |
-| `clean(&Project, ids) -> Result<CleanOutcome>` | apaga os relatórios do plano e conta os que ficaram (`lace report clean`, `history.clean`) |
-| `compare_reports(&Project, atual, referência)` | escolhe e compara, como `lace report compare`; os dois vêm do histórico do projeto, então se comparam mesmo depois de a pasta mudar de lugar; sem parte nenhuma em comum (uma simulação contra uma síntese), `NotComparable` |
+| `view(&Project, id) -> Result<ReportView>` | o relatório pedido, ou o mais novo sem `id`, com o texto e o caminho do `report.txt` (`aurora report show`, `history.show`) |
+| `clean(&Project, ids) -> Result<CleanOutcome>` | apaga os relatórios do plano e conta os que ficaram (`aurora report clean`, `history.clean`) |
+| `compare_reports(&Project, atual, referência)` | escolhe e compara, como `aurora report compare`; os dois vêm do histórico do projeto, então se comparam mesmo depois de a pasta mudar de lugar; sem parte nenhuma em comum (uma simulação contra uma síntese), `NotComparable` |
 | `previous_comparable(&Project, &RunRecord)` | o anterior mais novo que se compara em pelo menos uma parte, de preferência um que terminou bem (uma simulação que estourou o prazo só serve sem outra) |
 | `compare(&referência, &atual) -> Result<RunComparison>` | compara dois relatórios; não lê nem roda nada |
 | `compare_metric(Option<u64>, Option<u64>)` | compara dois números |
@@ -1836,7 +1836,7 @@ faz a mesma conferência sem gravar: `bitstream`, `built_at_ms` e `reasons`
 `fpga::modules` lista os módulos que podem ir para a placa e
 `fpga::top_interface` dá as portas de um (ou do topo do projeto), para
 montar as ligações antes de estarem certas. `Prepared::connections` traz
-cada ligação como texto (`target`, `source`), como o `lace fpga check`
+cada ligação como texto (`target`, `source`), como o `aurora fpga check`
 mostra.
 `FpgaProgramResult` traz `board`, `bitstream`, `cable`, `position`,
 `quartus` e os campos comuns, menos `artifacts`.
@@ -1850,7 +1850,7 @@ Prime 17.1, 18.0 e 18.1.
 
 Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
 `Feature` lista os recursos (hoje, `Feature::Fpga`, a placa FPGA, e
-`Feature::Assistant`, o assistente de IA: `lace chat`, `lace mcp` e a vista
+`Feature::Assistant`, o assistente de IA: `aurora chat`, `aurora mcp` e a vista
 Assistente do Studio), com `id()` (`"fpga"`, `"assistant"`, o identificador
 do arquivo e da CLI), `name()` e `description()`, em inglês; `Feature::ALL`
 tem todos.
@@ -1866,7 +1866,7 @@ sem `APPDATA` ou `HOME`).
 | `is_enabled(Feature) -> bool` | o recurso está ligado |
 | `require(Feature) -> Result<()>` | `ExperimentalDisabled` se ele está desligado |
 | `states() -> Vec<FeatureState>` | cada recurso, se está ligado e a descrição |
-| `info() -> ExperimentalInfo` | o arquivo e cada recurso (`lace experimental`, `experimental.list`) |
+| `info() -> ExperimentalInfo` | o arquivo e cada recurso (`aurora experimental`, `experimental.list`) |
 | `set_enabled(Feature, bool) -> Result<()>` | liga ou desliga, gravando o arquivo de forma atômica e criando a pasta |
 
 A leitura falha fechada: sem a pasta, sem o arquivo ou com ele ilegível,
@@ -1880,9 +1880,9 @@ compô-las: compilar os processadores antes de simular, registrar no `.spf`
 o que o YANC gerou, ler as portas de saída, gravar o relatório, abrir a
 onda. Essa composição morava duas vezes, na CLI e no Studio, e divergia;
 agora mora aqui, uma vez: a CLI chama estas funções direto, e o despacho
-do `lace serve`, que o Studio e a extensão usam, chama as mesmas.
+do `aurora serve`, que o Studio e a extensão usam, chama as mesmas.
 
-**`lace_core::flows`.** Um [`FlowRequest`] (`build`, `check`, `hierarchy`,
+**`aurora_core::flows`.** Um [`FlowRequest`] (`build`, `check`, `hierarchy`,
 `simulate`, `synthesize`, `schematic`, `fpga_build`, `fpga_program`; em
 JSON, etiquetado por `flow`) entra em `flows::run(&Toolchain, &mut
 Project, &FlowRequest, &FlowOptions, progress, &Control) ->
@@ -1906,7 +1906,7 @@ processadores; a simulação para no primeiro build que falhar
 que não precisam dele: o recurso experimental do fluxo, os processadores
 que o pedido nomeia e o `build` de um projeto sem processadores, que nem
 precisa do bundle. Quem chama passa como acha o bundle, e o erro dele sai
-com o tipo de quem chama; é o que a CLI e o despacho do `lace serve`
+com o tipo de quem chama; é o que a CLI e o despacho do `aurora serve`
 chamam, para seguirem a mesma ordem. `flows::open_wave_with` faz o mesmo
 com a onda: confere que ela existe antes de pedir o bundle.
 `flows::open_wave` abre uma onda com a política de layout
@@ -1914,14 +1914,14 @@ com a onda: confere que ela existe antes de pedir o bundle.
 que não existe, do projeto ou um arquivo, é `no_waveform`.
 `flows::choose_signals` muda a escolha de sinais: `all` a esvazia, `add` e
 `remove` acrescentam e tiram, `set` troca a escolha inteira; os caminhos
-são conferidos na árvore do testbench elaborado. O `lace learn` tem o seu
-em `lace_learn::flows`, e `lace_learn::layout::with_exercise_layout` dá à
+são conferidos na árvore do testbench elaborado. O `aurora learn` tem o seu
+em `aurora_learn::flows`, e `aurora_learn::layout::with_exercise_layout` dá à
 onda de um exercício o layout da correção, quando o pedido quer o gerado.
 `FlowRequest::Learn` é a correção de um exercício como fluxo, com o
 resultado em `FlowOutcome::learn`: quem a roda é o servidor do Lace, que
-linka o lace-learn, e o `flows::run` do core responde `unsupported`.
+linka o aurora-learn, e o `flows::run` do core responde `unsupported`.
 
-**`lace_core::delivery`.** A entrega da saída ao vivo para uma interface
+**`aurora_core::delivery`.** A entrega da saída ao vivo para uma interface
 com fila: o `Dispatcher` recebe os eventos do `Control` e o `Progress` e
 entrega [`Notification`] em lotes (`phase`, `events`, `output_omitted`,
 `build`, `install`), no máximo a cada 30 ms ou 500 eventos, com um teto de
@@ -1929,30 +1929,30 @@ linhas (20 000 de uma vez e depois 5 000 por segundo; o que passa vira
 `output_omitted`, no lugar onde estaria) e um canal limitado: com a fila cheia, a ferramenta espera o cliente até
 500 ms por linha (`Limits::send_timeout`) e, se a entrega continuar parada,
 a linha fica de fora e entra em `output_omitted`, em vez de a memória crescer. Era o código de
-`jobs.rs` do Studio; agora o Studio, o `lace serve` e o `lace mcp` usam o
+`jobs.rs` do Studio; agora o Studio, o `aurora serve` e o `aurora mcp` usam o
 mesmo.
 
-**`lace_core::locate`.** A busca do bundle a partir de outro programa, com
+**`aurora_core::locate`.** A busca do bundle a partir de outro programa, com
 a ordem que o Studio usava: a pasta declarada (`settings`), a variável
 (`environment`), o bundle que contém o executável (`exe`, onde o instalador
-põe o Studio), as pastas padrão do instalador, o `lace` do `PATH` e, por
+põe o Studio), as pastas padrão do instalador, o `aurora` do `PATH` e, por
 último, o bundle ao lado do executável, como a CLI. Quem chama monta o [`Lookup`] com o que
 leu do ambiente e das preferências (o core não lê o ambiente para achar o bundle), e `resolve`
 devolve o bundle com a origem (`Found`); `describe` monta o
 [`ToolchainInfo`] da tela de ferramentas do Studio e do `toolchain.info` do
-`lace serve`: o que o `lace tools` mostra, em dados (o `lace tools` monta a
+`aurora serve`: o que o `aurora tools` mostra, em dados (o `aurora tools` monta a
 tela dele a partir daqui).
 `Project::status()` devolve o retrato do projeto ([`ProjectStatus`]: o
-`lace status` e a árvore do Studio) e `Processor::output_ports` as portas
+`aurora status` e a árvore do Studio) e `Processor::output_ports` as portas
 de saída lidas pelo nome do arquivo.
 
-**O contrato, no crate `lace-protocol`.** Os pedidos e as respostas do
-`lace serve` moram num crate próprio, acima do core, do `lace-learn` e do
-`lace-installer`; o core não conhece o protocolo. O crate tem [`Request`]
+**O contrato, no crate `aurora-protocol`.** Os pedidos e as respostas do
+`aurora serve` moram num crate próprio, acima do core, do `aurora-learn` e do
+`aurora-installer`; o core não conhece o protocolo. O crate tem [`Request`]
 (um método por operação, com grupo e ponto: `project.status`, `flow.run`,
 `history.list`, `update.check`, ...), [`Response`] (o valor em si, sem
 etiqueta: os tipos do core, o `UpdateReport` e o `InstallReport` do
-instalador e os tipos do `lace-learn`), [`ServerInfo`], [`ShutdownReason`]
+instalador e os tipos do `aurora-learn`), [`ServerInfo`], [`ShutdownReason`]
 e os tipos de resposta que nenhuma função do core devolve (`TopOutcome`,
 `NameCheck`, `ProcessorRemoval`, `WaveLayoutInfo`). Os resultados de
 funções do core ficam no core, ao lado delas: `RemoveOutcome` em `files`,
@@ -1966,18 +1966,18 @@ geram os tipos TypeScript deles. A macro `methods!` declara cada método
 uma vez, com o nome, o tipo do resultado e as marcações (se só lê, se mexe
 na instalação, se vira ferramenta de agente): dela saem `METHODS`, a lista
 dos métodos, `METHOD_INFO` e `result_schema()`, o schema do `result` de
-cada um, que um teste do `lace serve` confere contra o que o servidor
+cada um, que um teste do `aurora serve` confere contra o que o servidor
 devolve; uma variante de `Request` sem linha nela não compila. Os três schemas geram a
 referência legível, [PROTOCOL.md](PROTOCOL.md). O `lace
-serve` é o transporte deste contrato por stdio, e o `lace mcp` o
+serve` é o transporte deste contrato por stdio, e o `aurora mcp` o
 adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
 
 **`ErrorInfo`.** O erro pronto para atravessar uma fronteira: `code` (o
-`LaceError::code()`, ou um código de quem chamou), `message`, `hint` (o
+`AuroraError::code()`, ou um código de quem chamou), `message`, `hint` (o
 que fazer, quando quem mostra sabe; o core não o preenche) e `data` (os
 campos da variante, quando há: `available`, `files`, `path`, `reason`,
 ...), os dois últimos omitidos no JSON quando não há. É o `error` do
-`--json` da CLI, o `error.data` do `lace serve` e o que vai dentro de um
+`--json` da CLI, o `error.data` do `aurora serve` e o que vai dentro de um
 `FlowOutcome` (`schematic_error`, `rtl_viewer_error`, `wave_error`).
 
 ---
@@ -2255,7 +2255,7 @@ Regras:
 
 ## 8. Erros
 
-`LaceError` é para quando a operação não pôde rodar. `code()` devolve um
+`AuroraError` é para quando a operação não pôde rodar. `code()` devolve um
 identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 
 | Variante | `code()` | Quando | O que fazer |
@@ -2263,7 +2263,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `BundleNotFound` | `bundle_not_found` | não há `toolchain/` com `bundle.json` ao lado do executável | reinstalar o Lace |
 | `InvalidBundle` | `invalid_bundle` | manifesto ausente ou inválido, formato diferente de `BUNDLE_SCHEMA`, outra plataforma, componente ausente ou fora do bundle, executável que é symlink para fora do bundle | reinstalar, ou montar o bundle certo |
 | `UnsupportedPlatform` | `unsupported_platform` | fora de Linux x64, macOS arm64, Windows x64 | não há bundle |
-| `ComponentMissing` | `component_missing` | o componente da ferramenta não foi instalado; a mensagem não diz como instalar, que é de cada interface | `lace install <componente>`, ou o botão Instalar do Studio |
+| `ComponentMissing` | `component_missing` | o componente da ferramenta não foi instalado; a mensagem não diz como instalar, que é de cada interface | `aurora install <componente>`, ou o botão Instalar do Studio |
 | `ToolchainIncomplete` | `toolchain_incomplete` | o componente está lá, mas falta o executável (ou o `verilator_bin`), ou um diretório do YANC | reinstalar |
 | `SystemCompilerMissing` | `system_compiler_missing` | Linux e macOS: Verilator (simulação ou `check` com `lint`) sem compilador C++, `make` e Perl do sistema | instalar (ver BUNDLE.md) ou, na CLI, declarar com `--compiler <DIR>` ou `LACE_COMPILER` |
 | `InvalidProject` | `invalid_project` | diretório ou arquivo do projeto ausente ou em conflito | ver `path` e `reason` |
@@ -2308,15 +2308,15 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `NoCable` | `no_cable` | `fpga::program` sem `cable` e sem cabo de gravação ligado | ligar a placa pela porta do USB-Blaster, e o driver dele |
 | `StaleBitstream` | `stale_bitstream` | `fpga::program` com um `.sof` que não descreve o projeto de agora: um fonte, uma memória, o `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi trocado, ou a compilação não terminou | `fpga::build` de novo |
 | `QuartusMissing` | `quartus_missing` | `fpga::build`, `fpga::program` ou `tool(Tool::Quartus)` sem Quartus (2.5) | instalar o Quartus Prime Lite com o suporte à família da placa, ou declarar a pasta dele |
-| `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `lace experimental enable <recurso>`, ou Preferências > Experimental no Studio |
-| `Unsupported` | `unsupported` | `flows::run` com `FlowRequest::Learn`: a correção de um exercício roda no servidor do Lace, que linka o lace-learn | pedir pelo `lace serve` (`flow.run`), ou corrigir com `lace learn check` |
-| `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe, porque a simulação não rodou ou não chegou ao fim, ou de um arquivo que não existe | simular antes (`lace sim [-p X]`, o botão Simular) |
+| `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `aurora experimental enable <recurso>`, ou Preferências > Experimental no Studio |
+| `Unsupported` | `unsupported` | `flows::run` com `FlowRequest::Learn`: a correção de um exercício roda no servidor do Lace, que linka o aurora-learn | pedir pelo `aurora serve` (`flow.run`), ou corrigir com `aurora learn check` |
+| `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe, porque a simulação não rodou ou não chegou ao fim, ou de um arquivo que não existe | simular antes (`aurora sim [-p X]`, o botão Simular) |
 | `SignalNotFound` | `signal_not_found` | `flows::choose_signals` com um caminho que a árvore do testbench elaborado não tem; `similar` traz os parecidos | ver `similar`, ou `wave_signals` |
 | `SignalNotChosen` | `signal_not_chosen` | tirar da escolha um caminho que não está na escolha gravada nem no design | ver a escolha (`wave_signals`) |
-| `TestbenchNotElaborated` | `testbench_not_elaborated` | a escolha de sinais precisa da árvore do testbench, e a elaboração dele pelo Icarus falhou; `reason` é a primeira mensagem | corrigir o testbench (`lace check`) |
+| `TestbenchNotElaborated` | `testbench_not_elaborated` | a escolha de sinais precisa da árvore do testbench, e a elaboração dele pelo Icarus falhou; `reason` é a primeira mensagem | corrigir o testbench (`aurora check`) |
 
 O enum é `#[non_exhaustive]`: todo `match` precisa de `_`. Para atravessar
-uma fronteira (JSON, outro processo), um `LaceError` vira [`ErrorInfo`]
+uma fronteira (JSON, outro processo), um `AuroraError` vira [`ErrorInfo`]
 (`ErrorInfo::from(&error)`; 5.11).
 
 ---
@@ -2358,13 +2358,13 @@ Garantias:
   recusam se o arquivo já existir; `add_verilog` só cria o arquivo que não
   existe e registra como está o que existe. `move_path` recusa um destino
   que já existe. `write_input` substitui a entrada, que é estímulo.
-- **Threads.** `Toolchain`, `Project`, os resultados, `LaceError`,
+- **Threads.** `Toolchain`, `Project`, os resultados, `AuroraError`,
   `Control`, `CancelToken` e `Event` são `Send + Sync`; `RunningProcess` é
   `Send`. Uma GUI roda as operações numa thread de trabalho e cancela da
   thread da interface (5.8).
 - **FFI.** A superfície pública só expõe tipos do Lace, da `std`, de
   `camino` (caminhos), de `serde`, de `serde_json` (o `Value` de
-  `ErrorInfo::data`, `LaceError::data`, `Notification::Install` e
+  `ErrorInfo::data`, `AuroraError::data`, `Notification::Install` e
   `FlowOutcome::learn`) e de `schemars` (derive). Os enums são
   `#[non_exhaustive]`, menos os da 0.9.0 em `flows`, `delivery` e `locate`
   (`FlowRequest`, `WavePolicy`, `Progress`, `WaveSource`, `LayoutPolicy`,
@@ -2382,7 +2382,7 @@ Limites desta versão:
   rodando. O mesmo vale para um SIGTERM que o processo não trata. Quem
   encerra um cliente do Lace de fora deve mandar SIGTERM, e o cliente deve
   transformá-lo em `cancel()`, como a CLI faz (`cancel_on_signals`, em
-  `crates/lace-cli/src/main.rs`). No Windows os filhos estão no Job Object
+  `crates/aurora-cli/src/main.rs`). No Windows os filhos estão no Job Object
   do passo e terminam junto com o processo, de qualquer jeito que ele
   morra.
 - Sem build incremental: cada chamada roda tudo de novo (o modelo do

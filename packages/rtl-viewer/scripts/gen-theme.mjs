@@ -1,7 +1,7 @@
 // Gera src/theme-standalone.css: as variáveis que o viewer usa, com os
 // valores dos temas padrão do Studio (azul e azul-claro, de
 // studio/src/themes) e dos tokens dele (studio/src/styles/tokens.css). É o
-// tema do HTML do `lace synth --open`, que segue o claro ou o escuro do
+// tema do HTML do `aurora synth --open`, que segue o claro ou o escuro do
 // sistema; o desenho sai com as mesmas cores do Studio.
 //
 // Uso: npm run gen:theme
@@ -67,7 +67,7 @@ const css = `/*
  * ${themes.DEFAULT_THEME}) e studio/src/styles/tokens.css. Não edite à mão: rode
  * \`npm run gen:theme\`.
  *
- * O tema do viewer fora do Studio e do VS Code (o HTML do \`lace synth
+ * O tema do viewer fora do Studio e do VS Code (o HTML do \`aurora synth
  * --open\`): o claro ou o escuro, como o sistema.
  */
 

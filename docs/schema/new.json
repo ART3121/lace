@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NewReport",
-  "description": "`lace new`: o projeto criado.",
+  "description": "`aurora new`: o projeto criado.",
   "type": "object",
   "properties": {
     "message": {

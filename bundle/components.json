@@ -25,14 +25,14 @@
       "label": "SAPHO",
       "description": "Every Lace app",
       "audience": "People who build SAPHO processors and program them in C±, with the Verilog tools around them: simulation, synthesis, waves, FPGA boards and the exercises",
-      "components": ["yanc", "icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "lace-learn", "rtl-viewer"]
+      "components": ["yanc", "icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "aurora-learn", "rtl-viewer"]
     },
     {
       "name": "verilog",
       "label": "Verilog",
       "description": "Every app except YANC",
       "audience": "People who design in Verilog without SAPHO processors: modules, testbenches in Verilog or cocotb, simulation in Icarus or Verilator, synthesis and FPGA boards",
-      "components": ["icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "lace-learn", "rtl-viewer"]
+      "components": ["icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "aurora-learn", "rtl-viewer"]
     }
   ],
   "translations": {
@@ -54,8 +54,8 @@
           "windows-x64": "O ambiente gráfico (editor, compilação, simulação, ondas); precisa do WebView2, que vem com o Windows 10 e 11",
           "*": "O ambiente gráfico (editor, compilação, simulação, ondas)"
         },
-        "lace-learn": "Exercícios de Verilog no estilo do rustlings: o lace learn e a vista Exercícios do Studio",
-        "rtl-viewer": "O esquemático interativo do netlist da síntese, no navegador: lace synth --open"
+        "aurora-learn": "Exercícios de Verilog no estilo do rustlings: o aurora learn e a vista Exercícios do Studio",
+        "rtl-viewer": "O esquemático interativo do netlist da síntese, no navegador: aurora synth --open"
       },
       "profiles": {
         "sapho": {
@@ -254,11 +254,11 @@
       }
     },
     {
-      "name": "lace-learn",
+      "name": "aurora-learn",
       "label": "Lace Learn",
-      "description": "Verilog exercises in the style of rustlings: lace learn and the Exercises view of the Studio",
+      "description": "Verilog exercises in the style of rustlings: aurora learn and the Exercises view of the Studio",
       "requires": ["icarus"],
-      "package": "lace-learn",
+      "package": "aurora-learn",
       "closure": false,
       "select": { "*": ["**"] },
       "run": {}
@@ -266,7 +266,7 @@
     {
       "name": "rtl-viewer",
       "label": "RTL viewer",
-      "description": "The interactive schematic of the synthesis netlist, in the browser: lace synth --open",
+      "description": "The interactive schematic of the synthesis netlist, in the browser: aurora synth --open",
       "requires": ["yosys"],
       "package": "rtl-viewer",
       "closure": false,

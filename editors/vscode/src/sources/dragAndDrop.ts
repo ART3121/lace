@@ -1,6 +1,6 @@
 // Arrastar na vista de fontes: um arquivo do RTL ou dos testbenches solto
-// sobre outro da mesma lista muda a ordem de compilação (`lace order`); um
-// arquivo do explorador solto na vista entra no projeto (`lace add`), como
+// sobre outro da mesma lista muda a ordem de compilação (`aurora order`); um
+// arquivo do explorador solto na vista entra no projeto (`aurora add`), como
 // testbench se cair nos testbenches.
 
 import * as vscode from 'vscode';

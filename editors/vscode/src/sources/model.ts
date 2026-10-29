@@ -1,4 +1,4 @@
-// O conteúdo da vista de fontes a partir do `lace status --json`, sem
+// O conteúdo da vista de fontes a partir do `aurora status --json`, sem
 // depender do VS Code: os grupos, o texto de cada item, o contextValue que
 // os menus filtram e a cor e o selo que o destacam.
 
@@ -27,7 +27,7 @@ export interface SourceEntry {
    * simulado) ou `.built` (o processador compilado), de `.settop` quando
    * "Definir como topo" se aplica, de `.first` e `.last` no primeiro e no
    * último da lista (o que "Subir" e "Descer" não movem) e de `.verilog`
-   * num .v ou .sv (o que o `lace check <arquivo>` aceita; um testbench
+   * num .v ou .sv (o que o `aurora check <arquivo>` aceita; um testbench
    * cocotb não).
    */
   contextValue: string;
@@ -164,7 +164,7 @@ function testbenchEntry(status: StatusReport, path: string, at: Place): SourceEn
     flag: isSelected ? 'selected' : undefined,
     flagText: isSelected ? 'SIMULADO' : undefined,
     tone: isSelected ? 'simulated' : undefined,
-    tooltip: isSelected ? 'O testbench que lace sim simula' : 'Testbench',
+    tooltip: isSelected ? 'O testbench que aurora sim simula' : 'Testbench',
     at,
   });
 }
@@ -172,7 +172,7 @@ function testbenchEntry(status: StatusReport, path: string, at: Place): SourceEn
 function unregisteredEntry(status: StatusReport, path: string): SourceEntry {
   return fileEntry(status, 'unregistered', path, {
     tone: 'unregistered',
-    tooltip: 'Fora do projeto: o + o acrescenta (lace add)',
+    tooltip: 'Fora do projeto: o + o acrescenta (aurora add)',
   });
 }
 

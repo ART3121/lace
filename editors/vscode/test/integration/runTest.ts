@@ -66,7 +66,7 @@ async function main(): Promise<void> {
     cpSync(join(FIXTURES, 'projeto demo'), workspace, { recursive: true }),
   );
   // Uma pasta sem .spf: a extensão abre e oferece o Novo projeto. O nome é
-  // o das respostas gravadas do `lace new`.
+  // o das respostas gravadas do `aurora new`.
   await runSuite('vazia', 'pasta nova', (workspace) => mkdirSync(workspace, { recursive: true }));
 }
 

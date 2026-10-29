@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "SimReport",
-  "description": "`lace sim`.",
+  "description": "`aurora sim`.",
   "type": "object",
   "properties": {
     "builds": {
@@ -46,7 +46,7 @@
       "minimum": 0
     },
     "report": {
-      "description": "O relatório gravado no histórico do projeto (`run-000042`), para\n`lace report show`; `null` se nada rodou ou se não pôde ser gravado.",
+      "description": "O relatório gravado no histórico do projeto (`run-000042`), para\n`aurora report show`; `null` se nada rodou ou se não pôde ser gravado.",
       "type": [
         "string",
         "null"
@@ -221,7 +221,7 @@
           "const": "check_syntax"
         },
         {
-          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `lace check --lint`.",
+          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `aurora check --lint`.",
           "type": "string",
           "const": "lint"
         },

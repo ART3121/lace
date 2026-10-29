@@ -1,6 +1,6 @@
 // O que a extensão pede ao Lace. Vistas e comandos dependem só desta
 // interface: uma implementação roda a CLI, um processo por comando
-// (cliClient.ts); a outra fala com um `lace serve` em segundo plano
+// (cliClient.ts); a outra fala com um `aurora serve` em segundo plano
 // (serveClient.ts). A conexão escolhe (connection.ts, `lace.transport`).
 
 import type {
@@ -48,7 +48,7 @@ export interface RunOptions {
 }
 
 export interface CheckOptions extends RunOptions {
-  /** Só os módulos deste arquivo como raiz (`lace check <arquivo>`). */
+  /** Só os módulos deste arquivo como raiz (`aurora check <arquivo>`). */
   file?: string;
   /** Só o Verilog deste processador e o testbench dele (`-p`). */
   processor?: string;
@@ -73,7 +73,7 @@ export interface EventOptions extends RunOptions {
 }
 
 export interface SimOptions extends EventOptions {
-  /** Simula este testbench, que passa a ser o do projeto (`lace sim <testbench>`). */
+  /** Simula este testbench, que passa a ser o do projeto (`aurora sim <testbench>`). */
   testbench?: string;
   /** Compila e simula o processador com o testbench do YANC (`-p`). */
   processor?: string;
@@ -97,7 +97,7 @@ export interface BuildOptions extends EventOptions {
   processors?: readonly string[];
 }
 
-/** Onde pôr um arquivo na lista dele (`lace order`). */
+/** Onde pôr um arquivo na lista dele (`aurora order`). */
 export type ListPosition =
   | { kind: 'first' }
   | { kind: 'last' }
@@ -121,42 +121,42 @@ export interface AddOptions extends RunOptions {
 export interface LaceClient {
   /** A versão do lace, como `0.6.0`. */
   version(): Promise<string>;
-  /** `lace new`: cria `<dir>/<nome>/<nome>.spf`. Não precisa de projeto. */
+  /** `aurora new`: cria `<dir>/<nome>/<nome>.spf`. Não precisa de projeto. */
   newProject(name: string, dir: string, options?: RunOptions): Promise<LaceRun<NewReport>>;
-  /** `lace status`: o projeto inteiro. `spf` é o `.spf` do projeto. */
+  /** `aurora status`: o projeto inteiro. `spf` é o `.spf` do projeto. */
   status(spf: string, options?: RunOptions): Promise<LaceRun<StatusReport>>;
-  /** `lace top <arquivo>`: escolhe o arquivo de topo. */
+  /** `aurora top <arquivo>`: escolhe o arquivo de topo. */
   setTop(spf: string, file: string, options?: RunOptions): Promise<LaceRun<TopReport>>;
-  /** `lace add`: registra os arquivos; os que não existem saem do modelo. */
+  /** `aurora add`: registra os arquivos; os que não existem saem do modelo. */
   add(spf: string, files: readonly string[], options?: AddOptions): Promise<LaceRun<AddReport>>;
-  /** `lace check`: o Icarus sobre o design e cada testbench, sem compilar processadores. */
+  /** `aurora check`: o Icarus sobre o design e cada testbench, sem compilar processadores. */
   check(spf: string, options?: CheckOptions): Promise<LaceRun<CheckReport>>;
   /**
-   * `lace wave`: abre a onda no surfer-aurora e volta, com o Surfer aberto.
+   * `aurora wave`: abre a onda no surfer-aurora e volta, com o Surfer aberto.
    * Sem `spf`, roda fora de projeto (só para um arquivo).
    */
   wave(spf: string | undefined, target: WaveTarget, options?: RunOptions): Promise<LaceRun<WaveReport>>;
-  /** `lace remove`: tira os arquivos do projeto (continuam no disco). */
+  /** `aurora remove`: tira os arquivos do projeto (continuam no disco). */
   remove(spf: string, files: readonly string[], options?: RunOptions): Promise<LaceRun<RemoveReport>>;
-  /** `lace order`: muda a posição do arquivo na lista dele, a ordem de compilação. */
+  /** `aurora order`: muda a posição do arquivo na lista dele, a ordem de compilação. */
   order(spf: string, file: string, position: ListPosition, options?: RunOptions): Promise<LaceRun<OrderReport>>;
   /**
-   * `lace move`: move ou renomeia, e os registrados continuam no projeto.
+   * `aurora move`: move ou renomeia, e os registrados continuam no projeto.
    * Com `after`, o arquivo já foi movido (pelo explorador do VS Code) e o
-   * Lace só atualiza o `.spf` (`lace move --after`).
+   * Lace só atualiza o `.spf` (`aurora move --after`).
    */
   move(spf: string, from: string, to: string, options?: RunOptions & { after?: boolean }): Promise<LaceRun<MoveReport>>;
-  /** `lace build`: compila os processadores com o YANC. */
+  /** `aurora build`: compila os processadores com o YANC. */
   build(spf: string, options?: BuildOptions): Promise<LaceRun<BuildReport>>;
-  /** `lace proc add`: cria o processador, com o fonte-modelo. */
+  /** `aurora proc add`: cria o processador, com o fonte-modelo. */
   addProcessor(spf: string, name: string, language: 'cmm' | 'cpp', options?: RunOptions): Promise<LaceRun<Processor>>;
-  /** `lace proc set`: frequência, clocks e exportação de arrays, para o próximo build. */
+  /** `aurora proc set`: frequência, clocks e exportação de arrays, para o próximo build. */
   configureProcessor(spf: string, name: string, changes: ProcessorChanges, options?: RunOptions): Promise<LaceRun<Processor>>;
-  /** `lace sim`: compila os processadores e simula. */
+  /** `aurora sim`: compila os processadores e simula. */
   sim(spf: string, options?: SimOptions): Promise<LaceRun<SimReport>>;
-  /** `lace synth`: compila os processadores e sintetiza o topo no Yosys. */
+  /** `aurora synth`: compila os processadores e sintetiza o topo no Yosys. */
   synth(spf: string, options?: SynthOptions): Promise<LaceRun<SynthReport>>;
-  /** Solta o que o cliente mantém (o `lace serve` em segundo plano). */
+  /** Solta o que o cliente mantém (o `aurora serve` em segundo plano). */
   dispose?(): Promise<void> | void;
 }
 

@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "UpdateReport",
-  "description": "O relatório do `lace update` (`docs/schema/update.json`).",
+  "description": "O relatório do `aurora update` (`docs/schema/update.json`).",
   "type": "object",
   "properties": {
     "lace": {
       "description": "O Lace: este e o da última release.",
-      "$ref": "#/$defs/LaceVersions"
+      "$ref": "#/$defs/AuroraVersions"
     },
     "bundle": {
       "description": "O bundle de ferramentas: o instalado e o da última release.",
@@ -20,7 +20,7 @@
       }
     },
     "prefix": {
-      "description": "A pasta da instalação; `null` se este `lace` não foi instalado pelo\ninstalador (um build em `target/`, por exemplo).",
+      "description": "A pasta da instalação; `null` se este `aurora` não foi instalado pelo\ninstalador (um build em `target/`, por exemplo).",
       "type": [
         "string",
         "null"
@@ -63,12 +63,12 @@
     "changes"
   ],
   "$defs": {
-    "LaceVersions": {
-      "description": "As versões do Lace em `lace update`.",
+    "AuroraVersions": {
+      "description": "As versões do Lace em `aurora update`.",
       "type": "object",
       "properties": {
         "installed": {
-          "description": "A versão deste `lace`.",
+          "description": "A versão deste `aurora`.",
           "type": "string"
         },
         "latest": {
@@ -87,7 +87,7 @@
       ]
     },
     "BundleVersions": {
-      "description": "As versões do bundle em `lace update`.",
+      "description": "As versões do bundle em `aurora update`.",
       "type": "object",
       "properties": {
         "installed": {
@@ -116,7 +116,7 @@
       ]
     },
     "ComponentVersions": {
-      "description": "Um componente instalado em `lace update`.",
+      "description": "Um componente instalado em `aurora update`.",
       "type": "object",
       "properties": {
         "name": {
@@ -168,7 +168,7 @@
       ]
     },
     "UpdateAction": {
-      "description": "O que `lace update` fez.",
+      "description": "O que `aurora update` fez.",
       "oneOf": [
         {
           "description": "`--check`: só comparou as versões.",
@@ -181,7 +181,7 @@
           "const": "up_to_date"
         },
         {
-          "description": "A instalação foi trocada (por componentes, ou pelo instalador no\nLinux e no macOS). O `lace` em uso é o antigo: quem chamou termina e\nreinicia.",
+          "description": "A instalação foi trocada (por componentes, ou pelo instalador no\nLinux e no macOS). O `aurora` em uso é o antigo: quem chamou termina e\nreinicia.",
           "type": "string",
           "const": "updated"
         },
@@ -193,7 +193,7 @@
       ]
     },
     "UpdateMethod": {
-      "description": "Como `lace update` atualizou.",
+      "description": "Como `aurora update` atualizou.",
       "oneOf": [
         {
           "description": "Só os arquivos que mudaram, dos pedaços que a release publica.",
@@ -212,7 +212,7 @@
       "type": "object",
       "properties": {
         "components": {
-          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `lace` é o próprio Lace e o cabeçalho do bundle.",
+          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `aurora` é o próprio Lace e o cabeçalho do bundle.",
           "type": "array",
           "items": {
             "type": "string"

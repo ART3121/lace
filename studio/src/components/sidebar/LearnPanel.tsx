@@ -1,7 +1,7 @@
-// A vista Exercícios: a pasta de exercícios do `lace learn` aberta, os
+// A vista Exercícios: a pasta de exercícios do `aurora learn` aberta, os
 // capítulos e o que já foi resolvido. Sem pasta, criar uma ou abrir uma que
 // já existe. Antes disso, a vista confere de onde vêm as trilhas: sem o
-// componente `lace-learn` (e sem a preferência da pasta das trilhas), ela
+// componente `aurora-learn` (e sem a preferência da pasta das trilhas), ela
 // oferece instalá-lo ou escolher a pasta, e confere de novo quando a
 // preferência ou o bundle mudam.
 
@@ -22,7 +22,7 @@ import { Button, Empty, IconButton, Section, Spinner } from '../common';
 import { ViewActions } from '../layout/ViewActions';
 
 /** A pasta que "Criar" põe dentro da pasta escolhida. */
-const FOLDER = 'lace-learn';
+const FOLDER = 'aurora-learn';
 
 type Tracks =
   | { status: 'checking' }
@@ -121,7 +121,7 @@ function Start({ tracks }: { tracks: Tracks }) {
         <p className="learn-start__error">{problem}</p>
         <div className="learn-start__actions">
           {tracks.status === 'missing' && (
-            <Button variant="primary" icon={<Package size={14} />} onClick={() => openDialog({ kind: 'install', components: ['lace-learn'] })}>
+            <Button variant="primary" icon={<Package size={14} />} onClick={() => openDialog({ kind: 'install', components: ['aurora-learn'] })}>
               {t('learn.install')}
             </Button>
           )}

@@ -1,7 +1,7 @@
 // O lace que a extensão usa: onde está, que versão é, quais recursos ela
 // permite e por que transporte ela fala com ele (`lace.transport`: um `lace
 // serve` em segundo plano, ou um processo por comando). Refeito quando
-// `lace.path` ou `lace.transport` mudam, e quando o `lace serve` reaberto
+// `lace.path` ou `lace.transport` mudam, e quando o `aurora serve` reaberto
 // é outra versão (o binário foi trocado por fora).
 
 import * as vscode from 'vscode';
@@ -15,7 +15,7 @@ import { MIN_VERSION, supportedFeatures, usable, type FeatureSet } from './lace/
 /** Como falar com o lace (`lace.transport`). */
 export type Transport = 'auto' | 'serve' | 'cli';
 
-/** O nome que a extensão dá no `initialize` do `lace serve`. */
+/** O nome que a extensão dá no `initialize` do `aurora serve`. */
 export const CLIENT_NAME = 'lace-vscode';
 
 export type Connection =
@@ -132,9 +132,9 @@ export class LaceConnection implements vscode.Disposable {
       } catch (error) {
         await serve.dispose();
         if (wanted === 'serve') {
-          return { kind: 'unsupported', reason: `o lace serve não respondeu: ${(error as Error).message}` };
+          return { kind: 'unsupported', reason: `o aurora serve não respondeu: ${(error as Error).message}` };
         }
-        this.log.warn(`O lace serve não respondeu (${(error as Error).message}); um processo por comando.`);
+        this.log.warn(`O aurora serve não respondeu (${(error as Error).message}); um processo por comando.`);
       }
     }
     this.log.info(`lace ${version} em ${command.file} (${transport})`);
@@ -145,7 +145,7 @@ export class LaceConnection implements vscode.Disposable {
     return new ServeLaceClient(command, this.log, {
       clientName: `${CLIENT_NAME} ${this.extensionVersion}`,
       onServerChanged: (version) => {
-        this.log.info(`O lace serve agora é a versão ${version}: refazendo a conexão`);
+        this.log.info(`O aurora serve agora é a versão ${version}: refazendo a conexão`);
         void this.connect();
       },
     });
@@ -160,7 +160,7 @@ export class LaceConnection implements vscode.Disposable {
     }
   }
 
-  /** Encerra o `lace serve`, se houver; o `deactivate` espera. */
+  /** Encerra o `aurora serve`, se houver; o `deactivate` espera. */
   async shutdown(): Promise<void> {
     const current = this.current;
     if (current.kind === 'ready') {

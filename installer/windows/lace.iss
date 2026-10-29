@@ -5,14 +5,14 @@
 ;   iscc /DStage=<estágio> /DLaceVersion=0.1.0 /DBundle=2026.09.29 /O<saída> installer\windows\lace.iss
 ;   iscc /DWeb /DStage=<estágio> /DLaceVersion=0.1.0 /DBundle=2026.09.29 /O<saída> installer\windows\lace.iss
 ;
-; O estágio vem de `lace-pack inno`: bin\lace.exe, common\ e chunks\NN\ com
+; O estágio vem de `aurora-pack inno`: bin\lace.exe, common\ e chunks\NN\ com
 ; os arquivos do bundle, e components.iss com as seções [Components] e
 ; [Files], geradas do índice do bundle (que arquivo cada componente usa; as
 ; bibliotecas que o Icarus, o Verilator, o Yosys e o Graphviz dividem vão
 ; com qualquer um deles).
 ;
 ; O primeiro assistente leva o bundle inteiro dentro dele. O segundo (/DWeb,
-; com o web.iss que o `lace-pack inno --web` grava) leva só o lace.exe: ao
+; com o web.iss que o `aurora-pack inno --web` grava) leva só o lace.exe: ao
 ; clicar em Instalar, ele baixa da release o índice e os pedaços dos
 ; componentes marcados, cada um conferido pelo SHA-256, e o `lace setup` os
 ; extrai e troca o toolchain\ antes de o assistente copiar o lace.exe. A
@@ -27,13 +27,13 @@
 ; e a caixa dos perfis vai para quem é o perfil (ProfileDetail, também do
 ; components.iss).
 ; Reinstalar troca o bundle pelo da nova seleção; os componentes que a pasta
-; já tem (do assistente ou do `lace install`) vêm marcados.
+; já tem (do assistente ou do `aurora install`) vêm marcados.
 ;
 ; A cara do Lace: o ícone da AURORA IDE, as imagens de art\ (geradas da
 ; marca por scripts/installer_art.py) e o modo claro ou escuro do Windows.
 
 #ifndef Stage
-  #error Pass /DStage=<lace-pack inno stage>
+  #error Pass /DStage=<aurora-pack inno stage>
 #endif
 #ifndef LaceVersion
   #error Pass /DLaceVersion=<Lace version>
@@ -126,12 +126,12 @@ en.WizardSelectComponents=Choose a profile
 pt.WizardSelectComponents=Escolha um perfil
 en.SelectComponentsDesc=Which apps should be installed?
 pt.SelectComponentsDesc=Quais aplicativos serão instalados?
-en.SelectComponentsLabel2=Each profile installs the apps marked in the list. To choose them yourself, pick Custom (advanced). To add apps later: lace install.
-pt.SelectComponentsLabel2=Cada perfil instala os aplicativos marcados na lista. Para escolher você mesmo, use a Personalizada (avançada). Para acrescentar aplicativos depois: lace install.
+en.SelectComponentsLabel2=Each profile installs the apps marked in the list. To choose them yourself, pick Custom (advanced). To add apps later: aurora install.
+pt.SelectComponentsLabel2=Cada perfil instala os aplicativos marcados na lista. Para escolher você mesmo, use a Personalizada (avançada). Para acrescentar aplicativos depois: aurora install.
 en.FinishedHeadingLabel=Lace is ready
 pt.FinishedHeadingLabel=O Lace está pronto
-en.FinishedLabel=Open AURORA IDE from the Start menu, or open a new terminal and run: lace tools --verify
-pt.FinishedLabel=Abra a AURORA IDE pelo menu Iniciar, ou abra um terminal novo e rode: lace tools --verify
+en.FinishedLabel=Open AURORA IDE from the Start menu, or open a new terminal and run: aurora tools --verify
+pt.FinishedLabel=Abra a AURORA IDE pelo menu Iniciar, ou abra um terminal novo e rode: aurora tools --verify
 
 ; Os textos do [Code], das tarefas e do [Run]. Os dos tipos e dos
 ; componentes vêm do components.iss.
@@ -179,7 +179,7 @@ Name: "studioicon"; Description: "{cm:TaskStudioIcon}"; Components: studio; Flag
 Name: "{autoprograms}\AURORA IDE"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio
 Name: "{autodesktop}\AURORA IDE"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Tasks: studioicon
 
-; O Lace Studio que pediu a atualização (`lace update --reopen-studio`, que
+; O Lace Studio que pediu a atualização (`aurora update --reopen-studio`, que
 ; passa /REOPENSTUDIO=1) fechou para o assistente trocar os arquivos dele: ele
 ; abre de novo sozinho, sem a caixa da página final.
 [Run]
@@ -196,10 +196,10 @@ Type: files; Name: "{autodesktop}\Lace Studio.lnk"
 ; que baixa os aplicativos troca o toolchain\ ele mesmo (o `lace setup`).
 Type: filesandordirs; Name: "{app}\toolchain"
 #endif
-; As pastas .antigo-* e .instalando-* são sobras do lace update por
+; As pastas .antigo-* e .instalando-* são sobras do aurora update por
 ; componentes (o lace.exe que rodava a atualização fica numa .antigo-*).
 ; O diário de uma atualização que parou no meio também sai: o assistente
-; troca tudo, e ele não vale mais (crates/lace-installer/src/update.rs).
+; troca tudo, e ele não vale mais (crates/aurora-installer/src/update.rs).
 Type: filesandordirs; Name: "{app}\.antigo-*"
 Type: filesandordirs; Name: "{app}\.instalando-*"
 Type: files; Name: "{app}\.atualizando.json"
@@ -359,7 +359,7 @@ end;
   página de componentes, ou antes de instalar numa instalação silenciosa
   sem /COMPONENTS. Uma seleção que não é a de nenhum perfil põe o tipo em
   Custom, com a lista. }
-{ /REOPENSTUDIO=1: o `lace update` do Lace Studio abriu este assistente, e o
+{ /REOPENSTUDIO=1: o `aurora update` do Lace Studio abriu este assistente, e o
   Studio fechou para ele (ver [Run]). }
 function ReopenStudio: Boolean;
 begin
@@ -391,7 +391,7 @@ begin
 end;
 
 { Baixa para a pasta temporária o índice e os pedaços dos componentes marcados,
-  cada um conferido pelo SHA-256 que o lace-pack gravou no web.iss. }
+  cada um conferido pelo SHA-256 que o aurora-pack gravou no web.iss. }
 function DownloadApps: Boolean;
 begin
   DownloadPage.Clear;

@@ -4,7 +4,7 @@
     {
       "args": ["--json", "panico"],
       "exit": 101,
-      "stderrText": "thread 'main' panicked at crates/lace-cli/src/main.rs:1:1:\nexplicit panic\n"
+      "stderrText": "thread 'main' panicked at crates/aurora-cli/src/main.rs:1:1:\nexplicit panic\n"
     },
     {
       "args": ["--json", "texto"],

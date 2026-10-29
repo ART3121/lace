@@ -69,7 +69,7 @@ export interface LastRun {
   finishedAt: number;
 }
 
-/** Uma linha da saída do `lace install` ou do `lace update`. */
+/** Uma linha da saída do `aurora install` ou do `aurora update`. */
 export interface CliLine {
   text: string;
   style: LineStyle;
@@ -83,7 +83,7 @@ export interface CliLog {
   lines: CliLine[];
 }
 
-/** Quantas linhas do `lace install` e do `lace update` guardar. */
+/** Quantas linhas do `aurora install` e do `aurora update` guardar. */
 const CLI_LOG_LINES = 2000;
 
 interface JobsState {
@@ -100,7 +100,7 @@ interface JobsState {
   run: (request: FlowRequest, statusKey?: string) => Promise<FlowOutcome | null>;
   cancel: () => Promise<void>;
   install: (components: string[]) => Promise<boolean>;
-  /** `lace update --yes`, depois de a interface confirmar. Devolve o
+  /** `aurora update --yes`, depois de a interface confirmar. Devolve o
    * relatório da CLI, ou null se falhou. */
   update: () => Promise<UpdateReport | null>;
 }
@@ -119,7 +119,7 @@ const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
   synthesize: 'rtlViewer',
   graph: 'rtlViewer',
   render: 'rtlViewer',
-  // Os passos do Quartus (`lace fpga build` e `program`). O `synthesize`
+  // Os passos do Quartus (`aurora fpga build` e `program`). O `synthesize`
   // dele vai para o mesmo console pela ferramenta (`channelOf`).
   fit: 'fpga',
   bitstream: 'fpga',
@@ -536,7 +536,7 @@ interface CliFailure {
   error?: { code?: string; message?: string; hint?: string | null };
 }
 
-/** Roda uma operação da CLI (`lace install`, `lace update`): a tela do
+/** Roda uma operação da CLI (`aurora install`, `aurora update`): a tela do
  * bundle abre e mostra cada linha (`cliLog`), o fim vai para `last`, e o
  * bundle é relido, porque a operação mexe nele. O erro que a CLI descreve no
  * JSON vira o aviso. Devolve o resultado, ou null se a operação não chegou ao

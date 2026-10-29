@@ -5,7 +5,7 @@
 //!
 //! As notificações (`phase`, `events`, `output_omitted`, `build`,
 //! `install`) chegam do servidor já em lotes e com o teto de linhas da
-//! entrega do core (`lace_core::delivery`): aqui elas só ganham o `type`
+//! entrega do core (`aurora_core::delivery`): aqui elas só ganham o `type`
 //! que a interface lê, e a linha do console de um `install` vai também como
 //! `cli_output`.
 //!
@@ -115,7 +115,7 @@ fn message_of(method: &str, mut params: Value) -> (Option<Value>, Option<String>
 /// Um pedido ao servidor que roda como operação: o comando que o console
 /// mostra, o método do protocolo e os parâmetros.
 pub struct Operation {
-    /// O comando equivalente (`lace-studio sim -p soma`, `lace install ...`).
+    /// O comando equivalente (`lace-studio sim -p soma`, `aurora install ...`).
     pub command: String,
     /// O método (`flow.run`, `learn.check`, `install.add`, `update.apply`).
     pub method: &'static str,

@@ -1,5 +1,5 @@
 // O histórico de relatórios: a versão que a lista observa e a limpeza
-// (`lace report clean`), que a barra lateral, o menu e a paleta usam.
+// (`aurora report clean`), que a barra lateral, o menu e a paleta usam.
 //
 // A limpeza segue o Core: `planCleanup` escolhe sem apagar, a interface
 // mostra e confirma, e `clean` apaga exatamente a lista mostrada.

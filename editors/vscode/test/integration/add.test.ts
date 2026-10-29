@@ -21,7 +21,7 @@ describe('Lace: Adicionar ao projeto', () => {
     await resetFake(api);
   });
 
-  it('um .v de fora: lace add, e o projeto relido já o tem no design', async () => {
+  it('um .v de fora: aurora add, e o projeto relido já o tem no design', async () => {
     const sobra = join(workspace, 'rtl', 'sobra.v');
     assert.ok(api.status?.unregistered.includes(sobra));
     const result = await run<LaceRun<AddReport>>('lace.add', vscode.Uri.file(sobra), [vscode.Uri.file(sobra)]);

@@ -1,5 +1,5 @@
-// O enquadramento do `lace serve`: JSON-RPC 2.0 com uma mensagem por linha
-// sobre um par de streams. Sem processo aqui: quem abre o `lace serve` passa
+// O enquadramento do `aurora serve`: JSON-RPC 2.0 com uma mensagem por linha
+// sobre um par de streams. Sem processo aqui: quem abre o `aurora serve` passa
 // o stdin e o stdout dele, e os testes passam `PassThrough`.
 
 import type { Readable, Writable } from 'node:stream';
@@ -67,10 +67,10 @@ export class RpcChannel {
     });
     output.on('end', () => {
       this.lines.end().forEach((line) => this.take(line));
-      this.close('a saída do lace serve fechou');
+      this.close('a saída do aurora serve fechou');
     });
-    output.on('error', (error: Error) => this.close(`a saída do lace serve falhou: ${error.message}`));
-    input.on('error', (error: Error) => this.close(`a entrada do lace serve falhou: ${error.message}`));
+    output.on('error', (error: Error) => this.close(`a saída do aurora serve falhou: ${error.message}`));
+    input.on('error', (error: Error) => this.close(`a entrada do aurora serve falhou: ${error.message}`));
   }
 
   /** Há pedidos sem resposta. */
@@ -134,11 +134,11 @@ export class RpcChannel {
     try {
       this.input.write(`${JSON.stringify(message)}\n`, (error) => {
         if (error) {
-          this.close(`não deu para escrever no lace serve: ${error.message}`);
+          this.close(`não deu para escrever no aurora serve: ${error.message}`);
         }
       });
     } catch (error) {
-      this.close(`não deu para escrever no lace serve: ${(error as Error).message}`);
+      this.close(`não deu para escrever no aurora serve: ${(error as Error).message}`);
     }
   }
 
@@ -150,11 +150,11 @@ export class RpcChannel {
     try {
       value = JSON.parse(line);
     } catch {
-      this.options.onProtocolWarning?.(`uma linha do lace serve não é JSON: ${clip(line)}`);
+      this.options.onProtocolWarning?.(`uma linha do aurora serve não é JSON: ${clip(line)}`);
       return;
     }
     if (typeof value !== 'object' || value === null) {
-      this.options.onProtocolWarning?.(`uma linha do lace serve não é um objeto: ${clip(line)}`);
+      this.options.onProtocolWarning?.(`uma linha do aurora serve não é um objeto: ${clip(line)}`);
       return;
     }
     const message = value as { id?: unknown; method?: unknown; params?: unknown; result?: unknown; error?: unknown };
@@ -169,13 +169,13 @@ export class RpcChannel {
         // Um erro sem id: JSON inválido ou pedido malformado. Não há a quem
         // entregar; fica no log.
         const error = message.error as Partial<RpcError>;
-        this.options.onProtocolWarning?.(`o lace serve recusou uma mensagem: ${error.message ?? clip(line)}`);
+        this.options.onProtocolWarning?.(`o aurora serve recusou uma mensagem: ${error.message ?? clip(line)}`);
       }
       return;
     }
     const pending = typeof message.id === 'number' ? this.pending.get(message.id) : undefined;
     if (!pending) {
-      this.options.onProtocolWarning?.(`resposta do lace serve para um pedido desconhecido: ${clip(line)}`);
+      this.options.onProtocolWarning?.(`resposta do aurora serve para um pedido desconhecido: ${clip(line)}`);
       return;
     }
     this.pending.delete(message.id as number);

@@ -1,4 +1,4 @@
-// "Lace: Abrir a onda": `lace wave`, que abre o surfer-aurora e volta com
+// "Lace: Abrir a onda": `aurora wave`, que abre o surfer-aurora e volta com
 // ele aberto (o lace espera 1,5 s para ver se o Surfer ficou de pé). A onda
 // do projeto é a do testbench simulado; a de um processador, a da simulação
 // dele; e um .vcd, .fst ou .ghw abre direto, com ou sem projeto.
@@ -42,7 +42,7 @@ export async function openWave(deps: RunDeps, target: WaveTarget): Promise<LaceR
     } else if (run.status === 'error') {
       showLaceError(run.error);
     } else {
-      void vscode.window.showErrorMessage(`Lace: lace wave terminou como ${run.status}.`);
+      void vscode.window.showErrorMessage(`Lace: aurora wave terminou como ${run.status}.`);
     }
     return run;
   } catch (error) {

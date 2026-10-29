@@ -6,7 +6,7 @@
 # em bundle/versions.json mudar. Compila nas três plataformas com o
 # `bundle.py --surfer-prebuilt` e publica os pacotes numa pré-release
 # `surfer-aurora-<versão>` deste repositório. Pré-release não vira a "última
-# release", que o install.sh, o install.ps1 e o `lace update` procuram.
+# release", que o install.sh, o install.ps1 e o `aurora update` procuram.
 # Depois, os SHA-256 do resumo da execução vão para o `prebuilt` do
 # surfer-aurora em bundle/versions.json.
 

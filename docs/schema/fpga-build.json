@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "FpgaBuildReport",
-  "description": "`lace fpga build`: os processadores, compilados antes, e a compilação\npara a placa pelo Quartus.",
+  "description": "`aurora fpga build`: os processadores, compilados antes, e a compilação\npara a placa pelo Quartus.",
   "type": "object",
   "properties": {
     "builds": {
@@ -195,7 +195,7 @@
           "const": "check_syntax"
         },
         {
-          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `lace check --lint`.",
+          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `aurora check --lint`.",
           "type": "string",
           "const": "lint"
         },
@@ -881,7 +881,7 @@
           ]
         },
         "notes": {
-          "description": "Os ajustes das ligações do `fpga.json` (larguras completadas,\nentradas soltas), como em `lace fpga check`.",
+          "description": "Os ajustes das ligações do `fpga.json` (larguras completadas,\nentradas soltas), como em `aurora fpga check`.",
           "type": "array",
           "items": {
             "type": "string"

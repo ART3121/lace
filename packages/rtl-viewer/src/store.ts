@@ -4,9 +4,9 @@
 // deve voltar ao mesmo lugar.
 //
 // O netlist é o `hierarchy.json` que o Yosys grava na síntese
-// (SynthesisResult.netlist, no JSON do `lace synth`). Quem o lê é quem
+// (SynthesisResult.netlist, no JSON do `aurora synth`). Quem o lê é quem
 // abriga o viewer: o Studio pelo backend, o VS Code pela extensão, o HTML do
-// `lace synth --open` de dentro dele mesmo.
+// `aurora synth --open` de dentro dele mesmo.
 
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 

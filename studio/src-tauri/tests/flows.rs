@@ -1,9 +1,9 @@
 //! Os fluxos do Studio (`src/flows.rs`) rodando de verdade: o pedido que a
-//! interface manda vai ao servidor do Lace (`lace serve`), que roda o fluxo
+//! interface manda vai ao servidor do Lace (`aurora serve`), que roda o fluxo
 //! com o bundle sobre cópias dos exemplos do Lace (`examples/`, na raiz do
 //! repositório), e a resposta volta como a interface a lê.
 //!
-//! O servidor é o `lace` de `LACE_STUDIO_LACE` ou, sem ela, o build de
+//! O servidor é o `aurora` de `LACE_STUDIO_LACE` ou, sem ela, o build de
 //! desenvolvimento em `target/debug` da raiz do repositório. O bundle é o
 //! que o Studio acharia sozinho (a instalação do Lace) ou o de
 //! `LACE_TEST_BUNDLE`. Sem um dos dois, os testes avisam e passam, como os
@@ -11,7 +11,7 @@
 //! pular.
 //!
 //! ```sh
-//! cargo build -p lace-cli                                  # na raiz
+//! cargo build -p aurora-cli                                  # na raiz
 //! cargo test --test flows                                  # instalação do Lace
 //! LACE_TEST_BUNDLE=/caminho/do/toolchain cargo test --test flows
 //! ```
@@ -20,7 +20,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use lace_studio_lib::error::IpcError;
 use lace_studio_lib::flows;
 use lace_studio_lib::jobs::JobMessage;
-use lace_studio_lib::server::LaceServer;
+use lace_studio_lib::server::AuroraServer;
 use lace_studio_lib::settings::Settings;
 use lace_studio_lib::toolchain;
 use serde_json::{Value, json};
@@ -33,7 +33,7 @@ fn skip(reason: &str) -> Option<Settings> {
     None
 }
 
-/// As preferências apontando para o bundle de teste e para o `lace` do
+/// As preferências apontando para o bundle de teste e para o `aurora` do
 /// servidor, ou `None` sem um dos dois.
 fn settings() -> Option<Settings> {
     let mut settings = Settings::default();
@@ -47,12 +47,12 @@ fn settings() -> Option<Settings> {
             .join(exe);
         if !dev.is_file() {
             return skip(
-                "sem o lace do servidor: rode cargo build -p lace-cli ou defina LACE_STUDIO_LACE",
+                "sem o lace do servidor: rode cargo build -p aurora-cli ou defina LACE_STUDIO_LACE",
             );
         }
         settings.lace_path = Some(dev.to_string());
     }
-    let info = toolchain::info(&LaceServer::default(), &settings);
+    let info = toolchain::info(&AuroraServer::default(), &settings);
     if info["found"] != true {
         return skip(&format!(
             "sem bundle do Lace ({}). Defina LACE_TEST_BUNDLE.",
@@ -63,12 +63,12 @@ fn settings() -> Option<Settings> {
 }
 
 /// O `toolchain.info` do servidor.
-fn info(server: &LaceServer, settings: &Settings) -> Value {
+fn info(server: &AuroraServer, settings: &Settings) -> Value {
     toolchain::info(server, settings)
 }
 
 /// O bundle tem o componente?
-fn has(server: &LaceServer, settings: &Settings, component: &str) -> bool {
+fn has(server: &AuroraServer, settings: &Settings, component: &str) -> bool {
     info(server, settings)["components"]
         .as_array()
         .into_iter()
@@ -87,7 +87,7 @@ fn tool(info: &Value, name: &str) -> bool {
 
 /// O Verilator roda: a ferramenta e o Perl (no Linux e no macOS, o do
 /// sistema).
-fn has_verilator(server: &LaceServer, settings: &Settings) -> bool {
+fn has_verilator(server: &AuroraServer, settings: &Settings) -> bool {
     let info = info(server, settings);
     tool(&info, "verilator") && tool(&info, "perl")
 }
@@ -117,7 +117,7 @@ fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
 }
 
 /// O fluxo pelo servidor, como `jobs.rs` o roda: a mensagem final.
-fn finish(server: &LaceServer, request: &Value, settings: &Settings, spf: &Utf8Path) -> JobMessage {
+fn finish(server: &AuroraServer, request: &Value, settings: &Settings, spf: &Utf8Path) -> JobMessage {
     let (operation, finisher) =
         flows::plan(server, settings, spf, request.clone()).expect("o plano do fluxo");
     let reply = server.call_with(
@@ -131,7 +131,7 @@ fn finish(server: &LaceServer, request: &Value, settings: &Settings, spf: &Utf8P
 }
 
 /// O resultado de um fluxo que rodou (`finished`), como a interface o lê.
-fn run(server: &LaceServer, request: Value, settings: &Settings, spf: &Utf8Path) -> Value {
+fn run(server: &AuroraServer, request: Value, settings: &Settings, spf: &Utf8Path) -> Value {
     match finish(server, &request, settings, spf) {
         JobMessage::Finished { outcome } => outcome,
         JobMessage::Failed { error } => panic!("o fluxo não rodou: {error}"),
@@ -140,7 +140,7 @@ fn run(server: &LaceServer, request: Value, settings: &Settings, spf: &Utf8Path)
 }
 
 /// O erro de um fluxo que o Lace não conseguiu rodar (`failed`).
-fn fail(server: &LaceServer, request: &Value, settings: &Settings, spf: &Utf8Path) -> IpcError {
+fn fail(server: &AuroraServer, request: &Value, settings: &Settings, spf: &Utf8Path) -> IpcError {
     match finish(server, request, settings, spf) {
         JobMessage::Failed { error } => error,
         JobMessage::Finished { outcome } => panic!("o fluxo rodou: {outcome}"),
@@ -153,7 +153,7 @@ fn succeeded(outcome: &Value) -> bool {
 }
 
 /// O comando de um fluxo, como o console e o histórico o mostram.
-fn command(server: &LaceServer, settings: &Settings, request: Value) -> String {
+fn command(server: &AuroraServer, settings: &Settings, request: Value) -> String {
     server
         .call(
             settings,
@@ -169,7 +169,7 @@ fn command(server: &LaceServer, settings: &Settings, request: Value) -> String {
 #[test]
 fn verilog_project_checks_simulates_and_synthesizes() {
     let Some(settings) = settings() else { return };
-    let server = LaceServer::default();
+    let server = AuroraServer::default();
     if !["icarus", "yosys", "graphviz"]
         .iter()
         .all(|c| has(&server, &settings, c))
@@ -247,7 +247,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
 #[test]
 fn processor_builds_and_simulates_with_port_values() {
     let Some(settings) = settings() else { return };
-    let server = LaceServer::default();
+    let server = AuroraServer::default();
     if !has(&server, &settings, "yanc") || !has(&server, &settings, "icarus") {
         eprintln!("PULADO: o bundle não tem yanc e icarus");
         return;
@@ -311,7 +311,7 @@ fn processor_builds_and_simulates_with_port_values() {
 #[test]
 fn build_error_comes_back_as_diagnostic_not_err() {
     let Some(settings) = settings() else { return };
-    let server = LaceServer::default();
+    let server = AuroraServer::default();
     if !has(&server, &settings, "yanc") {
         eprintln!("PULADO: o bundle não tem yanc");
         return;
@@ -342,7 +342,7 @@ fn build_error_comes_back_as_diagnostic_not_err() {
 #[test]
 fn verilog_only_project_build_is_a_no_op() {
     let Some(settings) = settings() else { return };
-    let server = LaceServer::default();
+    let server = AuroraServer::default();
     let (_dir, spf) = example("contador");
     let build = run(&server, json!({ "flow": "build" }), &settings, &spf);
     assert!(succeeded(&build));
@@ -353,7 +353,7 @@ fn verilog_only_project_build_is_a_no_op() {
 #[test]
 fn command_line_mirrors_the_cli() {
     let Some(settings) = settings() else { return };
-    let server = LaceServer::default();
+    let server = AuroraServer::default();
     let simulate = json!({
         "flow": "simulate", "processor": "soma", "simulator": "verilator",
         "timeout_s": 30, "open_wave": true,
@@ -379,8 +379,8 @@ fn command_line_mirrors_the_cli() {
     server.stop();
 }
 
-/// O fluxo `learn`: corrige um exercício da trilha de teste do lace-learn
-/// (`crates/lace-learn/tests/fixtures`, pela preferência `learn_dir`, que o
+/// O fluxo `learn`: corrige um exercício da trilha de teste do aurora-learn
+/// (`crates/aurora-learn/tests/fixtures`, pela preferência `learn_dir`, que o
 /// servidor recebe em `LACE_LEARN_DIR`), grava o resolvido e não grava
 /// relatório. A pasta de exercícios também é criada pelo servidor.
 #[test]
@@ -389,9 +389,9 @@ fn learn_flow_checks_an_exercise_and_records_it() {
         return;
     };
     let fixtures =
-        Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/lace-learn/tests/fixtures");
+        Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/aurora-learn/tests/fixtures");
     settings.learn_dir = Some(fixtures.to_string());
-    let server = LaceServer::default();
+    let server = AuroraServer::default();
     if !has(&server, &settings, "icarus") {
         eprintln!("PULADO: o bundle não tem icarus");
         return;
@@ -444,7 +444,7 @@ fn learn_flow_checks_an_exercise_and_records_it() {
     server.stop();
 }
 
-/// O fluxo `fpga_build` (`lace fpga build`): o pedido que a interface manda
+/// O fluxo `fpga_build` (`aurora fpga build`): o pedido que a interface manda
 /// e as recusas antes de compilar qualquer processador, como na CLI. Sem
 /// Quartus na máquina de teste, a compilação em si não roda aqui.
 #[test]
@@ -455,7 +455,7 @@ fn fpga_build_refuses_before_building() {
     // Uma pasta do Quartus sem o Quartus: nenhum é usado, nem o da máquina.
     let empty = tempfile::tempdir().unwrap();
     settings.quartus_dir = Some(empty.path().to_string_lossy().into_owned());
-    let server = LaceServer::default();
+    let server = AuroraServer::default();
     let request = json!({ "flow": "fpga_build" });
     assert_eq!(
         command(&server, &settings, request.clone()),

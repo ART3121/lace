@@ -1,4 +1,4 @@
-// O `lace status` do projeto ativo, relido depois de cada comando da
+// O `aurora status` do projeto ativo, relido depois de cada comando da
 // extensão, quando o .spf muda no disco (o terminal, o Studio, um editor) e
 // quando um .v ou .sv é criado ou apagado (a lista dos não registrados).
 
@@ -162,7 +162,7 @@ export class ProjectStatus implements vscode.Disposable {
         case 'error':
           return { kind: 'error', spf, error: run.error };
         default:
-          return { kind: 'error', spf, error: { code: 'unexpected', message: `lace status: ${run.status}` } };
+          return { kind: 'error', spf, error: { code: 'unexpected', message: `aurora status: ${run.status}` } };
       }
     } catch (error) {
       return { kind: 'error', spf, error: { code: 'process', message: (error as Error).message } };

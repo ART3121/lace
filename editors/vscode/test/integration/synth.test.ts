@@ -1,4 +1,4 @@
-// "Lace: Sintetizar" dentro do VS Code, com o lace falso: `lace synth`, o RTL
+// "Lace: Sintetizar" dentro do VS Code, com o lace falso: `aurora synth`, o RTL
 // viewer numa aba (o webview tem de desenhar: é o que prova que o worker do
 // layout roda lá dentro) e, com lace.synth.schematic, o SVG do Graphviz.
 
@@ -41,7 +41,7 @@ describe('Lace: Sintetizar', () => {
     await resetFake(api);
   });
 
-  it('o topo: lace synth, e o RTL viewer abre e desenha', async () => {
+  it('o topo: aurora synth, e o RTL viewer abre e desenha', async () => {
     const drawn = new Promise<void>((resolve) => api.viewer.onDidDraw(() => resolve()));
     const result = await run<LaceRun<SynthReport>>('lace.synth');
     assert.equal(result?.status, 'succeeded');
@@ -73,7 +73,7 @@ describe('Lace: Sintetizar', () => {
     }
   });
 
-  it('um lace synth --open no terminal (o rtl-viewer.html aparece): o netlist abre na aba', async () => {
+  it('um aurora synth --open no terminal (o rtl-viewer.html aparece): o netlist abre na aba', async () => {
     // O que o --open grava com LACE_OPENER=vscode, que a extensão põe no terminal.
     assert.equal(process.env.LACE_OPENER ?? 'vscode', 'vscode');
     // A pasta e os arquivos no mesmo instante, como na primeira síntese de um
@@ -85,7 +85,7 @@ describe('Lace: Sintetizar', () => {
     await until(() => api.viewer.current === join(dir, 'hierarchy.json'), 'a aba com o netlist do soma');
   });
 
-  it('um processador: lace synth -p, e o RTL viewer com o netlist dele', async () => {
+  it('um processador: aurora synth -p, e o RTL viewer com o netlist dele', async () => {
     const result = await run<LaceRun<SynthReport>>('lace.synthProcessor', processor);
     assert.deepEqual(lastCall('synth'), ['-C', spf, '--events', 'synth', '-p', 'soma']);
     assert.ok(((result?.status === 'succeeded' && result.result.synthesis?.statistics?.cells) || 0) > 0);

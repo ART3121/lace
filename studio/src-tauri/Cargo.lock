@@ -264,6 +264,87 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "aurora-agent"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "aurora-core",
+ "camino",
+ "dunce",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
+name = "aurora-core"
+version = "0.9.0"
+dependencies = [
+ "camino",
+ "dunce",
+ "fst-reader",
+ "roxmltree",
+ "rustix",
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.21",
+ "tracing",
+ "win32job",
+]
+
+[[package]]
+name = "aurora-installer"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "aurora-core",
+ "camino",
+ "clap",
+ "dunce",
+ "flate2",
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+ "zstd",
+]
+
+[[package]]
+name = "aurora-learn"
+version = "0.9.0"
+dependencies = [
+ "aurora-core",
+ "camino",
+ "dunce",
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
+name = "aurora-protocol"
+version = "0.9.0"
+dependencies = [
+ "aurora-core",
+ "aurora-installer",
+ "aurora-learn",
+ "camino",
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2122,93 +2203,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "lace-agent"
-version = "0.9.0"
-dependencies = [
- "anyhow",
- "camino",
- "dunce",
- "lace-core",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "tracing",
-]
-
-[[package]]
-name = "lace-core"
-version = "0.9.0"
-dependencies = [
- "camino",
- "dunce",
- "fst-reader",
- "roxmltree",
- "rustix",
- "schemars 1.2.2",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 2.0.21",
- "tracing",
- "win32job",
-]
-
-[[package]]
-name = "lace-installer"
-version = "0.9.0"
-dependencies = [
- "anyhow",
- "camino",
- "clap",
- "dunce",
- "flate2",
- "lace-core",
- "schemars 1.2.2",
- "serde",
- "serde_json",
- "sha2",
- "tar",
- "tempfile",
- "thiserror 2.0.21",
- "tracing",
- "zstd",
-]
-
-[[package]]
-name = "lace-learn"
-version = "0.9.0"
-dependencies = [
- "camino",
- "dunce",
- "lace-core",
- "schemars 1.2.2",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tracing",
-]
-
-[[package]]
-name = "lace-protocol"
-version = "0.9.0"
-dependencies = [
- "camino",
- "lace-core",
- "lace-installer",
- "lace-learn",
- "schemars 1.2.2",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "lace-studio"
 version = "0.9.0"
 dependencies = [
+ "aurora-agent",
+ "aurora-protocol",
  "camino",
- "lace-agent",
- "lace-protocol",
  "notify",
  "portable-pty",
  "regex",

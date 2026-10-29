@@ -1,4 +1,4 @@
-// A hierarquia do design, elaborada pelo Icarus (`lace_core::hierarchy`).
+// A hierarquia do design, elaborada pelo Icarus (`aurora_core::hierarchy`).
 //
 // Atualiza sozinha depois de cada verificação, simulação, build ou síntese
 // que passa (jobs.ts), e quando a vista abre sem nada. Quando um .v muda

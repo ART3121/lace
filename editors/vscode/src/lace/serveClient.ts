@@ -1,4 +1,4 @@
-// O LaceClient sobre um `lace serve` em segundo plano: um processo só,
+// O LaceClient sobre um `aurora serve` em segundo plano: um processo só,
 // aberto no primeiro pedido, falando JSON-RPC por linhas (jsonRpc.ts). Os
 // comandos e as vistas continuam lendo os relatórios da CLI (lace-types.ts):
 // este arquivo converte o que o protocolo devolve para essa forma.
@@ -43,10 +43,10 @@ import type {
   WaveReport,
 } from './lace-types';
 
-/** A versão do protocolo que este cliente fala (`lace_protocol::PROTOCOL_VERSION`). */
+/** A versão do protocolo que este cliente fala (`aurora_protocol::PROTOCOL_VERSION`). */
 export const PROTOCOL_VERSION = 1;
 
-// Os códigos do JSON-RPC que o lace serve usa (crates/lace-cli/src/serve.rs).
+// Os códigos do JSON-RPC que o aurora serve usa (crates/aurora-cli/src/serve.rs).
 const RPC_LACE = -32000;
 const RPC_CANCELLED = -32001;
 const RPC_METHOD_NOT_FOUND = -32601;
@@ -187,7 +187,7 @@ export class ServeLaceClient implements LaceClient {
 
   build(spf: string, options: BuildOptions = {}): Promise<LaceRun<BuildReport>> {
     const processors = options.processors ?? [];
-    const command = ['lace build', ...processors.flatMap((name) => ['-p', name])].join(' ');
+    const command = ['aurora build', ...processors.flatMap((name) => ['-p', name])].join(' ');
     return this.flow<BuildReport>(
       spf,
       { flow: 'build', processors: [...processors] },
@@ -234,14 +234,14 @@ export class ServeLaceClient implements LaceClient {
       request.processor = options.processor;
     }
     const command = [
-      'lace check',
+      'aurora check',
       ...(options.file !== undefined ? [options.file] : []),
       ...(options.processor !== undefined ? ['-p', options.processor] : []),
       ...(options.lint ? ['--lint'] : []),
     ].join(' ');
     return this.flow<CheckReport>(spf, request, command, options, (outcome, run) => {
       if (outcome.check === null && run !== 'cancelled') {
-        throw new LaceProcessError('o lace serve terminou o check sem o resultado dele');
+        throw new LaceProcessError('o aurora serve terminou o check sem o resultado dele');
       }
       return { check: outcome.check as CheckReport['check'], report: outcome.report };
     });
@@ -283,7 +283,7 @@ export class ServeLaceClient implements LaceClient {
       request.timeout_s = options.timeoutSeconds;
     }
     const command = [
-      'lace sim',
+      'aurora sim',
       ...(options.testbench !== undefined ? [options.testbench] : []),
       ...(options.processor !== undefined ? ['-p', options.processor] : []),
       ...(options.fast ? ['--fast'] : []),
@@ -315,7 +315,7 @@ export class ServeLaceClient implements LaceClient {
       request.processor = options.processor;
     }
     const command = [
-      'lace synth',
+      'aurora synth',
       ...(options.processor !== undefined ? ['-p', options.processor] : []),
       ...(options.svg ? ['--svg'] : []),
     ].join(' ');
@@ -357,7 +357,7 @@ export class ServeLaceClient implements LaceClient {
     const outcome = await Promise.race([session.closed.then(() => 'closed' as const), timeout]);
     clearTimeout(timer);
     if (outcome === 'timeout') {
-      this.log?.warn('O lace serve não saiu depois do shutdown; encerrando o processo.');
+      this.log?.warn('O aurora serve não saiu depois do shutdown; encerrando o processo.');
       session.process.kill();
       await session.closed;
     }
@@ -372,7 +372,7 @@ export class ServeLaceClient implements LaceClient {
     this.session = session;
     const info = await session.ready;
     if (this.lastVersion !== undefined && this.lastVersion !== info.lace) {
-      this.log?.info(`O lace serve reaberto é a versão ${info.lace} (antes ${this.lastVersion})`);
+      this.log?.info(`O aurora serve reaberto é a versão ${info.lace} (antes ${this.lastVersion})`);
       this.options.onServerChanged?.(info.lace);
     }
     this.lastVersion = info.lace;
@@ -421,8 +421,8 @@ export class ServeLaceClient implements LaceClient {
       process.on('close', (code, signal) => {
         const how =
           code !== null ? `saiu com o código ${code}` : signal !== null ? `terminou pelo sinal ${signal}` : 'terminou';
-        this.log?.info(`  o lace serve ${how}`);
-        channel.close(`o lace serve ${how}`);
+        this.log?.info(`  o aurora serve ${how}`);
+        channel.close(`o aurora serve ${how}`);
         if (this.session === session) {
           this.session = undefined;
         }
@@ -432,16 +432,16 @@ export class ServeLaceClient implements LaceClient {
     const { reply } = channel.request('initialize', { client: this.options.clientName });
     const ready = reply.then((answer) => {
       if ('error' in answer) {
-        throw new LaceProcessError(`o lace serve recusou o initialize: ${answer.error.message}`, null, session.stderr);
+        throw new LaceProcessError(`o aurora serve recusou o initialize: ${answer.error.message}`, null, session.stderr);
       }
       const info = answer.result as Partial<ServerInfo>;
       if (typeof info?.lace !== 'string' || typeof info.protocol !== 'number') {
-        throw new LaceProcessError('o lace serve respondeu ao initialize sem a versão', null, session.stderr);
+        throw new LaceProcessError('o aurora serve respondeu ao initialize sem a versão', null, session.stderr);
       }
       if (info.protocol !== PROTOCOL_VERSION) {
         process.kill();
         throw new LaceProcessError(
-          `o lace serve fala a versão ${info.protocol} do protocolo, e a extensão a ${PROTOCOL_VERSION}`,
+          `o aurora serve fala a versão ${info.protocol} do protocolo, e a extensão a ${PROTOCOL_VERSION}`,
           null,
           session.stderr,
         );
@@ -475,7 +475,7 @@ export class ServeLaceClient implements LaceClient {
         return;
       case 'shutdown':
         session.ending = true;
-        this.log?.info(`O lace serve vai encerrar (${String(params.reason)})`);
+        this.log?.info(`O aurora serve vai encerrar (${String(params.reason)})`);
         return;
       default:
         // phase, build, install: a extensão não tem onde mostrar.
@@ -523,7 +523,7 @@ export class ServeLaceClient implements LaceClient {
     }
     const outcome = answer.result as FlowOutcome;
     if (typeof outcome?.status !== 'string') {
-      throw new LaceProcessError('o lace serve terminou o fluxo sem um resultado');
+      throw new LaceProcessError('o aurora serve terminou o fluxo sem um resultado');
     }
     if (outcome.schematic_error) {
       // A CLI imprime o erro do esquemático e sai com 2.
@@ -549,7 +549,7 @@ export class ServeLaceClient implements LaceClient {
     await this.connect();
     const session = this.session;
     if (!session) {
-      throw new LaceProcessError('o lace serve fechou antes do pedido');
+      throw new LaceProcessError('o aurora serve fechou antes do pedido');
     }
     const started = Date.now();
     this.log?.info(`> ${method} ${summarize(params)}`);
@@ -590,7 +590,7 @@ function interpretError(
     case RPC_LACE: {
       const data = error.data as Partial<ErrorInfo> | undefined;
       if (typeof data?.code !== 'string') {
-        throw new LaceProcessError(`o lace serve devolveu um erro sem código: ${error.message}`, null, session.stderr);
+        throw new LaceProcessError(`o aurora serve devolveu um erro sem código: ${error.message}`, null, session.stderr);
       }
       return { kind: 'error', error: { code: data.code, message: error.message, hint: data.hint ?? null } };
     }
@@ -601,7 +601,7 @@ function interpretError(
       // O equivalente de hoje a "o clap recusou os argumentos".
       return { kind: 'error', error: { code: 'cli', message: error.message, hint: null } };
     default:
-      throw new LaceProcessError(`o lace serve respondeu ${error.code}: ${error.message}`, null, session.stderr);
+      throw new LaceProcessError(`o aurora serve respondeu ${error.code}: ${error.message}`, null, session.stderr);
   }
 }
 

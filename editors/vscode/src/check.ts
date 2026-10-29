@@ -1,4 +1,4 @@
-// Os erros e avisos do último `lace check` no painel Problemas e nos selos
+// Os erros e avisos do último `aurora check` no painel Problemas e nos selos
 // da vista de fontes. Só os arquivos do projeto entram; os de fora (a
 // biblioteca SAPHO do bundle, que o Icarus e o Verilator também leem e que
 // o usuário não corrige) ficam na contagem da saída.

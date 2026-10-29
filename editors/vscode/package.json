@@ -47,7 +47,7 @@
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "O executável `lace`. Vazio: o primeiro `lace` do `PATH`."
+          "markdownDescription": "O executável `aurora`. Vazio: o primeiro `aurora` do `PATH`."
         },
         "lace.transport": {
           "type": "string",
@@ -58,12 +58,12 @@
           ],
           "default": "auto",
           "scope": "machine",
-          "markdownDescription": "Como a extensão fala com o lace. `auto`: um `lace serve` em segundo plano quando a versão instalada o tem (0.9.0 ou mais nova), senão um processo por comando. `cli`: sempre um processo por comando (`lace --json` e `--events`). `serve`: só o `lace serve`; com um Lace mais antigo a extensão fica indisponível."
+          "markdownDescription": "Como a extensão fala com o lace. `auto`: um `aurora serve` em segundo plano quando a versão instalada o tem (0.9.0 ou mais nova), senão um processo por comando. `cli`: sempre um processo por comando (`aurora --json` e `--events`). `serve`: só o `aurora serve`; com um Lace mais antigo a extensão fica indisponível."
         },
         "lace.check.lint": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Toda verificação roda também o `verilator --lint-only` (`lace check --lint`), que acha larguras que não batem e sinais sem uso."
+          "markdownDescription": "Toda verificação roda também o `verilator --lint-only` (`aurora check --lint`), que acha larguras que não batem e sinais sem uso."
         },
         "lace.check.onSave": {
           "type": "boolean",
@@ -78,23 +78,23 @@
         "lace.files.followExplorer": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Um arquivo do projeto renomeado ou movido no explorador continua no projeto, no lugar novo (`lace move --after`), e um apagado sai do projeto (`lace remove`)."
+          "markdownDescription": "Um arquivo do projeto renomeado ou movido no explorador continua no projeto, no lugar novo (`aurora move --after`), e um apagado sai do projeto (`aurora remove`)."
         },
         "lace.sim.verilator": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Simula no Verilator, com onda (`lace sim --verilator`), em vez do Icarus."
+          "markdownDescription": "Simula no Verilator, com onda (`aurora sim --verilator`), em vez do Icarus."
         },
         "lace.sim.timeout": {
           "type": "integer",
           "default": 0,
           "minimum": 0,
-          "markdownDescription": "Encerra a simulação que passar deste tempo, em segundos (`lace sim --timeout`). `0`: sem limite; o botão Sim, girando, cancela."
+          "markdownDescription": "Encerra a simulação que passar deste tempo, em segundos (`aurora sim --timeout`). `0`: sem limite; o botão Sim, girando, cancela."
         },
         "lace.synth.schematic": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Também desenha o esquemático do Graphviz em SVG (`lace synth --svg`) e o abre. O RTL viewer já mostra o netlist; num design grande o Graphviz pode levar até 60 s."
+          "markdownDescription": "Também desenha o esquemático do Graphviz em SVG (`aurora synth --svg`) e o abre. O RTL viewer já mostra o netlist; num design grande o Graphviz pode levar até 60 s."
         },
         "lace.synth.openViewer": {
           "type": "boolean",

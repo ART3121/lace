@@ -8,6 +8,11 @@ authors = ["NIPS-CERN <https://nipscern.com>"]
 license = "MIT"
 publish = false
 
+# Workspace próprio, com o próprio Cargo.lock (o da raiz o exclui). Sem esta
+# seção, o cargo procura o workspace subindo de pasta, e numa worktree dentro
+# de .claude/worktrees acha o Cargo.toml do repositório de fora.
+[workspace]
+
 [lib]
 # O nome com `_lib` evita a colisão entre o binário e a biblioteca no Windows.
 name = "lace_studio_lib"
@@ -21,11 +26,11 @@ crate-type = ["rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-# O assistente: uma sessão do Claude Code com as ferramentas do lace mcp. É
+# O assistente: uma sessão do Claude Code com as ferramentas do aurora mcp. É
 # o único crate do Lace que o Studio linka, até a 1.0: o resto (o projeto,
 # os fluxos, o histórico, instalar e atualizar) é pedido ao servidor do Lace
-# (`lace serve`, src/server.rs). Ver docs/DEVELOPMENT.md.
-lace-agent = { path = "../../crates/lace-agent" }
+# (`aurora serve`, src/server.rs). Ver docs/DEVELOPMENT.md.
+aurora-agent = { path = "../../crates/aurora-agent" }
 
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
@@ -58,7 +63,7 @@ win32job = "2"
 tempfile = "3"
 # Os testes conferem a versão do protocolo e o schema embutido contra os do
 # Lace.
-lace-protocol = { path = "../../crates/lace-protocol" }
+aurora-protocol = { path = "../../crates/aurora-protocol" }
 
 [profile.release]
 codegen-units = 1

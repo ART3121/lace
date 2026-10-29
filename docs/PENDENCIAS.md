@@ -26,7 +26,7 @@ Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O La
 - **Chave:** `externo-yanc-exe-dir-macos`
 
 **Problema:** deduzido do código, não reproduzido num Mac. Na 7.1, cada ferramenta acha as pastas da biblioteca ao lado do próprio executável (`Compilers/common/exe_dir.c`, `exe_dir`), e as opções que as davam (`-m`, `-d`) saíram. Fora do Windows, `exe_dir` lê `/proc/self/exe`, que não existe no macOS; o caminho volta vazio, `exe_find_dir` devolve `NULL`, e o `cmmcomp` e o `asmcomp` param com o erro de pasta que falta ("instale o YANC de novo"). A CI do YANC não roda no macOS. Conferido no fonte da v9.1 (2026-10-22): o `exe_dir` continua só com o `/proc/self/exe`.
-**Reproduzir:** num Mac, `cmmcomp prog.cmm` com o YANC 7.1 instalado, ou `lace build` com o bundle `darwin-arm64` de 2026-10-13 ou de 2026-10-22.
+**Reproduzir:** num Mac, `cmmcomp prog.cmm` com o YANC 7.1 instalado, ou `aurora build` com o bundle `darwin-arm64` de 2026-10-13 ou de 2026-10-22.
 **Esperado/onde:** um ramo `__APPLE__` em `exe_dir` com `_NSGetExecutablePath` (de `<mach-o/dyld.h>`) seguido de `realpath`, para resolver os symlinks como o `/proc/self/exe` resolve no Linux.
 
 ### Os dois .spf do repositório hits não listam rtl/noise/noise_gauss.v e não simulam no Lace nem na AURORA
@@ -63,8 +63,8 @@ Defeitos do YANC, do fork surfer-aurora e de um projeto de usuário (HITS). O La
 - **Gravidade:** média (externo)
 - **Chave:** `externo-yanc-sem-main`
 
-**Problema:** Só `int f(int a){ return a+1; }`: o build dá sucesso, o `.asm` tem `JMP main` sem `@main`, e o asmcomp aceita o rótulo indefinido. `funcoes.c:364` marca `mainok = 1` na primeira função, então o erro de `variaveis.c:74` nunca dispara. Continua na v9.1 (2026-10-22): o `lace build` dá sucesso.
-**Reproduzir:** o programa acima; `lace build`
+**Problema:** Só `int f(int a){ return a+1; }`: o build dá sucesso, o `.asm` tem `JMP main` sem `@main`, e o asmcomp aceita o rótulo indefinido. `funcoes.c:364` marca `mainok = 1` na primeira função, então o erro de `variaveis.c:74` nunca dispara. Continua na v9.1 (2026-10-22): o `aurora build` dá sucesso.
+**Reproduzir:** o programa acima; `aurora build`
 **Esperado/onde:** corrigir o `mainok` no cmmcomp e o asmcomp recusar rótulo indefinido.
 
 ### Mensagens de configuração erradas, NDSTAC 0 e NUIOIN enorme passam, divisão por zero sem aviso, erro de sintaxe na linha seguinte, crash com nome de 99+ caracteres

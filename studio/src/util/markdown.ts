@@ -1,4 +1,4 @@
-// O markdown dos enunciados do `lace learn` em HTML. Só o que as trilhas
+// O markdown dos enunciados do `aurora learn` em HTML. Só o que as trilhas
 // usam (docs/LEARN.md): títulos, parágrafos, listas, blocos de código,
 // tabelas, código, negrito e itálico no texto. Todo o texto é escapado antes:
 // nada do arquivo vira HTML por conta própria.

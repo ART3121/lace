@@ -1,4 +1,4 @@
-// Pôr arquivos Verilog no projeto: `lace add`. Vem do + dos não
+// Pôr arquivos Verilog no projeto: `aurora add`. Vem do + dos não
 // registrados, do botão direito no explorador, de "Novo arquivo Verilog"
 // (que o Lace cria a partir do modelo) e do aviso que aparece quando surge
 // um .v novo fora do projeto.
@@ -13,7 +13,7 @@ import type { AddReport, AddedFile } from '../lace/lace-types';
 import { nameSuggestsTestbench } from '../verilog';
 import { chooseProject, clientFor, showLaceError, showProcessError, targetPaths, type CommandDeps } from './common';
 
-/** `lace add` com os arquivos; abre no editor os que o Lace criou do modelo. */
+/** `aurora add` com os arquivos; abre no editor os que o Lace criou do modelo. */
 export async function addFiles(
   deps: CommandDeps,
   files: readonly string[],
@@ -41,7 +41,7 @@ export async function addFiles(
     } else if (run.status === 'error') {
       showLaceError(run.error);
     } else {
-      void vscode.window.showErrorMessage(`Lace: lace add terminou como ${run.status}.`);
+      void vscode.window.showErrorMessage(`Lace: aurora add terminou como ${run.status}.`);
     }
     return run;
   } catch (error) {
@@ -70,7 +70,7 @@ interface NewFileArgs {
 
 /**
  * "Lace: Novo arquivo Verilog": pergunta o caminho e o tipo e deixa o
- * `lace add` criar o arquivo do modelo (o módulo com portas de exemplo que
+ * `aurora add` criar o arquivo do modelo (o módulo com portas de exemplo que
  * compilam, ou o testbench que instancia o módulo testado).
  */
 export async function newFile(deps: CommandDeps, target?: unknown): Promise<LaceRun<AddReport> | undefined> {
@@ -131,7 +131,7 @@ function validateNewFile(root: string, value: string): string | undefined {
 }
 
 /**
- * O aviso de arquivo novo: aparece quando o `lace status` passa a listar um
+ * O aviso de arquivo novo: aparece quando o `aurora status` passa a listar um
  * .v ou .sv que não estava entre os não registrados. Desliga com
  * lace.add.askForNewFiles.
  */
@@ -159,7 +159,7 @@ export async function offerToAdd(deps: CommandDeps, paths: readonly string[]): P
   const [path] = paths;
   const name = basename(path);
   // Um arquivo vazio (o "Novo arquivo" do explorador) pode sair do modelo,
-  // como no `lace add` de um arquivo que não existe.
+  // como no `aurora add` de um arquivo que não existe.
   // Sem --tb, o Lace decide pelo conteúdo: não há como forçar módulo.
   const template = 'Adicionar com o modelo';
   const add = 'Adicionar';
@@ -184,7 +184,7 @@ export async function offerToAdd(deps: CommandDeps, paths: readonly string[]): P
 }
 
 /**
- * Apaga o arquivo vazio e deixa o `lace add` criá-lo do modelo, que decide
+ * Apaga o arquivo vazio e deixa o `aurora add` criá-lo do modelo, que decide
  * entre módulo e testbench pelo nome. Se o Lace recusa, o arquivo vazio
  * volta.
  */

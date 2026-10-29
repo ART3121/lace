@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 
 use crate::error::{IpcError, IpcResult, codes};
 use crate::jobs::{JobMessage, Operation};
-use crate::server::LaceServer;
+use crate::server::AuroraServer;
 use crate::settings::Settings;
 use crate::toolchain;
 
@@ -38,7 +38,7 @@ pub struct Finisher {
 /// O pedido ao servidor para o fluxo `request`, com as decisões da
 /// interface, e o que fazer com a resposta.
 pub fn plan(
-    server: &LaceServer,
+    server: &AuroraServer,
     settings: &Settings,
     spf: &Utf8Path,
     request: Value,

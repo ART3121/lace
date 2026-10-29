@@ -1,5 +1,5 @@
 // "Lace: Verificar" dentro do VS Code, com o lace falso: o comando roda
-// `lace check` pelo --events e põe os diagnósticos no painel Problemas.
+// `aurora check` pelo --events e põe os diagnósticos no painel Problemas.
 
 import * as assert from 'node:assert/strict';
 import { join, sep } from 'node:path';
@@ -23,7 +23,7 @@ describe('Lace: Verificar', () => {
     await resetFake(await activate());
   });
 
-  it('o projeto: lace check pelo --events, e os avisos no painel Problemas', async () => {
+  it('o projeto: aurora check pelo --events, e os avisos no painel Problemas', async () => {
     const result = await run<LaceRun<CheckReport>>('lace.check');
     assert.equal(result?.status, 'succeeded');
     assert.deepEqual(lastCall('check'), ['-C', spf, '--events', 'check']);

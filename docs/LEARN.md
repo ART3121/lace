@@ -1,6 +1,6 @@
-# `lace learn`: exercícios de Verilog
+# `aurora learn`: exercícios de Verilog
 
-O `lace learn` é uma trilha de exercícios curtos de Verilog, no estilo do
+O `aurora learn` é uma trilha de exercícios curtos de Verilog, no estilo do
 rustlings: cada exercício pede um módulo, com as portas já escritas, e o
 Lace corrige a cada gravação, simulando o módulo ao lado de uma solução de
 referência com as mesmas entradas. Quando uma saída difere, ele diz em
@@ -9,15 +9,15 @@ esperado e o seu) e a onda das duas versões lado a lado. Com o Verilator e
 o Yosys instalados, também avisa do que simula certo mas não é o circuito
 pretendido: os avisos do lint e o latch inferido.
 
-O código está no Lace (o crate `lace-learn`, usado pela CLI e pelo Studio).
-Os exercícios vêm no componente `lace-learn` do bundle, que é opcional.
+O código está no Lace (o crate `aurora-learn`, usado pela CLI e pelo Studio).
+Os exercícios vêm no componente `aurora-learn` do bundle, que é opcional.
 
 ## Para quem faz os exercícios
 
 ### Instalar
 
 ```
-lace install lace-learn
+aurora install aurora-learn
 ```
 
 ou marque "Lace Learn" no instalador. O componente exige o Icarus.
@@ -25,9 +25,9 @@ ou marque "Lace Learn" no instalador. O componente exige o Icarus.
 ### Na linha de comando
 
 ```
-lace learn init          # cria a pasta lace-learn/ com todos os exercícios
-cd lace-learn
-lace learn               # o modo watch
+aurora learn init          # cria a pasta aurora-learn/ com todos os exercícios
+cd aurora-learn
+aurora learn               # o modo watch
 ```
 
 O modo watch é uma tela de terminal: no alto, o progresso da trilha; embaixo
@@ -70,14 +70,14 @@ como os outros comandos acham o projeto.
 
 | Comando | Faz |
 |---|---|
-| `lace learn init [PASTA] [--track verilog]` | cria a pasta de exercícios (padrão `lace-learn`); recusa uma que exista e não esteja vazia |
-| `lace learn check [NOME]` | corrige o exercício (sem nome, o atual) e grava se está resolvido; sai com 0 se está |
-| `lace learn check --all` | corrige todos |
-| `lace learn list` | os exercícios por capítulo, com o atual (`*`) e os resolvidos (`done`) |
-| `lace learn hint [NOME]` | as dicas do exercício |
-| `lace learn reset NOME [--yes]` | volta o arquivo do exercício ao começo; sem terminal, exige `--yes` |
-| `lace learn wave [NOME]` | abre a onda da última correção, arrumada |
-| `lace learn dev check [TRILHA]` | confere uma trilha (para quem escreve exercícios, abaixo) |
+| `aurora learn init [PASTA] [--track verilog]` | cria a pasta de exercícios (padrão `aurora-learn`); recusa uma que exista e não esteja vazia |
+| `aurora learn check [NOME]` | corrige o exercício (sem nome, o atual) e grava se está resolvido; sai com 0 se está |
+| `aurora learn check --all` | corrige todos |
+| `aurora learn list` | os exercícios por capítulo, com o atual (`*`) e os resolvidos (`done`) |
+| `aurora learn hint [NOME]` | as dicas do exercício |
+| `aurora learn reset NOME [--yes]` | volta o arquivo do exercício ao começo; sem terminal, exige `--yes` |
+| `aurora learn wave [NOME]` | abre a onda da última correção, arrumada |
+| `aurora learn dev check [TRILHA]` | confere uma trilha (para quem escreve exercícios, abaixo) |
 
 ### Na AURORA IDE
 
@@ -108,24 +108,24 @@ Sem o componente instalado, a vista oferece instalá-lo.
 ### A pasta de exercícios
 
 ```
-lace-learn/
-  .lace-learn.json                   o estado: a trilha, o exercício atual, os resolvidos
+aurora-learn/
+  .aurora-learn.json                   o estado: a trilha, o exercício atual, os resolvidos
   exercises/02_basico/porta_e/       cada exercício é um projeto Lace
     porta_e.spf
     porta_e.v                        o seu arquivo
     README.md                        o enunciado, sem as dicas
-    .lace-learn/tb_porta_e.v         o testbench
-    .lace-learn/porta_e_ref.v        a referência
-    .lace-learn/wave.fst             a onda da última correção
-    .lace-learn/wave.sucl            o layout dela
+    .aurora-learn/tb_porta_e.v         o testbench
+    .aurora-learn/porta_e_ref.v        a referência
+    .aurora-learn/wave.fst             a onda da última correção
+    .aurora-learn/wave.sucl            o layout dela
   solutions/02_basico/porta_e.v      a solução, liberada quando o exercício é resolvido
 ```
 
 O seu arquivo só é escrito quando o exercício é criado e quando você pede
-para restaurar. O que está em `.lace-learn/` e o `README.md` são da trilha:
-quando o componente é atualizado, o `lace learn` (e o Studio, ao abrir a
+para restaurar. O que está em `.aurora-learn/` e o `README.md` são da trilha:
+quando o componente é atualizado, o `aurora learn` (e o Studio, ao abrir a
 pasta) grava de novo o que mudou e cria os exercícios novos. Como cada
-exercício é um projeto Lace comum, `lace sim`, `lace wave`, `lace synth` e o
+exercício é um projeto Lace comum, `aurora sim`, `aurora wave`, `aurora synth` e o
 Studio inteiro funcionam nele.
 
 ### Como a correção funciona
@@ -180,11 +180,11 @@ arquivo não precisa.
 
 ### A trilha
 
-As trilhas estão em `lace-learn/` neste repositório, uma por pasta, e o
-`bundle.py` as copia para o componente `lace-learn`:
+As trilhas estão em `aurora-learn/` neste repositório, uma por pasta, e o
+`bundle.py` as copia para o componente `aurora-learn`:
 
 ```
-lace-learn/verilog/            a trilha (o nome da pasta é o id)
+aurora-learn/verilog/            a trilha (o nome da pasta é o id)
   track.json                   {"format": 1}
   track.md                     o título (# na primeira linha) e as boas-vindas
   final.md                     a mensagem do fim (opcional)
@@ -264,7 +264,7 @@ Ele precisa:
 
 - incluir a referência com `` `include "<módulo>_ref.v" `` e instanciar o
   módulo do aluno e o `<módulo>_ref`;
-- gravar a onda com `$dumpfile(".lace-learn/wave.fst")` e `$dumpvars`;
+- gravar a onda com `$dumpfile(".aurora-learn/wave.fst")` e `$dumpvars`;
 - escrever o resumo no stdout e terminar com `$finish`:
 
 ```
@@ -286,30 +286,30 @@ O que ele escrever além disso aparece para o aluno na correção.
 ### Conferir
 
 ```
-LACE_LEARN_DIR=lace-learn lace learn dev check lace-learn/verilog
+LACE_LEARN_DIR=aurora-learn aurora learn dev check aurora-learn/verilog
 ```
 
 Para cada exercício: as portas de `start.v` e `solution.v` são as mesmas, o
 enunciado tem dica, o testbench sai, o `start.v` não passa e a `solution.v`
 passa, sem latch e sem aviso (do Icarus e, com o Verilator instalado, do
-lint): a solução é o exemplo que o aluno vê depois de resolver. O teste `crates/lace-learn/tests/track.rs` faz o mesmo para todas as
+lint): a solução é o exemplo que o aluno vê depois de resolver. O teste `crates/aurora-learn/tests/track.rs` faz o mesmo para todas as
 trilhas do repositório (com `LACE_TEST_BUNDLE`).
 
 `LACE_LEARN_DIR` aponta a pasta das trilhas no lugar do componente, para
-testar uma trilha sem instalá-la: `lace learn init`, `lace learn` e os outros
+testar uma trilha sem instalá-la: `aurora learn init`, `aurora learn` e os outros
 subcomandos passam a usá-la. No Studio, o mesmo é a preferência "Pasta das
 trilhas de exercícios" (Preferências > Bundle do Lace), que a vista
 Exercícios também oferece quando não acha trilha nenhuma.
 
 Numa build de desenvolvimento (`cargo run`, `npm run tauri dev`), sem
 `LACE_LEARN_DIR` e sem a preferência, o Lace e o Studio usam sozinhos a
-pasta `lace-learn/` do repositório de onde foram compilados. Com
+pasta `aurora-learn/` do repositório de onde foram compilados. Com
 `LACE_LEARN_DIR` definida e vazia, isso desliga.
 
 ### Publicar
 
-As trilhas saem com o Lace: o pacote `lace-learn` de `bundle/versions.json`
-tem a versão do Lace e o caminho `lace-learn`, e o componente
-`lace-learn` de `bundle/components.json` leva a pasta inteira. Uma pasta de
+As trilhas saem com o Lace: o pacote `aurora-learn` de `bundle/versions.json`
+tem a versão do Lace e o caminho `aurora-learn`, e o componente
+`aurora-learn` de `bundle/components.json` leva a pasta inteira. Uma pasta de
 exercícios criada antes recebe os exercícios novos e os testbenches
 corrigidos na primeira vez que é aberta depois da atualização.

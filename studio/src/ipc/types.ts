@@ -84,9 +84,9 @@ export interface Settings {
   compiler_dir: string | null;
   /** O Quartus Prime, como o `--quartus` da CLI; null: os locais padrão. */
   quartus_dir: string | null;
-  /** As trilhas do `lace learn` de outra pasta, como o LACE_LEARN_DIR. */
+  /** As trilhas do `aurora learn` de outra pasta, como o LACE_LEARN_DIR. */
   learn_dir: string | null;
-  /** O programa `lace` que o Studio abre como servidor; null: o da instalação. */
+  /** O programa `aurora` que o Studio abre como servidor; null: o da instalação. */
   lace_path: string | null;
   simulator: Simulator;
   open_wave_after_sim: boolean;
@@ -108,7 +108,7 @@ export interface Settings {
   /** O executável do Claude Code para o assistente (ou a pasta dele); null
    * procura no PATH e nas pastas dos instaladores. */
   assistant_claude: string | null;
-  /** O `lace` que serve as ferramentas ao assistente; null, o da instalação. */
+  /** O `aurora` que serve as ferramentas ao assistente; null, o da instalação. */
   assistant_lace: string | null;
   /** O modelo do assistente (`--model` do Claude Code); null, o padrão. */
   assistant_model: string | null;
@@ -247,7 +247,7 @@ export interface NewProcessorDefaults {
   output_ports: number;
 }
 
-/** `Project::convert_layout` do Core (`lace_core::LayoutConversion`). */
+/** `Project::convert_layout` do Core (`aurora_core::LayoutConversion`). */
 export interface LayoutConversion {
   processors: string[];
   moved: { processor: string; from: string; to: string; generated: boolean }[];
@@ -306,11 +306,11 @@ export type FlowRequest =
     }
   | { flow: 'synthesize'; processor?: string | null; schematic?: boolean; module?: string | null }
   | { flow: 'schematic'; netlist: string; module: string; bus_widths?: boolean }
-  /** `lace learn check`: corrige um exercício e grava se está resolvido. */
+  /** `aurora learn check`: corrige um exercício e grava se está resolvido. */
   | { flow: 'learn'; root: string; exercise: string }
-  /** `lace fpga build`: os processadores e depois o projeto para a placa, pelo Quartus. */
+  /** `aurora fpga build`: os processadores e depois o projeto para a placa, pelo Quartus. */
   | { flow: 'fpga_build' }
-  /** `lace fpga program`: grava o `.sof` da última compilação para a placa. */
+  /** `aurora fpga program`: grava o `.sof` da última compilação para a placa. */
   | { flow: 'fpga_program'; cable?: string | null };
 
 export type FlowName = FlowRequest['flow'];
@@ -323,7 +323,7 @@ export interface PortValues {
   error: IpcError | null;
 }
 
-/** `lace_core::flows::WaveOpened`. */
+/** `aurora_core::flows::WaveOpened`. */
 export interface WaveOpened {
   waveform: string;
   pid: number;
@@ -341,7 +341,7 @@ export interface WaveOpened {
   reset_deleted?: string | null;
 }
 
-/** `lace_core::flows::FlowOutcome`, com `wave_tab` e `learn` do Studio
+/** `aurora_core::flows::FlowOutcome`, com `wave_tab` e `learn` do Studio
  * (`flows.rs`). */
 export interface FlowOutcome {
   flow: FlowName;
@@ -379,7 +379,7 @@ export interface FlowOutcome {
   fpga_program: FpgaProgramResult | null;
 }
 
-/** As operações que rodam a CLI (`lace install`, `lace update`). */
+/** As operações que rodam a CLI (`aurora install`, `aurora update`). */
 export type CliFlow = 'install' | 'update';
 
 /** O resultado de uma operação da CLI, embrulhado pelo Studio. `result` é o
@@ -393,7 +393,7 @@ export interface CliOutcome {
   result: unknown;
 }
 
-/** `lace_core::flows::Phase`. */
+/** `aurora_core::flows::Phase`. */
 export type Phase =
   | 'build'
   | 'check'
@@ -407,7 +407,7 @@ export type Phase =
   | 'fpga'
   | 'program';
 
-/** O `fpga.json` (`lace_core::fpga::FpgaConfig`): a placa, o topo e as
+/** O `fpga.json` (`aurora_core::fpga::FpgaConfig`): a placa, o topo e as
  * ligações, porta (com faixa) para sinal da placa (`[!]SINAL[faixa]`, `0`,
  * `1`), na ordem do arquivo. */
 export interface FpgaConfig {
@@ -416,7 +416,7 @@ export interface FpgaConfig {
   connect: Record<string, string>;
 }
 
-/** `fpga::Prepared`: o `fpga.json` conferido (`lace fpga check`). */
+/** `fpga::Prepared`: o `fpga.json` conferido (`aurora fpga check`). */
 export interface FpgaPrepared {
   config: string;
   resolved: Resolved;
@@ -480,13 +480,13 @@ export interface ToolchainInfo {
   /** O Quartus Prime do sistema, que compila para as placas Intel. */
   quartus: Quartus | null;
   quartus_error: IpcError | null;
-  lace_cli: string | null;
+  aurora_cli: string | null;
   /** O cliente web do Surfer do bundle (`surfer-aurora/web`), para a onda
    * numa aba; `null` num bundle que não o traz. */
   surfer_web: string | null;
 }
 
-/** `ListPosition` do Core (`Project::reorder_file`, `lace order`). */
+/** `ListPosition` do Core (`Project::reorder_file`, `aurora order`). */
 export type ListPosition =
   | { kind: 'first' }
   | { kind: 'last' }
@@ -510,7 +510,7 @@ export interface WaveTab {
 /** `terminal.rs`: TerminalMessage. */
 export type TerminalMessage = { type: 'data'; data: string } | { type: 'exit'; code: number | null };
 
-/** `lace_agent::AgentEvent` (assistant.rs): o que acontece numa sessão do
+/** `aurora_agent::AgentEvent` (assistant.rs): o que acontece numa sessão do
  * assistente, na ordem. */
 export type AgentEvent =
   | { type: 'ready'; session_id: string; model: string | null; tools: string[]; lace_connected: boolean | null }
@@ -545,7 +545,7 @@ export interface FsChanged {
 }
 
 /** O retrato da pasta de exercícios, que `learn.status`, `learn.init` e
- * `learn.set_current` devolvem: o `WorkspaceSnapshot` do lace-learn, gerado
+ * `learn.set_current` devolvem: o `WorkspaceSnapshot` do aurora-learn, gerado
  * do protocolo. */
 export type LearnSnapshot = WorkspaceSnapshot;
 /** Um capítulo de {@link LearnSnapshot}. */

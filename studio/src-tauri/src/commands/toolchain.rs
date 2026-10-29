@@ -1,4 +1,4 @@
-//! Comandos do bundle: o equivalente do `lace tools`, e instalar
+//! Comandos do bundle: o equivalente do `aurora tools`, e instalar
 //! componentes e atualizar o Lace.
 //!
 //! Instalar e atualizar são pedidos ao servidor do Lace (`install.add`,
@@ -28,10 +28,10 @@ pub async fn toolchain_info(app: AppHandle) -> IpcResult<Value> {
     .await
 }
 
-/// `lace update --check`: o Lace, o bundle e cada aplicativo comparados com
+/// `aurora update --check`: o Lace, o bundle e cada aplicativo comparados com
 /// a última release e com o upstream (o `update.check` do servidor). Precisa
 /// de rede; cada consulta tem prazo. `prefix` vem preenchido quando o
-/// servidor é o `lace` de uma instalação do instalador: é por ele que a
+/// servidor é o `aurora` de uma instalação do instalador: é por ele que a
 /// interface decide o botão de atualizar.
 #[tauri::command]
 pub async fn lace_update_check(app: AppHandle) -> IpcResult<Value> {
@@ -43,7 +43,7 @@ pub async fn lace_update_check(app: AppHandle) -> IpcResult<Value> {
     .await
 }
 
-/// `lace install <componentes>`: instala aplicativos do bundle na
+/// `aurora install <componentes>`: instala aplicativos do bundle na
 /// instalação do Lace, sem reinstalar (o `install.add` do servidor, que
 /// recusa um nome que não é do bundle antes de baixar). Cancelar vale até
 /// o último pedaço entrar, e o que entrou sai.
@@ -54,7 +54,7 @@ pub async fn lace_install(
     channel: Channel<Value>,
 ) -> IpcResult<u32> {
     let operation = Operation {
-        command: format!("lace install {} --json", components.join(" ")),
+        command: format!("aurora install {} --json", components.join(" ")),
         method: "install.add",
         params: json!({ "components": components }),
     };
@@ -63,7 +63,7 @@ pub async fn lace_install(
     })
 }
 
-/// `lace update --yes`: troca a instalação pela da última release do Lace,
+/// `aurora update --yes`: troca a instalação pela da última release do Lace,
 /// com o bundle e os mesmos componentes (o `update.apply` do servidor). Vai
 /// por componentes quando dá: só os pedaços com arquivos que mudaram são
 /// baixados e trocados, também no Windows, e o resultado diz o que mudou
@@ -82,9 +82,9 @@ pub async fn lace_install(
 #[tauri::command]
 pub async fn lace_update(app: AppHandle, channel: Channel<Value>) -> IpcResult<u32> {
     let command = if cfg!(windows) {
-        "lace update --yes --json --reopen-studio"
+        "aurora update --yes --json --reopen-studio"
     } else {
-        "lace update --yes --json"
+        "aurora update --yes --json"
     };
     let operation = Operation {
         command: command.to_owned(),

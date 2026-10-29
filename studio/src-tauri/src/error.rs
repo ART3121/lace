@@ -5,13 +5,13 @@
 //! a dica e a tradução; a `message` é o texto do Core (em inglês) ou do
 //! próprio Studio, para quando não houver tradução.
 //!
-//! Os códigos do Core (`LaceError::code()`, ver `docs/API.md` da raiz, seção 8)
+//! Os códigos do Core (`AuroraError::code()`, ver `docs/API.md` da raiz, seção 8)
 //! passam como estão. Os do Studio estão em [`codes`].
 
 use serde::Serialize;
 
 /// Os códigos de erro do próprio Studio. Os do Core vêm de
-/// `LaceError::code()` e não se repetem aqui.
+/// `AuroraError::code()` e não se repetem aqui.
 pub mod codes {
     /// Nenhum projeto aberto.
     pub const NO_PROJECT: &str = "no_project";
@@ -29,7 +29,7 @@ pub mod codes {
     pub const EXISTS: &str = "exists";
     /// Argumento inválido vindo da interface.
     pub const INVALID_ARGUMENT: &str = "invalid_argument";
-    /// A CLI `lace` não foi encontrada ou falhou.
+    /// A CLI `aurora` não foi encontrada ou falhou.
     pub const CLI: &str = "cli";
     /// O terminal de shell não abriu ou não existe mais.
     pub const TERMINAL: &str = "terminal";
@@ -49,9 +49,9 @@ pub mod codes {
     pub const INTERNAL: &str = "internal";
     /// O assistente: o Claude Code não foi achado, ou a sessão terminou.
     pub const ASSISTANT: &str = "assistant";
-    /// O programa `lace` que serve o Studio não foi achado ou não abriu.
+    /// O programa `aurora` que serve o Studio não foi achado ou não abriu.
     pub const LACE_MISSING: &str = "lace_missing";
-    /// O `lace` achado fala outra versão do protocolo.
+    /// O `aurora` achado fala outra versão do protocolo.
     pub const LACE_INCOMPATIBLE: &str = "lace_incompatible";
     /// O servidor do Lace saiu no meio de um pedido; o próximo o abre de novo.
     pub const SERVER_GONE: &str = "server_gone";
@@ -62,7 +62,7 @@ pub mod codes {
 /// O erro de um comando, como a interface o recebe.
 #[derive(Debug, Clone, Serialize)]
 pub struct IpcError {
-    /// Identificador estável: `LaceError::code()` ou um de [`codes`].
+    /// Identificador estável: `AuroraError::code()` ou um de [`codes`].
     pub code: String,
     /// O texto do erro, para mostrar quando a interface não tem tradução.
     pub message: String,

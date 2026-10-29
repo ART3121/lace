@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ReportListReport",
-  "description": "`lace report list`: os relatórios, do mais novo para o mais antigo.",
+  "description": "`aurora report list`: os relatórios, do mais novo para o mais antigo.",
   "type": "object",
   "properties": {
     "reports": {

@@ -1,5 +1,5 @@
 // O fluxo SAPHO dentro do VS Code, com o lace falso: o botão Build da barra
-// de status (`lace build`), o build de um processador e os erros do YANC no
+// de status (`aurora build`), o build de um processador e os erros do YANC no
 // painel Problemas, na linha do fonte.
 
 import * as assert from 'node:assert/strict';
@@ -24,7 +24,7 @@ describe('Lace: Compilar', () => {
     await resetFake(api);
   });
 
-  it('todos os processadores: lace build pelo --events, e a vista mostra o filtro compilado', async () => {
+  it('todos os processadores: aurora build pelo --events, e a vista mostra o filtro compilado', async () => {
     assert.equal(api.status?.processors.find((p) => p.name === 'filtro')?.built, false);
     const result = await run<LaceRun<BuildReport>>('lace.build');
     assert.equal(result?.status, 'succeeded');

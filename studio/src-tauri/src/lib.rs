@@ -1,6 +1,6 @@
 //! AURORA IDE: o backend do ambiente gráfico do Lace.
 //!
-//! O backend é um cliente do servidor do Lace (`lace serve`), como a
+//! O backend é um cliente do servidor do Lace (`aurora serve`), como a
 //! extensão do VS Code: o que é do Lace (o projeto, os fluxos, o histórico,
 //! instalar e atualizar) é um pedido do protocolo ao servidor, e o que fica
 //! aqui é do Studio: as janelas, os arquivos, o terminal, a vigia da pasta,
@@ -12,12 +12,12 @@
 //! | [`commands::project`] | abrir, criar e fechar o projeto, a pasta padrão, a hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, placa, correção, instalar e atualizar: pedidos ao servidor que rodam como operações canceláveis, com saída ao vivo |
-//! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
-//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update` e `lace update --check` pelo servidor |
+//! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `aurora mcp` (`aurora-agent`); só com o recurso ligado |
+//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `aurora install`, `aurora update` e `aurora update --check` pelo servidor |
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
-//! | [`server`] | o servidor do Lace (`lace serve`) e o `lace_call`, por onde passam os métodos do protocolo |
+//! | [`server`] | o servidor do Lace (`aurora serve`) e o `lace_call`, por onde passam os métodos do protocolo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
 //! está em `docs/IPC.md`.

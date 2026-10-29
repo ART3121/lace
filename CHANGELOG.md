@@ -2,6 +2,13 @@
 
 ## Não publicada
 
+- O comando passa a ser `aurora`, e os crates, `aurora-core`, `aurora-cli`,
+  `aurora-protocol`, `aurora-installer`, `aurora-learn` e `aurora-agent`
+  (`LaceError` vira `AuroraError`). O empacotador passa a ser `aurora-pack`,
+  e o instalador de terminal, `aurora-installer`. As trilhas de exercícios
+  ficam em `aurora-learn/`, e a pasta de exercícios usa `.aurora-learn.json`
+  e `.aurora-learn/`: a pasta de exercícios feita pelo Lace não é
+  reconhecida, e o jeito é começar outra com `aurora learn init`.
 - A pasta do projeto que é só nossa (intermediários, relatórios, projetos
   de placa e a trava do `.spf`) passa de `.lace/` para `.aurora8/`. O 8 a
   separa da `.aurora/`, que é da AURORA 7 e pode estar no mesmo projeto.

@@ -249,7 +249,7 @@
           "minimum": 0
         },
         "prefix": {
-          "description": "A pasta da instalação do Lace, quando o servidor é o `lace`\ninstalado.",
+          "description": "A pasta da instalação do Lace, quando o servidor é o `aurora`\ninstalado.",
           "type": [
             "string",
             "null"
@@ -448,11 +448,11 @@
       ]
     },
     "ErrorInfo": {
-      "description": "Um [`LaceError`] pronto para atravessar uma fronteira: o JSON da CLI, a\nmensagem do Studio para a interface, a resposta do `lace serve`. É o que\no código, o texto e os campos da variante viram quando o enum não vai.\n\n```json\n{ \"code\": \"processor_not_found\",\n  \"message\": \"No processor 'x' in the project (available: soma, filtro)\",\n  \"data\": { \"name\": \"x\", \"available\": [\"soma\", \"filtro\"] } }\n```\n\nA dica de cada interface (o comando `lace` que resolve, o botão do\nStudio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide\npelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da\nCLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.\n\n```\nuse lace_core::{ErrorInfo, LaceError};\n\nlet info = ErrorInfo::from(LaceError::ProcessorExists(\"soma\".into()));\nassert_eq!(info.code, \"processor_exists\");\nassert_eq!(info.data.unwrap()[\"name\"], \"soma\");\n```",
+      "description": "Um [`AuroraError`] pronto para atravessar uma fronteira: o JSON da CLI, a\nmensagem do Studio para a interface, a resposta do `aurora serve`. É o que\no código, o texto e os campos da variante viram quando o enum não vai.\n\n```json\n{ \"code\": \"processor_not_found\",\n  \"message\": \"No processor 'x' in the project (available: soma, filtro)\",\n  \"data\": { \"name\": \"x\", \"available\": [\"soma\", \"filtro\"] } }\n```\n\nA dica de cada interface (o comando `aurora` que resolve, o botão do\nStudio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide\npelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da\nCLI) usa o mesmo tipo com [`ErrorInfo::new`] e um código próprio.\n\n```\nuse aurora_core::{ErrorInfo, AuroraError};\n\nlet info = ErrorInfo::from(AuroraError::ProcessorExists(\"soma\".into()));\nassert_eq!(info.code, \"processor_exists\");\nassert_eq!(info.data.unwrap()[\"name\"], \"soma\");\n```",
       "type": "object",
       "properties": {
         "code": {
-          "description": "O identificador estável: [`LaceError::code`], ou um código de quem\nchamou (`busy`, `cli`), sempre em `snake_case`.",
+          "description": "O identificador estável: [`AuroraError::code`], ou um código de quem\nchamou (`busy`, `cli`), sempre em `snake_case`.",
           "type": "string"
         },
         "message": {
@@ -460,14 +460,14 @@
           "type": "string"
         },
         "hint": {
-          "description": "O que fazer, quando quem mostra sabe: o comando `lace` que resolve,\nna CLI. O core não o preenche; a mensagem dele é neutra. Omitido no\nJSON quando não há.",
+          "description": "O que fazer, quando quem mostra sabe: o comando `aurora` que resolve,\nna CLI. O core não o preenche; a mensagem dele é neutra. Omitido no\nJSON quando não há.",
           "type": [
             "string",
             "null"
           ]
         },
         "data": {
-          "description": "Os campos estruturados da variante, quando ela os tem\n([`LaceError::data`]): `available`, `files`, `name`, `value`,\n`reason`, `path`, `component`. Omitido no JSON quando não há."
+          "description": "Os campos estruturados da variante, quando ela os tem\n([`AuroraError::data`]): `available`, `files`, `name`, `value`,\n`reason`, `path`, `component`. Omitido no JSON quando não há."
         }
       },
       "required": [
@@ -1228,7 +1228,7 @@
           ]
         },
         "exercise_layout": {
-          "description": "Os comandos do Surfer de um exercício do `lace learn` (o\n`.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um.",
+          "description": "Os comandos do Surfer de um exercício do `aurora learn` (o\n`.aurora-learn/wave.sucl` ao lado da onda), quando a onda é de um.",
           "type": [
             "string",
             "null"
@@ -1642,7 +1642,7 @@
           ]
         },
         "learn": {
-          "description": "A correção de um exercício (`learn`): o `Grade` do lace-learn, em\nJSON (o core não conhece o tipo)."
+          "description": "A correção de um exercício (`learn`): o `Grade` do aurora-learn, em\nJSON (o core não conhece o tipo)."
         }
       },
       "required": [
@@ -1816,7 +1816,7 @@
           "const": "check_syntax"
         },
         {
-          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `lace check --lint`.",
+          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `aurora check --lint`.",
           "type": "string",
           "const": "lint"
         },
@@ -3406,7 +3406,7 @@
           ]
         },
         "notes": {
-          "description": "Os ajustes das ligações do `fpga.json` (larguras completadas,\nentradas soltas), como em `lace fpga check`.",
+          "description": "Os ajustes das ligações do `fpga.json` (larguras completadas,\nentradas soltas), como em `aurora fpga check`.",
           "type": "array",
           "items": {
             "type": "string"
@@ -4691,7 +4691,7 @@
       ]
     },
     "ToolchainInfo": {
-      "description": "O que uma tela de ferramentas mostra: o `lace tools` em dados. Nunca\nfalha: um bundle que não abriu vira `found: false` com o erro\n([`describe_error`]).",
+      "description": "O que uma tela de ferramentas mostra: o `aurora tools` em dados. Nunca\nfalha: um bundle que não abriu vira `found: false` com o erro\n([`describe_error`]).",
       "type": "object",
       "properties": {
         "found": {
@@ -4806,8 +4806,8 @@
             }
           ]
         },
-        "lace_cli": {
-          "description": "A CLI `lace` da instalação.",
+        "aurora_cli": {
+          "description": "A CLI `aurora` da instalação.",
           "type": [
             "string",
             "null"
@@ -4835,7 +4835,7 @@
         "compiler_error",
         "quartus",
         "quartus_error",
-        "lace_cli",
+        "aurora_cli",
         "surfer_web"
       ]
     },
@@ -4863,7 +4863,7 @@
           "const": "installation"
         },
         {
-          "description": "O `lace` do `PATH`.",
+          "description": "O `aurora` do `PATH`.",
           "type": "string",
           "const": "path"
         },
@@ -5084,12 +5084,12 @@
       "description": "Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,\n`assistant`).",
       "oneOf": [
         {
-          "description": "A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus\nPrime e a gravação na placa (`lace fpga`, a aba Placa FPGA do\nStudio).",
+          "description": "A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus\nPrime e a gravação na placa (`aurora fpga`, a aba Placa FPGA do\nStudio).",
           "type": "string",
           "const": "fpga"
         },
         {
-          "description": "O assistente de IA: o `lace mcp` (as ferramentas do Lace para um\nagente), o `lace chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `lace-agent`).",
+          "description": "O assistente de IA: o `aurora mcp` (as ferramentas do Lace para um\nagente), o `aurora chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `aurora-agent`).",
           "type": "string",
           "const": "assistant"
         }
@@ -5647,12 +5647,12 @@
       ]
     },
     "UpdateReport": {
-      "description": "O relatório do `lace update` (`docs/schema/update.json`).",
+      "description": "O relatório do `aurora update` (`docs/schema/update.json`).",
       "type": "object",
       "properties": {
         "lace": {
           "description": "O Lace: este e o da última release.",
-          "$ref": "#/$defs/LaceVersions"
+          "$ref": "#/$defs/AuroraVersions"
         },
         "bundle": {
           "description": "O bundle de ferramentas: o instalado e o da última release.",
@@ -5666,7 +5666,7 @@
           }
         },
         "prefix": {
-          "description": "A pasta da instalação; `null` se este `lace` não foi instalado pelo\ninstalador (um build em `target/`, por exemplo).",
+          "description": "A pasta da instalação; `null` se este `aurora` não foi instalado pelo\ninstalador (um build em `target/`, por exemplo).",
           "type": [
             "string",
             "null"
@@ -5709,12 +5709,12 @@
         "changes"
       ]
     },
-    "LaceVersions": {
-      "description": "As versões do Lace em `lace update`.",
+    "AuroraVersions": {
+      "description": "As versões do Lace em `aurora update`.",
       "type": "object",
       "properties": {
         "installed": {
-          "description": "A versão deste `lace`.",
+          "description": "A versão deste `aurora`.",
           "type": "string"
         },
         "latest": {
@@ -5733,7 +5733,7 @@
       ]
     },
     "BundleVersions": {
-      "description": "As versões do bundle em `lace update`.",
+      "description": "As versões do bundle em `aurora update`.",
       "type": "object",
       "properties": {
         "installed": {
@@ -5762,7 +5762,7 @@
       ]
     },
     "ComponentVersions": {
-      "description": "Um componente instalado em `lace update`.",
+      "description": "Um componente instalado em `aurora update`.",
       "type": "object",
       "properties": {
         "name": {
@@ -5814,7 +5814,7 @@
       ]
     },
     "UpdateAction": {
-      "description": "O que `lace update` fez.",
+      "description": "O que `aurora update` fez.",
       "oneOf": [
         {
           "description": "`--check`: só comparou as versões.",
@@ -5827,7 +5827,7 @@
           "const": "up_to_date"
         },
         {
-          "description": "A instalação foi trocada (por componentes, ou pelo instalador no\nLinux e no macOS). O `lace` em uso é o antigo: quem chamou termina e\nreinicia.",
+          "description": "A instalação foi trocada (por componentes, ou pelo instalador no\nLinux e no macOS). O `aurora` em uso é o antigo: quem chamou termina e\nreinicia.",
           "type": "string",
           "const": "updated"
         },
@@ -5839,7 +5839,7 @@
       ]
     },
     "UpdateMethod": {
-      "description": "Como `lace update` atualizou.",
+      "description": "Como `aurora update` atualizou.",
       "oneOf": [
         {
           "description": "Só os arquivos que mudaram, dos pedaços que a release publica.",
@@ -5858,7 +5858,7 @@
       "type": "object",
       "properties": {
         "components": {
-          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `lace` é o próprio Lace e o cabeçalho do bundle.",
+          "description": "Os componentes com arquivos que entraram ou saíram, na ordem do\nbundle; `aurora` é o próprio Lace e o cabeçalho do bundle.",
           "type": "array",
           "items": {
             "type": "string"
@@ -5891,7 +5891,7 @@
       ]
     },
     "InstallReport": {
-      "description": "`lace install` (`docs/schema/install.json`).",
+      "description": "`aurora install` (`docs/schema/install.json`).",
       "type": "object",
       "properties": {
         "prefix": {
@@ -6605,7 +6605,7 @@
       ]
     },
     "Phase": {
-      "description": "A fase de um fluxo que começou. Os nomes são os que o Studio mostra;\n`Learn` é a correção de um exercício do lace-learn, que o Studio nomeia\ncom o mesmo tipo.",
+      "description": "A fase de um fluxo que começou. Os nomes são os que o Studio mostra;\n`Learn` é a correção de um exercício do aurora-learn, que o Studio nomeia\ncom o mesmo tipo.",
       "oneOf": [
         {
           "description": "Compilando processadores (YANC).",
@@ -6648,7 +6648,7 @@
           "const": "wave"
         },
         {
-          "description": "Corrigindo um exercício do `lace learn`.",
+          "description": "Corrigindo um exercício do `aurora learn`.",
           "type": "string",
           "const": "learn"
         },

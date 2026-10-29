@@ -38,7 +38,7 @@ import { isVerilogFile } from './verilog';
  * de integração esperarem a leitura do projeto; não é uma API estável.
  */
 export interface LaceExtensionApi {
-  /** O último `lace status` do projeto ativo. */
+  /** O último `aurora status` do projeto ativo. */
   readonly status: StatusReport | undefined;
   /** Cada leitura do projeto terminada, com ou sem erro. */
   readonly onDidRefresh: vscode.Event<unknown>;
@@ -56,7 +56,7 @@ export interface LaceExtensionApi {
 /** Quanto esperar depois de gravar antes do check (lace.check.onSave): junta um "gravar tudo". */
 const CHECK_ON_SAVE_DELAY_MS = 300;
 
-/** A conexão desta ativação, para o `deactivate` encerrar o `lace serve`. */
+/** A conexão desta ativação, para o `deactivate` encerrar o `aurora serve`. */
 let activeConnection: LaceConnection | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<LaceExtensionApi> {
@@ -110,13 +110,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
   const command = (id: string, handler: (...args: unknown[]) => unknown) =>
     vscode.commands.registerCommand(id, handler);
 
-  // No terminal integrado, o `lace synth --open` não abre o navegador: só
+  // No terminal integrado, o `aurora synth --open` não abre o navegador: só
   // grava o rtl-viewer.html (LACE_OPENER), e a extensão, que confere esse
   // arquivo de cada alvo, abre o netlist ao lado dele numa aba. Quem confere
   // é o ChangePoller, e não o vigia do VS Code, que não vê a pasta que a
   // síntese cria (poller.ts).
   context.environmentVariableCollection.replace('LACE_OPENER', 'vscode');
-  context.environmentVariableCollection.description = 'O lace synth --open abre o RTL viewer numa aba do VS Code';
+  context.environmentVariableCollection.description = 'O aurora synth --open abre o RTL viewer numa aba do VS Code';
   const synthDir = () => (projects.active ? join(projects.active.root, '.aurora8', 'Temp', 'synth') : undefined);
   const viewerPages = new ChangePoller(
     async () => {
@@ -259,7 +259,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
 }
 
 /**
- * Encerra o `lace serve`, se a conexão o abriu. Roda depois dos `dispose`
+ * Encerra o `aurora serve`, se a conexão o abriu. Roda depois dos `dispose`
  * de `context.subscriptions`, então o cancelamento das operações (`Runs`)
  * já chegou ao servidor antes do `shutdown`.
  */

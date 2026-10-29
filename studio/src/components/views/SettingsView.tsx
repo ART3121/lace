@@ -407,7 +407,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
 }
 
 /**
- * O assistente: onde está o Claude Code, o `lace` das ferramentas, o modelo
+ * O assistente: onde está o Claude Code, o `aurora` das ferramentas, o modelo
  * e o que ele pode fazer nos arquivos. O Lace não guarda chave: quem
  * autentica é o Claude Code (o login da conta, ou ANTHROPIC_API_KEY).
  */

@@ -4,7 +4,7 @@
 
 /**
  * A primeira versão do Lace com cada recurso, no formato de JSON que a
- * extensão lê. A 0.2.0 é a primeira com `lace status`, `lace top`, `-C` e
+ * extensão lê. A 0.2.0 é a primeira com `aurora status`, `aurora top`, `-C` e
  * `--events` (a 0.1.0 ainda se chamava Solar); os schemas de `status`,
  * `top`, `add`, `new`, `remove`, `order`, `move`, `build`, `proc` e `error`
  * não mudaram desde ela. O `wave` ganhou campos
@@ -12,41 +12,41 @@
  * 0.2.0.
  */
 export const FEATURES = {
-  /** Novo projeto: `lace new <nome> --dir <pasta> --json`. */
+  /** Novo projeto: `aurora new <nome> --dir <pasta> --json`. */
   newProject: '0.2.0',
-  /** A vista de fontes: `lace status --json`. */
+  /** A vista de fontes: `aurora status --json`. */
   sources: '0.2.0',
-  /** Definir como topo: `lace top <arquivo> --json`. */
+  /** Definir como topo: `aurora top <arquivo> --json`. */
   setTop: '0.2.0',
-  /** Adicionar ao projeto e Novo arquivo Verilog: `lace add`. */
+  /** Adicionar ao projeto e Novo arquivo Verilog: `aurora add`. */
   add: '0.2.0',
-  /** Remover do projeto, a ordem das listas e mover ou renomear: `lace remove`, `order` e `move`. */
+  /** Remover do projeto, a ordem das listas e mover ou renomear: `aurora remove`, `order` e `move`. */
   files: '0.2.0',
   /**
-   * Registrar o que o explorador do VS Code renomeou: `lace move --after`.
+   * Registrar o que o explorador do VS Code renomeou: `aurora move --after`.
    * Ainda não publicado: a próxima versão depois da 0.6.0. A extensão tenta
    * com qualquer versão e só usa esta para explicar a recusa de uma mais
    * antiga.
    */
   moveAfter: '0.7.0',
-  /** Compilar os processadores, criar e configurar: `lace build` e `lace proc`. */
+  /** Compilar os processadores, criar e configurar: `aurora build` e `aurora proc`. */
   processors: '0.2.0',
-  /** Abrir a onda: `lace wave`. */
+  /** Abrir a onda: `aurora wave`. */
   wave: '0.2.0',
   /**
-   * Verificar o Verilog: `lace check`. Na 0.2.0 o check ainda compilava os
+   * Verificar o Verilog: `aurora check`. Na 0.2.0 o check ainda compilava os
    * processadores antes e escrevia `builds` no JSON; o formato de hoje
    * (`check` e `report`) é da 0.3.0.
    */
   check: '0.3.0',
-  /** Simular: `lace sim`, o projeto, um testbench ou um processador. */
+  /** Simular: `aurora sim`, o projeto, um testbench ou um processador. */
   sim: '0.3.0',
-  /** A simulação rápida, no Verilator e sem onda: `lace sim --fast` (e o campo `fast`). */
+  /** A simulação rápida, no Verilator e sem onda: `aurora sim --fast` (e o campo `fast`). */
   simFast: '0.4.0',
-  /** Sintetizar: `lace synth`, com o esquemático (`--svg`). */
+  /** Sintetizar: `aurora synth`, com o esquemático (`--svg`). */
   synth: '0.3.0',
   /**
-   * O `lace serve`: a API do Lace por JSON-RPC em um processo só, em vez de
+   * O `aurora serve`: a API do Lace por JSON-RPC em um processo só, em vez de
    * um processo por comando. Com um Lace sem ele a extensão usa a CLI.
    */
   serve: '0.9.0',
@@ -59,7 +59,7 @@ export type FeatureSet = Record<Feature, boolean>;
 export const MIN_VERSION = '0.2.0';
 
 /**
- * A versão na linha do `lace --version` (`lace 0.6.0`, o formato do clap),
+ * A versão na linha do `aurora --version` (`lace 0.6.0`, o formato do clap),
  * ou `undefined` se a linha não tem esse formato.
  */
 export function parseVersionLine(text: string): string | undefined {

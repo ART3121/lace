@@ -1,4 +1,4 @@
-// A vista de fontes a partir do `lace status --json` gravado.
+// A vista de fontes a partir do `aurora status --json` gravado.
 
 import * as assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -65,7 +65,7 @@ describe('vista de fontes', () => {
       soma: { description: 'COMPILADO', contextValue: 'lace.processor.built' },
       filtro: { description: 'NÃO COMPILADO', contextValue: 'lace.processor' },
     });
-    // velho_tb.v tem nome de testbench: lace top o recusaria.
+    // velho_tb.v tem nome de testbench: aurora top o recusaria.
     assert.deepEqual(byLabel(unregistered.entries), {
       'sobra.v': { description: 'rtl', contextValue: 'lace.unregistered.settop.verilog' },
       'velho_tb.v': { description: 'rtl', contextValue: 'lace.unregistered.verilog' },
@@ -161,8 +161,8 @@ describe('o destaque de cada item', () => {
 describe('formatLaceError', () => {
   it('põe a dica depois da mensagem', () => {
     assert.equal(
-      formatLaceError({ code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: lace new <name>' }),
-      'No Lace project here. Create one with: lace new <name>',
+      formatLaceError({ code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new <name>' }),
+      'No Lace project here. Create one with: aurora new <name>',
     );
     assert.equal(formatLaceError({ code: 'invalid_name', message: 'Invalid name', hint: null }), 'Invalid name');
   });

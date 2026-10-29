@@ -68,7 +68,7 @@ jobs:
       - name: Versão
         id: version
         run: |
-          version=$(cargo metadata --no-deps --format-version 1 | python -c "import json,sys; print([p['version'] for p in json.load(sys.stdin)['packages'] if p['name']=='lace-cli'][0])")
+          version=$(cargo metadata --no-deps --format-version 1 | python -c "import json,sys; print([p['version'] for p in json.load(sys.stdin)['packages'] if p['name']=='aurora-cli'][0])")
           bundle=$(python -c "import json; print(json.load(open('bundle/versions.json'))['bundle'])")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           {
@@ -125,17 +125,17 @@ jobs:
         run: python scripts/bundle.py --out dist/toolchain
 
       - name: Compilar o Lace e o empacotador
-        run: cargo build --release -p lace-cli -p lace-installer
+        run: cargo build --release -p aurora-cli -p aurora-installer
 
       - name: Conferir o bundle
-        run: target/release/lace tools --toolchain dist/toolchain --verify
+        run: target/release/aurora tools --toolchain dist/toolchain --verify
 
       # ----------------------------------------------- Linux e macOS: TUI
       - name: Montar o instalador (TUI)
         if: runner.os != 'Windows'
         run: |
-          target/release/lace-pack tui --toolchain dist/toolchain \
-            --lace target/release/lace --installer target/release/lace-installer \
+          target/release/aurora-pack tui --toolchain dist/toolchain \
+            --lace target/release/aurora --installer target/release/aurora-installer \
             --out "dist/$NAME" --tar-gz --assets dist/apps
           ls -la dist dist/apps
 
@@ -167,7 +167,7 @@ jobs:
           & $iscc /? | Select-Object -First 1
           "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      # O `lace install`, o `lace update` e o assistente web baixam os
+      # O `aurora install`, o `aurora update` e o assistente web baixam os
       # aplicativos do bundle em pedaços, também no Windows: o mesmo payload
       # da TUI, publicado à parte. Vem antes do Inno Setup, que grava no
       # web.iss o SHA-256 de cada pedaço.
@@ -175,7 +175,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          target\release\lace-pack.exe tui --toolchain dist\toolchain --lace target\release\lace.exe --installer target\release\lace-installer.exe --out dist\tui --assets dist\apps
+          target\release\aurora-pack.exe tui --toolchain dist\toolchain --lace target\release\aurora.exe --installer target\release\aurora-installer.exe --out dist\tui --assets dist\apps
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem dist\apps
 
@@ -185,7 +185,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          target\release\lace-pack.exe inno --toolchain dist\toolchain --lace target\release\lace.exe --out dist\inno --web dist\tui
+          target\release\aurora-pack.exe inno --toolchain dist\toolchain --lace target\release\aurora.exe --out dist\inno --web dist\tui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $env:ISCC /Q "/DStage=$PWD\dist\inno" "/DLaceVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\lace.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

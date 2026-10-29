@@ -1,5 +1,5 @@
 // O assistente: a conversa com o Claude Code dentro do Studio, com as
-// ferramentas do lace mcp (src-tauri/src/assistant.rs, crates/lace-agent).
+// ferramentas do aurora mcp (src-tauri/src/assistant.rs, crates/aurora-agent).
 // A sessão é um processo filho do backend; aqui ficam a transcrição, o
 // estado do turno e o que a vista mostra. A sessão abre na primeira
 // mensagem e fecha quando a pessoa pede uma conversa nova, quando o projeto

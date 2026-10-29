@@ -1,4 +1,4 @@
-// Os diagnósticos do `lace check` organizados por arquivo, sem depender do
+// Os diagnósticos do `aurora check` organizados por arquivo, sem depender do
 // VS Code: o painel Problemas e os selos da vista de fontes saem daqui.
 
 import { isAbsolute, resolve } from 'node:path';

@@ -1,0 +1,45 @@
+[package]
+name = "aurora-installer"
+description = "Instalador do Lace para Linux e macOS, e o empacotador dos instaladores"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "aurora-installer"
+path = "src/main.rs"
+required-features = ["tui"]
+
+[features]
+default = ["tui"]
+# A interface de terminal do instalador e do `aurora install` sem nomes. O
+# aurora-protocol, que só usa os tipos dos resultados, pede o crate sem ela
+# (e sem o ratatui).
+tui = ["dep:ratatui"]
+
+[[bin]]
+name = "aurora-pack"
+path = "src/bin/aurora-pack.rs"
+
+[dependencies]
+aurora-core.workspace = true
+anyhow.workspace = true
+camino.workspace = true
+clap.workspace = true
+dunce.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ratatui = { workspace = true, optional = true }
+# As pastas de trabalho dos downloads (`lace-install.*`).
+tempfile.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+zstd.workspace = true
+tar.workspace = true
+sha2.workspace = true
+flate2.workspace = true

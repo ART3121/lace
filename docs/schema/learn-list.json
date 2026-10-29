@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "LearnListReport",
-  "description": "`lace learn list`: os exercícios e o que já foi resolvido.",
+  "description": "`aurora learn list`: os exercícios e o que já foi resolvido.",
   "type": "object",
   "properties": {
     "root": {

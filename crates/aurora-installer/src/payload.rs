@@ -1,0 +1,207 @@
+//! O índice do payload (`payload/index.json`).
+
+use std::collections::BTreeMap;
+use std::path::Path;
+
+use anyhow::{Context, bail};
+use serde::{Deserialize, Serialize};
+
+use crate::plan::Selection;
+
+/// Nome do diretório do payload, ao lado do executável `install`.
+pub const PAYLOAD_DIR: &str = "payload";
+/// Nome do índice dentro do payload.
+pub const INDEX_FILE: &str = "index.json";
+/// Versão do formato do índice.
+pub const INDEX_SCHEMA: u32 = 1;
+
+/// O nome com que a release publica um arquivo do payload (o índice ou um
+/// pedaço), para o `aurora install` baixar só o que precisa:
+/// `lace-<versão>-<plataforma>-<arquivo>`, como em
+/// `lace-0.2.0-linux-x64-c03.tar.zst`.
+pub fn release_asset(lace_version: &str, platform: &str, file: &str) -> String {
+    format!("lace-{lace_version}-{platform}-{file}")
+}
+
+/// O índice: o que o payload instala e em que pedaços.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Index {
+    /// [`INDEX_SCHEMA`].
+    pub schema: u32,
+    /// Versão do Lace.
+    pub lace_version: String,
+    /// Identificador do bundle de ferramentas.
+    pub bundle: String,
+    /// Plataforma (`linux-x64`, `darwin-arm64`).
+    pub platform: String,
+    /// Os perfis de instalação, na ordem de exibição; o primeiro é o
+    /// padrão. Vazio num índice anterior aos perfis: aí vale
+    /// [`Index::profiles`], que monta um com os recomendados.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub profiles: Vec<ProfileInfo>,
+    /// Os componentes que o usuário pode escolher, na ordem de exibição.
+    pub components: Vec<ComponentInfo>,
+    /// Os pedaços do payload.
+    pub chunks: Vec<Chunk>,
+}
+
+/// Um perfil de instalação: um conjunto de componentes com nome, que os
+/// instaladores oferecem antes da lista (a instalação Custom).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProfileInfo {
+    /// Identificador (`sapho`, `verilog`), o do `--profile`.
+    pub name: String,
+    /// Nome para mostrar.
+    pub label: String,
+    /// Uma linha sobre o que ele traz.
+    pub description: String,
+    /// Para quem ele serve. Vazio só no perfil que [`Index::profiles`]
+    /// monta para um índice anterior aos perfis.
+    #[serde(default)]
+    pub audience: String,
+    /// Os componentes, já com o que cada um exige.
+    pub components: Vec<String>,
+    /// O nome, a descrição e o público em outros idiomas, por código
+    /// (`pt`).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub translations: BTreeMap<String, ProfileText>,
+}
+
+/// Os textos de um perfil num idioma.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProfileText {
+    /// Nome para mostrar.
+    pub label: String,
+    /// Uma linha sobre o que ele traz.
+    pub description: String,
+    /// Para quem ele serve.
+    pub audience: String,
+}
+
+/// Um componente do bundle, como o instalador o mostra.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ComponentInfo {
+    /// Nome no manifesto do bundle (`icarus`, `yosys`...).
+    pub name: String,
+    /// Nome para mostrar.
+    pub label: String,
+    /// Uma linha sobre o que ele faz.
+    pub description: String,
+    /// Faz parte do perfil padrão? Vem do primeiro perfil; o Lace anterior
+    /// aos perfis lê o índice da release nova no `aurora update` e exige o
+    /// campo.
+    pub recommended: bool,
+    /// Componentes sem os quais este não funciona.
+    #[serde(default)]
+    pub requires: Vec<String>,
+    /// Versão exata no bundle.
+    pub version: String,
+}
+
+/// Um `.tar.zst` do payload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Chunk {
+    /// Nome do arquivo em `payload/`.
+    pub file: String,
+    /// Os componentes que usam os arquivos deste pedaço. Vazio: sempre
+    /// instalado (o `aurora` e o cabeçalho do bundle).
+    pub components: Vec<String>,
+    /// Bytes extraídos.
+    pub size: u64,
+    /// Quantos arquivos.
+    pub entries: u64,
+    /// Bytes do `.tar.zst`, o que baixar o pedaço custa. Zero num índice
+    /// anterior à 0.7.0, que não tinha o campo.
+    #[serde(default)]
+    pub download: u64,
+}
+
+impl Chunk {
+    /// Este pedaço vai para a instalação com `selection`?
+    pub fn needed_by(&self, selection: &Selection) -> bool {
+        self.components.is_empty() || self.components.iter().any(|c| selection.contains(c))
+    }
+}
+
+impl Index {
+    /// Lê `dir/index.json`.
+    pub fn load(dir: &Path) -> anyhow::Result<Index> {
+        let path = dir.join(INDEX_FILE);
+        let text = std::fs::read_to_string(&path)
+            .with_context(|| format!("Installer payload not found at {}", path.display()))?;
+        Self::parse(&text).with_context(|| format!("Invalid payload index: {}", path.display()))
+    }
+
+    /// Lê um índice do texto (o `index.json`, ou o que a release publica).
+    pub fn parse(text: &str) -> anyhow::Result<Index> {
+        let index: Index = serde_json::from_str(text)?;
+        if index.schema != INDEX_SCHEMA {
+            bail!(
+                "Payload index has format {}; this installer reads format {INDEX_SCHEMA}",
+                index.schema
+            );
+        }
+        Ok(index)
+    }
+
+    /// Os perfis, o padrão primeiro. Num índice sem perfis (anterior a
+    /// eles), um só, `recommended`, com os componentes recomendados.
+    pub fn profiles(&self) -> Vec<ProfileInfo> {
+        if !self.profiles.is_empty() {
+            return self.profiles.clone();
+        }
+        vec![ProfileInfo {
+            name: "recommended".into(),
+            label: "Recommended".into(),
+            description: "The recommended apps".into(),
+            audience: String::new(),
+            translations: Default::default(),
+            components: self
+                .components
+                .iter()
+                .filter(|c| c.recommended)
+                .map(|c| c.name.clone())
+                .collect(),
+        }]
+    }
+
+    /// O perfil pelo nome.
+    pub fn profile(&self, name: &str) -> Option<ProfileInfo> {
+        self.profiles().into_iter().find(|p| p.name == name)
+    }
+
+    /// O componente pelo nome.
+    pub fn component(&self, name: &str) -> Option<&ComponentInfo> {
+        self.components.iter().find(|c| c.name == name)
+    }
+
+    /// Os pedaços que a seleção extrai.
+    pub fn chunks_for<'a>(&'a self, selection: &'a Selection) -> impl Iterator<Item = &'a Chunk> {
+        self.chunks.iter().filter(|c| c.needed_by(selection))
+    }
+
+    /// Bytes que a seleção ocupa depois de instalada.
+    pub fn size_of(&self, selection: &Selection) -> u64 {
+        self.chunks_for(selection).map(|c| c.size).sum()
+    }
+
+    /// Bytes dos pedaços que algum componente de `selection` usa, sem o que é
+    /// sempre instalado: o que acrescentar `selection` baixa e extrai.
+    pub fn chunks_size_of(&self, selection: &Selection) -> u64 {
+        self.chunks
+            .iter()
+            .filter(|c| c.components.iter().any(|n| selection.contains(n)))
+            .map(|c| c.size)
+            .sum()
+    }
+
+    /// Bytes de um componente sozinho (com as bibliotecas que ele divide com
+    /// outros), sem o que é sempre instalado.
+    pub fn component_size(&self, name: &str) -> u64 {
+        self.chunks
+            .iter()
+            .filter(|c| c.components.iter().any(|n| n == name))
+            .map(|c| c.size)
+            .sum()
+    }
+}

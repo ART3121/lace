@@ -1,11 +1,11 @@
-//! Onde está o Lace para o Studio: o programa `lace`, que o Studio abre
+//! Onde está o Lace para o Studio: o programa `aurora`, que o Studio abre
 //! como servidor ([`crate::server`]), e o bundle que o servidor recebe em
 //! `--toolchain`. Achar o servidor é do cliente, como a extensão do VS Code
-//! faz com o `lace` dela; o resto (as ferramentas, os componentes, o
+//! faz com o `aurora` dela; o resto (as ferramentas, os componentes, o
 //! compilador do Verilator, o Quartus, o cliente web do Surfer) é o
 //! `toolchain.info` do servidor.
 //!
-//! O `lace` é, nesta ordem: o da variável `LACE_STUDIO_LACE` (para
+//! O `aurora` é, nesta ordem: o da variável `LACE_STUDIO_LACE` (para
 //! desenvolvimento), o da preferência `lace_path`, o da instalação do
 //! bundle das preferências (`<instalação>/bin/lace`), o da instalação em
 //! que o Studio está (`<instalação>/toolchain/studio/`) e o do `PATH`. O
@@ -16,7 +16,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use serde_json::{Value, json};
 
 use crate::error::{IpcError, IpcResult, codes};
-use crate::server::LaceServer;
+use crate::server::AuroraServer;
 use crate::settings::Settings;
 
 /// O nome do executável do Lace neste sistema.
@@ -42,7 +42,7 @@ fn setting_path(value: &Option<String>) -> Option<Utf8PathBuf> {
         .map(Utf8PathBuf::from)
 }
 
-/// O `lace` de uma instalação (`<instalação>/bin/lace`), se existe.
+/// O `aurora` de uma instalação (`<instalação>/bin/lace`), se existe.
 fn lace_in(prefix: &Utf8Path) -> Option<Utf8PathBuf> {
     let lace = prefix.join("bin").join(LACE_EXE);
     lace.is_file().then_some(lace)
@@ -60,7 +60,7 @@ fn installation_of_studio() -> Option<Utf8PathBuf> {
         .map(Utf8Path::to_owned)
 }
 
-/// O `lace` do `PATH`.
+/// O `aurora` do `PATH`.
 fn lace_on_path() -> Option<Utf8PathBuf> {
     let path = std::env::var_os("PATH")?;
     std::env::split_paths(&path)
@@ -69,7 +69,7 @@ fn lace_on_path() -> Option<Utf8PathBuf> {
         .find(|lace| lace.is_file())
 }
 
-/// A instalação de um `lace` em `<instalação>/bin/`, com o bundle ao lado.
+/// A instalação de um `aurora` em `<instalação>/bin/`, com o bundle ao lado.
 fn installation_of(lace: &Utf8Path) -> Option<Utf8PathBuf> {
     let bin = lace.parent()?;
     let prefix = bin.parent()?;
@@ -77,7 +77,7 @@ fn installation_of(lace: &Utf8Path) -> Option<Utf8PathBuf> {
 }
 
 /// A instalação do Lace: a do bundle das preferências, a do Studio, ou a
-/// do `lace` do `PATH`.
+/// do `aurora` do `PATH`.
 fn installation(settings: &Settings) -> Option<Utf8PathBuf> {
     setting_path(&settings.toolchain_dir)
         .and_then(|dir| {
@@ -89,7 +89,7 @@ fn installation(settings: &Settings) -> Option<Utf8PathBuf> {
         .or_else(|| lace_on_path().as_deref().and_then(installation_of))
 }
 
-/// O `lace` que o Studio usa como servidor.
+/// O `aurora` que o Studio usa como servidor.
 pub fn lace_executable(settings: &Settings) -> IpcResult<Utf8PathBuf> {
     let declared = env_path("LACE_STUDIO_LACE").or_else(|| setting_path(&settings.lace_path));
     if let Some(path) = declared {
@@ -123,15 +123,15 @@ pub fn bundle_dir(settings: &Settings) -> Option<Utf8PathBuf> {
 }
 
 /// A pasta `bin/` da instalação, para pôr no `PATH` do terminal de shell e
-/// o usuário poder digitar `lace` nele.
+/// o usuário poder digitar `aurora` nele.
 pub fn install_bin_dir(settings: &Settings) -> Option<Utf8PathBuf> {
     installation(settings).map(|prefix| prefix.join("bin"))
 }
 
 /// O que a tela de ferramentas mostra: o `toolchain.info` do servidor, o
-/// equivalente do `lace tools`. Nunca falha: sem servidor, vem
+/// equivalente do `aurora tools`. Nunca falha: sem servidor, vem
 /// `found: false` com o erro, como um bundle que não abriu.
-pub fn info(server: &LaceServer, settings: &Settings) -> Value {
+pub fn info(server: &AuroraServer, settings: &Settings) -> Value {
     match server.call(settings, "toolchain.info", Value::Null) {
         Ok(info) => info,
         Err(error) => json!({
@@ -148,7 +148,7 @@ pub fn info(server: &LaceServer, settings: &Settings) -> Value {
             "compiler_error": null,
             "quartus": null,
             "quartus_error": null,
-            "lace_cli": null,
+            "aurora_cli": null,
             "surfer_web": null,
         }),
     }
@@ -156,7 +156,7 @@ pub fn info(server: &LaceServer, settings: &Settings) -> Value {
 
 /// O cliente web do Surfer do bundle, para a onda numa aba; `None` sem ele
 /// ou sem servidor.
-pub fn surfer_web(server: &LaceServer, settings: &Settings) -> Option<Utf8PathBuf> {
+pub fn surfer_web(server: &AuroraServer, settings: &Settings) -> Option<Utf8PathBuf> {
     info(server, settings)["surfer_web"]
         .as_str()
         .map(Utf8PathBuf::from)

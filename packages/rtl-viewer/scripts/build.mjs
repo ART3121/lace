@@ -5,7 +5,7 @@
 //   rtl-viewer.css         o CSS do viewer
 //   theme-vscode.css       as variáveis ligadas ao tema do VS Code
 //   theme-standalone.css   as variáveis com as cores do Studio, claro ou escuro
-//   rtl-viewer.html        o modelo do HTML autocontido do `lace synth --open`:
+//   rtl-viewer.html        o modelo do HTML autocontido do `aurora synth --open`:
 //                          tudo acima embutido, e dois lugares que o Core
 //                          preenche, @@LACE_NETLIST@@ (o hierarchy.json) e
 //                          @@LACE_CONFIG@@ (o caminho e a data dele)

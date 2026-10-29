@@ -119,7 +119,7 @@ describe('menus', () => {
     );
   });
 
-  it('Abrir no surfer-aurora: os formatos que o lace wave abre', () => {
+  it('Abrir no surfer-aurora: os formatos que o aurora wave abre', () => {
     const extension = regexFor(when('explorer/context', 'lace.waveFile'), 'resourceExtname');
     for (const ext of ['.vcd', '.fst', '.ghw', '.VCD']) {
       assert.ok(extension.test(ext), ext);

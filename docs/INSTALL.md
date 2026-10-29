@@ -35,7 +35,7 @@ sudo pacman -S webkit2gtk-4.1            # Arch, Manjaro
 ```
 
 O instalador confere a biblioteca quando o Studio entra (na instalação ou
-no `lace install studio`). Faltando, ele diz o comando do gerenciador de
+no `aurora install studio`). Faltando, ele diz o comando do gerenciador de
 pacotes do sistema e, na instalação guiada, pergunta se o roda na hora. Com
 `--yes`, só avisa. Aberto pelo menu sem a biblioteca, o Studio mostra numa
 janela o que falta e o comando que a instala.
@@ -120,18 +120,18 @@ aplicativo com `[x]` ou `[ ]`, e o Custom abre a lista para marcar.
 
 | Componente | O que é | SAPHO | Verilog |
 |---|---|---|---|
-| Lace (CLI & Core) | a linha de comando e o Core; sempre instalado, porque é ele que instala, atualiza e desinstala (`lace install`, `lace update`, `lace uninstall`) | sim | sim |
+| Lace (CLI & Core) | a linha de comando e o Core; sempre instalado, porque é ele que instala, atualiza e desinstala (`aurora install`, `aurora update`, `aurora uninstall`) | sim | sim |
 | AURORA IDE | o ambiente gráfico: editor, compilação, simulação, ondas; atalho no menu de aplicativos | sim | sim |
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO | sim | não |
 | Icarus Verilog | simulador Verilog, o padrão da AURORA | sim | sim |
 | Verilator | simulador compilado; no Linux e no macOS precisa de compilador C++, `make` e Perl do sistema, no Windows vem com eles | sim | sim |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) | sim | sim |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`aurora sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`aurora sim --verilator`) | sim | sim |
 | Yosys | síntese e esquemático; lê as portas para o testbench-modelo | sim | sim |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys | sim | sim |
-| RTL viewer | o esquemático interativo do netlist da síntese no navegador (`lace synth --open`); precisa do Yosys | sim | sim |
+| RTL viewer | o esquemático interativo do netlist da síntese no navegador (`aurora synth --open`); precisa do Yosys | sim | sim |
 | surfer-aurora | visualizador de formas de onda (o fork do Surfer da AURORA) | sim | sim |
 | openFPGALoader | grava as placas FPGA pelo cabo USB delas ([FPGA.md](FPGA.md)); no Linux, o acesso ao cabo pede uma regra do udev | sim | sim |
-| Lace Learn | os exercícios de Verilog do `lace learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | sim | sim |
+| Lace Learn | os exercícios de Verilog do `aurora learn` e da vista Exercícios do Studio ([LEARN.md](LEARN.md)); precisa do Icarus | sim | sim |
 
 O Verilator, no Linux e no macOS, só funciona com o compilador do sistema
 instalado (ver [BUNDLE.md](BUNDLE.md), seção 4); no Windows ele traz o g++,
@@ -157,10 +157,10 @@ Uma ferramenta de componente não instalado dá erro claro quando usada:
 
 ```
 Error: Component verilator is not installed
-  Install it with: lace install verilator
+  Install it with: aurora install verilator
 ```
 
-`lace tools` mostra o que está instalado e o que não está.
+`aurora tools` mostra o que está instalado e o que não está.
 
 Tamanho instalado no Linux, de referência (0.2.0, com menos componentes que
 hoje): 378 MiB com tudo, dos quais 16 MiB são da AURORA IDE; o instalador
@@ -191,7 +191,7 @@ plataforma, e a página de componentes do assistente, o da seleção.
 4. Na página **Choose a profile** (Escolha um perfil), escolha o perfil na
    caixa: a lista embaixo mostra, travada, os aplicativos que ele instala.
    Para escolher à mão, use o **Custom** (Personalizada), para uso avançado.
-5. Deixe marcada a tarefa **Add Lace to PATH** para usar `lace` em
+5. Deixe marcada a tarefa **Add Lace to PATH** para usar `aurora` em
    qualquer terminal novo. Com o Studio, o assistente põe o atalho no menu
    Iniciar e oferece um na área de trabalho.
 
@@ -206,7 +206,7 @@ instalar trocaria essa pasta inteira, sem passar pela lixeira.
 
 Numa pasta que já tem o Lace, a primeira página diz de que versão para qual
 ele atualiza, e os aplicativos que a pasta tem vêm marcados, inclusive os
-que o `lace install` acrescentou: uma seleção que não é a de nenhum perfil
+que o `aurora install` acrescentou: uma seleção que não é a de nenhum perfil
 fica no Custom. O mesmo vale numa instalação silenciosa sem `/COMPONENTS`.
 
 O assistente web baixa do GitHub; `/MIRROR=<url>` o faz baixar de um
@@ -218,55 +218,55 @@ qualquer arquivo.
 O Verilator no Windows vem com o g++, o `make` e o Perl que ele usa (o bloco
 MSYS2 do lace-toolchain): não é preciso instalar o MSYS2.
 
-**Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
+**Instalar aplicativos do bundle:** `aurora install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
 surfer-aurora, openFPGALoader, AURORA IDE, Lace Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
-`Space` e confirme. `lace install verilator` instala direto, sem a lista,
+`Space` e confirme. `aurora install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
 `toolchain/`, e uma falha no meio desfaz o que entrou.
 
 Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
 o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
-pelo `SHA256SUMS` da release. Sem rede, `lace install --from` usa um
+pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
-mais nova, que o `lace update` lê no lugar do GitHub. O espelho é
+mais nova, que o `aurora update` lê no lugar do GitHub. O espelho é
 `https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
 os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
-precisa ser o instalado; outro bundle é atualizar (`lace update`).
+precisa ser o instalado; outro bundle é atualizar (`aurora update`).
 
-No Windows, o Studio instalado pelo `lace install studio` não ganha atalho
+No Windows, o Studio instalado pelo `aurora install studio` não ganha atalho
 no menu Iniciar (o atalho é do assistente): abra
 `<pasta>\toolchain\studio\lace-studio.exe`, ou rode o assistente de novo
 com o Studio marcado.
 
 O desinstalador do Windows apaga o `toolchain/` inteiro, com o que o
-`lace install` pôs. Rodar o assistente de novo à mão também refaz o
+`aurora install` pôs. Rodar o assistente de novo à mão também refaz o
 `toolchain/` com a seleção dele; os aplicativos que a pasta tem, inclusive
-os que o `lace install` acrescentou, já vêm marcados, e o que for
+os que o `aurora install` acrescentou, já vêm marcados, e o que for
 desmarcado sai.
 
 **Atualizar:** a AURORA IDE procura versão nova ao abrir, oferece a
-atualização e reinicia na versão nova; o `lace`, num terminal, avisa no fim
+atualização e reinicia na versão nova; o `aurora`, num terminal, avisa no fim
 de um comando, uma vez por dia ([CLI.md](CLI.md), "Bundle").
-`lace update --check` compara as versões; `lace update`
+`aurora update --check` compara as versões; `aurora update`
 atualiza por componentes (abaixo, em [Atualizar por componentes](#atualizar-por-componentes)),
-sem abrir o assistente e sem tirar o que o `lace install` acrescentou, e a
+sem abrir o assistente e sem tirar o que o `aurora install` acrescentou, e a
 lista de programas do Windows passa a mostrar a versão nova. Numa
-instalação anterior à 0.7.0, ou com `lace update --full`, ele baixa o
+instalação anterior à 0.7.0, ou com `aurora update --full`, ele baixa o
 assistente da release nova, confere o SHA-256 e o abre: ele lembra a pasta,
 e os componentes instalados vêm marcados, os do assistente e os que o
-`lace install` acrescentou.
+`aurora install` acrescentou.
 
 **Mudar os componentes:** rode o instalador de novo. Ele lembra a pasta e a
 seleção anteriores; o que for desmarcado é removido.
 
-**Remover:** `lace uninstall`, Configurações > Aplicativos > Lace, ou
+**Remover:** `aurora uninstall`, Configurações > Aplicativos > Lace, ou
 `<pasta>\unins000.exe`; os três abrem o mesmo desinstalador. Sai o Lace,
-o bundle inteiro e a entrada do PATH. `lace uninstall --yes` desinstala sem
+o bundle inteiro e a entrada do PATH. `aurora uninstall --yes` desinstala sem
 perguntar.
 
 **Sem interação** (scripts, laboratórios):
@@ -281,8 +281,8 @@ O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
 (`/TYPE=`) são os perfis, `sapho` e `verilog`, e
 `avancada`, o Custom, que guarda o nome da instalação Advanced de antes dos
 perfis. O `/TYPE=recomendada` de antes cai no perfil padrão.
-Nos parâmetros do Inno Setup, os nomes dos componentes são `lace`, `yanc`, `icarus`,
-`icarus\cocotb`, `icarus\lace_learn`, `verilator`, `yosys`,
+Nos parâmetros do Inno Setup, os nomes dos componentes são `aurora`, `yanc`, `icarus`,
+`icarus\cocotb`, `icarus\aurora_learn`, `verilator`, `yosys`,
 `yosys\graphviz`, `yosys\rtl_viewer`, `surfer_aurora`, `openfpgaloader` e `studio`; as
 tarefas, `path` e
 `studioicon` (o atalho do Studio na área de trabalho).
@@ -344,34 +344,34 @@ falha no meio não estraga o que já estava instalado.
 Um componente que exige outro traz o outro junto (`--components graphviz`
 instala também o Yosys, e avisa).
 
-**Instalar aplicativos do bundle:** `lace install` abre no terminal a lista
+**Instalar aplicativos do bundle:** `aurora install` abre no terminal a lista
 dos aplicativos do bundle (YANC, Icarus, Verilator, cocotb, Yosys, Graphviz,
 surfer-aurora, openFPGALoader, AURORA IDE, Lace Learn, RTL viewer), com os instalados marcados e travados; marque os novos com
-`Space` e confirme. `lace install verilator` instala direto, sem a lista,
+`Space` e confirme. `aurora install verilator` instala direto, sem a lista,
 com o que o aplicativo exige (`graphviz` traz o Yosys). O Lace não é
 reinstalado: só os aplicativos marcados são baixados e extraídos em
 `toolchain/`, e uma falha no meio desfaz o que entrou. O
-`lace install studio` também cria o atalho do Studio no menu.
+`aurora install studio` também cria o atalho do Studio no menu.
 
 Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
 o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
-pelo `SHA256SUMS` da release. Sem rede, `lace install --from` usa um
+pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
 `LACE_RELEASE_URL` aponta para um espelho do laboratório, com uma pasta
 `v<versão>/` por release e, se quiser, um arquivo `latest` com a versão
-mais nova, que o `lace update` lê no lugar do GitHub. O espelho é
+mais nova, que o `aurora update` lê no lugar do GitHub. O espelho é
 `https://`, ou `file://` numa pasta do disco: o `SHA256SUMS` que confere
 os downloads vem dele também, e o Lace recusa `http://`. O bundle de lá
-precisa ser o instalado; outro bundle é atualizar (`lace update`).
+precisa ser o instalado; outro bundle é atualizar (`aurora update`).
 
 **Atualizar:** a AURORA IDE procura versão nova ao abrir, oferece a
-atualização e reinicia na versão nova; o `lace`, num terminal, avisa no fim
+atualização e reinicia na versão nova; o `aurora`, num terminal, avisa no fim
 de um comando, uma vez por dia ([CLI.md](CLI.md), "Bundle").
-`lace update --check` mostra se há Lace mais novo e,
+`aurora update --check` mostra se há Lace mais novo e,
 para cada aplicativo, a versão instalada, a do bundle da última release e a
-última upstream. `lace update` atualiza por componentes (abaixo). Numa
-instalação anterior à 0.7.0, ou com `lace update --full`, ele reinstala
+última upstream. `aurora update` atualiza por componentes (abaixo). Numa
+instalação anterior à 0.7.0, ou com `aurora update --full`, ele reinstala
 pela release nova, com os mesmos aplicativos, a mesma pasta e o mesmo
 atalho. Uma ferramenta mais nova
 upstream não é instalada sozinha: o bundle compila o YANC e o surfer-aurora e
@@ -383,19 +383,19 @@ instalação é trocada pela nova seleção. Com um perfil (e com
 `./install --yes` sem `--components`), os aplicativos que a instalação já
 tem ficam, junto dos do perfil; para tirar algum, use o Custom.
 
-**Remover:** `lace uninstall` (pergunta antes; `--yes` não pergunta) ou
+**Remover:** `aurora uninstall` (pergunta antes; `--yes` não pergunta) ou
 `<pasta>/uninstall.sh`. Sai o Lace, o bundle inteiro (`toolchain/`), o
 atalho, o do Studio no menu e a pasta; uma instalação do sistema (`/opt/lace`) pede
-`sudo lace uninstall`.
+`sudo aurora uninstall`.
 
 O que não sai, porque não é da instalação: os projetos, com o `.aurora8/` de
 cada um (intermediários e ondas, que se apagam à mão), e o histórico de
 arquivos do surfer-aurora (`~/.local/share/surfer` no Linux), que o Surfer e
 a AURORA também usam, as preferências do Studio, o `experimental.json` do
-`lace experimental` e o `update-check.json` do aviso de versão nova. Um
+`aurora experimental` e o `update-check.json` do aviso de versão nova. Um
 `~/.config/lace/config.json` de um build de desenvolvimento anterior à
 0.2.0 (o `lace config`, que saiu), que nenhuma versão lê, sai junto com
-`lace uninstall`.
+`aurora uninstall`.
 
 **Verilator:** precisa de `g++` (ou `clang++`), `make` e `perl` do sistema:
 `sudo apt install build-essential perl` (Debian, Ubuntu),
@@ -422,7 +422,7 @@ Desde a 0.7.0, cada instalação guarda o manifesto de arquivos da versão
 dela (`toolchain/files.json`): o SHA-256 de cada arquivo que o instalador
 pôs, agrupado pelos pedaços em que a release publica o bundle. A release
 publica também o seu (`lace-<versão>-<plataforma>-files.json`). O
-`lace update` compara os dois, para os aplicativos instalados:
+`aurora update` compara os dois, para os aplicativos instalados:
 
 ```
 Lace 0.7.0 to 0.8.0 by components: Lace, Lace Studio, Lace Learn
@@ -438,42 +438,42 @@ extraídos, numa pasta provisória (`.instalando-<pid>`), e conferidos com o
 manifesto novo. Depois os arquivos são trocados no lugar, os antigos vão
 para `.antigo-<pid>`, os que a versão nova não tem saem, e o Lace confere
 os executáveis do bundle. Uma falha em qualquer passo devolve os arquivos
-antigos, e a instalação fica como estava; aí o `lace update` passa para o
+antigos, e a instalação fica como estava; aí o `aurora update` passa para o
 instalador inteiro.
 
 Antes de trocar, o Lace grava o que vai fazer num diário
 (`.atualizando.json`, na pasta da instalação). Se o processo morre no meio
-da troca (o terminal fechado, falta de energia), o próximo `lace update` ou
-`lace install` desfaz o que ficou feito com o diário: os arquivos antigos
-voltam, os novos saem, e ele avisa e pede para rodar o `lace update` de
+da troca (o terminal fechado, falta de energia), o próximo `aurora update` ou
+`aurora install` desfaz o que ficou feito com o diário: os arquivos antigos
+voltam, os novos saem, e ele avisa e pede para rodar o `aurora update` de
 novo. Uma trava (`.instalacao.lock`) impede duas instalações ou
 atualizações ao mesmo tempo na mesma pasta. A AURORA IDE não fecha
 enquanto uma atualização ou instalação dela está rodando.
 
-O próprio `lace` é um dos arquivos trocados. No Windows, um executável em
+O próprio `aurora` é um dos arquivos trocados. No Windows, um executável em
 uso pode ser renomeado, mas não apagado: o `lace.exe` antigo fica na pasta
-`.antigo-<pid>` até o próximo `lace install` ou `lace update`. Se o Lace
+`.antigo-<pid>` até o próximo `aurora install` ou `aurora update`. Se o Lace
 Studio estiver aberto durante a atualização, feche e abra de novo para usar
 a versão nova.
 
 Um aplicativo que a versão nova passa a exigir entra junto; um que ela não
 tem mais sai. Um arquivo apagado à mão da instalação volta no próximo
-`lace update`; com o instalador da mesma versão no disco,
-`lace update --from` repara a instalação sem rede.
+`aurora update`; com o instalador da mesma versão no disco,
+`aurora update --from` repara a instalação sem rede.
 
 Sem o manifesto (uma instalação anterior à 0.7.0), com `--full`, ou se a
-release nova não o publica, o `lace update` usa o instalador inteiro, como
+release nova não o publica, o `aurora update` usa o instalador inteiro, como
 antes. A primeira atualização de uma instalação 0.6 para a 0.7 é assim; a
 partir da 0.7, vai por componentes.
 
 ## Depois de instalar
 
 ```
-lace tools --verify        # o bundle, as versões e a conferência dos hashes
-lace new meu_projeto
+aurora tools --verify        # o bundle, as versões e a conferência dos hashes
+aurora new meu_projeto
 cd meu_projeto
-lace add top.v             # Verilog: cria o módulo e o registra como topo
-lace proc add filtro       # SAPHO: cria o processador filtro
+aurora add top.v             # Verilog: cria o módulo e o registra como topo
+aurora proc add filtro       # SAPHO: cria o processador filtro
 ```
 
 Os dois fluxos, Verilog e SAPHO, completos estão em
@@ -488,7 +488,7 @@ Os dois fluxos, Verilog e SAPHO, completos estão em
     bundle.json
     components/<nome>.json
     files.json          o SHA-256 de cada arquivo instalado (desde a 0.7.0)
-    yanc/ oss-cad-suite/ surfer-aurora/ graphviz/ msys/ studio/ lace-learn/ rtl-viewer/
+    yanc/ oss-cad-suite/ surfer-aurora/ graphviz/ msys/ studio/ aurora-learn/ rtl-viewer/
   install.json          (Linux, macOS) o que foi instalado
   uninstall.sh          (Linux, macOS)
   unins000.exe          (Windows)

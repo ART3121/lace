@@ -1,5 +1,5 @@
 // O que evita reler o projeto em ciclo, sem depender do VS Code. Reler roda
-// `lace status`, que lê o .spf; se uma releitura mudasse o .spf, o vigia
+// `aurora status`, que lê o .spf; se uma releitura mudasse o .spf, o vigia
 // avisaria de novo, e assim por diante. Como no watcher.rs do Studio, só
 // mudança de verdade conta: aqui, conteúdo diferente do da última leitura.
 

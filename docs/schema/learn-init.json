@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "LearnInitReport",
-  "description": "`lace learn init`: a pasta de exercícios criada.",
+  "description": "`aurora learn init`: a pasta de exercícios criada.",
   "type": "object",
   "properties": {
     "root": {

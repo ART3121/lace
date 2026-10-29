@@ -48,11 +48,11 @@ pub struct Settings {
     /// `--quartus` da CLI. `None`: o `LACE_QUARTUS`, o `QUARTUS_ROOTDIR` e as
     /// pastas padrão do instalador.
     pub quartus_dir: Option<String>,
-    /// As trilhas do `lace learn` de outra pasta, como o `LACE_LEARN_DIR` da
+    /// As trilhas do `aurora learn` de outra pasta, como o `LACE_LEARN_DIR` da
     /// CLI: é como quem escreve exercícios os testa no Studio. `None`: as do
-    /// componente `lace-learn`.
+    /// componente `aurora-learn`.
     pub learn_dir: Option<String>,
-    /// O programa `lace` que o Studio abre como servidor (`lace serve`).
+    /// O programa `aurora` que o Studio abre como servidor (`aurora serve`).
     /// `None`: o da instalação do bundle. Para desenvolvimento, um build em
     /// `target/`; a variável `LACE_STUDIO_LACE` vale antes desta preferência.
     pub lace_path: Option<String>,
@@ -74,7 +74,7 @@ pub struct Settings {
     /// Reabrir o último projeto ao iniciar.
     pub restore_last_project: bool,
     /// Procurar Lace mais novo ao abrir o Studio e, com ele aberto, a cada
-    /// 12 horas (`lace update --check`), e oferecer a atualização.
+    /// 12 horas (`aurora update --check`), e oferecer a atualização.
     pub check_updates: bool,
     /// O shell do terminal no Windows: `powershell` (o Windows PowerShell)
     /// ou `cmd` (o Prompt de Comando). Nos outros sistemas não vale: o
@@ -96,7 +96,7 @@ pub struct Settings {
     /// O executável do Claude Code para o assistente (ou a pasta dele);
     /// `None` procura no `PATH` e nas pastas dos instaladores.
     pub assistant_claude: Option<String>,
-    /// O `lace` que serve as ferramentas ao assistente; `None` é o da
+    /// O `aurora` que serve as ferramentas ao assistente; `None` é o da
     /// instalação do bundle. Para desenvolvimento, um build em `target/`.
     pub assistant_lace: Option<String>,
     /// O modelo do assistente (`--model` do Claude Code); `None` é o padrão.

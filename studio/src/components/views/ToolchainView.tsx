@@ -1,7 +1,7 @@
-// O bundle do Lace: o equivalente gráfico do `lace tools`, com a conferência
-// dos hashes, a busca de atualização (`lace update --check`), a atualização
-// (`lace update --yes`, depois de confirmar, e o reinício do Studio, em
-// state/updates.ts) e a instalação de componentes (`lace install`). A saída
+// O bundle do Lace: o equivalente gráfico do `aurora tools`, com a conferência
+// dos hashes, a busca de atualização (`aurora update --check`), a atualização
+// (`aurora update --yes`, depois de confirmar, e o reinício do Studio, em
+// state/updates.ts) e a instalação de componentes (`aurora install`). A saída
 // da última instalação ou atualização aparece aqui.
 
 import { CircleArrowUp, CircleCheck, CircleX, Download, RefreshCw, ShieldCheck } from 'lucide-react';
@@ -82,7 +82,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
           <Button icon={verifying ? <Spinner /> : <ShieldCheck size={14} />} disabled={verifying} onClick={() => void verify()}>
             {t('toolchain.verify')}
           </Button>
-          <Button icon={checking ? <Spinner /> : <Download size={14} />} disabled={checking || !info.lace_cli} onClick={checkUpdates}>
+          <Button icon={checking ? <Spinner /> : <Download size={14} />} disabled={checking || !info.aurora_cli} onClick={checkUpdates}>
             {t('toolchain.checkUpdates')}
           </Button>
         </div>
@@ -98,7 +98,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
         <dt>{t('toolchain.origin')}</dt>
         <dd>{info.origin ? t(`toolchain.origin.${info.origin}`) : '-'}</dd>
         <dt>{t('toolchain.laceCli')}</dt>
-        <dd className="mono">{info.lace_cli ?? '-'}</dd>
+        <dd className="mono">{info.aurora_cli ?? '-'}</dd>
       </dl>
 
       {cliLog && (
@@ -232,7 +232,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
                 <button
                   type="button"
                   className="link"
-                  disabled={!!running || !info.lace_cli}
+                  disabled={!!running || !info.aurora_cli}
                   onClick={() => openDialog({ kind: 'install', components: [name] })}
                 >
                   {t('toolchain.install')}

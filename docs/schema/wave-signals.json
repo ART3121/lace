@@ -347,7 +347,7 @@
           "const": "check_syntax"
         },
         {
-          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `lace check --lint`.",
+          "description": "`verilator --lint-only`: a verificação mais rigorosa (larguras, sinais\nsem uso), com `aurora check --lint`.",
           "type": "string",
           "const": "lint"
         },

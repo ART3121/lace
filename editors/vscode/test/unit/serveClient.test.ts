@@ -1,4 +1,4 @@
-// O ServeLaceClient contra um lace serve falso dentro do processo: o
+// O ServeLaceClient contra um aurora serve falso dentro do processo: o
 // handshake, o que cada método manda, a volta para os relatórios da CLI, os
 // eventos, o cancelamento, a morte do processo e o encerramento.
 
@@ -31,7 +31,7 @@ interface Incoming {
 /** O que o servidor falso responde a um pedido. */
 type Script = (request: Incoming, server: FakeServe) => void;
 
-/** Um lace serve falso: os streams de um processo, roteado por `script`. */
+/** Um aurora serve falso: os streams de um processo, roteado por `script`. */
 class FakeServe extends EventEmitter implements ServeProcess {
   readonly stdin = new PassThrough();
   readonly stdout = new PassThrough();
@@ -298,7 +298,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'build', processors: ['soma'] },
-          options: { command: 'lace build -p soma', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora build -p soma', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -307,7 +307,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'check', lint: true, file: '/a.v' },
-          options: { command: 'lace check /a.v --lint', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora check /a.v --lint', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -323,7 +323,7 @@ describe('ServeLaceClient', () => {
             processor: 'soma',
             timeout_s: 30,
           },
-          options: { command: 'lace sim -p soma --fast --timeout 30', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora sim -p soma --fast --timeout 30', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -332,7 +332,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'simulate', simulator: 'icarus', fast: false, open_wave: false, testbench: '/tb.v' },
-          options: { command: 'lace sim /tb.v', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora sim /tb.v', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -341,7 +341,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'synthesize', schematic: true, open_viewer: false },
-          options: { command: 'lace synth --svg', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora synth --svg', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -442,7 +442,7 @@ describe('ServeLaceClient', () => {
         );
       }
       const outcome = outcomeFrom('synthesize', {});
-      outcome.schematic_error = { code: 'module_not_found', message: 'No module x', hint: 'lace synth' };
+      outcome.schematic_error = { code: 'module_not_found', message: 'No module x', hint: 'aurora synth' };
       return server.respond(request.id as number, outcome);
     });
     const sim = await client.sim(spf);
@@ -452,7 +452,7 @@ describe('ServeLaceClient', () => {
     const synth = await client.synth(spf);
     assert.deepEqual(synth, {
       status: 'error',
-      error: { code: 'module_not_found', message: 'No module x', hint: 'lace synth' },
+      error: { code: 'module_not_found', message: 'No module x', hint: 'aurora synth' },
     });
     await client.dispose();
   });
@@ -464,13 +464,13 @@ describe('ServeLaceClient', () => {
         request.id as number,
         -32000,
         'No Lace project here',
-        withData ? { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: lace new' } : undefined,
+        withData ? { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new' } : undefined,
       ),
     );
     const run = await client.status(spf);
     assert.deepEqual(run, {
       status: 'error',
-      error: { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: lace new' },
+      error: { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new' },
     });
     withData = false;
     await assert.rejects(client.status(spf), LaceProcessError);

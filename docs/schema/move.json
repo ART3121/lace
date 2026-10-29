@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "MoveReport",
-  "description": "`lace move`.",
+  "description": "`aurora move`.",
   "type": "object",
   "properties": {
     "project": {

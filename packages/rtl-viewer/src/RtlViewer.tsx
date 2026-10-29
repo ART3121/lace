@@ -6,7 +6,7 @@
 // lado, e o destaque segue a rede do netlist, não a geometria dos fios.
 //
 // Não conhece quem o abriga. O Studio, a extensão do VS Code e o HTML do
-// `lace synth --open` passam o estado (createRtlViewerStore) e o que só eles
+// `aurora synth --open` passam o estado (createRtlViewerStore) e o que só eles
 // sabem fazer: abrir o fonte, gravar o SVG, sintetizar de novo.
 
 import {

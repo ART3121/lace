@@ -1,7 +1,7 @@
 // As chamadas ao backend, com os tipos de entrada e saída. O resto da
 // interface só fala com o backend por aqui. Cada função chama um comando
 // Tauri do Studio ou, por `lace()`, um método do protocolo do Lace, que o
-// backend repassa ao servidor (`lace serve`). Referência: docs/IPC.md.
+// backend repassa ao servidor (`aurora serve`). Referência: docs/IPC.md.
 
 import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -77,7 +77,7 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 }
 
 /** Um método do protocolo do Lace, pelo servidor do Studio (`server.rs`):
- * o mesmo pedido e a mesma resposta do `lace serve` (docs/PROTOCOL.md). Sem
+ * o mesmo pedido e a mesma resposta do `aurora serve` (docs/PROTOCOL.md). Sem
  * `project` nos parâmetros, vale o projeto aberto. */
 function lace<T>(method: string, params?: Record<string, unknown>): Promise<T> {
   return call<T>('lace_call', { method, params: params ?? null });
@@ -117,7 +117,7 @@ export const api = {
     recent: () => call<RecentStatus[]>('recent_projects'),
     forgetRecent: (spf: string) => call<void>('recent_forget', { spf }),
     /** Abre uma onda no surfer-aurora: com `path`, aquele arquivo (a onda de
-     * um exercício do `lace learn` vem com o layout da correção); sem, a da
+     * um exercício do `aurora learn` vem com o layout da correção); sem, a da
      * simulação do processador ou, sem processador, a do projeto. Um arquivo
      * vai com `project: null`, para não esperar na fila do projeto aberto. */
     openWave: (processor?: string | null, path?: string | null) =>
@@ -173,7 +173,7 @@ export const api = {
     /** Campo ausente fica com o padrão da AURORA; sem `nubits`, com
      * `nbmant` ou `nbexpo` dados, ele vira `nbmant + nbexpo + 1`. */
     addProcessor: (request: NewProcessorRequest) => lace<Processor>('processor.add', { spec: request }),
-    /** Tira o processador do projeto (`lace proc remove`); com `toTrash`, a
+    /** Tira o processador do projeto (`aurora proc remove`); com `toTrash`, a
      * pasta dele vai para a lixeira, e sem, fica no disco. */
     removeProcessor: (name: string, toTrash: boolean) =>
       lace<ProcRemoveReport>('processor.remove', { name, to_trash: toTrash }),
@@ -203,7 +203,7 @@ export const api = {
     convertLayout: () => lace<LayoutConversion>('project.convert'),
     /** `null` se o nome de projeto serve; senão o erro do Core. */
     checkName: (name: string) => lace<NameCheck>('project.check_name', { name }).then(nameError),
-    /** Muda a posição de um arquivo na lista dele (`lace order`); devolve
+    /** Muda a posição de um arquivo na lista dele (`aurora order`); devolve
      * a lista na ordem nova. */
     reorder: (path: string, position: ListPosition) =>
       lace<ProjectFile[]>('project.order', { file: path, position }),
@@ -250,7 +250,7 @@ export const api = {
       lace<string[]>('history.plan_cleanup', { cleanup: cleanupOf(cleanup) }),
     clean: (ids: string[]) => lace<CleanReport>('history.clean', { ids }),
   },
-  /** Os exercícios do `lace learn` (commands/learn.rs); a correção é o fluxo `learn`. */
+  /** Os exercícios do `aurora learn` (commands/learn.rs); a correção é o fluxo `learn`. */
   learn: {
     tracks: () => lace<LearnTracks>('learn.tracks'),
     /** Abre a pasta de exercícios que contém `root` e a põe em dia com a
@@ -264,7 +264,7 @@ export const api = {
   },
 
   /** Os recursos experimentais do Lace, pelo servidor: o mesmo
-   * `experimental.json` do `lace experimental` da CLI. */
+   * `experimental.json` do `aurora experimental` da CLI. */
   experimental: {
     list: () => lace<ExperimentalReport>('experimental.list'),
     set: (feature: Feature, enabled: boolean) =>
@@ -299,7 +299,7 @@ export const api = {
       channel.onmessage = onMessage;
       return call<number>('lace_install', { components, channel });
     },
-    /** `lace update --yes --json`: só depois de o usuário confirmar. */
+    /** `aurora update --yes --json`: só depois de o usuário confirmar. */
     update: (onMessage: (m: JobMessage) => void) => {
       const channel = new Channel<JobMessage>();
       channel.onmessage = onMessage;

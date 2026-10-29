@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ReportShowReport",
-  "description": "`lace report` e `lace report show`: um relatório guardado.",
+  "description": "`aurora report` e `aurora report show`: um relatório guardado.",
   "type": "object",
   "properties": {
     "id": {

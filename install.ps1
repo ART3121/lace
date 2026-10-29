@@ -181,5 +181,5 @@
     }
     Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
     if ($p.ExitCode -ne 0) { throw "The installer exited with code $($p.ExitCode)" }
-    Write-Host "Done. Open a new terminal and run: lace tools --verify"
+    Write-Host "Done. Open a new terminal and run: aurora tools --verify"
 }

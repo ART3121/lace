@@ -1,5 +1,5 @@
 // O LaceClient pela linha de comando, e o único lugar da extensão que cria
-// processos (o `lace serve` do serveClient.ts também nasce aqui). Cada
+// processos (o `aurora serve` do serveClient.ts também nasce aqui). Cada
 // chamada roda `lace -C <.spf> --json ...` (ou `--events`) sem shell, com os
 // caminhos como argumentos, e interpreta o código de saída como o
 // docs/CLI.md descreve.
@@ -53,7 +53,7 @@ export interface LaceLog {
 }
 
 /**
- * Abre um `lace serve` com stdin, stdout e stderr em pipes: o processo do
+ * Abre um `aurora serve` com stdin, stdout e stderr em pipes: o processo do
  * ServeLaceClient. Sem shell e sem janela, como os comandos.
  */
 export function spawnServe(command: LaceCommand): ChildProcess {
@@ -98,7 +98,7 @@ export class CliLaceClient implements LaceClient {
   ) {}
 
   /**
-   * A versão, da linha do `lace --version`. É o único texto que a extensão
+   * A versão, da linha do `aurora --version`. É o único texto que a extensão
    * lê do lace: nenhum comando dá a versão em JSON.
    */
   async version(): Promise<string> {
@@ -107,7 +107,7 @@ export class CliLaceClient implements LaceClient {
       stdout += chunk;
     });
     if (done.code !== EXIT_SUCCEEDED) {
-      throw new LaceProcessError(`lace --version ${describe(done)}`, done.code, done.stderr);
+      throw new LaceProcessError(`aurora --version ${describe(done)}`, done.code, done.stderr);
     }
     const version = parseVersionLine(stdout);
     if (version === undefined) {

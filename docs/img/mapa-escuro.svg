@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="942" viewBox="0 0 1000 942" role="img" aria-labelledby="titulo descricao">
 <title id="titulo">Mapa do Lace</title>
-<desc id="descricao">A linha de comando lace e o lace serve linkam as bibliotecas Rust do Lace: lace-protocol, lace-core, lace-learn, lace-installer e lace-agent. O lace-protocol, o contrato do lace serve (pedidos, respostas e schemas), usa os tipos do lace-core, do lace-learn e do lace-installer. O Lace Studio abre o lace serve como processo filho e fala com ele por JSON-RPC, como a extensão do VS Code; do Lace, o Studio só linka o lace-agent, do Assistente. Um agente de IA, como o Claude Code, fala com o mesmo servidor em MCP, pelo lace mcp. O lace-agent, do lace chat e da vista Assistente, abre o Claude Code com o lace mcp. O lace-core executa as ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora) e o Quartus Prime, e lê e grava os arquivos do projeto. O lace-installer baixa das releases do GitHub e instala e atualiza o bundle.</desc>
+<desc id="descricao">A linha de comando lace e o aurora serve linkam as bibliotecas Rust do Lace: aurora-protocol, aurora-core, aurora-learn, aurora-installer e aurora-agent. O aurora-protocol, o contrato do aurora serve (pedidos, respostas e schemas), usa os tipos do aurora-core, do aurora-learn e do aurora-installer. O Lace Studio abre o aurora serve como processo filho e fala com ele por JSON-RPC, como a extensão do VS Code; do Lace, o Studio só linka o aurora-agent, do Assistente. Um agente de IA, como o Claude Code, fala com o mesmo servidor em MCP, pelo aurora mcp. O aurora-agent, do aurora chat e da vista Assistente, abre o Claude Code com o aurora mcp. O aurora-core executa as ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys, Graphviz, surfer-aurora) e o Quartus Prime, e lê e grava os arquivos do projeto. O aurora-installer baixa das releases do GitHub e instala e atualiza o bundle.</desc>
 <defs><marker id="seta" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/></marker></defs>
 <rect width="1000" height="942" rx="12" fill="#0d1117"/>
 <rect x="20" y="262" width="960" height="282" rx="12" fill="#161b22" stroke="#30363d"/>
@@ -33,8 +33,8 @@
 <path d="M737.24,884 L767.24,884" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#seta)"/>
 <rect x="20" y="24" width="220" height="80" rx="8" fill="#1b2540" stroke="#6f86c6" stroke-width="1.5"/>
 <text x="130" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">lace</text>
-<text x="130" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#aab7d9" text-anchor="middle">crates/lace-cli</text>
-<text x="130" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">linha de comando, lace chat</text>
+<text x="130" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#aab7d9" text-anchor="middle">crates/aurora-cli</text>
+<text x="130" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">linha de comando, aurora chat</text>
 <rect x="260" y="24" width="220" height="80" rx="8" fill="#1b2540" stroke="#6f86c6" stroke-width="1.5"/>
 <text x="370" y="50" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">Lace Studio</text>
 <text x="370" y="69" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#aab7d9" text-anchor="middle">studio/</text>
@@ -48,24 +48,24 @@
 <text x="870" y="69" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">Claude Code, Claude Desktop</text>
 <text x="870" y="86" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">ou outro cliente MCP</text>
 <rect x="400" y="150" width="305" height="70" rx="8" fill="#1b2540" stroke="#6f86c6" stroke-width="1.5"/>
-<text x="552.5" y="171" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">lace serve</text>
+<text x="552.5" y="171" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">aurora serve</text>
 <text x="552.5" y="190" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">JSON-RPC 2.0 por stdin e stdout;</text>
 <text x="552.5" y="207" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">fala MCP com um agente</text>
 <rect x="735" y="150" width="145" height="70" rx="8" fill="#1b2540" stroke="#6f86c6" stroke-width="1.5"/>
-<text x="807.5" y="171" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">lace mcp</text>
+<text x="807.5" y="171" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">aurora mcp</text>
 <text x="807.5" y="190" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">o mesmo servidor,</text>
 <text x="807.5" y="207" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#aab7d9" text-anchor="middle">sempre em MCP</text>
 <rect x="770.131" y="211" width="74.738" height="18" rx="9" fill="#272115" stroke="#9e6a03"/>
 <text x="807.5" y="224" font-size="10" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#d29922" text-anchor="middle" font-weight="600">experimental</text>
 <rect x="216" y="290" width="360" height="56" rx="8" fill="#0d1117" stroke="#6f86c6" stroke-width="2"/>
-<text x="396" y="312.5" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">lace-protocol</text>
+<text x="396" y="312.5" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">aurora-protocol</text>
 <text x="396" y="331.5" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">o contrato: pedidos, respostas e schemas</text>
 <rect x="36" y="394" width="150" height="80" rx="8" fill="#0d1117" stroke="#6f86c6" stroke-width="2"/>
-<text x="111" y="420" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">lace-installer</text>
+<text x="111" y="420" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">aurora-installer</text>
 <text x="111" y="439" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">instala, atualiza</text>
 <text x="111" y="456" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">e remove o bundle</text>
 <rect x="216" y="370" width="360" height="140" rx="8" fill="#2e4374" stroke="#9bb0e8" stroke-width="2"/>
-<text x="396" y="398" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#ffffff" text-anchor="middle" font-weight="600">lace-core</text>
+<text x="396" y="398" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#ffffff" text-anchor="middle" font-weight="600">aurora-core</text>
 <text x="396" y="417" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#d5ddf3" text-anchor="middle">projeto, fluxos, relatórios e o bundle</text>
 <rect x="227" y="434" width="80" height="28" rx="6" fill="#3d5590" stroke="#3d5590"/>
 <text x="267" y="452.5" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#ffffff" text-anchor="middle">flows</text>
@@ -84,12 +84,12 @@
 <rect x="485" y="468" width="80" height="28" rx="6" fill="#3d5590" stroke="#3d5590"/>
 <text x="525" y="486.5" font-size="12.5" font-family="'Cascadia Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace" fill="#ffffff" text-anchor="middle">fpga</text>
 <rect x="606" y="394" width="164" height="80" rx="8" fill="#0d1117" stroke="#6f86c6" stroke-width="2"/>
-<text x="688" y="420" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">lace-learn</text>
+<text x="688" y="420" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">aurora-learn</text>
 <text x="688" y="439" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">corrige os exercícios</text>
 <text x="688" y="456" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">das trilhas</text>
 <rect x="840" y="394" width="126" height="80" rx="8" fill="#0d1117" stroke="#6f86c6" stroke-width="2"/>
-<text x="903" y="420" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">lace-agent</text>
-<text x="903" y="439" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">lace chat e</text>
+<text x="903" y="420" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">aurora-agent</text>
+<text x="903" y="439" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">aurora chat e</text>
 <text x="903" y="456" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">Assistente</text>
 <rect x="865.631" y="465" width="74.738" height="18" rx="9" fill="#272115" stroke="#9e6a03"/>
 <text x="903" y="478" font-size="10" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#d29922" text-anchor="middle" font-weight="600">experimental</text>
@@ -126,7 +126,7 @@
 <text x="425.329" y="794.5" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#f4efe6" text-anchor="middle" font-weight="600">openFPGALoader</text>
 <text x="240" y="830.5" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">exercícios</text>
 <rect x="364" y="812" width="137.677" height="28" rx="6" fill="#262219" stroke="#4a4235"/>
-<text x="432.839" y="830.5" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#f4efe6" text-anchor="middle" font-weight="600">trilhas do lace learn</text>
+<text x="432.839" y="830.5" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#f4efe6" text-anchor="middle" font-weight="600">trilhas do aurora learn</text>
 <rect x="659" y="606" width="150" height="80" rx="8" fill="#0d1117" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="734" y="632" font-size="15" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#e6edf3" text-anchor="middle" font-weight="600">Quartus Prime</text>
 <text x="734" y="651" font-size="13" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle">da Intel, instalado</text>
@@ -163,7 +163,7 @@
 <text x="775.24" y="888" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">quem chama, linka ou abre quem</text>
 <rect x="25.631" y="901" width="74.738" height="18" rx="9" fill="#272115" stroke="#9e6a03"/>
 <text x="63" y="914" font-size="10" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#d29922" text-anchor="middle" font-weight="600">experimental</text>
-<text x="114" y="914" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">desligado por padrão: lace experimental enable &lt;componente&gt;, ou Preferências &gt; Experimental no Studio</text>
+<text x="114" y="914" font-size="12" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start">desligado por padrão: aurora experimental enable &lt;componente&gt;, ou Preferências &gt; Experimental no Studio</text>
 <text x="448" y="132" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="start" stroke="#0d1117" stroke-width="5" stroke-linejoin="round" paint-order="stroke">abre</text>
 <text x="250" y="236" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="middle" stroke="#0d1117" stroke-width="5" stroke-linejoin="round" paint-order="stroke">linkam as bibliotecas</text>
 <text x="895" y="244" font-size="12.5" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif" fill="#9da7b3" text-anchor="end" stroke="#0d1117" stroke-width="5" stroke-linejoin="round" paint-order="stroke">abre o Claude Code</text>

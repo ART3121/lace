@@ -10,7 +10,7 @@ tipo de mudança. A arquitetura está em [ARCHITECTURE.md](ARCHITECTURE.md).
 | Rust | 1.90 ou mais novo (`rust-version` do `src-tauri/Cargo.toml`) | o backend; o Tauri 2.12 pede 1.90 |
 | Node.js | 22 | a interface (Vite, TypeScript) |
 | Dependências de sistema do Tauri | ver abaixo | WebView e GTK |
-| O repositório do Lace | o Studio está em `studio/` dele | o servidor que o Studio abre (`lace serve`, do `crates/lace-cli`), o `lace-agent` do assistente, que entra por caminho (`../../crates/`, em `src-tauri/Cargo.toml`), e os tipos, que saem de `../docs/schema` |
+| O repositório do Lace | o Studio está em `studio/` dele | o servidor que o Studio abre (`aurora serve`, do `crates/aurora-cli`), o `aurora-agent` do assistente, que entra por caminho (`../../crates/`, em `src-tauri/Cargo.toml`), e os tipos, que saem de `../docs/schema` |
 | Uma instalação do Lace | qualquer | o bundle das ferramentas, para rodar o Studio e os testes de fluxo; ou um bundle em `LACE_TEST_BUNDLE` |
 
 Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
@@ -25,8 +25,8 @@ O Studio está no repositório do Lace, em `studio/`:
 
 ```
 lace/
-  crates/lace-cli/    o lace, que o Studio abre como servidor (lace serve)
-  crates/lace-agent/  o assistente, que o Studio linka por caminho
+  crates/aurora-cli/    o lace, que o Studio abre como servidor (aurora serve)
+  crates/aurora-agent/  o assistente, que o Studio linka por caminho
   docs/schema/        os tipos que o npm run gen:types lê
   studio/             este
 ```
@@ -35,18 +35,18 @@ O `src-tauri/` tem o próprio workspace do Cargo e o próprio `Cargo.lock`:
 o `Cargo.toml` da raiz o deixa de fora (`exclude`), para os testes do Core
 e da CLI não precisarem do WebView nem da interface compilada. Os testes
 dos fluxos do Studio pedem o bundle instalado (`LACE_TEST_BUNDLE`) e um
-`lace` para servir, e rodam à mão.
+`aurora` para servir, e rodam à mão.
 
 O Studio não linka o Core: tudo do Lace é pedido ao servidor, um `lace
 serve` filho (ARCHITECTURE.md, seção 3.2). Em desenvolvimento, o servidor
-precisa ser o `lace` do mesmo repositório, que fala os métodos que o Studio
+precisa ser o `aurora` do mesmo repositório, que fala os métodos que o Studio
 pede; o da instalação é de outra versão. Compile antes, na raiz, e aponte o
 Studio para ele com `LACE_STUDIO_LACE` (ou a preferência Programa lace, em
 Preferências > Bundle do Lace):
 
 ```sh
-cargo build -p lace-cli          # na raiz: target/debug/lace
-LACE_STUDIO_LACE=../target/debug/lace npm run tauri dev
+cargo build -p aurora-cli          # na raiz: target/debug/aurora
+LACE_STUDIO_LACE=../target/debug/aurora npm run tauri dev
 ```
 
 O bundle é o da instalação do Lace, achado pelo Studio e passado ao
@@ -82,13 +82,13 @@ campos de texto, em `src/main.tsx`).
 
 Os testes de `src-tauri/tests/flows.rs` rodam, pelo servidor do Lace,
 check, sim, synth e build sobre cópias dos exemplos do Lace, a correção de
-um exercício (`learn`) sobre a trilha de teste do `lace-learn` e as recusas
+um exercício (`learn`) sobre a trilha de teste do `aurora-learn` e as recusas
 do `fpga_build`, com o bundle que o Studio acharia sozinho ou com
-`LACE_TEST_BUNDLE=/caminho/do/toolchain`. O servidor é o `lace` de
-`LACE_STUDIO_LACE` ou, sem ela, o `target/debug/lace` da raiz (compile antes
-com `cargo build -p lace-cli`). Os testes de unidade do `server.rs` que
+`LACE_TEST_BUNDLE=/caminho/do/toolchain`. O servidor é o `aurora` de
+`LACE_STUDIO_LACE` ou, sem ela, o `target/debug/aurora` da raiz (compile antes
+com `cargo build -p aurora-cli`). Os testes de unidade do `server.rs` que
 abrem um servidor de verdade também usam `LACE_STUDIO_LACE`. Sem bundle ou
-sem `lace`, avisam e passam; com `CI` definido, falham.
+sem `aurora`, avisam e passam; com `CI` definido, falham.
 
 Antes de mandar uma mudança: `typecheck`, `clippy` sem aviso, `cargo test`
 e, se mexeu na interface, abrir o Studio e passar pelo que mudou.

@@ -50,7 +50,7 @@ describe('CliLaceClient', () => {
     delete process.env.FAKE_LACE_STATE;
   });
 
-  it('lê a versão da linha do lace --version', async () => {
+  it('lê a versão da linha do aurora --version', async () => {
     const recorded = recordedCases().recordedWith.replace(/^lace /, '');
     assert.equal(await client.version(), recorded);
   });
@@ -83,7 +83,7 @@ describe('CliLaceClient', () => {
     if (run.status === 'error') {
       assert.equal(run.error.code, 'project_not_found');
       assert.match(run.error.message, /No Lace project here/);
-      assert.match(run.error.hint ?? '', /^Create one with: lace new/);
+      assert.match(run.error.hint ?? '', /^Create one with: aurora new/);
     }
   });
 
@@ -215,7 +215,7 @@ describe('CliLaceClient', () => {
     it('wave sem testbench: o erro com a dica', async () => {
       const run = await client.wave(broken, { kind: 'project' });
       assert.equal(run.status === 'error' && run.error.code, 'no_testbench');
-      assert.match(run.status === 'error' ? (run.error.hint ?? '') : '', /lace add/);
+      assert.match(run.status === 'error' ? (run.error.hint ?? '') : '', /aurora add/);
     });
 
     it('add: os arquivos e, com testbench, o --tb', async () => {

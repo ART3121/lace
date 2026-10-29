@@ -36,7 +36,7 @@ for (let i = 0; i < argv.length; i++) {
     rest.push(argv[i]);
   }
 }
-// O projeto do -C; sem ele (o `lace new`, que ainda não tem projeto), a
+// O projeto do -C; sem ele (o `aurora new`, que ainda não tem projeto), a
 // pasta do --dir.
 const dirAt = rest.indexOf('--dir');
 const root =
@@ -79,14 +79,14 @@ function respond(c) {
   if (stderr) {
     process.stderr.write(substitute(stderr, false));
   }
-  // O arquivo que o lace de verdade criou (o modelo do `lace add`), com o
+  // O arquivo que o lace de verdade criou (o modelo do `aurora add`), com o
   // conteúdo gravado: quem chama o abre em seguida.
   for (const created of c.creates ?? []) {
     const path = substitute(created.path, false);
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, substitute(read(created.from), created.from.endsWith('.json') || created.from.endsWith('.spf')));
   }
-  // O que o lace de verdade moveu (o `lace move`).
+  // O que o lace de verdade moveu (o `aurora move`).
   for (const moved of c.moves ?? []) {
     const to = substitute(moved.to, false);
     mkdirSync(dirname(to), { recursive: true });

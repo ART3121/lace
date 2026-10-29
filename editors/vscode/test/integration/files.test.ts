@@ -1,7 +1,7 @@
 // As ferramentas de arquivo dentro do VS Code, com o lace falso: a ordem de
-// compilação (`lace order`), tirar do projeto (`lace remove`), renomear
-// (`lace move`) e o que o explorador faz com um arquivo do projeto
-// (`lace move --after`, `lace remove`).
+// compilação (`aurora order`), tirar do projeto (`aurora remove`), renomear
+// (`aurora move`) e o que o explorador faz com um arquivo do projeto
+// (`aurora move --after`, `aurora remove`).
 
 import * as assert from 'node:assert/strict';
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -36,7 +36,7 @@ describe('Lace: arquivos do projeto', () => {
     }
   });
 
-  it('Subir: lace order --before o de cima, e a vista mostra a ordem nova', async () => {
+  it('Subir: aurora order --before o de cima, e a vista mostra a ordem nova', async () => {
     await run('lace.moveUp', node('design', rtl('somador.v')));
     assert.deepEqual(lastCall('order'), ['-C', spf, '--json', 'order', rtl('somador.v'), '--before', rtl('contador.v')]);
     assert.deepEqual(order(api), ['somador.v', 'contador.v', 'mux.sv', 'soma.v']);
@@ -54,14 +54,14 @@ describe('Lace: arquivos do projeto', () => {
     assert.equal(count('order'), orders);
   });
 
-  it('Tirar do projeto: lace remove, e o arquivo fica no disco', async () => {
+  it('Tirar do projeto: aurora remove, e o arquivo fica no disco', async () => {
     await run('lace.remove', node('design', rtl('somador.v')));
     assert.deepEqual(lastCall('remove'), ['-C', spf, '--json', 'remove', rtl('somador.v')]);
     assert.ok(!api.status?.synthesizable.some((f) => f.path === rtl('somador.v')));
     assert.ok(existsSync(rtl('somador.v')));
   });
 
-  it('Renomear: lace move, e a aba aberta passa ao nome novo', async () => {
+  it('Renomear: aurora move, e a aba aberta passa ao nome novo', async () => {
     await vscode.window.showTextDocument(vscode.Uri.file(rtl('somador.v')));
     await run('lace.rename', node('design', rtl('somador.v')), { to: 'rtl/adder.v' });
     assert.deepEqual(lastCall('move'), ['-C', spf, '--json', 'move', rtl('somador.v'), rtl('adder.v')]);
@@ -70,12 +70,12 @@ describe('Lace: arquivos do projeto', () => {
     assert.ok(api.status?.synthesizable.some((f) => f.path === rtl('adder.v')));
   });
 
-  it('renomeado no explorador: lace move --after', async () => {
+  it('renomeado no explorador: aurora move --after', async () => {
     const moves = count('move');
     const edit = new vscode.WorkspaceEdit();
     edit.renameFile(vscode.Uri.file(rtl('somador.v')), vscode.Uri.file(rtl('adder.v')));
     assert.ok(await vscode.workspace.applyEdit(edit));
-    await until(() => count('move') > moves, 'o lace move --after');
+    await until(() => count('move') > moves, 'o aurora move --after');
     await api.explorerIdle();
     assert.deepEqual(lastCall('move'), ['-C', spf, '--json', 'move', '--after', rtl('somador.v'), rtl('adder.v')]);
     assert.ok(api.status?.synthesizable.some((f) => f.path === rtl('adder.v')));
@@ -91,14 +91,14 @@ describe('Lace: arquivos do projeto', () => {
     assert.equal(count('move'), moves);
   });
 
-  it('apagado no explorador: lace remove', async () => {
+  it('apagado no explorador: aurora remove', async () => {
     const text = readFileSync(rtl('somador.v'));
     const removes = count('remove');
     try {
       const edit = new vscode.WorkspaceEdit();
       edit.deleteFile(vscode.Uri.file(rtl('somador.v')));
       assert.ok(await vscode.workspace.applyEdit(edit));
-      await until(() => count('remove') > removes, 'o lace remove');
+      await until(() => count('remove') > removes, 'o aurora remove');
       await api.explorerIdle();
       assert.deepEqual(lastCall('remove'), ['-C', spf, '--json', 'remove', rtl('somador.v')]);
     } finally {

@@ -1,1 +1,1 @@
-{"error":{"code":"project_not_found","message":"No Lace project here: no .spf file in ${ROOT} or in any folder above it","hint":"Create one with: lace new <name>, or point to it with -C <folder>"}}
+{"error":{"code":"project_not_found","message":"No Lace project here: no .spf file in ${ROOT} or in any folder above it","hint":"Create one with: aurora new <name>, or point to it with -C <folder>"}}

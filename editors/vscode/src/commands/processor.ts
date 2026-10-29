@@ -1,6 +1,6 @@
-// Os processadores SAPHO do projeto: "Novo processador" (`lace proc add`,
+// Os processadores SAPHO do projeto: "Novo processador" (`aurora proc add`,
 // que cria a pasta, o fonte-modelo e registra no .spf) e "Configurar
-// processador" (`lace proc set`: frequência, clocks e exportação de arrays,
+// processador" (`aurora proc set`: frequência, clocks e exportação de arrays,
 // que valem a partir do próximo build).
 
 import * as vscode from 'vscode';
@@ -9,7 +9,7 @@ import type { LaceRun, ProcessorChanges } from '../lace/client';
 import type { Processor, ProcessorStatus } from '../lace/lace-types';
 import { chooseProject, clientFor, processorOf, showLaceError, showProcessError, type CommandDeps } from './common';
 
-/** A regra do Lace (`lace proc add`): letras, dígitos e _, começando por letra ou _. */
+/** A regra do Lace (`aurora proc add`): letras, dígitos e _, começando por letra ou _. */
 export const PROCESSOR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 type Language = 'cmm' | 'cpp';

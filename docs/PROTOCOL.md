@@ -1,8 +1,8 @@
-# Protocolo do `lace serve`
+# Protocolo do `aurora serve`
 
-<!-- Gerado por crates/lace-cli/src/protocol_doc.rs. Não edite à mão: LACE_UPDATE_SCHEMA=1 cargo test -p lace-cli schema -->
+<!-- Gerado por crates/aurora-cli/src/protocol_doc.rs. Não edite à mão: LACE_UPDATE_SCHEMA=1 cargo test -p aurora-cli schema -->
 
-Cada método do `lace serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `lace mcp` usa o mesmo contrato. Esta página sai dos tipos de `lace_protocol` (`crates/lace-protocol/src/lib.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
+Cada método do `aurora serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `aurora mcp` usa o mesmo contrato. Esta página sai dos tipos de `aurora_protocol` (`crates/aurora-protocol/src/lib.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
 
 Como abrir o servidor, a fila por projeto, o cancelamento e o encerramento: [CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp).
 
@@ -38,7 +38,7 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`wave.signals`](#metodo-wave-signals) | [`WaveSignals`](#tipo-wavesignals) | A árvore de sinais do testbench do projeto, com a escolha gravada. |
 | [`wave.choose`](#metodo-wave-choose) | [`WaveChoiceOutcome`](#tipo-wavechoiceoutcome) | Muda a escolha de sinais. |
 | [`wave.reset_layout`](#metodo-wave-reset-layout) | `boolean` | Apaga o layout salvo de uma onda. |
-| [`wave.layout`](#metodo-wave-layout) | [`WaveLayoutInfo`](#tipo-wavelayoutinfo) | O layout do Lace para uma onda, para um visualizador próprio (a aba de onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto da onda (que o gerado atualiza enquanto o usuário não salvar o dele) e o de um exercício do `lace learn`. |
+| [`wave.layout`](#metodo-wave-layout) | [`WaveLayoutInfo`](#tipo-wavelayoutinfo) | O layout do Lace para uma onda, para um visualizador próprio (a aba de onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto da onda (que o gerado atualiza enquanto o usuário não salvar o dele) e o de um exercício do `aurora learn`. |
 | [`verilog.modules`](#metodo-verilog-modules) | lista de `string` | Os módulos declarados num texto Verilog, sem os comentados, na ordem (o contorno de um editor). |
 | [`verilog.testbench_names`](#metodo-verilog-testbench-names) | lista de `boolean` | Quais nomes de arquivo são de testbench pela regra do Lace (`tb_<nome>.v`, `<nome>_tb.v`). |
 | [`history.list`](#metodo-history-list) | lista de [`RunSummary`](#tipo-runsummary) | Os relatórios do projeto, do mais novo para o mais antigo. |
@@ -61,12 +61,12 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`update.check`](#metodo-update-check) | [`UpdateReport`](#tipo-updatereport) | As versões: este Lace, a última release, o bundle, cada componente. |
 | [`update.apply`](#metodo-update-apply) | [`UpdateReport`](#tipo-updatereport) | Atualiza a instalação. |
 | [`install.add`](#metodo-install-add) | [`InstallReport`](#tipo-installreport) | Instala componentes do bundle. |
-| [`learn.check`](#metodo-learn-check) | [`LearnCheckOutcome`](#tipo-learncheckoutcome) | Corrige um exercício do `lace learn` (ou todos). |
-| [`learn.tracks`](#metodo-learn-tracks) | [`LearnTracks`](#tipo-learntracks) | De onde vêm as trilhas do `lace learn` e quais há. |
+| [`learn.check`](#metodo-learn-check) | [`LearnCheckOutcome`](#tipo-learncheckoutcome) | Corrige um exercício do `aurora learn` (ou todos). |
+| [`learn.tracks`](#metodo-learn-tracks) | [`LearnTracks`](#tipo-learntracks) | De onde vêm as trilhas do `aurora learn` e quais há. |
 | [`learn.status`](#metodo-learn-status) | [`WorkspaceSnapshot`](#tipo-workspacesnapshot) | Abre a pasta de exercícios que contém `root` e a põe em dia com a trilha. |
-| [`learn.init`](#metodo-learn-init) | [`WorkspaceSnapshot`](#tipo-workspacesnapshot) | Cria a pasta de exercícios (`lace learn init`). |
+| [`learn.init`](#metodo-learn-init) | [`WorkspaceSnapshot`](#tipo-workspacesnapshot) | Cria a pasta de exercícios (`aurora learn init`). |
 | [`learn.set_current`](#metodo-learn-set-current) | [`WorkspaceSnapshot`](#tipo-workspacesnapshot) | Torna atual um exercício. |
-| [`learn.reset`](#metodo-learn-reset) | `null` | Volta o arquivo de um exercício ao começo (`lace learn reset`). |
+| [`learn.reset`](#metodo-learn-reset) | `null` | Volta o arquivo de um exercício ao começo (`aurora learn reset`). |
 
 ### Sessão
 
@@ -348,7 +348,7 @@ mostrar antes de rodar. Resposta: o texto.
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `request` | [`FlowRequest`](#tipo-flowrequest) | sim | O fluxo. |
-| `program` | `string` \| `null` | não (padrão: `null`) | O programa que começa o comando; sem ele, `lace`. |
+| `program` | `string` \| `null` | não (padrão: `null`) | O programa que começa o comando; sem ele, `aurora`. |
 
 Resultado: `string`.
 
@@ -412,7 +412,7 @@ Resultado: `boolean`.
 O layout do Lace para uma onda, para um visualizador próprio (a aba de
 onda do Studio): o gerado dos processadores SAPHO, o salvo no projeto
 da onda (que o gerado atualiza enquanto o usuário não salvar o dele)
-e o de um exercício do `lace learn`. Resposta: [`WaveLayoutInfo`](#tipo-wavelayoutinfo).
+e o de um exercício do `aurora learn`. Resposta: [`WaveLayoutInfo`](#tipo-wavelayoutinfo).
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -722,8 +722,8 @@ Resultado: [`InstallReport`](#tipo-installreport).
 
 #### `learn.check`
 
-Corrige um exercício do `lace learn` (ou todos). Resposta: o
-relatório da correção do lace-learn.
+Corrige um exercício do `aurora learn` (ou todos). Resposta: o
+relatório da correção do aurora-learn.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -737,7 +737,7 @@ Resultado: [`LearnCheckOutcome`](#tipo-learncheckoutcome).
 
 #### `learn.tracks`
 
-De onde vêm as trilhas do `lace learn` e quais há. Resposta: `{dir,
+De onde vêm as trilhas do `aurora learn` e quais há. Resposta: `{dir,
 tracks}`.
 
 Sem parâmetros.
@@ -750,7 +750,7 @@ Resultado: [`LearnTracks`](#tipo-learntracks).
 
 Abre a pasta de exercícios que contém `root` e a põe em dia com a
 trilha. Resposta: o retrato da pasta (o `WorkspaceSnapshot` do
-lace-learn).
+aurora-learn).
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -763,7 +763,7 @@ Resultado: [`WorkspaceSnapshot`](#tipo-workspacesnapshot).
 
 #### `learn.init`
 
-Cria a pasta de exercícios (`lace learn init`). Resposta: o retrato
+Cria a pasta de exercícios (`aurora learn init`). Resposta: o retrato
 da pasta.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
@@ -792,7 +792,7 @@ Resultado: [`WorkspaceSnapshot`](#tipo-workspacesnapshot).
 
 #### `learn.reset`
 
-Volta o arquivo de um exercício ao começo (`lace learn reset`).
+Volta o arquivo de um exercício ao começo (`aurora learn reset`).
 Resposta: nada.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
@@ -949,6 +949,18 @@ O papel de um arquivo produzido por uma operação. Em JSON, em
 | `"raw_binary"` | O bitstream cru, sem compressão (`.rbf`, Raw Binary File), que o openFPGALoader grava. |
 | `"serial_vector_format"` | A gravação como vetores JTAG (`.svf`, Serial Vector Format), que o openFPGALoader também grava. |
 
+<a id="tipo-auroraversions"></a>
+
+### `AuroraVersions`
+
+As versões do Lace em `aurora update`.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `installed` | `string` | sim | A versão deste `aurora`. |
+| `latest` | `string` | sim | A versão da última release no GitHub. |
+| `newer` | `boolean` | sim | `latest` é mais nova que `installed`. |
+
 <a id="tipo-availability"></a>
 
 ### `Availability`
@@ -1083,7 +1095,7 @@ Um componente instalado (`components/<nome>.json`).
 
 ### `BundleVersions`
 
-As versões do bundle em `lace update`.
+As versões do bundle em `aurora update`.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -1242,7 +1254,7 @@ temperatura) que o Timing Analyzer analisa.
 
 ### `ComponentVersions`
 
-Um componente instalado em `lace update`.
+Um componente instalado em `aurora update`.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -1375,8 +1387,8 @@ outro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,
 
 ### `ErrorInfo`
 
-Um `LaceError` pronto para atravessar uma fronteira: o JSON da CLI, a
-mensagem do Studio para a interface, a resposta do `lace serve`. É o que
+Um `AuroraError` pronto para atravessar uma fronteira: o JSON da CLI, a
+mensagem do Studio para a interface, a resposta do `aurora serve`. É o que
 o código, o texto e os campos da variante viram quando o enum não vai.
 
 ```json
@@ -1385,25 +1397,25 @@ o código, o texto e os campos da variante viram quando o enum não vai.
   "data": { "name": "x", "available": ["soma", "filtro"] } }
 ```
 
-A dica de cada interface (o comando `lace` que resolve, o botão do
+A dica de cada interface (o comando `aurora` que resolve, o botão do
 Studio) não mora aqui: a mensagem do Core é neutra, e quem mostra decide
 pelo `code`. Um erro que não é do Core (o `busy` do Studio, o `cli` da
 CLI) usa o mesmo tipo com `ErrorInfo::new` e um código próprio.
 
 ```rust
-use lace_core::{ErrorInfo, LaceError};
+use aurora_core::{ErrorInfo, AuroraError};
 
-let info = ErrorInfo::from(LaceError::ProcessorExists("soma".into()));
+let info = ErrorInfo::from(AuroraError::ProcessorExists("soma".into()));
 assert_eq!(info.code, "processor_exists");
 assert_eq!(info.data.unwrap()["name"], "soma");
 ```
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `code` | `string` | sim | O identificador estável: `LaceError::code`, ou um código de quem chamou (`busy`, `cli`), sempre em `snake_case`. |
+| `code` | `string` | sim | O identificador estável: `AuroraError::code`, ou um código de quem chamou (`busy`, `cli`), sempre em `snake_case`. |
 | `message` | `string` | sim | O texto do erro, em inglês, pronto para mostrar. |
-| `hint` | `string` \| `null` | não | O que fazer, quando quem mostra sabe: o comando `lace` que resolve, na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no JSON quando não há. |
-| `data` | qualquer JSON | não | Os campos estruturados da variante, quando ela os tem (`LaceError::data`): `available`, `files`, `name`, `value`, `reason`, `path`, `component`. Omitido no JSON quando não há. |
+| `hint` | `string` \| `null` | não | O que fazer, quando quem mostra sabe: o comando `aurora` que resolve, na CLI. O core não o preenche; a mensagem dele é neutra. Omitido no JSON quando não há. |
+| `data` | qualquer JSON | não | Os campos estruturados da variante, quando ela os tem (`AuroraError::data`): `available`, `files`, `name`, `value`, `reason`, `path`, `component`. Omitido no JSON quando não há. |
 
 <a id="tipo-event"></a>
 
@@ -1500,8 +1512,8 @@ Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,
 
 | Valor | Descrição |
 |---|---|
-| `"fpga"` | A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus Prime e a gravação na placa (`lace fpga`, a aba Placa FPGA do Studio). |
-| `"assistant"` | O assistente de IA: o `lace mcp` (as ferramentas do Lace para um agente), o `lace chat` e a vista Assistente do Studio, sobre o Claude Code instalado na máquina (o crate `lace-agent`). |
+| `"fpga"` | A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus Prime e a gravação na placa (`aurora fpga`, a aba Placa FPGA do Studio). |
+| `"assistant"` | O assistente de IA: o `aurora mcp` (as ferramentas do Lace para um agente), o `aurora chat` e a vista Assistente do Studio, sobre o Claude Code instalado na máquina (o crate `aurora-agent`). |
 
 <a id="tipo-featurestate"></a>
 
@@ -1595,7 +1607,7 @@ O que é da interface, não do fluxo.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `command` | `string` | sim | O texto do comando para o histórico e para o console (`lace sim -p soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um cliente sem linha de comando monta com `FlowRequest::command_line`. |
+| `command` | `string` | sim | O texto do comando para o histórico e para o console (`aurora sim -p soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um cliente sem linha de comando monta com `FlowRequest::command_line`. |
 | `wave` | [`WavePolicy`](#tipo-wavepolicy) | não (padrão: `"window"`) | Como abrir a onda quando o pedido tem `open_wave`. |
 | `viewer_opener` | `string` \| `null` | não (padrão: `null`) | Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do sistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o `LACE_OPENER=vscode` do terminal da extensão do VS Code). |
 
@@ -1631,7 +1643,7 @@ ou vazios.
 | `report_error` | `string` \| `null` | sim | Por que o relatório não foi gravado (o fluxo não falha por isso). |
 | `fpga` | [`FpgaBuildResult`](#tipo-fpgabuildresult) \| `null` | sim | A compilação para a placa. |
 | `fpga_program` | [`FpgaProgramResult`](#tipo-fpgaprogramresult) \| `null` | sim | A gravação na placa. |
-| `learn` | qualquer JSON | sim | A correção de um exercício (`learn`): o `Grade` do lace-learn, em JSON (o core não conhece o tipo). |
+| `learn` | qualquer JSON | sim | A correção de um exercício (`learn`): o `Grade` do aurora-learn, em JSON (o core não conhece o tipo). |
 
 <a id="tipo-flowportvalues"></a>
 
@@ -1745,9 +1757,9 @@ sem relatório.
 
 **`flow: "learn"`**
 
-Corrige um exercício do `lace learn` e grava se ele está resolvido;
+Corrige um exercício do `aurora learn` e grava se ele está resolvido;
 a correção vai em `FlowOutcome::learn`. Quem roda é o servidor do
-Lace, que linka o lace-learn: o `run` do core responde
+Lace, que linka o aurora-learn: o `run` do core responde
 `unsupported`. Sem relatório.
 
 | Campo | Tipo | Obrigatório | Descrição |
@@ -1775,7 +1787,7 @@ O resultado de `build`.
 | `bitstream` | `string` \| `null` | sim | O `.sof`, quando a compilação terminou. |
 | `resources` | lista de [`ResourceUsage`](#tipo-resourceusage) | sim | O que o design usa da FPGA, do resumo do Fitter, quando ele terminou. |
 | `timing` | [`TimingSummary`](#tipo-timingsummary) \| `null` | sim | A Fmax e as folgas de cada clock, quando a análise de tempo terminou. |
-| `notes` | lista de `string` | sim | Os ajustes das ligações do `fpga.json` (larguras completadas, entradas soltas), como em `lace fpga check`. |
+| `notes` | lista de `string` | sim | Os ajustes das ligações do `fpga.json` (larguras completadas, entradas soltas), como em `aurora fpga check`. |
 | `duration_ms` | `integer` | sim | Quanto a compilação levou, do começo ao fim, em milissegundos. |
 
 <a id="tipo-fpgaconfig"></a>
@@ -1867,7 +1879,7 @@ O resultado de `hierarchy`.
 
 ### `InstallReport`
 
-`lace install` (`docs/schema/install.json`).
+`aurora install` (`docs/schema/install.json`).
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -1948,18 +1960,6 @@ Como gravar a placa pela USB dela.
 | `position` | `integer` | sim | A posição do FPGA na cadeia JTAG, a partir de 1. Na DE10-Nano o FPGA vem depois do processador ARM (HPS). |
 | `openfpgaloader` | `string` \| `null` | não | O nome da placa no openFPGALoader (`-b`), se ele a conhece. |
 
-<a id="tipo-laceversions"></a>
-
-### `LaceVersions`
-
-As versões do Lace em `lace update`.
-
-| Campo | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| `installed` | `string` | sim | A versão deste `lace`. |
-| `latest` | `string` | sim | A versão da última release no GitHub. |
-| `newer` | `boolean` | sim | `latest` é mais nova que `installed`. |
-
 <a id="tipo-language"></a>
 
 ### `Language`
@@ -2015,7 +2015,7 @@ Sem campos.
 **`kind: "file"`**
 
 Um arquivo de estado ou de comandos do Surfer (o layout de um
-exercício do lace-learn).
+exercício do aurora-learn).
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -2200,7 +2200,7 @@ Como o bundle foi achado.
 | `"environment"` | A pasta declarada no ambiente (`LACE_TOOLCHAIN`). |
 | `"bundled"` | O bundle em que o programa está instalado. |
 | `"installation"` | Uma pasta padrão do instalador. |
-| `"path"` | O `lace` do `PATH`. |
+| `"path"` | O `aurora` do `PATH`. |
 | `"beside"` | Ao lado do executável. |
 
 <a id="tipo-outputcheck"></a>
@@ -2236,7 +2236,7 @@ Uma saída no contraexemplo.
 ### `Phase`
 
 A fase de um fluxo que começou. Os nomes são os que o Studio mostra;
-`Learn` é a correção de um exercício do lace-learn, que o Studio nomeia
+`Learn` é a correção de um exercício do aurora-learn, que o Studio nomeia
 com o mesmo tipo.
 
 | Valor | Descrição |
@@ -2249,7 +2249,7 @@ com o mesmo tipo.
 | `"schematic"` | Desenhando o esquemático. |
 | `"rtl_viewer"` | Gravando e abrindo o RTL viewer. |
 | `"wave"` | Abrindo a onda. |
-| `"learn"` | Corrigindo um exercício do `lace learn`. |
+| `"learn"` | Corrigindo um exercício do `aurora learn`. |
 | `"fpga"` | Compilando para a placa (Quartus). |
 | `"program"` | Gravando na placa (Quartus Programmer). |
 
@@ -2678,7 +2678,7 @@ O que `initialize` devolve.
 |---|---|---|---|
 | `lace` | `string` | sim | A versão do Lace. |
 | `protocol` | `integer` | sim | A versão do protocolo (`PROTOCOL_VERSION`). |
-| `prefix` | `string` \| `null` | sim | A pasta da instalação do Lace, quando o servidor é o `lace` instalado. |
+| `prefix` | `string` \| `null` | sim | A pasta da instalação do Lace, quando o servidor é o `aurora` instalado. |
 | `experimental` | mapa de `string` para `boolean` | sim | Cada recurso experimental e se está ligado. |
 | `methods` | lista de `string` | sim | Os métodos que este servidor atende. |
 
@@ -2884,7 +2884,7 @@ Um passo de uma operação. Em JSON, em `snake_case` (`"pre_assemble"`).
 | `"pre_assemble"` | `appcomp`, do YANC até a 6.x, nos relatórios antigos (o `asmcomp` da 7.1 faz as duas passadas). |
 | `"assemble"` | `asmcomp`: assembly para Verilog e memórias. |
 | `"check_syntax"` | `iverilog -t null`: só confere se o Verilog elabora. |
-| `"lint"` | `verilator --lint-only`: a verificação mais rigorosa (larguras, sinais sem uso), com `lace check --lint`. |
+| `"lint"` | `verilator --lint-only`: a verificação mais rigorosa (larguras, sinais sem uso), com `aurora check --lint`. |
 | `"elaborate"` | `iverilog`: Verilog para o `.vvp` do Icarus. |
 | `"verilate"` | `verilator --binary`: Verilog para um executável C++. |
 | `"simulate"` | `vvp` ou o executável do Verilator rodando o testbench. |
@@ -3217,7 +3217,7 @@ Uma ferramenta do bundle: onde está, ou por que não está.
 
 ### `ToolchainInfo`
 
-O que uma tela de ferramentas mostra: o `lace tools` em dados. Nunca
+O que uma tela de ferramentas mostra: o `aurora tools` em dados. Nunca
 falha: um bundle que não abriu vira `found: false` com o erro
 (`describe_error`).
 
@@ -3236,7 +3236,7 @@ falha: um bundle que não abriu vira `found: false` com o erro
 | `compiler_error` | [`ErrorInfo`](#tipo-errorinfo) \| `null` | sim | O compilador declarado não serve. |
 | `quartus` | [`Quartus`](#tipo-quartus) \| `null` | sim | O Quartus Prime do sistema, se encontrado. |
 | `quartus_error` | [`ErrorInfo`](#tipo-errorinfo) \| `null` | sim | A pasta declarada do Quartus não serve. |
-| `lace_cli` | `string` \| `null` | sim | A CLI `lace` da instalação. |
+| `aurora_cli` | `string` \| `null` | sim | A CLI `aurora` da instalação. |
 | `surfer_web` | `string` \| `null` | sim | O cliente web do Surfer (`surfer-aurora/web`), para a onda numa aba; `None` num bundle que não o traz. |
 
 <a id="tipo-topoutcome"></a>
@@ -3267,13 +3267,13 @@ Uma porta do topo.
 
 ### `UpdateAction`
 
-O que `lace update` fez.
+O que `aurora update` fez.
 
 | Valor | Descrição |
 |---|---|
 | `"checked"` | `--check`: só comparou as versões. |
 | `"up_to_date"` | Não há Lace mais novo publicado: nada mudou. |
-| `"updated"` | A instalação foi trocada (por componentes, ou pelo instalador no Linux e no macOS). O `lace` em uso é o antigo: quem chamou termina e reinicia. |
+| `"updated"` | A instalação foi trocada (por componentes, ou pelo instalador no Linux e no macOS). O `aurora` em uso é o antigo: quem chamou termina e reinicia. |
 | `"wizard_opened"` | O assistente de instalação do Windows foi aberto e termina depois que quem chamou sai. |
 
 <a id="tipo-updatechanges"></a>
@@ -3284,7 +3284,7 @@ O que a atualização por componentes trocou.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `components` | lista de `string` | sim | Os componentes com arquivos que entraram ou saíram, na ordem do bundle; `lace` é o próprio Lace e o cabeçalho do bundle. |
+| `components` | lista de `string` | sim | Os componentes com arquivos que entraram ou saíram, na ordem do bundle; `aurora` é o próprio Lace e o cabeçalho do bundle. |
 | `download_bytes` | `integer` | sim | Bytes baixados. |
 | `files` | `integer` | sim | Arquivos que entraram (novos ou trocados). |
 | `removed` | `integer` | sim | Arquivos que saíram. |
@@ -3293,7 +3293,7 @@ O que a atualização por componentes trocou.
 
 ### `UpdateMethod`
 
-Como `lace update` atualizou.
+Como `aurora update` atualizou.
 
 | Valor | Descrição |
 |---|---|
@@ -3304,14 +3304,14 @@ Como `lace update` atualizou.
 
 ### `UpdateReport`
 
-O relatório do `lace update` (`docs/schema/update.json`).
+O relatório do `aurora update` (`docs/schema/update.json`).
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `lace` | [`LaceVersions`](#tipo-laceversions) | sim | O Lace: este e o da última release. |
+| `lace` | [`AuroraVersions`](#tipo-auroraversions) | sim | O Lace: este e o da última release. |
 | `bundle` | [`BundleVersions`](#tipo-bundleversions) | sim | O bundle de ferramentas: o instalado e o da última release. |
 | `components` | lista de [`ComponentVersions`](#tipo-componentversions) | sim | Cada componente instalado, na ordem do manifesto do bundle. Vazio sem bundle. |
-| `prefix` | `string` \| `null` | sim | A pasta da instalação; `null` se este `lace` não foi instalado pelo instalador (um build em `target/`, por exemplo). |
+| `prefix` | `string` \| `null` | sim | A pasta da instalação; `null` se este `aurora` não foi instalado pelo instalador (um build em `target/`, por exemplo). |
 | `action` | [`UpdateAction`](#tipo-updateaction) | sim | O que o comando fez. |
 | `method` | [`UpdateMethod`](#tipo-updatemethod) \| `null` | sim | Como atualizou; `null` quando não atualizou. |
 | `changes` | [`UpdateChanges`](#tipo-updatechanges) \| `null` | sim | O que a atualização por componentes trocou, ou vai trocar com `--check --from`; `null` quando ela não rodou. |
@@ -3409,7 +3409,7 @@ onda com o layout do Lace.
 | `layout` | [`WaveLayout`](#tipo-wavelayout) \| `null` | sim | O layout dos processadores SAPHO, gerado da onda; `None` sem processador. |
 | `saved` | [`SavedLayout`](#tipo-savedlayout) \| `null` | sim | O layout salvo no projeto da onda (`wave/<testbench>.surf.ron`), onde o Surfer salva (Ctrl+S): o do usuário, se ele salvou depois da última geração, senão o gerado agora; `None` numa onda fora de projeto. |
 | `layout_error` | `string` \| `null` | sim | Por que o layout não foi gerado (a onda abre sem ele). |
-| `exercise_layout` | `string` \| `null` | sim | Os comandos do Surfer de um exercício do `lace learn` (o `.lace-learn/wave.sucl` ao lado da onda), quando a onda é de um. |
+| `exercise_layout` | `string` \| `null` | sim | Os comandos do Surfer de um exercício do `aurora learn` (o `.aurora-learn/wave.sucl` ao lado da onda), quando a onda é de um. |
 
 <a id="tipo-waveopened"></a>
 

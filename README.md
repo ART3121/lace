@@ -21,8 +21,8 @@ processador soft-core do NIPS-CERN (UFJF). Cria projetos, compila C± e C com
 o YANC, verifica e simula com Icarus Verilog e Verilator, sintetiza com
 Yosys, desenha o esquemático com Graphviz e abre as ondas no surfer-aurora.
 
-Duas interfaces sobre o mesmo núcleo (`lace-core`): a linha de comando
-`lace` e a [AURORA IDE](studio/README.md), o ambiente gráfico (editor,
+Duas interfaces sobre o mesmo núcleo (`aurora-core`): a linha de comando
+`aurora` e a [AURORA IDE](studio/README.md), o ambiente gráfico (editor,
 compilação, simulação e ondas numa janela), em `studio/`. O instalador
 traz os dois. Para quem prefere o VS Code, a
 [extensão do Lace](editors/vscode/README.md) usa a linha de comando e se
@@ -97,7 +97,7 @@ No macOS, troque `linux-x64` por `darwin-arm64`. Baixe pelo `curl`, não
 pelo navegador: o instalador não é assinado, e o macOS recusa abrir um
 arquivo baixado pelo navegador (ver [docs/INSTALL.md](docs/INSTALL.md)).
 
-Para remover o Lace com o bundle inteiro: `lace uninstall`.
+Para remover o Lace com o bundle inteiro: `aurora uninstall`.
 
 ### Perfis e componentes
 
@@ -115,19 +115,19 @@ Lace (CLI & Core) vem sempre.
 |---|---|
 | AURORA IDE | o ambiente gráfico; no Linux precisa do webkit2gtk 4.1 do sistema |
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO |
-| Icarus Verilog | simulador Verilog, o padrão do `lace sim`, e a verificação do `lace check` |
-| Verilator | simulador compilado e o `lace check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles |
-| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`lace sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`lace sim --verilator`) |
-| Yosys | síntese; lê as portas para o testbench-modelo do `lace add` |
+| Icarus Verilog | simulador Verilog, o padrão do `aurora sim`, e a verificação do `aurora check` |
+| Verilator | simulador compilado e o `aurora check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles |
+| cocotb | testbenches em Python, com o Python que os roda; precisa do Icarus. O Lace roda os testes no Icarus (`aurora sim test_x.py`, ou Wave e Rápida no Studio) e, com o componente Verilator, no Verilator (`aurora sim --verilator`) |
+| Yosys | síntese; lê as portas para o testbench-modelo do `aurora add` |
 | Graphviz (dot) | desenho do esquemático; precisa do Yosys |
 | surfer-aurora | visualizador de formas de onda |
 | openFPGALoader | gravador de placas FPGA pelo cabo USB; o Lace ainda não o chama (as placas Intel são gravadas pelo `quartus_pgm` do Quartus) |
-| Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`lace learn`, e a vista Exercícios do Studio); precisa do Icarus |
-| RTL viewer | o esquemático interativo do netlist da síntese, no navegador (`lace synth --open`); precisa do Yosys |
+| Lace Learn | exercícios de Verilog corrigidos a cada gravação, no estilo do rustlings (`aurora learn`, e a vista Exercícios do Studio); precisa do Icarus |
+| RTL viewer | o esquemático interativo do netlist da síntese, no navegador (`aurora synth --open`); precisa do Yosys |
 
 Para instalar um aplicativo do bundle depois, sem reinstalar o Lace:
-`lace install`, que abre a lista no terminal, ou `lace install verilator`.
-Para ver se há versão nova do Lace e das ferramentas: `lace update --check`.
+`aurora install`, que abre a lista no terminal, ou `aurora install verilator`.
+Para ver se há versão nova do Lace e das ferramentas: `aurora update --check`.
 
 Detalhes, remoção e problemas conhecidos: [docs/INSTALL.md](docs/INSTALL.md).
 Quem tem o Solar 0.1.0 (o nome anterior do Lace) desinstala o Solar antes:
@@ -151,7 +151,7 @@ VS Code, abra Extensões, o menu `...` e **Install from VSIX...**. Para
 atualizar, instale o `.vsix` novo do mesmo jeito; para remover, desinstale
 pela aba Extensões.
 
-A extensão ativa numa pasta com `.spf` e procura o `lace` no `PATH`. Se o
+A extensão ativa numa pasta com `.spf` e procura o `aurora` no `PATH`. Se o
 VS Code não o achar (no Linux e no macOS, aberto pelo menu do sistema, ele
 pode não ver o `~/.local/bin`), ponha o caminho do executável na
 configuração `lace.path`. O que ela faz, e o que cada versão do Lace
@@ -160,35 +160,35 @@ habilita: [editors/vscode/README.md](editors/vscode/README.md).
 ## Depois de instalar
 
 ```sh
-lace tools --verify        # o bundle, as versões e a conferência dos hashes
+aurora tools --verify        # o bundle, as versões e a conferência dos hashes
 ```
 
 Um projeto do Lace é Verilog; processadores SAPHO são uma etapa a mais, que
 o YANC compila antes de verificar, simular ou sintetizar. Verilog:
 
 ```sh
-lace new contador
+aurora new contador
 cd contador
-lace add contador.v        # cria o módulo e o registra como topo
-lace add contador_tb.v     # cria o testbench, que já instancia contador
-lace check                 # Icarus: o design e cada testbench
-lace hierarchy             # a árvore de instâncias do design e do testbench
-lace sim                   # simula e mostra o que o testbench escreve, enquanto roda
-lace wave                  # abre a onda no surfer-aurora
+aurora add contador.v        # cria o módulo e o registra como topo
+aurora add contador_tb.v     # cria o testbench, que já instancia contador
+aurora check                 # Icarus: o design e cada testbench
+aurora hierarchy             # a árvore de instâncias do design e do testbench
+aurora sim                   # simula e mostra o que o testbench escreve, enquanto roda
+aurora wave                  # abre a onda no surfer-aurora
 ```
 
 Um testbench sem `$finish` não termina sozinho: o Ctrl+C encerra a
-simulação, e `lace sim --timeout 30` a encerra depois de 30 s.
+simulação, e `aurora sim --timeout 30` a encerra depois de 30 s.
 
 Processador SAPHO:
 
 ```sh
-lace new demo
+aurora new demo
 cd demo
-lace proc add filtro       # cria filtro/filtro.cmm
-lace build                 # C± -> Verilog, memórias e testbench, pelo YANC
-lace sim -p filtro         # simula e mostra as saídas
-lace wave -p filtro
+aurora proc add filtro       # cria filtro/filtro.cmm
+aurora build                 # C± -> Verilog, memórias e testbench, pelo YANC
+aurora sim -p filtro         # simula e mostra as saídas
+aurora wave -p filtro
 ```
 
 Cada `build`, `check`, `sim` e `synth` grava um relatório no projeto
@@ -196,19 +196,19 @@ Cada `build`, `check`, `sim` e `synth` grava um relatório no projeto
 passo e, na síntese, as estatísticas do Yosys:
 
 ```sh
-lace synth                 # sintetiza e grava o relatório
-lace report                # o relatório mais novo
-lace report list           # todos, do mais novo para o mais antigo
-lace report compare        # o mais novo contra o anterior comparável
+aurora synth                 # sintetiza e grava o relatório
+aurora report                # o relatório mais novo
+aurora report list           # todos, do mais novo para o mais antigo
+aurora report compare        # o mais novo contra o anterior comparável
 ```
 
 Os projetos seguem a estrutura do YANC 7.1: o fonte e os valores de entrada
 ficam na pasta do processador (`filtro/filtro.cmm`, `filtro/input_0.txt`,
 um valor por linha), e tudo o que o YANC gera, com as saídas da simulação,
 em `filtro/filtro/`. Um projeto da estrutura antiga (`Software/`,
-`Hardware/`, `Simulation/`) é convertido com `lace convert`, ou pelo Studio
+`Hardware/`, `Simulation/`) é convertido com `aurora convert`, ou pelo Studio
 ao abri-lo. Para mover ou renomear um
-arquivo do projeto sem tirá-lo do `.spf`, use `lace move` (`lace move
+arquivo do projeto sem tirá-lo do `.spf`, use `aurora move` (`aurora move
 contador.v rtl/`). Caminhos na linha de comando são relativos ao diretório
 atual do shell. A referência da linha de comando,
 com as regras de cada fluxo, está em [docs/CLI.md](docs/CLI.md).
@@ -224,23 +224,23 @@ as ferramentas rodam. O formato de cada um está em
   <a href="docs/img/mapa.svg">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/img/mapa-escuro.svg">
-      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o lace-protocol por cima do lace-core, do lace-learn e do lace-installer; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
+      <img src="docs/img/mapa.svg" alt="Mapa do Lace: as interfaces em cima; no meio, as bibliotecas Rust, com o aurora-protocol por cima do aurora-core, do aurora-learn e do aurora-installer; embaixo, as ferramentas do bundle, o Quartus, o projeto e as releases; as setas dizem quem chama, linka ou abre quem">
     </picture>
   </a>
 </p>
 
-A linha de comando `lace` linka as bibliotecas e chama as funções do
-`lace-core`. Os outros programas falam com um processo filho, o servidor do
-Lace (`lace serve`), por JSON-RPC: a AURORA IDE, que o abre sozinha, a
+A linha de comando `aurora` linka as bibliotecas e chama as funções do
+`aurora-core`. Os outros programas falam com um processo filho, o servidor do
+Lace (`aurora serve`), por JSON-RPC: a AURORA IDE, que o abre sozinha, a
 extensão do VS Code e scripts. Os pedidos e as respostas são os do crate
-`lace-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA
-fala com o mesmo servidor em MCP: o `lace serve` reconhece o idioma pelo
-primeiro pedido, e o `lace mcp` é o mesmo servidor, sempre em MCP
+`aurora-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA
+fala com o mesmo servidor em MCP: o `aurora serve` reconhece o idioma pelo
+primeiro pedido, e o `aurora mcp` é o mesmo servidor, sempre em MCP
 ([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
-O `lace chat` e a vista Assistente do Studio usam o `lace-agent`, que abre o
-Claude Code com o `lace mcp`. O `lace mcp`, o `lace chat` e a vista
+O `aurora chat` e a vista Assistente do Studio usam o `aurora-agent`, que abre o
+Claude Code com o `aurora mcp`. O `aurora mcp`, o `aurora chat` e a vista
 Assistente são experimentais: só funcionam depois de
-`lace experimental enable assistant`.
+`aurora experimental enable assistant`.
 
 ## Documentação
 
@@ -249,13 +249,13 @@ Assistente são experimentais: só funcionam depois de
 | [docs/INSTALL.md](docs/INSTALL.md) | instalar, mudar componentes, remover |
 | [studio/README.md](studio/README.md) | a AURORA IDE: usar, compilar, a documentação dela (`studio/docs/`) |
 | [editors/vscode/README.md](editors/vscode/README.md) | a extensão do VS Code: o que faz, configurações, compilar e testar |
-| [docs/CLI.md](docs/CLI.md) | a linha de comando `lace` |
-| [docs/LEARN.md](docs/LEARN.md) | os exercícios do `lace learn`: fazer e escrever |
-| [docs/FPGA.md](docs/FPGA.md) | as placas FPGA pelo Quartus Prime, um componente experimental (`lace experimental enable fpga`) |
-| [docs/API.md](docs/API.md) | a API do `lace-core`, que a CLI e o `lace serve` usam |
-| [docs/PROTOCOL.md](docs/PROTOCOL.md) | cada método do `lace serve` e do `lace mcp`, com os parâmetros, o resultado, as notificações, os erros e os tipos; gerado dos tipos |
+| [docs/CLI.md](docs/CLI.md) | a linha de comando `aurora` |
+| [docs/LEARN.md](docs/LEARN.md) | os exercícios do `aurora learn`: fazer e escrever |
+| [docs/FPGA.md](docs/FPGA.md) | as placas FPGA pelo Quartus Prime, um componente experimental (`aurora experimental enable fpga`) |
+| [docs/API.md](docs/API.md) | a API do `aurora-core`, que a CLI e o `aurora serve` usam |
+| [docs/PROTOCOL.md](docs/PROTOCOL.md) | cada método do `aurora serve` e do `aurora mcp`, com os parâmetros, o resultado, as notificações, os erros e os tipos; gerado dos tipos |
 | [docs/BUNDLE.md](docs/BUNDLE.md) | o que vem no bundle, como montá-lo e o que vem do sistema |
-| [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando e o do protocolo do `lace serve` (`protocol-request.json`, `protocol-response.json`) |
+| [docs/schema/](docs/schema/) | o JSON Schema do `--json` e do `--events` de cada comando e o do protocolo do `aurora serve` (`protocol-request.json`, `protocol-response.json`) |
 | [docs/RELEASE.md](docs/RELEASE.md) | as releases: que número cada uma recebe, quando lançar e o passo a passo |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | como contribuir: preparar a máquina, onde mudar o quê, o que conferir |
 | [docs/METODOLOGIA.md](docs/METODOLOGIA.md) | como o código se organiza e como a API muda sem quebrar quem a usa |
@@ -266,7 +266,7 @@ Assistente são experimentais: só funcionam depois de
 ```sh
 cargo build --release
 python3 scripts/bundle.py --out dist/toolchain     # o bundle de ferramentas, com o Studio
-target/release/lace tools --toolchain dist/toolchain --verify
+target/release/aurora tools --toolchain dist/toolchain --verify
 ```
 
 O Studio sozinho, para desenvolver: `cd studio && npm install && npm run tauri dev`

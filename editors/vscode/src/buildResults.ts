@@ -1,4 +1,4 @@
-// Os erros e avisos do YANC no painel Problemas: os do `lace build` e os do
+// Os erros e avisos do YANC no painel Problemas: os do `aurora build` e os do
 // build que o sim e o synth fazem antes. Uma coleção própria, separada da do
 // check: um check não apaga os erros do último build, e o contrário também.
 // Cada processador troca só os dele.

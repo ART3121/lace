@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "FpgaCheckReport",
-  "description": "`lace fpga check`: o `fpga.json` conferido.",
+  "description": "`aurora fpga check`: o `fpga.json` conferido.",
   "type": "object",
   "properties": {
     "config": {

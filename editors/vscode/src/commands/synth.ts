@@ -1,4 +1,4 @@
-// "Lace: Sintetizar": `lace synth` no topo do projeto ou num processador, no
+// "Lace: Sintetizar": `aurora synth` no topo do projeto ou num processador, no
 // Yosys, e o RTL viewer com o netlist que ela grava (SynthesisResult.netlist).
 // Com lace.synth.schematic, também o esquemático do Graphviz (`--svg`). As
 // estatísticas são as células genéricas do Yosys, sem mapeamento para FPGA.

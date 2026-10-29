@@ -626,7 +626,7 @@
               "$ref": "#/$defs/FlowRequest"
             },
             "program": {
-              "description": "O programa que começa o comando; sem ele, `lace`.",
+              "description": "O programa que começa o comando; sem ele, `aurora`.",
               "type": [
                 "string",
                 "null"
@@ -762,7 +762,7 @@
       ]
     },
     {
-      "description": "O layout do Lace para uma onda, para um visualizador próprio (a aba de\nonda do Studio): o gerado dos processadores SAPHO, o salvo no projeto\nda onda (que o gerado atualiza enquanto o usuário não salvar o dele)\ne o de um exercício do `lace learn`. Resposta: [`WaveLayoutInfo`].",
+      "description": "O layout do Lace para uma onda, para um visualizador próprio (a aba de\nonda do Studio): o gerado dos processadores SAPHO, o salvo no projeto\nda onda (que o gerado atualiza enquanto o usuário não salvar o dele)\ne o de um exercício do `aurora learn`. Resposta: [`WaveLayoutInfo`].",
       "type": "object",
       "properties": {
         "method": {
@@ -1378,7 +1378,7 @@
       ]
     },
     {
-      "description": "Corrige um exercício do `lace learn` (ou todos). Resposta: o\nrelatório da correção do lace-learn.",
+      "description": "Corrige um exercício do `aurora learn` (ou todos). Resposta: o\nrelatório da correção do aurora-learn.",
       "type": "object",
       "properties": {
         "method": {
@@ -1417,7 +1417,7 @@
       ]
     },
     {
-      "description": "De onde vêm as trilhas do `lace learn` e quais há. Resposta: `{dir,\ntracks}`.",
+      "description": "De onde vêm as trilhas do `aurora learn` e quais há. Resposta: `{dir,\ntracks}`.",
       "type": "object",
       "properties": {
         "method": {
@@ -1430,7 +1430,7 @@
       ]
     },
     {
-      "description": "Abre a pasta de exercícios que contém `root` e a põe em dia com a\ntrilha. Resposta: o retrato da pasta (o `WorkspaceSnapshot` do\nlace-learn).",
+      "description": "Abre a pasta de exercícios que contém `root` e a põe em dia com a\ntrilha. Resposta: o retrato da pasta (o `WorkspaceSnapshot` do\naurora-learn).",
       "type": "object",
       "properties": {
         "method": {
@@ -1464,7 +1464,7 @@
       ]
     },
     {
-      "description": "Cria a pasta de exercícios (`lace learn init`). Resposta: o retrato\nda pasta.",
+      "description": "Cria a pasta de exercícios (`aurora learn init`). Resposta: o retrato\nda pasta.",
       "type": "object",
       "properties": {
         "method": {
@@ -1545,7 +1545,7 @@
       ]
     },
     {
-      "description": "Volta o arquivo de um exercício ao começo (`lace learn reset`).\nResposta: nada.",
+      "description": "Volta o arquivo de um exercício ao começo (`aurora learn reset`).\nResposta: nada.",
       "type": "object",
       "properties": {
         "method": {
@@ -2003,7 +2003,7 @@
           ]
         },
         {
-          "description": "Corrige um exercício do `lace learn` e grava se ele está resolvido;\na correção vai em [`FlowOutcome::learn`]. Quem roda é o servidor do\nLace, que linka o lace-learn: o [`run`] do core responde\n`unsupported`. Sem relatório.",
+          "description": "Corrige um exercício do `aurora learn` e grava se ele está resolvido;\na correção vai em [`FlowOutcome::learn`]. Quem roda é o servidor do\nLace, que linka o aurora-learn: o [`run`] do core responde\n`unsupported`. Sem relatório.",
           "type": "object",
           "properties": {
             "root": {
@@ -2047,7 +2047,7 @@
       "type": "object",
       "properties": {
         "command": {
-          "description": "O texto do comando para o histórico e para o console (`lace sim -p\nsoma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um\ncliente sem linha de comando monta com [`FlowRequest::command_line`].",
+          "description": "O texto do comando para o histórico e para o console (`aurora sim -p\nsoma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um\ncliente sem linha de comando monta com [`FlowRequest::command_line`].",
           "type": "string"
         },
         "wave": {
@@ -2190,7 +2190,7 @@
           ]
         },
         {
-          "description": "Um arquivo de estado ou de comandos do Surfer (o layout de um\nexercício do lace-learn).",
+          "description": "Um arquivo de estado ou de comandos do Surfer (o layout de um\nexercício do aurora-learn).",
           "type": "object",
           "properties": {
             "path": {

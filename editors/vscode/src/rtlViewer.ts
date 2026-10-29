@@ -1,8 +1,8 @@
 // O RTL viewer do Lace numa aba do VS Code: o bundle de packages/rtl-viewer
 // (media/rtl-viewer, copiado pelo esbuild.mjs) num webview, com as cores do
 // tema do editor (theme-vscode.css). A extensão lê o netlist que o
-// `lace synth` gravou (SynthesisResult.netlist) e o manda ao webview; se ele
-// muda no disco (um `lace synth` no terminal), quem confere (o ChangePoller
+// `aurora synth` gravou (SynthesisResult.netlist) e o manda ao webview; se ele
+// muda no disco (um `aurora synth` no terminal), quem confere (o ChangePoller
 // da extension.ts) chama reload e o desenho acompanha.
 //
 // O webview avisa quando montou (`ready`) e quando o primeiro desenho
@@ -153,7 +153,7 @@ export class RtlViewerPanel implements vscode.Disposable {
     }
   }
 
-  /** O netlist aberto mudou no disco (um `lace synth` de fora): o desenho acompanha. */
+  /** O netlist aberto mudou no disco (um `aurora synth` de fora): o desenho acompanha. */
   async reload(): Promise<void> {
     if (this.ready) {
       await this.post();

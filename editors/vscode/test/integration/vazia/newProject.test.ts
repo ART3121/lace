@@ -1,5 +1,5 @@
 // Numa pasta sem .spf: a extensão abre sem projeto, e o Novo projeto roda
-// `lace new` sem -C e passa a mostrar o projeto criado.
+// `aurora new` sem -C e passa a mostrar o projeto criado.
 
 import * as assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
@@ -33,7 +33,7 @@ describe('Numa pasta sem .spf', () => {
     assert.equal(api.status, undefined);
   });
 
-  it('Novo projeto: lace new sem -C, e o projeto criado vira o ativo', async () => {
+  it('Novo projeto: aurora new sem -C, e o projeto criado vira o ativo', async () => {
     const result = await run<LaceRun<NewReport>>('lace.newProject', { name: 'novo', dir: workspace });
     assert.equal(result?.status, 'succeeded');
     assert.deepEqual(lastCall('new'), ['--json', 'new', 'novo', '--dir', workspace]);

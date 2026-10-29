@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "type": "module",
-  "description": "O RTL viewer do Lace: o esquemático interativo do netlist do Yosys, para o Studio, o VS Code e o lace synth --open",
+  "description": "O RTL viewer do Lace: o esquemático interativo do netlist do Yosys, para o Studio, o VS Code e o aurora synth --open",
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",

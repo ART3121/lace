@@ -33,7 +33,7 @@ const ACTIONS: Action[] = [
     icon: 'tools',
     command: 'lace.build',
     feature: 'processors',
-    what: 'Compilar os processadores SAPHO com o YANC (lace build)',
+    what: 'Compilar os processadores SAPHO com o YANC (aurora build)',
     cancellable: true,
     needsProcessor: true,
   },
@@ -43,7 +43,7 @@ const ACTIONS: Action[] = [
     icon: 'checklist',
     command: 'lace.check',
     feature: 'check',
-    what: 'Verificar o Verilog do projeto (lace check)',
+    what: 'Verificar o Verilog do projeto (aurora check)',
     cancellable: true,
   },
   {
@@ -52,7 +52,7 @@ const ACTIONS: Action[] = [
     icon: 'play',
     command: 'lace.sim',
     feature: 'sim',
-    what: 'Simular o testbench do projeto (lace sim)',
+    what: 'Simular o testbench do projeto (aurora sim)',
     cancellable: true,
   },
   {
@@ -61,7 +61,7 @@ const ACTIONS: Action[] = [
     icon: 'pulse',
     command: 'lace.wave',
     feature: 'wave',
-    what: 'Abrir a onda da simulação no surfer-aurora (lace wave)',
+    what: 'Abrir a onda da simulação no surfer-aurora (aurora wave)',
     cancellable: false,
   },
   {
@@ -70,7 +70,7 @@ const ACTIONS: Action[] = [
     icon: 'circuit-board',
     command: 'lace.synth',
     feature: 'synth',
-    what: 'Sintetizar o topo no Yosys (lace synth)',
+    what: 'Sintetizar o topo no Yosys (aurora synth)',
     cancellable: true,
   },
 ];

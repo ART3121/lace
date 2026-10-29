@@ -1,4 +1,4 @@
-// "Lace: Simular": `lace sim` no projeto (o testbench simulado), num
+// "Lace: Simular": `aurora sim` no projeto (o testbench simulado), num
 // testbench (que passa a ser o do projeto) ou num processador. O que o
 // testbench escreve sai ao vivo, depois de "|"; no fim, as saídas das
 // portas do processador, os testes cocotb e a onda.

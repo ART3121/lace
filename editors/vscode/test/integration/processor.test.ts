@@ -1,5 +1,5 @@
 // Criar e configurar processadores dentro do VS Code, com o lace falso:
-// `lace proc add` (o fonte-modelo abre no editor) e `lace proc set`.
+// `aurora proc add` (o fonte-modelo abre no editor) e `aurora proc set`.
 
 import * as assert from 'node:assert/strict';
 import { existsSync, rmSync } from 'node:fs';
@@ -23,7 +23,7 @@ describe('Lace: processadores', () => {
     await resetFake(api);
   });
 
-  it('Novo processador: lace proc add, o fonte abre e a vista o mostra', async () => {
+  it('Novo processador: aurora proc add, o fonte abre e a vista o mostra', async () => {
     const source = join(workspace, 'novo', 'novo.cmm');
     try {
       const result = await run<LaceRun<Processor>>('lace.newProcessor', { name: 'novo', language: 'cmm' });
@@ -44,7 +44,7 @@ describe('Lace: processadores', () => {
     assert.equal(result?.status === 'error' && result.error.code, 'processor_exists');
   });
 
-  it('Configurar: lace proc set só com o que muda', async () => {
+  it('Configurar: aurora proc set só com o que muda', async () => {
     const result = await run<LaceRun<Processor>>('lace.configureProcessor', soma, { changes: { frequencyMhz: 50 } });
     assert.equal(result?.status === 'succeeded' && result.result.frequency_mhz, 50);
     assert.deepEqual(lastCall('proc'), ['-C', spf, '--json', 'proc', 'set', 'soma', '--freq', '50']);

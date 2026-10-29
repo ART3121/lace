@@ -2,7 +2,7 @@
 // ficam desligadas até o usuário ligar, em Preferências > Experimental.
 // Quem guarda o que está ligado é o Core (experimental.json, na pasta de
 // configuração do Lace), e a CLI lê o mesmo arquivo: ligar aqui também
-// libera o `lace fpga`, e um `lace experimental enable` dado num terminal
+// libera o `aurora fpga`, e um `aurora experimental enable` dado num terminal
 // vale aqui quando a janela volta a ter o foco (App.tsx).
 //
 // Desligado, um recurso sai da janela: não fica cinza, some. Hoje há dois.

@@ -1,8 +1,8 @@
-//! O assistente: uma sessão do Claude Code com as ferramentas do `lace mcp`.
+//! O assistente: uma sessão do Claude Code com as ferramentas do `aurora mcp`.
 //! É o recurso experimental `assistant` do Lace: desligado, a vista nem
 //! aparece, e `assistant_start` recusa com `experimental_disabled`.
 //!
-//! (`lace_agent`), aberta pela vista Assistente. Cada sessão é um processo
+//! (`aurora_agent`), aberta pela vista Assistente. Cada sessão é um processo
 //! filho; os eventos dele chegam à interface por um `Channel`, e a sessão
 //! vive até a interface pedir para fechar ou o Studio sair.
 //!
@@ -14,8 +14,8 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_agent::locate::Claude;
-use lace_agent::{AgentEvent, Permission, Session, SessionOptions};
+use aurora_agent::locate::Claude;
+use aurora_agent::{AgentEvent, Permission, Session, SessionOptions};
 use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
@@ -41,20 +41,20 @@ pub struct AssistantInfo {
     pub claude: Option<String>,
     /// A versão dele (`claude --version`), se respondeu.
     pub version: Option<String>,
-    /// O `lace` que vai servir as ferramentas, ou `null` se não há.
+    /// O `aurora` que vai servir as ferramentas, ou `null` se não há.
     pub lace: Option<String>,
     /// O projeto padrão das ferramentas (o `.spf` aberto).
     pub project: Option<String>,
 }
 
-/// Onde o Claude Code e o `lace` estão, com as preferências de agora.
+/// Onde o Claude Code e o `aurora` estão, com as preferências de agora.
 #[tauri::command]
 pub async fn assistant_info(app: AppHandle) -> IpcResult<AssistantInfo> {
     blocking(app, |_, state| {
         let settings = state.settings.get();
         let claude = find_claude(&settings);
         Ok(AssistantInfo {
-            version: claude.as_ref().and_then(lace_agent::version),
+            version: claude.as_ref().and_then(aurora_agent::version),
             claude: claude.map(|c| c.display()),
             lace: lace_for(&settings).ok().map(|p| p.to_string()),
             project: state.spf().ok().map(|p| p.to_string()),
@@ -102,7 +102,7 @@ pub async fn assistant_start(
             permission: if settings.assistant_allow_edits {
                 Permission::Edits
             } else {
-                Permission::LaceOnly
+                Permission::AuroraOnly
             },
             allow_update: false,
             model: settings.assistant_model.clone().filter(|m| !m.is_empty()),
@@ -212,7 +212,7 @@ fn with_session<T>(
     }
 }
 
-fn agent_error(error: lace_agent::AgentError) -> IpcError {
+fn agent_error(error: aurora_agent::AgentError) -> IpcError {
     IpcError::new(error.code(), error.to_string())
 }
 
@@ -223,10 +223,10 @@ fn find_claude(settings: &Settings) -> Option<Claude> {
         .as_deref()
         .filter(|p| !p.trim().is_empty())
         .map(Utf8Path::new);
-    lace_agent::find_claude(configured)
+    aurora_agent::find_claude(configured)
 }
 
-/// O `lace` que serve as ferramentas: a preferência `assistant_lace`, senão
+/// O `aurora` que serve as ferramentas: a preferência `assistant_lace`, senão
 /// o da instalação do bundle.
 fn lace_for(settings: &Settings) -> IpcResult<Utf8PathBuf> {
     if let Some(path) = settings
@@ -275,7 +275,7 @@ fn require_assistant(state: &AppState, settings: &Settings) -> IpcResult<()> {
     }
 }
 
-/// O bundle que o `lace mcp` deve usar, quando não é o da instalação dele:
+/// O bundle que o `aurora mcp` deve usar, quando não é o da instalação dele:
 /// a preferência ou a variável de ambiente.
 fn toolchain_env(settings: &Settings) -> Option<Utf8PathBuf> {
     settings

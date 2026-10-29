@@ -14,7 +14,7 @@ antigo até a versão que renomeia o Lace para AURORA, porque o instalador e
 a atualização dependem deles.
 
 É um aplicativo [Tauri 2](https://tauri.app): o backend em Rust usa o
-`lace-core` como biblioteca, sem passar pela linha de comando, e a interface
+`aurora-core` como biblioteca, sem passar pela linha de comando, e a interface
 é React com o editor Monaco. A regra de negócio continua toda no Lace; o
 Studio só pede e mostra.
 
@@ -26,7 +26,7 @@ cobrir tudo o que a AURORA fazia está em
 
 - O Studio vem no instalador do Lace, como o componente `studio`, marcado em
   todos os perfis ([instalação](../README.md#instalar)); numa
-  instalação sem ele, `lace install studio`. Instalado assim, ele fica no
+  instalação sem ele, `aurora install studio`. Instalado assim, ele fica no
   bundle (`toolchain/studio/`) e usa o bundle em que está. Fora do bundle
   (o `npm run tauri dev`), acha a instalação do Lace sozinho
   (`~/.local/share/lace` no Linux e no macOS, `%LOCALAPPDATA%\Programs\Lace`
@@ -35,8 +35,8 @@ cobrir tudo o que a AURORA fazia está em
   no Ubuntu, `webkit2gtk4.1` no Fedora); no Windows, o WebView2, que vem com
   o Windows 10 e o 11.
 - Para compilar o Studio: Rust 1.90 ou mais novo, Node.js 22 e as
-  dependências de sistema do Tauri. O `lace-core` vem deste mesmo
-  repositório (`../crates/lace-core`). Detalhes em
+  dependências de sistema do Tauri. O `aurora-core` vem deste mesmo
+  repositório (`../crates/aurora-core`). Detalhes em
   [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Rodar a partir do fonte

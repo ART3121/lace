@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "StatusReport",
-  "description": "`lace status`: o projeto inteiro.",
+  "description": "`aurora status`: o projeto inteiro.",
   "type": "object",
   "properties": {
     "name": {
@@ -45,7 +45,7 @@
       ]
     },
     "selected_testbench": {
-      "description": "O testbench que `lace sim` simula.",
+      "description": "O testbench que `aurora sim` simula.",
       "type": [
         "string",
         "null"
@@ -142,7 +142,7 @@
       ]
     },
     "ProcessorStatus": {
-      "description": "Um processador em `lace status`.",
+      "description": "Um processador em `aurora status`.",
       "type": "object",
       "properties": {
         "name": {

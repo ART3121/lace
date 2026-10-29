@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "LearnWaveReport",
-  "description": "`lace learn wave`: a onda aberta no Surfer.",
+  "description": "`aurora learn wave`: a onda aberta no Surfer.",
   "type": "object",
   "properties": {
     "exercise": {

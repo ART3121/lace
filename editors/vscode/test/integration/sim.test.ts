@@ -1,5 +1,5 @@
 // "Lace: Simular" dentro do VS Code, com o lace falso: o botão Sim da barra
-// de status roda `lace sim` pelo --events e guarda como terminou.
+// de status roda `aurora sim` pelo --events e guarda como terminou.
 
 import * as assert from 'node:assert/strict';
 import { join } from 'node:path';
@@ -20,7 +20,7 @@ describe('Lace: Simular', () => {
     await resetFake(api);
   });
 
-  it('o projeto: lace sim pelo --events, e o botão guarda o resultado', async () => {
+  it('o projeto: aurora sim pelo --events, e o botão guarda o resultado', async () => {
     const result = await run<LaceRun<SimReport>>('lace.sim');
     assert.equal(result?.status, 'succeeded');
     assert.deepEqual(lastCall('sim'), ['-C', spf, '--events', 'sim']);
