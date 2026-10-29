@@ -9,7 +9,7 @@ import * as monaco from 'monaco-editor';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
 
-import type { Diagnostic } from '../ipc/lace-types';
+import type { Diagnostic } from '../ipc/aurora-types';
 import { alpha, tokenRule, uiTokens, type Theme } from '../themes';
 import { asmTokenRules, registerAsm } from './languages/asm';
 import { cmmTokenRules, registerCmm } from './languages/cmm';

@@ -1,4 +1,4 @@
-// O RTLViewer numa aba do Studio: o viewer do pacote @lace/rtl-viewer, com o
+// O RTLViewer numa aba do Studio: o viewer do pacote @aurora/rtl-viewer, com o
 // que só o Studio sabe fazer. O netlist acompanha a síntese do Studio (ou a
 // última que ficou no disco), o "Ir ao código" abre a aba do editor, a
 // exportação passa pelo diálogo de salvar, e "Sintetizar de novo" é o
@@ -6,7 +6,7 @@
 
 import { save } from '@tauri-apps/plugin-dialog';
 import workerUrl from 'elkjs/lib/elk-worker.min.js?url';
-import { RtlViewer, setLayoutWorker, type SourceRef } from '@lace/rtl-viewer';
+import { RtlViewer, setLayoutWorker, type SourceRef } from '@aurora/rtl-viewer';
 import { useCallback, useEffect, useState } from 'react';
 
 import { runSynthesis } from '../../actions';

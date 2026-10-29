@@ -1,21 +1,21 @@
-// Grava, com o lace de verdade, as respostas que o lace falso dos testes
-// devolve (test/fixtures/responses/). Precisa de um lace com o bundle: o
+// Grava, com o aurora de verdade, as respostas que o aurora falso dos testes
+// devolve (test/fixtures/responses/). Precisa de um aurora com o bundle: o
 // build do processador usa o YANC; o check e a simulação, o Icarus; o lint,
 // o Verilator; e o wave abre o surfer-aurora (uma janela por onda, que o
 // script fecha em seguida).
 //
 // O teste de contrato valida as respostas contra o docs/schema/ deste
-// repositório, então grave com o lace compilado dele, apontando o bundle
+// repositório, então grave com o aurora compilado dele, apontando o bundle
 // instalado:
 //
 //   cargo build --release -p aurora-cli
-//   AURORA=../../target/release/aurora AURORA_TOOLCHAIN=~/.local/share/lace/toolchain \
+//   AURORA=../../target/release/aurora AURORA_TOOLCHAIN=~/.local/share/aurora/toolchain \
 //     npm run record:fixtures
 //
 // Roda numa cópia de test/fixtures/projeto demo, numa pasta temporária com
-// espaço no nome, e grava o caminho de cada projeto como ${ROOT}, que o lace
+// espaço no nome, e grava o caminho de cada projeto como ${ROOT}, que o aurora
 // falso troca pelo projeto do `-C`. Cada resposta guarda o nome da pasta do
-// projeto (`project`), que o lace falso confere: os testes usam uma pasta
+// projeto (`project`), que o aurora falso confere: os testes usam uma pasta
 // com o mesmo nome.
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -23,15 +23,15 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, write
 import { homedir, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 
-const lace = process.env.AURORA ?? 'lace';
+const aurora = process.env.AURORA ?? 'aurora';
 const here = import.meta.dirname;
 const fixtures = join(here, '..', 'test', 'fixtures');
 const out = join(fixtures, 'responses');
 
 const version = run(['--version']).stdout.trim();
-console.log(`Gravando com ${version} (${lace})`);
+console.log(`Gravando com ${version} (${aurora})`);
 
-const tmp = mkdtempSync(join(tmpdir(), 'lace fixtures '));
+const tmp = mkdtempSync(join(tmpdir(), 'aurora fixtures '));
 const cases = [];
 try {
   // O projeto demo: dois módulos e um .sv, dois testbenches, um processador
@@ -61,8 +61,8 @@ try {
   record(demo, 'check-soma.events.jsonl', ['--events', 'check', '-p', 'soma'], checkResult);
 
   record(demo, 'top-testbench.json', ['--json', 'top', at('tb', 'contador_tb.v')], { schema: 'error.json' });
-  // Muda o topo: daqui em diante o status é outro, e o lace falso acompanha
-  // pelo estado (FAKE_LACE_STATE).
+  // Muda o topo: daqui em diante o status é outro, e o aurora falso acompanha
+  // pelo estado (FAKE_AURORA_STATE).
   record(demo, 'top-somador.json', ['--json', 'top', at('rtl', 'somador.v')], {
     schema: 'top.json',
     next: 'top-somador',
@@ -94,7 +94,7 @@ try {
     next: 'initial',
   });
 
-  // A síntese: o topo sem e com o esquemático, e um processador. O lace
+  // A síntese: o topo sem e com o esquemático, e um processador. O aurora
   // falso cria o netlist (que o RTL viewer abre) e o SVG.
   const synthResult = { schema: 'events.json', resultSchema: 'synth.json' };
   recordSynth(demo, 'synth-sem-svg', ['--events', 'synth'], synthResult);
@@ -120,7 +120,7 @@ try {
   writeFileSync(join(out, 'add-novo.created.v'), readFileSync(at('rtl', 'novo.v')));
   cases.at(-1).creates = [{ path: '${ROOT}/rtl/novo.v', from: 'add-novo.created.v' }];
 
-  // Um projeto novo, numa pasta sem .spf: o lace falso cria o .spf, e a
+  // Um projeto novo, numa pasta sem .spf: o aurora falso cria o .spf, e a
   // extensão passa a ver o projeto.
   const fresh = { root: join(tmp, 'pasta nova') };
   mkdirSync(fresh.root);
@@ -132,8 +132,8 @@ try {
   recordNew(fresh, 'new-invalido.json', ['--json', 'new', '9x', '--dir', fresh.root], { schema: 'error.json' });
 
   // O fluxo SAPHO, cada caso numa cópia nova do demo (a pasta tem o mesmo
-  // nome, que o lace falso confere). O build com erro vem antes do build
-  // sem estado: o lace falso pega o primeiro que casa.
+  // nome, que o aurora falso confere). O build com erro vem antes do build
+  // sem estado: o aurora falso pega o primeiro que casa.
   const buildResult = { schema: 'events.json', resultSchema: 'build.json' };
   const brokenSapho = copyDemo('sapho quebrado');
   writeFileSync(
@@ -197,7 +197,7 @@ try {
   });
   restore();
   record(files, 'remove-sobra.json', ['--json', 'remove', file('rtl', 'sobra.v')], { schema: 'error.json' });
-  // Renomear pelo Lace (o lace falso move o arquivo) e registrar o que o
+  // Renomear pelo Lace (o aurora falso move o arquivo) e registrar o que o
   // explorador do VS Code já renomeou (--after): o mesmo status depois.
   record(files, 'move-somador.json', ['--json', 'move', file('rtl', 'somador.v'), file('rtl', 'adder.v')], {
     schema: 'move.json',
@@ -263,7 +263,7 @@ try {
 }
 
 function run(args) {
-  const result = spawnSync(lace, args, { encoding: 'utf8' });
+  const result = spawnSync(aurora, args, { encoding: 'utf8' });
   if (result.error) {
     throw result.error;
   }
@@ -272,7 +272,7 @@ function run(args) {
 
 function check(result, code) {
   if (result.status !== code) {
-    throw new Error(`lace saiu com ${result.status}, e se esperava ${code}:\n${result.stdout}\n${result.stderr}`);
+    throw new Error(`aurora saiu com ${result.status}, e se esperava ${code}:\n${result.stdout}\n${result.stderr}`);
   }
 }
 
@@ -374,7 +374,7 @@ function closeSurfer(args, result) {
  */
 function recordCancel(project, name, args, extra) {
   return new Promise((resolve, reject) => {
-    const child = spawn(lace, ['-C', project.spf, ...args]);
+    const child = spawn(aurora, ['-C', project.spf, ...args]);
     const json = args.includes('--json');
     let stdout = '';
     let cancelAt;

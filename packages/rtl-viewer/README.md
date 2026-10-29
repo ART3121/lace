@@ -36,4 +36,4 @@ atlas-light): rode de novo quando eles mudarem e confira o diff.
 
 Para testar o `aurora synth --open` com este build, sem o componente
 instalado, desta pasta:
-`AURORA_RTL_VIEWER=$PWD/dist/rtl-viewer.html lace -C <projeto> synth --open`.
+`AURORA_RTL_VIEWER=$PWD/dist/rtl-viewer.html aurora -C <projeto> synth --open`.

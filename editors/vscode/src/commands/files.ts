@@ -10,13 +10,13 @@ import { basename, extname, isAbsolute, join, relative, resolve } from 'node:pat
 
 import * as vscode from 'vscode';
 
-import type { ListPosition, LaceRun } from '../lace/client';
-import type { MoveReport, OrderReport, RemoveReport, StatusReport } from '../lace/lace-types';
-import { FEATURES } from '../lace/version';
+import type { ListPosition, AuroraRun } from '../aurora/client';
+import type { MoveReport, OrderReport, RemoveReport, StatusReport } from '../aurora/aurora-types';
+import { FEATURES } from '../aurora/version';
 import { insidePart, isInside, pathKey, samePath } from '../paths';
-import type { LaceProject } from '../projects';
+import type { AuroraProject } from '../projects';
 import { isSourceNode } from '../sources/provider';
-import { chooseProject, clientFor, showLaceError, showProcessError, targetPaths, type CommandDeps } from './common';
+import { chooseProject, clientFor, showAuroraError, showProcessError, targetPaths, type CommandDeps } from './common';
 
 /** Os arquivos registrados no `.spf`, nas duas listas. */
 export function registeredPaths(status: StatusReport | undefined): string[] {
@@ -28,7 +28,7 @@ export async function removeFromProject(
   deps: CommandDeps,
   first: unknown,
   all: unknown,
-): Promise<LaceRun<RemoveReport> | undefined> {
+): Promise<AuroraRun<RemoveReport> | undefined> {
   // O caminho da seleção (do VS Code) no nome que o Lace registrou.
   const registered = new Map(registeredPaths(deps.status.report).map((path) => [pathKey(path), path]));
   const paths = targetPaths(first, all).flatMap((path) => registered.get(pathKey(path)) ?? []);
@@ -56,7 +56,7 @@ export async function reorder(
   deps: CommandDeps,
   target: unknown,
   move: OrderMove,
-): Promise<LaceRun<OrderReport> | undefined> {
+): Promise<AuroraRun<OrderReport> | undefined> {
   const path = listedPath(target);
   const list = path === undefined ? undefined : listOf(deps.status.report, path);
   if (path === undefined || list === undefined) {
@@ -120,7 +120,7 @@ async function order(
   path: string,
   position: ListPosition,
   refresh = true,
-): Promise<LaceRun<OrderReport> | undefined> {
+): Promise<AuroraRun<OrderReport> | undefined> {
   const client = clientFor(deps, 'files');
   const project = client && (await chooseProject(deps.projects, path));
   if (!client || !project) {
@@ -143,7 +143,7 @@ export async function renameInProject(
   deps: CommandDeps,
   target: unknown,
   args?: unknown,
-): Promise<LaceRun<MoveReport> | undefined> {
+): Promise<AuroraRun<MoveReport> | undefined> {
   const from = listedPath(target) ?? unregisteredPath(target);
   if (from === undefined) {
     void vscode.window.showWarningMessage('Lace: escolha um arquivo na vista Fontes.');
@@ -177,7 +177,7 @@ export async function renameInProject(
   return run;
 }
 
-function validateDestination(project: LaceProject, from: string, value: string): string | undefined {
+function validateDestination(project: AuroraProject, from: string, value: string): string | undefined {
   if (value.trim() === '') {
     return 'Dê o caminho novo.';
   }
@@ -241,7 +241,7 @@ export async function followInEditors(from: string, to: string): Promise<void> {
  * O que o explorador fez com arquivos do projeto ativo. Cada renomeação que
  * toca um registrado vira um `aurora move --after`, e cada exclusão, um
  * `aurora remove` dos registrados que se foram. Desligado com
- * `lace.files.followExplorer`.
+ * `aurora.files.followExplorer`.
  */
 export class ExplorerFollower implements vscode.Disposable {
   private readonly subscriptions: vscode.Disposable[];
@@ -267,7 +267,7 @@ export class ExplorerFollower implements vscode.Disposable {
   }
 
   private enqueue(task: () => Promise<void>): void {
-    if (!vscode.workspace.getConfiguration('lace.files').get<boolean>('followExplorer', true)) {
+    if (!vscode.workspace.getConfiguration('aurora.files').get<boolean>('followExplorer', true)) {
       return;
     }
     this.queue = this.queue.then(task).catch((error: unknown) => showProcessError(this.deps, error));
@@ -313,7 +313,7 @@ export class ExplorerFollower implements vscode.Disposable {
               'Volte o nome e use Renomear na vista Fontes.',
           );
         } else {
-          showLaceError(run.error);
+          showAuroraError(run.error);
         }
         break;
       }
@@ -335,7 +335,7 @@ export class ExplorerFollower implements vscode.Disposable {
     }
     const run = await client.remove(project.spf, gone);
     if (run.status === 'error') {
-      showLaceError(run.error);
+      showAuroraError(run.error);
     } else if (run.status === 'succeeded') {
       const what = gone.length === 1 ? basename(gone[0]) : `${gone.length} arquivos`;
       vscode.window.setStatusBarMessage(`$(remove) Lace: ${what} apagado e tirado do projeto`, 8000);
@@ -344,7 +344,7 @@ export class ExplorerFollower implements vscode.Disposable {
   }
 
   /** O projeto ativo e o status dele, se o status é mesmo dele. */
-  private current(): { project?: LaceProject; status?: StatusReport } {
+  private current(): { project?: AuroraProject; status?: StatusReport } {
     const project = this.deps.projects.active;
     const status = this.deps.status.report;
     return project && status && samePath(status.spf, project.spf) ? { project, status } : {};
@@ -392,13 +392,13 @@ function listOf(status: StatusReport | undefined, path: string): string[] | unde
 
 async function runAndRefresh<T>(
   deps: CommandDeps,
-  start: () => Promise<LaceRun<T>>,
+  start: () => Promise<AuroraRun<T>>,
   refresh = true,
-): Promise<LaceRun<T> | undefined> {
+): Promise<AuroraRun<T> | undefined> {
   try {
     const run = await start();
     if (run.status === 'error') {
-      showLaceError(run.error);
+      showAuroraError(run.error);
     }
     return run;
   } catch (error) {

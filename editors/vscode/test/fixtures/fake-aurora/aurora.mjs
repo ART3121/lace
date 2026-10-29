@@ -1,17 +1,17 @@
 #!/usr/bin/env node
-// Um lace falso para os testes: devolve as respostas que o lace de verdade
+// Um aurora falso para os testes: devolve as respostas que o aurora de verdade
 // deu (responses/cases.json, gravadas por scripts/record-fixtures.mjs) e as
-// de responses/synthetic.json, escritas à mão para o que o lace não faz de
+// de responses/synthetic.json, escritas à mão para o que o aurora não faz de
 // propósito (pânico, saída que não é JSON).
 //
 // A resposta é escolhida pelos argumentos sem o `-C <projeto>`, com o
 // caminho do projeto trocado por ${ROOT}, e sai com ${ROOT} trocado de
 // volta e ${HOME} pela pasta pessoal (onde fica o bundle). Variáveis:
 //
-//   FAKE_LACE_LOG    acrescenta cada chamada, uma linha JSON { argv }, e
+//   FAKE_AURORA_LOG    acrescenta cada chamada, uma linha JSON { argv }, e
 //                    { waiting: true } quando uma resposta gravada com
 //                    cancelamento já espera o SIGTERM
-//   FAKE_LACE_STATE  o arquivo do estado do projeto falso, que `top` muda;
+//   FAKE_AURORA_STATE  o arquivo do estado do projeto falso, que `top` muda;
 //                    sem ele, o estado é sempre "initial"
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -23,8 +23,8 @@ const read = (file) => readFileSync(join(responses, file), 'utf8');
 const cases = [...JSON.parse(read('cases.json')).cases, ...JSON.parse(read('synthetic.json')).cases];
 
 const argv = process.argv.slice(2);
-if (process.env.FAKE_LACE_LOG) {
-  appendFileSync(process.env.FAKE_LACE_LOG, `${JSON.stringify({ argv })}\n`);
+if (process.env.FAKE_AURORA_LOG) {
+  appendFileSync(process.env.FAKE_AURORA_LOG, `${JSON.stringify({ argv })}\n`);
 }
 
 let project;
@@ -51,7 +51,7 @@ const key = rest.map((arg) =>
   arg.startsWith(root) ? `\${ROOT}${arg.slice(root.length).replaceAll('\\', '/')}` : arg,
 );
 
-const stateFile = process.env.FAKE_LACE_STATE;
+const stateFile = process.env.FAKE_AURORA_STATE;
 const state = stateFile && existsSync(stateFile) ? readFileSync(stateFile, 'utf8').trim() : 'initial';
 
 const found = cases.find(
@@ -63,7 +63,7 @@ const found = cases.find(
 );
 
 if (!found) {
-  const message = `Fake lace has no recorded response for: ${key.join(' ')} (state ${state})`;
+  const message = `Fake aurora has no recorded response for: ${key.join(' ')} (state ${state})`;
   process.stdout.write(`${JSON.stringify({ error: { code: 'fake_lace', message, hint: null } })}\n`);
   process.stderr.write(`${message}\n`);
   process.exitCode = 2;
@@ -79,14 +79,14 @@ function respond(c) {
   if (stderr) {
     process.stderr.write(substitute(stderr, false));
   }
-  // O arquivo que o lace de verdade criou (o modelo do `aurora add`), com o
+  // O arquivo que o aurora de verdade criou (o modelo do `aurora add`), com o
   // conteúdo gravado: quem chama o abre em seguida.
   for (const created of c.creates ?? []) {
     const path = substitute(created.path, false);
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, substitute(read(created.from), created.from.endsWith('.json') || created.from.endsWith('.spf')));
   }
-  // O que o lace de verdade moveu (o `aurora move`).
+  // O que o aurora de verdade moveu (o `aurora move`).
   for (const moved of c.moves ?? []) {
     const to = substitute(moved.to, false);
     mkdirSync(dirname(to), { recursive: true });
@@ -103,7 +103,7 @@ function respond(c) {
     return;
   }
   // Gravada com um SIGTERM depois de cancelAt linhas: escreve essas, espera
-  // o sinal como o lace (que encerra a ferramenta e escreve o resultado) e
+  // o sinal como o aurora (que encerra a ferramenta e escreve o resultado) e
   // escreve o resto. No Windows o kill encerra o processo antes disso.
   const lines = out.split('\n').filter((line) => line !== '');
   const before = lines.slice(0, c.cancelAt);
@@ -117,8 +117,8 @@ function respond(c) {
     process.exitCode = c.exit;
   });
   process.stdout.write(before.map((line) => `${line}\n`).join(''));
-  if (process.env.FAKE_LACE_LOG) {
-    appendFileSync(process.env.FAKE_LACE_LOG, `${JSON.stringify({ waiting: true })}\n`);
+  if (process.env.FAKE_AURORA_LOG) {
+    appendFileSync(process.env.FAKE_AURORA_LOG, `${JSON.stringify({ waiting: true })}\n`);
   }
 }
 

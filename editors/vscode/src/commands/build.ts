@@ -5,9 +5,9 @@
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../lace/client';
-import type { AddedFile, BuildReport, BuildResult } from '../lace/lace-types';
-import { formatDuration, formatLaceError } from '../messages';
+import type { AuroraRun } from '../aurora/client';
+import type { AddedFile, BuildReport, BuildResult } from '../aurora/aurora-types';
+import { formatDuration, formatAuroraError } from '../messages';
 import { describeCount } from '../problems';
 import type { RunResult } from '../runs';
 import { processorOf } from './common';
@@ -15,7 +15,7 @@ import { runOperation, type RunDeps } from './run';
 
 export type BuildTarget = { kind: 'all' } | { kind: 'processor'; name: string };
 
-export async function build(deps: RunDeps, target: BuildTarget): Promise<LaceRun<BuildReport> | undefined> {
+export async function build(deps: RunDeps, target: BuildTarget): Promise<AuroraRun<BuildReport> | undefined> {
   let summary: RunResult | undefined;
   const done = await runOperation(deps, 'build', 'processors', undefined, (client, project) => ({
     title: target.kind === 'processor' ? `Compilando o processador ${target.name}` : 'Compilando os processadores',
@@ -39,7 +39,7 @@ export async function build(deps: RunDeps, target: BuildTarget): Promise<LaceRun
   await deps.status.refresh();
   const { run } = done;
   if (run.status === 'error') {
-    void vscode.window.showErrorMessage(`Lace: ${formatLaceError(run.error)}`);
+    void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(run.error)}`);
   } else if (run.status === 'failed') {
     const problems = 'Problemas';
     void vscode.window
@@ -51,7 +51,7 @@ export async function build(deps: RunDeps, target: BuildTarget): Promise<LaceRun
   return run;
 }
 
-export function buildProcessor(deps: RunDeps, target?: unknown): Promise<LaceRun<BuildReport> | undefined> {
+export function buildProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<BuildReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
     void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
@@ -61,10 +61,10 @@ export function buildProcessor(deps: RunDeps, target?: unknown): Promise<LaceRun
 }
 
 /** Uma linha por processador na saída, e o resumo para o botão. */
-export function summarizeBuild(output: vscode.OutputChannel, run: LaceRun<BuildReport>): RunResult {
+export function summarizeBuild(output: vscode.OutputChannel, run: AuroraRun<BuildReport>): RunResult {
   if (run.status === 'error') {
-    output.appendLine(`Erro: ${formatLaceError(run.error)}`);
-    return { outcome: 'error', summary: formatLaceError(run.error) };
+    output.appendLine(`Erro: ${formatAuroraError(run.error)}`);
+    return { outcome: 'error', summary: formatAuroraError(run.error) };
   }
   if (run.result === null) {
     output.appendLine('Cancelado.');

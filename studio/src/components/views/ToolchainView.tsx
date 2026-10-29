@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { FileMismatch } from '../../ipc/lace-types';
+import type { FileMismatch } from '../../ipc/aurora-types';
 import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';

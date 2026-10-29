@@ -1,6 +1,6 @@
 {
   "note": "Gravado por scripts/record-fixtures.mjs; não edite à mão.",
-  "recordedWith": "lace 0.7.0",
+  "recordedWith": "aurora 0.7.0",
   "cases": [
     {
       "args": [

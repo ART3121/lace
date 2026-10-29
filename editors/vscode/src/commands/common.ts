@@ -1,31 +1,31 @@
-// O que todo comando faz antes de chamar o Lace: conferir que o lace está
+// O que todo comando faz antes de chamar o Lace: conferir que o aurora está
 // pronto e tem o recurso, achar o projeto e o arquivo do clique.
 
 import { basename } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceConnection } from '../connection';
-import type { LaceClient } from '../lace/client';
-import type { ErrorInfo } from '../lace/lace-types';
-import { FEATURES, type Feature } from '../lace/version';
-import { formatLaceError } from '../messages';
+import type { AuroraConnection } from '../connection';
+import type { AuroraClient } from '../aurora/client';
+import type { ErrorInfo } from '../aurora/aurora-types';
+import { FEATURES, type Feature } from '../aurora/version';
+import { formatAuroraError } from '../messages';
 import type { ProjectStatus } from '../projectStatus';
-import type { LaceProject, Projects } from '../projects';
+import type { AuroraProject, Projects } from '../projects';
 import { isSourceNode, type SourceNode } from '../sources/provider';
 
 export interface CommandDeps {
-  connection: LaceConnection;
+  connection: AuroraConnection;
   projects: Projects;
   status: ProjectStatus;
   log: vscode.LogOutputChannel;
 }
 
-/** O cliente, se o lace está pronto e a versão tem o recurso; senão avisa e devolve `undefined`. */
-export function clientFor(deps: CommandDeps, feature: Feature): LaceClient | undefined {
+/** O cliente, se o aurora está pronto e a versão tem o recurso; senão avisa e devolve `undefined`. */
+export function clientFor(deps: CommandDeps, feature: Feature): AuroraClient | undefined {
   const connection = deps.connection.state;
   if (connection.kind !== 'ready') {
-    void vscode.window.showWarningMessage('Lace: o lace não está disponível. Veja a saída Lace.');
+    void vscode.window.showWarningMessage('Lace: o aurora não está disponível. Veja a saída Lace.');
     return undefined;
   }
   if (!connection.features[feature]) {
@@ -42,7 +42,7 @@ export function clientFor(deps: CommandDeps, feature: Feature): LaceClient | und
  * arquivo está na pasta de outro projeto do workspace, pergunta antes: senão
  * o comando agiria no projeto errado.
  */
-export async function chooseProject(projects: Projects, file?: string): Promise<LaceProject | undefined> {
+export async function chooseProject(projects: Projects, file?: string): Promise<AuroraProject | undefined> {
   const active = projects.active ?? (await projects.select());
   if (!active || file === undefined) {
     return active;
@@ -102,11 +102,11 @@ export function processorOf(target: unknown): string | undefined {
   return isSourceNode(node) && node.kind === 'entry' && node.entry.role === 'processor' ? node.entry.label : undefined;
 }
 
-export function showLaceError(error: ErrorInfo): void {
-  void vscode.window.showErrorMessage(`Lace: ${formatLaceError(error)}`);
+export function showAuroraError(error: ErrorInfo): void {
+  void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(error)}`);
 }
 
-/** O lace não rodou, ou saiu fora do contrato: a mensagem vai para a tela e para a saída Lace. */
+/** O aurora não rodou, ou saiu fora do contrato: a mensagem vai para a tela e para a saída Lace. */
 export function showProcessError(deps: CommandDeps, error: unknown): void {
   const message = (error as Error).message;
   deps.log.error(message);

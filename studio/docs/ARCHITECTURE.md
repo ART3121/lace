@@ -67,7 +67,7 @@ studio/
     ipc/
       api.ts                 uma função por comando Tauri ou método do protocolo (aurora())
       types.ts               os tipos do Studio (espelho dos structs Rust)
-      lace-types.ts          os tipos do protocolo, GERADOS dos JSON Schemas do Lace
+      aurora-types.ts          os tipos do protocolo, GERADOS dos JSON Schemas do Lace
     state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic, assistant, experimental, learn, settingsPage, tour, updates, waves;
                              layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela); learnSession.ts, splash.ts e wideTabs.ts, sem store
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
@@ -94,7 +94,7 @@ studio/
     tests/flows.rs           os fluxos rodando de verdade, pelo servidor, contra o bundle
     capabilities/            permissões da janela (Tauri)
     tauri.conf.json          janela, CSP, empacotamento
-  scripts/gen-lace-types.mjs gera src/ipc/lace-types.ts
+  scripts/gen-aurora-types.mjs gera src/ipc/aurora-types.ts
   docs/                      esta documentação
 ```
 
@@ -407,7 +407,7 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useProject` | `state/project.ts` | o retrato do projeto, o alvo (projeto ou processador), a versão da árvore |
 | `useEditor` | `state/editor.ts` | as abas, os grupos do editor dividido e as abas de cada um, os documentos abertos, a aba e o grupo ativos, o cursor, a sessão |
 | `useJobs` | `state/jobs.ts` | a operação rodando, o último resultado de cada fluxo, problemas, última síntese |
-| `useSchematic` | `state/schematic.ts` | o RTLViewer: o estado do pacote `@lace/rtl-viewer` (o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista, no `localStorage`) |
+| `useSchematic` | `state/schematic.ts` | o RTLViewer: o estado do pacote `@aurora/rtl-viewer` (o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista, no `localStorage`) |
 | `useLayout` | `state/layout.ts` | a janela agora (`live`: regiões, vistas, barras, tamanhos), a maximização do painel, as marcas de não lido, o modo do explorador, o zoom e o zen; guardado no `localStorage` por conveniência (o zen não) |
 | (sem store) | `state/savedLayouts.ts` | os layouts com nome: os prontos e os gravados no `settings.json`; aplicar, salvar, restaurar, renomear, excluir; `useLayoutStatus` (o em uso e se a janela está diferente dele) |
 | `useSettingsPage` | `state/settingsPage.ts` | a página aberta das Preferências (no `localStorage`); "Personalizar layout..." a troca para a do layout antes de abrir a aba |
@@ -562,7 +562,7 @@ O esquemático sai do netlist da síntese (`hierarchy.json`, o `write_json`
 do Yosys), sem Graphviz. A síntese do Studio pede `schematic: false`; o
 `show` + `dot` do Core fica para a CLI (`aurora synth --svg`).
 
-O viewer em si é o pacote `@lace/rtl-viewer`, em `packages/rtl-viewer/` do
+O viewer em si é o pacote `@aurora/rtl-viewer`, em `packages/rtl-viewer/` do
 repositório, que a extensão do VS Code e o `aurora synth --open` também usam.
 O Studio compila o fonte dele direto (o alias e o `dedupe` em
 `vite.config.ts`, o `paths` em `tsconfig.json`), e o CSS dele vem em
@@ -635,7 +635,7 @@ resultado com `status: cancelled`, que chega pelo mesmo caminho.
 
 ## 6. Contrato entre backend e interface
 
-- **Tipos do protocolo:** `src/ipc/lace-types.ts` é gerado por
+- **Tipos do protocolo:** `src/ipc/aurora-types.ts` é gerado por
   `npm run gen:types` a partir de `docs/schema/*.json` da raiz, que o
   próprio Lace gera dos tipos Rust e confere por teste. Mudou um tipo
   público ou um método no Lace: rode de novo e confira o diff. O schema dos
@@ -647,7 +647,7 @@ resultado com `status: cancelled`, que chega pelo mesmo caminho.
 - **Tipos do Studio:** os structs de `src-tauri/src` e as interfaces de
   `src/ipc/types.ts` são mantidos à mão, lado a lado, com o arquivo Rust
   citado no comentário de cada interface. Vários tipos que a interface
-  recebe são do protocolo e já vêm gerados em `lace-types.ts`
+  recebe são do protocolo e já vêm gerados em `aurora-types.ts`
   (`ProjectStatus`, que é o `ProjectSnapshot`, `ToolchainInfo`,
   `FlowOutcome`, `Phase`, `WaveOpened`, `LayoutConversion`), mas
   `types.ts` ainda os copia à mão. Mudou um, mude o outro e o

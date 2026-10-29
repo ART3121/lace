@@ -1,32 +1,32 @@
-// O lace que a extensão usa: onde está, que versão é, quais recursos ela
-// permite e por que transporte ela fala com ele (`lace.transport`: um `lace
+// O aurora que a extensão usa: onde está, que versão é, quais recursos ela
+// permite e por que transporte ela fala com ele (`aurora.transport`: um `aurora
 // serve` em segundo plano, ou um processo por comando). Refeito quando
-// `lace.path` ou `lace.transport` mudam, e quando o `aurora serve` reaberto
+// `aurora.path` ou `aurora.transport` mudam, e quando o `aurora serve` reaberto
 // é outra versão (o binário foi trocado por fora).
 
 import * as vscode from 'vscode';
 
-import { CliLaceClient, type LaceCommand } from './lace/cliClient';
-import type { LaceClient } from './lace/client';
-import { LacePathError, locateLace } from './lace/locate';
-import { ServeLaceClient } from './lace/serveClient';
-import { MIN_VERSION, supportedFeatures, usable, type FeatureSet } from './lace/version';
+import { CliAuroraClient, type AuroraCommand } from './aurora/cliClient';
+import type { AuroraClient } from './aurora/client';
+import { AuroraPathError, locateAurora } from './aurora/locate';
+import { ServeAuroraClient } from './aurora/serveClient';
+import { MIN_VERSION, supportedFeatures, usable, type FeatureSet } from './aurora/version';
 
-/** Como falar com o lace (`lace.transport`). */
+/** Como falar com o aurora (`aurora.transport`). */
 export type Transport = 'auto' | 'serve' | 'cli';
 
 /** O nome que a extensão dá no `initialize` do `aurora serve`. */
-export const CLIENT_NAME = 'lace-vscode';
+export const CLIENT_NAME = 'aurora-vscode';
 
 export type Connection =
   | { kind: 'checking' }
-  /** Sem executável: nem `lace.path`, nem um lace no PATH. */
+  /** Sem executável: nem `aurora.path`, nem um aurora no PATH. */
   | { kind: 'missing'; reason: string }
-  /** O executável existe, mas não é um lace que a extensão saiba usar. */
+  /** O executável existe, mas não é um aurora que a extensão saiba usar. */
   | { kind: 'unsupported'; reason: string }
   | {
       kind: 'ready';
-      client: LaceClient;
+      client: AuroraClient;
       version: string;
       file: string;
       features: FeatureSet;
@@ -34,7 +34,7 @@ export type Connection =
       transport: 'serve' | 'cli';
     };
 
-export class LaceConnection implements vscode.Disposable {
+export class AuroraConnection implements vscode.Disposable {
   private current: Connection = { kind: 'checking' };
   private generation = 0;
   private readonly changed = new vscode.EventEmitter<Connection>();
@@ -49,7 +49,7 @@ export class LaceConnection implements vscode.Disposable {
     this.disposables = [
       this.changed,
       vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration('lace.path') || event.affectsConfiguration('lace.transport')) {
+        if (event.affectsConfiguration('aurora.path') || event.affectsConfiguration('aurora.transport')) {
           void this.connect();
         }
       }),
@@ -60,7 +60,7 @@ export class LaceConnection implements vscode.Disposable {
     return this.current;
   }
 
-  /** Acha o lace e confere a versão. Só o resultado da última chamada vale. */
+  /** Acha o aurora e confere a versão. Só o resultado da última chamada vale. */
   async connect(): Promise<void> {
     const generation = ++this.generation;
     this.set({ kind: 'checking' });
@@ -71,32 +71,32 @@ export class LaceConnection implements vscode.Disposable {
     this.set(next);
     if (next.kind === 'missing' || next.kind === 'unsupported') {
       this.log.warn(next.reason);
-      const configure = 'Configurar lace.path';
+      const configure = 'Configurar aurora.path';
       void vscode.window.showWarningMessage(`Lace: ${next.reason}.`, configure).then((choice) => {
         if (choice === configure) {
-          void vscode.commands.executeCommand('workbench.action.openSettings', 'lace.path');
+          void vscode.commands.executeCommand('workbench.action.openSettings', 'aurora.path');
         }
       });
     }
   }
 
   private async probe(): Promise<Connection> {
-    const configured = vscode.workspace.getConfiguration('lace').get<string>('path');
+    const configured = vscode.workspace.getConfiguration('aurora').get<string>('path');
     let command;
     try {
-      command = locateLace(configured);
+      command = locateAurora(configured);
     } catch (error) {
-      if (error instanceof LacePathError) {
+      if (error instanceof AuroraPathError) {
         return { kind: 'missing', reason: error.message };
       }
       throw error;
     }
     if (command === undefined) {
-      return { kind: 'missing', reason: 'o lace não está no PATH, e lace.path está vazio' };
+      return { kind: 'missing', reason: 'o aurora não está no PATH, e aurora.path está vazio' };
     }
     // O --version é barato e é a única forma de saber a versão de um Lace
     // sem o serve.
-    const cli = new CliLaceClient(command, this.log);
+    const cli = new CliAuroraClient(command, this.log);
     let version: string;
     try {
       version = await cli.version();
@@ -107,20 +107,20 @@ export class LaceConnection implements vscode.Disposable {
     if (!usable(features)) {
       return {
         kind: 'unsupported',
-        reason: `o lace em ${command.file} é a versão ${version}, e a extensão precisa da ${MIN_VERSION} ou mais nova`,
+        reason: `o aurora em ${command.file} é a versão ${version}, e a extensão precisa da ${MIN_VERSION} ou mais nova`,
       };
     }
     const off = Object.entries(features).filter(([name, on]) => !on && name !== 'serve');
     if (off.length > 0) {
-      this.log.info(`lace ${version}: desligado o que ele não suporta (${off.map(([name]) => name).join(', ')})`);
+      this.log.info(`aurora ${version}: desligado o que ele não suporta (${off.map(([name]) => name).join(', ')})`);
     }
-    const wanted = vscode.workspace.getConfiguration('lace').get<Transport>('transport', 'auto');
-    let client: LaceClient = cli;
+    const wanted = vscode.workspace.getConfiguration('aurora').get<Transport>('transport', 'auto');
+    let client: AuroraClient = cli;
     let transport: 'serve' | 'cli' = 'cli';
     if (wanted === 'serve' && !features.serve) {
       return {
         kind: 'unsupported',
-        reason: `o lace em ${command.file} é a versão ${version}, e lace.transport = serve exige a 0.9.0 ou mais nova`,
+        reason: `o aurora em ${command.file} é a versão ${version}, e aurora.transport = serve exige a 0.9.0 ou mais nova`,
       };
     }
     if (wanted !== 'cli' && features.serve) {
@@ -137,12 +137,12 @@ export class LaceConnection implements vscode.Disposable {
         this.log.warn(`O aurora serve não respondeu (${(error as Error).message}); um processo por comando.`);
       }
     }
-    this.log.info(`lace ${version} em ${command.file} (${transport})`);
+    this.log.info(`aurora ${version} em ${command.file} (${transport})`);
     return { kind: 'ready', client, version, file: command.file, features, transport };
   }
 
-  private serveClient(command: LaceCommand): ServeLaceClient {
-    return new ServeLaceClient(command, this.log, {
+  private serveClient(command: AuroraCommand): ServeAuroraClient {
+    return new ServeAuroraClient(command, this.log, {
       clientName: `${CLIENT_NAME} ${this.extensionVersion}`,
       onServerChanged: (version) => {
         this.log.info(`O aurora serve agora é a versão ${version}: refazendo a conexão`);

@@ -8,17 +8,17 @@ import { basename, extname, isAbsolute, join, relative } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../lace/client';
-import type { AddReport, AddedFile } from '../lace/lace-types';
+import type { AuroraRun } from '../aurora/client';
+import type { AddReport, AddedFile } from '../aurora/aurora-types';
 import { nameSuggestsTestbench } from '../verilog';
-import { chooseProject, clientFor, showLaceError, showProcessError, targetPaths, type CommandDeps } from './common';
+import { chooseProject, clientFor, showAuroraError, showProcessError, targetPaths, type CommandDeps } from './common';
 
 /** `aurora add` com os arquivos; abre no editor os que o Lace criou do modelo. */
 export async function addFiles(
   deps: CommandDeps,
   files: readonly string[],
   testbench = false,
-): Promise<LaceRun<AddReport> | undefined> {
+): Promise<AuroraRun<AddReport> | undefined> {
   if (files.length === 0) {
     void vscode.window.showWarningMessage('Lace: escolha um ou mais arquivos .v ou .sv para pôr no projeto.');
     return undefined;
@@ -39,7 +39,7 @@ export async function addFiles(
         await vscode.window.showTextDocument(vscode.Uri.file(file.path), { preview: false });
       }
     } else if (run.status === 'error') {
-      showLaceError(run.error);
+      showAuroraError(run.error);
     } else {
       void vscode.window.showErrorMessage(`Lace: aurora add terminou como ${run.status}.`);
     }
@@ -58,7 +58,7 @@ export function addSelected(
   first: unknown,
   all: unknown,
   testbench = false,
-): Promise<LaceRun<AddReport> | undefined> {
+): Promise<AuroraRun<AddReport> | undefined> {
   return addFiles(deps, targetPaths(first, all), testbench);
 }
 
@@ -73,7 +73,7 @@ interface NewFileArgs {
  * `aurora add` criar o arquivo do modelo (o módulo com portas de exemplo que
  * compilam, ou o testbench que instancia o módulo testado).
  */
-export async function newFile(deps: CommandDeps, target?: unknown): Promise<LaceRun<AddReport> | undefined> {
+export async function newFile(deps: CommandDeps, target?: unknown): Promise<AuroraRun<AddReport> | undefined> {
   const project = deps.projects.active ?? (await deps.projects.select());
   if (!project) {
     return undefined;
@@ -133,10 +133,10 @@ function validateNewFile(root: string, value: string): string | undefined {
 /**
  * O aviso de arquivo novo: aparece quando o `aurora status` passa a listar um
  * .v ou .sv que não estava entre os não registrados. Desliga com
- * lace.add.askForNewFiles.
+ * aurora.add.askForNewFiles.
  */
 export async function offerToAdd(deps: CommandDeps, paths: readonly string[]): Promise<void> {
-  const config = vscode.workspace.getConfiguration('lace.add');
+  const config = vscode.workspace.getConfiguration('aurora.add');
   if (!config.get<boolean>('askForNewFiles', true) || deps.connection.state.kind !== 'ready') {
     return;
   }

@@ -3,7 +3,7 @@
 import * as assert from 'node:assert/strict';
 import { PassThrough } from 'node:stream';
 
-import { RpcChannel, RpcClosedError, type RpcNotification } from '../../src/lace/jsonRpc';
+import { RpcChannel, RpcClosedError, type RpcNotification } from '../../src/aurora/jsonRpc';
 
 interface Harness {
   channel: RpcChannel;

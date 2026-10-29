@@ -13,7 +13,7 @@ devolve. São duas coisas:
 
 Na interface, cada coisa tem uma função em `src/ipc/api.ts`, menos
 `log_frontend` e `dev_smoke_script`, chamados com `invoke` direto; os tipos
-estão em `src/ipc/types.ts` (os do Studio) e `src/ipc/lace-types.ts` (os do
+estão em `src/ipc/types.ts` (os do Studio) e `src/ipc/aurora-types.ts` (os do
 protocolo, gerados do schema do Lace).
 
 Convenções:
@@ -189,7 +189,7 @@ recentes e começam a vigiar a pasta.
 design, cada testbench registrado e o testbench de cada processador
 compilado, elaborados pelo Icarus. Não compila os processadores nem grava
 relatório. Os tipos (`HierarchyResult`, `Elaboration`, `ModuleInstance`)
-estão em `src/ipc/lace-types.ts`; a descrição de cada campo, na API.md do
+estão em `src/ipc/aurora-types.ts`; a descrição de cada campo, na API.md do
 Lace, seção 5.4.1.
 
 `ProjectSnapshot` é o `ProjectStatus` do protocolo (`Project::status` do

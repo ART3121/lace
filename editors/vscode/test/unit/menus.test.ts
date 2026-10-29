@@ -7,7 +7,7 @@ import * as assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { StatusReport } from '../../src/lace/lace-types';
+import type { StatusReport } from '../../src/aurora/aurora-types';
 import { sourceGroups } from '../../src/sources/model';
 import { isTestbenchName, isVerilogFile } from '../../src/verilog';
 import { EXTENSION_ROOT, RESPONSES } from '../support/fixtures';
@@ -58,7 +58,7 @@ const status: StatusReport = JSON.parse(readFileSync(join(RESPONSES, 'status.jso
 const CONTEXT_VALUES = sourceGroups(status).flatMap((g) => g.entries.map((e) => e.contextValue));
 
 describe('menus', () => {
-  for (const command of ['lace.setTop', 'lace.checkFile', 'lace.add']) {
+  for (const command of ['aurora.setTop', 'aurora.checkFile', 'aurora.add']) {
     it(`${command}: a mesma cláusula em todos os menus de arquivo`, () => {
       const clauses = new Set(
         FILE_MENUS.filter((menu) => menus[menu].some((i) => i.command === command)).map((m) => when(m, command)),
@@ -68,7 +68,7 @@ describe('menus', () => {
   }
 
   describe('Definir como topo', () => {
-    const clause = when('explorer/context', 'lace.setTop');
+    const clause = when('explorer/context', 'aurora.setTop');
 
     it('esconde o nome de testbench pela regra do Core', () => {
       const allowed = regexFor(clause, 'resourceFilename');
@@ -86,13 +86,13 @@ describe('menus', () => {
     });
 
     it('esconde o topo e os testbenches registrados, e pede projeto e versão', () => {
-      assert.match(clause, /resourcePath not in lace\.topFiles/);
-      assert.match(clause, /resourcePath not in lace\.testbenchFiles/);
-      assert.match(clause, /lace\.feature\.setTop && lace\.projectActive/);
+      assert.match(clause, /resourcePath not in aurora\.topFiles/);
+      assert.match(clause, /resourcePath not in aurora\.testbenchFiles/);
+      assert.match(clause, /aurora\.feature\.setTop && aurora\.projectActive/);
     });
 
     it('na vista, aparece só no item marcado com .settop', () => {
-      const viewItem = regexFor(when('view/item/context', 'lace.setTop', 'lace@1'), 'viewItem');
+      const viewItem = regexFor(when('view/item/context', 'aurora.setTop', 'aurora@1'), 'viewItem');
       const matched = CONTEXT_VALUES.filter((v) => viewItem.test(v));
       assert.deepEqual(matched, CONTEXT_VALUES.filter((v) => v.split('.').includes('settop')));
       assert.ok(matched.length > 0);
@@ -100,27 +100,27 @@ describe('menus', () => {
   });
 
   it('Verificar este arquivo: na vista, só design e testbench em Verilog', () => {
-    const viewItem = regexFor(when('view/item/context', 'lace.checkFile'), 'viewItem');
-    for (const value of [...CONTEXT_VALUES, 'lace.testbench', 'lace.testbench.selected']) {
-      const expected = /^lace\.(design|testbench)\./.test(value) && value.endsWith('.verilog');
+    const viewItem = regexFor(when('view/item/context', 'aurora.checkFile'), 'viewItem');
+    for (const value of [...CONTEXT_VALUES, 'aurora.testbench', 'aurora.testbench.selected']) {
+      const expected = /^aurora\.(design|testbench)\./.test(value) && value.endsWith('.verilog');
       assert.equal(viewItem.test(value), expected, value);
     }
   });
 
   it('Adicionar ao projeto: só .v e .sv que ainda não estão no projeto', () => {
-    const clause = when('explorer/context', 'lace.add');
-    assert.match(clause, /resourcePath not in lace\.registeredFiles/);
+    const clause = when('explorer/context', 'aurora.add');
+    assert.match(clause, /resourcePath not in aurora\.registeredFiles/);
     const extension = regexFor(clause, 'resourceExtname');
     assert.ok(extension.test('.v') && extension.test('.sv') && !extension.test('.py'));
-    const viewItem = regexFor(when('view/item/context', 'lace.add', 'lace@1'), 'viewItem');
+    const viewItem = regexFor(when('view/item/context', 'aurora.add', 'aurora@1'), 'viewItem');
     assert.deepEqual(
       CONTEXT_VALUES.filter((v) => viewItem.test(v)),
-      CONTEXT_VALUES.filter((v) => v.startsWith('lace.unregistered')),
+      CONTEXT_VALUES.filter((v) => v.startsWith('aurora.unregistered')),
     );
   });
 
   it('Abrir no surfer-aurora: os formatos que o aurora wave abre', () => {
-    const extension = regexFor(when('explorer/context', 'lace.waveFile'), 'resourceExtname');
+    const extension = regexFor(when('explorer/context', 'aurora.waveFile'), 'resourceExtname');
     for (const ext of ['.vcd', '.fst', '.ghw', '.VCD']) {
       assert.ok(extension.test(ext), ext);
     }
@@ -128,39 +128,39 @@ describe('menus', () => {
   });
 
   it('os botões de build, check, sim, wave e synth ficam fora da vista (estão na barra de status)', () => {
-    const functions = ['lace.build', 'lace.check', 'lace.checkLint', 'lace.sim', 'lace.simFast', 'lace.wave', 'lace.synth'];
+    const functions = ['aurora.build', 'aurora.check', 'aurora.checkLint', 'aurora.sim', 'aurora.simFast', 'aurora.wave', 'aurora.synth'];
     assert.deepEqual(
       menus['view/title'].filter((i) => functions.includes(i.command)),
       [],
     );
     const inline = menus['view/item/context'].filter((i) => i.group === 'inline').map((i) => i.command);
     assert.deepEqual(
-      inline.filter((c) => /^lace\.(build|check|sim|wave|synth)/.test(c)),
+      inline.filter((c) => /^aurora\.(build|check|sim|wave|synth)/.test(c)),
       [],
     );
   });
 
   it('Simular este testbench: só num testbench registrado', () => {
-    assert.match(when('explorer/context', 'lace.simTestbench'), /resourcePath in lace\.testbenchFiles/);
-    const viewItem = regexFor(when('view/item/context', 'lace.simTestbench'), 'viewItem');
+    assert.match(when('explorer/context', 'aurora.simTestbench'), /resourcePath in aurora\.testbenchFiles/);
+    const viewItem = regexFor(when('view/item/context', 'aurora.simTestbench'), 'viewItem');
     assert.deepEqual(
       CONTEXT_VALUES.filter((v) => viewItem.test(v)),
-      CONTEXT_VALUES.filter((v) => v.startsWith('lace.testbench')),
+      CONTEXT_VALUES.filter((v) => v.startsWith('aurora.testbench')),
     );
   });
 
   describe('a ordem de compilação', () => {
     // Os contextValues do status gravado e os de listas com um item só e
     // sem .verilog (um testbench cocotb no meio da lista).
-    const values = [...CONTEXT_VALUES, 'lace.testbench', 'lace.testbench.first.last', 'lace.design.first.last.verilog'];
+    const values = [...CONTEXT_VALUES, 'aurora.testbench', 'aurora.testbench.first.last', 'aurora.design.first.last.verilog'];
     const parts = (v: string) => v.split('.');
-    const listed = (v: string) => /^lace\.(design|testbench)(\.|$)/.test(v);
+    const listed = (v: string) => /^aurora\.(design|testbench)(\.|$)/.test(v);
 
     for (const [command, edge] of [
-      ['lace.moveUp', 'first'],
-      ['lace.moveFirst', 'first'],
-      ['lace.moveDown', 'last'],
-      ['lace.moveLast', 'last'],
+      ['aurora.moveUp', 'first'],
+      ['aurora.moveFirst', 'first'],
+      ['aurora.moveDown', 'last'],
+      ['aurora.moveLast', 'last'],
     ]) {
       it(`${command}: no RTL e nos testbenches, menos no ${edge === 'first' ? 'primeiro' : 'último'}`, () => {
         const viewItem = regexFor(when('view/item/context', command), 'viewItem');
@@ -172,11 +172,11 @@ describe('menus', () => {
   });
 
   it('Tirar do projeto: só os registrados', () => {
-    assert.match(when('explorer/context', 'lace.remove'), /resourcePath in lace\.registeredFiles/);
-    const viewItem = regexFor(when('view/item/context', 'lace.remove'), 'viewItem');
+    assert.match(when('explorer/context', 'aurora.remove'), /resourcePath in aurora\.registeredFiles/);
+    const viewItem = regexFor(when('view/item/context', 'aurora.remove'), 'viewItem');
     assert.deepEqual(
       CONTEXT_VALUES.filter((v) => viewItem.test(v)),
-      CONTEXT_VALUES.filter((v) => /^lace\.(design|testbench)\./.test(v)),
+      CONTEXT_VALUES.filter((v) => /^aurora\.(design|testbench)\./.test(v)),
     );
   });
 

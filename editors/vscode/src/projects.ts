@@ -6,7 +6,7 @@ import { basename, dirname, sep } from 'node:path';
 
 import * as vscode from 'vscode';
 
-export interface LaceProject {
+export interface AuroraProject {
   readonly uri: vscode.Uri;
   /** O .spf, o `-C` de todo comando. */
   readonly spf: string;
@@ -15,12 +15,12 @@ export interface LaceProject {
   readonly name: string;
 }
 
-const ACTIVE_KEY = 'lace.activeProject';
+const ACTIVE_KEY = 'aurora.activeProject';
 // O .aurora8/ é do próprio Lace (temporários, relatórios), nunca um projeto.
 const EXCLUDE = '**/{node_modules,.git,.aurora8}/**';
 
 export class Projects implements vscode.Disposable {
-  private list: LaceProject[] = [];
+  private list: AuroraProject[] = [];
   private activeSpf: string | undefined;
   private readonly changed = new vscode.EventEmitter<void>();
   /** A lista de projetos ou o projeto ativo mudou. */
@@ -39,11 +39,11 @@ export class Projects implements vscode.Disposable {
     ];
   }
 
-  get all(): readonly LaceProject[] {
+  get all(): readonly AuroraProject[] {
     return this.list;
   }
 
-  get active(): LaceProject | undefined {
+  get active(): AuroraProject | undefined {
     return this.list.find((p) => p.spf === this.activeSpf);
   }
 
@@ -54,7 +54,7 @@ export class Projects implements vscode.Disposable {
     this.changed.fire();
   }
 
-  async setActive(project: LaceProject): Promise<void> {
+  async setActive(project: AuroraProject): Promise<void> {
     await this.memento.update(ACTIVE_KEY, project.spf);
     if (project.spf !== this.activeSpf) {
       this.activeSpf = project.spf;
@@ -62,7 +62,7 @@ export class Projects implements vscode.Disposable {
     }
   }
 
-  async select(): Promise<LaceProject | undefined> {
+  async select(): Promise<AuroraProject | undefined> {
     if (this.list.length === 0) {
       void vscode.window.showInformationMessage('Nenhum projeto do Lace (.spf) neste workspace.');
       return undefined;
@@ -87,7 +87,7 @@ export class Projects implements vscode.Disposable {
    * O projeto cuja pasta contém o arquivo, o mais fundo: o .spf que o Lace
    * acharia subindo as pastas a partir do arquivo.
    */
-  owner(file: string): LaceProject | undefined {
+  owner(file: string): AuroraProject | undefined {
     const path = vscode.Uri.file(file).fsPath;
     return this.list
       .filter((p) => path.startsWith(p.root.endsWith(sep) ? p.root : p.root + sep))
@@ -111,7 +111,7 @@ export class Projects implements vscode.Disposable {
   }
 }
 
-function toProject(uri: vscode.Uri): LaceProject {
+function toProject(uri: vscode.Uri): AuroraProject {
   return {
     uri,
     spf: uri.fsPath,

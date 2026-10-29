@@ -186,7 +186,7 @@ Studio pelo servidor.
 
 1. Acrescente a função em `src/ipc/api.ts`, chamando `aurora('<método>',
    { parâmetros })`. O tipo do resultado já está em
-   `src/ipc/lace-types.ts`, gerado (veja "Um tipo do Core mudou", abaixo).
+   `src/ipc/aurora-types.ts`, gerado (veja "Um tipo do Core mudou", abaixo).
    O projeto aberto entra sozinho no campo `project`.
 2. Um método longo, com progresso (como o `flow.run`), vai como operação:
    `jobs::start`, com o pedido e o que fazer com a resposta.
@@ -235,7 +235,7 @@ está escondido, não o que aparece.
 
 ```sh
 npm run gen:types     # relê ../docs/schema/*.json
-git diff src/ipc/lace-types.ts
+git diff src/ipc/aurora-types.ts
 ```
 
 `AURORA_REPO=/outro/aurora npm run gen:types` lê de outro lugar.

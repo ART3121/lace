@@ -6,16 +6,16 @@ import { basename } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../lace/client';
-import type { TopReport } from '../lace/lace-types';
-import { formatLaceError } from '../messages';
-import { chooseProject, clientFor, showLaceError, showProcessError, targetUri, type CommandDeps } from './common';
+import type { AuroraRun } from '../aurora/client';
+import type { TopReport } from '../aurora/aurora-types';
+import { formatAuroraError } from '../messages';
+import { chooseProject, clientFor, showAuroraError, showProcessError, targetUri, type CommandDeps } from './common';
 
 /**
  * Devolve como o `aurora top` terminou, ou `undefined` se ele nem rodou. Os
  * testes de integração leem o retorno pelo `executeCommand`.
  */
-export async function setTop(deps: CommandDeps, target?: unknown): Promise<LaceRun<TopReport> | undefined> {
+export async function setTop(deps: CommandDeps, target?: unknown): Promise<AuroraRun<TopReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
     void vscode.window.showWarningMessage('Lace: escolha um arquivo .v ou .sv para definir como topo.');
@@ -41,19 +41,19 @@ export async function setTop(deps: CommandDeps, target?: unknown): Promise<LaceR
   }
 }
 
-function show(run: LaceRun<TopReport>, file: string): void {
+function show(run: AuroraRun<TopReport>, file: string): void {
   switch (run.status) {
     case 'succeeded': {
       const { module, module_error: moduleError } = run.result;
       if (moduleError) {
-        void vscode.window.showWarningMessage(`Lace: ${formatLaceError(moduleError)}`);
+        void vscode.window.showWarningMessage(`Lace: ${formatAuroraError(moduleError)}`);
       } else {
         vscode.window.setStatusBarMessage(`Lace: topo ${module ?? basename(file)}`, 5000);
       }
       return;
     }
     case 'error':
-      showLaceError(run.error);
+      showAuroraError(run.error);
       return;
     default:
       void vscode.window.showErrorMessage(`Lace: aurora top terminou como ${run.status}.`);

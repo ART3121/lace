@@ -23,7 +23,7 @@ import { create } from 'zustand';
 
 import { t, useLang } from '../i18n';
 import { api } from '../ipc/api';
-import type { Grade } from '../ipc/lace-types';
+import type { Grade } from '../ipc/aurora-types';
 import type { IpcError, LearnExercise, LearnSnapshot } from '../ipc/types';
 import { samePath } from '../util/paths';
 import { confirm } from './dialogs';

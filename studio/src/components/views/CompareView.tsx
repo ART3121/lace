@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { useT, type Key } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { MetricComparison, RunComparison } from '../../ipc/lace-types';
+import type { MetricComparison, RunComparison } from '../../ipc/aurora-types';
 import { Empty } from '../common';
 import { errorText } from '../../i18n';
 import type { IpcError } from '../../ipc/types';

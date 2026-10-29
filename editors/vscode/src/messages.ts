@@ -1,10 +1,10 @@
-import type { ErrorInfo } from './lace/lace-types';
+import type { ErrorInfo } from './aurora/aurora-types';
 
 /**
  * Um erro do Lace numa linha, com a dica depois da mensagem. As duas vêm em
  * inglês, como a CLI as escreve. A notificação do VS Code não quebra linha.
  */
-export function formatLaceError(error: ErrorInfo): string {
+export function formatAuroraError(error: ErrorInfo): string {
   const message = error.message.trim();
   if (!error.hint) {
     return message;

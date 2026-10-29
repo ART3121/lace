@@ -1,4 +1,4 @@
-// "Lace: Simular" dentro do VS Code, com o lace falso: o botão Sim da barra
+// "Lace: Simular" dentro do VS Code, com o aurora falso: o botão Sim da barra
 // de status roda `aurora sim` pelo --events e guarda como terminou.
 
 import * as assert from 'node:assert/strict';
@@ -6,14 +6,14 @@ import { join } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceExtensionApi } from '../../src/extension';
-import type { LaceRun } from '../../src/lace/client';
-import type { SimReport } from '../../src/lace/lace-types';
+import type { AuroraExtensionApi } from '../../src/extension';
+import type { AuroraRun } from '../../src/aurora/client';
+import type { SimReport } from '../../src/aurora/aurora-types';
 import type { SourceNode } from '../../src/sources/provider';
 import { activate, lastCall, resetFake, run, spf, workspace } from './helpers';
 
 describe('Lace: Simular', () => {
-  let api: LaceExtensionApi;
+  let api: AuroraExtensionApi;
 
   before(async () => {
     api = await activate();
@@ -21,7 +21,7 @@ describe('Lace: Simular', () => {
   });
 
   it('o projeto: aurora sim pelo --events, e o botão guarda o resultado', async () => {
-    const result = await run<LaceRun<SimReport>>('lace.sim');
+    const result = await run<AuroraRun<SimReport>>('aurora.sim');
     assert.equal(result?.status, 'succeeded');
     assert.deepEqual(lastCall('sim'), ['-C', spf, '--events', 'sim']);
     const state = api.runs.state('sim');
@@ -32,20 +32,20 @@ describe('Lace: Simular', () => {
 
   it('outro testbench: passa a ser o do projeto, e a vista acompanha', async () => {
     const somador = join(workspace, 'tb', 'somador_tb.v');
-    await run('lace.simTestbench', vscode.Uri.file(somador));
+    await run('aurora.simTestbench', vscode.Uri.file(somador));
     assert.deepEqual(lastCall('sim'), ['-C', spf, '--events', 'sim', somador]);
     assert.equal(api.status?.selected_testbench, somador);
     const contador = join(workspace, 'tb', 'contador_tb.v');
-    await run('lace.simTestbench', vscode.Uri.file(contador));
+    await run('aurora.simTestbench', vscode.Uri.file(contador));
     assert.equal(api.status?.selected_testbench, contador);
   });
 
   it('um processador e a simulação rápida', async () => {
     const processor = { kind: 'entry', entry: { role: 'processor', label: 'soma', path: null } } as unknown as SourceNode;
-    const soma = await run<LaceRun<SimReport>>('lace.simProcessor', processor);
+    const soma = await run<AuroraRun<SimReport>>('aurora.simProcessor', processor);
     assert.deepEqual(lastCall('sim'), ['-C', spf, '--events', 'sim', '-p', 'soma']);
     assert.equal(soma?.status === 'succeeded' && soma.result.outputs.length, 1);
-    await run('lace.simFast');
+    await run('aurora.simFast');
     assert.deepEqual(lastCall('sim'), ['-C', spf, '--events', 'sim', '--fast']);
   });
 });

@@ -1961,7 +1961,7 @@ funções do core ficam no core, ao lado delas: `RemoveOutcome` em `files`,
 `request_schema()` gera o schema dos pedidos na vista de quem desserializa
 (um campo com padrão é opcional) e `response_schema()` o das respostas e
 notificações; a CLI os grava em `docs/schema/protocol-request.json` e
-`protocol-response.json`, e os dois `gen-lace-types` (Studio, VS Code)
+`protocol-response.json`, e os dois `gen-aurora-types` (Studio, VS Code)
 geram os tipos TypeScript deles. A macro `methods!` declara cada método
 uma vez, com o nome, o tipo do resultado e as marcações (se só lê, se mexe
 na instalação, se vira ferramenta de agente): dela saem `METHODS`, a lista

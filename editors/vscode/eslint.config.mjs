@@ -4,7 +4,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 const childProcess = {
-  message: 'Só src/lace/cliClient.ts roda o lace: vistas e comandos falam com o LaceClient.',
+  message: 'Só src/aurora/cliClient.ts roda o aurora: vistas e comandos falam com o AuroraClient.',
 };
 const noChildProcess = [
   { name: 'child_process', ...childProcess },
@@ -13,12 +13,12 @@ const noChildProcess = [
 const noVscode = [
   {
     name: 'vscode',
-    message: 'src/lace/ não conhece o VS Code: é o que os testes unitários rodam fora dele.',
+    message: 'src/aurora/ não conhece o VS Code: é o que os testes unitários rodam fora dele.',
   },
 ];
 
 export default defineConfig(
-  { ignores: ['dist/', 'out/', '.vscode-test/', 'media/rtl-viewer/', 'src/lace/lace-types.ts'] },
+  { ignores: ['dist/', 'out/', '.vscode-test/', 'media/rtl-viewer/', 'src/aurora/aurora-types.ts'] },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
@@ -30,20 +30,20 @@ export default defineConfig(
     languageOptions: { globals: globals.node },
   },
   // As duas decisões de arquitetura que o lint cobra: um único módulo cria
-  // processos (um `lace lsp` futuro troca só ele), e o cliente do Lace não
+  // processos (um `aurora lsp` futuro troca só ele), e o cliente do Lace não
   // depende do VS Code.
   {
     files: ['src/**/*.ts'],
-    ignores: ['src/lace/**'],
+    ignores: ['src/aurora/**'],
     rules: { 'no-restricted-imports': ['error', { paths: noChildProcess }] },
   },
   {
-    files: ['src/lace/**/*.ts'],
-    ignores: ['src/lace/cliClient.ts'],
+    files: ['src/aurora/**/*.ts'],
+    ignores: ['src/aurora/cliClient.ts'],
     rules: { 'no-restricted-imports': ['error', { paths: [...noChildProcess, ...noVscode] }] },
   },
   {
-    files: ['src/lace/cliClient.ts'],
+    files: ['src/aurora/cliClient.ts'],
     rules: { 'no-restricted-imports': ['error', { paths: noVscode }] },
   },
 );

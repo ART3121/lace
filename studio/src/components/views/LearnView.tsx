@@ -17,7 +17,7 @@ import {
 import { useMemo } from 'react';
 
 import { useT } from '../../i18n';
-import type { Counterexample, Finding, Grade } from '../../ipc/lace-types';
+import type { Counterexample, Finding, Grade } from '../../ipc/aurora-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { currentExercise, useLearn } from '../../state/learn';

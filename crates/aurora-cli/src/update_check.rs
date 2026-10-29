@@ -131,7 +131,7 @@ pub fn finish(pending: Option<Pending>) {
     let installed = env!("CARGO_PKG_VERSION");
     if let Some(latest) = to_notify(&state, installed, now()).map(str::to_owned) {
         anstream::eprintln!(
-            "\nLace {latest} is available (this is {installed}): update with {}",
+            "\nAurora {latest} is available (this is {installed}): update with {}",
             paint(BOLD, "aurora update")
         );
         state.notified = Some(latest);

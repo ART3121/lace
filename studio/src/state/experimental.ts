@@ -18,7 +18,7 @@
 import { create } from 'zustand';
 
 import { api } from '../ipc/api';
-import type { ExperimentalReport, Feature, FeatureState } from '../ipc/lace-types';
+import type { ExperimentalReport, Feature, FeatureState } from '../ipc/aurora-types';
 import { onErrorCode, showError } from './toasts';
 
 interface ExperimentalState {

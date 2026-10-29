@@ -4,7 +4,7 @@ import * as assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
-import type { CheckReport, Diagnostic } from '../../src/lace/lace-types';
+import type { CheckReport, Diagnostic } from '../../src/aurora/aurora-types';
 import { countProblems, describeCount, groupProblems } from '../../src/problems';
 import { RESPONSES } from '../support/fixtures';
 

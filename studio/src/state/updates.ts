@@ -17,7 +17,7 @@ import { create } from 'zustand';
 
 import { t } from '../i18n';
 import { api } from '../ipc/api';
-import type { UpdateReport } from '../ipc/lace-types';
+import type { UpdateReport } from '../ipc/aurora-types';
 import { useApp } from './app';
 import { confirm, useDialogs } from './dialogs';
 import { useEditor } from './editor';

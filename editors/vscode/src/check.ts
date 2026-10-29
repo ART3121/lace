@@ -7,9 +7,9 @@ import { sep } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { CheckReport, Severity } from './lace/lace-types';
+import type { CheckReport, Severity } from './aurora/aurora-types';
 import { countProblems, groupProblems, type Problem, type ProblemCount } from './problems';
-import type { LaceProject } from './projects';
+import type { AuroraProject } from './projects';
 
 const SEVERITIES: Record<Severity, vscode.DiagnosticSeverity> = {
   error: vscode.DiagnosticSeverity.Error,
@@ -27,7 +27,7 @@ export interface CheckTotals {
 }
 
 export class CheckResults implements vscode.Disposable {
-  private readonly collection = vscode.languages.createDiagnosticCollection('lace');
+  private readonly collection = vscode.languages.createDiagnosticCollection('aurora');
   private counts = new Map<string, ProblemCount>();
   private readonly changed = new vscode.EventEmitter<void>();
   /** Os problemas do último check mudaram. */
@@ -51,7 +51,7 @@ export class CheckResults implements vscode.Disposable {
    * Troca os problemas pelos deste check. `registered` são os arquivos do
    * .spf: um .v de fora da pasta do projeto também é dele.
    */
-  apply(report: CheckReport, project: LaceProject, registered: readonly string[]): CheckTotals {
+  apply(report: CheckReport, project: AuroraProject, registered: readonly string[]): CheckTotals {
     const problems = groupProblems(report.check.diagnostics, project.root, projectFiles(project, registered));
     this.collection.clear();
     this.counts = new Map();
@@ -77,7 +77,7 @@ export class CheckResults implements vscode.Disposable {
 }
 
 /** Na pasta do projeto ou registrado nele. */
-function projectFiles(project: LaceProject, registered: readonly string[]): (file: string) => boolean {
+function projectFiles(project: AuroraProject, registered: readonly string[]): (file: string) => boolean {
   const root = project.root.endsWith(sep) ? project.root : project.root + sep;
   const known = new Set(registered.map((path) => vscode.Uri.file(path).fsPath));
   return (file) => {

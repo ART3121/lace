@@ -1,18 +1,18 @@
-// O LaceClient sobre um `aurora serve` em segundo plano: um processo só,
+// O AuroraClient sobre um `aurora serve` em segundo plano: um processo só,
 // aberto no primeiro pedido, falando JSON-RPC por linhas (jsonRpc.ts). Os
-// comandos e as vistas continuam lendo os relatórios da CLI (lace-types.ts):
+// comandos e as vistas continuam lendo os relatórios da CLI (aurora-types.ts):
 // este arquivo converte o que o protocolo devolve para essa forma.
 
 import { PassThrough, type Readable, type Writable } from 'node:stream';
 
-import { spawnServe, type LaceCommand, type LaceLog } from './cliClient';
+import { spawnServe, type AuroraCommand, type AuroraLog } from './cliClient';
 import {
-  LaceProcessError,
+  AuroraProcessError,
   type AddOptions,
   type BuildOptions,
   type CheckOptions,
-  type LaceClient,
-  type LaceRun,
+  type AuroraClient,
+  type AuroraRun,
   type ListPosition,
   type ProcessorChanges,
   type RunOptions,
@@ -41,13 +41,13 @@ import type {
   TopReport,
   WaveOpened,
   WaveReport,
-} from './lace-types';
+} from './aurora-types';
 
 /** A versão do protocolo que este cliente fala (`aurora_protocol::PROTOCOL_VERSION`). */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 // Os códigos do JSON-RPC que o aurora serve usa (crates/aurora-cli/src/serve.rs).
-const RPC_LACE = -32000;
+const RPC_AURORA = -32000;
 const RPC_CANCELLED = -32001;
 const RPC_METHOD_NOT_FOUND = -32601;
 const RPC_INVALID_PARAMS = -32602;
@@ -69,10 +69,10 @@ export interface ServeProcess {
   on(event: 'error', listener: (error: Error) => void): this;
 }
 
-export type ServeSpawn = (command: LaceCommand) => ServeProcess;
+export type ServeSpawn = (command: AuroraCommand) => ServeProcess;
 
 export interface ServeClientOptions {
-  /** O nome que vai no `initialize` (`lace-vscode 0.1.0`). */
+  /** O nome que vai no `initialize` (`aurora-vscode 0.1.0`). */
   clientName: string;
   /** Como abrir o processo; o padrão é o `spawn` do Node. */
   spawn?: ServeSpawn;
@@ -104,15 +104,15 @@ interface FlowOptionsOut {
   viewer_opener: 'vscode';
 }
 
-export class ServeLaceClient implements LaceClient {
+export class ServeAuroraClient implements AuroraClient {
   private session: Session | undefined;
   private lastVersion: string | undefined;
   private readonly handlers = new Map<number, (event: Event) => void>();
   private readonly spawnServe: ServeSpawn;
 
   constructor(
-    readonly command: LaceCommand,
-    private readonly log: LaceLog | undefined,
+    readonly command: AuroraCommand,
+    private readonly log: AuroraLog | undefined,
     private readonly options: ServeClientOptions,
   ) {
     this.spawnServe = options.spawn ?? defaultSpawn;
@@ -121,10 +121,10 @@ export class ServeLaceClient implements LaceClient {
   /** A versão do Lace, do `initialize`; abre o processo se preciso. */
   async version(): Promise<string> {
     const info = await this.connect();
-    return info.lace;
+    return info.aurora;
   }
 
-  newProject(name: string, dir: string, options?: RunOptions): Promise<LaceRun<NewReport>> {
+  newProject(name: string, dir: string, options?: RunOptions): Promise<AuroraRun<NewReport>> {
     return this.call<ProjectStatus, NewReport>('project.create', { parent: dir, name }, options, (status) => ({
       message: 'Project created',
       path: status.spf,
@@ -132,11 +132,11 @@ export class ServeLaceClient implements LaceClient {
     }));
   }
 
-  status(spf: string, options?: RunOptions): Promise<LaceRun<StatusReport>> {
+  status(spf: string, options?: RunOptions): Promise<AuroraRun<StatusReport>> {
     return this.call<ProjectStatus, StatusReport>('project.status', { project: spf }, options, statusReport);
   }
 
-  setTop(spf: string, file: string, options?: RunOptions): Promise<LaceRun<TopReport>> {
+  setTop(spf: string, file: string, options?: RunOptions): Promise<AuroraRun<TopReport>> {
     return this.call<TopReport, TopReport>('project.top', { project: spf, target: file }, options, (top) => ({
       top_level: top.top_level,
       module: top.module,
@@ -144,7 +144,7 @@ export class ServeLaceClient implements LaceClient {
     }));
   }
 
-  add(spf: string, files: readonly string[], options: AddOptions = {}): Promise<LaceRun<AddReport>> {
+  add(spf: string, files: readonly string[], options: AddOptions = {}): Promise<AuroraRun<AddReport>> {
     return this.call<AddReport['files'], AddReport>(
       'project.add',
       { project: spf, files: [...files], testbench: options.testbench === true },
@@ -153,7 +153,7 @@ export class ServeLaceClient implements LaceClient {
     );
   }
 
-  remove(spf: string, files: readonly string[], options?: RunOptions): Promise<LaceRun<RemoveReport>> {
+  remove(spf: string, files: readonly string[], options?: RunOptions): Promise<AuroraRun<RemoveReport>> {
     return this.call<Omit<RemoveReport, 'project'>, RemoveReport>(
       'project.remove',
       { project: spf, files: [...files] },
@@ -162,7 +162,7 @@ export class ServeLaceClient implements LaceClient {
     );
   }
 
-  order(spf: string, file: string, position: ListPosition, options?: RunOptions): Promise<LaceRun<OrderReport>> {
+  order(spf: string, file: string, position: ListPosition, options?: RunOptions): Promise<AuroraRun<OrderReport>> {
     // O `ListPosition` do core leva o outro arquivo em `path`.
     const where =
       position.kind === 'before' || position.kind === 'after'
@@ -176,7 +176,7 @@ export class ServeLaceClient implements LaceClient {
     );
   }
 
-  move(spf: string, from: string, to: string, options: RunOptions & { after?: boolean } = {}): Promise<LaceRun<MoveReport>> {
+  move(spf: string, from: string, to: string, options: RunOptions & { after?: boolean } = {}): Promise<AuroraRun<MoveReport>> {
     return this.call<MoveReport['moved'][number], MoveReport>(
       'project.move',
       { project: spf, from, to, after: options.after === true },
@@ -185,7 +185,7 @@ export class ServeLaceClient implements LaceClient {
     );
   }
 
-  build(spf: string, options: BuildOptions = {}): Promise<LaceRun<BuildReport>> {
+  build(spf: string, options: BuildOptions = {}): Promise<AuroraRun<BuildReport>> {
     const processors = options.processors ?? [];
     const command = ['aurora build', ...processors.flatMap((name) => ['-p', name])].join(' ');
     return this.flow<BuildReport>(
@@ -202,7 +202,7 @@ export class ServeLaceClient implements LaceClient {
     );
   }
 
-  addProcessor(spf: string, name: string, language: 'cmm' | 'cpp', options?: RunOptions): Promise<LaceRun<Processor>> {
+  addProcessor(spf: string, name: string, language: 'cmm' | 'cpp', options?: RunOptions): Promise<AuroraRun<Processor>> {
     return this.call<Processor, Processor>('processor.add', { project: spf, spec: { name, language } }, options, same);
   }
 
@@ -211,7 +211,7 @@ export class ServeLaceClient implements LaceClient {
     name: string,
     changes: ProcessorChanges,
     options?: RunOptions,
-  ): Promise<LaceRun<Processor>> {
+  ): Promise<AuroraRun<Processor>> {
     const config: Record<string, unknown> = {};
     if (changes.frequencyMhz !== undefined) {
       config.frequency_mhz = changes.frequencyMhz;
@@ -225,7 +225,7 @@ export class ServeLaceClient implements LaceClient {
     return this.call<Processor, Processor>('processor.set', { project: spf, name, config }, options, same);
   }
 
-  check(spf: string, options: CheckOptions = {}): Promise<LaceRun<CheckReport>> {
+  check(spf: string, options: CheckOptions = {}): Promise<AuroraRun<CheckReport>> {
     const request: Record<string, unknown> = { flow: 'check', lint: options.lint === true };
     if (options.file !== undefined) {
       request.file = options.file;
@@ -241,13 +241,13 @@ export class ServeLaceClient implements LaceClient {
     ].join(' ');
     return this.flow<CheckReport>(spf, request, command, options, (outcome, run) => {
       if (outcome.check === null && run !== 'cancelled') {
-        throw new LaceProcessError('o aurora serve terminou o check sem o resultado dele');
+        throw new AuroraProcessError('o aurora serve terminou o check sem o resultado dele');
       }
       return { check: outcome.check as CheckReport['check'], report: outcome.report };
     });
   }
 
-  wave(spf: string | undefined, target: WaveTarget, options?: RunOptions): Promise<LaceRun<WaveReport>> {
+  wave(spf: string | undefined, target: WaveTarget, options?: RunOptions): Promise<AuroraRun<WaveReport>> {
     const source =
       target.kind === 'file'
         ? { kind: 'file', path: target.path }
@@ -266,7 +266,7 @@ export class ServeLaceClient implements LaceClient {
     });
   }
 
-  sim(spf: string, options: SimOptions = {}): Promise<LaceRun<SimReport>> {
+  sim(spf: string, options: SimOptions = {}): Promise<AuroraRun<SimReport>> {
     const request: Record<string, unknown> = {
       flow: 'simulate',
       simulator: options.verilator || options.fast ? 'verilator' : 'icarus',
@@ -305,7 +305,7 @@ export class ServeLaceClient implements LaceClient {
     }));
   }
 
-  synth(spf: string, options: SynthOptions = {}): Promise<LaceRun<SynthReport>> {
+  synth(spf: string, options: SynthOptions = {}): Promise<AuroraRun<SynthReport>> {
     const request: Record<string, unknown> = {
       flow: 'synthesize',
       schematic: options.svg === true,
@@ -371,11 +371,11 @@ export class ServeLaceClient implements LaceClient {
     const session = this.open();
     this.session = session;
     const info = await session.ready;
-    if (this.lastVersion !== undefined && this.lastVersion !== info.lace) {
-      this.log?.info(`O aurora serve reaberto é a versão ${info.lace} (antes ${this.lastVersion})`);
-      this.options.onServerChanged?.(info.lace);
+    if (this.lastVersion !== undefined && this.lastVersion !== info.aurora) {
+      this.log?.info(`O aurora serve reaberto é a versão ${info.aurora} (antes ${this.lastVersion})`);
+      this.options.onServerChanged?.(info.aurora);
     }
-    this.lastVersion = info.lace;
+    this.lastVersion = info.aurora;
     return info;
   }
 
@@ -386,7 +386,7 @@ export class ServeLaceClient implements LaceClient {
     try {
       process = this.spawnServe(this.command);
     } catch (error) {
-      const failed = new LaceProcessError(`não foi possível rodar ${this.command.file}: ${(error as Error).message}`);
+      const failed = new AuroraProcessError(`não foi possível rodar ${this.command.file}: ${(error as Error).message}`);
       return {
         process: { stdin: deadWritable(), stdout: deadReadable(), stderr: null, kill() {}, on() { return this; } },
         channel: deadChannel(failed.message),
@@ -432,15 +432,15 @@ export class ServeLaceClient implements LaceClient {
     const { reply } = channel.request('initialize', { client: this.options.clientName });
     const ready = reply.then((answer) => {
       if ('error' in answer) {
-        throw new LaceProcessError(`o aurora serve recusou o initialize: ${answer.error.message}`, null, session.stderr);
+        throw new AuroraProcessError(`o aurora serve recusou o initialize: ${answer.error.message}`, null, session.stderr);
       }
       const info = answer.result as Partial<ServerInfo>;
-      if (typeof info?.lace !== 'string' || typeof info.protocol !== 'number') {
-        throw new LaceProcessError('o aurora serve respondeu ao initialize sem a versão', null, session.stderr);
+      if (typeof info?.aurora !== 'string' || typeof info.protocol !== 'number') {
+        throw new AuroraProcessError('o aurora serve respondeu ao initialize sem a versão', null, session.stderr);
       }
       if (info.protocol !== PROTOCOL_VERSION) {
         process.kill();
-        throw new LaceProcessError(
+        throw new AuroraProcessError(
           `o aurora serve fala a versão ${info.protocol} do protocolo, e a extensão a ${PROTOCOL_VERSION}`,
           null,
           session.stderr,
@@ -465,7 +465,7 @@ export class ServeLaceClient implements LaceClient {
           try {
             handler(event);
           } catch (error) {
-            this.log?.warn(`Erro ao tratar um evento do lace: ${String(error)}`);
+            this.log?.warn(`Erro ao tratar um evento do aurora: ${String(error)}`);
           }
         }
         return;
@@ -489,7 +489,7 @@ export class ServeLaceClient implements LaceClient {
     params: unknown,
     options: RunOptions | undefined,
     convert: (result: R) => T,
-  ): Promise<LaceRun<T>> {
+  ): Promise<AuroraRun<T>> {
     const answer = await this.send(method, params, options);
     if (answer.kind === 'cancelled') {
       return { status: 'cancelled', result: null };
@@ -500,14 +500,14 @@ export class ServeLaceClient implements LaceClient {
     return { status: 'succeeded', result: convert(answer.result as R) };
   }
 
-  /** Um `flow.run`: o status do `FlowOutcome` decide o `LaceRun`. */
+  /** Um `flow.run`: o status do `FlowOutcome` decide o `AuroraRun`. */
   private async flow<T>(
     spf: string,
     request: Record<string, unknown>,
     command: string,
     options: RunOptions & { onEvent?: (event: Event) => void },
     convert: (outcome: FlowOutcome, status: 'succeeded' | 'failed' | 'cancelled') => T,
-  ): Promise<LaceRun<T>> {
+  ): Promise<AuroraRun<T>> {
     const flowOptions: FlowOptionsOut = { command, wave: 'none', viewer_opener: 'vscode' };
     const answer = await this.send(
       'flow.run',
@@ -523,14 +523,14 @@ export class ServeLaceClient implements LaceClient {
     }
     const outcome = answer.result as FlowOutcome;
     if (typeof outcome?.status !== 'string') {
-      throw new LaceProcessError('o aurora serve terminou o fluxo sem um resultado');
+      throw new AuroraProcessError('o aurora serve terminou o fluxo sem um resultado');
     }
     if (outcome.schematic_error) {
       // A CLI imprime o erro do esquemático e sai com 2.
       return { status: 'error', error: errorInfo(outcome.schematic_error) };
     }
     const status = outcome.status === 'succeeded' ? 'succeeded' : outcome.status === 'cancelled' ? 'cancelled' : 'failed';
-    return { status, result: convert(outcome, status) } as LaceRun<T>;
+    return { status, result: convert(outcome, status) } as AuroraRun<T>;
   }
 
   /**
@@ -549,7 +549,7 @@ export class ServeLaceClient implements LaceClient {
     await this.connect();
     const session = this.session;
     if (!session) {
-      throw new LaceProcessError('o aurora serve fechou antes do pedido');
+      throw new AuroraProcessError('o aurora serve fechou antes do pedido');
     }
     const started = Date.now();
     this.log?.info(`> ${method} ${summarize(params)}`);
@@ -565,7 +565,7 @@ export class ServeLaceClient implements LaceClient {
       answer = await reply;
     } catch (error) {
       if (error instanceof RpcClosedError) {
-        throw new LaceProcessError(error.reason, null, session.stderr);
+        throw new AuroraProcessError(error.reason, null, session.stderr);
       }
       throw error;
     } finally {
@@ -587,10 +587,10 @@ function interpretError(
   session: Session,
 ): { kind: 'error'; error: ErrorInfo } | { kind: 'cancelled' } {
   switch (error.code) {
-    case RPC_LACE: {
+    case RPC_AURORA: {
       const data = error.data as Partial<ErrorInfo> | undefined;
       if (typeof data?.code !== 'string') {
-        throw new LaceProcessError(`o aurora serve devolveu um erro sem código: ${error.message}`, null, session.stderr);
+        throw new AuroraProcessError(`o aurora serve devolveu um erro sem código: ${error.message}`, null, session.stderr);
       }
       return { kind: 'error', error: { code: data.code, message: error.message, hint: data.hint ?? null } };
     }
@@ -601,7 +601,7 @@ function interpretError(
       // O equivalente de hoje a "o clap recusou os argumentos".
       return { kind: 'error', error: { code: 'cli', message: error.message, hint: null } };
     default:
-      throw new LaceProcessError(`o aurora serve respondeu ${error.code}: ${error.message}`, null, session.stderr);
+      throw new AuroraProcessError(`o aurora serve respondeu ${error.code}: ${error.message}`, null, session.stderr);
   }
 }
 
@@ -633,7 +633,7 @@ function same<T>(value: T): T {
   return value;
 }
 
-function defaultSpawn(command: LaceCommand): ServeProcess {
+function defaultSpawn(command: AuroraCommand): ServeProcess {
   return spawnServe(command) as unknown as ServeProcess;
 }
 

@@ -1,38 +1,38 @@
-// Onde está o executável lace: o da configuração `lace.path` ou, sem ela, o
+// Onde está o executável aurora: o da configuração `aurora.path` ou, sem ela, o
 // primeiro do PATH. Sem shell, então quem procura no PATH somos nós.
 
 import { accessSync, constants, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, join } from 'node:path';
 
-import type { LaceCommand } from './cliClient';
+import type { AuroraCommand } from './cliClient';
 
-/** `lace.path` aponta para um arquivo que não existe. */
-export class LacePathError extends Error {
+/** `aurora.path` aponta para um arquivo que não existe. */
+export class AuroraPathError extends Error {
   constructor(readonly configured: string) {
-    super(`lace.path aponta para ${configured}, que não existe`);
-    this.name = 'LacePathError';
+    super(`aurora.path aponta para ${configured}, que não existe`);
+    this.name = 'AuroraPathError';
   }
 }
 
 /**
- * O comando que roda o lace, ou `undefined` se não há `lace.path` e o PATH
- * não tem um lace. Lança `LacePathError` se `lace.path` aponta para nada.
+ * O comando que roda o aurora, ou `undefined` se não há `aurora.path` e o PATH
+ * não tem um aurora. Lança `AuroraPathError` se `aurora.path` aponta para nada.
  */
-export function locateLace(
+export function locateAurora(
   configured: string | undefined,
   env: NodeJS.ProcessEnv = process.env,
-): LaceCommand | undefined {
+): AuroraCommand | undefined {
   const setting = configured?.trim();
   if (setting) {
     const file = expandHome(setting);
     if (!isFile(file)) {
-      throw new LacePathError(setting);
+      throw new AuroraPathError(setting);
     }
     return { file, args: [] };
   }
   // No Windows só o .exe: um .cmd ou .bat não roda sem shell.
-  const name = process.platform === 'win32' ? 'lace.exe' : 'lace';
+  const name = process.platform === 'win32' ? 'aurora.exe' : 'aurora';
   for (const dir of pathEntries(env)) {
     const file = join(dir, name);
     if (isFile(file) && isExecutable(file)) {

@@ -1,7 +1,7 @@
 {
-  "name": "lace",
-  "displayName": "Lace",
-  "description": "Projetos do Lace no VS Code: as fontes do projeto e o topo do design, pela CLI lace",
+  "name": "aurora",
+  "displayName": "AURORA",
+  "description": "Projetos da AURORA no VS Code: as fontes do projeto e o topo do design, pela CLI aurora",
   "version": "0.1.0",
   "publisher": "nipscernlab",
   "license": "MIT",
@@ -23,7 +23,7 @@
     "sapho",
     "icarus",
     "fpga",
-    "lace"
+    "aurora"
   ],
   "main": "./dist/extension.js",
   "extensionKind": [
@@ -35,7 +35,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": false,
-      "description": "A extensão roda o lace sobre os arquivos do projeto."
+      "description": "A extensão roda o aurora sobre os arquivos do projeto."
     },
     "virtualWorkspaces": false
   },
@@ -43,13 +43,13 @@
     "configuration": {
       "title": "Lace",
       "properties": {
-        "lace.path": {
+        "aurora.path": {
           "type": "string",
           "default": "",
           "scope": "machine",
           "markdownDescription": "O executável `aurora`. Vazio: o primeiro `aurora` do `PATH`."
         },
-        "lace.transport": {
+        "aurora.transport": {
           "type": "string",
           "enum": [
             "auto",
@@ -58,45 +58,45 @@
           ],
           "default": "auto",
           "scope": "machine",
-          "markdownDescription": "Como a extensão fala com o lace. `auto`: um `aurora serve` em segundo plano quando a versão instalada o tem (0.9.0 ou mais nova), senão um processo por comando. `cli`: sempre um processo por comando (`aurora --json` e `--events`). `serve`: só o `aurora serve`; com um Lace mais antigo a extensão fica indisponível."
+          "markdownDescription": "Como a extensão fala com o aurora. `auto`: um `aurora serve` em segundo plano quando a versão instalada o tem (0.9.0 ou mais nova), senão um processo por comando. `cli`: sempre um processo por comando (`aurora --json` e `--events`). `serve`: só o `aurora serve`; com um Lace mais antigo a extensão fica indisponível."
         },
-        "lace.check.lint": {
+        "aurora.check.lint": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Toda verificação roda também o `verilator --lint-only` (`aurora check --lint`), que acha larguras que não batem e sinais sem uso."
         },
-        "lace.check.onSave": {
+        "aurora.check.onSave": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Verifica o projeto ao gravar um `.v` ou `.sv` dele. O resultado vai para o painel Problemas e para a barra de status, sem notificação."
         },
-        "lace.add.askForNewFiles": {
+        "aurora.add.askForNewFiles": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Pergunta se põe no projeto um `.v` ou `.sv` novo que aparece na pasta dele, fora do `.spf`."
         },
-        "lace.files.followExplorer": {
+        "aurora.files.followExplorer": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Um arquivo do projeto renomeado ou movido no explorador continua no projeto, no lugar novo (`aurora move --after`), e um apagado sai do projeto (`aurora remove`)."
         },
-        "lace.sim.verilator": {
+        "aurora.sim.verilator": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Simula no Verilator, com onda (`aurora sim --verilator`), em vez do Icarus."
         },
-        "lace.sim.timeout": {
+        "aurora.sim.timeout": {
           "type": "integer",
           "default": 0,
           "minimum": 0,
           "markdownDescription": "Encerra a simulação que passar deste tempo, em segundos (`aurora sim --timeout`). `0`: sem limite; o botão Sim, girando, cancela."
         },
-        "lace.synth.schematic": {
+        "aurora.synth.schematic": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Também desenha o esquemático do Graphviz em SVG (`aurora synth --svg`) e o abre. O RTL viewer já mostra o netlist; num design grande o Graphviz pode levar até 60 s."
         },
-        "lace.synth.openViewer": {
+        "aurora.synth.openViewer": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Abre o RTL viewer, o esquemático interativo do Lace, depois de cada síntese."
@@ -148,198 +148,198 @@
     ],
     "commands": [
       {
-        "command": "lace.setTop",
+        "command": "aurora.setTop",
         "title": "Definir como topo",
         "category": "Lace",
         "icon": "$(target)"
       },
       {
-        "command": "lace.build",
+        "command": "aurora.build",
         "title": "Compilar os processadores",
         "category": "Lace",
         "icon": "$(tools)"
       },
       {
-        "command": "lace.buildProcessor",
+        "command": "aurora.buildProcessor",
         "title": "Compilar o processador",
         "category": "Lace",
         "icon": "$(tools)"
       },
       {
-        "command": "lace.newProcessor",
+        "command": "aurora.newProcessor",
         "title": "Novo processador SAPHO...",
         "category": "Lace",
         "icon": "$(add)"
       },
       {
-        "command": "lace.configureProcessor",
+        "command": "aurora.configureProcessor",
         "title": "Configurar o processador...",
         "category": "Lace",
         "icon": "$(settings-gear)"
       },
       {
-        "command": "lace.check",
+        "command": "aurora.check",
         "title": "Verificar o projeto",
         "category": "Lace",
         "icon": "$(checklist)"
       },
       {
-        "command": "lace.checkLint",
+        "command": "aurora.checkLint",
         "title": "Verificar o projeto com lint (Verilator)",
         "category": "Lace"
       },
       {
-        "command": "lace.checkFile",
+        "command": "aurora.checkFile",
         "title": "Verificar este arquivo",
         "category": "Lace",
         "icon": "$(checklist)"
       },
       {
-        "command": "lace.checkProcessor",
+        "command": "aurora.checkProcessor",
         "title": "Verificar o processador",
         "category": "Lace",
         "icon": "$(checklist)"
       },
       {
-        "command": "lace.sim",
+        "command": "aurora.sim",
         "title": "Simular o projeto",
         "category": "Lace",
         "icon": "$(play)"
       },
       {
-        "command": "lace.simFast",
+        "command": "aurora.simFast",
         "title": "Simular o projeto rápido (Verilator, sem onda)",
         "category": "Lace"
       },
       {
-        "command": "lace.simTestbench",
+        "command": "aurora.simTestbench",
         "title": "Simular este testbench",
         "category": "Lace",
         "icon": "$(play)"
       },
       {
-        "command": "lace.simProcessor",
+        "command": "aurora.simProcessor",
         "title": "Simular o processador",
         "category": "Lace",
         "icon": "$(play)"
       },
       {
-        "command": "lace.synth",
+        "command": "aurora.synth",
         "title": "Sintetizar o projeto",
         "category": "Lace",
         "icon": "$(circuit-board)"
       },
       {
-        "command": "lace.synthProcessor",
+        "command": "aurora.synthProcessor",
         "title": "Sintetizar o processador",
         "category": "Lace",
         "icon": "$(circuit-board)"
       },
       {
-        "command": "lace.rtlViewer",
+        "command": "aurora.rtlViewer",
         "title": "Abrir o RTL viewer",
         "category": "Lace",
         "icon": "$(circuit-board)"
       },
       {
-        "command": "lace.wave",
+        "command": "aurora.wave",
         "title": "Abrir a onda",
         "category": "Lace",
         "icon": "$(pulse)"
       },
       {
-        "command": "lace.waveProcessor",
+        "command": "aurora.waveProcessor",
         "title": "Abrir a onda do processador",
         "category": "Lace",
         "icon": "$(pulse)"
       },
       {
-        "command": "lace.waveFile",
+        "command": "aurora.waveFile",
         "title": "Abrir no surfer-aurora",
         "category": "Lace",
         "icon": "$(pulse)"
       },
       {
-        "command": "lace.cancel",
+        "command": "aurora.cancel",
         "title": "Cancelar o que está rodando",
         "category": "Lace",
         "icon": "$(debug-stop)"
       },
       {
-        "command": "lace.cancelRun",
+        "command": "aurora.cancelRun",
         "title": "Cancelar",
         "category": "Lace"
       },
       {
-        "command": "lace.add",
+        "command": "aurora.add",
         "title": "Adicionar ao projeto",
         "category": "Lace",
         "icon": "$(add)"
       },
       {
-        "command": "lace.addTestbench",
+        "command": "aurora.addTestbench",
         "title": "Adicionar ao projeto como testbench",
         "category": "Lace"
       },
       {
-        "command": "lace.newFile",
+        "command": "aurora.newFile",
         "title": "Novo arquivo Verilog...",
         "category": "Lace",
         "icon": "$(new-file)"
       },
       {
-        "command": "lace.remove",
+        "command": "aurora.remove",
         "title": "Tirar do projeto",
         "category": "Lace",
         "icon": "$(remove)"
       },
       {
-        "command": "lace.rename",
+        "command": "aurora.rename",
         "title": "Renomear ou mover...",
         "category": "Lace",
         "icon": "$(edit)"
       },
       {
-        "command": "lace.moveUp",
+        "command": "aurora.moveUp",
         "title": "Subir na ordem de compilação",
         "category": "Lace",
         "icon": "$(arrow-up)"
       },
       {
-        "command": "lace.moveDown",
+        "command": "aurora.moveDown",
         "title": "Descer na ordem de compilação",
         "category": "Lace",
         "icon": "$(arrow-down)"
       },
       {
-        "command": "lace.moveFirst",
+        "command": "aurora.moveFirst",
         "title": "Primeiro na ordem de compilação",
         "category": "Lace"
       },
       {
-        "command": "lace.moveLast",
+        "command": "aurora.moveLast",
         "title": "Último na ordem de compilação",
         "category": "Lace"
       },
       {
-        "command": "lace.newProject",
+        "command": "aurora.newProject",
         "title": "Novo projeto",
         "category": "Lace",
         "icon": "$(new-folder)"
       },
       {
-        "command": "lace.refresh",
+        "command": "aurora.refresh",
         "title": "Atualizar",
         "category": "Lace",
         "icon": "$(refresh)"
       },
       {
-        "command": "lace.selectProject",
+        "command": "aurora.selectProject",
         "title": "Escolher o projeto ativo",
         "category": "Lace"
       },
       {
-        "command": "lace.showTools",
+        "command": "aurora.showTools",
         "title": "Mostrar a saída das ferramentas",
         "category": "Lace",
         "icon": "$(output)"
@@ -348,432 +348,432 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "lace",
+          "id": "aurora",
           "title": "Lace",
           "icon": "media/lace.svg"
         }
       ]
     },
     "views": {
-      "lace": [
+      "aurora": [
         {
-          "id": "lace.sources",
+          "id": "aurora.sources",
           "name": "Fontes"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "lace.sources",
-        "contents": "Procurando o lace...",
-        "when": "lace.state == checking"
+        "view": "aurora.sources",
+        "contents": "Procurando o aurora...",
+        "when": "aurora.state == checking"
       },
       {
-        "view": "lace.sources",
-        "contents": "O executável lace não foi encontrado.\n[Configurar lace.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Instalar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
-        "when": "lace.state == missing"
+        "view": "aurora.sources",
+        "contents": "O executável aurora não foi encontrado.\n[Configurar aurora.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Instalar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
+        "when": "aurora.state == missing"
       },
       {
-        "view": "lace.sources",
-        "contents": "Esta versão do lace não serve para a extensão. Os detalhes estão na saída Lace.\n[Configurar lace.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Atualizar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
-        "when": "lace.state == unsupported"
+        "view": "aurora.sources",
+        "contents": "Esta versão do aurora não serve para a extensão. Os detalhes estão na saída Lace.\n[Configurar aurora.path](command:workbench.action.openSettings?%5B%22lace.path%22%5D)\n[Atualizar o Lace](https://github.com/ART3121/lace/blob/main/docs/INSTALL.md)",
+        "when": "aurora.state == unsupported"
       },
       {
-        "view": "lace.sources",
-        "contents": "Esta pasta não tem um projeto do Lace (.spf).\n[Novo projeto](command:lace.newProject)",
-        "when": "lace.state == noProject && workspaceFolderCount > 0"
+        "view": "aurora.sources",
+        "contents": "Esta pasta não tem um projeto do Lace (.spf).\n[Novo projeto](command:aurora.newProject)",
+        "when": "aurora.state == noProject && workspaceFolderCount > 0"
       },
       {
-        "view": "lace.sources",
-        "contents": "Nenhuma pasta aberta.\n[Novo projeto](command:lace.newProject)\n[Abrir pasta](command:vscode.openFolder)",
-        "when": "lace.state == noProject && workspaceFolderCount == 0"
+        "view": "aurora.sources",
+        "contents": "Nenhuma pasta aberta.\n[Novo projeto](command:aurora.newProject)\n[Abrir pasta](command:vscode.openFolder)",
+        "when": "aurora.state == noProject && workspaceFolderCount == 0"
       },
       {
-        "view": "lace.sources",
-        "contents": "Este workspace tem mais de um projeto do Lace.\n[Escolher o projeto ativo](command:lace.selectProject)",
-        "when": "lace.state == chooseProject"
+        "view": "aurora.sources",
+        "contents": "Este workspace tem mais de um projeto do Lace.\n[Escolher o projeto ativo](command:aurora.selectProject)",
+        "when": "aurora.state == chooseProject"
       },
       {
-        "view": "lace.sources",
-        "contents": "O projeto não tem fontes.\n[Novo arquivo Verilog](command:lace.newFile)",
-        "when": "lace.state == ready"
+        "view": "aurora.sources",
+        "contents": "O projeto não tem fontes.\n[Novo arquivo Verilog](command:aurora.newFile)",
+        "when": "aurora.state == ready"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "lace.setTop",
-          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles"
+          "command": "aurora.setTop",
+          "when": "aurora.feature.setTop && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in aurora.topFiles && resourcePath not in aurora.testbenchFiles"
         },
         {
-          "command": "lace.build",
-          "when": "lace.feature.processors && lace.projectActive"
+          "command": "aurora.build",
+          "when": "aurora.feature.processors && aurora.projectActive"
         },
         {
-          "command": "lace.buildProcessor",
+          "command": "aurora.buildProcessor",
           "when": "false"
         },
         {
-          "command": "lace.newProcessor",
-          "when": "lace.feature.processors && lace.projectActive"
+          "command": "aurora.newProcessor",
+          "when": "aurora.feature.processors && aurora.projectActive"
         },
         {
-          "command": "lace.configureProcessor",
-          "when": "lace.feature.processors && lace.projectActive"
+          "command": "aurora.configureProcessor",
+          "when": "aurora.feature.processors && aurora.projectActive"
         },
         {
-          "command": "lace.check",
-          "when": "lace.feature.check && lace.projectActive"
+          "command": "aurora.check",
+          "when": "aurora.feature.check && aurora.projectActive"
         },
         {
-          "command": "lace.checkLint",
-          "when": "lace.feature.check && lace.projectActive"
+          "command": "aurora.checkLint",
+          "when": "aurora.feature.check && aurora.projectActive"
         },
         {
-          "command": "lace.checkFile",
-          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/"
+          "command": "aurora.checkFile",
+          "when": "aurora.feature.check && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/"
         },
         {
-          "command": "lace.checkProcessor",
+          "command": "aurora.checkProcessor",
           "when": "false"
         },
         {
-          "command": "lace.sim",
-          "when": "lace.feature.sim && lace.projectActive"
+          "command": "aurora.sim",
+          "when": "aurora.feature.sim && aurora.projectActive"
         },
         {
-          "command": "lace.simFast",
-          "when": "lace.feature.simFast && lace.projectActive"
+          "command": "aurora.simFast",
+          "when": "aurora.feature.simFast && aurora.projectActive"
         },
         {
-          "command": "lace.simTestbench",
-          "when": "lace.feature.sim && lace.projectActive && resourceScheme == file && resourcePath in lace.testbenchFiles"
+          "command": "aurora.simTestbench",
+          "when": "aurora.feature.sim && aurora.projectActive && resourceScheme == file && resourcePath in aurora.testbenchFiles"
         },
         {
-          "command": "lace.simProcessor",
+          "command": "aurora.simProcessor",
           "when": "false"
         },
         {
-          "command": "lace.synth",
-          "when": "lace.feature.synth && lace.projectActive"
+          "command": "aurora.synth",
+          "when": "aurora.feature.synth && aurora.projectActive"
         },
         {
-          "command": "lace.synthProcessor",
+          "command": "aurora.synthProcessor",
           "when": "false"
         },
         {
-          "command": "lace.rtlViewer",
-          "when": "lace.feature.synth && lace.projectActive"
+          "command": "aurora.rtlViewer",
+          "when": "aurora.feature.synth && aurora.projectActive"
         },
         {
-          "command": "lace.wave",
-          "when": "lace.feature.wave && lace.projectActive"
+          "command": "aurora.wave",
+          "when": "aurora.feature.wave && aurora.projectActive"
         },
         {
-          "command": "lace.waveProcessor",
+          "command": "aurora.waveProcessor",
           "when": "false"
         },
         {
-          "command": "lace.waveFile",
-          "when": "lace.feature.wave && resourceScheme == file && resourceExtname =~ /^\\.(vcd|fst|ghw)$/i"
+          "command": "aurora.waveFile",
+          "when": "aurora.feature.wave && resourceScheme == file && resourceExtname =~ /^\\.(vcd|fst|ghw)$/i"
         },
         {
-          "command": "lace.add",
-          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles"
+          "command": "aurora.add",
+          "when": "aurora.feature.add && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in aurora.registeredFiles"
         },
         {
-          "command": "lace.addTestbench",
-          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles"
+          "command": "aurora.addTestbench",
+          "when": "aurora.feature.add && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in aurora.registeredFiles"
         },
         {
-          "command": "lace.newFile",
-          "when": "lace.feature.add && lace.projectActive"
+          "command": "aurora.newFile",
+          "when": "aurora.feature.add && aurora.projectActive"
         },
         {
-          "command": "lace.remove",
-          "when": "lace.feature.files && lace.projectActive && resourceScheme == file && resourcePath in lace.registeredFiles"
+          "command": "aurora.remove",
+          "when": "aurora.feature.files && aurora.projectActive && resourceScheme == file && resourcePath in aurora.registeredFiles"
         },
         {
-          "command": "lace.rename",
+          "command": "aurora.rename",
           "when": "false"
         },
         {
-          "command": "lace.moveUp",
+          "command": "aurora.moveUp",
           "when": "false"
         },
         {
-          "command": "lace.moveDown",
+          "command": "aurora.moveDown",
           "when": "false"
         },
         {
-          "command": "lace.moveFirst",
+          "command": "aurora.moveFirst",
           "when": "false"
         },
         {
-          "command": "lace.moveLast",
+          "command": "aurora.moveLast",
           "when": "false"
         },
         {
-          "command": "lace.newProject",
-          "when": "lace.feature.newProject"
+          "command": "aurora.newProject",
+          "when": "aurora.feature.newProject"
         },
         {
-          "command": "lace.refresh",
-          "when": "lace.state == ready"
+          "command": "aurora.refresh",
+          "when": "aurora.state == ready"
         },
         {
-          "command": "lace.cancel",
-          "when": "lace.running"
+          "command": "aurora.cancel",
+          "when": "aurora.running"
         },
         {
-          "command": "lace.cancelRun",
+          "command": "aurora.cancelRun",
           "when": "false"
         }
       ],
       "explorer/context": [
         {
-          "command": "lace.setTop",
-          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles",
-          "group": "lace@1"
+          "command": "aurora.setTop",
+          "when": "aurora.feature.setTop && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in aurora.topFiles && resourcePath not in aurora.testbenchFiles",
+          "group": "aurora@1"
         },
         {
-          "command": "lace.checkFile",
-          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
-          "group": "lace@2"
+          "command": "aurora.checkFile",
+          "when": "aurora.feature.check && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.simTestbench",
-          "when": "lace.feature.sim && lace.projectActive && resourceScheme == file && resourcePath in lace.testbenchFiles",
-          "group": "lace@2"
+          "command": "aurora.simTestbench",
+          "when": "aurora.feature.sim && aurora.projectActive && resourceScheme == file && resourcePath in aurora.testbenchFiles",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.add",
-          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
-          "group": "lace@3"
+          "command": "aurora.add",
+          "when": "aurora.feature.add && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in aurora.registeredFiles",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.addTestbench",
-          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
-          "group": "lace@4"
+          "command": "aurora.addTestbench",
+          "when": "aurora.feature.add && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in aurora.registeredFiles",
+          "group": "aurora@4"
         },
         {
-          "command": "lace.waveFile",
-          "when": "lace.feature.wave && resourceScheme == file && resourceExtname =~ /^\\.(vcd|fst|ghw)$/i",
-          "group": "lace@5"
+          "command": "aurora.waveFile",
+          "when": "aurora.feature.wave && resourceScheme == file && resourceExtname =~ /^\\.(vcd|fst|ghw)$/i",
+          "group": "aurora@5"
         },
         {
-          "command": "lace.newFile",
-          "when": "lace.feature.add && lace.projectActive && explorerResourceIsFolder",
-          "group": "lace@6"
+          "command": "aurora.newFile",
+          "when": "aurora.feature.add && aurora.projectActive && explorerResourceIsFolder",
+          "group": "aurora@6"
         },
         {
-          "command": "lace.remove",
-          "when": "lace.feature.files && lace.projectActive && resourceScheme == file && resourcePath in lace.registeredFiles",
-          "group": "lace@7"
+          "command": "aurora.remove",
+          "when": "aurora.feature.files && aurora.projectActive && resourceScheme == file && resourcePath in aurora.registeredFiles",
+          "group": "aurora@7"
         }
       ],
       "editor/context": [
         {
-          "command": "lace.setTop",
-          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles",
-          "group": "lace@1"
+          "command": "aurora.setTop",
+          "when": "aurora.feature.setTop && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in aurora.topFiles && resourcePath not in aurora.testbenchFiles",
+          "group": "aurora@1"
         },
         {
-          "command": "lace.checkFile",
-          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
-          "group": "lace@2"
+          "command": "aurora.checkFile",
+          "when": "aurora.feature.check && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.simTestbench",
-          "when": "lace.feature.sim && lace.projectActive && resourceScheme == file && resourcePath in lace.testbenchFiles",
-          "group": "lace@2"
+          "command": "aurora.simTestbench",
+          "when": "aurora.feature.sim && aurora.projectActive && resourceScheme == file && resourcePath in aurora.testbenchFiles",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.add",
-          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
-          "group": "lace@3"
+          "command": "aurora.add",
+          "when": "aurora.feature.add && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in aurora.registeredFiles",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.addTestbench",
-          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
-          "group": "lace@4"
+          "command": "aurora.addTestbench",
+          "when": "aurora.feature.add && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in aurora.registeredFiles",
+          "group": "aurora@4"
         }
       ],
       "editor/title/context": [
         {
-          "command": "lace.setTop",
-          "when": "lace.feature.setTop && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in lace.topFiles && resourcePath not in lace.testbenchFiles",
-          "group": "lace@1"
+          "command": "aurora.setTop",
+          "when": "aurora.feature.setTop && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourceFilename =~ /^(?!(tb|tb_.*|.*_tb)\\.[^.]*$)/i && resourcePath not in aurora.topFiles && resourcePath not in aurora.testbenchFiles",
+          "group": "aurora@1"
         },
         {
-          "command": "lace.checkFile",
-          "when": "lace.feature.check && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
-          "group": "lace@2"
+          "command": "aurora.checkFile",
+          "when": "aurora.feature.check && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.add",
-          "when": "lace.feature.add && lace.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in lace.registeredFiles",
-          "group": "lace@3"
+          "command": "aurora.add",
+          "when": "aurora.feature.add && aurora.projectActive && resourceScheme == file && resourceExtname =~ /^\\.s?v$/ && resourcePath not in aurora.registeredFiles",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.remove",
-          "when": "lace.feature.files && lace.projectActive && resourceScheme == file && resourcePath in lace.registeredFiles",
-          "group": "lace@4"
+          "command": "aurora.remove",
+          "when": "aurora.feature.files && aurora.projectActive && resourceScheme == file && resourcePath in aurora.registeredFiles",
+          "group": "aurora@4"
         }
       ],
       "view/title": [
         {
-          "command": "lace.newFile",
-          "when": "view == lace.sources && lace.feature.add && lace.state == ready",
+          "command": "aurora.newFile",
+          "when": "view == aurora.sources && aurora.feature.add && aurora.state == ready",
           "group": "navigation@3"
         },
         {
-          "command": "lace.refresh",
-          "when": "view == lace.sources && lace.state == ready",
+          "command": "aurora.refresh",
+          "when": "view == aurora.sources && aurora.state == ready",
           "group": "navigation@4"
         },
         {
-          "command": "lace.showTools",
-          "when": "view == lace.sources",
-          "group": "lace@2"
+          "command": "aurora.showTools",
+          "when": "view == aurora.sources",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.selectProject",
-          "when": "view == lace.sources",
-          "group": "lace@3"
+          "command": "aurora.selectProject",
+          "when": "view == aurora.sources",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.newProject",
-          "when": "view == lace.sources && lace.feature.newProject",
-          "group": "lace@4"
+          "command": "aurora.newProject",
+          "when": "view == aurora.sources && aurora.feature.newProject",
+          "group": "aurora@4"
         },
         {
-          "command": "lace.newProcessor",
-          "when": "view == lace.sources && lace.feature.processors && lace.state == ready",
-          "group": "lace@1"
+          "command": "aurora.newProcessor",
+          "when": "view == aurora.sources && aurora.feature.processors && aurora.state == ready",
+          "group": "aurora@1"
         }
       ],
       "view/item/context": [
         {
-          "command": "lace.setTop",
-          "when": "view == lace.sources && lace.feature.setTop && viewItem =~ /\\.settop(\\.|$)/",
+          "command": "aurora.setTop",
+          "when": "view == aurora.sources && aurora.feature.setTop && viewItem =~ /\\.settop(\\.|$)/",
           "group": "inline"
         },
         {
-          "command": "lace.setTop",
-          "when": "view == lace.sources && lace.feature.setTop && viewItem =~ /\\.settop(\\.|$)/",
-          "group": "lace@1"
+          "command": "aurora.setTop",
+          "when": "view == aurora.sources && aurora.feature.setTop && viewItem =~ /\\.settop(\\.|$)/",
+          "group": "aurora@1"
         },
         {
-          "command": "lace.add",
-          "when": "view == lace.sources && lace.feature.add && viewItem =~ /^lace\\.unregistered/",
+          "command": "aurora.add",
+          "when": "view == aurora.sources && aurora.feature.add && viewItem =~ /^aurora\\.unregistered/",
           "group": "inline"
         },
         {
-          "command": "lace.add",
-          "when": "view == lace.sources && lace.feature.add && viewItem == lace.group.unregistered",
+          "command": "aurora.add",
+          "when": "view == aurora.sources && aurora.feature.add && viewItem == aurora.group.unregistered",
           "group": "inline"
         },
         {
-          "command": "lace.add",
-          "when": "view == lace.sources && lace.feature.add && viewItem =~ /^lace\\.unregistered/",
-          "group": "lace@1"
+          "command": "aurora.add",
+          "when": "view == aurora.sources && aurora.feature.add && viewItem =~ /^aurora\\.unregistered/",
+          "group": "aurora@1"
         },
         {
-          "command": "lace.addTestbench",
-          "when": "view == lace.sources && lace.feature.add && viewItem =~ /^lace\\.unregistered/",
-          "group": "lace@2"
+          "command": "aurora.addTestbench",
+          "when": "view == aurora.sources && aurora.feature.add && viewItem =~ /^aurora\\.unregistered/",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.wave",
-          "when": "view == lace.sources && lace.feature.wave && viewItem =~ /^lace\\.testbench\\.selected/",
-          "group": "lace@3"
+          "command": "aurora.wave",
+          "when": "view == aurora.sources && aurora.feature.wave && viewItem =~ /^aurora\\.testbench\\.selected/",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.waveProcessor",
-          "when": "view == lace.sources && lace.feature.wave && viewItem =~ /^lace\\.processor/",
-          "group": "lace@3"
+          "command": "aurora.waveProcessor",
+          "when": "view == aurora.sources && aurora.feature.wave && viewItem =~ /^aurora\\.processor/",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.checkFile",
-          "when": "view == lace.sources && lace.feature.check && viewItem =~ /^lace\\.(design|testbench)(\\.[a-z]+)*\\.verilog$/",
-          "group": "lace@2"
+          "command": "aurora.checkFile",
+          "when": "view == aurora.sources && aurora.feature.check && viewItem =~ /^aurora\\.(design|testbench)(\\.[a-z]+)*\\.verilog$/",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.checkProcessor",
-          "when": "view == lace.sources && lace.feature.check && viewItem =~ /^lace\\.processor/",
-          "group": "lace@2"
+          "command": "aurora.checkProcessor",
+          "when": "view == aurora.sources && aurora.feature.check && viewItem =~ /^aurora\\.processor/",
+          "group": "aurora@2"
         },
         {
-          "command": "lace.simTestbench",
-          "when": "view == lace.sources && lace.feature.sim && viewItem =~ /^lace\\.testbench/",
-          "group": "lace@3"
+          "command": "aurora.simTestbench",
+          "when": "view == aurora.sources && aurora.feature.sim && viewItem =~ /^aurora\\.testbench/",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.simProcessor",
-          "when": "view == lace.sources && lace.feature.sim && viewItem =~ /^lace\\.processor/",
-          "group": "lace@3"
+          "command": "aurora.simProcessor",
+          "when": "view == aurora.sources && aurora.feature.sim && viewItem =~ /^aurora\\.processor/",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.synthProcessor",
-          "when": "view == lace.sources && lace.feature.synth && viewItem =~ /^lace\\.processor/",
-          "group": "lace@3"
+          "command": "aurora.synthProcessor",
+          "when": "view == aurora.sources && aurora.feature.synth && viewItem =~ /^aurora\\.processor/",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.rtlViewer",
-          "when": "view == lace.sources && lace.feature.synth && viewItem =~ /^lace\\.processor/",
-          "group": "lace@3"
+          "command": "aurora.rtlViewer",
+          "when": "view == aurora.sources && aurora.feature.synth && viewItem =~ /^aurora\\.processor/",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.newProcessor",
-          "when": "view == lace.sources && lace.feature.processors && viewItem == lace.group.processor",
+          "command": "aurora.newProcessor",
+          "when": "view == aurora.sources && aurora.feature.processors && viewItem == aurora.group.processor",
           "group": "inline"
         },
         {
-          "command": "lace.buildProcessor",
-          "when": "view == lace.sources && lace.feature.processors && viewItem =~ /^lace\\.processor/",
-          "group": "lace@3"
+          "command": "aurora.buildProcessor",
+          "when": "view == aurora.sources && aurora.feature.processors && viewItem =~ /^aurora\\.processor/",
+          "group": "aurora@3"
         },
         {
-          "command": "lace.configureProcessor",
-          "when": "view == lace.sources && lace.feature.processors && viewItem =~ /^lace\\.processor/",
-          "group": "lace@4"
+          "command": "aurora.configureProcessor",
+          "when": "view == aurora.sources && aurora.feature.processors && viewItem =~ /^aurora\\.processor/",
+          "group": "aurora@4"
         },
         {
-          "command": "lace.moveUp",
-          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.first(\\.|$))/",
+          "command": "aurora.moveUp",
+          "when": "view == aurora.sources && aurora.feature.files && viewItem =~ /^aurora\\.(design|testbench)(?!.*\\.first(\\.|$))/",
           "group": "order@1"
         },
         {
-          "command": "lace.moveDown",
-          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.last(\\.|$))/",
+          "command": "aurora.moveDown",
+          "when": "view == aurora.sources && aurora.feature.files && viewItem =~ /^aurora\\.(design|testbench)(?!.*\\.last(\\.|$))/",
           "group": "order@2"
         },
         {
-          "command": "lace.moveFirst",
-          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.first(\\.|$))/",
+          "command": "aurora.moveFirst",
+          "when": "view == aurora.sources && aurora.feature.files && viewItem =~ /^aurora\\.(design|testbench)(?!.*\\.first(\\.|$))/",
           "group": "order@3"
         },
         {
-          "command": "lace.moveLast",
-          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(?!.*\\.last(\\.|$))/",
+          "command": "aurora.moveLast",
+          "when": "view == aurora.sources && aurora.feature.files && viewItem =~ /^aurora\\.(design|testbench)(?!.*\\.last(\\.|$))/",
           "group": "order@4"
         },
         {
-          "command": "lace.rename",
-          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench|unregistered)(\\.|$)/",
+          "command": "aurora.rename",
+          "when": "view == aurora.sources && aurora.feature.files && viewItem =~ /^aurora\\.(design|testbench|unregistered)(\\.|$)/",
           "group": "files@1"
         },
         {
-          "command": "lace.remove",
-          "when": "view == lace.sources && lace.feature.files && viewItem =~ /^lace\\.(design|testbench)(\\.|$)/",
+          "command": "aurora.remove",
+          "when": "view == aurora.sources && aurora.feature.files && viewItem =~ /^aurora\\.(design|testbench)(\\.|$)/",
           "group": "files@2"
         }
       ]
     },
     "colors": [
       {
-        "id": "lace.topForeground",
+        "id": "aurora.topForeground",
         "description": "O arquivo de topo na vista Fontes do Lace.",
         "defaults": {
           "dark": "charts.yellow",
@@ -782,7 +782,7 @@
         }
       },
       {
-        "id": "lace.simulatedForeground",
+        "id": "aurora.simulatedForeground",
         "description": "O testbench simulado na vista Fontes do Lace.",
         "defaults": {
           "dark": "charts.blue",
@@ -791,7 +791,7 @@
         }
       },
       {
-        "id": "lace.builtForeground",
+        "id": "aurora.builtForeground",
         "description": "Um processador compilado na vista Fontes do Lace.",
         "defaults": {
           "dark": "charts.green",
@@ -800,7 +800,7 @@
         }
       },
       {
-        "id": "lace.notBuiltForeground",
+        "id": "aurora.notBuiltForeground",
         "description": "Um processador não compilado na vista Fontes do Lace.",
         "defaults": {
           "dark": "charts.orange",
@@ -809,7 +809,7 @@
         }
       },
       {
-        "id": "lace.unregisteredForeground",
+        "id": "aurora.unregisteredForeground",
         "description": "Um arquivo fora do projeto na vista Fontes do Lace.",
         "defaults": {
           "dark": "gitDecoration.untrackedResourceForeground",
@@ -828,7 +828,7 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "npm run compile-tests && mocha --timeout 20000 \"out/test/unit/**/*.test.js\"",
     "test:integration": "npm run compile-tests && npm run build && node out/test/integration/runTest.js",
-    "gen:types": "node scripts/gen-lace-types.mjs",
+    "gen:types": "node scripts/gen-aurora-types.mjs",
     "record:fixtures": "node scripts/record-fixtures.mjs",
     "package": "node scripts/package.mjs",
     "vscode:prepublish": "npm --prefix ../../packages/rtl-viewer run build && node esbuild.mjs --production"

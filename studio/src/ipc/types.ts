@@ -1,6 +1,6 @@
 // Os tipos do próprio Studio, espelhando os structs Rust de src-tauri/src.
 // Os tipos do Core do Lace (BuildResult, SimulationResult, Event...) vêm
-// gerados em ./lace-types.ts. A referência de cada comando está em
+// gerados em ./aurora-types.ts. A referência de cada comando está em
 // docs/IPC.md.
 //
 // Ao mudar um struct em Rust, mude aqui também: não há geração automática
@@ -38,7 +38,7 @@ import type {
   SystemCompiler,
   WaveProcessor,
   WorkspaceSnapshot,
-} from './lace-types';
+} from './aurora-types';
 
 export type {
   AddedFile,

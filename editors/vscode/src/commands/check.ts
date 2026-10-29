@@ -6,9 +6,9 @@ import { basename } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../lace/client';
-import type { CheckReport } from '../lace/lace-types';
-import { formatLaceError } from '../messages';
+import type { AuroraRun } from '../aurora/client';
+import type { CheckReport } from '../aurora/aurora-types';
+import { formatAuroraError } from '../messages';
 import { describeCount } from '../problems';
 import type { RunResult } from '../runs';
 import { processorOf, targetUri } from './common';
@@ -20,7 +20,7 @@ export type CheckScope =
   | { kind: 'processor'; name: string };
 
 export interface CheckRequestOptions {
-  /** Sem valor, segue lace.check.lint. */
+  /** Sem valor, segue aurora.check.lint. */
   lint?: boolean;
   /**
    * Pedido pelo usuário: mostra a saída e a mensagem de falha. O check ao
@@ -33,8 +33,8 @@ export async function check(
   deps: RunDeps,
   scope: CheckScope,
   options: CheckRequestOptions = {},
-): Promise<LaceRun<CheckReport> | undefined> {
-  const lint = options.lint ?? setting('lace.check', 'lint', false);
+): Promise<AuroraRun<CheckReport> | undefined> {
+  const lint = options.lint ?? setting('aurora.check', 'lint', false);
   const interactive = options.interactive ?? true;
   let summary: RunResult | undefined;
   const done = await runOperation(deps, 'check', 'check', scope.kind === 'file' ? scope.file : undefined, (client, project) => ({
@@ -58,7 +58,7 @@ export async function check(
   const what = describeScope(scope, project.name);
   if (run.status === 'error') {
     if (interactive) {
-      void vscode.window.showErrorMessage(`Lace: ${formatLaceError(run.error)}`);
+      void vscode.window.showErrorMessage(`Lace: ${formatAuroraError(run.error)}`);
     }
   } else if (run.status === 'failed' && interactive) {
     const problems = 'Problemas';
@@ -81,13 +81,13 @@ export async function check(
 /** Põe os problemas no painel e escreve o resumo na saída. */
 function summarizeCheck(
   deps: RunDeps,
-  run: LaceRun<CheckReport>,
+  run: AuroraRun<CheckReport>,
   project: { root: string; name: string; spf: string; uri: vscode.Uri },
 ): RunResult {
   const output = deps.runs.output;
   if (run.status === 'error') {
-    output.appendLine(`Erro: ${formatLaceError(run.error)}`);
-    return { outcome: 'error', summary: formatLaceError(run.error) };
+    output.appendLine(`Erro: ${formatAuroraError(run.error)}`);
+    return { outcome: 'error', summary: formatAuroraError(run.error) };
   }
   if (run.result === null) {
     output.appendLine('Cancelado.');
@@ -113,7 +113,7 @@ function summarizeCheck(
   };
 }
 
-export function checkFile(deps: RunDeps, target?: unknown): Promise<LaceRun<CheckReport> | undefined> {
+export function checkFile(deps: RunDeps, target?: unknown): Promise<AuroraRun<CheckReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
     void vscode.window.showWarningMessage('Lace: escolha um arquivo .v ou .sv para verificar.');
@@ -122,7 +122,7 @@ export function checkFile(deps: RunDeps, target?: unknown): Promise<LaceRun<Chec
   return check(deps, { kind: 'file', file: uri.fsPath });
 }
 
-export function checkProcessor(deps: RunDeps, target?: unknown): Promise<LaceRun<CheckReport> | undefined> {
+export function checkProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<CheckReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
     void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');

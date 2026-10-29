@@ -4,7 +4,7 @@
 
 import { basename, dirname, relative } from 'node:path';
 
-import type { ProcessorStatus, ProjectIssue, StatusReport } from '../lace/lace-types';
+import type { ProcessorStatus, ProjectIssue, StatusReport } from '../aurora/aurora-types';
 import { describeCount, type ProblemCount } from '../problems';
 import { isTestbenchName, isVerilogFile } from '../verilog';
 
@@ -23,7 +23,7 @@ export interface SourceEntry {
   description: string;
   tooltip: string;
   /**
-   * `lace.<papel>`, seguido de `.top` (o topo), `.selected` (o testbench
+   * `aurora.<papel>`, seguido de `.top` (o topo), `.selected` (o testbench
    * simulado) ou `.built` (o processador compilado), de `.settop` quando
    * "Definir como topo" se aplica, de `.first` e `.last` no primeiro e no
    * último da lista (o que "Subir" e "Descer" não movem) e de `.verilog`
@@ -49,16 +49,16 @@ const GROUP_LABELS: Record<SourceRole, string> = {
 };
 
 /**
- * As cores de cada tom, como chaves de tema: as `lace.*` são do package.json
+ * As cores de cada tom, como chaves de tema: as `aurora.*` são do package.json
  * (contributes.colors), e quem quiser outras troca em
  * workbench.colorCustomizations.
  */
 export const TONE_COLORS: Record<Tone, string> = {
-  top: 'lace.topForeground',
-  simulated: 'lace.simulatedForeground',
-  built: 'lace.builtForeground',
-  notBuilt: 'lace.notBuiltForeground',
-  unregistered: 'lace.unregisteredForeground',
+  top: 'aurora.topForeground',
+  simulated: 'aurora.simulatedForeground',
+  built: 'aurora.builtForeground',
+  notBuilt: 'aurora.notBuiltForeground',
+  unregistered: 'aurora.unregisteredForeground',
   issue: 'list.warningForeground',
 };
 
@@ -131,7 +131,7 @@ function issueEntry(status: StatusReport, issue: ProjectIssue, index: number): S
     label: issue.message,
     description: issue.path ? relative(status.root, issue.path) : '',
     tooltip: issue.path ? `${issue.message}\n${issue.path}` : issue.message,
-    contextValue: 'lace.issue',
+    contextValue: 'aurora.issue',
     tone: 'issue',
   };
 }
@@ -222,7 +222,7 @@ function contextValue(
   at?: Place,
 ): string {
   return [
-    'lace',
+    'aurora',
     role,
     flag,
     canBeTop ? 'settop' : undefined,

@@ -245,7 +245,7 @@ pub enum Request {
     /// O primeiro pedido de uma sessão: quem é o cliente. Resposta:
     /// [`ServerInfo`].
     Initialize {
-        /// O cliente e a versão dele (`lace-vscode 0.1.0`).
+        /// O cliente e a versão dele (`aurora-vscode 0.1.0`).
         #[serde(default)]
         client: Option<String>,
     },

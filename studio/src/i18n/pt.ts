@@ -881,7 +881,7 @@ export const pt = {
   'toolchain.upstreamNote': 'Uma ferramenta com versão upstream mais nova só chega num bundle novo, com uma release nova do Lace.',
   'toolchain.laceCli': 'CLI aurora',
   'toolchain.notFound': 'O Lace não foi encontrado',
-  'toolchain.notFoundHint': 'Instale o Lace (curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh) ou indique a pasta do bundle nas preferências.',
+  'toolchain.notFoundHint': 'Instale o Lace (curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh) ou indique a pasta do bundle nas preferências.',
   'toolchain.openSettings': 'Abrir preferências',
 
   // Preferências
@@ -1228,7 +1228,7 @@ export const pt = {
   'assistant.toolFailed': 'falhou',
   'assistant.ended': 'A sessão terminou (código {code}). A próxima mensagem abre outra.',
   'assistant.projectChanged': 'O projeto mudou: a próxima mensagem abre uma conversa nova, sobre ele.',
-  'assistant.noLace': 'As ferramentas do Lace não conectaram: o assistente responde sem elas. Veja o aurora nas Preferências do assistente.',
+  'assistant.noAurora': 'As ferramentas do Lace não conectaram: o assistente responde sem elas. Veja o aurora nas Preferências do assistente.',
   'assistant.noProject': 'Sem projeto aberto: o assistente responde, mas as ferramentas precisam de um projeto.',
   'assistant.model': 'Modelo',
   'assistant.cost': 'US$ {cost}',
@@ -1241,8 +1241,8 @@ export const pt = {
   'settings.assistantModelHint': 'O --model do Claude Code (sonnet, opus, ou um id completo). Vazio: o padrão da conta.',
   'settings.assistantAllowEdits': 'Pode editar os arquivos do projeto',
   'settings.assistantAllowEditsHint': 'Desligado, o assistente só usa as ferramentas do Lace e lê arquivos. Ligado, também edita e cria arquivos na pasta do projeto, sem perguntar a cada um.',
-  'settings.assistantLace': 'Executável aurora das ferramentas',
-  'settings.assistantLaceHint': 'Vazio: o aurora da instalação do bundle. Para desenvolvimento, um build em target/.',
+  'settings.assistantAurora': 'Executável aurora das ferramentas',
+  'settings.assistantAuroraHint': 'Vazio: o aurora da instalação do bundle. Para desenvolvimento, um build em target/.',
 } as const;
 
 export type Key = keyof typeof pt;

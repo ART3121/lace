@@ -1,5 +1,5 @@
 // O viewer fora do Studio, num arquivo só (dist/rtl-viewer.js, com o React
-// e o worker do ELK dentro): `LaceRtlViewer.mount(elemento, opções)`. É o
+// e o worker do ELK dentro): `AuroraRtlViewer.mount(elemento, opções)`. É o
 // que a extensão do VS Code carrega no webview e o que vai dentro do HTML do
 // `aurora synth --open`. Lá não há servidor, então o worker do layout sai do
 // código embutido (__ELK_WORKER__, que o scripts/build.mjs põe aqui).

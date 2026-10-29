@@ -2337,7 +2337,7 @@ mod tests {
             "\u{feff}{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\"}}"
         ));
         assert!(!is_mcp_initialize(
-            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"client":"lace-vscode"}}"#
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"client":"aurora-vscode"}}"#
         ));
         assert!(!is_mcp_initialize(
             r#"{"jsonrpc":"2.0","id":1,"method":"initialize"}"#

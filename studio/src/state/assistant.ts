@@ -103,7 +103,7 @@ export const useAssistant = create<AssistantState>((set, get) => {
         // O `ready` vem em resposta à primeira mensagem: o turno dela já
         // está em andamento.
         set({ status: 'busy', sessionId: event.session_id, model: event.model });
-        if (event.aurora_connected === false) note(t('assistant.noLace'), 'warning');
+        if (event.aurora_connected === false) note(t('assistant.noAurora'), 'warning');
         break;
       case 'text':
         set({ status: 'busy' });

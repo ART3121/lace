@@ -8,14 +8,14 @@ import {
   supportedFeatures,
   usable,
   type FeatureSet,
-} from '../../src/lace/version';
+} from '../../src/aurora/version';
 
 describe('versão do Lace', () => {
   it('lê a linha do aurora --version', () => {
-    assert.equal(parseVersionLine('lace 0.6.0\n'), '0.6.0');
-    assert.equal(parseVersionLine('lace 1.2.3-dev.4'), '1.2.3');
+    assert.equal(parseVersionLine('aurora 0.6.0\n'), '0.6.0');
+    assert.equal(parseVersionLine('aurora 1.2.3-dev.4'), '1.2.3');
     assert.equal(parseVersionLine('solar 0.1.0'), undefined);
-    assert.equal(parseVersionLine('lace'), undefined);
+    assert.equal(parseVersionLine('aurora'), undefined);
     assert.equal(parseVersionLine('Python 3.12.1'), undefined);
   });
 

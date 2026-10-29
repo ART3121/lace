@@ -22,7 +22,7 @@ import { create } from 'zustand';
 import { disposeModel, ensureModel, getModel, uriFor } from '../editor/monaco';
 import { t } from '../i18n';
 import { api } from '../ipc/api';
-import type { Feature } from '../ipc/lace-types';
+import type { Feature } from '../ipc/aurora-types';
 import type { IpcError } from '../ipc/types';
 import { baseName, isInside, systemPath } from '../util/paths';
 import { confirm } from './dialogs';

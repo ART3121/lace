@@ -25,7 +25,7 @@ import type {
   Step,
   SynthesisResult,
   UpdateReport,
-} from '../ipc/lace-types';
+} from '../ipc/aurora-types';
 import type {
   CliFlow,
   CliOutcome,

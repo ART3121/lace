@@ -4,8 +4,8 @@ import * as assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { StatusReport } from '../../src/lace/lace-types';
-import { formatLaceError } from '../../src/messages';
+import type { StatusReport } from '../../src/aurora/aurora-types';
+import { formatAuroraError } from '../../src/messages';
 import { decorationFor, sourceGroups, type SourceEntry } from '../../src/sources/model';
 import { RESPONSES } from '../support/fixtures';
 
@@ -51,24 +51,24 @@ describe('vista de fontes', () => {
   it('a descrição em maiúsculas e o contextValue de cada papel', () => {
     const [design, testbenches, processors, unregistered] = sourceGroups(status('status.json'));
     assert.deepEqual(byLabel(design.entries), {
-      'contador.v': { description: 'TOPO · rtl', contextValue: 'lace.design.top.first.verilog' },
-      'somador.v': { description: 'rtl', contextValue: 'lace.design.settop.verilog' },
-      'mux.sv': { description: 'rtl', contextValue: 'lace.design.settop.verilog' },
-      'soma.v': { description: join('soma', 'soma'), contextValue: 'lace.design.settop.last.verilog' },
+      'contador.v': { description: 'TOPO · rtl', contextValue: 'aurora.design.top.first.verilog' },
+      'somador.v': { description: 'rtl', contextValue: 'aurora.design.settop.verilog' },
+      'mux.sv': { description: 'rtl', contextValue: 'aurora.design.settop.verilog' },
+      'soma.v': { description: join('soma', 'soma'), contextValue: 'aurora.design.settop.last.verilog' },
     });
     assert.deepEqual(byLabel(testbenches.entries), {
-      'contador_tb.v': { description: 'SIMULADO · tb', contextValue: 'lace.testbench.selected.first.verilog' },
-      'somador_tb.v': { description: 'tb', contextValue: 'lace.testbench.verilog' },
-      'soma_tb.v': { description: join('soma', 'soma'), contextValue: 'lace.testbench.last.verilog' },
+      'contador_tb.v': { description: 'SIMULADO · tb', contextValue: 'aurora.testbench.selected.first.verilog' },
+      'somador_tb.v': { description: 'tb', contextValue: 'aurora.testbench.verilog' },
+      'soma_tb.v': { description: join('soma', 'soma'), contextValue: 'aurora.testbench.last.verilog' },
     });
     assert.deepEqual(byLabel(processors.entries), {
-      soma: { description: 'COMPILADO', contextValue: 'lace.processor.built' },
-      filtro: { description: 'NÃO COMPILADO', contextValue: 'lace.processor' },
+      soma: { description: 'COMPILADO', contextValue: 'aurora.processor.built' },
+      filtro: { description: 'NÃO COMPILADO', contextValue: 'aurora.processor' },
     });
     // velho_tb.v tem nome de testbench: aurora top o recusaria.
     assert.deepEqual(byLabel(unregistered.entries), {
-      'sobra.v': { description: 'rtl', contextValue: 'lace.unregistered.settop.verilog' },
-      'velho_tb.v': { description: 'rtl', contextValue: 'lace.unregistered.verilog' },
+      'sobra.v': { description: 'rtl', contextValue: 'aurora.unregistered.settop.verilog' },
+      'velho_tb.v': { description: 'rtl', contextValue: 'aurora.unregistered.verilog' },
     });
   });
 
@@ -88,15 +88,15 @@ describe('vista de fontes', () => {
   });
 
   it('acompanha a troca do topo e o arquivo que entrou no projeto', () => {
-    assert.equal(entry('status-top-somador.json', 'somador.v').contextValue, 'lace.design.top.verilog');
-    assert.equal(entry('status-top-somador.json', 'contador.v').contextValue, 'lace.design.settop.first.verilog');
+    assert.equal(entry('status-top-somador.json', 'somador.v').contextValue, 'aurora.design.top.verilog');
+    assert.equal(entry('status-top-somador.json', 'contador.v').contextValue, 'aurora.design.settop.first.verilog');
     assert.equal(entry('status-added.json', 'sobra.v').role, 'design');
   });
 
   it('um testbench cocotb não leva .verilog (o check de arquivo o recusa)', () => {
     const report = status('status.json');
     report.testbench.push({ role: 'testbench', path: `${ROOT}/tb/test_alu.py`, top_level: false });
-    assert.equal(byLabel(sourceGroups(report)[1].entries)['test_alu.py'].contextValue, 'lace.testbench.last');
+    assert.equal(byLabel(sourceGroups(report)[1].entries)['test_alu.py'].contextValue, 'aurora.testbench.last');
   });
 
   it('os avisos do .spf vêm primeiro', () => {
@@ -126,14 +126,14 @@ describe('o destaque de cada item', () => {
   it('cor e selo pelo papel', () => {
     assert.deepEqual(decorationFor(entry('status.json', 'contador.v')), {
       badge: 'T',
-      color: 'lace.topForeground',
+      color: 'aurora.topForeground',
       tooltip: undefined,
     });
     assert.equal(decorationFor(entry('status.json', 'contador_tb.v'))?.badge, 'S');
     assert.equal(decorationFor(entry('status.json', 'soma'))?.badge, 'C');
     assert.deepEqual(decorationFor(entry('status.json', 'filtro')), {
       badge: undefined,
-      color: 'lace.notBuiltForeground',
+      color: 'aurora.notBuiltForeground',
       tooltip: undefined,
     });
     assert.equal(decorationFor(entry('status.json', 'sobra.v'))?.badge, 'N');
@@ -158,12 +158,12 @@ describe('o destaque de cada item', () => {
   });
 });
 
-describe('formatLaceError', () => {
+describe('formatAuroraError', () => {
   it('põe a dica depois da mensagem', () => {
     assert.equal(
-      formatLaceError({ code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new <name>' }),
+      formatAuroraError({ code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: aurora new <name>' }),
       'No Lace project here. Create one with: aurora new <name>',
     );
-    assert.equal(formatLaceError({ code: 'invalid_name', message: 'Invalid name', hint: null }), 'Invalid name');
+    assert.equal(formatAuroraError({ code: 'invalid_name', message: 'Invalid name', hint: null }), 'Invalid name');
   });
 });

@@ -14,7 +14,7 @@ import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { runSimulation } from '../../actions';
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { SignalScope, WaveSignal, WaveSignals } from '../../ipc/lace-types';
+import type { SignalScope, WaveSignal, WaveSignals } from '../../ipc/aurora-types';
 import type { IpcError } from '../../ipc/types';
 import { useApp } from '../../state/app';
 import { useDialogs } from '../../state/dialogs';

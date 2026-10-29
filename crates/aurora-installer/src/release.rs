@@ -46,7 +46,7 @@ pub struct Network {
 
 impl Network {
     /// O repositório padrão das releases.
-    pub const DEFAULT_REPO: &str = "ART3121/aurora";
+    pub const DEFAULT_REPO: &str = "ART3121/lace";
 
     /// A rede como a CLI a monta: `AURORA_REPO`, `AURORA_RELEASE_URL`, o `curl`
     /// do `System32` no Windows, e a base das pastas de trabalho (o temp do
@@ -706,7 +706,7 @@ bbbb *aurora-0.2.0-windows-x64-setup.exe
         assert!(network.asset_url("0.8.0", "../aurora.exe").is_err());
         assert_eq!(
             network.asset_url("0.8.0", "SHA256SUMS").unwrap(),
-            "https://github.com/ART3121/aurora/releases/download/v0.8.0/SHA256SUMS"
+            "https://github.com/ART3121/lace/releases/download/v0.8.0/SHA256SUMS"
         );
         let mirrored = Network {
             mirror: Some("https://lab.example/aurora".into()),

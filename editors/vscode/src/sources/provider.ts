@@ -68,7 +68,7 @@ export class SourcesProvider implements vscode.TreeDataProvider<SourceNode>, vsc
       const { group } = node;
       const item = new vscode.TreeItem(group.label, vscode.TreeItemCollapsibleState.Expanded);
       item.id = `group:${group.role}`;
-      item.contextValue = `lace.group.${group.role}`;
+      item.contextValue = `aurora.group.${group.role}`;
       item.description = String(group.entries.length);
       item.iconPath = new vscode.ThemeIcon(GROUP_ICONS[group.role]);
       return item;

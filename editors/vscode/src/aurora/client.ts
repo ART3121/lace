@@ -1,7 +1,7 @@
 // O que a extensão pede ao Lace. Vistas e comandos dependem só desta
 // interface: uma implementação roda a CLI, um processo por comando
 // (cliClient.ts); a outra fala com um `aurora serve` em segundo plano
-// (serveClient.ts). A conexão escolhe (connection.ts, `lace.transport`).
+// (serveClient.ts). A conexão escolhe (connection.ts, `aurora.transport`).
 
 import type {
   AddReport,
@@ -19,13 +19,13 @@ import type {
   SynthReport,
   TopReport,
   WaveReport,
-} from './lace-types';
+} from './aurora-types';
 
 /**
  * Como terminou um comando do Lace, pelo código de saída (docs/CLI.md,
  * "Códigos de saída").
  */
-export type LaceRun<T> =
+export type AuroraRun<T> =
   /** 0: deu certo. */
   | { status: 'succeeded'; result: T }
   /**
@@ -36,14 +36,14 @@ export type LaceRun<T> =
   /**
    * 130: cancelado. O resultado traz `status: cancelled` no que estava
    * rodando; é `null` quando o processo saiu sem escrevê-lo (no Windows, o
-   * `kill` encerra o lace na hora).
+   * `kill` encerra o aurora na hora).
    */
   | { status: 'cancelled'; result: T | null }
   /** 2: o Lace não conseguiu rodar. `error.code` é estável; `hint`, o comando que resolve. */
   | { status: 'error'; error: ErrorInfo };
 
 export interface RunOptions {
-  /** Cancela o comando: o lace recebe SIGTERM e sai com 130. */
+  /** Cancela o comando: o aurora recebe SIGTERM e sai com 130. */
   signal?: AbortSignal;
 }
 
@@ -118,62 +118,62 @@ export interface AddOptions extends RunOptions {
   testbench?: boolean;
 }
 
-export interface LaceClient {
-  /** A versão do lace, como `0.6.0`. */
+export interface AuroraClient {
+  /** A versão do aurora, como `0.6.0`. */
   version(): Promise<string>;
   /** `aurora new`: cria `<dir>/<nome>/<nome>.spf`. Não precisa de projeto. */
-  newProject(name: string, dir: string, options?: RunOptions): Promise<LaceRun<NewReport>>;
+  newProject(name: string, dir: string, options?: RunOptions): Promise<AuroraRun<NewReport>>;
   /** `aurora status`: o projeto inteiro. `spf` é o `.spf` do projeto. */
-  status(spf: string, options?: RunOptions): Promise<LaceRun<StatusReport>>;
+  status(spf: string, options?: RunOptions): Promise<AuroraRun<StatusReport>>;
   /** `aurora top <arquivo>`: escolhe o arquivo de topo. */
-  setTop(spf: string, file: string, options?: RunOptions): Promise<LaceRun<TopReport>>;
+  setTop(spf: string, file: string, options?: RunOptions): Promise<AuroraRun<TopReport>>;
   /** `aurora add`: registra os arquivos; os que não existem saem do modelo. */
-  add(spf: string, files: readonly string[], options?: AddOptions): Promise<LaceRun<AddReport>>;
+  add(spf: string, files: readonly string[], options?: AddOptions): Promise<AuroraRun<AddReport>>;
   /** `aurora check`: o Icarus sobre o design e cada testbench, sem compilar processadores. */
-  check(spf: string, options?: CheckOptions): Promise<LaceRun<CheckReport>>;
+  check(spf: string, options?: CheckOptions): Promise<AuroraRun<CheckReport>>;
   /**
    * `aurora wave`: abre a onda no surfer-aurora e volta, com o Surfer aberto.
    * Sem `spf`, roda fora de projeto (só para um arquivo).
    */
-  wave(spf: string | undefined, target: WaveTarget, options?: RunOptions): Promise<LaceRun<WaveReport>>;
+  wave(spf: string | undefined, target: WaveTarget, options?: RunOptions): Promise<AuroraRun<WaveReport>>;
   /** `aurora remove`: tira os arquivos do projeto (continuam no disco). */
-  remove(spf: string, files: readonly string[], options?: RunOptions): Promise<LaceRun<RemoveReport>>;
+  remove(spf: string, files: readonly string[], options?: RunOptions): Promise<AuroraRun<RemoveReport>>;
   /** `aurora order`: muda a posição do arquivo na lista dele, a ordem de compilação. */
-  order(spf: string, file: string, position: ListPosition, options?: RunOptions): Promise<LaceRun<OrderReport>>;
+  order(spf: string, file: string, position: ListPosition, options?: RunOptions): Promise<AuroraRun<OrderReport>>;
   /**
    * `aurora move`: move ou renomeia, e os registrados continuam no projeto.
    * Com `after`, o arquivo já foi movido (pelo explorador do VS Code) e o
    * Lace só atualiza o `.spf` (`aurora move --after`).
    */
-  move(spf: string, from: string, to: string, options?: RunOptions & { after?: boolean }): Promise<LaceRun<MoveReport>>;
+  move(spf: string, from: string, to: string, options?: RunOptions & { after?: boolean }): Promise<AuroraRun<MoveReport>>;
   /** `aurora build`: compila os processadores com o YANC. */
-  build(spf: string, options?: BuildOptions): Promise<LaceRun<BuildReport>>;
+  build(spf: string, options?: BuildOptions): Promise<AuroraRun<BuildReport>>;
   /** `aurora proc add`: cria o processador, com o fonte-modelo. */
-  addProcessor(spf: string, name: string, language: 'cmm' | 'cpp', options?: RunOptions): Promise<LaceRun<Processor>>;
+  addProcessor(spf: string, name: string, language: 'cmm' | 'cpp', options?: RunOptions): Promise<AuroraRun<Processor>>;
   /** `aurora proc set`: frequência, clocks e exportação de arrays, para o próximo build. */
-  configureProcessor(spf: string, name: string, changes: ProcessorChanges, options?: RunOptions): Promise<LaceRun<Processor>>;
+  configureProcessor(spf: string, name: string, changes: ProcessorChanges, options?: RunOptions): Promise<AuroraRun<Processor>>;
   /** `aurora sim`: compila os processadores e simula. */
-  sim(spf: string, options?: SimOptions): Promise<LaceRun<SimReport>>;
+  sim(spf: string, options?: SimOptions): Promise<AuroraRun<SimReport>>;
   /** `aurora synth`: compila os processadores e sintetiza o topo no Yosys. */
-  synth(spf: string, options?: SynthOptions): Promise<LaceRun<SynthReport>>;
+  synth(spf: string, options?: SynthOptions): Promise<AuroraRun<SynthReport>>;
   /** Solta o que o cliente mantém (o `aurora serve` em segundo plano). */
   dispose?(): Promise<void> | void;
 }
 
 /**
- * O lace não pôde ser executado, ou saiu de um jeito que o contrato da CLI
+ * O aurora não pôde ser executado, ou saiu de um jeito que o contrato da CLI
  * não prevê: código de saída desconhecido, morte por sinal, saída que não é
  * JSON. Um erro do Lace (código 2) não é isto: volta como `status: 'error'`.
  */
-export class LaceProcessError extends Error {
+export class AuroraProcessError extends Error {
   constructor(
     message: string,
     /** O código de saída, ou `null` se o processo nem começou ou morreu por sinal. */
     readonly exitCode: number | null = null,
-    /** O que o lace escreveu no stderr. */
+    /** O que o aurora escreveu no stderr. */
     readonly stderr = '',
   ) {
     super(message);
-    this.name = 'LaceProcessError';
+    this.name = 'AuroraProcessError';
   }
 }

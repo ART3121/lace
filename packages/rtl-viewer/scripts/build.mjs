@@ -1,7 +1,7 @@
 // O build do viewer para fora do Studio, em dist/:
 //
 //   rtl-viewer.js          o viewer num arquivo só (React e o worker do ELK
-//                          dentro), com `LaceRtlViewer.mount(elemento, opções)`
+//                          dentro), com `AuroraRtlViewer.mount(elemento, opções)`
 //   rtl-viewer.css         o CSS do viewer
 //   theme-vscode.css       as variáveis ligadas ao tema do VS Code
 //   theme-standalone.css   as variáveis com as cores do Studio, claro ou escuro
@@ -32,7 +32,7 @@ await build({
   outfile: join(dist, 'rtl-viewer.js'),
   bundle: true,
   format: 'iife',
-  globalName: 'LaceRtlViewer',
+  globalName: 'AuroraRtlViewer',
   platform: 'browser',
   target: 'es2022',
   jsx: 'automatic',
@@ -77,7 +77,7 @@ ${inline(js)}
 (() => {
   const config = JSON.parse(document.getElementById('lace-config').textContent);
   if (config.title) document.title = config.title;
-  LaceRtlViewer.mount(document.getElementById('lace-rtl-viewer'), {
+  AuroraRtlViewer.mount(document.getElementById('lace-rtl-viewer'), {
     netlist: { path: config.path, text: document.getElementById('lace-netlist').textContent, modifiedMs: config.modifiedMs },
     storageKey: 'lace-rtl-viewer',
   });

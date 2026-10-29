@@ -22,7 +22,7 @@
 //       Relatório run-000042 gravado no histórico
 //   ── ✓ Terminou em 0,7 s · erros: 0, avisos: 0 ───
 
-import type { Status } from '../ipc/lace-types';
+import type { Status } from '../ipc/aurora-types';
 
 const RED = '\x1b[31m';
 const YELLOW = '\x1b[33m';

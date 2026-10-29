@@ -73,11 +73,11 @@ Lace lê; ela pode ser apagada à mão. Os projetos (`.spf`) não mudam.
 ## Em um comando
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh     # Linux, macOS
+curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh     # Linux, macOS
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/ART3121/aurora/main/install.ps1 | iex          # Windows, PowerShell
+irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex          # Windows, PowerShell
 ```
 
 Os dois scripts, `install.sh` e `install.ps1` na raiz do repositório, fazem
@@ -295,7 +295,7 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
 
 ```
-curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/aurora-0.9.0-linux-x64.tar.gz
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/aurora-0.9.0-linux-x64.tar.gz
 tar xzf aurora-0.9.0-linux-x64.tar.gz && ./aurora-0.9.0-linux-x64/install
 ```
 

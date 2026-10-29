@@ -29,7 +29,7 @@ import {
 import { runFpgaBuild, runFpgaBuildAndProgram, runFpgaProgram } from '../../actions';
 import { formatDuration, useT, type Key } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { Board, BoardSignal, FpgaBuildResult, ResourceUsage } from '../../ipc/lace-types';
+import type { Board, BoardSignal, FpgaBuildResult, ResourceUsage } from '../../ipc/aurora-types';
 import type { BitstreamState, FpgaConfig, FpgaPrepared, IpcError, ModuleInterface } from '../../ipc/types';
 import { useApp } from '../../state/app';
 import { useEditor } from '../../state/editor';

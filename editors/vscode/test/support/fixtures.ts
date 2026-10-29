@@ -8,8 +8,8 @@ import { join, resolve } from 'node:path';
 export const EXTENSION_ROOT = resolve(__dirname, '..', '..', '..');
 export const FIXTURES = join(EXTENSION_ROOT, 'test', 'fixtures');
 export const RESPONSES = join(FIXTURES, 'responses');
-/** O lace falso, que devolve as respostas gravadas. */
-export const FAKE_LACE = join(FIXTURES, 'fake-lace', 'lace.mjs');
+/** O aurora falso, que devolve as respostas gravadas. */
+export const FAKE_AURORA = join(FIXTURES, 'fake-aurora', 'aurora.mjs');
 /** O repositório do Lace, de onde vêm os schemas. */
 export const AURORA_REPO = resolve(process.env.AURORA_REPO ?? join(EXTENSION_ROOT, '..', '..'));
 
@@ -30,18 +30,18 @@ export function recordedCases(): { recordedWith: string; cases: RecordedCase[] }
   return JSON.parse(readFileSync(join(RESPONSES, 'cases.json'), 'utf8'));
 }
 
-/** Uma pasta temporária, com espaço no nome, para o log e o estado do lace falso. */
-export function fakeLaceDir(): { log: string; state: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'lace fake '));
-  return { log: join(dir, 'lace.log'), state: join(dir, 'lace.state') };
+/** Uma pasta temporária, com espaço no nome, para o log e o estado do aurora falso. */
+export function fakeAuroraDir(): { log: string; state: string } {
+  const dir = mkdtempSync(join(tmpdir(), 'aurora fake '));
+  return { log: join(dir, 'aurora.log'), state: join(dir, 'aurora.state') };
 }
 
-/** Os argumentos de cada chamada ao lace falso, na ordem. */
+/** Os argumentos de cada chamada ao aurora falso, na ordem. */
 export function laceCalls(log: string): string[][] {
   return logEntries(log).flatMap((entry) => (entry.argv ? [entry.argv] : []));
 }
 
-/** O lace falso já espera o SIGTERM de uma resposta gravada com cancelamento. */
+/** O aurora falso já espera o SIGTERM de uma resposta gravada com cancelamento. */
 export function laceWaiting(log: string): boolean {
   return logEntries(log).some((entry) => entry.waiting === true);
 }

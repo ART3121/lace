@@ -1,4 +1,4 @@
-// O fluxo SAPHO dentro do VS Code, com o lace falso: o botão Build da barra
+// O fluxo SAPHO dentro do VS Code, com o aurora falso: o botão Build da barra
 // de status (`aurora build`), o build de um processador e os erros do YANC no
 // painel Problemas, na linha do fonte.
 
@@ -7,16 +7,16 @@ import { join } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceExtensionApi } from '../../src/extension';
-import type { LaceRun } from '../../src/lace/client';
-import type { BuildReport } from '../../src/lace/lace-types';
+import type { AuroraExtensionApi } from '../../src/extension';
+import type { AuroraRun } from '../../src/aurora/client';
+import type { BuildReport } from '../../src/aurora/aurora-types';
 import type { SourceNode } from '../../src/sources/provider';
 import { activate, lastCall, resetFake, run, setFakeState, spf, workspace } from './helpers';
 
 const soma = { kind: 'entry', entry: { role: 'processor', label: 'soma', path: null } } as unknown as SourceNode;
 
 describe('Lace: Compilar', () => {
-  let api: LaceExtensionApi;
+  let api: AuroraExtensionApi;
   const source = vscode.Uri.file(join(workspace, 'soma', 'soma.cmm'));
 
   beforeEach(async () => {
@@ -26,7 +26,7 @@ describe('Lace: Compilar', () => {
 
   it('todos os processadores: aurora build pelo --events, e a vista mostra o filtro compilado', async () => {
     assert.equal(api.status?.processors.find((p) => p.name === 'filtro')?.built, false);
-    const result = await run<LaceRun<BuildReport>>('lace.build');
+    const result = await run<AuroraRun<BuildReport>>('aurora.build');
     assert.equal(result?.status, 'succeeded');
     assert.deepEqual(lastCall('build'), ['-C', spf, '--events', 'build']);
     assert.equal(api.runs.state('build').last?.summary, '2 processadores compilados');
@@ -44,7 +44,7 @@ describe('Lace: Compilar', () => {
 
   it('um processador com erro: o erro do YANC no fonte, e o build seguinte o apaga', async () => {
     setFakeState('soma-quebrado');
-    const failed = await run<LaceRun<BuildReport>>('lace.buildProcessor', soma);
+    const failed = await run<AuroraRun<BuildReport>>('aurora.buildProcessor', soma);
     assert.equal(failed?.status, 'failed');
     assert.deepEqual(lastCall('build'), ['-C', spf, '--events', 'build', '-p', 'soma']);
     const [error] = vscode.languages.getDiagnostics(source);
@@ -54,7 +54,7 @@ describe('Lace: Compilar', () => {
     assert.equal(api.runs.state('build').last?.outcome, 'failed');
 
     setFakeState('initial');
-    await run('lace.buildProcessor', soma);
+    await run('aurora.buildProcessor', soma);
     assert.deepEqual(vscode.languages.getDiagnostics(source), []);
   });
 });

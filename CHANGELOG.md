@@ -2,6 +2,11 @@
 
 ## Não publicada
 
+- Extensão do VS Code: passa a se chamar AURORA, e as configurações, os
+  comandos e os contextos passam de `lace.*` para `aurora.*` (`lace.path`
+  vira `aurora.path`). Ela fala com o `aurora` pelo protocolo 2, e o
+  `.vsix` da release passa a se chamar `aurora-vscode-<versão>.vsix`. O
+  pacote do RTL viewer passa a ser `@aurora/rtl-viewer`.
 - Os arquivos da release passam a se chamar `aurora-<versão>-<plataforma>`
   (os instaladores, o índice e os pedaços do bundle), e o empacotador
   recebe o executável em `--aurora`. O instalador do Windows passa a ser

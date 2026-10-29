@@ -9,9 +9,9 @@ import { basename, dirname, join, sep } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../lace/client';
-import type { NewReport } from '../lace/lace-types';
-import { clientFor, showLaceError, showProcessError, type CommandDeps } from './common';
+import type { AuroraRun } from '../aurora/client';
+import type { NewReport } from '../aurora/aurora-types';
+import { clientFor, showAuroraError, showProcessError, type CommandDeps } from './common';
 
 /**
  * O nome que `aurora new` aceita (docs/CLI.md, "Projeto"): letras sem acento,
@@ -26,7 +26,7 @@ interface NewProjectArgs {
   dir: string;
 }
 
-export async function newProject(deps: CommandDeps, target?: unknown): Promise<LaceRun<NewReport> | undefined> {
+export async function newProject(deps: CommandDeps, target?: unknown): Promise<AuroraRun<NewReport> | undefined> {
   const client = clientFor(deps, 'newProject');
   if (!client) {
     return undefined;
@@ -39,7 +39,7 @@ export async function newProject(deps: CommandDeps, target?: unknown): Promise<L
   if (!place) {
     return undefined;
   }
-  let run: LaceRun<NewReport>;
+  let run: AuroraRun<NewReport>;
   try {
     run = await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Window, title: 'Lace: criando o projeto' },
@@ -51,7 +51,7 @@ export async function newProject(deps: CommandDeps, target?: unknown): Promise<L
   }
   if (run.status !== 'succeeded') {
     if (run.status === 'error') {
-      showLaceError(run.error);
+      showAuroraError(run.error);
     }
     return run;
   }

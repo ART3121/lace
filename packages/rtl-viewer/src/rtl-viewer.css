@@ -4,7 +4,7 @@
  * --text-*, --border*, --brand, --hover, --active, --shadow-pop), as dos
  * tokens (--font-mono, --text-xs a --text-md, --space-*, --radius-*) e as
  * do desenho (--sch-*). O Studio as tem; theme-standalone.css e
- * theme-vscode.css as dão ao HTML do `lace synth --open` e ao VS Code.
+ * theme-vscode.css as dão ao HTML do `aurora synth --open` e ao VS Code.
  *
  * As regras .sch-* e [data-cat] ficam sem escopo: a exportação do SVG
  * desenha a cena fora do .rtlViewer e lê as cores calculadas.

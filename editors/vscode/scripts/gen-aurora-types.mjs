@@ -1,7 +1,7 @@
-// Gera src/lace/lace-types.ts a partir dos JSON Schemas do Lace
-// (lace/docs/schema/*.json), que o próprio Lace gera dos tipos do Core.
+// Gera src/aurora/aurora-types.ts a partir dos JSON Schemas do Lace
+// (aurora/docs/schema/*.json), que o próprio Lace gera dos tipos do Core.
 // Assim a extensão usa o mesmo contrato da CLI. É o mesmo esquema do
-// studio/scripts/gen-lace-types.mjs.
+// studio/scripts/gen-aurora-types.mjs.
 //
 // Uso: npm run gen:types                  (o Lace deste repositório, em ../..)
 //      AURORA_REPO=/outro/lace npm run gen:types
@@ -17,7 +17,7 @@ import { compile } from 'json-schema-to-typescript';
 const here = import.meta.dirname;
 const repo = resolve(process.env.AURORA_REPO ?? join(here, '..', '..', '..'));
 const dir = join(repo, 'docs', 'schema');
-const out = join(here, '..', 'src', 'lace', 'lace-types.ts');
+const out = join(here, '..', 'src', 'aurora', 'aurora-types.ts');
 const check = process.argv.includes('--check');
 
 const defs = {};
@@ -38,14 +38,14 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
 delete roots.EventLine;
 
 const combined = {
-  title: 'LaceSchemas',
+  title: 'AuroraSchemas',
   type: 'object',
   additionalProperties: false,
   properties: {},
   $defs: { ...defs, ...roots },
 };
 
-let ts = await compile(combined, 'LaceSchemas', {
+let ts = await compile(combined, 'AuroraSchemas', {
   bannerComment: '',
   unreachableDefinitions: true,
   additionalProperties: false,
@@ -53,9 +53,9 @@ let ts = await compile(combined, 'LaceSchemas', {
   format: true,
   style: { singleQuote: true, printWidth: 100 },
 });
-ts = ts.replace(/export interface LaceSchemas \{\}\n?/, '');
+ts = ts.replace(/export interface AuroraSchemas \{\}\n?/, '');
 
-const header = `// GERADO por scripts/gen-lace-types.mjs a partir de lace/docs/schema/.
+const header = `// GERADO por scripts/gen-aurora-types.mjs a partir de aurora/docs/schema/.
 // Não edite à mão: rode \`npm run gen:types\`.
 //
 // São os tipos do Core do Lace serializados (o mesmo JSON do \`--json\` da

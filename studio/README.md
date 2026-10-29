@@ -1,6 +1,6 @@
 # AURORA IDE
 
-O ambiente gráfico do [Lace](https://github.com/ART3121/aurora) para projetos
+O ambiente gráfico do [Lace](https://github.com/ART3121/lace) para projetos
 Verilog e processadores SAPHO. Sucede a AURORA 7, feita em Electron: cria e abre projetos
 `.spf`, edita C±, C e Verilog, compila pelo YANC, verifica e simula com
 Icarus Verilog e Verilator, sintetiza com Yosys, desenha o esquemático com
@@ -42,7 +42,7 @@ cobrir tudo o que a AURORA fazia está em
 ## Rodar a partir do fonte
 
 ```sh
-git clone https://github.com/ART3121/aurora
+git clone https://github.com/ART3121/lace
 cd aurora/studio
 npm install
 npm run tauri dev                                      # abre o Studio, com recarga ao salvar

@@ -7,8 +7,8 @@ onda, a síntese e os arquivos do projeto (pôr, tirar, ordenar, renomear).
 Realce e lint de Verilog ficam com as extensões que já existem.
 
 A extensão tem versão própria, separada da do Lace, e ainda não está no
-Marketplace: o `lace-vscode-<versão>.vsix` vai anexado à release do Lace, e
-se instala com `code --install-extension lace-vscode-<versão>.vsix` ou, no
+Marketplace: o `aurora-vscode-<versão>.vsix` vai anexado à release do Lace, e
+se instala com `code --install-extension aurora-vscode-<versão>.vsix` ou, no
 VS Code, em Extensões > `...` > **Install from VSIX...** (o passo a passo
 está no [README do Lace](../../README.md#extensão-do-vs-code)).
 
@@ -36,7 +36,7 @@ está no [README do Lace](../../README.md#extensão-do-vs-code)).
   projeto ativo, e valem para o projeto inteiro (o Build só aparece num
   projeto com processador). Cada botão gira enquanto roda (o
   clique cancela, menos no Wave: com o `aurora serve`, pelo `$/cancel`; com
-  `lace.transport` em `cli`, com SIGTERM ao lace) e, depois de uma falha, fica com o
+  `aurora.transport` em `cli`, com SIGTERM ao aurora) e, depois de uma falha, fica com o
   fundo de erro e o número de erros. A saída das ferramentas sai ao vivo no
   canal **Lace: ferramentas**. As variantes estão na paleta de comandos e no
   botão direito da vista e do explorador.
@@ -73,7 +73,7 @@ está no [README do Lace](../../README.md#extensão-do-vs-code)).
   lado. **Lace: Abrir o RTL viewer** mostra a última síntese sem sintetizar
   de novo. Um `aurora synth --open` no terminal integrado abre a mesma aba, e
   não o navegador: a extensão define `AURORA_OPENER=vscode` nos terminais
-  dela. Com `lace.synth.schematic`, também o SVG do Graphviz.
+  dela. Com `aurora.synth.schematic`, também o SVG do Graphviz.
 - **Pôr no projeto** (`aurora add`): o + nos não registrados (e no grupo, para
   todos), o botão direito no explorador, **Adicionar como testbench**, e
   **Novo arquivo Verilog**, que pergunta o caminho e o tipo e deixa o Lace
@@ -97,44 +97,44 @@ está no [README do Lace](../../README.md#extensão-do-vs-code)).
   antigo, a extensão avisa que o `.spf` ficou com o nome velho). Um apagado
   sai do projeto (`aurora remove`). Renomear a pasta ou o fonte de um
   processador quebra o projeto, e a extensão avisa para desfazer.
-  Desligado com `lace.files.followExplorer`.
+  Desligado com `aurora.files.followExplorer`.
 
 ## Requisitos
 
 O Lace 0.2.0 ou mais novo; check, sim e synth precisam da 0.3.0, e a
 simulação rápida, da 0.4.0. Ao ativar, a extensão confere a versão
 (`aurora --version`) e desliga o que a instalada não suporta
-(`src/lace/version.ts`). Ela não roda em workspace sem confiança.
+(`src/aurora/version.ts`). Ela não roda em workspace sem confiança.
 
 | Configuração | Padrão | Efeito |
 |---|---|---|
-| `lace.path` | vazio | o executável `aurora`; vazio, o primeiro do `PATH`. Vale só nas configurações do usuário: um workspace não escolhe o que a extensão executa |
-| `lace.transport` | `auto` | como a extensão fala com o lace: `auto` abre um `aurora serve` em segundo plano quando o Lace instalado o tem (0.9.0 ou mais nova) e, senão, roda um processo por comando; `cli` sempre um processo por comando; `serve` só o `aurora serve` (com um Lace mais antigo a extensão fica indisponível). Também só nas configurações do usuário |
-| `lace.check.lint` | `false` | toda verificação roda também o `verilator --lint-only` |
-| `lace.check.onSave` | `false` | verifica o projeto ao gravar um `.v` ou `.sv` dele, sem notificação |
-| `lace.sim.verilator` | `false` | simula no Verilator, com onda, em vez do Icarus |
-| `lace.sim.timeout` | `0` | encerra a simulação que passar disto, em segundos; `0`, sem limite |
-| `lace.synth.openViewer` | `true` | abre o RTL viewer depois de cada síntese |
-| `lace.synth.schematic` | `false` | também desenha o esquemático do Graphviz (`--svg`) e o abre |
-| `lace.add.askForNewFiles` | `true` | o aviso de arquivo novo fora do projeto |
-| `lace.files.followExplorer` | `true` | o que o explorador renomeia, move ou apaga acompanha no `.spf` |
+| `aurora.path` | vazio | o executável `aurora`; vazio, o primeiro do `PATH`. Vale só nas configurações do usuário: um workspace não escolhe o que a extensão executa |
+| `aurora.transport` | `auto` | como a extensão fala com o aurora: `auto` abre um `aurora serve` em segundo plano quando o Lace instalado o tem (0.9.0 ou mais nova) e, senão, roda um processo por comando; `cli` sempre um processo por comando; `serve` só o `aurora serve` (com um Lace mais antigo a extensão fica indisponível). Também só nas configurações do usuário |
+| `aurora.check.lint` | `false` | toda verificação roda também o `verilator --lint-only` |
+| `aurora.check.onSave` | `false` | verifica o projeto ao gravar um `.v` ou `.sv` dele, sem notificação |
+| `aurora.sim.verilator` | `false` | simula no Verilator, com onda, em vez do Icarus |
+| `aurora.sim.timeout` | `0` | encerra a simulação que passar disto, em segundos; `0`, sem limite |
+| `aurora.synth.openViewer` | `true` | abre o RTL viewer depois de cada síntese |
+| `aurora.synth.schematic` | `false` | também desenha o esquemático do Graphviz (`--svg`) e o abre |
+| `aurora.add.askForNewFiles` | `true` | o aviso de arquivo novo fora do projeto |
+| `aurora.files.followExplorer` | `true` | o que o explorador renomeia, move ou apaga acompanha no `.spf` |
 
-As cores da vista são do tema (`lace.topForeground`,
-`lace.simulatedForeground`, `lace.builtForeground`,
-`lace.notBuiltForeground`, `lace.unregisteredForeground`) e se trocam em
+As cores da vista são do tema (`aurora.topForeground`,
+`aurora.simulatedForeground`, `aurora.builtForeground`,
+`aurora.notBuiltForeground`, `aurora.unregisteredForeground`) e se trocam em
 `workbench.colorCustomizations`.
 
 ## Como fala com o Lace
 
 Pelo executável `aurora`, sem shell, de um de dois jeitos, conforme
-`lace.transport`: um `aurora serve` em segundo plano, com os pedidos em
-JSON-RPC 2.0 por stdin e stdout (`src/lace/serveClient.ts`), ou um processo
+`aurora.transport`: um `aurora serve` em segundo plano, com os pedidos em
+JSON-RPC 2.0 por stdin e stdout (`src/aurora/serveClient.ts`), ou um processo
 por comando, com `--json`, `--events` e `-C <.spf>`
-(`src/lace/cliClient.ts`) ([docs/CLI.md](../../docs/CLI.md)). Vistas e
-comandos dependem só do `LaceClient` (`src/lace/client.ts`), e
+(`src/aurora/cliClient.ts`) ([docs/CLI.md](../../docs/CLI.md)). Vistas e
+comandos dependem só do `AuroraClient` (`src/aurora/client.ts`), e
 `src/connection.ts` escolhe a implementação. O `cliClient.ts` é o único
 módulo que cria processos, o do `aurora serve` também, e o lint cobra isso. Os tipos de
-`src/lace/lace-types.ts` são gerados de `docs/schema/` por
+`src/aurora/aurora-types.ts` são gerados de `docs/schema/` por
 `npm run gen:types`, como os do Studio.
 
 ## Compilar e testar
@@ -156,19 +156,19 @@ npm run test:integration   # num VS Code de teste, baixado em .vscode-test/
 Para experimentar: `npm run watch` e
 `code --extensionDevelopmentPath="$PWD" <pasta de um projeto>`.
 
-Os testes não usam o Lace instalado. Um lace falso
-(`test/fixtures/fake-lace/lace.mjs`) devolve as respostas de
+Os testes não usam o Lace instalado. Um aurora falso
+(`test/fixtures/fake-aurora/aurora.mjs`) devolve as respostas de
 `test/fixtures/responses/`. As de `cases.json` foram gravadas por
-`npm run record:fixtures` com o lace compilado deste repositório (a 0.7.0
+`npm run record:fixtures` com o aurora compilado deste repositório (a 0.7.0
 da HEAD, que já escreve o `saved_layout` do `wave`) e o bundle instalado; o
 cabeçalho do script diz como. As de `synthetic.json` foram escritas à mão,
-para o que o lace não faz de propósito (pânico, saída que não é JSON). O
+para o que o aurora não faz de propósito (pânico, saída que não é JSON). O
 teste de contrato valida cada resposta gravada contra `docs/schema/`, sem
-aceitar campo fora do schema, e confere que `lace-types.ts` é o que os
+aceitar campo fora do schema, e confere que `aurora-types.ts` é o que os
 schemas geram. Quando um schema muda, ele quebra: grave de novo, gere os
 tipos e veja o que a extensão usa do que mudou.
 
-O teste de integração roda o lace falso pelo shebang, então vale para Linux
+O teste de integração roda o aurora falso pelo shebang, então vale para Linux
 e macOS. Sem tela, `xvfb-run -a npm run test:integration`.
 `VSCODE_TEST_VERSION=1.90.0` testa no VS Code mais antigo que `engines`
 aceita.

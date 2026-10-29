@@ -6,7 +6,7 @@
 </h1>
 
 <p align="center">
-  <a href="https://github.com/ART3121/aurora/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=2e4374" alt="Versão"></a>
+  <a href="https://github.com/ART3121/lace/releases"><img src="https://img.shields.io/github/v/release/ART3121/lace?label=vers%C3%A3o&color=2e4374" alt="Versão"></a>
   <a href="https://nipscern.com"><img src="https://img.shields.io/badge/NIPS--CERN-UFJF-2e4374" alt="NIPS-CERN, UFJF"></a>
 </p>
 
@@ -55,13 +55,13 @@ sudo pacman -S webkit2gtk-4.1            # Arch, Manjaro
 Linux x64 e macOS Apple Silicon, em qualquer shell (bash, zsh, fish):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh
 ```
 
 Windows 10 e 11, no PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/ART3121/aurora/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 ```
 
 O script baixa o instalador da última release, confere o SHA-256 com o
@@ -76,20 +76,20 @@ Studio entra no menu de aplicativos.
 Sem perguntas (scripts, laboratórios, CI):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh -s -- --yes
-curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh -s -- --yes --profile verilog
-curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh -s -- --yes --components yanc,icarus,verilator
+curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes
+curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes --profile verilog
+curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes --components yanc,icarus,verilator
 ```
 
 ```powershell
 $env:AURORA_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"
-irm https://raw.githubusercontent.com/ART3121/aurora/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ART3121/lace/main/install.ps1 | iex
 ```
 
-Sem o script, direto da [página da release](https://github.com/ART3121/aurora/releases/latest):
+Sem o script, direto da [página da release](https://github.com/ART3121/lace/releases/latest):
 
 ```sh
-curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/aurora-0.9.0-linux-x64.tar.gz
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/aurora-0.9.0-linux-x64.tar.gz
 tar xzf aurora-0.9.0-linux-x64.tar.gz && ./aurora-0.9.0-linux-x64/install
 ```
 
@@ -136,17 +136,17 @@ Quem tem o Solar 0.1.0 (o nome anterior do Lace) desinstala o Solar antes:
 ### Extensão do VS Code
 
 A extensão ainda não está no Marketplace: o arquivo dela,
-`lace-vscode-<versão>.vsix`, vai anexado à release do Lace. Ela precisa do
+`aurora-vscode-<versão>.vsix`, vai anexado à release do Lace. Ela precisa do
 Lace instalado (acima) e do VS Code 1.90 ou mais novo.
 
 ```sh
-curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/lace-vscode-0.1.0.vsix
-code --install-extension lace-vscode-0.1.0.vsix
+curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/aurora-vscode-0.1.0.vsix
+code --install-extension aurora-vscode-0.1.0.vsix
 ```
 
 No Windows, os mesmos dois comandos no PowerShell, com `curl.exe` no lugar
 de `curl`. Sem o terminal: baixe o `.vsix` da
-[página da release](https://github.com/ART3121/aurora/releases/latest) e, no
+[página da release](https://github.com/ART3121/lace/releases/latest) e, no
 VS Code, abra Extensões, o menu `...` e **Install from VSIX...**. Para
 atualizar, instale o `.vsix` novo do mesmo jeito; para remover, desinstale
 pela aba Extensões.

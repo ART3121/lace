@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 
 import type { SourceNode } from './provider';
 
-const MIME = 'application/vnd.code.tree.lace.sources';
+const MIME = 'application/vnd.code.tree.aurora.sources';
 
 export interface DropActions {
   /** Os arquivos arrastados para o lugar de `target`, ou para o começo da lista. */

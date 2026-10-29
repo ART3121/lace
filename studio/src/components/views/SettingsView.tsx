@@ -335,7 +335,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
     const chosen = await open({ directory: true, multiple: false });
     if (typeof chosen === 'string') set(key, chosen);
   };
-  const browseLace = async () => {
+  const browseAurora = async () => {
     const chosen = await open({ directory: false, multiple: false });
     if (typeof chosen === 'string') set('aurora_path', chosen);
   };
@@ -360,7 +360,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
         {(id) => (
           <div className="input-group">
             <input id={id} className="input" value={settings.aurora_path ?? ''} onChange={(e) => set('aurora_path', e.target.value || null)} />
-            <Button onClick={() => void browseLace()}>{t('common.browse')}</Button>
+            <Button onClick={() => void browseAurora()}>{t('common.browse')}</Button>
           </div>
         )}
       </SettingRow>
@@ -448,7 +448,7 @@ function AssistantPage({ settings }: { settings: Settings }) {
       <SettingRow label={t('settings.assistantAllowEdits')} hint={t('settings.assistantAllowEditsHint')}>
         {(id) => <Switch id={id} checked={settings.assistant_allow_edits} onChange={(v) => set('assistant_allow_edits', v)} />}
       </SettingRow>
-      <SettingRow label={t('settings.assistantLace')} hint={t('settings.assistantLaceHint')} stack>
+      <SettingRow label={t('settings.assistantAurora')} hint={t('settings.assistantAuroraHint')} stack>
         {(id) => (
           <div className="input-group">
             <input

@@ -1,5 +1,5 @@
 // "Lace: Abrir a onda": `aurora wave`, que abre o surfer-aurora e volta com
-// ele aberto (o lace espera 1,5 s para ver se o Surfer ficou de pé). A onda
+// ele aberto (o aurora espera 1,5 s para ver se o Surfer ficou de pé). A onda
 // do projeto é a do testbench simulado; a de um processador, a da simulação
 // dele; e um .vcd, .fst ou .ghw abre direto, com ou sem projeto.
 
@@ -7,13 +7,13 @@ import { basename } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun, WaveTarget } from '../lace/client';
-import type { WaveReport } from '../lace/lace-types';
-import { formatLaceError } from '../messages';
-import { chooseProject, clientFor, processorOf, showLaceError, showProcessError, targetUri } from './common';
+import type { AuroraRun, WaveTarget } from '../aurora/client';
+import type { WaveReport } from '../aurora/aurora-types';
+import { formatAuroraError } from '../messages';
+import { chooseProject, clientFor, processorOf, showAuroraError, showProcessError, targetUri } from './common';
 import type { RunDeps } from './run';
 
-export async function openWave(deps: RunDeps, target: WaveTarget): Promise<LaceRun<WaveReport> | undefined> {
+export async function openWave(deps: RunDeps, target: WaveTarget): Promise<AuroraRun<WaveReport> | undefined> {
   const client = clientFor(deps, 'wave');
   if (!client) {
     return undefined;
@@ -31,7 +31,7 @@ export async function openWave(deps: RunDeps, target: WaveTarget): Promise<LaceR
         r.status === 'succeeded'
           ? { outcome: 'succeeded', summary: `${basename(r.result.waveform)} aberta` }
           : r.status === 'error'
-            ? { outcome: 'error', summary: formatLaceError(r.error) }
+            ? { outcome: 'error', summary: formatAuroraError(r.error) }
             : { outcome: r.status, summary: r.status },
     });
     if (run === 'busy') {
@@ -40,7 +40,7 @@ export async function openWave(deps: RunDeps, target: WaveTarget): Promise<LaceR
     if (run.status === 'succeeded') {
       vscode.window.setStatusBarMessage(`$(pulse) Lace: ${basename(run.result.waveform)} aberta no surfer-aurora`, 6000);
     } else if (run.status === 'error') {
-      showLaceError(run.error);
+      showAuroraError(run.error);
     } else {
       void vscode.window.showErrorMessage(`Lace: aurora wave terminou como ${run.status}.`);
     }
@@ -51,7 +51,7 @@ export async function openWave(deps: RunDeps, target: WaveTarget): Promise<LaceR
   }
 }
 
-export function openProcessorWave(deps: RunDeps, target?: unknown): Promise<LaceRun<WaveReport> | undefined> {
+export function openProcessorWave(deps: RunDeps, target?: unknown): Promise<AuroraRun<WaveReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
     void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
@@ -60,7 +60,7 @@ export function openProcessorWave(deps: RunDeps, target?: unknown): Promise<Lace
   return openWave(deps, { kind: 'processor', name });
 }
 
-export function openWaveFile(deps: RunDeps, target?: unknown): Promise<LaceRun<WaveReport> | undefined> {
+export function openWaveFile(deps: RunDeps, target?: unknown): Promise<AuroraRun<WaveReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
     void vscode.window.showWarningMessage('Lace: escolha um arquivo .vcd, .fst ou .ghw.');

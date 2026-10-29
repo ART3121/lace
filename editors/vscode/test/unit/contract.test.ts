@@ -1,5 +1,5 @@
-// O contrato com o Lace: as respostas que o lace falso devolve são as que o
-// lace de verdade deu, e têm de continuar valendo contra docs/schema/. Se o
+// O contrato com o Lace: as respostas que o aurora falso devolve são as que o
+// aurora de verdade deu, e têm de continuar valendo contra docs/schema/. Se o
 // schema muda, este teste quebra, e a correção é gravar de novo
 // (npm run record:fixtures), gerar os tipos (npm run gen:types) e conferir
 // o que a extensão usa do que mudou.
@@ -116,9 +116,9 @@ describe('contrato com docs/schema/', () => {
     }
   }
 
-  it('src/lace/lace-types.ts é o que docs/schema/ gera', function () {
+  it('src/aurora/aurora-types.ts é o que docs/schema/ gera', function () {
     this.timeout(60000);
-    const result = spawnSync(process.execPath, [join(EXTENSION_ROOT, 'scripts', 'gen-lace-types.mjs'), '--check'], {
+    const result = spawnSync(process.execPath, [join(EXTENSION_ROOT, 'scripts', 'gen-aurora-types.mjs'), '--check'], {
       env: { ...process.env, AURORA_REPO },
       encoding: 'utf8',
     });

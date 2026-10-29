@@ -15,7 +15,7 @@
           "type": "object",
           "properties": {
             "client": {
-              "description": "O cliente e a versão dele (`lace-vscode 0.1.0`).",
+              "description": "O cliente e a versão dele (`aurora-vscode 0.1.0`).",
               "type": [
                 "string",
                 "null"

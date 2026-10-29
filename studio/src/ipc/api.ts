@@ -23,7 +23,7 @@ import type {
   RunRecord,
   RunSummary,
   WaveSignals,
-} from './lace-types';
+} from './aurora-types';
 import type {
   AppInfo,
   CleanReport,

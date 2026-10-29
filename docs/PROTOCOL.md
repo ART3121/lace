@@ -79,7 +79,7 @@ O primeiro pedido de uma sessão: quem é o cliente. Resposta:
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `client` | `string` \| `null` | não (padrão: `null`) | O cliente e a versão dele (`lace-vscode 0.1.0`). |
+| `client` | `string` \| `null` | não (padrão: `null`) | O cliente e a versão dele (`aurora-vscode 0.1.0`). |
 
 Resultado: [`ServerInfo`](#tipo-serverinfo).
 

@@ -8,8 +8,8 @@
 import * as vscode from 'vscode';
 
 import type { Connection } from './connection';
-import type { StatusReport } from './lace/lace-types';
-import type { Feature } from './lace/version';
+import type { StatusReport } from './aurora/aurora-types';
+import type { Feature } from './aurora/version';
 import type { Projects } from './projects';
 import type { RunKind, Runs } from './runs';
 
@@ -31,7 +31,7 @@ const ACTIONS: Action[] = [
     kind: 'build',
     label: 'Build',
     icon: 'tools',
-    command: 'lace.build',
+    command: 'aurora.build',
     feature: 'processors',
     what: 'Compilar os processadores SAPHO com o YANC (aurora build)',
     cancellable: true,
@@ -41,7 +41,7 @@ const ACTIONS: Action[] = [
     kind: 'check',
     label: 'Check',
     icon: 'checklist',
-    command: 'lace.check',
+    command: 'aurora.check',
     feature: 'check',
     what: 'Verificar o Verilog do projeto (aurora check)',
     cancellable: true,
@@ -50,7 +50,7 @@ const ACTIONS: Action[] = [
     kind: 'sim',
     label: 'Sim',
     icon: 'play',
-    command: 'lace.sim',
+    command: 'aurora.sim',
     feature: 'sim',
     what: 'Simular o testbench do projeto (aurora sim)',
     cancellable: true,
@@ -59,7 +59,7 @@ const ACTIONS: Action[] = [
     kind: 'wave',
     label: 'Wave',
     icon: 'pulse',
-    command: 'lace.wave',
+    command: 'aurora.wave',
     feature: 'wave',
     what: 'Abrir a onda da simulação no surfer-aurora (aurora wave)',
     cancellable: false,
@@ -68,14 +68,14 @@ const ACTIONS: Action[] = [
     kind: 'synth',
     label: 'Synth',
     icon: 'circuit-board',
-    command: 'lace.synth',
+    command: 'aurora.synth',
     feature: 'synth',
     what: 'Sintetizar o topo no Yosys (aurora synth)',
     cancellable: true,
   },
 ];
 
-/** Logo à direita do projeto ativo (LaceStatusBar, prioridade 100). */
+/** Logo à direita do projeto ativo (AuroraStatusBar, prioridade 100). */
 const FIRST_PRIORITY = 99;
 
 export class ActionBar implements vscode.Disposable {
@@ -85,7 +85,7 @@ export class ActionBar implements vscode.Disposable {
     ACTIONS.forEach((action, i) => {
       // Cada botão tem id próprio: o usuário esconde um só pelo menu da barra.
       const item = vscode.window.createStatusBarItem(
-        `lace.action.${action.kind}`,
+        `aurora.action.${action.kind}`,
         vscode.StatusBarAlignment.Left,
         FIRST_PRIORITY - i,
       );
@@ -117,7 +117,7 @@ export class ActionBar implements vscode.Disposable {
         const step = state.step ? `: ${state.step}` : '';
         item.tooltip = `${action.what}\nRodando${step}.${action.cancellable ? ' Clique para cancelar.' : ''}`;
         item.command = action.cancellable
-          ? { command: 'lace.cancelRun', title: 'Cancelar', arguments: [action.kind] }
+          ? { command: 'aurora.cancelRun', title: 'Cancelar', arguments: [action.kind] }
           : undefined;
       } else {
         const last = state.last;

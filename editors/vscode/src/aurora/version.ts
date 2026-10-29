@@ -59,11 +59,11 @@ export type FeatureSet = Record<Feature, boolean>;
 export const MIN_VERSION = '0.2.0';
 
 /**
- * A versão na linha do `aurora --version` (`lace 0.6.0`, o formato do clap),
+ * A versão na linha do `aurora --version` (`aurora 0.6.0`, o formato do clap),
  * ou `undefined` se a linha não tem esse formato.
  */
 export function parseVersionLine(text: string): string | undefined {
-  const match = /^lace (\d+\.\d+\.\d+)(?:[-+][0-9A-Za-z.-]+)?$/.exec(text.trim());
+  const match = /^aurora (\d+\.\d+\.\d+)(?:[-+][0-9A-Za-z.-]+)?$/.exec(text.trim());
   return match?.[1];
 }
 

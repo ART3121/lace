@@ -192,7 +192,7 @@ git diff --stat v0.9.0 -- editors/vscode packages/rtl-viewer
 
 A release do Lace leva o `.vsix` mesmo quando a extensão não mudou: o
 README aponta para ele dentro da release de cada versão
-(`releases/download/v<versão>/lace-vscode-<versão da extensão>.vsix`).
+(`releases/download/v<versão>/aurora-vscode-<versão da extensão>.vsix`).
 
 ## 3. Quando lançar
 
@@ -387,8 +387,8 @@ git push origin v0.10.0
    ```bash
    (cd packages/rtl-viewer && npm ci)
    (cd editors/vscode && npm ci && npm run package)
-   cp editors/vscode/aurora-<versão da extensão>.vsix lace-vscode-<versão da extensão>.vsix
-   gh release upload v0.10.0 lace-vscode-<versão da extensão>.vsix
+   cp editors/vscode/aurora-<versão da extensão>.vsix aurora-vscode-<versão da extensão>.vsix
+   gh release upload v0.10.0 aurora-vscode-<versão da extensão>.vsix
    ```
 
 3. A `release/0.10` volta para a `main` por pull request, com merge, sem

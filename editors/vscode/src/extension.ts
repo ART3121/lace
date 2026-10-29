@@ -16,10 +16,10 @@ import { setTop } from './commands/setTop';
 import { simulate, simulateProcessor, simulateTestbench } from './commands/sim';
 import { openRtlViewer, synthesize, synthesizeProcessor } from './commands/synth';
 import { openProcessorWave, openWave, openWaveFile } from './commands/wave';
-import { LaceConnection } from './connection';
+import { AuroraConnection } from './connection';
 import { syncContext } from './context';
-import type { StatusReport } from './lace/lace-types';
-import { formatLaceError } from './messages';
+import type { StatusReport } from './aurora/aurora-types';
+import { formatAuroraError } from './messages';
 import { ProjectStatus } from './projectStatus';
 import { Projects } from './projects';
 import { ChangePoller } from './poller';
@@ -28,7 +28,7 @@ import { RUN_KINDS, Runs, type RunKind } from './runs';
 import { SourceDecorations } from './sources/decorations';
 import { SourcesDragAndDrop } from './sources/dragAndDrop';
 import { SourcesProvider } from './sources/provider';
-import { LaceStatusBar } from './statusBar';
+import { AuroraStatusBar } from './statusBar';
 import { registerSaphoAssembly } from './asmLanguage';
 import { processorOf } from './commands/common';
 import { isVerilogFile } from './verilog';
@@ -37,7 +37,7 @@ import { isVerilogFile } from './verilog';
  * O que `activate` devolve (o `exports` da extensão). Existe para os testes
  * de integração esperarem a leitura do projeto; não é uma API estável.
  */
-export interface LaceExtensionApi {
+export interface AuroraExtensionApi {
   /** O último `aurora status` do projeto ativo. */
   readonly status: StatusReport | undefined;
   /** Cada leitura do projeto terminada, com ou sem erro. */
@@ -53,17 +53,17 @@ export interface LaceExtensionApi {
   refresh(): Promise<void>;
 }
 
-/** Quanto esperar depois de gravar antes do check (lace.check.onSave): junta um "gravar tudo". */
+/** Quanto esperar depois de gravar antes do check (aurora.check.onSave): junta um "gravar tudo". */
 const CHECK_ON_SAVE_DELAY_MS = 300;
 
 /** A conexão desta ativação, para o `deactivate` encerrar o `aurora serve`. */
-let activeConnection: LaceConnection | undefined;
+let activeConnection: AuroraConnection | undefined;
 
-export async function activate(context: vscode.ExtensionContext): Promise<LaceExtensionApi> {
+export async function activate(context: vscode.ExtensionContext): Promise<AuroraExtensionApi> {
   registerSaphoAssembly(context);
   const log = vscode.window.createOutputChannel('Lace', { log: true });
   const tools = vscode.window.createOutputChannel('Lace: ferramentas');
-  const connection = new LaceConnection(log, String(context.extension.packageJSON.version ?? '0.0.0'));
+  const connection = new AuroraConnection(log, String(context.extension.packageJSON.version ?? '0.0.0'));
   activeConnection = connection;
   const projects = new Projects(context.workspaceState);
   const status = new ProjectStatus(connection, projects, log);
@@ -76,12 +76,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
     order: (dragged, target) => dropInList(deps, dragged, target),
     add: (files, testbench) => addFiles(deps, files, testbench),
   });
-  const view = vscode.window.createTreeView('lace.sources', {
+  const view = vscode.window.createTreeView('aurora.sources', {
     treeDataProvider: sources,
     canSelectMany: true,
     dragAndDropController: dragAndDrop,
   });
-  const statusBar = new LaceStatusBar();
+  const statusBar = new AuroraStatusBar();
   const actions = new ActionBar();
 
   const sync = () => {
@@ -89,7 +89,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
     syncContext(connection.state, projects, state);
     statusBar.update(connection.state, projects);
     actions.update(connection.state, projects, runs, status.report);
-    view.message = state.kind === 'error' ? formatLaceError(state.error) : undefined;
+    view.message = state.kind === 'error' ? formatAuroraError(state.error) : undefined;
   };
   // O fonte de um processador só tem problemas do build; o Verilog, do check.
   const redecorate = () =>
@@ -185,14 +185,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
       actions.update(connection.state, projects, runs, status.report);
       viewer.setResynthesizing(runs.isRunning('synth'));
       const running = RUN_KINDS.some((kind) => runs.isRunning(kind));
-      void vscode.commands.executeCommand('setContext', 'lace.running', running);
+      void vscode.commands.executeCommand('setContext', 'aurora.running', running);
     }),
     checks.onDidChange(redecorate),
     builds.onDidChange(redecorate),
     status.onDidFindNewFiles((paths) => void offerToAdd(deps, paths)),
     vscode.workspace.onDidSaveTextDocument((document) => {
       const active = projects.active;
-      const onSave = vscode.workspace.getConfiguration('lace.check').get<boolean>('onSave', false);
+      const onSave = vscode.workspace.getConfiguration('aurora.check').get<boolean>('onSave', false);
       if (!onSave || !active || document.uri.scheme !== 'file' || !isVerilogFile(basename(document.uri.fsPath))) {
         return;
       }
@@ -203,43 +203,43 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
       saveTimer = setTimeout(() => void check(deps, { kind: 'project' }, { interactive: false }), CHECK_ON_SAVE_DELAY_MS);
     }),
     { dispose: () => clearTimeout(saveTimer) },
-    command('lace.setTop', (target) => setTop(deps, target)),
-    command('lace.build', () => build(deps, { kind: 'all' })),
-    command('lace.buildProcessor', (target) => buildProcessor(deps, target)),
-    command('lace.newProcessor', (args) => newProcessor(deps, args)),
-    command('lace.configureProcessor', (target, args) => configureProcessor(deps, target, args)),
-    command('lace.remove', (first, all) => removeFromProject(deps, first, all)),
-    command('lace.moveUp', (target) => reorder(deps, target, 'up')),
-    command('lace.moveDown', (target) => reorder(deps, target, 'down')),
-    command('lace.moveFirst', (target) => reorder(deps, target, 'first')),
-    command('lace.moveLast', (target) => reorder(deps, target, 'last')),
-    command('lace.rename', (target, args) => renameInProject(deps, target, args)),
-    command('lace.check', () => check(deps, { kind: 'project' })),
-    command('lace.checkLint', () => check(deps, { kind: 'project' }, { lint: true })),
-    command('lace.checkFile', (target) => checkFile(deps, target)),
-    command('lace.checkProcessor', (target) => checkProcessor(deps, target)),
-    command('lace.sim', () => simulate(deps, { kind: 'project' })),
-    command('lace.simFast', () => simulate(deps, { kind: 'project' }, { fast: true })),
-    command('lace.simTestbench', (target) => simulateTestbench(deps, target)),
-    command('lace.simProcessor', (target) => simulateProcessor(deps, target)),
-    command('lace.synth', () => synthesize(deps, { kind: 'project' })),
-    command('lace.synthProcessor', (target) => synthesizeProcessor(deps, target)),
-    command('lace.rtlViewer', (target) => {
+    command('aurora.setTop', (target) => setTop(deps, target)),
+    command('aurora.build', () => build(deps, { kind: 'all' })),
+    command('aurora.buildProcessor', (target) => buildProcessor(deps, target)),
+    command('aurora.newProcessor', (args) => newProcessor(deps, args)),
+    command('aurora.configureProcessor', (target, args) => configureProcessor(deps, target, args)),
+    command('aurora.remove', (first, all) => removeFromProject(deps, first, all)),
+    command('aurora.moveUp', (target) => reorder(deps, target, 'up')),
+    command('aurora.moveDown', (target) => reorder(deps, target, 'down')),
+    command('aurora.moveFirst', (target) => reorder(deps, target, 'first')),
+    command('aurora.moveLast', (target) => reorder(deps, target, 'last')),
+    command('aurora.rename', (target, args) => renameInProject(deps, target, args)),
+    command('aurora.check', () => check(deps, { kind: 'project' })),
+    command('aurora.checkLint', () => check(deps, { kind: 'project' }, { lint: true })),
+    command('aurora.checkFile', (target) => checkFile(deps, target)),
+    command('aurora.checkProcessor', (target) => checkProcessor(deps, target)),
+    command('aurora.sim', () => simulate(deps, { kind: 'project' })),
+    command('aurora.simFast', () => simulate(deps, { kind: 'project' }, { fast: true })),
+    command('aurora.simTestbench', (target) => simulateTestbench(deps, target)),
+    command('aurora.simProcessor', (target) => simulateProcessor(deps, target)),
+    command('aurora.synth', () => synthesize(deps, { kind: 'project' })),
+    command('aurora.synthProcessor', (target) => synthesizeProcessor(deps, target)),
+    command('aurora.rtlViewer', (target) => {
       const name = processorOf(target);
       return openRtlViewer(deps, name === undefined ? { kind: 'project' } : { kind: 'processor', name });
     }),
-    command('lace.wave', () => openWave(deps, { kind: 'project' })),
-    command('lace.waveProcessor', (target) => openProcessorWave(deps, target)),
-    command('lace.waveFile', (target) => openWaveFile(deps, target)),
-    command('lace.cancel', () => runs.cancelAll()),
-    command('lace.cancelRun', (kind) => runs.cancel(kind as RunKind)),
-    command('lace.add', (first, all) => addSelected(deps, first, all)),
-    command('lace.addTestbench', (first, all) => addSelected(deps, first, all, true)),
-    command('lace.newFile', (target) => newFile(deps, target)),
-    command('lace.newProject', (target) => newProject(deps, target)),
-    command('lace.refresh', () => status.refresh()),
-    command('lace.selectProject', () => projects.select()),
-    command('lace.showTools', () => tools.show()),
+    command('aurora.wave', () => openWave(deps, { kind: 'project' })),
+    command('aurora.waveProcessor', (target) => openProcessorWave(deps, target)),
+    command('aurora.waveFile', (target) => openWaveFile(deps, target)),
+    command('aurora.cancel', () => runs.cancelAll()),
+    command('aurora.cancelRun', (kind) => runs.cancel(kind as RunKind)),
+    command('aurora.add', (first, all) => addSelected(deps, first, all)),
+    command('aurora.addTestbench', (first, all) => addSelected(deps, first, all, true)),
+    command('aurora.newFile', (target) => newFile(deps, target)),
+    command('aurora.newProject', (target) => newProject(deps, target)),
+    command('aurora.refresh', () => status.refresh()),
+    command('aurora.selectProject', () => projects.select()),
+    command('aurora.showTools', () => tools.show()),
   );
   sync();
   await Promise.all([connection.connect(), projects.discover()]);

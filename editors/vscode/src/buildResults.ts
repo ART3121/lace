@@ -7,9 +7,9 @@ import { sep } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { BuildResult, Severity } from './lace/lace-types';
+import type { BuildResult, Severity } from './aurora/aurora-types';
 import { countProblems, groupProblems, type Problem, type ProblemCount } from './problems';
-import type { LaceProject } from './projects';
+import type { AuroraProject } from './projects';
 
 const SEVERITIES: Record<Severity, vscode.DiagnosticSeverity> = {
   error: vscode.DiagnosticSeverity.Error,
@@ -38,7 +38,7 @@ export class BuildResults implements vscode.Disposable {
   }
 
   /** Troca os problemas dos processadores destes builds pelos novos. */
-  apply(builds: readonly BuildResult[], project: LaceProject): void {
+  apply(builds: readonly BuildResult[], project: AuroraProject): void {
     if (builds.length === 0) {
       return;
     }

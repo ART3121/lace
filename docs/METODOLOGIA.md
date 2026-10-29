@@ -51,7 +51,7 @@ Cinco regras seguem dessa figura.
    `aurora serve`. Assim chega à extensão, ao `aurora mcp` e a scripts sem ser
    escrita de novo.
 5. **O TypeScript não copia tipo do Rust à mão.** Os tipos vêm de
-   `docs/schema/`, gerados dos tipos Rust. O `lace-types.ts` do Studio e
+   `docs/schema/`, gerados dos tipos Rust. O `aurora-types.ts` do Studio e
    o da extensão são gerados; o que se escreve à mão é só o que existe
    apenas numa interface.
 
@@ -219,7 +219,7 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
    - Studio: a receita "Uma operação do Lace na interface" do
      DEVELOPMENT.md. A função do `api.ts` pede o método pelo `aurora_call`, e
      o backend não ganha comando.
-   - Extensão do VS Code: o método na interface `LaceClient`
+   - Extensão do VS Code: o método na interface `AuroraClient`
      (`editors/vscode/src/aurora/client.ts`), em `serveClient.ts` e, se houver
      comando de CLI equivalente, em `cliClient.ts`.
 8. **Documentação.** A função em [API.md](API.md); o método na lista do
@@ -236,7 +236,7 @@ Este é o caminho como ele está na 0.9.0. Cada passo diz o arquivo. A seção
       `crates/aurora-cli/tests/serve.rs`.
 - [ ] A decisão sobre o `aurora mcp` foi tomada: na lista, ou de fora por um
       dos motivos do passo 5.
-- [ ] `docs/schema/`, o `docs/PROTOCOL.md` e os dois `lace-types.ts` foram
+- [ ] `docs/schema/`, o `docs/PROTOCOL.md` e os dois `aurora-types.ts` foram
       gerados de novo, e o diff é compatível pela seção 5, ou a
       incompatibilidade está no CHANGELOG.
 - [ ] Nenhuma interface decide o que o core já decide.

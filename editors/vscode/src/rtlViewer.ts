@@ -75,7 +75,7 @@ export class RtlViewerPanel implements vscode.Disposable {
 
   private createPanel(): vscode.WebviewPanel {
     const media = vscode.Uri.joinPath(this.extensionUri, 'media', 'rtl-viewer');
-    const panel = vscode.window.createWebviewPanel('lace.rtlViewer', this.title(), vscode.ViewColumn.Active, {
+    const panel = vscode.window.createWebviewPanel('aurora.rtlViewer', this.title(), vscode.ViewColumn.Active, {
       enableScripts: true,
       // O estado do desenho (onde está na hierarquia, o zoom) fica quando a
       // aba vai para trás.
@@ -194,9 +194,9 @@ export class RtlViewerPanel implements vscode.Disposable {
 (() => {
   const vscode = acquireVsCodeApi();
   const root = document.getElementById('root');
-  const viewer = LaceRtlViewer.mount(root, {
+  const viewer = AuroraRtlViewer.mount(root, {
     lang: ${JSON.stringify(lang)},
-    storageKey: 'lace-vscode-rtl-viewer',
+    storageKey: 'aurora-vscode-rtl-viewer',
     onOpenSource: (src) => vscode.postMessage({ type: 'openSource', src }),
     onExport: (fileName, svg) => vscode.postMessage({ type: 'export', fileName, svg }),
     onResynthesize: () => vscode.postMessage({ type: 'resynthesize' }),

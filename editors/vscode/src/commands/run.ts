@@ -1,4 +1,4 @@
-// O que build, check, sim, wave e synth dividem: o lace e o projeto, o executor
+// O que build, check, sim, wave e synth dividem: o aurora e o projeto, o executor
 // (Runs) e o que fazer quando já há uma operação do mesmo tipo rodando.
 
 import * as vscode from 'vscode';
@@ -6,9 +6,9 @@ import * as vscode from 'vscode';
 import type { BuildResults } from '../buildResults';
 import type { CheckResults } from '../check';
 import type { RtlViewerPanel } from '../rtlViewer';
-import type { LaceClient, LaceRun } from '../lace/client';
-import type { Feature } from '../lace/version';
-import type { LaceProject } from '../projects';
+import type { AuroraClient, AuroraRun } from '../aurora/client';
+import type { Feature } from '../aurora/version';
+import type { AuroraProject } from '../projects';
 import type { RunKind, RunRequest, Runs } from '../runs';
 import { chooseProject, clientFor, showProcessError, type CommandDeps } from './common';
 
@@ -28,8 +28,8 @@ const BUSY: Record<RunKind, string> = {
 };
 
 /**
- * Acha o lace e o projeto e roda a operação. `undefined` se ela não rodou
- * (sem lace, sem projeto, outra do mesmo tipo rodando) ou se o lace saiu
+ * Acha o aurora e o projeto e roda a operação. `undefined` se ela não rodou
+ * (sem aurora, sem projeto, outra do mesmo tipo rodando) ou se o aurora saiu
  * fora do contrato (a mensagem já apareceu).
  */
 export async function runOperation<T>(
@@ -37,8 +37,8 @@ export async function runOperation<T>(
   kind: RunKind,
   feature: Feature,
   file: string | undefined,
-  build: (client: LaceClient, project: LaceProject) => RunRequest<T>,
-): Promise<{ run: LaceRun<T>; project: LaceProject } | undefined> {
+  build: (client: AuroraClient, project: AuroraProject) => RunRequest<T>,
+): Promise<{ run: AuroraRun<T>; project: AuroraProject } | undefined> {
   const client = clientFor(deps, feature);
   const project = client && (await chooseProject(deps.projects, file));
   if (!client || !project) {

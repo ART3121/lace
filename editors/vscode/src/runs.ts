@@ -1,12 +1,12 @@
 // As operações que rodam ferramentas (build, check, sim, wave, synth): uma de cada
 // tipo por vez, a saída ao vivo no canal "Lace: ferramentas", o
-// cancelamento (SIGTERM ao lace) e o estado que os botões da barra de status
+// cancelamento (SIGTERM ao aurora) e o estado que os botões da barra de status
 // mostram.
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from './lace/client';
-import type { Event } from './lace/lace-types';
+import type { AuroraRun } from './aurora/client';
+import type { Event } from './aurora/aurora-types';
 
 export type RunKind = 'build' | 'check' | 'sim' | 'wave' | 'synth';
 
@@ -39,9 +39,9 @@ export interface RunRequest<T> {
    * (o check, cujo resultado velho não serve); `false` não começa.
    */
   restart: boolean;
-  start: (signal: AbortSignal, onEvent: (event: Event) => void) => Promise<LaceRun<T>>;
+  start: (signal: AbortSignal, onEvent: (event: Event) => void) => Promise<AuroraRun<T>>;
   /** Resume o resultado para o botão. */
-  summarize: (run: LaceRun<T>) => RunResult;
+  summarize: (run: AuroraRun<T>) => RunResult;
 }
 
 export class Runs implements vscode.Disposable {
@@ -61,7 +61,7 @@ export class Runs implements vscode.Disposable {
     return this.state(kind).running;
   }
 
-  /** Cancela: o lace recebe SIGTERM, encerra a ferramenta e sai com 130. */
+  /** Cancela: o aurora recebe SIGTERM, encerra a ferramenta e sai com 130. */
   cancel(kind: RunKind): void {
     this.controllers.get(kind)?.abort();
   }
@@ -78,7 +78,7 @@ export class Runs implements vscode.Disposable {
   }
 
   /** `'busy'` quando já há uma do mesmo tipo rodando e `restart` é falso. */
-  async run<T>(kind: RunKind, request: RunRequest<T>): Promise<LaceRun<T> | 'busy'> {
+  async run<T>(kind: RunKind, request: RunRequest<T>): Promise<AuroraRun<T> | 'busy'> {
     if (this.isRunning(kind)) {
       if (!request.restart) {
         return 'busy';

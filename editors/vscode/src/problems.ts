@@ -3,7 +3,7 @@
 
 import { isAbsolute, resolve } from 'node:path';
 
-import type { Diagnostic, Severity } from './lace/lace-types';
+import type { Diagnostic, Severity } from './aurora/aurora-types';
 
 export interface Problem {
   severity: Severity;

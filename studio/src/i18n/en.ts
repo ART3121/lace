@@ -852,7 +852,7 @@ export const en: Record<Key, string> = {
   'toolchain.upstreamNote': 'A tool with a newer upstream version only arrives in a new bundle, with a new Lace release.',
   'toolchain.laceCli': 'aurora CLI',
   'toolchain.notFound': 'Lace was not found',
-  'toolchain.notFoundHint': 'Install Lace (curl -fsSL https://raw.githubusercontent.com/ART3121/aurora/main/install.sh | sh) or point to the bundle folder in the settings.',
+  'toolchain.notFoundHint': 'Install Lace (curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh) or point to the bundle folder in the settings.',
   'toolchain.openSettings': 'Open settings',
 
   'settings.title': 'Settings',
@@ -1192,7 +1192,7 @@ export const en: Record<Key, string> = {
   'assistant.toolFailed': 'failed',
   'assistant.ended': 'The session ended (code {code}). The next message opens another.',
   'assistant.projectChanged': 'The project changed: the next message opens a new conversation, about it.',
-  'assistant.noLace': 'The Lace tools did not connect: the assistant answers without them. Check the aurora in the assistant preferences.',
+  'assistant.noAurora': 'The Lace tools did not connect: the assistant answers without them. Check the aurora in the assistant preferences.',
   'assistant.noProject': 'No project is open: the assistant answers, but the tools need a project.',
   'assistant.model': 'Model',
   'assistant.cost': 'US$ {cost}',
@@ -1205,6 +1205,6 @@ export const en: Record<Key, string> = {
   'settings.assistantModelHint': 'The --model of Claude Code (sonnet, opus, or a full id). Empty: the account default.',
   'settings.assistantAllowEdits': 'May edit the project files',
   'settings.assistantAllowEditsHint': 'Off, the assistant only uses the Lace tools and reads files. On, it also edits and creates files in the project folder, without asking for each one.',
-  'settings.assistantLace': 'aurora executable for the tools',
-  'settings.assistantLaceHint': 'Empty: the aurora of the bundle installation. For development, a build in target/.',
+  'settings.assistantAurora': 'aurora executable for the tools',
+  'settings.assistantAuroraHint': 'Empty: the aurora of the bundle installation. For development, a build in target/.',
 };

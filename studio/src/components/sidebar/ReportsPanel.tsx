@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { RunSummary } from '../../ipc/lace-types';
+import type { RunSummary } from '../../ipc/aurora-types';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';

@@ -1,9 +1,9 @@
-// GERADO por scripts/gen-lace-types.mjs a partir de lace/docs/schema/.
+// GERADO por scripts/gen-aurora-types.mjs a partir de lace/docs/schema/.
 // Não edite à mão: rode `npm run gen:types`.
 //
 // São os tipos do Core do Lace serializados (o mesmo JSON do `--json` da
-// CLI). Os nomes seguem os tipos Rust: StatusReport, TopReport, ErrorInfo,
-// Event, ResultLine.
+// CLI). Os nomes seguem os tipos Rust: BuildResult, SimulationResult,
+// Diagnostic, Event, RunComparison.
 
 /* eslint-disable */
 /**
@@ -14,14 +14,14 @@
  * ([`classify`](crate::verilog::classify)); [`Project::add_file`] recebe o
  * papel de quem chama. Um arquivo fica numa lista só.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FileRole".
  */
 export type FileRole = 'synthesizable' | 'testbench';
 /**
  * Um passo de uma operação. Em JSON, em `snake_case` (`"pre_assemble"`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Step".
  */
 export type Step =
@@ -44,14 +44,14 @@ export type Step =
 /**
  * Linguagem do programa de um processador. Em JSON: `"cmm"` ou `"cpp"`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Language".
  */
 export type Language = 'cmm' | 'cpp';
 /**
  * Como uma operação terminou. Em JSON, em `snake_case` (`"succeeded"`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Status".
  */
 export type Status = 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
@@ -61,7 +61,7 @@ export type Status = 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancel
  * Em JSON e em [`Display`](fmt::Display), cada uma aparece pelo nome do
  * programa ([`Tool::binary_name`]).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Tool".
  */
 export type Tool =
@@ -90,7 +90,7 @@ export type Tool =
  * `cppcomp` chama `abort()`, e um `asmcomp` que perde um `fopen` morre por
  * segfault. Nenhum dos dois é um "erro de compilação" do usuário.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Termination".
  */
 export type Termination =
@@ -121,7 +121,7 @@ export type Termination =
  *
  * Em JSON: `"error"`, `"warning"`, `"info"`, `"unknown"`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Severity".
  */
 export type Severity = 'error' | 'warning' | 'info' | 'unknown';
@@ -129,7 +129,7 @@ export type Severity = 'error' | 'warning' | 'info' | 'unknown';
  * O papel de um arquivo produzido por uma operação. Em JSON, em
  * `snake_case` (`"data_memory"`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ArtifactKind".
  */
 export type ArtifactKind =
@@ -173,7 +173,7 @@ export type ArtifactKind =
  * Os mesmos dados chegam depois no resultado da operação
  * ([`StepReport`](crate::StepReport)); os eventos só os adiantam.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Event".
  */
 export type Event =
@@ -352,12 +352,12 @@ export type Event =
  * De qual saída do processo veio uma linha. Em JSON: `"stdout"` ou
  * `"stderr"`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Stream".
  */
 export type Stream = 'stdout' | 'stderr';
 /**
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ResultTag".
  */
 export type ResultTag = 'result';
@@ -365,35 +365,35 @@ export type ResultTag = 'result';
  * Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,
  * `assistant`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Feature".
  */
 export type Feature = 'fpga' | 'assistant';
 /**
  * O cabo de gravação embutido na placa.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Cable".
  */
 export type Cable = 'usb-blaster' | 'usb-blasterII';
 /**
  * A direção de um sinal da placa, do ponto de vista do FPGA.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SignalDirection".
  */
 export type SignalDirection = 'input' | 'output';
 /**
  * O padrão de I/O de um sinal.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "IoStandard".
  */
 export type IoStandard = string | string[];
 /**
  * De onde vem um bit de entrada.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "BitSource".
  */
 export type BitSource =
@@ -422,7 +422,7 @@ export type BitSource =
 /**
  * O que a correção percebeu sobre a causa do erro.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Finding".
  */
 export type Finding =
@@ -453,7 +453,7 @@ export type Finding =
 /**
  * Como terminou a correção.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Verdict".
  */
 export type Verdict =
@@ -462,7 +462,7 @@ export type Verdict =
  * Para onde [`Project::reorder_file`] leva um arquivo na lista dele. Em
  * JSON: `{"kind": "first"}`, `{"kind": "before", "path": "rtl/b.v"}`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ListPosition".
  */
 export type ListPosition =
@@ -484,7 +484,7 @@ export type ListPosition =
  * O que o cliente pede. Os alvos são sempre explícitos: a CLI resolve o
  * processador da pasta atual antes de montar o pedido.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FlowRequest".
  */
 export type FlowRequest =
@@ -609,21 +609,21 @@ export type FlowRequest =
 /**
  * Qual simulador usar. Em JSON: `"icarus"` ou `"verilator"`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Simulator".
  */
 export type Simulator = 'icarus' | 'verilator';
 /**
  * Como um fluxo abre a onda que a simulação entregou.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WavePolicy".
  */
 export type WavePolicy = 'none' | 'window';
 /**
  * Qual onda abrir.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveSource".
  */
 export type WaveSource =
@@ -644,7 +644,7 @@ export type WaveSource =
 /**
  * O que fazer com o layout dos processadores SAPHO ao abrir a onda.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LayoutPolicy".
  */
 export type LayoutPolicy =
@@ -668,7 +668,7 @@ export type LayoutPolicy =
  * Uma mudança na escolha de sinais da onda do testbench do projeto
  * ([`choose_signals`]).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveChoice".
  */
 export type WaveChoice =
@@ -692,7 +692,7 @@ export type WaveChoice =
  * `{"kind": "all"}`, `{"kind": "keep_latest", "value": 5}`,
  * `{"kind": "reports", "value": ["run-000042", "7"]}`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Cleanup".
  */
 export type Cleanup =
@@ -711,7 +711,7 @@ export type Cleanup =
  * O que volta de um pedido que deu certo. Serializa como o valor em si (o
  * `result` do JSON-RPC), sem etiqueta: cada método diz qual é o dele.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Response".
  */
 export type Response =
@@ -758,28 +758,28 @@ export type Response =
 /**
  * Direção de uma porta.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "PortDirection".
  */
 export type PortDirection = 'input' | 'output' | 'inout';
 /**
  * Como o bundle foi achado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Origin".
  */
 export type Origin = 'settings' | 'environment' | 'bundled' | 'installation' | 'path' | 'beside';
 /**
  * Como `aurora update` atualizou.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "UpdateMethod".
  */
 export type UpdateMethod = 'components' | 'installer';
 /**
  * O tipo de um [`ProjectIssue`]. Em JSON, `snake_case`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "IssueKind".
  */
 export type IssueKind =
@@ -796,42 +796,42 @@ export type IssueKind =
  * expressão que o Lace não resolve: aí o Icarus grava VCD no nome que o
  * testbench der.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveformFormat".
  */
 export type WaveformFormat = 'vcd' | 'fst';
 /**
  * Como um teste terminou. Em JSON: `"passed"`, `"failed"` ou `"skipped"`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TestStatus".
  */
 export type TestStatus = 'passed' | 'failed' | 'skipped';
 /**
  * O tipo de um escopo. Em JSON, `"module"`, `"generate"` ou `"block"`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ScopeKind".
  */
 export type ScopeKind = 'module' | 'generate' | 'block';
 /**
  * O tipo de um sinal. Em JSON, `"reg"`, `"wire"`, `"integer"` ou `"real"`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SignalKind".
  */
 export type SignalKind = 'reg' | 'wire' | 'integer' | 'real';
 /**
  * Quanto de uma parte um relatório tem.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Availability".
  */
 export type Availability = 'available' | 'partial' | 'unavailable';
 /**
  * Uma contagem do resumo do projeto.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SynthesisMetric".
  */
 export type SynthesisMetric =
@@ -847,7 +847,7 @@ export type SynthesisMetric =
 /**
  * O que aconteceu com um número de um relatório para o outro.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Change".
  */
 export type Change =
@@ -855,7 +855,7 @@ export type Change =
 /**
  * O que `aurora update` fez.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "UpdateAction".
  */
 export type UpdateAction = 'checked' | 'up_to_date' | 'updated' | 'wizard_opened';
@@ -863,7 +863,7 @@ export type UpdateAction = 'checked' | 'up_to_date' | 'updated' | 'wizard_opened
  * O que sai de uma operação enquanto ela roda, na ordem em que aconteceu.
  * Os nomes são os que o Lace Studio manda à interface dele.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Notification".
  */
 export type Notification =
@@ -960,7 +960,7 @@ export type Notification =
  * `Learn` é a correção de um exercício do aurora-learn, que o Studio nomeia
  * com o mesmo tipo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Phase".
  */
 export type Phase =
@@ -978,14 +978,14 @@ export type Phase =
 /**
  * Como um pedido terminou, do ponto de vista de quem o atende.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ShutdownReason".
  */
 export type ShutdownReason = 'requested' | 'signal' | 'updated';
 /**
  * Uma ferramenta em `aurora tools`: onde está, ou por que não está.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ToolEntry".
  */
 export type ToolEntry =
@@ -1007,7 +1007,7 @@ export type ToolEntry =
  * O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
  * um método sem parâmetros vai sem `params`. Os caminhos são absolutos.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Request".
  */
 export type Request =
@@ -1015,7 +1015,7 @@ export type Request =
       method: 'initialize';
       params: {
         /**
-         * O cliente e a versão dele (`lace-vscode 0.1.0`).
+         * O cliente e a versão dele (`aurora-vscode 0.1.0`).
          */
         client?: string | null;
       };
@@ -1897,7 +1897,7 @@ export type Request =
 /**
  * O que [`Project::add_verilog`] fez com um arquivo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "AddedFile".
  */
 export interface AddedFile {
@@ -1934,7 +1934,7 @@ export interface AddedFile {
  *                    "required": true, "fresh": true } ] }
  * ```
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "BuildResult".
  */
 export interface BuildResult {
@@ -1989,7 +1989,7 @@ export interface BuildResult {
  * escreveu. É o registro de auditoria da operação; os `diagnostics` do
  * resultado são a versão interpretada de `stdout` e `stderr`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "StepReport".
  */
 export interface StepReport {
@@ -2123,7 +2123,7 @@ export interface Invocation {
  * No fluxo C, o `cppcomp` cita o arquivo e a linha do fonte, ou do
  * cabeçalho incluído onde está o erro.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Diagnostic".
  */
 export interface Diagnostic {
@@ -2181,7 +2181,7 @@ export interface Diagnostic {
  * `fresh = false`, e não como sucesso. Artefatos obrigatórios aparecem
  * sempre; intermediários, só se existirem.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Artifact".
  */
 export interface Artifact {
@@ -2247,7 +2247,7 @@ export interface Artifact {
  *   "inherit": [] }
  * ```
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Invocation".
  */
 export interface Invocation1 {
@@ -2281,7 +2281,7 @@ export interface Invocation1 {
  * O resultado de [`check`]. Não há artefatos: a verificação só diz se o
  * Verilog elabora, e o que os compiladores acharam.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "CheckResult".
  */
 export interface CheckResult {
@@ -2315,7 +2315,7 @@ export interface CheckResult {
 /**
  * Um arquivo ou pasta que a conversão moveu.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ConvertedPath".
  */
 export interface ConvertedPath {
@@ -2339,7 +2339,7 @@ export interface ConvertedPath {
 /**
  * Um arquivo ou pasta que a conversão deixou onde estava.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SkippedPath".
  */
 export interface SkippedPath {
@@ -2363,7 +2363,7 @@ export interface SkippedPath {
 /**
  * Um fonte que perdeu a linha do nome.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RemovedNameLine".
  */
 export interface RemovedNameLine {
@@ -2406,7 +2406,7 @@ export interface RemovedNameLine {
  * assert_eq!(info.data.unwrap()["name"], "soma");
  * ```
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ErrorInfo".
  */
 export interface ErrorInfo {
@@ -2467,7 +2467,7 @@ export interface Invocation2 {
 /**
  * A última linha do `--events`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ResultLine".
  */
 export interface ResultLine {
@@ -2486,7 +2486,7 @@ export interface ResultLine {
 /**
  * Um recurso e se está ligado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FeatureState".
  */
 export interface FeatureState {
@@ -2506,7 +2506,7 @@ export interface FeatureState {
 /**
  * Uma placa.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Board".
  */
 export interface Board {
@@ -2564,7 +2564,7 @@ export interface Jtag {
  * Um sinal da placa: um fio (`CLOCK_50`) ou um barramento (`SW`), com um
  * pino por bit.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "BoardSignal".
  */
 export interface BoardSignal {
@@ -2603,7 +2603,7 @@ export interface BoardSignal {
 /**
  * O FPGA de uma placa.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Device".
  */
 export interface Device1 {
@@ -2619,7 +2619,7 @@ export interface Device1 {
 /**
  * Como gravar a placa pela USB dela.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Jtag".
  */
 export interface Jtag1 {
@@ -2640,7 +2640,7 @@ export interface Jtag1 {
 /**
  * O resultado de [`build`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FpgaBuildResult".
  */
 export interface FpgaBuildResult {
@@ -2725,7 +2725,7 @@ export interface Quartus {
 /**
  * Um recurso da FPGA no resumo do Fitter.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ResourceUsage".
  */
 export interface ResourceUsage {
@@ -2751,7 +2751,7 @@ export interface ResourceUsage {
 /**
  * O tempo do design.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TimingSummary".
  */
 export interface TimingSummary {
@@ -2768,7 +2768,7 @@ export interface TimingSummary {
  * O tempo de um clock, no pior dos cantos de operação (tensão e
  * temperatura) que o Timing Analyzer analisa.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ClockTiming".
  */
 export interface ClockTiming {
@@ -2800,7 +2800,7 @@ export interface ClockTiming {
 /**
  * Uma instalação do Quartus Prime.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Quartus".
  */
 export interface Quartus1 {
@@ -2821,7 +2821,7 @@ export interface Quartus1 {
  * As ligações conferidas, bit a bit: o que o topo da placa precisa para ser
  * gerado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Resolved".
  */
 export interface Resolved {
@@ -2881,7 +2881,7 @@ export interface Board1 {
 /**
  * Uma porta do topo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TopPort".
  */
 export interface TopPort {
@@ -2901,7 +2901,7 @@ export interface TopPort {
 /**
  * A origem de cada bit de uma entrada do topo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "PortDrive".
  */
 export interface PortDrive {
@@ -2917,7 +2917,7 @@ export interface PortDrive {
 /**
  * O que dirige cada bit de um sinal de saída da placa.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SignalDrive".
  */
 export interface SignalDrive {
@@ -2937,7 +2937,7 @@ export interface SignalDrive {
 /**
  * Um bit de uma saída do topo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "PortBit".
  */
 export interface PortBit {
@@ -2957,7 +2957,7 @@ export interface PortBit {
 /**
  * Uma porta ligada a um clock da placa: vai para o `.sdc`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Clock".
  */
 export interface Clock {
@@ -2977,7 +2977,7 @@ export interface Clock {
 /**
  * Uma ligação como texto, para mostrar.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Connection".
  */
 export interface Connection {
@@ -2994,7 +2994,7 @@ export interface Connection {
 /**
  * Uma chamada do `iverilog` e a árvore que saiu dela.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Elaboration".
  */
 export interface Elaboration {
@@ -3024,7 +3024,7 @@ export interface Elaboration {
 /**
  * Uma instância de módulo na hierarquia elaborada.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ModuleInstance".
  */
 export interface ModuleInstance {
@@ -3067,7 +3067,7 @@ export interface ModuleInstance {
 /**
  * O resultado da correção.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Grade".
  */
 export interface Grade {
@@ -3131,7 +3131,7 @@ export interface Grade {
 /**
  * O resultado de uma saída do módulo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "OutputCheck".
  */
 export interface OutputCheck {
@@ -3157,7 +3157,7 @@ export interface OutputCheck {
  * refazer o caso de cabeça. Vem das linhas `first` do resumo; um `tb.v`
  * escrito à mão que não as escreve fica sem.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Counterexample".
  */
 export interface Counterexample {
@@ -3181,7 +3181,7 @@ export interface Counterexample {
 /**
  * O valor de uma entrada no contraexemplo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SignalValue".
  */
 export interface SignalValue {
@@ -3201,7 +3201,7 @@ export interface SignalValue {
 /**
  * Uma saída no contraexemplo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "OutputValue".
  */
 export interface OutputValue {
@@ -3233,7 +3233,7 @@ export interface OutputValue {
 /**
  * Um exercício conferido.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "DevExercise".
  */
 export interface DevExercise {
@@ -3257,7 +3257,7 @@ export interface DevExercise {
 /**
  * Um exercício na lista, com o que o aluno já fez.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ExerciseStatus".
  */
 export interface ExerciseStatus {
@@ -3289,7 +3289,7 @@ export interface ExerciseStatus {
 /**
  * O que [`Project::move_path`] fez.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "MovedPath".
  */
 export interface MovedPath {
@@ -3312,7 +3312,7 @@ export interface MovedPath {
 /**
  * Um arquivo registrado no projeto.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ProjectFile".
  */
 export interface ProjectFile {
@@ -3332,7 +3332,7 @@ export interface ProjectFile {
 /**
  * O que [`Project::remove_processor`] tirou do projeto.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RemovedProcessor".
  */
 export interface RemovedProcessor {
@@ -3362,7 +3362,7 @@ export interface RemovedProcessor {
  * `nbexpo` dados, `nubits` vira `nbmant + nbexpo + 1`
  * ([`NewProcessor::nubits_for`]), a única largura que o `asmcomp` aceita.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "NewProcessor".
  */
 export interface NewProcessor {
@@ -3418,7 +3418,7 @@ export interface NewProcessor {
  * [`Project::configure_processor`]. `None` em um campo mantém o valor
  * atual.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ProcessorConfig".
  */
 export interface ProcessorConfig {
@@ -3438,7 +3438,7 @@ export interface ProcessorConfig {
 /**
  * O que é da interface, não do fluxo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FlowOptions".
  */
 export interface FlowOptions {
@@ -3462,7 +3462,7 @@ export interface FlowOptions {
 /**
  * O pedido de [`open_wave`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveRequest".
  */
 export interface WaveRequest {
@@ -3508,7 +3508,7 @@ export interface WaveRequest {
 /**
  * O que o `fpga.json` guarda.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FpgaConfig".
  */
 export interface FpgaConfig {
@@ -3534,7 +3534,7 @@ export interface ServerInfo {
   /**
    * A versão do Lace.
    */
-  lace: string;
+  aurora: string;
   /**
    * A versão do protocolo ([`PROTOCOL_VERSION`]).
    */
@@ -3636,7 +3636,7 @@ export interface ProjectStatus {
  * Um processador, com o que uma interface precisa saber dele além do
  * [`Processor`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ProcessorStatus".
  */
 export interface ProcessorStatus {
@@ -3711,7 +3711,7 @@ export interface ProcessorStatus {
 /**
  * Um arquivo de porta de entrada ou de saída de um processador.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "PortFile".
  */
 export interface PortFile {
@@ -3755,7 +3755,7 @@ export interface GeneratedFiles {
  * Um aviso de [`Project::issues`]: algo estranho no `.spf` que não impede
  * de abrir.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ProjectIssue".
  */
 export interface ProjectIssue {
@@ -4036,7 +4036,7 @@ export interface WaveLayoutInfo {
 /**
  * O layout de uma onda, em memória.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveLayout".
  */
 export interface WaveLayout {
@@ -4067,7 +4067,7 @@ export interface WaveLayout {
  * Um tradutor de valor do Surfer: um arquivo `Name = <nome>`, `Bits = <n>`
  * e uma linha `<valor> <texto>` por valor.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "MappingTranslator".
  */
 export interface MappingTranslator {
@@ -4083,7 +4083,7 @@ export interface MappingTranslator {
 /**
  * Um processador SAPHO achado na onda.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveProcessor".
  */
 export interface WaveProcessor {
@@ -4120,7 +4120,7 @@ export interface WaveProcessor {
  * O layout salvo no projeto para a onda de um testbench:
  * `wave/<testbench>.surf.ron` ([`saved_layout`]).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SavedLayout".
  */
 export interface SavedLayout {
@@ -4158,7 +4158,7 @@ export interface ModuleInterface {
 /**
  * Uma porta de um módulo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Port".
  */
 export interface Port {
@@ -4293,7 +4293,7 @@ export interface FlowOutcome {
 /**
  * O resultado de [`hierarchy`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "HierarchyResult".
  */
 export interface HierarchyResult {
@@ -4342,7 +4342,7 @@ export interface HierarchyResult {
  * é olhar `outputs` e a onda. O stdout do testbench (`$display`) está no
  * `stdout` do passo `simulate`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SimulationResult".
  */
 export interface SimulationResult {
@@ -4414,7 +4414,7 @@ export interface SimulationResult {
  * Uma onda gerada por simulação, pronta para
  * [`open_waveform`](crate::open_waveform).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Waveform".
  */
 export interface Waveform {
@@ -4430,7 +4430,7 @@ export interface Waveform {
 /**
  * O resultado dos testes de um testbench cocotb, lido do `results.xml`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TestReport".
  */
 export interface TestReport {
@@ -4458,7 +4458,7 @@ export interface TestReport {
 /**
  * Um teste (`@cocotb.test()`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TestCase".
  */
 export interface TestCase {
@@ -4492,7 +4492,7 @@ export interface TestCase {
  * da CLI tem o erro em texto, e os dois convivem no mesmo conjunto de
  * tipos gerados.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FlowPortValues".
  */
 export interface FlowPortValues {
@@ -4519,7 +4519,7 @@ export interface FlowPortValues {
 /**
  * O resultado de [`synthesize`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SynthesisResult".
  */
 export interface SynthesisResult {
@@ -4570,7 +4570,7 @@ export interface SynthesisResult {
  * O que o `stat` do Yosys contou. Uma contagem que ele não informou fica
  * `null`, e é diferente de zero.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SynthesisStatistics".
  */
 export interface SynthesisStatistics {
@@ -4627,7 +4627,7 @@ export interface SynthesisStatistics {
 /**
  * Quantas células de um tipo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "CellUsage".
  */
 export interface CellUsage {
@@ -4643,7 +4643,7 @@ export interface CellUsage {
 /**
  * O resultado de [`render_schematic`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SchematicResult".
  */
 export interface SchematicResult {
@@ -4685,7 +4685,7 @@ export interface SchematicResult {
 /**
  * A onda aberta no surfer-aurora, que continua aberto depois.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveOpened".
  */
 export interface WaveOpened {
@@ -4740,7 +4740,7 @@ export interface WaveOpened {
 /**
  * O layout salvo no projeto para a onda aberta.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SavedLayoutInfo".
  */
 export interface SavedLayoutInfo {
@@ -4756,7 +4756,7 @@ export interface SavedLayoutInfo {
 /**
  * O resultado de [`program`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FpgaProgramResult".
  */
 export interface FpgaProgramResult {
@@ -4920,7 +4920,7 @@ export interface WaveSignals {
  * Um escopo da árvore: uma instância de módulo, ou um bloco `generate` ou
  * `begin` com nome.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SignalScope".
  */
 export interface SignalScope {
@@ -4957,7 +4957,7 @@ export interface SignalScope {
 /**
  * Um sinal da árvore.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveSignal".
  */
 export interface WaveSignal {
@@ -5003,7 +5003,7 @@ export interface WaveChoiceOutcome {
 /**
  * Uma linha de [`list`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RunSummary".
  */
 export interface RunSummary {
@@ -5101,9 +5101,10 @@ export interface RunMetadata {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -5139,7 +5140,7 @@ export interface RunMetadata {
 /**
  * O que decide se duas sínteses se comparam, e o que vira aviso.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SynthesisContext".
  */
 export interface SynthesisContext {
@@ -5159,7 +5160,7 @@ export interface SynthesisContext {
 /**
  * O que decide se duas simulações se comparam, e o que vira aviso.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SimulationContext".
  */
 export interface SimulationContext {
@@ -5235,7 +5236,7 @@ export interface Environment {
  * Os tempos de uma simulação, em milissegundos de relógio. O tempo simulado
  * é outra grandeza: o quanto o tempo andou dentro do modelo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SimulationTimings".
  */
 export interface SimulationTimings {
@@ -5312,9 +5313,10 @@ export interface RunMetadata1 {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -5368,9 +5370,10 @@ export interface RunMetadata2 {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -5406,7 +5409,7 @@ export interface RunMetadata2 {
 /**
  * As estatísticas de síntese, comparadas.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SynthesisComparison".
  */
 export interface SynthesisComparison {
@@ -5447,7 +5450,7 @@ export interface SynthesisComparison {
 /**
  * Uma contagem do resumo, comparada.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SynthesisMetricComparison".
  */
 export interface SynthesisMetricComparison {
@@ -5496,7 +5499,7 @@ export interface MetricComparison {
 /**
  * Um tipo de célula, comparado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "CellComparison".
  */
 export interface CellComparison {
@@ -5537,7 +5540,7 @@ export interface MetricComparison1 {
 /**
  * Os tempos de simulação, comparados.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TimingComparison".
  */
 export interface TimingComparison {
@@ -5741,7 +5744,7 @@ export interface ToolchainInfo {
 /**
  * Um componente instalado (`components/<nome>.json`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "BundleComponent".
  */
 export interface BundleComponent {
@@ -5779,7 +5782,7 @@ export interface BundleComponent {
 /**
  * Uma ferramenta do bundle: onde está, ou por que não está.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ToolStatus".
  */
 export interface ToolStatus {
@@ -5816,7 +5819,7 @@ export interface ToolStatus {
  * declarado ([`SystemCompiler::in_dir`], e [`SystemCompiler::in_msys2`]
  * para um MSYS2 no Windows), que substitui o padrão.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SystemCompiler".
  */
 export interface SystemCompiler {
@@ -5845,7 +5848,7 @@ export interface SystemCompiler {
 /**
  * Um executável do bundle cujo hash não bate com o manifesto.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FileMismatch".
  */
 export interface FileMismatch {
@@ -5958,7 +5961,7 @@ export interface BitstreamState {
  * `update.check`, `update.apply`.
  */
 export interface UpdateReport {
-  lace: AuroraVersions;
+  aurora: AuroraVersions;
   bundle: BundleVersions;
   /**
    * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
@@ -6022,7 +6025,7 @@ export interface BundleVersions {
 /**
  * Um componente instalado em `aurora update`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ComponentVersions".
  */
 export interface ComponentVersions {
@@ -6063,7 +6066,7 @@ export interface ComponentVersions {
 /**
  * O que a atualização por componentes trocou.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "UpdateChanges".
  */
 export interface UpdateChanges {
@@ -6177,7 +6180,7 @@ export interface WorkspaceSnapshot {
 /**
  * Um capítulo de [`WorkspaceSnapshot`].
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ChapterSnapshot".
  */
 export interface ChapterSnapshot {
@@ -6201,7 +6204,7 @@ export interface ChapterSnapshot {
 /**
  * Um exercício de [`WorkspaceSnapshot`], com o que o aluno já fez.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ExerciseSnapshot".
  */
 export interface ExerciseSnapshot {
@@ -6249,14 +6252,14 @@ export interface ExerciseSnapshot {
 /**
  * O que `initialize` devolve.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ServerInfo".
  */
 export interface ServerInfo1 {
   /**
    * A versão do Lace.
    */
-  lace: string;
+  aurora: string;
   /**
    * A versão do protocolo ([`PROTOCOL_VERSION`]).
    */
@@ -6280,7 +6283,7 @@ export interface ServerInfo1 {
 /**
  * O projeto inteiro, como uma interface o mostra. Só lê o disco.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ProjectStatus".
  */
 export interface ProjectStatus1 {
@@ -6361,7 +6364,7 @@ export interface ProjectStatus1 {
  * Os arquivos que o build de um processador gera, pelo papel. Só entram os
  * que existem.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "GeneratedFiles".
  */
 export interface GeneratedFiles1 {
@@ -6391,7 +6394,7 @@ export interface GeneratedFiles1 {
 /**
  * `project.remove`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RemoveOutcome".
  */
 export interface RemoveOutcome1 {
@@ -6407,7 +6410,7 @@ export interface RemoveOutcome1 {
 /**
  * `project.top`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TopOutcome".
  */
 export interface TopOutcome1 {
@@ -6427,7 +6430,7 @@ export interface TopOutcome1 {
 /**
  * O que [`Project::convert_layout`] fez.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LayoutConversion".
  */
 export interface LayoutConversion1 {
@@ -6462,7 +6465,7 @@ export interface LayoutConversion1 {
 /**
  * `project.check_name` e `processor.check_name`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "NameCheck".
  */
 export interface NameCheck1 {
@@ -6487,7 +6490,7 @@ export interface NameCheck1 {
  * senão a extensão de `sourceFile`/`cmmFile`; senão o arquivo que existir na
  * pasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Processor".
  */
 export interface Processor1 {
@@ -6538,7 +6541,7 @@ export interface Processor1 {
 /**
  * `processor.remove`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ProcessorRemoval".
  */
 export interface ProcessorRemoval1 {
@@ -6552,7 +6555,7 @@ export interface ProcessorRemoval1 {
  * `wave.layout`: o que um visualizador próprio precisa para mostrar a
  * onda com o layout do Lace.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveLayoutInfo".
  */
 export interface WaveLayoutInfo1 {
@@ -6580,7 +6583,7 @@ export interface WaveLayoutInfo1 {
 /**
  * Um módulo e as portas dele, na ordem da declaração.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ModuleInterface".
  */
 export interface ModuleInterface1 {
@@ -6601,7 +6604,7 @@ export interface ModuleInterface1 {
  * O resultado de um fluxo. Os campos de uma fase que não rodou ficam `None`
  * ou vazios.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FlowOutcome".
  */
 export interface FlowOutcome1 {
@@ -6716,7 +6719,7 @@ export interface FlowOutcome1 {
  * A árvore de sinais do testbench do projeto, para escolher o que a onda
  * grava ([`wave_signals`]).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveSignals".
  */
 export interface WaveSignals1 {
@@ -6767,7 +6770,7 @@ export interface WaveSignals1 {
 /**
  * A escolha de sinais depois da mudança.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveChoiceOutcome".
  */
 export interface WaveChoiceOutcome1 {
@@ -6788,7 +6791,7 @@ export interface WaveChoiceOutcome1 {
 /**
  * `history.show`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ReportView".
  */
 export interface ReportView1 {
@@ -6810,7 +6813,7 @@ export interface ReportView1 {
  * Um relatório guardado: o que a comparação e a lista usam. O texto fica ao
  * lado, em `report.txt` ([`report_text`]).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RunRecord".
  */
 export interface RunRecord1 {
@@ -6835,7 +6838,7 @@ export interface RunRecord1 {
 /**
  * O contexto de uma operação guardada.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RunMetadata".
  */
 export interface RunMetadata3 {
@@ -6856,9 +6859,10 @@ export interface RunMetadata3 {
    */
   duration_ms: number;
   /**
-   * A versão do Lace que gravou.
+   * A versão que gravou. `lace_version` nos relatórios gravados pelo
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
-  lace_version: string;
+  aurora_version: string;
   /**
    * O que identifica o projeto: um hash da raiz dele. Relatórios de
    * projetos diferentes não se comparam.
@@ -6896,7 +6900,7 @@ export interface RunMetadata3 {
  * outro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,
  * `/proc` e `/etc/os-release`) e o `uname`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Environment".
  */
 export interface Environment1 {
@@ -6941,7 +6945,7 @@ export interface Environment1 {
 /**
  * Dois relatórios comparados: o atual contra a referência.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RunComparison".
  */
 export interface RunComparison1 {
@@ -6974,7 +6978,7 @@ export interface RunComparison1 {
 /**
  * Um número comparado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "MetricComparison".
  */
 export interface MetricComparison6 {
@@ -7004,7 +7008,7 @@ export interface MetricComparison6 {
 /**
  * `history.clean`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "CleanOutcome".
  */
 export interface CleanOutcome1 {
@@ -7022,7 +7026,7 @@ export interface CleanOutcome1 {
  * falha: um bundle que não abriu vira `found: false` com o erro
  * ([`describe_error`]).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ToolchainInfo".
  */
 export interface ToolchainInfo1 {
@@ -7092,7 +7096,7 @@ export interface ToolchainInfo1 {
 /**
  * `experimental.list` e `experimental.set`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ExperimentalInfo".
  */
 export interface ExperimentalInfo1 {
@@ -7109,7 +7113,7 @@ export interface ExperimentalInfo1 {
  * O `fpga.json` conferido: a placa, as ligações bit a bit e o topo da
  * placa gerado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Prepared".
  */
 export interface Prepared1 {
@@ -7132,7 +7136,7 @@ export interface Prepared1 {
  * O arquivo de gravação da placa do `fpga.json`: se existe e, se existe,
  * por que não descreve o projeto de agora ([`bitstream_state`]).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "BitstreamState".
  */
 export interface BitstreamState1 {
@@ -7157,11 +7161,11 @@ export interface BitstreamState1 {
 /**
  * O relatório do `aurora update` (`docs/schema/update.json`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "UpdateReport".
  */
 export interface UpdateReport1 {
-  lace: AuroraVersions;
+  aurora: AuroraVersions;
   bundle: BundleVersions;
   /**
    * Cada componente instalado, na ordem do manifesto do bundle. Vazio sem
@@ -7190,7 +7194,7 @@ export interface UpdateReport1 {
 /**
  * As versões do Lace em `aurora update`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "AuroraVersions".
  */
 export interface AuroraVersions1 {
@@ -7210,7 +7214,7 @@ export interface AuroraVersions1 {
 /**
  * As versões do bundle em `aurora update`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "BundleVersions".
  */
 export interface BundleVersions1 {
@@ -7231,7 +7235,7 @@ export interface BundleVersions1 {
 /**
  * `aurora install` (`docs/schema/install.json`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "InstallReport".
  */
 export interface InstallReport1 {
@@ -7251,7 +7255,7 @@ export interface InstallReport1 {
 /**
  * O resultado de uma rodada de correção (e do `learn.check` do protocolo).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnCheckOutcome".
  */
 export interface LearnCheckOutcome1 {
@@ -7273,7 +7277,7 @@ export interface LearnCheckOutcome1 {
  * De onde vêm as trilhas e quais há (o resultado do `learn.tracks` do
  * protocolo).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnTracks".
  */
 export interface LearnTracks1 {
@@ -7291,7 +7295,7 @@ export interface LearnTracks1 {
  * capítulos com os enunciados e o que o aluno já fez
  * ([`Workspace::snapshot`]). É o resultado do `learn.status` do protocolo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WorkspaceSnapshot".
  */
 export interface WorkspaceSnapshot1 {
@@ -7397,7 +7401,7 @@ export interface BuildResult1 {
 /**
  * O que a simulação de um processador escreveu numa porta de saída.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "PortValues".
  */
 export interface PortValues {
@@ -7472,7 +7476,7 @@ export interface ErrorInfo1 {
 /**
  * O layout salvo no projeto para a onda aberta.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SavedLayoutReport".
  */
 export interface SavedLayoutReport {
@@ -7489,7 +7493,7 @@ export interface SavedLayoutReport {
 /**
  * `aurora add`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "AddReport".
  */
 export interface AddReport {
@@ -7505,7 +7509,7 @@ export interface AddReport {
 /**
  * `aurora build`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "BuildReport".
  */
 export interface BuildReport {
@@ -7533,7 +7537,7 @@ export interface BuildReport {
 /**
  * `aurora check`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "CheckReport".
  */
 export interface CheckReport {
@@ -7579,7 +7583,7 @@ export interface CheckResult1 {
 /**
  * `aurora convert`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ConvertReport".
  */
 export interface ConvertReport {
@@ -7618,7 +7622,7 @@ export interface ConvertReport {
 /**
  * Qualquer comando que não conseguiu rodar (código de saída 2).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ErrorReport".
  */
 export interface ErrorReport {
@@ -7677,7 +7681,7 @@ export interface ErrorInfo2 {
  * `aurora experimental`: os recursos experimentais e se cada um está ligado,
  * já com a mudança de `enable` ou `disable`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ExperimentalReport".
  */
 export interface ExperimentalReport {
@@ -7695,7 +7699,7 @@ export interface ExperimentalReport {
 /**
  * `aurora fpga boards`: as placas conhecidas, ou a pedida.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FpgaBoardsReport".
  */
 export interface FpgaBoardsReport {
@@ -7708,7 +7712,7 @@ export interface FpgaBoardsReport {
  * `aurora fpga build`: os processadores, compilados antes, e a compilação
  * para a placa pelo Quartus.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FpgaBuildReport".
  */
 export interface FpgaBuildReport {
@@ -7731,7 +7735,7 @@ export interface FpgaBuildReport {
 /**
  * `aurora fpga program --list`: os cabos de gravação ligados.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FpgaCablesReport".
  */
 export interface FpgaCablesReport {
@@ -7744,7 +7748,7 @@ export interface FpgaCablesReport {
 /**
  * `aurora fpga check`: o `fpga.json` conferido.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "FpgaCheckReport".
  */
 export interface FpgaCheckReport {
@@ -7801,7 +7805,7 @@ export interface Resolved2 {
  * `aurora learn check`: a correção de cada exercício pedido, que também
  * grava se ele está resolvido.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnCheckReport".
  */
 export interface LearnCheckReport {
@@ -7821,7 +7825,7 @@ export interface LearnCheckReport {
 /**
  * O resultado da conferência.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "DevReport".
  */
 export interface DevReport {
@@ -7837,7 +7841,7 @@ export interface DevReport {
 /**
  * `aurora learn hint`: as dicas de um exercício.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnHintReport".
  */
 export interface LearnHintReport {
@@ -7857,7 +7861,7 @@ export interface LearnHintReport {
 /**
  * `aurora learn init`: a pasta de exercícios criada.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnInitReport".
  */
 export interface LearnInitReport {
@@ -7881,7 +7885,7 @@ export interface LearnInitReport {
 /**
  * `aurora learn list`: os exercícios e o que já foi resolvido.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnListReport".
  */
 export interface LearnListReport {
@@ -7913,7 +7917,7 @@ export interface LearnListReport {
 /**
  * `aurora learn reset`: o arquivo que voltou ao começo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnResetReport".
  */
 export interface LearnResetReport {
@@ -7929,7 +7933,7 @@ export interface LearnResetReport {
 /**
  * `aurora learn wave`: a onda aberta no Surfer.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "LearnWaveReport".
  */
 export interface LearnWaveReport {
@@ -7953,7 +7957,7 @@ export interface LearnWaveReport {
 /**
  * `aurora move`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "MoveReport".
  */
 export interface MoveReport {
@@ -7969,7 +7973,7 @@ export interface MoveReport {
 /**
  * `aurora new`: o projeto criado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "NewReport".
  */
 export interface NewReport {
@@ -7989,7 +7993,7 @@ export interface NewReport {
 /**
  * `aurora order`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "OrderReport".
  */
 export interface OrderReport {
@@ -8006,7 +8010,7 @@ export interface OrderReport {
  * `aurora proc remove`: o processador que saiu do projeto e se a pasta dele
  * foi para a lixeira (`--delete`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ProcRemoveReport".
  */
 export interface ProcRemoveReport {
@@ -8166,7 +8170,7 @@ export interface FpgaConfig1 {
   };
 }
 /**
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "Responses".
  */
 export interface Responses {
@@ -8178,7 +8182,7 @@ export interface Responses {
 /**
  * `aurora remove`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "RemoveReport".
  */
 export interface RemoveReport {
@@ -8198,7 +8202,7 @@ export interface RemoveReport {
 /**
  * `aurora report clean`: os relatórios apagados.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ReportCleanReport".
  */
 export interface ReportCleanReport {
@@ -8215,7 +8219,7 @@ export interface ReportCleanReport {
 /**
  * `aurora report list`: os relatórios, do mais novo para o mais antigo.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ReportListReport".
  */
 export interface ReportListReport {
@@ -8227,7 +8231,7 @@ export interface ReportListReport {
 /**
  * `aurora report` e `aurora report show`: um relatório guardado.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ReportShowReport".
  */
 export interface ReportShowReport {
@@ -8270,7 +8274,7 @@ export interface RunRecord2 {
 /**
  * `aurora sim`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SimReport".
  */
 export interface SimReport {
@@ -8307,7 +8311,7 @@ export interface SimReport {
 /**
  * `aurora status`: o projeto inteiro.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "StatusReport".
  */
 export interface StatusReport {
@@ -8372,7 +8376,7 @@ export interface StatusReport {
 /**
  * `aurora synth`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "SynthReport".
  */
 export interface SynthReport {
@@ -8409,7 +8413,7 @@ export interface SynthReport {
 /**
  * `aurora tools`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "ToolsReport".
  */
 export interface ToolsReport {
@@ -8458,7 +8462,7 @@ export interface ToolsReport {
 /**
  * `aurora top`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "TopReport".
  */
 export interface TopReport {
@@ -8479,7 +8483,7 @@ export interface TopReport {
 /**
  * `aurora uninstall` (`docs/schema/uninstall.json`).
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "UninstallReport".
  */
 export interface UninstallReport {
@@ -8498,7 +8502,7 @@ export interface UninstallReport {
  * `aurora wave select` e `aurora wave unselect`: a escolha de sinais depois da
  * mudança.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveChoiceReport".
  */
 export interface WaveChoiceReport {
@@ -8519,7 +8523,7 @@ export interface WaveChoiceReport {
 /**
  * `aurora wave`.
  *
- * This interface was referenced by `LaceSchemas`'s JSON-Schema
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
  * via the `definition` "WaveReport".
  */
 export interface WaveReport {

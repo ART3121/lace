@@ -5,9 +5,9 @@
 
 import * as vscode from 'vscode';
 
-import type { LaceRun, ProcessorChanges } from '../lace/client';
-import type { Processor, ProcessorStatus } from '../lace/lace-types';
-import { chooseProject, clientFor, processorOf, showLaceError, showProcessError, type CommandDeps } from './common';
+import type { AuroraRun, ProcessorChanges } from '../aurora/client';
+import type { Processor, ProcessorStatus } from '../aurora/aurora-types';
+import { chooseProject, clientFor, processorOf, showAuroraError, showProcessError, type CommandDeps } from './common';
 
 /** A regra do Lace (`aurora proc add`): letras, dígitos e _, começando por letra ou _. */
 export const PROCESSOR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -20,7 +20,7 @@ export interface NewProcessorArgs {
   language: Language;
 }
 
-export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<LaceRun<Processor> | undefined> {
+export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<AuroraRun<Processor> | undefined> {
   const client = clientFor(deps, 'processors');
   const project = client && (await chooseProject(deps.projects));
   if (!client || !project) {
@@ -43,7 +43,7 @@ export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<L
   if (language === undefined) {
     return undefined;
   }
-  let run: LaceRun<Processor>;
+  let run: AuroraRun<Processor>;
   try {
     run = await client.addProcessor(project.spf, name, language);
   } catch (error) {
@@ -51,7 +51,7 @@ export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<L
     return undefined;
   }
   if (run.status === 'error') {
-    showLaceError(run.error);
+    showAuroraError(run.error);
     return run;
   }
   await deps.status.refresh();
@@ -98,7 +98,7 @@ export async function configureProcessor(
   deps: CommandDeps,
   target?: unknown,
   args?: unknown,
-): Promise<LaceRun<Processor> | undefined> {
+): Promise<AuroraRun<Processor> | undefined> {
   const client = clientFor(deps, 'processors');
   const project = client && (await chooseProject(deps.projects));
   if (!client || !project) {
@@ -117,7 +117,7 @@ export async function configureProcessor(
   if (changes === undefined) {
     return undefined;
   }
-  let run: LaceRun<Processor>;
+  let run: AuroraRun<Processor>;
   try {
     run = await client.configureProcessor(project.spf, name, changes);
   } catch (error) {
@@ -125,7 +125,7 @@ export async function configureProcessor(
     return undefined;
   }
   if (run.status === 'error') {
-    showLaceError(run.error);
+    showAuroraError(run.error);
     return run;
   }
   await deps.status.refresh();
