@@ -356,7 +356,7 @@ function ToolchainPage({ settings }: { settings: Settings }) {
           </div>
         )}
       </SettingRow>
-      <SettingRow label={t('settings.lacePath')} hint={t('settings.lacePathHint')} stack>
+      <SettingRow label={t('settings.auroraPath')} hint={t('settings.auroraPathHint')} stack>
         {(id) => (
           <div className="input-group">
             <input id={id} className="input" value={settings.aurora_path ?? ''} onChange={(e) => set('aurora_path', e.target.value || null)} />

@@ -138,7 +138,7 @@ export function applyThemeCss(theme: Theme): void {
   appliedTheme = theme;
   if (!styleElement) {
     styleElement = document.createElement('style');
-    styleElement.id = 'lace-theme';
+    styleElement.id = 'aurora-theme';
     document.head.appendChild(styleElement);
   }
   const lines = Object.entries(uiTokens(theme)).map(([name, value]) => `  --${name}: ${value};`);

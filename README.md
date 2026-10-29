@@ -234,7 +234,7 @@ extensão do VS Code e scripts. Os pedidos e as respostas são os do crate
 `aurora-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA
 fala com o mesmo servidor em MCP: o `aurora serve` reconhece o idioma pelo
 primeiro pedido, e o `aurora mcp` é o mesmo servidor, sempre em MCP
-([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
+([docs/CLI.md](docs/CLI.md#a-api-para-outros-programas-aurora-serve-e-aurora-mcp)).
 O `aurora chat` e a vista Assistente do Studio usam o `aurora-agent`, que abre o
 Claude Code com o `aurora mcp`. O `aurora mcp`, o `aurora chat` e a vista
 Assistente são experimentais: só funcionam depois de

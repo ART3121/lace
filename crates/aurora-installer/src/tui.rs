@@ -1198,7 +1198,7 @@ mod tests {
     fn app() -> App {
         // Absoluto em qualquer sistema (no Windows, `/nao/existe` não é: falta
         // o drive) e inexistente, para a tela de destino aceitar.
-        let base = std::env::temp_dir().join(format!("lace-tui-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("aurora-tui-{}", std::process::id()));
         let target = Target {
             prefix: base.join("aurora"),
             link: Some(base.join("bin").join("aurora")),
@@ -1344,7 +1344,7 @@ mod tests {
 
     #[test]
     fn adding_starts_on_the_list_and_keeps_what_is_installed() {
-        let prefix = std::env::temp_dir().join(format!("lace-tui-add-{}", std::process::id()));
+        let prefix = std::env::temp_dir().join(format!("aurora-tui-add-{}", std::process::id()));
         let source: Arc<dyn ChunkSource> = Arc::new(add::LocalPayload(prefix.clone()));
         let installed: Selection = ["icarus".to_owned(), "yanc".to_owned()].into();
         let new_app = || {

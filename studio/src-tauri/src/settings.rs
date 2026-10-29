@@ -285,10 +285,11 @@ fn adopt_lace_studio_settings(dir: &Utf8Path) {
     else {
         return;
     };
-    if old.is_file() && std::fs::create_dir_all(dir).is_ok() {
-        if let Err(error) = std::fs::copy(&old, &new) {
-            tracing::warn!("Could not copy {old} to {new}: {error}");
-        }
+    if old.is_file()
+        && std::fs::create_dir_all(dir).is_ok()
+        && let Err(error) = std::fs::copy(&old, &new)
+    {
+        tracing::warn!("Could not copy {old} to {new}: {error}");
     }
 }
 

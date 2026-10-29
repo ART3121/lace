@@ -96,7 +96,7 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
       { submenu: 'menu.learn', entries: ['viewLearn', 'learnCheck', 'learnHint', 'learnWave', 'learnNext'] },
     ],
   },
-  { label: 'menu.help', entries: ['laceDocs', 'saphoManual', '-', 'startTour', 'shortcuts', 'about'] },
+  { label: 'menu.help', entries: ['auroraDocs', 'saphoManual', '-', 'startTour', 'shortcuts', 'about'] },
 ];
 
 /** Sem separador no começo, no fim nem dois seguidos: as ações que não

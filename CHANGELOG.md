@@ -11,7 +11,8 @@
   comandos e os contextos passam de `lace.*` para `aurora.*` (`lace.path`
   vira `aurora.path`). Ela fala com o `aurora` pelo protocolo 2, e o
   `.vsix` da release passa a se chamar `aurora-vscode-<versão>.vsix`. O
-  pacote do RTL viewer passa a ser `@aurora/rtl-viewer`.
+  pacote do RTL viewer passa a ser `@aurora/rtl-viewer`, e o ícone da
+  extensão na barra de atividades, o camaleão.
 - Os arquivos da release passam a se chamar `aurora-<versão>-<plataforma>`
   (os instaladores, o índice e os pedaços do bundle), e o empacotador
   recebe o executável em `--aurora`. O instalador do Windows passa a ser
@@ -50,14 +51,16 @@
   de placa e a trava do `.spf`) passa de `.lace/` para `.aurora8/`. O 8 a
   separa da `.aurora/`, que é da AURORA 7 e pode estar no mesmo projeto.
   Abrir um projeto que tem `.lace/` a renomeia para `.aurora8/`, com o que
-  tinha dentro.
+  tinha dentro. O registro da compilação para a placa passa de
+  `lace-build.json` para `aurora-build.json`: uma placa compilada pelo Lace
+  precisa ser compilada de novo, porque sem o registro a gravação recusa com
+  `stale_bitstream`.
 
 - O Lace Studio passa a se chamar AURORA IDE nos textos da CLI, do
   instalador e da documentação. O atalho do menu Iniciar e o da área de
   trabalho no Windows e o do menu de aplicativos no Linux trocam de nome; o
   instalador do Windows apaga os atalhos com o nome antigo. O componente
-  continua `studio`, e o executável, `lace-studio`. As mudanças da IDE
-  estão em studio/CHANGELOG.md.
+  continua `studio`. As mudanças da IDE estão em studio/CHANGELOG.md.
 
 - Simulação, síntese, hierarquia e escolha de sinais funcionam com o
   projeto numa pasta com acento, outro alfabeto ou emoji, como

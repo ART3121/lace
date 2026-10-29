@@ -175,7 +175,7 @@ impl Session {
     /// [`AgentEvent::Exited`], se o Claude Code não abriu).
     pub fn start(options: &SessionOptions) -> Result<(Session, Receiver<AgentEvent>)> {
         let config = tempfile::Builder::new()
-            .prefix("lace-assistant.")
+            .prefix("aurora-assistant.")
             .tempdir()
             .map_err(|e| AgentError::Other(anyhow::Error::new(e).context("Creating a folder")))?;
         let config_path = config.path().join("mcp-config.json");
@@ -209,7 +209,7 @@ impl Session {
 
         let errors = tx.clone();
         std::thread::Builder::new()
-            .name("lace-assistant-stderr".into())
+            .name("aurora-assistant-stderr".into())
             .spawn(move || {
                 for line in BufReader::new(stderr)
                     .lines()
@@ -223,7 +223,7 @@ impl Session {
             .map_err(|e| AgentError::Other(e.into()))?;
         let waiter = Arc::clone(&child);
         std::thread::Builder::new()
-            .name("lace-assistant-stdout".into())
+            .name("aurora-assistant-stdout".into())
             .spawn(move || {
                 let mut parser = Parser::default();
                 for line in BufReader::new(stdout)
@@ -646,7 +646,7 @@ mod tests {
     }
 
     #[test]
-    fn the_mcp_config_points_at_lace_mcp() {
+    fn the_mcp_config_points_at_aurora_mcp() {
         let mut opts = options();
         opts.toolchain = Some("/bundle".into());
         opts.allow_update = true;

@@ -45,7 +45,7 @@ case "$version" in
     "" | */*) die "Could not find the latest version at https://github.com/$repo/releases" ;;
 esac
 
-name="lace-$version-$platform"
+name="aurora-$version-$platform"
 base="https://github.com/$repo/releases/download/v$version"
 
 # Fora do /tmp: há distribuições que o montam sem permissão de execução.
@@ -57,7 +57,7 @@ else
     cache="${XDG_CACHE_HOME:-$HOME/.cache}"
 fi
 mkdir -p "$cache"
-tmp=$(mktemp -d "$cache/lace-install.XXXXXX")
+tmp=$(mktemp -d "$cache/aurora-install.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 trap 'exit 130' INT TERM
 

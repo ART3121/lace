@@ -6,7 +6,7 @@ docs/schema/*.json text eol=lf
 docs/PROTOCOL.md text eol=lf
 
 # A extensão do VS Code confere os tipos gerados byte a byte com o que
-# docs/schema gera (gen-aurora-types.mjs --check), e o lace falso dos testes
-# devolve as respostas como o lace as escreveu: em LF também.
+# docs/schema gera (gen-aurora-types.mjs --check), e o aurora falso dos testes
+# devolve as respostas como o aurora as escreveu: em LF também.
 editors/vscode/src/aurora/aurora-types.ts text eol=lf
 editors/vscode/test/fixtures/** text eol=lf

@@ -121,8 +121,8 @@ fn script_safe(json: &str) -> String {
 mod tests {
     use super::*;
 
-    const MODEL: &str = "<html><script id=\"lace-netlist\" type=\"application/json\">@@AURORA_NETLIST@@</script>\
-<script id=\"lace-config\" type=\"application/json\">@@AURORA_CONFIG@@</script></html>";
+    const MODEL: &str = "<html><script id=\"aurora-netlist\" type=\"application/json\">@@AURORA_NETLIST@@</script>\
+<script id=\"aurora-config\" type=\"application/json\">@@AURORA_CONFIG@@</script></html>";
 
     fn slot<'a>(html: &'a str, id: &str) -> &'a str {
         let start = html
@@ -161,10 +161,10 @@ mod tests {
         );
 
         let parsed: serde_json::Value =
-            serde_json::from_str(slot(&html, "lace-netlist")).expect("o netlist é JSON");
+            serde_json::from_str(slot(&html, "aurora-netlist")).expect("o netlist é JSON");
         assert_eq!(parsed["modules"]["top"]["attributes"]["x"], "</script><b>");
         let config: serde_json::Value =
-            serde_json::from_str(slot(&html, "lace-config")).expect("a configuração é JSON");
+            serde_json::from_str(slot(&html, "aurora-config")).expect("a configuração é JSON");
         assert_eq!(config["path"], netlist.as_str());
         assert_eq!(config["title"], "top (RTL viewer)");
         assert!(config["modifiedMs"].as_u64().is_some_and(|ms| ms > 0));

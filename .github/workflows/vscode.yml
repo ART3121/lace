@@ -52,7 +52,7 @@ jobs:
           npm run lint
       - name: Unitários e contrato
         run: npm run test:unit
-      # O lace falso roda pelo shebang, e no Windows um .mjs não executa sem
+      # O aurora falso roda pelo shebang, e no Windows um .mjs não executa sem
       # shell (a extensão nunca usa shell): a integração fica no Linux.
       - name: Integração
         if: runner.os == 'Linux'

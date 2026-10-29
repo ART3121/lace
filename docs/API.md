@@ -1809,7 +1809,7 @@ ajuste) e o Verilog do topo da placa (`board_top`).
    direção e no padrão de I/O dela, posto pela atribuição e não pelo
    Fitter. Uma diferença reprova o `fit` (um diagnóstico por bit) antes do
    `.sof`;
-5. terminada, grava o `lace-build.json`: o SHA-256 do `.sof` e de cada
+5. terminada, grava o `aurora-build.json`: o SHA-256 do `.sof` e de cada
    entrada (fontes, memórias `.mif`, `fpga.json`, definição da placa).
 
 `FpgaBuildResult`, além dos campos comuns (6.1): `board`, `top`, `dir`,
@@ -1827,7 +1827,7 @@ Programmer: um passo `program`/`quartus`, `quartus_pgm -c <cabo> -m jtag -o
 "p;output_files/aurora_board_top.sof@<posição>"` na pasta da placa, com a
 posição da FPGA na cadeia JTAG da placa. Sem `cable`, o primeiro de
 `fpga::cables(&Toolchain)` (o `quartus_pgm -l`). Antes, confere o
-`lace-build.json` contra o projeto de agora, pelo conteúdo, e recusa com
+`aurora-build.json` contra o projeto de agora, pelo conteúdo, e recusa com
 `StaleBitstream` (cada diferença) um `.sof` velho, trocado ou de outra
 placa. `fpga::bitstream_state(&Toolchain, &Project) -> Result<BitstreamState>`
 faz a mesma conferência sem gravar: `bitstream`, `built_at_ms` e `reasons`
@@ -1970,7 +1970,7 @@ cada um, que um teste do `aurora serve` confere contra o que o servidor
 devolve; uma variante de `Request` sem linha nela não compila. Os três schemas geram a
 referência legível, [PROTOCOL.md](PROTOCOL.md). O `aurora
 serve` é o transporte deste contrato por stdio, e o `aurora mcp` o
-adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
+adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-aurora-serve-e-aurora-mcp)).
 
 **`ErrorInfo`.** O erro pronto para atravessar uma fronteira: `code` (o
 `AuroraError::code()`, ou um código de quem chamou), `message`, `hint` (o

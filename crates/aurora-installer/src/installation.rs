@@ -184,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn an_installed_lace_has_its_prefix() {
+    fn an_installed_aurora_has_its_prefix() {
         let dir = tempfile::tempdir().unwrap();
         let prefix = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
         let exe = prefix.join("bin").join("aurora");

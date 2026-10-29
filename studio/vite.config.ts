@@ -22,8 +22,8 @@ export default defineConfig({
     // haveria dois React na mesma página.
     dedupe: ['react', 'react-dom', 'zustand', 'lucide-react', 'elkjs'],
     alias: [
-      { find: /^@lace\/rtl-viewer$/, replacement: `${rtlViewer}/index.ts` },
-      { find: /^@lace\/rtl-viewer\/(.*)$/, replacement: `${rtlViewer}/$1` },
+      { find: /^@aurora\/rtl-viewer$/, replacement: `${rtlViewer}/index.ts` },
+      { find: /^@aurora\/rtl-viewer\/(.*)$/, replacement: `${rtlViewer}/$1` },
       // O monaco-vim declara primeiro, para navegador, um UMD que chama
       // `require('monaco-editor/...')`, e o Vite escolhe esse; no navegador
       // não há `require` e a interface não abre. A versão ESM serve.

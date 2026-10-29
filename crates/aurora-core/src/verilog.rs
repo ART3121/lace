@@ -672,7 +672,7 @@ fn interfaces_by_yosys(
     files: &[Utf8PathBuf],
 ) -> Result<Option<Vec<ModuleInterface>>> {
     let dir = std::env::temp_dir().join(format!(
-        "lace-portas-{}-{}",
+        "aurora-portas-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

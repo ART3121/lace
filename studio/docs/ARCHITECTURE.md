@@ -15,7 +15,7 @@ Sumário:
 5. [Uma operação, do clique ao resultado](#5-uma-operação-do-clique-ao-resultado)
 6. [Contrato entre backend e interface](#6-contrato-entre-backend-e-interface)
 7. [Segurança](#7-segurança)
-8. [Pendências na AURORA](#8-pendências-no-lace)
+8. [Pendências na AURORA](#8-pendências-na-aurora)
 
 ---
 
@@ -547,7 +547,7 @@ e as dos terminais, e dele saem:
 
 | O quê | Onde | Como |
 |---|---|---|
-| variáveis CSS (`--bg-0`, `--text-1`, `--brand`...) | `themes/index.ts`, `applyThemeCss` | um `<style id="lace-theme">` com `:root { ... }`, e `data-theme` (`dark` ou `light`) no `<html>` |
+| variáveis CSS (`--bg-0`, `--text-1`, `--brand`...) | `themes/index.ts`, `applyThemeCss` | um `<style id="aurora-theme">` com `:root { ... }`, e `data-theme` (`dark` ou `light`) no `<html>` |
 | tema do Monaco | `editor/monaco.ts`, `setMonacoTheme` | regras de token pelos papéis da sintaxe, mais as das gramáticas C± e asm (`cmmTokenRules(syntax)`) |
 | tema do xterm.js | `console/consoles.ts`, `terminalTheme` | as 16 cores ANSI; o shell troca o cursor (`shell.ts`) |
 

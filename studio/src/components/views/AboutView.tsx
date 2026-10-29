@@ -112,7 +112,7 @@ export function AboutView() {
             <dt>AURORA IDE</dt>
             <dd className="mono">{info?.version}</dd>
             <dt>{t('about.aurora')}</dt>
-            <dd className="mono">{found ? `${toolchain!.bundle} (${toolchain!.platform})` : t('about.laceMissing')}</dd>
+            <dd className="mono">{found ? `${toolchain!.bundle} (${toolchain!.platform})` : t('about.auroraMissing')}</dd>
             <dt>Tauri</dt>
             <dd className="mono">{info?.tauri_version}</dd>
             <dt>{t('about.webview')}</dt>
@@ -149,7 +149,7 @@ export function AboutView() {
             <PathValue path={info?.config_dir} />
             <dt>{t('toolchain.root')}</dt>
             <PathValue path={toolchain?.root} />
-            <dt>{t('toolchain.laceCli')}</dt>
+            <dt>{t('toolchain.auroraCli')}</dt>
             <dd className="mono">{toolchain?.aurora_cli ?? '-'}</dd>
           </dl>
 
@@ -157,7 +157,7 @@ export function AboutView() {
           <ul className="about__links">
             <li>
               <BookOpen size={14} />
-              <Link href={AURORA_CLI_DOCS}>{t('about.laceDocs')}</Link>
+              <Link href={AURORA_CLI_DOCS}>{t('about.auroraDocs')}</Link>
             </li>
             <li>
               <BookOpen size={14} />

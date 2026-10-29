@@ -171,7 +171,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn an_installation_has_the_lace_in_bin_and_the_bundle_beside() {
+    fn an_installation_has_the_aurora_in_bin_and_the_bundle_beside() {
         let dir = tempfile::tempdir().unwrap();
         let prefix = Utf8PathBuf::from_path_buf(dir.path().to_owned()).unwrap();
         std::fs::create_dir_all(prefix.join("bin")).unwrap();

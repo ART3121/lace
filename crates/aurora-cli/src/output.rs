@@ -139,7 +139,7 @@ impl Output {
             .chain()
             .find_map(|e| e.downcast_ref::<AuroraError>())
             .or(match learn {
-                Some(aurora_learn::LearnError::AURORA(e)) => Some(e),
+                Some(aurora_learn::LearnError::Aurora(e)) => Some(e),
                 _ => None,
             });
         // Um erro que já atravessou uma fronteira (o de um fluxo, que o core

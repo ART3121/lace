@@ -1966,8 +1966,8 @@ fn uninstall_removes_the_installation_the_bundle_and_the_old_config() {
         prefix.join("uninstall.sh"),
         format!(
             "#!/bin/sh\nset -e\nprefix='{prefix}'\nlink='{link}'\n\
-             if [ -L \"$link\" ] && [ \"$(readlink \"$link\")\" = \"$prefix/bin/lace\" ]; then rm -f \"$link\"; fi\n\
-             rm -rf \"$prefix/toolchain\" \"$prefix/bin/lace\" \"$prefix/install.json\"\n\
+             if [ -L \"$link\" ] && [ \"$(readlink \"$link\")\" = \"$prefix/bin/aurora\" ]; then rm -f \"$link\"; fi\n\
+             rm -rf \"$prefix/toolchain\" \"$prefix/bin/aurora\" \"$prefix/install.json\"\n\
              rmdir \"$prefix/bin\" 2>/dev/null || true\n\
              rm -f \"$prefix/uninstall.sh\"\n\
              rmdir \"$prefix\" 2>/dev/null || true\n\

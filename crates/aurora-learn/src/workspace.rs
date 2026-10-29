@@ -633,7 +633,7 @@ fn write_if_changed(path: &Utf8Path, text: &str) -> Result<()> {
 fn canonical(path: &Utf8Path) -> Result<Utf8PathBuf> {
     let canonical = dunce::canonicalize(path).map_err(LearnError::io("Reading", path))?;
     Utf8PathBuf::from_path_buf(canonical).map_err(|p| {
-        LearnError::AURORA(aurora_core::AuroraError::NonUtf8Path(
+        LearnError::Aurora(aurora_core::AuroraError::NonUtf8Path(
             p.display().to_string(),
         ))
     })

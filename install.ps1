@@ -70,7 +70,7 @@
     function Get-WithProgress([string]$Uri, [string]$Path) {
         $interactive = -not [Console]::IsOutputRedirected
         $request = [Net.WebRequest]::Create($Uri)
-        $request.UserAgent = 'lace-install.ps1'
+        $request.UserAgent = 'aurora-install.ps1'
         $response = $request.GetResponse()
         $width = 0
         try {
@@ -127,7 +127,7 @@
     }
 
     $base = "https://github.com/$repo/releases/download/v$version"
-    $dir = Join-Path ([IO.Path]::GetTempPath()) "lace-$version"
+    $dir = Join-Path ([IO.Path]::GetTempPath()) "aurora-$version"
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     $sums = Join-Path $dir 'SHA256SUMS'
     Invoke-WebRequest -UseBasicParsing -Uri "$base/SHA256SUMS" -OutFile $sums
@@ -137,10 +137,10 @@
     # O assistente web (desde a 0.7.0) tem poucos MB e baixa da release só
     # os aplicativos escolhidos; o completo traz o bundle inteiro, e é o que
     # vem numa versão sem o web ou com AURORA_FULL_SETUP.
-    $name = "lace-$version-windows-x64-web-setup.exe"
+    $name = "aurora-$version-windows-x64-web-setup.exe"
     $what = 'the AURORA {0} installer, which downloads only the apps you choose (windows-x64)' -f $version
     if ($env:AURORA_FULL_SETUP -or -not (& $listedAs $name)) {
-        $name = "lace-$version-windows-x64-setup.exe"
+        $name = "aurora-$version-windows-x64-setup.exe"
         $what = "AURORA $version (windows-x64)"
     }
     $setup = Join-Path $dir $name

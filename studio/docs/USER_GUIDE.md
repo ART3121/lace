@@ -14,7 +14,7 @@ Sumário:
 5. [Os botões do fluxo](#5-os-botões-do-fluxo)
 6. [INFO, terminais, problemas e shell](#6-info-terminais-problemas-e-shell)
 7. [Esquemático, síntese e relatórios](#7-esquemático-síntese-e-relatórios)
-8. [Ferramentas da AURORA](#8-ferramentas-do-lace)
+8. [Ferramentas da AURORA](#8-ferramentas-da-aurora)
 9. [Preferências](#9-preferências)
 10. [Atalhos](#10-atalhos)
 11. [Problemas comuns](#11-problemas-comuns)

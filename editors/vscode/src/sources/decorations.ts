@@ -1,5 +1,5 @@
 // A cor do nome e o selo dos itens da vista de fontes (o esquema
-// lace-fontes; o explorador e as abas não são tocados).
+// aurora-fontes; o explorador e as abas não são tocados).
 
 import * as vscode from 'vscode';
 

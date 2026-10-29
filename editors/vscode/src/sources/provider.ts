@@ -3,14 +3,14 @@
 // A descrição ao lado do nome não aceita cor na API do VS Code; o que se
 // destaca é o nome (a cor) e o selo à direita, que vêm de um provedor de
 // decoração (decorations.ts). Para a decoração valer só aqui, e não no
-// explorador nem nas abas, cada item tem um URI do esquema lace-fontes.
+// explorador nem nas abas, cada item tem um URI do esquema aurora-fontes.
 
 import * as vscode from 'vscode';
 
 import type { ProjectStatus } from '../projectStatus';
 import { sourceGroups, TONE_COLORS, type SourceEntry, type SourceGroup, type SourceRole } from './model';
 
-export const SOURCE_SCHEME = 'lace-fontes';
+export const SOURCE_SCHEME = 'aurora-fontes';
 
 export type SourceNode = { kind: 'group'; group: SourceGroup } | { kind: 'entry'; entry: SourceEntry };
 
@@ -20,7 +20,7 @@ export function isSourceNode(value: unknown): value is SourceNode {
 }
 
 /**
- * O URI do item na vista: o caminho do arquivo no esquema lace-fontes, com
+ * O URI do item na vista: o caminho do arquivo no esquema aurora-fontes, com
  * o papel na query, porque o mesmo arquivo pode aparecer num aviso e no
  * grupo dele.
  */

@@ -19,7 +19,7 @@ const SEVERITIES: Record<Severity, vscode.DiagnosticSeverity> = {
 };
 
 export class BuildResults implements vscode.Disposable {
-  private readonly collection = vscode.languages.createDiagnosticCollection('lace-build');
+  private readonly collection = vscode.languages.createDiagnosticCollection('aurora-build');
   /** Os arquivos com problema de cada processador, para trocar só os dele. */
   private readonly files = new Map<string, Set<string>>();
   private readonly counts = new Map<string, ProblemCount>();

@@ -491,7 +491,7 @@ pub fn install_bundle(
     let dest = prefix.join("toolchain");
     // A pasta escolhida no assistente pode ter uma `toolchain` de outra
     // ferramenta, e ela iria inteira embora no fim, sem passar pela lixeira.
-    if fs::symlink_metadata(&dest).is_ok() && !is_lace_installation(prefix) {
+    if fs::symlink_metadata(&dest).is_ok() && !is_aurora_installation(prefix) {
         bail!(
             "{} already exists and is not the bundle of an AURORA installation; \
              choose another folder, or move it away first",
@@ -533,8 +533,8 @@ pub fn install_bundle(
 
 /// `prefix` tem uma instalação da AURORA: o cabeçalho do bundle
 /// (`toolchain/bundle.json`) ou o `aurora` em `bin/`.
-pub fn is_lace_installation(prefix: &Path) -> bool {
-    let aurora = format!("bin/lace{}", std::env::consts::EXE_SUFFIX);
+pub fn is_aurora_installation(prefix: &Path) -> bool {
+    let aurora = format!("bin/aurora{}", std::env::consts::EXE_SUFFIX);
     prefix
         .join("toolchain")
         .join(aurora_core::MANIFEST_FILE)
@@ -661,7 +661,7 @@ fn sh_quote(path: &Path) -> String {
 fn write_uninstaller(prefix: &Path, link: Option<&Path>) -> anyhow::Result<()> {
     let link_part = match link {
         Some(link) => format!(
-            "link={}\nif [ -L \"$link\" ] && [ \"$(readlink \"$link\")\" = \"$prefix/bin/lace\" ]; then\n  rm -f \"$link\"\nfi\n",
+            "link={}\nif [ -L \"$link\" ] && [ \"$(readlink \"$link\")\" = \"$prefix/bin/aurora\" ]; then\n  rm -f \"$link\"\nfi\n",
             sh_quote(link)
         ),
         None => String::new(),
@@ -674,7 +674,7 @@ fn write_uninstaller(prefix: &Path, link: Option<&Path>) -> anyhow::Result<()> {
          prefix={prefix}\n\
          {link_part}\
          {shortcut_part}\
-         rm -rf \"$prefix/toolchain\" \"$prefix/bin/lace\" \"$prefix/{RECEIPT_FILE}\"\n\
+         rm -rf \"$prefix/toolchain\" \"$prefix/bin/aurora\" \"$prefix/{RECEIPT_FILE}\"\n\
          # Sobras de uma instalação interrompida (`install`, acima), o diário\n\
          # de uma atualização e a trava delas (`update`).\n\
          rm -rf \"$prefix\"/.instalando-* \"$prefix\"/.antigo-*\n\

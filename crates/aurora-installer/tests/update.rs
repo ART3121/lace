@@ -92,7 +92,7 @@ fn build(
     });
     let contents_path = root.join(format!("{name}.contents.json"));
     fs::write(&contents_path, contents.to_string()).unwrap();
-    let aurora_path = root.join(format!("{name}-lace"));
+    let aurora_path = root.join(format!("{name}-aurora"));
     fs::write(&aurora_path, aurora).unwrap();
     let installer = root.join(format!("{name}-installer"));
     fs::write(&installer, "instalador").unwrap();

@@ -259,7 +259,7 @@ impl Dispatcher {
     pub fn start(limits: Limits, mut deliver: impl FnMut(Notification) + Send + 'static) -> Self {
         let (tx, rx) = mpsc::sync_channel(limits.queue.max(1));
         let thread = std::thread::Builder::new()
-            .name("lace-delivery".into())
+            .name("aurora-delivery".into())
             .spawn(move || forward(rx, limits, &mut deliver))
             .expect("spawn the delivery thread");
         Dispatcher {

@@ -97,7 +97,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
         <dd className="mono">{info.root}</dd>
         <dt>{t('toolchain.origin')}</dt>
         <dd>{info.origin ? t(`toolchain.origin.${info.origin}`) : '-'}</dd>
-        <dt>{t('toolchain.laceCli')}</dt>
+        <dt>{t('toolchain.auroraCli')}</dt>
         <dd className="mono">{info.aurora_cli ?? '-'}</dd>
       </dl>
 

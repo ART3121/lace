@@ -21,7 +21,7 @@ import type {
   SynthReport,
   WaveReport,
 } from '../../src/aurora/aurora-types';
-import { FAKE_AURORA, fakeAuroraDir, laceCalls, laceWaiting, recordedCases, until } from '../support/fixtures';
+import { FAKE_AURORA, fakeAuroraDir, auroraCalls, auroraWaiting, recordedCases, until } from '../support/fixtures';
 
 // As pastas não precisam existir: o aurora falso só usa o caminho. Os nomes
 // são os das gravações, que o aurora falso confere.
@@ -58,7 +58,7 @@ describe('CliAuroraClient', () => {
   it('passa -C com o .spf e --json antes do comando, cada caminho num argumento só', async () => {
     const file = join(demo, 'rtl', 'somador.v');
     await client.setTop(spf, file);
-    assert.deepEqual(laceCalls(log), [['-C', spf, '--json', 'top', file]]);
+    assert.deepEqual(auroraCalls(log), [['-C', spf, '--json', 'top', file]]);
   });
 
   it('código 0: devolve o objeto do --json', async () => {
@@ -131,7 +131,7 @@ describe('CliAuroraClient', () => {
       status: 'cancelled',
       result: null,
     });
-    assert.deepEqual(laceCalls(log), []);
+    assert.deepEqual(auroraCalls(log), []);
   });
 
   describe('--events', () => {
@@ -139,7 +139,7 @@ describe('CliAuroraClient', () => {
       const events: Event[] = [];
       const run = await client.runEvents<CheckReport>(['check'], { project: spf, onEvent: (e) => events.push(e) });
       assert.equal(run.status, 'succeeded');
-      assert.deepEqual(laceCalls(log), [['-C', spf, '--events', 'check']]);
+      assert.deepEqual(auroraCalls(log), [['-C', spf, '--events', 'check']]);
       assert.equal(events[0].event, 'step_started');
       assert.equal(events.at(-1)?.event, 'step_finished');
       const kinds = new Set(events.map((e) => e.event));
@@ -168,7 +168,7 @@ describe('CliAuroraClient', () => {
         await client.check(spf, { lint: true }),
         await client.check(spf, { processor: 'soma' }),
       ];
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'check'],
         ['-C', spf, '--events', 'check', file],
         ['-C', spf, '--events', 'check', '--lint'],
@@ -197,7 +197,7 @@ describe('CliAuroraClient', () => {
         await client.wave(spf, { kind: 'processor', name: 'soma' }),
         await client.wave(spf, { kind: 'file', path: fst }),
       ];
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'wave'],
         ['-C', spf, '--json', 'wave', '-p', 'soma'],
         ['-C', spf, '--json', 'wave', fst],
@@ -209,7 +209,7 @@ describe('CliAuroraClient', () => {
 
     it('wave de um arquivo sem projeto não passa -C', async () => {
       await client.wave(undefined, { kind: 'file', path: join(base, 'onda.vcd') });
-      assert.deepEqual(laceCalls(log), [['--json', 'wave', join(base, 'onda.vcd')]]);
+      assert.deepEqual(auroraCalls(log), [['--json', 'wave', join(base, 'onda.vcd')]]);
     });
 
     it('wave sem testbench: o erro com a dica', async () => {
@@ -223,7 +223,7 @@ describe('CliAuroraClient', () => {
       const velho = join(demo, 'rtl', 'velho_tb.v');
       const added = await client.add(spf, [sobra]);
       const bench = await client.add(spf, [velho], { testbench: true });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'add', sobra],
         ['-C', spf, '--json', 'add', velho, '--tb'],
       ]);
@@ -239,7 +239,7 @@ describe('CliAuroraClient', () => {
       await client.sim(spf, { fast: true });
       const soma = await client.sim(spf, { processor: 'soma' });
       await client.sim(spf, { testbench: tb });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'sim'],
         ['-C', spf, '--events', 'sim', '--fast'],
         ['-C', spf, '--events', 'sim', '-p', 'soma'],
@@ -253,7 +253,7 @@ describe('CliAuroraClient', () => {
 
     it('sim que passa do --timeout: código 1, timed_out', async () => {
       const run = await client.sim(endless, { timeoutSeconds: 1 });
-      assert.deepEqual(laceCalls(log), [['-C', endless, '--events', 'sim', '--timeout', '1']]);
+      assert.deepEqual(auroraCalls(log), [['-C', endless, '--events', 'sim', '--timeout', '1']]);
       assert.equal(run.status, 'failed');
       assert.equal((run as { result: SimReport }).result.simulation?.status, 'timed_out');
     });
@@ -262,7 +262,7 @@ describe('CliAuroraClient', () => {
       const svg = await client.synth(spf, { svg: true });
       await client.synth(spf);
       const soma = await client.synth(spf, { processor: 'soma' });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'synth', '--svg'],
         ['-C', spf, '--events', 'synth'],
         ['-C', spf, '--events', 'synth', '-p', 'soma'],
@@ -276,7 +276,7 @@ describe('CliAuroraClient', () => {
     it('build: todos, ou cada -p, pelo --events', async () => {
       const all = await client.build(spf);
       await client.build(spf, { processors: ['soma'] });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'build'],
         ['-C', spf, '--events', 'build', '-p', 'soma'],
       ]);
@@ -303,7 +303,7 @@ describe('CliAuroraClient', () => {
       await client.configureProcessor(spf, 'soma', { frequencyMhz: 50 });
       await client.configureProcessor(spf, 'soma', { clocks: 5000 });
       await client.configureProcessor(spf, 'soma', { showArrays: true });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'proc', 'add', 'soma', '--lang', 'cmm'],
         ['-C', spf, '--json', 'proc', 'set', 'soma', '--freq', '50'],
         ['-C', spf, '--json', 'proc', 'set', 'soma', '--clocks', '5000'],
@@ -319,7 +319,7 @@ describe('CliAuroraClient', () => {
     it('remove: os arquivos; um que não está no projeto é erro', async () => {
       const two = await client.remove(spf, [rtl('somador.v'), rtl('mux.sv')]);
       const outside = await client.remove(spf, [rtl('sobra.v')]);
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'remove', rtl('somador.v'), rtl('mux.sv')],
         ['-C', spf, '--json', 'remove', rtl('sobra.v')],
       ]);
@@ -333,7 +333,7 @@ describe('CliAuroraClient', () => {
       await client.order(spf, rtl('somador.v'), { kind: 'after', other: rtl('mux.sv') });
       await client.order(spf, rtl('mux.sv'), { kind: 'first' });
       await client.order(spf, rtl('contador.v'), { kind: 'last' });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'order', rtl('somador.v'), '--before', rtl('contador.v')],
         ['-C', spf, '--json', 'order', rtl('somador.v'), '--after', rtl('mux.sv')],
         ['-C', spf, '--json', 'order', rtl('mux.sv'), '--first'],
@@ -346,7 +346,7 @@ describe('CliAuroraClient', () => {
     it('move --after: só o .spf; com o arquivo ainda no lugar, a AURORA recusa', async () => {
       const moved = await client.move(spf, rtl('somador.v'), rtl('adder.v'), { after: true });
       const refused = await client.move(spf, rtl('mux.sv'), rtl('adder.v'), { after: true });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'move', '--after', rtl('somador.v'), rtl('adder.v')],
         ['-C', spf, '--json', 'move', '--after', rtl('mux.sv'), rtl('adder.v')],
       ]);
@@ -383,7 +383,7 @@ describe('CliAuroraClient', () => {
     it('--json: o mesmo, com o objeto no fim', async () => {
       const controller = new AbortController();
       const running = client.runJson<SimReport>(['sim'], { project: endless, signal: controller.signal });
-      await until(() => laceWaiting(log), 'o aurora falso esperar o sinal');
+      await until(() => auroraWaiting(log), 'o aurora falso esperar o sinal');
       controller.abort();
       const run = await running;
       assert.equal(run.status, 'cancelled');

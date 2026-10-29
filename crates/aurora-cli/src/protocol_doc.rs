@@ -399,7 +399,7 @@ página sai dos tipos de `aurora_protocol` \
 quando ela não confere com eles.
 
 Como abrir o servidor, a fila por projeto, o cancelamento e o encerramento: \
-[CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp).
+[CLI.md](CLI.md#a-api-para-outros-programas-aurora-serve-e-aurora-mcp).
 
 ";
 

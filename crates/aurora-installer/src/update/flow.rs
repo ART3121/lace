@@ -1490,7 +1490,7 @@ mod tests {
     }
 
     #[test]
-    fn without_a_bundle_only_the_lace_is_compared() {
+    fn without_a_bundle_only_the_aurora_is_compared() {
         let sources = Fake::new(Some("0.2.0"), Some(VERSIONS), &[]);
         let report = check(&sources, "0.1.0", None, &never()).unwrap();
         assert!(report.aurora.newer);

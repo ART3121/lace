@@ -29,7 +29,7 @@ for (const file of readdirSync(join(root, 'src')).filter((f) => /\.(css|tsx?)$/.
 used.delete('c');
 used.delete('c-fill');
 
-const bundle = join(tmpdir(), `lace-rtl-themes-${process.pid}.mjs`);
+const bundle = join(tmpdir(), `aurora-rtl-themes-${process.pid}.mjs`);
 await build({
   entryPoints: [join(studio, 'src', 'themes', 'index.ts')],
   outfile: bundle,

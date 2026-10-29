@@ -368,7 +368,7 @@ mod tests {
             r#"{"preferences": {"theme": "dark"}, "mcpServers": {"other": {"command": "x"}}}"#,
         )
         .unwrap();
-        let newer = json!({ "command": "lace2", "args": ["mcp", "--allow-update"] });
+        let newer = json!({ "command": "aurora2", "args": ["mcp", "--allow-update"] });
         merge_server(&path, &newer).unwrap();
         let written: Value =
             serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();

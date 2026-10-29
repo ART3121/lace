@@ -156,7 +156,7 @@ set -Ux AURORA_COMPILER /opt/gcc/bin                   # fish: vale para as pró
 `aurora tools` mostra qual compilador foi encontrado e se ele é do bundle ou
 do sistema. O compilador e o bundle não têm arquivo de configuração: o único
 arquivo de configuração da AURORA é o `experimental.json`
-([Componentes experimentais](#componentes-experimentais-lace-experimental)).
+([Componentes experimentais](#componentes-experimentais-aurora-experimental)).
 
 A segunda exceção é o Quartus Prime, que compila para as placas Intel e não
 pode ir no bundle. A AURORA usa o de `--quartus <DIR>` (ou `AURORA_QUARTUS`),

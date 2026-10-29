@@ -306,7 +306,7 @@ impl Session {
         if let Some(stdout) = stdout {
             let reader = Arc::clone(&session);
             std::thread::Builder::new()
-                .name("lace-server-stdout".into())
+                .name("aurora-server-stdout".into())
                 .spawn(move || {
                     for line in BufReader::new(stdout).lines() {
                         let Ok(line) = line else {
@@ -321,7 +321,7 @@ impl Session {
         if let Some(stderr) = stderr {
             let reader = Arc::clone(&session);
             std::thread::Builder::new()
-                .name("lace-server-stderr".into())
+                .name("aurora-server-stderr".into())
                 .spawn(move || {
                     for line in BufReader::new(stderr).lines() {
                         let Ok(line) = line else {
@@ -678,7 +678,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn server_errors_keep_the_lace_code() {
+    fn server_errors_keep_the_aurora_code() {
         let error = ipc_error(&json!({
             "code": -32000,
             "message": "No project",
@@ -697,7 +697,7 @@ mod tests {
     }
 
     #[test]
-    fn the_protocol_and_the_schema_are_the_lace_ones() {
+    fn the_protocol_and_the_schema_are_the_aurora_ones() {
         assert_eq!(
             PROTOCOL_VERSION,
             u64::from(aurora_protocol::PROTOCOL_VERSION)

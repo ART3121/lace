@@ -427,7 +427,7 @@ publica também o seu (`aurora-<versão>-<plataforma>-files.json`). O
 ```
 AURORA 0.7.0 to 0.8.0 by components: AURORA, AURORA IDE, AURORA Learn
 3 of 15 chunks to download (14 MiB), 412 files in, 3 out
-Update AURORA 0.7.0 to 0.8.0 in /home/ana/.local/share/lace? [y/N] y
+Update AURORA 0.7.0 to 0.8.0 in /home/ana/.local/share/aurora? [y/N] y
   [1/3] AURORA  [##############################] 100%  2.3/2.3 MiB
   [2/3] AURORA IDE  [#############.................]  45%  5.1/11.3 MiB
 ```

@@ -227,7 +227,7 @@ const definedThemes = new Set<string>();
 /** Passa o Monaco (todas as instâncias) para o tema. Cada tema é definido no
  * Monaco na primeira vez que é usado. */
 export function setMonacoTheme(theme: Theme): void {
-  const name = `lace-${theme.id}`;
+  const name = `aurora-${theme.id}`;
   if (!definedThemes.has(name)) {
     monaco.editor.defineTheme(name, monacoTheme(theme));
     definedThemes.add(name);

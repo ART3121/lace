@@ -270,7 +270,7 @@ pub struct RunMetadata {
     /// Quanto levou, do começo ao fim, em milissegundos.
     pub duration_ms: u64,
     /// A versão que gravou. `lace_version` nos relatórios gravados pelo
-    /// AURORA, que a `.lace` levada para a `.aurora8` traz.
+    /// Lace, que a `.lace` levada para a `.aurora8` traz.
     #[serde(alias = "lace_version")]
     pub aurora_version: String,
     /// O que identifica o projeto: um hash da raiz dele. Relatórios de
@@ -1825,7 +1825,7 @@ fn statistics_section(out: &mut String, operation: &Operation, record: &RunRecor
     }) {
         field(out, "Source", stat.path.as_str());
     }
-    field(out, "Data schema", "lace-generic-synthesis-statistics/1");
+    field(out, "Data schema", "aurora-generic-synthesis-statistics/1");
     let _ = writeln!(
         out,
         "\n  DESIGN SUMMARY\n  {:<32} {:>12}\n  {} {}",

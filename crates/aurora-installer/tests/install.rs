@@ -76,7 +76,7 @@ fn fixture() -> Fixture {
     let installer = root.join("installer");
     fs::write(&installer, "instalador").unwrap();
     let contents = Contents::load(&root.join("toolchain.contents.json")).unwrap();
-    let out = root.join("lace-teste");
+    let out = root.join("aurora-teste");
     pack::tui(&toolchain, &contents, &aurora, &installer, &out, 3).unwrap();
     Fixture {
         _dir: dir,
@@ -210,7 +210,7 @@ fn installs_the_selection_and_replaces_it_later() {
 }
 
 #[test]
-fn refuses_folders_that_are_not_lace_installations() {
+fn refuses_folders_that_are_not_aurora_installations() {
     let f = fixture();
     let (payload_dir, index) = payload(&f);
     let prefix = f.root.join("ocupada");

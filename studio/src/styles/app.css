@@ -1821,7 +1821,7 @@ body.is-dragging * {
   color: var(--ok);
 }
 
-/* A saída da última instalação ou atualização (`lace install`, `lace update`). */
+/* A saída da última instalação ou atualização (`aurora install`, `aurora update`). */
 .cli-log {
   margin: var(--space-2) 0 var(--space-3);
   padding: var(--space-2) var(--space-3);
@@ -4010,7 +4010,7 @@ body.is-dragging * {
   padding: var(--space-5);
 }
 
-/* Exercícios (lace learn) ------------------------------------------------- */
+/* Exercícios (aurora learn) ----------------------------------------------- */
 
 .learn-start {
   display: flex;

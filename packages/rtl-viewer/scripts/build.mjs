@@ -63,23 +63,23 @@ const html = `<!doctype html>
 <title>RTL viewer</title>
 <style>
 ${css}
-#lace-rtl-viewer { height: 100vh; }
+#aurora-rtl-viewer { height: 100vh; }
 </style>
 </head>
 <body>
-<div id="lace-rtl-viewer"></div>
-<script id="lace-netlist" type="application/json">@@AURORA_NETLIST@@</script>
-<script id="lace-config" type="application/json">@@AURORA_CONFIG@@</script>
+<div id="aurora-rtl-viewer"></div>
+<script id="aurora-netlist" type="application/json">@@AURORA_NETLIST@@</script>
+<script id="aurora-config" type="application/json">@@AURORA_CONFIG@@</script>
 <script>
 ${inline(js)}
 </script>
 <script>
 (() => {
-  const config = JSON.parse(document.getElementById('lace-config').textContent);
+  const config = JSON.parse(document.getElementById('aurora-config').textContent);
   if (config.title) document.title = config.title;
-  AuroraRtlViewer.mount(document.getElementById('lace-rtl-viewer'), {
-    netlist: { path: config.path, text: document.getElementById('lace-netlist').textContent, modifiedMs: config.modifiedMs },
-    storageKey: 'lace-rtl-viewer',
+  AuroraRtlViewer.mount(document.getElementById('aurora-rtl-viewer'), {
+    netlist: { path: config.path, text: document.getElementById('aurora-netlist').textContent, modifiedMs: config.modifiedMs },
+    storageKey: 'aurora-rtl-viewer',
   });
 })();
 </script>

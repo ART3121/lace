@@ -12,7 +12,7 @@ import type { SourceNode } from '../../src/sources/provider';
 import { activate, lastCall, resetFake, run, spf, workspace } from './helpers';
 
 /** Os diagnósticos da extensão (as fontes são as ferramentas da AURORA). */
-function laceDiagnostics(): [vscode.Uri, vscode.Diagnostic[]][] {
+function auroraDiagnostics(): [vscode.Uri, vscode.Diagnostic[]][] {
   return vscode.languages
     .getDiagnostics()
     .filter(([, list]) => list.some((d) => d.source === 'iverilog' || d.source === 'verilator'));
@@ -34,7 +34,7 @@ describe('AURORA: Verificar', () => {
 
   it('a biblioteca SAPHO do bundle fica fora do painel', async () => {
     await run('aurora.check');
-    const files = laceDiagnostics().map(([uri]) => uri.fsPath);
+    const files = auroraDiagnostics().map(([uri]) => uri.fsPath);
     assert.ok(files.length > 0);
     assert.deepEqual(
       files.filter((file) => !file.startsWith(workspace + sep)),
@@ -45,7 +45,7 @@ describe('AURORA: Verificar', () => {
   it('com lint: passa --lint, e o Verilator dá a coluna', async () => {
     await run('aurora.checkLint');
     assert.deepEqual(lastCall('check'), ['-C', spf, '--events', 'check', '--lint']);
-    const columns = laceDiagnostics()
+    const columns = auroraDiagnostics()
       .flatMap(([, list]) => list)
       .filter((d) => d.source === 'verilator' && d.range.start.character > 0);
     assert.ok(columns.length > 0);

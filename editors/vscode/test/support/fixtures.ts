@@ -37,12 +37,12 @@ export function fakeAuroraDir(): { log: string; state: string } {
 }
 
 /** Os argumentos de cada chamada ao aurora falso, na ordem. */
-export function laceCalls(log: string): string[][] {
+export function auroraCalls(log: string): string[][] {
   return logEntries(log).flatMap((entry) => (entry.argv ? [entry.argv] : []));
 }
 
 /** O aurora falso já espera o SIGTERM de uma resposta gravada com cancelamento. */
-export function laceWaiting(log: string): boolean {
+export function auroraWaiting(log: string): boolean {
   return logEntries(log).some((entry) => entry.waiting === true);
 }
 

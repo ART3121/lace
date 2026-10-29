@@ -1821,11 +1821,11 @@ mod windows_tests {
     }
 
     /// Roda num processo à parte, criado por
-    /// `the_tools_die_with_the_lace_process`: prende uma ferramenta que dorme
+    /// `the_tools_die_with_the_aurora_process`: prende uma ferramenta que dorme
     /// e grava o PID dela em `AURORA_TEST_PID_FILE`. Sem a variável, não faz
     /// nada.
     #[test]
-    #[ignore = "processo auxiliar de the_tools_die_with_the_lace_process"]
+    #[ignore = "processo auxiliar de the_tools_die_with_the_aurora_process"]
     fn helper_runs_a_long_tool() {
         let Ok(pid_file) = std::env::var("AURORA_TEST_PID_FILE") else {
             return;
@@ -1836,7 +1836,7 @@ mod windows_tests {
     }
 
     #[test]
-    fn the_tools_die_with_the_lace_process() {
+    fn the_tools_die_with_the_aurora_process() {
         let dir = tempfile::tempdir().unwrap();
         let pid_file = dir.path().join("ferramenta.pid");
         let mut aurora = Command::new(std::env::current_exe().unwrap())
@@ -1852,7 +1852,7 @@ mod windows_tests {
             .spawn()
             .unwrap();
         let pid = wait_for_pid(&pid_file);
-        // Como o Gerenciador de Tarefas: TerminateProcess, sem chance de o
+        // Como o Gerenciador de Tarefas: TerminateProcess, sem chance de a
         // AURORA limpar nada.
         aurora.kill().unwrap();
         aurora.wait().unwrap();

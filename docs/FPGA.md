@@ -207,7 +207,7 @@ o pino, a direção, o padrão de I/O e que a posição veio da atribuição, e
 não de uma escolha do Fitter. Qualquer diferença reprova a compilação no
 passo `fit`, com uma mensagem por bit, e o `.sof` não é gerado.
 
-No fim, a compilação grava o `lace-build.json` na pasta da placa: o SHA-256
+No fim, a compilação grava o `aurora-build.json` na pasta da placa: o SHA-256
 do `.sof` e de tudo o que entrou nele (os fontes, a biblioteca SAPHO, as
 memórias `.mif` dos processadores, o `fpga.json` e a definição da placa).
 É por ele que a gravação sabe se o `.sof` ainda descreve o projeto.
@@ -276,7 +276,7 @@ O `@1` é a posição da FPGA na cadeia JTAG da placa: 1 na DE2-115 e na C5G
 (com o JP2 fechado), 2 na DE10-Nano, em que o HPS vem antes. A gravação vai para a SRAM da FPGA e
 some quando a placa é desligada.
 
-Antes de procurar o cabo, a gravação confere o `lace-build.json` contra o
+Antes de procurar o cabo, a gravação confere o `aurora-build.json` contra o
 projeto de agora, pelo conteúdo: um fonte, uma memória, o `fpga.json` ou a
 definição da placa que mudou depois da compilação, um `.sof` trocado ou uma
 compilação que não terminou recusam a gravação (`stale_bitstream`), com

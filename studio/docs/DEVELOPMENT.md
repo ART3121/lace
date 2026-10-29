@@ -276,21 +276,21 @@ AURORA: onde as duas divergem há um comentário dizendo o que vale.
 
 ## 6. Versão e distribuição
 
-A versão do Studio é a da AURORA e está em cinco lugares, que andam juntos:
-`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`,
-`src-tauri/tauri.conf.json` e o pacote `studio` de `bundle/versions.json` da
-raiz. O `bundle.py` recusa o Studio com versões diferentes, e o
-`release.yml` recusa a tag se o Studio não tiver a versão da AURORA
+A IDE tem versão própria, separada da AURORA API: a primeira com o nome
+novo é a 8.0.0. Ela está em cinco lugares, que andam juntos: `package.json`,
+`package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` e o
+pacote `studio` de `bundle/versions.json` da raiz. O `bundle.py` recusa a IDE
+com versões diferentes, e ela só sobe de versão quando muda
 ([docs/RELEASE.md](../../docs/RELEASE.md), seção 6.1). Anote a mudança em
 [CHANGELOG.md](../CHANGELOG.md).
 
-Os ícones do app em `src-tauri/icons/` saem de `public/brand/lace-icon.svg`.
+Os ícones do app em `src-tauri/icons/` saem de `public/brand/aurora-icon.svg`.
 O `tauri icon` gera também os de Android e iOS, que o Studio não usa, então
 gere numa pasta à parte e copie só os que já existem:
 
 ```sh
-npx tauri icon public/brand/lace-icon.svg -o /tmp/lace-icons
-for f in src-tauri/icons/*; do cp "/tmp/lace-icons/$(basename "$f")" "$f"; done
+npx tauri icon public/brand/aurora-icon.svg -o /tmp/aurora-icons
+for f in src-tauri/icons/*; do cp "/tmp/aurora-icons/$(basename "$f")" "$f"; done
 ```
 
 `npm run tauri build` gera os instaladores da plataforma em que roda

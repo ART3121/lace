@@ -1,4 +1,4 @@
-//! O registro da compilação para a placa (`lace-build.json`, na pasta da
+//! O registro da compilação para a placa (`aurora-build.json`, na pasta da
 //! placa): o hash do `.sof` e de tudo o que entrou nele. A gravação
 //! ([`super::program()`]) só aceita um `.sof` que o registro descreve, e
 //! descreve o projeto como ele está agora.
@@ -24,7 +24,7 @@ use crate::project::Project;
 use crate::toolchain::Toolchain;
 
 /// O nome do registro, na pasta da placa.
-pub(crate) const MANIFEST: &str = "lace-build.json";
+pub(crate) const MANIFEST: &str = "aurora-build.json";
 
 /// O que a compilação gravou.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

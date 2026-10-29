@@ -98,7 +98,7 @@ pub struct SavedLayout {
     pub path: Utf8PathBuf,
     /// O estado que vai para o Surfer: o que o usuário salvou, ou o gerado.
     pub state: String,
-    /// O usuário salvou o estado depois da última vez que a AURORA o gerou: o
+    /// O usuário salvou o estado depois da última vez que a AURORA o gerou: a
     /// AURORA o deixa como está.
     pub customized: bool,
 }

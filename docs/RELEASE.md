@@ -402,7 +402,7 @@ No mesmo dia, o responsável confere:
 - **Os arquivos.** `gh release view v0.10.0` lista, para cada plataforma,
   o instalador (o `.tar.gz` no Linux e no macOS, o `-setup.exe` e o
   `-web-setup.exe` no Windows), o `-index.json`, o `-files.json`, o
-  `-lace.tar.zst` e os pedaços `-cNN.tar.zst`, e mais o `.vsix` e o
+  `-aurora.tar.zst` e os pedaços `-cNN.tar.zst`, e mais o `.vsix` e o
   `SHA256SUMS`.
 - **A instalação nova**, pelo comando de um passo do README:
   `aurora --version` diz a versão nova, `aurora tools --verify` passa, o Studio

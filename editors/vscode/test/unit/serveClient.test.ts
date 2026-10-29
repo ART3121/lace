@@ -101,7 +101,7 @@ class FakeServe extends EventEmitter implements ServeProcess {
   }
 }
 
-const command: AuroraCommand = { file: '/usr/bin/lace', args: [] };
+const command: AuroraCommand = { file: '/usr/bin/aurora', args: [] };
 const spf = '/tmp/projeto demo/demo.spf';
 
 function recorded<T>(file: string): T {
@@ -210,7 +210,7 @@ describe('ServeAuroraClient', () => {
     // Outra chamada não abre outro processo.
     assert.equal(await client.version(), '0.9.0');
     assert.equal(servers.length, 1);
-    assert.ok(infos.some((m) => m.startsWith('$ /usr/bin/lace serve')));
+    assert.ok(infos.some((m) => m.startsWith('$ /usr/bin/aurora serve')));
     await client.dispose();
   });
 

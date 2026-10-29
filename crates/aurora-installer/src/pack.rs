@@ -597,7 +597,7 @@ fn inno_messages(profiles: &[ProfileInfo], contents: &Contents) -> String {
         }
         put("Type_Custom", texts.custom_type);
         put("Detail_Custom", &(texts.custom)(total));
-        put("Comp_lace", AURORA_LABEL);
+        put("Comp_aurora", AURORA_LABEL);
         for c in &contents.components {
             let description = c
                 .translations
@@ -675,7 +675,7 @@ pub fn inno(
         .chain([CUSTOM_TYPE.to_owned()])
         .collect();
     iss.push_str(&format!(
-        "Name: \"aurora\"; Description: \"{{cm:Comp_lace}}\"; Types: {}; Flags: fixed\n",
+        "Name: \"aurora\"; Description: \"{{cm:Comp_aurora}}\"; Types: {}; Flags: fixed\n",
         all_types.join(" ")
     ));
     let mut ordered: Vec<&ContentsComponent> = Vec::new();
@@ -1005,7 +1005,7 @@ mod tests {
             "{iss}"
         );
         assert!(
-            iss.contains("Name: \"aurora\"; Description: \"{cm:Comp_lace}\"; Types: tudo sim avancada; Flags: fixed"),
+            iss.contains("Name: \"aurora\"; Description: \"{cm:Comp_aurora}\"; Types: tudo sim avancada; Flags: fixed"),
             "{iss}"
         );
         assert!(
@@ -1031,7 +1031,7 @@ mod tests {
             "pt.Detail_tudo=O Tudo (Recomendado) instala a AURORA (CLI & Core) e os 5 aplicativos marcados abaixo, de 5. Para quem usa o SAPHO, em português.",
             "en.Type_Custom=Custom (advanced): choose the components yourself",
             "pt.Type_Custom=Personalizada (avançada): você escolhe os componentes",
-            "en.Comp_lace=AURORA (CLI & Core)",
+            "en.Comp_aurora=AURORA (CLI & Core)",
             "en.Comp_yosys=YOSYS: o \"yosys\"",
             "pt.Comp_yosys=YOSYS: a síntese",
             "pt.Comp_icarus=ICARUS: o \"icarus\"",

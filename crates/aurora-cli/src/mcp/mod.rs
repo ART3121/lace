@@ -217,7 +217,7 @@ pub(crate) fn serve_session(
     let signalled = cancel.clone();
     let watcher = Arc::clone(&mcp);
     std::thread::Builder::new()
-        .name("lace-mcp-signals".into())
+        .name("aurora-mcp-signals".into())
         .spawn(move || {
             while !signalled.is_cancelled() {
                 std::thread::sleep(Duration::from_millis(50));
@@ -392,7 +392,7 @@ impl Mcp {
         let sender = queue.get_or_insert_with(|| {
             let (tx, rx) = mpsc::channel::<Job>();
             std::thread::Builder::new()
-                .name("lace-mcp-worker".into())
+                .name("aurora-mcp-worker".into())
                 .spawn(move || {
                     for job in rx {
                         job();
@@ -1087,7 +1087,7 @@ mod tests {
     }
 
     #[test]
-    fn tool_calls_return_a_summary_or_the_lace_error() {
+    fn tool_calls_return_a_summary_or_the_aurora_error() {
         let (mcp, rx) = server(false, None);
         let reply = call(&mcp, &rx, 1, "toolchain_info", json!({}));
         let result = &reply["result"];
@@ -1099,7 +1099,7 @@ mod tests {
             "{reply}"
         );
 
-        let missing = std::env::temp_dir().join("lace-mcp-nao-existe");
+        let missing = std::env::temp_dir().join("aurora-mcp-nao-existe");
         let missing = missing.to_str().unwrap().replace('\\', "/");
         let reply = call(
             &mcp,

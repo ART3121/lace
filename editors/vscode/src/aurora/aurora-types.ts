@@ -4133,7 +4133,7 @@ export interface SavedLayout {
    */
   state: string;
   /**
-   * O usuário salvou o estado depois da última vez que a AURORA o gerou: o
+   * O usuário salvou o estado depois da última vez que a AURORA o gerou: a
    * AURORA o deixa como está.
    */
   customized: boolean;
@@ -5102,7 +5102,7 @@ export interface RunMetadata {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * AURORA, que a `.lace` levada para a `.aurora8` traz.
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**
@@ -5314,7 +5314,7 @@ export interface RunMetadata1 {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * AURORA, que a `.lace` levada para a `.aurora8` traz.
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**
@@ -5371,7 +5371,7 @@ export interface RunMetadata2 {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * AURORA, que a `.lace` levada para a `.aurora8` traz.
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**
@@ -6860,7 +6860,7 @@ export interface RunMetadata3 {
   duration_ms: number;
   /**
    * A versão que gravou. `lace_version` nos relatórios gravados pelo
-   * AURORA, que a `.lace` levada para a `.aurora8` traz.
+   * Lace, que a `.lace` levada para a `.aurora8` traz.
    */
   aurora_version: string;
   /**

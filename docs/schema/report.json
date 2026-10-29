@@ -100,7 +100,7 @@
           "minimum": 0
         },
         "aurora_version": {
-          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nAURORA, que a `.lace` levada para a `.aurora8` traz.",
+          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nLace, que a `.lace` levada para a `.aurora8` traz.",
           "type": "string"
         },
         "project": {

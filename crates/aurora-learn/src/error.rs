@@ -11,7 +11,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 pub enum LearnError {
     /// Um erro do aurora-core: ferramenta, projeto, I/O de uma operação.
     #[error(transparent)]
-    AURORA(#[from] AuroraError),
+    Aurora(#[from] AuroraError),
 
     /// Ler ou gravar um arquivo falhou.
     #[error("{action} {path}: {source}")]
@@ -86,7 +86,7 @@ impl LearnError {
     /// interfaces traduzirem. Um erro do aurora-core leva o código dele.
     pub fn code(&self) -> &'static str {
         match self {
-            LearnError::AURORA(error) => error.code(),
+            LearnError::Aurora(error) => error.code(),
             LearnError::Io { .. } => "io",
             LearnError::ComponentMissing => "learn_component_missing",
             LearnError::TrackNotFound { .. } => "track_not_found",

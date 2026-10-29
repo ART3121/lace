@@ -214,7 +214,7 @@ fn write_atomically(path: &Utf8Path, content: &str) -> std::io::Result<()> {
     };
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     let tmp = dir.join(format!(
-        ".{}.{}-{n}.lace-tmp",
+        ".{}.{}-{n}.aurora-tmp",
         name.to_string_lossy(),
         std::process::id()
     ));

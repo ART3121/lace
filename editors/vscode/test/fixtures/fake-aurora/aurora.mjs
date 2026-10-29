@@ -64,7 +64,7 @@ const found = cases.find(
 
 if (!found) {
   const message = `Fake aurora has no recorded response for: ${key.join(' ')} (state ${state})`;
-  process.stdout.write(`${JSON.stringify({ error: { code: 'fake_lace', message, hint: null } })}\n`);
+  process.stdout.write(`${JSON.stringify({ error: { code: 'fake_aurora', message, hint: null } })}\n`);
   process.stderr.write(`${message}\n`);
   process.exitCode = 2;
 } else {

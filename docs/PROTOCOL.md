@@ -4,7 +4,7 @@
 
 Cada método do `aurora serve`, com os parâmetros e o resultado, as notificações, os erros e os tipos. O `aurora mcp` usa o mesmo contrato. Esta página sai dos tipos de `aurora_protocol` (`crates/aurora-protocol/src/lib.rs`), como os schemas [`protocol-request.json`](schema/protocol-request.json) e [`protocol-response.json`](schema/protocol-response.json), e um teste falha quando ela não confere com eles.
 
-Como abrir o servidor, a fila por projeto, o cancelamento e o encerramento: [CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp).
+Como abrir o servidor, a fila por projeto, o cancelamento e o encerramento: [CLI.md](CLI.md#a-api-para-outros-programas-aurora-serve-e-aurora-mcp).
 
 Versão do protocolo: 2 (`PROTOCOL_VERSION`, que o `initialize` devolve).
 
@@ -2573,7 +2573,7 @@ O contexto de uma operação guardada.
 | `command` | `string` | sim | O comando. |
 | `status` | [`Status`](#tipo-status) | sim | Como terminou. |
 | `duration_ms` | `integer` | sim | Quanto levou, do começo ao fim, em milissegundos. |
-| `aurora_version` | `string` | sim | A versão que gravou. `lace_version` nos relatórios gravados pelo AURORA, que a `.lace` levada para a `.aurora8` traz. |
+| `aurora_version` | `string` | sim | A versão que gravou. `lace_version` nos relatórios gravados pelo Lace, que a `.lace` levada para a `.aurora8` traz. |
 | `project` | `string` | sim | O que identifica o projeto: um hash da raiz dele. Relatórios de projetos diferentes não se comparam. |
 | `project_name` | `string` | sim | O nome do projeto. |
 | `bundle` | `string` | sim | O bundle de ferramentas (`2026.09.29`) e a plataforma. |
@@ -2626,7 +2626,7 @@ O layout salvo no projeto para a onda de um testbench:
 |---|---|---|---|
 | `path` | `string` | sim | O arquivo, onde o Surfer salva o estado (Ctrl+S). |
 | `state` | `string` | sim | O estado que vai para o Surfer: o que o usuário salvou, ou o gerado. |
-| `customized` | `boolean` | sim | O usuário salvou o estado depois da última vez que a AURORA o gerou: o AURORA o deixa como está. |
+| `customized` | `boolean` | sim | O usuário salvou o estado depois da última vez que a AURORA o gerou: a AURORA o deixa como está. |
 
 <a id="tipo-savedlayoutinfo"></a>
 

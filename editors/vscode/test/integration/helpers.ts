@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import * as vscode from 'vscode';
 
 import type { AuroraExtensionApi } from '../../src/extension';
-import { laceCalls, until } from '../support/fixtures';
+import { auroraCalls, until } from '../support/fixtures';
 
 export const workspace = process.env.AURORA_TEST_WORKSPACE ?? '';
 export const spf = join(workspace, 'demo.spf');
@@ -38,7 +38,7 @@ export function setFakeState(name: string): void {
 
 /** As chamadas ao aurora falso, na ordem. */
 export function calls(): string[][] {
-  return laceCalls(log);
+  return auroraCalls(log);
 }
 
 /** A última chamada que tem este comando. */

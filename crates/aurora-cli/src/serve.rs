@@ -172,7 +172,7 @@ pub fn run(
     let signalled = cancel.clone();
     let watcher = Arc::clone(&server);
     thread::Builder::new()
-        .name("lace-serve-signals".into())
+        .name("aurora-serve-signals".into())
         .spawn(move || {
             while !signalled.is_cancelled() {
                 thread::sleep(Duration::from_millis(50));
@@ -312,7 +312,7 @@ impl Writer {
         let closed = Arc::new(AtomicBool::new(false));
         let gone = Arc::clone(&closed);
         thread::Builder::new()
-            .name("lace-serve-stdout".into())
+            .name("aurora-serve-stdout".into())
             .spawn(move || {
                 let stdout = std::io::stdout();
                 for out in rx {
@@ -414,13 +414,13 @@ type Job = Box<dyn FnOnce() + Send>;
 /// Por que um pedido não deu certo: um erro do core (que ganha a dica da
 /// CLI ao sair) ou um já em forma de [`ErrorInfo`].
 pub(crate) enum Failure {
-    AURORA(Box<AuroraError>),
+    Aurora(Box<AuroraError>),
     Info(Box<ErrorInfo>),
 }
 
 impl From<AuroraError> for Failure {
     fn from(error: AuroraError) -> Self {
-        Failure::AURORA(Box::new(error))
+        Failure::Aurora(Box::new(error))
     }
 }
 
@@ -439,7 +439,7 @@ impl From<aurora_installer::Error> for Failure {
 impl Failure {
     pub(crate) fn into_info(self) -> ErrorInfo {
         match self {
-            Failure::AURORA(error) => crate::output::error_info(&error),
+            Failure::Aurora(error) => crate::output::error_info(&error),
             Failure::Info(info) => *info,
         }
     }
@@ -694,7 +694,7 @@ impl Server {
         match lane {
             Lane::Thread => {
                 if let Err(error) = thread::Builder::new()
-                    .name("lace-serve-read".into())
+                    .name("aurora-serve-read".into())
                     .spawn(job)
                 {
                     tracing::error!("Could not start a thread: {error}");
@@ -715,7 +715,7 @@ impl Server {
             let tail: Vec<char> = key.chars().rev().take(20).collect();
             let short: String = tail.into_iter().rev().collect();
             thread::Builder::new()
-                .name(format!("lace-serve-{short}"))
+                .name(format!("aurora-serve-{short}"))
                 .spawn(move || {
                     for job in rx {
                         job();
@@ -1806,11 +1806,11 @@ mod tests {
     }
 
     #[test]
-    fn a_lace_error_carries_the_error_info_in_data() {
+    fn an_aurora_error_carries_the_error_info_in_data() {
         let (server, rx) = server();
         server.handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"initialize"}"#);
         next(&rx);
-        let missing = std::env::temp_dir().join("lace-serve-nao-existe");
+        let missing = std::env::temp_dir().join("aurora-serve-nao-existe");
         let missing = missing.to_str().unwrap().replace('\\', "/");
         server.handle_line(&format!(
             r#"{{"jsonrpc":"2.0","id":"a","method":"project.status","params":{{"project":"{missing}"}}}}"#
@@ -2291,7 +2291,7 @@ mod tests {
     }
 
     #[test]
-    fn replacing_on_a_move_keeps_what_the_lace_keeps_in_place() {
+    fn replacing_on_a_move_keeps_what_the_aurora_keeps_in_place() {
         let (server, rx) = initialized();
         let dir = tempfile::tempdir().unwrap();
         let root = Utf8PathBuf::from_path_buf(dunce::canonicalize(dir.path()).unwrap()).unwrap();

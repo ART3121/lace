@@ -35,7 +35,7 @@ pub struct Network {
     /// O `curl`; `None` é o `curl` do `PATH`. A CLI passa o do `System32` no
     /// Windows.
     pub curl: Option<Utf8PathBuf>,
-    /// A base das pastas de trabalho (`lace-install.*`): fora do `/tmp`,
+    /// A base das pastas de trabalho (`aurora-install.*`): fora do `/tmp`,
     /// que há sistemas que montam sem permissão de execução, e um
     /// instalador baixado roda dela.
     pub work_base: Utf8PathBuf,
@@ -221,7 +221,7 @@ pub fn sha256_of(path: &Utf8Path) -> Result<String> {
 }
 
 /// O começo do nome de cada pasta de [`Network::work_dir`].
-pub const WORK_PREFIX: &str = "lace-install.";
+pub const WORK_PREFIX: &str = "aurora-install.";
 
 /// Uma pasta de trabalho mais velha que isso é sobra: o instalador completo
 /// que o `aurora update` deixa para o assistente do Windows rodar depois que
@@ -643,20 +643,20 @@ mod tests {
     fn only_old_work_folders_go() {
         let base = tempfile::tempdir().unwrap();
         let base = base.path();
-        for dir in ["lace-install.a", "lace-install.b", "outra"] {
+        for dir in ["aurora-install.a", "aurora-install.b", "outra"] {
             std::fs::create_dir(base.join(dir)).unwrap();
         }
-        std::fs::write(base.join("lace-install.c"), "um arquivo").unwrap();
+        std::fs::write(base.join("aurora-install.c"), "um arquivo").unwrap();
         // Nenhuma tem um dia.
         clean_old_work_dirs(base, WORK_DIR_LEFTOVER);
-        assert!(base.join("lace-install.a").is_dir());
+        assert!(base.join("aurora-install.a").is_dir());
         // Todas são velhas: só as pastas de trabalho saem.
         std::thread::sleep(Duration::from_millis(20));
         clean_old_work_dirs(base, Duration::ZERO);
-        assert!(!base.join("lace-install.a").exists());
-        assert!(!base.join("lace-install.b").exists());
+        assert!(!base.join("aurora-install.a").exists());
+        assert!(!base.join("aurora-install.b").exists());
         assert!(base.join("outra").is_dir());
-        assert!(base.join("lace-install.c").is_file());
+        assert!(base.join("aurora-install.c").is_file());
     }
 
     #[test]

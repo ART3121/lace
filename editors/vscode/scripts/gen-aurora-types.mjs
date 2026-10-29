@@ -4,7 +4,7 @@
 // studio/scripts/gen-aurora-types.mjs.
 //
 // Uso: npm run gen:types                  (a AURORA deste repositório, em ../..)
-//      AURORA_REPO=/outro/lace npm run gen:types
+//      AURORA_REPO=/outro/aurora npm run gen:types
 //      npm run gen:types -- --check       (só confere; sai com 1 se o arquivo
 //                                          gravado não é o que os schemas geram)
 //

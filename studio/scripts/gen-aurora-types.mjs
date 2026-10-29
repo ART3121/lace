@@ -1,9 +1,9 @@
 // Gera src/ipc/aurora-types.ts a partir dos JSON Schemas da AURORA
-// (lace/docs/schema/*.json), que a própria AURORA gera dos tipos do Core.
+// (aurora/docs/schema/*.json), que a própria AURORA gera dos tipos do Core.
 // Assim a interface usa o mesmo contrato da CLI.
 //
 // Uso: npm run gen:types            (a AURORA deste repositório, em ..)
-//      AURORA_REPO=/outro/lace npm run gen:types
+//      AURORA_REPO=/outro/aurora npm run gen:types
 //
 // Rode de novo sempre que a AURORA mudar um tipo público e confira o diff.
 
@@ -50,7 +50,7 @@ let ts = await compile(combined, 'AuroraSchemas', {
 });
 ts = ts.replace(/export interface AuroraSchemas \{\}\n?/, '');
 
-const header = `// GERADO por scripts/gen-aurora-types.mjs a partir de lace/docs/schema/.
+const header = `// GERADO por scripts/gen-aurora-types.mjs a partir de aurora/docs/schema/.
 // Não edite à mão: rode \`npm run gen:types\`.
 //
 // São os tipos do Core da AURORA serializados (o mesmo JSON do \`--json\` da

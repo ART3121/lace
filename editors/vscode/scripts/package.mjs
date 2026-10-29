@@ -1,4 +1,4 @@
-// Empacota a extensão em lace-<versão>.vsix, nesta pasta. O vsce exige um
+// Empacota a extensão em aurora-<versão>.vsix, nesta pasta. O vsce exige um
 // LICENSE ao lado do package.json: o da raiz do repositório é copiado para
 // cá antes (e fica fora do git). O vsce roda o vscode:prepublish, que gera o
 // dist/extension.js minificado.

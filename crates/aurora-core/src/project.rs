@@ -2790,7 +2790,7 @@ mod tests {
     }
 
     #[test]
-    fn a_new_processor_cannot_take_the_name_of_a_lace_folder() {
+    fn a_new_processor_cannot_take_the_name_of_an_aurora_folder() {
         let (_guard, dir) = tmp();
         let mut project = Project::create(&dir, "p").unwrap();
         for name in ["wave", "Synth", "hierarchy", "lint", "surfer", "cocotb"] {

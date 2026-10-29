@@ -105,7 +105,7 @@ pub fn open_wave(
     // Colher o processo quando ele terminar, para não ficar zumbi; se a
     // thread não puder nascer, o Surfer fica como a CLI sempre o deixou.
     let _ = std::thread::Builder::new()
-        .name("lace-surfer-wait".into())
+        .name("aurora-surfer-wait".into())
         .spawn(move || {
             let _ = surfer.wait();
         });
