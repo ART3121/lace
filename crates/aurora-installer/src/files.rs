@@ -2,7 +2,7 @@
 //! instalador põe na instalação, agrupado como nos pedaços do payload.
 //!
 //! O `aurora-pack` grava o mesmo manifesto no `payload/` (que a release publica
-//! como `lace-<versão>-<plataforma>-files.json`), no pedaço sempre instalado
+//! como `aurora-<versão>-<plataforma>-files.json`), no pedaço sempre instalado
 //! e no estágio do Inno Setup. Toda instalação fica com o da versão dela em
 //! `toolchain/files.json` ([`INSTALLED`]), e o `aurora update` compara os dois
 //! para baixar só os pedaços com arquivos que mudaram ([`crate::update`]).

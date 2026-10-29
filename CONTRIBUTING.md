@@ -286,7 +286,7 @@ a onda.
 | `bundle/versions.json` | a versão e o hash de cada pacote do bundle |
 | `bundle/components.json` | o que cada componente leva de cada pacote |
 | `scripts/bundle.py`, `scripts/binaries.py`, `scripts/installer_art.py` | a montagem do bundle, a leitura de dependências de binários e as imagens do assistente de Windows (`installer/windows/art/`) |
-| `installer/windows/lace.iss` | o instalador de Windows (Inno Setup) |
+| `installer/windows/aurora.iss` | o instalador de Windows (Inno Setup) |
 | `install.sh`, `install.ps1` | a instalação em um comando; servidos da `main`, valem assim que chegam nela |
 | `.github/workflows/` | `release.yml` (publica a release numa tag) e o `installers.yml` que ele chama (bundle e instaladores, sem testes); `surfer-aurora.yml` (manual: o surfer-aurora pré-compilado, numa pré-release); `vscode.yml` (a extensão do VS Code e o RTL viewer, a cada push que muda `editors/vscode/`, `packages/rtl-viewer/` ou `docs/schema/`); fora esse, não há CI a cada push |
 | `docs/` | API, CLI, bundle, instalação, release, metodologia, placas FPGA, `aurora learn`, as pendências de fora do Lace e o desenho das partes (`img/`) |

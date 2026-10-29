@@ -658,19 +658,19 @@ mod tests {
     #[test]
     fn sha256sums_lines_are_read_in_both_modes() {
         let sums = "\
-AAAA  lace-0.2.0-linux-x64.tar.gz
-bbbb *lace-0.2.0-windows-x64-setup.exe
+AAAA  aurora-0.2.0-linux-x64.tar.gz
+bbbb *aurora-0.2.0-windows-x64-setup.exe
 ";
         assert_eq!(
-            expected_sha256(sums, "lace-0.2.0-linux-x64.tar.gz").as_deref(),
+            expected_sha256(sums, "aurora-0.2.0-linux-x64.tar.gz").as_deref(),
             Some("aaaa")
         );
         assert_eq!(
-            expected_sha256(sums, "lace-0.2.0-windows-x64-setup.exe").as_deref(),
+            expected_sha256(sums, "aurora-0.2.0-windows-x64-setup.exe").as_deref(),
             Some("bbbb")
         );
         assert_eq!(
-            expected_sha256(sums, "lace-0.2.0-darwin-arm64.tar.gz"),
+            expected_sha256(sums, "aurora-0.2.0-darwin-arm64.tar.gz"),
             None
         );
     }
@@ -693,8 +693,8 @@ bbbb *lace-0.2.0-windows-x64-setup.exe
         }
         for ok in [
             "SHA256SUMS",
-            "lace-0.8.0-windows-x64-index.json",
-            "lace-0.8.0_x.tar.gz",
+            "aurora-0.8.0-windows-x64-index.json",
+            "aurora-0.8.0_x.tar.gz",
         ] {
             assert!(is_asset_name(ok), "{ok}");
         }

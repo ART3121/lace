@@ -2,9 +2,9 @@
 //! `scripts/bundle.py`.
 //!
 //! ```text
-//! aurora-pack tui  --toolchain dist/toolchain --lace target/release/aurora \
-//!                --installer target/release/aurora-installer --out dist/lace-0.1.0-linux-x64 --tar-gz
-//! aurora-pack inno --toolchain dist/toolchain --lace target/release/aurora.exe --out dist/inno
+//! aurora-pack tui  --toolchain dist/toolchain --aurora target/release/aurora \
+//!                --installer target/release/aurora-installer --out dist/aurora-0.1.0-linux-x64 --tar-gz
+//! aurora-pack inno --toolchain dist/toolchain --aurora target/release/aurora.exe --out dist/inno
 //! ```
 
 use std::path::PathBuf;

@@ -17,10 +17,10 @@ pub const INDEX_SCHEMA: u32 = 1;
 
 /// O nome com que a release publica um arquivo do payload (o índice ou um
 /// pedaço), para o `aurora install` baixar só o que precisa:
-/// `lace-<versão>-<plataforma>-<arquivo>`, como em
-/// `lace-0.2.0-linux-x64-c03.tar.zst`.
+/// `aurora-<versão>-<plataforma>-<arquivo>`, como em
+/// `aurora-0.2.0-linux-x64-c03.tar.zst`.
 pub fn release_asset(aurora_version: &str, platform: &str, file: &str) -> String {
-    format!("lace-{aurora_version}-{platform}-{file}")
+    format!("aurora-{aurora_version}-{platform}-{file}")
 }
 
 /// O índice: o que o payload instala e em que pedaços.

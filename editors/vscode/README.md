@@ -176,6 +176,6 @@ aceita.
 ## Empacotar
 
 ```sh
-npm run package                          # lace-0.1.0.vsix nesta pasta
-code --install-extension lace-0.1.0.vsix
+npm run package                          # aurora-0.1.0.vsix nesta pasta
+code --install-extension aurora-0.1.0.vsix
 ```

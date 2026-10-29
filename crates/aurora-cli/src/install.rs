@@ -10,11 +10,11 @@
 //! meio desfaz o que entrou. Os pedaços vêm:
 //!
 //! - da release do Lace desta versão no GitHub, que publica o índice e cada
-//!   pedaço do payload (`lace-<versão>-<plataforma>-<arquivo>`), conferidos
+//!   pedaço do payload (`aurora-<versão>-<plataforma>-<arquivo>`), conferidos
 //!   pelo `SHA256SUMS` dela; ou
 //! - com `--from`, de um instalador no disco: a pasta, o `.tar.gz` da release
 //!   ou a pasta `payload/` dele, ou uma pasta com os arquivos que a release
-//!   publica (`lace-<versão>-<plataforma>-index.json` e os pedaços).
+//!   publica (`aurora-<versão>-<plataforma>-index.json` e os pedaços).
 //!
 //! O bundle de lá precisa ser o instalado: outro bundle é atualizar, e isso é
 //! `aurora update`.

@@ -2,6 +2,17 @@
 
 ## Não publicada
 
+- Os arquivos da release passam a se chamar `aurora-<versão>-<plataforma>`
+  (os instaladores, o índice e os pedaços do bundle), e o empacotador
+  recebe o executável em `--aurora`. O instalador do Windows passa a ser
+  `installer/windows/aurora.iss`: outro programa para o Windows, AURORA,
+  com identificação própria e a pasta `Programs\AURORA` (`C:\AURORA` como
+  administrador). Um Lace instalado fica onde está, até sair pelo
+  desinstalador dele.
+- A AURORA API e a AURORA IDE passam a ter versões próprias. A primeira
+  release com o nome novo é a API 1.0.0 com a IDE 8.0.0; o `release.yml`
+  confere só a versão da API na tag, e o `bundle.py` continua conferindo a
+  da IDE contra o `bundle/versions.json`.
 - O `--reopen-studio` do `aurora update` passa a ser `--reopen-ide`, e o
   `reopen_studio` do `update.apply`, `reopen_ide`. O executável da IDE no
   bundle passa a ser `aurora-ide` (no macOS, `AURORA IDE.app`), e o atalho

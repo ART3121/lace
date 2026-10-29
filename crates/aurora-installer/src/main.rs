@@ -83,7 +83,7 @@ fn payload_dir(args: &Args) -> anyhow::Result<PathBuf> {
 
 fn run(args: Args) -> anyhow::Result<()> {
     if cfg!(windows) {
-        bail!("On Windows, use the lace-<version>-windows-x64-setup.exe installer");
+        bail!("On Windows, use the aurora-<version>-windows-x64-setup.exe installer");
     }
     let payload = payload_dir(&args)?;
     let index = Index::load(&payload)?;

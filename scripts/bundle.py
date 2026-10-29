@@ -297,7 +297,7 @@ def pkg_studio(spec, plat, work, cache):
     return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
 
 
-def pkg_lace_learn(spec, plat, work, cache):
+def pkg_aurora_learn(spec, plat, work, cache):
     """As trilhas do `aurora learn`, de aurora-learn/ deste repositório: textos,
     `.v` e `.json`, iguais nas três plataformas."""
     src = ROOT / spec["path"]
@@ -403,7 +403,7 @@ PACKAGES = {
     "surfer-aurora": pkg_surfer_aurora,
     "graphviz": pkg_graphviz,
     "studio": pkg_studio,
-    "aurora-learn": pkg_lace_learn,
+    "aurora-learn": pkg_aurora_learn,
     "rtl-viewer": pkg_rtl_viewer,
 }
 

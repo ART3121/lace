@@ -273,7 +273,7 @@ pub struct InstallReport {
 }
 
 /// O payload de um instalador no disco: a pasta e o começo dos nomes dos
-/// arquivos (vazio, ou `lace-<versão>-<plataforma>-` com os nomes que a
+/// arquivos (vazio, ou `aurora-<versão>-<plataforma>-` com os nomes que a
 /// release publica).
 #[derive(Debug, Clone)]
 pub struct DiskPayload {
@@ -367,7 +367,7 @@ impl ChunkSource for DiskPayload {
 }
 
 /// O começo dos nomes dos arquivos da release desta plataforma numa pasta
-/// (`lace-0.7.0-linux-x64-`), se ela tem o índice de uma versão só.
+/// (`aurora-0.7.0-linux-x64-`), se ela tem o índice de uma versão só.
 fn release_prefix(dir: &Utf8Path) -> Result<Option<String>> {
     let platform = Platform::current()
         .context("No bundle apps for this platform")?
@@ -379,7 +379,7 @@ fn release_prefix(dir: &Utf8Path) -> Result<Option<String>> {
         .filter_map(std::result::Result::ok)
         .filter_map(|e| {
             let name = e.file_name();
-            (name.starts_with("lace-") && name.ends_with(&suffix))
+            (name.starts_with("aurora-") && name.ends_with(&suffix))
                 .then(|| name[..name.len() - payload::INDEX_FILE.len()].to_owned())
         })
         .collect();

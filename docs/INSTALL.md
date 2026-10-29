@@ -9,9 +9,9 @@ Studio e cada ferramenta do bundle são componentes, e só a linha de comando
 
 | Plataforma | Arquivo | Instalador |
 |---|---|---|
-| Windows 10 e 11, x64 | `lace-<versão>-windows-x64-web-setup.exe`, que baixa só os aplicativos marcados, ou `lace-<versão>-windows-x64-setup.exe`, com o bundle inteiro | assistente (Inno Setup) |
-| Linux x64 | `lace-<versão>-linux-x64.tar.gz` | no terminal (TUI) |
-| macOS, Apple Silicon | `lace-<versão>-darwin-arm64.tar.gz` | no terminal (TUI) |
+| Windows 10 e 11, x64 | `aurora-<versão>-windows-x64-web-setup.exe`, que baixa só os aplicativos marcados, ou `aurora-<versão>-windows-x64-setup.exe`, com o bundle inteiro | assistente (Inno Setup) |
+| Linux x64 | `aurora-<versão>-linux-x64.tar.gz` | no terminal (TUI) |
+| macOS, Apple Silicon | `aurora-<versão>-darwin-arm64.tar.gz` | no terminal (TUI) |
 
 O `SHA256SUMS` da release tem o hash de cada arquivo que o `release.yml`
 publica. O `.vsix` da extensão do VS Code, anexado à mão depois, não está
@@ -173,11 +173,11 @@ plataforma, e a página de componentes do assistente, o da seleção.
 
 1. Rode o `irm ... | iex` acima, ou baixe e rode um dos dois assistentes da
    página da release:
-   - `lace-<versão>-windows-x64-web-setup.exe` (desde a 0.7.0, alguns MB):
+   - `aurora-<versão>-windows-x64-web-setup.exe` (desde a 0.7.0, alguns MB):
      ao clicar em Instalar, baixa da release só os aplicativos marcados, com
      a barra de cada download, confere cada um pelo SHA-256 e os extrai.
      É o que o `irm ... | iex` usa;
-   - `lace-<versão>-windows-x64-setup.exe`: o bundle inteiro dentro dele,
+   - `aurora-<versão>-windows-x64-setup.exe`: o bundle inteiro dentro dele,
      para instalar sem rede (o `irm ... | iex` o usa com
      `$env:AURORA_FULL_SETUP = "1"`).
 2. Escolha instalar só para você (padrão, sem administrador, em
@@ -227,7 +227,7 @@ reinstalado: só os aplicativos marcados são baixados e extraídos em
 `toolchain/`, e uma falha no meio desfaz o que entrou.
 
 Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
-o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
+o bundle em pedaços (`aurora-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
@@ -272,9 +272,9 @@ perguntar.
 **Sem interação** (scripts, laboratórios):
 
 ```
-lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
-lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
-lace-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="aurora,yanc,icarus,verilator,studio" /DIR=D:\Lace
+aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
+aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
+aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="aurora,yanc,icarus,verilator,studio" /DIR=D:\Lace
 ```
 
 O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
@@ -295,8 +295,8 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
 
 ```
-curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
-tar xzf lace-0.9.0-linux-x64.tar.gz && ./lace-0.9.0-linux-x64/install
+curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/aurora-0.9.0-linux-x64.tar.gz
+tar xzf aurora-0.9.0-linux-x64.tar.gz && ./aurora-0.9.0-linux-x64/install
 ```
 
 A instalação guiada no terminal tem estas telas:
@@ -354,7 +354,7 @@ reinstalado: só os aplicativos marcados são baixados e extraídos em
 `aurora install studio` também cria o atalho do Studio no menu.
 
 Os aplicativos vêm da release desta versão do Lace no GitHub, que publica
-o bundle em pedaços (`lace-<versão>-<plataforma>-<pedaço>`), conferidos
+o bundle em pedaços (`aurora-<versão>-<plataforma>-<pedaço>`), conferidos
 pelo `SHA256SUMS` da release. Sem rede, `aurora install --from` usa um
 instalador do Lace no disco (a pasta, o `.tar.gz` da release ou o
 `payload/` dele, ou uma pasta com os arquivos que a release publica);
@@ -409,7 +409,7 @@ recusa abrir o `install` ("desenvolvedor não pode ser verificado"). O
 foi baixado pelo navegador:
 
 ```
-xattr -dr com.apple.quarantine lace-0.9.0-darwin-arm64
+xattr -dr com.apple.quarantine aurora-0.9.0-darwin-arm64
 ```
 
 Isto não foi verificado num Mac: é o comportamento documentado do
@@ -421,7 +421,7 @@ não recebem a marca.
 Desde a 0.7.0, cada instalação guarda o manifesto de arquivos da versão
 dela (`toolchain/files.json`): o SHA-256 de cada arquivo que o instalador
 pôs, agrupado pelos pedaços em que a release publica o bundle. A release
-publica também o seu (`lace-<versão>-<plataforma>-files.json`). O
+publica também o seu (`aurora-<versão>-<plataforma>-files.json`). O
 `aurora update` compara os dois, para os aplicativos instalados:
 
 ```

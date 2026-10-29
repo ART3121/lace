@@ -74,7 +74,7 @@ jobs:
           {
             echo "VERSION=$version"
             echo "BUNDLE=$bundle"
-            echo "NAME=lace-$version-${{ matrix.platform }}"
+            echo "NAME=aurora-$version-${{ matrix.platform }}"
           } >> "$GITHUB_ENV"
 
       - name: Cache do empacotamento
@@ -135,7 +135,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           target/release/aurora-pack tui --toolchain dist/toolchain \
-            --lace target/release/aurora --installer target/release/aurora-installer \
+            --aurora target/release/aurora --installer target/release/aurora-installer \
             --out "dist/$NAME" --tar-gz --assets dist/apps
           ls -la dist dist/apps
 
@@ -144,7 +144,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         # O runner já traz um Inno Setup, de versão que muda com a imagem (a
-        # 6.7.1 em 2026-10-15); o lace.iss usa o modo escuro e as imagens PNG
+        # 6.7.1 em 2026-10-15); o aurora.iss usa o modo escuro e as imagens PNG
         # da 6.6 em diante. Com outra versão que a fixada, instala a fixada
         # por cima, do instalador oficial conferido pelo SHA-256 (o
         # Chocolatey não tem a 6.7.3).
@@ -175,7 +175,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          target\release\aurora-pack.exe tui --toolchain dist\toolchain --lace target\release\aurora.exe --installer target\release\aurora-installer.exe --out dist\tui --assets dist\apps
+          target\release\aurora-pack.exe tui --toolchain dist\toolchain --aurora target\release\aurora.exe --installer target\release\aurora-installer.exe --out dist\tui --assets dist\apps
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem dist\apps
 
@@ -185,11 +185,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          target\release\aurora-pack.exe inno --toolchain dist\toolchain --lace target\release\aurora.exe --out dist\inno --web dist\tui
+          target\release\aurora-pack.exe inno --toolchain dist\toolchain --aurora target\release\aurora.exe --out dist\inno --web dist\tui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $env:ISCC /Q "/DStage=$PWD\dist\inno" "/DLaceVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\lace.iss
+          & $env:ISCC /Q "/DStage=$PWD\dist\inno" "/DAuroraVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\aurora.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $env:ISCC /Q /DWeb "/DStage=$PWD\dist\inno" "/DLaceVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\lace.iss
+          & $env:ISCC /Q /DWeb "/DStage=$PWD\dist\inno" "/DAuroraVersion=$env:VERSION" "/DBundle=$env:BUNDLE" "/O$PWD\dist" installer\windows\aurora.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem dist\*.exe
 

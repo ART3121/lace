@@ -725,7 +725,7 @@ fn unix(
     }
     let work = remote.0.work_dir()?;
     let work_path = utf8_dir(&work)?;
-    let file = format!("lace-{version}-{}.tar.gz", receipt.platform);
+    let file = format!("aurora-{version}-{}.tar.gz", receipt.platform);
     let archive = download_installer(remote, version, &file, &work_path, options.bar, on, cancel)?;
     let installer = extract(&archive, &work_path)?;
     let program = installer.join("install");
@@ -804,7 +804,7 @@ fn windows(
     let work = remote.0.work_dir()?.keep();
     let work = Utf8PathBuf::from_path_buf(work)
         .map_err(|p| anyhow::anyhow!("Temporary folder path is not UTF-8: {}", p.display()))?;
-    let file = format!("lace-{version}-windows-x64-setup.exe");
+    let file = format!("aurora-{version}-windows-x64-setup.exe");
     let setup = download_installer(remote, version, &file, &work, options.bar, on, cancel)?;
     if cancel.is_cancelled() {
         return Err(Error::Cancelled);
@@ -845,7 +845,7 @@ fn windows(
 
 /// Os nomes que o `/COMPONENTS=` do assistente de `version` aceita para os
 /// componentes `installed`, tirados do índice que a release publica
-/// (`lace-<versão>-windows-x64-index.json`), com a regra do `aurora-pack`
+/// (`aurora-<versão>-windows-x64-index.json`), com a regra do `aurora-pack`
 /// ([`pack::inno_component_names`]): `icarus\cocotb`, `surfer_aurora`. Um
 /// componente que a versão nova não tem fica de fora; o `aurora` vai sempre.
 fn wizard_components(
@@ -889,7 +889,7 @@ pub fn selected_components(index: &Index, installed: &[String]) -> Result<Vec<St
 }
 
 /// Extrai o `.tar.gz` da release em `dir` e devolve a pasta extraída que tem
-/// o programa `install` (o arquivo traz uma, `lace-<versão>-<plataforma>/`).
+/// o programa `install` (o arquivo traz uma, `aurora-<versão>-<plataforma>/`).
 fn extract(archive: &Utf8Path, dir: &Utf8Path) -> Result<Utf8PathBuf> {
     let file = std::fs::File::open(archive).with_context(|| format!("Opening {archive}"))?;
     tar::Archive::new(flate2::read::GzDecoder::new(file))

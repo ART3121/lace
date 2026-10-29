@@ -497,7 +497,7 @@ pub const CUSTOM_TYPE: &str = "avancada";
 
 /// Os idiomas do assistente do Windows: o código das traduções de
 /// `bundle/components.json` e o nome do idioma no `[Languages]` do
-/// `installer/windows/lace.iss`, que são o mesmo. O inglês é o texto base.
+/// `installer/windows/aurora.iss`, que são o mesmo. O inglês é o texto base.
 pub const INNO_LANGUAGES: [&str; 2] = ["en", "pt"];
 
 /// O nome do Lace na lista de componentes, sempre marcado.
@@ -630,7 +630,7 @@ fn inno_quote(text: &str) -> String {
 
 /// Monta o estágio do instalador de Windows em `out`: `bin/aurora.exe`,
 /// `common/` e `chunks/NN/` com os arquivos, e `components.iss` com as
-/// seções `[Components]` e `[Files]` que o `installer/windows/lace.iss`
+/// seções `[Components]` e `[Files]` que o `installer/windows/aurora.iss`
 /// inclui. O `common/` leva o manifesto de arquivos (`toolchain/files.json`),
 /// o mesmo que o payload de [`tui`] gera desse bundle.
 pub fn inno(

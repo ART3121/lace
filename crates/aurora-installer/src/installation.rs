@@ -90,7 +90,7 @@ pub fn open_wizard(command: &mut std::process::Command) -> std::io::Result<()> {
 }
 
 /// A chave do Lace na lista de programas instalados do Windows, que o Inno
-/// Setup cria com o `AppId` do `installer/windows/lace.iss`.
+/// Setup cria com o `AppId` do `installer/windows/aurora.iss`.
 #[cfg(windows)]
 const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{E34F1510-EC32-4839-8048-14CA03F9EFBB}_is1";
 

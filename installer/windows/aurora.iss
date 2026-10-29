@@ -1,21 +1,21 @@
-﻿; Instalador do Lace para Windows (Inno Setup 6).
+﻿; Instalador da AURORA para Windows (Inno Setup 6).
 ;
 ; O workflow de release compila dois assistentes deste script:
 ;
-;   iscc /DStage=<estágio> /DLaceVersion=0.1.0 /DBundle=2026.09.29 /O<saída> installer\windows\lace.iss
-;   iscc /DWeb /DStage=<estágio> /DLaceVersion=0.1.0 /DBundle=2026.09.29 /O<saída> installer\windows\lace.iss
+;   iscc /DStage=<estágio> /DAuroraVersion=0.1.0 /DBundle=2026.09.29 /O<saída> installer\windows\aurora.iss
+;   iscc /DWeb /DStage=<estágio> /DAuroraVersion=0.1.0 /DBundle=2026.09.29 /O<saída> installer\windows\aurora.iss
 ;
-; O estágio vem de `aurora-pack inno`: bin\lace.exe, common\ e chunks\NN\ com
+; O estágio vem de `aurora-pack inno`: bin\aurora.exe, common\ e chunks\NN\ com
 ; os arquivos do bundle, e components.iss com as seções [Components] e
 ; [Files], geradas do índice do bundle (que arquivo cada componente usa; as
 ; bibliotecas que o Icarus, o Verilator, o Yosys e o Graphviz dividem vão
 ; com qualquer um deles).
 ;
 ; O primeiro assistente leva o bundle inteiro dentro dele. O segundo (/DWeb,
-; com o web.iss que o `aurora-pack inno --web` grava) leva só o lace.exe: ao
+; com o web.iss que o `aurora-pack inno --web` grava) leva só o aurora.exe: ao
 ; clicar em Instalar, ele baixa da release o índice e os pedaços dos
-; componentes marcados, cada um conferido pelo SHA-256, e o `lace setup` os
-; extrai e troca o toolchain\ antes de o assistente copiar o lace.exe. A
+; componentes marcados, cada um conferido pelo SHA-256, e o `aurora setup` os
+; extrai e troca o toolchain\ antes de o assistente copiar o aurora.exe. A
 ; release vem do GitHub, ou de um espelho com /MIRROR=<url> (com uma pasta
 ; v<versão>\ por release, como o AURORA_RELEASE_URL).
 ;
@@ -29,14 +29,14 @@
 ; Reinstalar troca o bundle pelo da nova seleção; os componentes que a pasta
 ; já tem (do assistente ou do `aurora install`) vêm marcados.
 ;
-; A cara do Lace: o ícone da AURORA IDE, as imagens de art\ (geradas da
+; A cara da AURORA: o ícone da AURORA IDE, as imagens de art\ (geradas da
 ; marca por scripts/installer_art.py) e o modo claro ou escuro do Windows.
 
 #ifndef Stage
   #error Pass /DStage=<aurora-pack inno stage>
 #endif
-#ifndef LaceVersion
-  #error Pass /DLaceVersion=<Lace version>
+#ifndef AuroraVersion
+  #error Pass /DAuroraVersion=<AURORA version>
 #endif
 #ifndef Bundle
   #define Bundle "?"
@@ -44,10 +44,10 @@
 ; O AppId da lista de programas instalados. Um outro, só para testar o
 ; assistente sem mexer na instalação de verdade.
 #ifndef AppGuid
-  #define AppGuid "E34F1510-EC32-4839-8048-14CA03F9EFBB"
+  #define AppGuid "B3198760-F391-4D95-BD56-AE9ED09C028E"
 #endif
 #ifndef ReleaseBase
-  #define ReleaseBase "https://github.com/ART3121/lace/releases/download/v" + LaceVersion + "/"
+  #define ReleaseBase "https://github.com/ART3121/lace/releases/download/v" + AuroraVersion + "/"
 #endif
 
 ; [Types], [Components], [Files], o #define DefaultProfile (o nome do perfil
@@ -60,13 +60,13 @@
 
 [Setup]
 AppId={{{#AppGuid}}
-AppName=Lace
-AppVersion={#LaceVersion}
-AppVerName=Lace {#LaceVersion}
+AppName=AURORA
+AppVersion={#AuroraVersion}
+AppVerName=AURORA {#AuroraVersion}
 AppPublisher=NIPS-CERN, Faculdade de Engenharia da UFJF
 AppPublisherURL=https://nipscern.com
 AppComments=NIPS-CERN development tools, from SAPHO processors to Verilog, and AURORA IDE (bundle {#Bundle})
-VersionInfoVersion={#LaceVersion}
+VersionInfoVersion={#AuroraVersion}
 DefaultDirName={code:DefaultDir}
 DisableProgramGroupPage=yes
 DisableWelcomePage=no
@@ -98,11 +98,11 @@ ChangesEnvironment=yes
 Compression=lzma2/ultra64
 SolidCompression=yes
 LZMAUseSeparateProcess=yes
-UninstallDisplayName=Lace {#LaceVersion}
+UninstallDisplayName=AURORA {#AuroraVersion}
 #ifdef Web
-OutputBaseFilename=lace-{#LaceVersion}-windows-x64-web-setup
+OutputBaseFilename=aurora-{#AuroraVersion}-windows-x64-web-setup
 #else
-OutputBaseFilename=lace-{#LaceVersion}-windows-x64-setup
+OutputBaseFilename=aurora-{#AuroraVersion}-windows-x64-setup
 #endif
 
 ; O assistente começa perguntando o idioma, com o do Windows já escolhido.
@@ -113,14 +113,14 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "pt"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [Messages]
-en.WelcomeLabel1=Welcome to Lace {#LaceVersion}
-pt.WelcomeLabel1=Bem-vindo ao Lace {#LaceVersion}
+en.WelcomeLabel1=Welcome to AURORA {#AuroraVersion}
+pt.WelcomeLabel1=Boas-vindas à AURORA {#AuroraVersion}
 #ifdef Web
-en.WelcomeLabel2=Lace orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and AURORA IDE is its graphical environment.%n%nThis wizard downloads from the Lace release only the apps you choose, at the exact versions of bundle {#Bundle}, each one checked against its SHA-256. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
-pt.WelcomeLabel2=O Lace orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e a AURORA IDE é o ambiente gráfico dele.%n%nEste assistente baixa da release do Lace só os aplicativos que você escolher, nas versões exatas do bundle {#Bundle}, cada um conferido pelo SHA-256. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
+en.WelcomeLabel2=AURORA orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and AURORA IDE is its graphical environment.%n%nThis wizard downloads from the AURORA release only the apps you choose, at the exact versions of bundle {#Bundle}, each one checked against its SHA-256. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
+pt.WelcomeLabel2=A AURORA orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e a AURORA IDE é o ambiente gráfico dela.%n%nEste assistente baixa da release da AURORA só os aplicativos que você escolher, nas versões exatas do bundle {#Bundle}, cada um conferido pelo SHA-256. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
 #else
-en.WelcomeLabel2=Lace orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and AURORA IDE is its graphical environment.%n%nLace only uses the tools of the bundle installed with it, at the exact versions of bundle {#Bundle}. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
-pt.WelcomeLabel2=O Lace orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e a AURORA IDE é o ambiente gráfico dele.%n%nO Lace só usa as ferramentas do bundle instalado com ele, nas versões exatas do bundle {#Bundle}. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
+en.WelcomeLabel2=AURORA orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and AURORA IDE is its graphical environment.%n%nAURORA only uses the tools of the bundle installed with it, at the exact versions of bundle {#Bundle}. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
+pt.WelcomeLabel2=A AURORA orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e a AURORA IDE é o ambiente gráfico dela.%n%nA AURORA só usa as ferramentas do bundle instalado com ele, nas versões exatas do bundle {#Bundle}. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
 #endif
 en.WizardSelectComponents=Choose a profile
 pt.WizardSelectComponents=Escolha um perfil
@@ -128,34 +128,34 @@ en.SelectComponentsDesc=Which apps should be installed?
 pt.SelectComponentsDesc=Quais aplicativos serão instalados?
 en.SelectComponentsLabel2=Each profile installs the apps marked in the list. To choose them yourself, pick Custom (advanced). To add apps later: aurora install.
 pt.SelectComponentsLabel2=Cada perfil instala os aplicativos marcados na lista. Para escolher você mesmo, use a Personalizada (avançada). Para acrescentar aplicativos depois: aurora install.
-en.FinishedHeadingLabel=Lace is ready
-pt.FinishedHeadingLabel=O Lace está pronto
+en.FinishedHeadingLabel=AURORA is ready
+pt.FinishedHeadingLabel=A AURORA está pronta
 en.FinishedLabel=Open AURORA IDE from the Start menu, or open a new terminal and run: aurora tools --verify
 pt.FinishedLabel=Abra a AURORA IDE pelo menu Iniciar, ou abra um terminal novo e rode: aurora tools --verify
 
 ; Os textos do [Code], das tarefas e do [Run]. Os dos tipos e dos
 ; componentes vêm do components.iss.
 [CustomMessages]
-en.TaskPath=Add Lace to PATH, to use "lace" in any terminal
-pt.TaskPath=Pôr o Lace no PATH, para usar o "lace" em qualquer terminal
+en.TaskPath=Add AURORA to PATH, to use "aurora" in any terminal
+pt.TaskPath=Pôr a AURORA no PATH, para usar o "aurora" em qualquer terminal
 en.TaskStudioIcon=Create a desktop shortcut for AURORA IDE
 pt.TaskStudioIcon=Criar um atalho da AURORA IDE na área de trabalho
 en.RunStudio=Open AURORA IDE
 pt.RunStudio=Abrir a AURORA IDE
-en.PreviousInstall=Lace %1 is installed on this computer: this wizard replaces it with Lace %2, and the apps it has stay selected.
-pt.PreviousInstall=O Lace %1 está instalado neste computador: este assistente o troca pelo Lace %2, e os aplicativos que ele tem continuam marcados.
+en.PreviousInstall=AURORA %1 is installed on this computer: this wizard replaces it with AURORA %2, and the apps it has stay selected.
+pt.PreviousInstall=A AURORA %1 está instalada neste computador: este assistente a troca pela AURORA %2, e os aplicativos que ela tem continuam marcados.
 en.DownloadTitle=Downloading the apps
 pt.DownloadTitle=Baixando os aplicativos
-en.DownloadDesc=Lace %1: the chosen apps, each checked against its SHA-256.
-pt.DownloadDesc=Lace %1: os aplicativos escolhidos, cada um conferido pelo SHA-256.
+en.DownloadDesc=AURORA %1: the chosen apps, each checked against its SHA-256.
+pt.DownloadDesc=AURORA %1: os aplicativos escolhidos, cada um conferido pelo SHA-256.
 en.ExtractTitle=Installing the apps
 pt.ExtractTitle=Instalando os aplicativos
 en.ExtractDesc=Extracting the downloaded apps into the installation folder.
 pt.ExtractDesc=Extraindo os aplicativos baixados na pasta da instalação.
 en.DownloadFailed=Could not download %1: %2
 pt.DownloadFailed=Não foi possível baixar %1: %2
-en.SetupRunFailed=Could not run the Lace that installs the apps: %1
-pt.SetupRunFailed=Não foi possível rodar o Lace que instala os aplicativos: %1
+en.SetupRunFailed=Could not run the aurora program that installs the apps: %1
+pt.SetupRunFailed=Não foi possível rodar o aurora que instala os aplicativos: %1
 en.SetupFailed=The apps could not be installed. %1
 pt.SetupFailed=Não foi possível instalar os aplicativos. %1
 en.SpaceInPath=The selected folder has a space in its path, and the make used by Verilator does not accept spaces.
@@ -164,22 +164,22 @@ en.InstallThereAnyway=Install there anyway?
 pt.InstallThereAnyway=Instalar lá mesmo assim?
 en.WebView2Missing=AURORA IDE uses the Microsoft Edge WebView2 Runtime, which is not installed on this computer. AURORA IDE will open only after you install it from https://developer.microsoft.com/microsoft-edge/webview2/ (Evergreen Runtime); the rest of Lace works without it.
 pt.WebView2Missing=A AURORA IDE usa o Microsoft Edge WebView2 Runtime, que não está instalado neste computador. A AURORA IDE só abre depois que você o instalar de https://developer.microsoft.com/microsoft-edge/webview2/ (Evergreen Runtime); o resto do Lace funciona sem ele.
-en.InstallNowAnyway=Install Lace now anyway?
-pt.InstallNowAnyway=Instalar o Lace agora mesmo assim?
-en.ForeignToolchain=The folder %1 already exists and is not from a Lace installation, and installing would replace it. Choose another folder, or move it away first.
-pt.ForeignToolchain=A pasta %1 já existe e não é de uma instalação do Lace, e instalar a substituiria. Escolha outra pasta, ou tire-a de lá antes.
+en.InstallNowAnyway=Install AURORA now anyway?
+pt.InstallNowAnyway=Instalar a AURORA agora mesmo assim?
+en.ForeignToolchain=The folder %1 already exists and is not from an AURORA installation, and installing would replace it. Choose another folder, or move it away first.
+pt.ForeignToolchain=A pasta %1 já existe e não é de uma instalação da AURORA, e instalar a substituiria. Escolha outra pasta, ou tire-a de lá antes.
 
 [Tasks]
 Name: "path"; Description: "{cm:TaskPath}"
 Name: "studioicon"; Description: "{cm:TaskStudioIcon}"; Components: studio; Flags: unchecked
 
-; O Lace Studio fica no bundle (toolchain\studio, o componente studio) e acha
+; A AURORA IDE fica no bundle (toolchain\studio, o componente studio) e acha
 ; o bundle por estar dentro dele.
 [Icons]
 Name: "{autoprograms}\AURORA IDE"; Filename: "{app}\toolchain\studio\aurora-ide.exe"; Components: studio
 Name: "{autodesktop}\AURORA IDE"; Filename: "{app}\toolchain\studio\aurora-ide.exe"; Components: studio; Tasks: studioicon
 
-; O Lace Studio que pediu a atualização (`aurora update --reopen-ide`, que
+; A AURORA IDE que pediu a atualização (`aurora update --reopen-ide`, que
 ; passa /REOPENIDE=1) fechou para o assistente trocar os arquivos dele: ele
 ; abre de novo sozinho, sem a caixa da página final.
 [Run]
@@ -193,11 +193,11 @@ Type: files; Name: "{autoprograms}\Lace Studio.lnk"
 Type: files; Name: "{autodesktop}\Lace Studio.lnk"
 #ifndef Web
 ; Reinstalar troca o bundle inteiro: o que foi desmarcado sai. O assistente
-; que baixa os aplicativos troca o toolchain\ ele mesmo (o `lace setup`).
+; que baixa os aplicativos troca o toolchain\ ele mesmo (o `aurora setup`).
 Type: filesandordirs; Name: "{app}\toolchain"
 #endif
 ; As pastas .antigo-* e .instalando-* são sobras do aurora update por
-; componentes (o lace.exe que rodava a atualização fica numa .antigo-*).
+; componentes (o aurora.exe que rodava a atualização fica numa .antigo-*).
 ; O diário de uma atualização que parou no meio também sai: o assistente
 ; troca tudo, e ele não vale mais (crates/aurora-installer/src/update.rs).
 Type: filesandordirs; Name: "{app}\.antigo-*"
@@ -211,7 +211,7 @@ Type: filesandordirs; Name: "{app}\.antigo-*"
 Type: filesandordirs; Name: "{app}\.instalando-*"
 Type: files; Name: "{app}\.atualizando.json"
 Type: files; Name: "{app}\.atualizando.json.tmp"
-; A trava das instalações e atualizações do lace.
+; A trava das instalações e atualizações do aurora.
 Type: files; Name: "{app}\.instalacao.lock"
 
 [Code]
@@ -220,7 +220,7 @@ const
   SystemEnvKey = 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment';
   { O cliente do WebView2 no EdgeUpdate (ver HasWebView2). }
   WebView2Client = '\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}';
-  { A entrada do Lace na lista de programas instalados. }
+  { A entrada da AURORA na lista de programas instalados. }
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#AppGuid}}_is1';
 
 var
@@ -233,7 +233,7 @@ var
 #ifdef Web
   DownloadPage: TDownloadWizardPage;
   ExtractPage: TOutputProgressWizardPage;
-  { A última linha do `lace setup`, para a mensagem de erro. }
+  { A última linha do `aurora setup`, para a mensagem de erro. }
   SetupLine: String;
 #endif
 
@@ -242,9 +242,9 @@ var
 function DefaultDir(Param: String): String;
 begin
   if IsAdminInstallMode then
-    Result := ExpandConstant('{sd}\Lace')
+    Result := ExpandConstant('{sd}\AURORA')
   else
-    Result := ExpandConstant('{localappdata}\Programs\Lace');
+    Result := ExpandConstant('{localappdata}\Programs\AURORA');
 end;
 
 { O icacls do Windows em Dir, com Params; uma falha fica no log. }
@@ -256,9 +256,9 @@ begin
     Log(Format('icacls %s %s exited with %d', [Dir, Params, ResultCode]));
 end;
 
-{ No modo de administrador, a pasta da instalação (C:\Lace) herdaria de
+{ No modo de administrador, a pasta da instalação (C:\AURORA) herdaria de
   C:\ o Modify de "Usuários autenticados": qualquer usuário da máquina
-  trocaria o lace.exe, que fica no PATH do sistema, ou plantaria uma DLL ao
+  trocaria o aurora.exe, que fica no PATH do sistema, ou plantaria uma DLL ao
   lado dele, e o próximo administrador a rodaria. A pasta fica só com as
   permissões dela, para tudo que ela tem e vier a ter: controle total para
   os administradores e o sistema, e leitura e execução para os usuários.
@@ -284,10 +284,10 @@ begin
   Icacls(Dir, '/inheritance:r /grant:r *S-1-5-32-544:(OI)(CI)F *S-1-5-18:(OI)(CI)F *S-1-5-32-545:(OI)(CI)RX /C /Q');
 end;
 
-{ A pasta tem uma instalação do Lace: o cabeçalho do bundle ou o lace.exe. }
-function IsLaceFolder(Dir: String): Boolean;
+{ A pasta tem uma instalação da AURORA: o cabeçalho do bundle ou o aurora.exe. }
+function IsAuroraFolder(Dir: String): Boolean;
 begin
-  Result := FileExists(AddBackslash(Dir) + 'toolchain\bundle.json') or FileExists(AddBackslash(Dir) + 'bin\lace.exe');
+  Result := FileExists(AddBackslash(Dir) + 'toolchain\bundle.json') or FileExists(AddBackslash(Dir) + 'bin\aurora.exe');
 end;
 
 function EnvRoot: Integer;
@@ -343,7 +343,7 @@ begin
     RegWriteExpandStringValue(EnvRoot, EnvKey, 'Path', Paths);
 end;
 
-{ O Lace Studio usa o WebView2, que vem com o Windows 11 e com o Windows 10
+{ A AURORA IDE usa o WebView2, que vem com o Windows 11 e com o Windows 10
   atualizado. A Microsoft manda conferir a versão ("pv") nestas chaves. }
 function HasWebView2: Boolean;
 var
@@ -359,7 +359,7 @@ end;
   página de componentes, ou antes de instalar numa instalação silenciosa
   sem /COMPONENTS. Uma seleção que não é a de nenhum perfil põe o tipo em
   Custom, com a lista. }
-{ /REOPENIDE=1: o `aurora update` do Lace Studio abriu este assistente, e o
+{ /REOPENIDE=1: o `aurora update` da AURORA IDE abriu este assistente, e o
   Studio fechou para ele (ver [Run]). }
 function ReopenIde: Boolean;
 begin
@@ -386,7 +386,7 @@ begin
   else begin
     if Copy(Mirror, Length(Mirror), 1) <> '/' then
       Mirror := Mirror + '/';
-    Result := Mirror + 'v{#LaceVersion}/';
+    Result := Mirror + 'v{#AuroraVersion}/';
   end;
 end;
 
@@ -413,7 +413,7 @@ begin
   end;
 end;
 
-{ Cada linha do `lace setup`: o pedaço que ele está extraindo, "[2/5] Yosys",
+{ Cada linha do `aurora setup`: o pedaço que ele está extraindo, "[2/5] Yosys",
   vira o texto e a barra da página de progresso. }
 procedure OnSetupOutput(const S: String; const Error, FirstLine: Boolean);
 var
@@ -423,7 +423,7 @@ begin
   Line := Trim(S);
   if Line = '' then
     exit;
-  Log('lace setup: ' + Line);
+  Log('aurora setup: ' + Line);
   SetupLine := Line;
   Close := Pos(']', Line);
   if (Copy(Line, 1, 1) = '[') and (Close > 0) then begin
@@ -439,7 +439,7 @@ begin
   ExtractPage.SetText(CustomMessage('ExtractTitle'), Line);
 end;
 
-{ Antes de copiar o lace.exe: o `lace setup` extrai os pedaços baixados,
+{ Antes de copiar o aurora.exe: o `aurora setup` extrai os pedaços baixados,
   confere os executáveis e troca o toolchain\ da pasta. Se ele falha, o
   assistente para sem ter copiado nada. }
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -448,9 +448,9 @@ var
   ResultCode: Integer;
 begin
   Result := '';
-  { Antes do `lace setup`, que já grava o toolchain\ na pasta. }
+  { Antes do `aurora setup`, que já grava o toolchain\ na pasta. }
   SecureAdminFolder;
-  ExtractTemporaryFile('lace.exe');
+  ExtractTemporaryFile('aurora.exe');
   Params := 'setup --payload "' + ExpandConstant('{tmp}') + '" --prefix "' + WizardDirValue + '"';
   Apps := SelectedApps;
   if Apps <> '' then
@@ -460,7 +460,7 @@ begin
   ExtractPage.Show;
   try
     SetupLine := '';
-    if not ExecAndLogOutput(ExpandConstant('{tmp}\lace.exe'), Params, ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ResultCode, @OnSetupOutput) then
+    if not ExecAndLogOutput(ExpandConstant('{tmp}\aurora.exe'), Params, ExpandConstant('{tmp}'), SW_HIDE, ewWaitUntilTerminated, ResultCode, @OnSetupOutput) then
       Result := FmtMessage(CustomMessage('SetupRunFailed'), [SysErrorMessage(ResultCode)])
     else if ResultCode <> 0 then
       Result := FmtMessage(CustomMessage('SetupFailed'), [SetupLine]);
@@ -520,9 +520,9 @@ begin
 
   if RegQueryStringValue(HKA, UninstallKey, 'DisplayVersion', Previous) and (Previous <> '') then
     WizardForm.WelcomeLabel2.Caption := WizardForm.WelcomeLabel2.Caption + #13#10#13#10 +
-      FmtMessage(CustomMessage('PreviousInstall'), [Previous, '{#LaceVersion}']);
+      FmtMessage(CustomMessage('PreviousInstall'), [Previous, '{#AuroraVersion}']);
 #ifdef Web
-  DownloadPage := CreateDownloadPage(CustomMessage('DownloadTitle'), FmtMessage(CustomMessage('DownloadDesc'), ['{#LaceVersion}']), nil);
+  DownloadPage := CreateDownloadPage(CustomMessage('DownloadTitle'), FmtMessage(CustomMessage('DownloadDesc'), ['{#AuroraVersion}']), nil);
   DownloadPage.ShowBaseNameInsteadOfUrl := True;
   ExtractPage := CreateOutputProgressPage(CustomMessage('ExtractTitle'), CustomMessage('ExtractDesc'));
 #endif
@@ -544,10 +544,10 @@ begin
   Result := True;
   { Uma toolchain\ de outra ferramenta na pasta escolhida iria embora
     inteira, sem passar pela lixeira: o assistente completo a troca
-    ([InstallDelete]), e o que baixa os aplicativos também (o `lace
+    ([InstallDelete]), e o que baixa os aplicativos também (o `aurora
     setup`, que recusa e pararia só no fim). }
-  if (CurPageID = wpSelectDir) and DirExists(AddBackslash(WizardDirValue) + 'toolchain') and not IsLaceFolder(WizardDirValue) then begin
-    Log('Error: ' + AddBackslash(WizardDirValue) + 'toolchain exists and is not from a Lace installation.');
+  if (CurPageID = wpSelectDir) and DirExists(AddBackslash(WizardDirValue) + 'toolchain') and not IsAuroraFolder(WizardDirValue) then begin
+    Log('Error: ' + AddBackslash(WizardDirValue) + 'toolchain exists and is not from an AURORA installation.');
     if not WizardSilent then
       MsgBox(FmtMessage(CustomMessage('ForeignToolchain'), [AddBackslash(WizardDirValue) + 'toolchain']), mbError, MB_OK);
     Result := False;

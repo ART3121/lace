@@ -2,11 +2,11 @@
 """Gera as imagens do assistente de instalação do Windows a partir da marca.
 
 Lê os SVG de studio/public/brand (os fios da marca e o nome "Lace") e grava
-em installer/windows/art/ os PNG que o lace.iss usa:
+em installer/windows/art/ os PNG que o aurora.iss usa:
 
   wizard-164.png, wizard-328.png   a faixa da esquerda das páginas de
                                    boas-vindas e de fim (100% e 200%), na
-                                   proporção do WizardSizePercent do lace.iss
+                                   proporção do WizardSizePercent do aurora.iss
   small-55.png, small-110.png      o ícone do canto das outras páginas
 
 Só a biblioteca padrão: o desenho é feito aqui (traços com ponta redonda e
@@ -31,7 +31,7 @@ NAVY_DEEP = (0x1D, 0x2B, 0x4D)
 CREAM = (0xF4, 0xEF, 0xE6)
 SKY = (0x9B, 0xB0, 0xE8)
 
-# O WizardSizePercent do lace.iss (largura, altura): a faixa da esquerda,
+# O WizardSizePercent do aurora.iss (largura, altura): a faixa da esquerda,
 # 164 por 314 no tamanho 100,100, cresce nessa proporção.
 SIZE_PERCENT = (130, 150)
 

@@ -89,8 +89,8 @@ irm https://raw.githubusercontent.com/ART3121/aurora/main/install.ps1 | iex
 Sem o script, direto da [página da release](https://github.com/ART3121/aurora/releases/latest):
 
 ```sh
-curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/lace-0.9.0-linux-x64.tar.gz
-tar xzf lace-0.9.0-linux-x64.tar.gz && ./lace-0.9.0-linux-x64/install
+curl -fLO https://github.com/ART3121/aurora/releases/download/v0.9.0/aurora-0.9.0-linux-x64.tar.gz
+tar xzf aurora-0.9.0-linux-x64.tar.gz && ./aurora-0.9.0-linux-x64/install
 ```
 
 No macOS, troque `linux-x64` por `darwin-arm64`. Baixe pelo `curl`, não

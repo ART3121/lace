@@ -280,7 +280,7 @@ impl Session {
         };
         self.write(&json!({
             "type": "control_request",
-            "request_id": format!("lace-{n}"),
+            "request_id": format!("aurora-{n}"),
             "request": { "subtype": "interrupt" },
         }))
     }

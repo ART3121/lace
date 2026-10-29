@@ -13,7 +13,8 @@ instalação e o bundle.
 
 | Número | Formato | Onde mora | Quando muda |
 |---|---|---|---|
-| Lace | `X.Y.Z`, em [SemVer](https://semver.org/lang/pt-BR/) | os seis lugares da seção 6.1 | a cada release, pela seção 2 |
+| AURORA API | `X.Y.Z`, em [SemVer](https://semver.org/lang/pt-BR/) | o `Cargo.toml` e os pacotes `aurora-learn` e `rtl-viewer` de `bundle/versions.json` (seção 6.1) | a cada release, pela seção 2 |
+| AURORA IDE | `X.Y.Z`, em SemVer, própria | os cinco lugares da IDE na seção 6.1, com o pacote `studio` de `bundle/versions.json` | quando a IDE muda; a primeira com o nome novo é a 8.0.0 |
 | Extensão do VS Code | `X.Y.Z`, em SemVer, própria | `editors/vscode/package.json` | quando o `.vsix` muda (seção 2.7) |
 | `PROTOCOL_VERSION` | inteiro | `crates/aurora-protocol/src/lib.rs` | quando um cliente antigo do `aurora serve` deixaria de funcionar ([METODOLOGIA.md](METODOLOGIA.md), seção 5) |
 | Bundle | data, `AAAA.MM.DD` | o campo `bundle` de `bundle/versions.json` | quando qualquer ferramenta do bundle muda ([CONTRIBUTING.md](../CONTRIBUTING.md), "Atualizar a versão de uma ferramenta do bundle") |
@@ -115,7 +116,7 @@ Os contratos do Lace, e o que quebra cada um:
 | Projeto | o `.spf` (o mesmo da AURORA), o `fpga.json`, a pasta `wave/`, a pasta `.aurora8/` | um projeto que abria deixa de abrir, ou passa a precisar de conversão, como a da estrutura do YANC 6.x para a do 7.1 |
 | Instalação e atualização | os nomes dos arquivos da release, o `index.json` e o `files.json` de cada plataforma, o recibo `install.json`, a pasta da instalação | o `aurora update` de uma versão publicada deixa de conseguir atualizar |
 | Bundle | `bundle/versions.json`; a versão mínima do YANC, em `crates/aurora-core/src/yanc.rs` | tirar uma ferramenta; subir a versão mínima do YANC |
-| Sistemas | Ubuntu 22.04 (glibc 2.35), macOS 13 em Apple Silicon e Windows 10, no `installers.yml` e no `installer/windows/lace.iss` | deixar de atender um deles |
+| Sistemas | Ubuntu 22.04 (glibc 2.35), macOS 13 em Apple Silicon e Windows 10, no `installers.yml` e no `installer/windows/aurora.iss` | deixar de atender um deles |
 | Preferências | o `settings.json` do Studio, o `experimental.json` | a versão nova perder o que a anterior gravou |
 
 O texto que o Lace mostra para pessoas, como mensagens, ajuda e a cara do
@@ -125,8 +126,8 @@ O contrato mais frágil é o da atualização. Cada `aurora update` já publicad
 lê a release nova com o código da versão dele. Um arquivo renomeado ou um
 campo a menos no `index.json` quebra a atualização de todo mundo que tem
 aquela versão, e essas pessoas só saem disso reinstalando. Os nomes do
-instalador (`lace-<versão>-<plataforma>.tar.gz` e
-`lace-<versão>-windows-x64-setup.exe`) são a reserva de todas as versões e
+instalador (`aurora-<versão>-<plataforma>.tar.gz` e
+`aurora-<versão>-windows-x64-setup.exe`) são a reserva de todas as versões e
 nunca mudam. Uma mudança no resto mantém o caminho antigo funcionando e é
 conferida atualizando a partir da versão anterior (seção 6.4).
 
@@ -149,7 +150,8 @@ substituto no CHANGELOG.
 ### 2.5 Quando o número é escolhido
 
 Na hora de lançar, pela seção "Não publicada" do CHANGELOG. Até lá, os
-seis lugares continuam com a versão da última release. Escolher o número
+lugares da seção 6.1 continuam com a versão da última release. A
+renomeação para AURORA já tem os números: API 1.0.0 e IDE 8.0.0. Escolher o número
 no começo do trabalho obriga a adivinhar o que a release vai levar, e uma
 correção que precise sair antes fica com um número de novidade.
 
@@ -313,16 +315,18 @@ O exemplo é a `0.10.0`, depois da `0.9.0`.
    `bundle.py` usa o `prebuilt` que estiver lá, sem conferir o commit: com o
    antigo, a release leva o surfer-aurora antigo. Só sem `prebuilt` ela
    compila o surfer-aurora, uns 14 minutos a mais por plataforma.
-4. **O commit da release**, com a mensagem `Lace 0.10.0` e nenhuma outra
+4. **O commit da release**, com a mensagem `AURORA 1.1.0` e nenhuma outra
    mudança dentro:
-   - a versão nos seis lugares, todos iguais: o `Cargo.toml`
-     (`[workspace.package] version`), o `studio/package.json` e o
-     `studio/package-lock.json` (o `npm version 0.10.0 --no-git-tag-version`
-     em `studio/` troca os dois), o `studio/src-tauri/Cargo.toml`, o
-     `studio/src-tauri/tauri.conf.json` e os pacotes `studio`, `aurora-learn`
-     e `rtl-viewer` de `bundle/versions.json`. O `bundle.py` recusa o
-     Studio com versões diferentes, e o `release.yml` recusa a tag se o
-     Studio não tiver a versão do Lace;
+   - a versão da AURORA API (a da tag) no `Cargo.toml`
+     (`[workspace.package] version`) e nos pacotes `aurora-learn` e
+     `rtl-viewer` de `bundle/versions.json`;
+   - a versão da AURORA IDE, própria (8.0.0 na primeira release com o nome
+     novo, em que a API é a 1.0.0), em cinco lugares iguais: o
+     `studio/package.json` e o `studio/package-lock.json` (o
+     `npm version 8.0.0 --no-git-tag-version` em `studio/` troca os dois), o
+     `studio/src-tauri/Cargo.toml`, o `studio/src-tauri/tauri.conf.json` e o
+     pacote `studio` de `bundle/versions.json`. O `bundle.py` recusa a IDE
+     com versões diferentes, e a IDE só sobe de versão quando muda;
    - os dois `Cargo.lock`, com `cargo update --workspace` na raiz e em
      `studio/src-tauri/`;
    - as seções "Não publicada" dos dois CHANGELOGs, com o número e a data
@@ -383,7 +387,7 @@ git push origin v0.10.0
    ```bash
    (cd packages/rtl-viewer && npm ci)
    (cd editors/vscode && npm ci && npm run package)
-   cp editors/vscode/lace-<versão da extensão>.vsix lace-vscode-<versão da extensão>.vsix
+   cp editors/vscode/aurora-<versão da extensão>.vsix lace-vscode-<versão da extensão>.vsix
    gh release upload v0.10.0 lace-vscode-<versão da extensão>.vsix
    ```
 
@@ -463,8 +467,8 @@ Linux ou macOS (o Studio pede o Node.js e, no Linux, o
 python3 scripts/bundle.py --out dist/toolchain
 cargo build --release -p aurora-cli -p aurora-installer
 target/release/aurora-pack tui --toolchain dist/toolchain \
-  --lace target/release/aurora --installer target/release/aurora-installer \
-  --out dist/lace-<versão>-linux-x64 --tar-gz
+  --aurora target/release/aurora --installer target/release/aurora-installer \
+  --out dist/aurora-<versão>-linux-x64 --tar-gz
 ```
 
 Windows: o bundle é montado no shell MINGW64 do MSYS2, que compila o YANC,
@@ -479,14 +483,14 @@ python scripts/bundle.py --out dist/toolchain
 
 ```powershell
 cargo build --release -p aurora-cli -p aurora-installer
-target\release\aurora-pack.exe tui --toolchain dist\toolchain --lace target\release\aurora.exe --installer target\release\aurora-installer.exe --out dist\tui --assets dist\apps
-target\release\aurora-pack.exe inno --toolchain dist\toolchain --lace target\release\aurora.exe --out dist\inno --web dist\tui
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DWeb /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
+target\release\aurora-pack.exe tui --toolchain dist\toolchain --aurora target\release\aurora.exe --installer target\release\aurora-installer.exe --out dist\tui --assets dist\apps
+target\release\aurora-pack.exe inno --toolchain dist\toolchain --aurora target\release\aurora.exe --out dist\inno --web dist\tui
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DStage=$PWD\dist\inno /DAuroraVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DWeb /DStage=$PWD\dist\inno /DAuroraVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
 ```
 
 O segundo `ISCC` (`/DWeb`) monta o assistente web,
-`lace-<versão>-windows-x64-web-setup.exe`: ele leva só o `aurora.exe` e baixa
+`aurora-<versão>-windows-x64-web-setup.exe`: ele leva só o `aurora.exe` e baixa
 da release os pedaços que o `aurora-pack tui --assets` gravou, conferidos
 pelo SHA-256 que o `aurora-pack inno --web` pôs no `web.iss`. Os pedaços
 publicados precisam ser exatamente os dessa montagem. Para testar sem
@@ -523,9 +527,9 @@ O `aurora-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
 Além dos instaladores, a release publica o bundle em pedaços, para o
 `aurora install` baixar só os aplicativos que faltam e o `aurora update` só o
 que mudou: para cada plataforma, o índice
-(`lace-<versão>-<plataforma>-index.json`), o manifesto de arquivos
-(`lace-<versão>-<plataforma>-files.json`, o SHA-256 de cada arquivo por
-pedaço) e cada pedaço (`lace-<versão>-<plataforma>-c03.tar.zst`), que o
+(`aurora-<versão>-<plataforma>-index.json`), o manifesto de arquivos
+(`aurora-<versão>-<plataforma>-files.json`, o SHA-256 de cada arquivo por
+pedaço) e cada pedaço (`aurora-<versão>-<plataforma>-c03.tar.zst`), que o
 `aurora-pack tui --assets` grava e o `installers.yml` sobe com os
 instaladores. O mesmo manifesto vai dentro do pedaço sempre instalado e no
 estágio do Inno Setup: cada instalação fica com o da versão dela, em
@@ -577,5 +581,5 @@ teste: quem confirma que o esquemático funciona lá é o
 - **Pré-releases.** Uma tag `v0.10.0-rc.1` não deve ser criada antes de
   três mudanças: o `is_newer` de `crates/aurora-installer/src/release.rs`
   compara os grupos de dígitos e põe a `0.10.0-rc.1` depois da `0.10.0`; o
-  `VersionInfoVersion` de `installer/windows/lace.iss` só aceita números; e
+  `VersionInfoVersion` de `installer/windows/aurora.iss` só aceita números; e
   o `release.yml` publica toda tag como release comum, sem `--prerelease`.

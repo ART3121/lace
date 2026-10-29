@@ -3,7 +3,7 @@
 //! O instalador é um diretório com o executável `install` e o `payload/`:
 //!
 //! ```text
-//! lace-<versão>-<plataforma>/
+//! aurora-<versão>-<plataforma>/
 //!   install                    este programa (TUI, ou --yes para scripts)
 //!   LEIA-ME.txt
 //!   payload/
