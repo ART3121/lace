@@ -92,7 +92,7 @@ O que vale saber de alguns métodos, do lado da interface:
   `lace learn` abre com o layout da correção. Uma onda que ainda não existe
   é `no_waveform`. Espera 1,5 s para conferir que o surfer-aurora não fechou
   logo (`process_exited_early`).
-- `project.move` recusa o `.spf`, `.lace/`, as pastas e o fonte dos
+- `project.move` recusa o `.spf`, `.aurora8/`, as pastas e o fonte dos
   processadores e uma pasta para dentro dela mesma (`cannot_move`), caminho
   fora do projeto (`outside_project`) e destino que existe (`path_exists`).
   Com `overwrite`, o destino vai para a lixeira e o movimento é tentado de
@@ -471,7 +471,7 @@ e a próxima mensagem abre outra. Ao sair, o Studio encerra todas.
 
 | Evento | Carga | Quando |
 |---|---|---|
-| `studio://fs-changed` | `{ paths: string[] }` | arquivos da pasta do projeto foram criados, gravados, apagados ou renomeados (no máximo um a cada 300 ms; sem `.lace/` e `.git/`; abrir um arquivo para ler não conta) |
+| `studio://fs-changed` | `{ paths: string[] }` | arquivos da pasta do projeto foram criados, gravados, apagados ou renomeados (no máximo um a cada 300 ms; sem `.aurora8/` e `.git/`; abrir um arquivo para ler não conta) |
 
 ## Códigos de erro do Studio
 

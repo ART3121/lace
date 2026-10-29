@@ -1014,7 +1014,7 @@ fn execute(
                 tracker.expect(ArtifactKind::Waveform, wave, plan.wave_required);
             }
 
-            // A cópia do testbench com o dump injetado fica em `.lace/Temp`:
+            // A cópia do testbench com o dump injetado fica em `.aurora8/Temp`:
             // a pasta do original entra nos `include` antes da raiz.
             let original_dir = plan
                 .instrumented
@@ -2117,7 +2117,7 @@ endmodule
         let guard = tempfile::tempdir().unwrap();
         let root = Utf8Path::from_path(guard.path()).unwrap().to_owned();
         let tb_dir = root.join("tb");
-        let work = root.join(".lace/Temp");
+        let work = root.join(".aurora8/Temp");
         std::fs::create_dir_all(&tb_dir).unwrap();
         std::fs::create_dir_all(root.join("data")).unwrap();
         std::fs::write(tb_dir.join("vetor.hex"), "aa bb\n").unwrap();

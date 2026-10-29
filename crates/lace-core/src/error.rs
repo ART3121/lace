@@ -174,9 +174,9 @@ pub enum LaceError {
     OutsideProject(Utf8PathBuf),
 
     /// [`Project::move_path`](crate::Project::move_path) recusou o movimento:
-    /// o `.spf`, a pasta `.lace`, a pasta de um processador, a pasta de saída
+    /// o `.spf`, a pasta `.aurora8`, a pasta de um processador, a pasta de saída
     /// dele e o fonte ficam onde o Core os procura; uma pasta não vai para dentro dela mesma; nada vai
-    /// para dentro de `.lace`. Nada foi alterado.
+    /// para dentro de `.aurora8`. Nada foi alterado.
     #[error("Cannot move {path}: {reason}")]
     CannotMove {
         /// O que seria movido.

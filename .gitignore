@@ -2,7 +2,7 @@
 /vendor
 
 # saídas de build dos projetos de exemplo
-/examples/**/.lace/
+/examples/**/.aurora8/
 /examples/**/Hardware/
 /examples/**/Software/*.asm
 /examples/**/*.vcd

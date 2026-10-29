@@ -813,7 +813,7 @@ export const pt = {
   'reports.cleanCount': 'Saem {count}:',
   'reports.cleanNothing': 'Nenhum relatório sai com essa escolha.',
   'reports.cleanSubmit': 'Apagar ({count})',
-  'reports.cleanHint': 'Apaga de .lace/reports, como lace report clean. O número de um relatório apagado não volta.',
+  'reports.cleanHint': 'Apaga de .aurora8/reports, como lace report clean. O número de um relatório apagado não volta.',
   'reports.openFile': 'Abrir o report.txt',
   'reports.unreadable': 'ilegível',
   'reports.synthesis': 'síntese',

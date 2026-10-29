@@ -23,8 +23,8 @@
             "-s",
             "infinito_tb",
             "-o",
-            "${ROOT}/.lace/Temp/infinito_tb.vvp",
-            "${ROOT}/.lace/Temp/instr_infinito_tb.v"
+            "${ROOT}/.aurora8/Temp/infinito_tb.vvp",
+            "${ROOT}/.aurora8/Temp/instr_infinito_tb.v"
           ],
           "cwd": "${ROOT}",
           "env": [
@@ -51,7 +51,7 @@
           "args": [
             "${HOME}/Projetos/NIPSCERN/lace/dist/toolchain-yanc7.1/oss-cad-suite/bin/vvp",
             "-n",
-            "${ROOT}/.lace/Temp/infinito_tb.vvp",
+            "${ROOT}/.aurora8/Temp/infinito_tb.vvp",
             "-fst"
           ],
           "cwd": "${ROOT}",
@@ -85,7 +85,7 @@
     "artifacts": [
       {
         "kind": "icarus_image",
-        "path": "${ROOT}/.lace/Temp/infinito_tb.vvp",
+        "path": "${ROOT}/.aurora8/Temp/infinito_tb.vvp",
         "required": true,
         "fresh": true
       },

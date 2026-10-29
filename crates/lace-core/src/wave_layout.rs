@@ -255,7 +255,7 @@ fn chosen<'a>(scope: &'a Scope, selection: &[String]) -> Vec<&'a Signal> {
         .collect()
 }
 
-/// O registro, em `.lace/`, do SHA-256 do layout que o Lace gravou por
+/// O registro, em `.aurora8/`, do SHA-256 do layout que o Lace gravou por
 /// último em `wave/` para cada testbench: o arquivo que ainda tem esse
 /// conteúdo não foi salvo pelo usuário e pode ser refeito.
 const GENERATED_RECORD: &str = "wave/generated.json";
@@ -301,7 +301,7 @@ pub fn saved_layout(waveform: &Utf8Path, layout: &WaveLayout) -> Result<Option<S
         return Ok(None);
     };
     let path = crate::wave_signals::layout_file(&project, testbench);
-    let record_path = project.root().join(".lace").join(GENERATED_RECORD);
+    let record_path = project.root().join(".aurora8").join(GENERATED_RECORD);
     let mut record = read_record(&record_path);
     let generated = sha256_of(&layout.state);
     match std::fs::read_to_string(&path) {
@@ -352,7 +352,7 @@ pub fn reset_saved_layout(project: &Project, testbench: &str) -> Result<bool> {
     if let Some(dir) = path.parent() {
         let _ = std::fs::remove_dir(dir);
     }
-    let record_path = project.root().join(".lace").join(GENERATED_RECORD);
+    let record_path = project.root().join(".aurora8").join(GENERATED_RECORD);
     let mut record = read_record(&record_path);
     if record.remove(testbench).is_some() {
         write_record(&record_path, &record)?;
@@ -373,7 +373,7 @@ pub fn wave_testbench_of(waveform: &Utf8Path) -> Result<Option<String>> {
         .map(|s| s.path.replace(ESCAPED_DOT, ".")))
 }
 
-/// Monta o layout de `waveform` e grava em `<projeto>/.lace/Temp/surfer/<onda>-<hash>/`
+/// Monta o layout de `waveform` e grava em `<projeto>/.aurora8/Temp/surfer/<onda>-<hash>/`
 /// (fora de projeto, na pasta de cache do usuário, como o log do Surfer): o
 /// `<onda>.surf.ron` e os tradutores em `.surfer/mappings/`. Tradutores
 /// antigos dessa pasta saem antes. `Ok(None)` como em [`wave_layout`].
@@ -2222,13 +2222,13 @@ $upscope $end $upscope $end $enddefinitions $end";
 
     #[test]
     fn two_waves_with_the_same_name_get_two_folders() {
-        let a = layout_dir_name(Utf8Path::new("/p/.lace/Temp/pa/pa_tb.vcd"));
+        let a = layout_dir_name(Utf8Path::new("/p/.aurora8/Temp/pa/pa_tb.vcd"));
         let b = layout_dir_name(Utf8Path::new("/p/x/pa_tb.vcd"));
         assert!(a.starts_with("pa_tb-") && b.starts_with("pa_tb-"));
         assert_ne!(a, b);
         assert_eq!(
             a,
-            layout_dir_name(Utf8Path::new("/p/.lace/Temp/pa/pa_tb.vcd"))
+            layout_dir_name(Utf8Path::new("/p/.aurora8/Temp/pa/pa_tb.vcd"))
         );
     }
 

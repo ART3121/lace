@@ -166,7 +166,7 @@
           "type": "string"
         },
         "temp_dir": {
-          "description": "`<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
+          "description": "`<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do\nVerilator, a cópia instrumentada do testbench, a trava de execução).",
           "type": "string"
         },
         "frequency_mhz": {

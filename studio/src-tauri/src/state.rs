@@ -26,7 +26,7 @@ pub struct AppState {
     /// O `.spf` do projeto aberto.
     pub project: Mutex<Option<Utf8PathBuf>>,
     /// A operação rodando, se houver. Só uma por vez: duas operações no
-    /// mesmo projeto dividiriam o `.lace/Temp`.
+    /// mesmo projeto dividiriam o `.aurora8/Temp`.
     pub job: Mutex<Option<ActiveJob>>,
     /// Os terminais de shell abertos, por identificador.
     pub terminals: Mutex<HashMap<u32, Terminal>>,

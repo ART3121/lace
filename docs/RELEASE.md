@@ -112,7 +112,7 @@ Os contratos do Lace, e o que quebra cada um:
 | `--json` e `--events` | `docs/schema/` | tirar ou renomear um campo, mudar o tipo ou o significado dele ([CONTRIBUTING.md](../CONTRIBUTING.md), "Contrato do `--json`") |
 | Protocolo do `lace serve` | `crates/lace-protocol/src/lib.rs` | a tabela de [METODOLOGIA.md](METODOLOGIA.md), seção 5 |
 | Códigos de erro | `LaceError::code()`, em `crates/lace-core/src/error.rs` | mudar um código publicado, o que nunca se faz |
-| Projeto | o `.spf` (o mesmo da AURORA), o `fpga.json`, a pasta `wave/`, a pasta `.lace/` | um projeto que abria deixa de abrir, ou passa a precisar de conversão, como a da estrutura do YANC 6.x para a do 7.1 |
+| Projeto | o `.spf` (o mesmo da AURORA), o `fpga.json`, a pasta `wave/`, a pasta `.aurora8/` | um projeto que abria deixa de abrir, ou passa a precisar de conversão, como a da estrutura do YANC 6.x para a do 7.1 |
 | Instalação e atualização | os nomes dos arquivos da release, o `index.json` e o `files.json` de cada plataforma, o recibo `install.json`, a pasta da instalação | o `lace update` de uma versão publicada deixa de conseguir atualizar |
 | Bundle | `bundle/versions.json`; a versão mínima do YANC, em `crates/lace-core/src/yanc.rs` | tirar uma ferramenta; subir a versão mínima do YANC |
 | Sistemas | Ubuntu 22.04 (glibc 2.35), macOS 13 em Apple Silicon e Windows 10, no `installers.yml` e no `installer/windows/lace.iss` | deixar de atender um deles |

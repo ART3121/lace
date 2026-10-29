@@ -418,7 +418,7 @@ pub(crate) fn copy_recursive(from: &Utf8Path, to: &Utf8Path) -> IpcResult<()> {
 }
 
 /// Todos os arquivos do projeto, para o "abrir rápido" (Ctrl+P). Pula as
-/// pastas ocultas (inclusive `.lace/`) e as de [`SKIPPED_DIRS`].
+/// pastas ocultas (inclusive `.aurora8/`) e as de [`SKIPPED_DIRS`].
 #[tauri::command]
 pub async fn fs_list_files(app: AppHandle) -> IpcResult<Vec<Utf8PathBuf>> {
     blocking(app, |_, state| {

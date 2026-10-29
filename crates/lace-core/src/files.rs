@@ -558,7 +558,7 @@ impl Project {
     }
 
     /// Os `.v` e `.sv` da pasta do projeto e das subpastas (até 4 níveis;
-    /// fora `.lace/`, as ocultas, as dos processadores, a `TopLevel/`
+    /// fora `.aurora8/`, as ocultas, as dos processadores, a `TopLevel/`
     /// legada, que entra sozinha, e as de outro projeto, com `.spf` próprio)
     /// que não estão registrados, e os `.py` com testes cocotb
     /// (`@cocotb.test`).
@@ -1132,7 +1132,7 @@ impl Project {
     /// desfeito antes do erro.
     ///
     /// Ficam onde estão, porque o Core os acha pelo lugar: o `.spf`, a pasta
-    /// `.lace`, e de cada processador a pasta, a de saída e o fonte. Os
+    /// `.aurora8`, e de cada processador a pasta, a de saída e o fonte. Os
     /// outros arquivos de dentro delas (entradas, saídas, gerados) podem ser
     /// movidos.
     ///
@@ -1157,7 +1157,7 @@ impl Project {
     ///   pasta do projeto;
     /// - [`LaceError::CannotMove`] para o que fica no lugar (acima), para uma
     ///   pasta que iria para dentro dela mesma e para um destino dentro de
-    ///   `.lace`;
+    ///   `.aurora8`;
     /// - [`LaceError::PathExists`] se `to` já existe, inclusive como link
     ///   quebrado (renomear só a caixa, `a.v` para `A.v`, vale também num
     ///   sistema que não distingue maiúsculas);
@@ -1210,8 +1210,8 @@ impl Project {
         if to.starts_with(&from) {
             return Err(refuse("A folder cannot go inside itself"));
         }
-        if to.starts_with(self.root.join(".lace")) {
-            return Err(refuse("Nothing goes into the .lace folder"));
+        if to.starts_with(self.root.join(".aurora8")) {
+            return Err(refuse("Nothing goes into the .aurora8 folder"));
         }
         // `symlink_metadata`, e não `exists`: um link quebrado no destino
         // também ocupa o nome. A exceção é o próprio arquivo com outra caixa
@@ -1250,7 +1250,7 @@ impl Project {
     /// `hg mv --after`.
     ///
     /// Valem as mesmas regras do `move_path` (dentro do projeto, nada do que
-    /// fica no lugar, nada para dentro de `.lace`), e o disco tem que bater
+    /// fica no lugar, nada para dentro de `.aurora8`), e o disco tem que bater
     /// com o movimento: `from` não existe mais e `to` existe. Se o `.spf`
     /// não puder ser gravado, ele fica como estava.
     ///
@@ -1275,7 +1275,7 @@ impl Project {
     ///   pasta do projeto;
     /// - [`LaceError::CannotMove`] para o que fica no lugar, para uma pasta
     ///   que teria ido para dentro dela mesma, para um destino dentro de
-    ///   `.lace` e quando `from` ainda existe (o movimento não aconteceu);
+    ///   `.aurora8` e quando `from` ainda existe (o movimento não aconteceu);
     /// - [`LaceError::InvalidProject`] se `to` não existe;
     /// - [`LaceError::Io`] se o `.spf` não puder ser gravado.
     ///
@@ -1315,8 +1315,8 @@ impl Project {
         if to.starts_with(&from) {
             return Err(refuse("A folder cannot go inside itself"));
         }
-        if to.starts_with(self.root.join(".lace")) {
-            return Err(refuse("Nothing goes into the .lace folder"));
+        if to.starts_with(self.root.join(".aurora8")) {
+            return Err(refuse("Nothing goes into the .aurora8 folder"));
         }
         if std::fs::symlink_metadata(&to).is_err() {
             return Err(LaceError::InvalidProject {
@@ -1356,7 +1356,7 @@ impl Project {
     /// o Core nunca sobrescreve, e protege o que fica no lugar só como origem.
     ///
     /// Não sai a pasta do projeto, o que fica no lugar (o `.spf`, a pasta
-    /// `.lace`, a pasta, a pasta de saída e o fonte de um processador), nem
+    /// `.aurora8`, a pasta, a pasta de saída e o fonte de um processador), nem
     /// uma pasta que contém algum deles ou a própria origem.
     ///
     /// ```
@@ -1387,7 +1387,7 @@ impl Project {
         if from.starts_with(&target) {
             return Some("It holds what is being moved");
         }
-        let held = [self.spf_path().to_owned(), self.root.join(".lace")]
+        let held = [self.spf_path().to_owned(), self.root.join(".aurora8")]
             .into_iter()
             .chain(
                 self.processors()
@@ -1395,7 +1395,7 @@ impl Project {
                     .flat_map(|p| [p.dir.clone(), p.output_dir.clone(), p.source.clone()]),
             )
             .any(|kept| kept.starts_with(&target));
-        held.then_some("It holds what stays in place: the project file, .lace or a processor")
+        held.then_some("It holds what stays in place: the project file, .aurora8 or a processor")
     }
 
     /// Por que `path` não sai do lugar, ou `None` se pode sair.
@@ -1403,8 +1403,8 @@ impl Project {
         if path == self.spf_path() {
             return Some("The project file stays in the project folder");
         }
-        if path.starts_with(self.root.join(".lace")) {
-            return Some("The .lace folder belongs to Lace");
+        if path.starts_with(self.root.join(".aurora8")) {
+            return Some("The .aurora8 folder belongs to Lace");
         }
         for processor in self.processors() {
             if path == processor.dir {
@@ -2205,7 +2205,7 @@ mod tests {
         std::fs::create_dir_all(root.join("docs")).unwrap();
         for (target, why) in [
             (project.spf_path().as_str(), "o .spf"),
-            (root.join(".lace").as_str(), "a .lace"),
+            (root.join(".aurora8").as_str(), "a .aurora8"),
             (soma.dir.as_str(), "a pasta do processador"),
             (soma.source.as_str(), "o fonte dele"),
             (root.as_str(), "a pasta do projeto"),

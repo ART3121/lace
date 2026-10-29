@@ -65,13 +65,13 @@ pub fn copy_dir(from: &Utf8Path, to: &Utf8Path) {
 }
 
 /// Copia um projeto de `examples/` para um diretório temporário, sem os
-/// artefatos de builds anteriores (`.lace/` e a pasta de saída de cada
+/// artefatos de builds anteriores (`.aurora8/` e a pasta de saída de cada
 /// processador, `<proc>/<proc>/`).
 pub fn example(name: &str) -> (tempfile::TempDir, Utf8PathBuf) {
     let (guard, dir) = tempdir();
     let target = dir.join(name);
     copy_dir(&workspace().join("examples").join(name), &target);
-    let _ = std::fs::remove_dir_all(target.join(".lace"));
+    let _ = std::fs::remove_dir_all(target.join(".aurora8"));
     for entry in target.read_dir_utf8().unwrap() {
         let entry = entry.unwrap();
         if entry.file_type().unwrap().is_dir() {

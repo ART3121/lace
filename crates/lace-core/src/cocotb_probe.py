@@ -3,7 +3,7 @@
 Escreve uma linha de JSON no stdout: a VPI do cocotb para o Icarus (o -m do
 vvp), a do Verilator e o main.cpp que o modelo dele liga, a biblioteca do
 Python e o resto do ambiente. O Lace (crates/lace-core/src/cocotb.rs) guarda
-o resultado em .lace/Temp/cocotb/probe.json e roda a sonda de novo quando o
+o resultado em .aurora8/Temp/cocotb/probe.json e roda a sonda de novo quando o
 Python do bundle muda. Funciona com o cocotb 1 (cocotb.config) e o 2
 (cocotb_tools.config), que nomeiam a biblioteca e o ambiente de jeitos
 diferentes.

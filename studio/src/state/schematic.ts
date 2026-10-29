@@ -3,7 +3,7 @@
 // voltar a ela volta ao mesmo lugar), e o leitor do netlist pelo backend.
 //
 // O netlist é o `hierarchy.json` da última síntese (SynthesisResult.netlist)
-// ou, depois de reabrir o Studio, o que ficou em `.lace/Temp/synth/<alvo>/`.
+// ou, depois de reabrir o Studio, o que ficou em `.aurora8/Temp/synth/<alvo>/`.
 
 import { createRtlViewerStore, type NetlistReader } from '@lace/rtl-viewer';
 

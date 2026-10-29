@@ -1233,10 +1233,10 @@ mod reader_tests {
     fn tool_paths_with_accents_go_relative_to_the_cwd_on_windows() {
         if cfg!(windows) {
             let cwd = Utf8Path::new(r"C:\p\Área\eco\eco");
-            let image = Utf8Path::new(r"C:\p\Área\.lace\Temp\x.vvp");
+            let image = Utf8Path::new(r"C:\p\Área\.aurora8\Temp\x.vvp");
             assert_eq!(
                 tool_path(image, cwd),
-                Utf8Path::new(r"..\..\.lace\Temp\x.vvp")
+                Utf8Path::new(r"..\..\.aurora8\Temp\x.vvp")
             );
             // Só ASCII, ou em outro disco: o caminho como é.
             let plain = Utf8Path::new(r"C:\p\a.v");
@@ -1245,9 +1245,9 @@ mod reader_tests {
             assert_eq!(tool_path(other, cwd), other);
             // O `iverilog` recebe o relativo com `/`.
             let invocation = Invocation::new("iverilog", cwd).icarus_path_arg(image);
-            assert_eq!(invocation.args, ["../../.lace/Temp/x.vvp"]);
+            assert_eq!(invocation.args, ["../../.aurora8/Temp/x.vvp"]);
         } else {
-            let image = Utf8Path::new("/p/Área/.lace/Temp/x.vvp");
+            let image = Utf8Path::new("/p/Área/.aurora8/Temp/x.vvp");
             assert_eq!(tool_path(image, Utf8Path::new("/p/Área/eco/eco")), image);
         }
     }

@@ -2,7 +2,7 @@
 //! sistema, sem abrir a interface dele.
 //!
 //! ```text
-//! <raiz>/.lace/fpga/<placa>/
+//! <raiz>/.aurora8/fpga/<placa>/
 //!   lace_board_top.v      o topo da placa (wrapper)
 //!   lace_board_top.qsf    a FPGA, os fontes e os pinos (qsf)
 //!   lace_board_top.sdc    os clocks da placa
@@ -41,9 +41,9 @@ use crate::process::Termination;
 use crate::project::Project;
 use crate::toolchain::{Tool, Toolchain};
 
-/// A pasta do projeto do Quartus para uma placa: `<raiz>/.lace/fpga/<placa>`.
+/// A pasta do projeto do Quartus para uma placa: `<raiz>/.aurora8/fpga/<placa>`.
 pub fn build_dir(project: &Project, board: &str) -> Utf8PathBuf {
-    project.root().join(".lace").join("fpga").join(board)
+    project.root().join(".aurora8").join("fpga").join(board)
 }
 
 /// O resultado de [`build`].

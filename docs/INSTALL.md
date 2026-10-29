@@ -388,7 +388,7 @@ tem ficam, junto dos do perfil; para tirar algum, use o Custom.
 atalho, o do Studio no menu e a pasta; uma instalação do sistema (`/opt/lace`) pede
 `sudo lace uninstall`.
 
-O que não sai, porque não é da instalação: os projetos, com o `.lace/` de
+O que não sai, porque não é da instalação: os projetos, com o `.aurora8/` de
 cada um (intermediários e ondas, que se apagam à mão), e o histórico de
 arquivos do surfer-aurora (`~/.local/share/surfer` no Linux), que o Surfer e
 a AURORA também usam, as preferências do Studio, o `experimental.json` do

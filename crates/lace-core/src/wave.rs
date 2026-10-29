@@ -4,7 +4,7 @@
 //! `surfer <onda> [-c <comandos.sucl> | -s <estado.surf.ron>]`, destacado,
 //! com CWD na pasta da onda. O arquivo de layout é opcional; sem ele o Surfer
 //! abre a onda sem sinais selecionados. O log do Surfer não fica ao lado da
-//! onda: vai para a pasta temporária do projeto (`.lace/Temp/surfer/`).
+//! onda: vai para a pasta temporária do projeto (`.aurora8/Temp/surfer/`).
 //!
 //! O layout dos processadores SAPHO (o `.surf.ron` e as tabelas de tradução
 //! de opcode e de linha de fonte) sai de [`prepare_wave_layout`](crate::prepare_wave_layout),
@@ -51,7 +51,7 @@ impl ViewerOptions {
 /// Abre `waveform` (VCD, FST ou GHW) no Surfer e retorna sem esperar. O processo continua
 /// aberto depois que o [`RunningProcess`] sai de escopo; feche com
 /// [`RunningProcess::kill`]. A saída do Surfer vai para `<onda>.log`
-/// (`soma_tb.vcd.log`) em `.lace/Temp/surfer/`, no projeto que contém a
+/// (`soma_tb.vcd.log`) em `.aurora8/Temp/surfer/`, no projeto que contém a
 /// onda; com a onda fora de projeto, na pasta de cache do usuário
 /// (`$XDG_CACHE_HOME/lace/surfer` ou `~/.cache/lace/surfer` no Linux,
 /// `~/Library/Caches/lace/surfer` no macOS, `%TEMP%\lace\surfer` no
@@ -70,7 +70,7 @@ impl ViewerOptions {
 /// use lace_core::{Toolchain, ViewerOptions, open_waveform};
 /// # let toolchain = Toolchain::open("/opt/lace/toolchain")?;
 ///
-/// let wave = camino::Utf8Path::new("/p/.lace/Temp/soma/soma_tb.vcd");
+/// let wave = camino::Utf8Path::new("/p/.aurora8/Temp/soma/soma_tb.vcd");
 /// let mut surfer = open_waveform(&toolchain, wave, &ViewerOptions::default())?;
 /// surfer.ensure_started(Duration::from_millis(1500))?;
 /// # Ok::<(), lace_core::LaceError>(())
@@ -127,7 +127,7 @@ pub fn open_waveform(
     process::spawn(&invocation, &log)
 }
 
-/// A pasta do Surfer para `waveform`, já criada: `.lace/Temp/surfer/` do
+/// A pasta do Surfer para `waveform`, já criada: `.aurora8/Temp/surfer/` do
 /// projeto que contém a onda, ou a de cache do usuário fora de projeto. Os
 /// logs e os layouts gerados ficam nela.
 pub(crate) fn work_dir(waveform: &Utf8Path) -> Result<Utf8PathBuf> {

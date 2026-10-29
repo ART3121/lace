@@ -958,7 +958,7 @@ fn unregistered_verilog_skips_registered_hidden_and_processors() {
     write(root.join("c.sv"), SV_PORTS);
     write(root.join("notas.txt"), "nada\n");
     write(root.join(".oculto/d.v"), AND_GATE);
-    write(root.join(".lace/Temp/e.v"), AND_GATE);
+    write(root.join(".aurora8/Temp/e.v"), AND_GATE);
     let soma = project
         .add_processor(&NewProcessor::new("soma", Language::Cmm))
         .unwrap()
@@ -1170,19 +1170,19 @@ fn move_path_refuses_what_stays_in_place() {
         .unwrap();
     write(root.join("rtl/a.v"), AND_GATE);
     write(root.join("b.v"), AND_GATE);
-    std::fs::create_dir_all(root.join(".lace/Temp")).unwrap();
+    std::fs::create_dir_all(root.join(".aurora8/Temp")).unwrap();
     std::fs::create_dir_all(root.join("soma/soma")).unwrap();
     let spf_before = read(project.spf_path());
 
     let spf = project.spf_path().to_owned();
     for (from, to) in [
         (spf.clone(), root.join("x.spf")),
-        (root.join(".lace"), root.join("lace")),
+        (root.join(".aurora8"), root.join("lace")),
         (root.join("soma"), root.join("outro")),
         (root.join("soma/soma"), root.join("saida")),
         (root.join("soma/soma.cmm"), root.join("soma.cmm")),
         (root.join("rtl"), root.join("rtl/dentro")),
-        (root.join("b.v"), root.join(".lace/b.v")),
+        (root.join("b.v"), root.join(".aurora8/b.v")),
     ] {
         let err = project.move_path(&from, &to).unwrap_err();
         assert!(matches!(err, LaceError::CannotMove { .. }), "{from}: {err}");
@@ -1523,7 +1523,7 @@ fn verilog_flow_from_scratch() {
 /// Um `include` relativo à pasta de quem o faz: `rtl/cpu.v` inclui
 /// `defs.vh` de `rtl/`, e o testbench, em `tb/`, inclui `vetores.vh` de
 /// `tb/`. No Windows o Icarus só os acha com os caminhos em `/`; e o
-/// testbench sem `$dumpfile` é compilado numa cópia em `.lace/Temp`, que
+/// testbench sem `$dumpfile` é compilado numa cópia em `.aurora8/Temp`, que
 /// precisa da pasta do original nos `include`.
 #[test]
 fn include_next_to_the_including_file() {

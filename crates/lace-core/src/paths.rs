@@ -394,8 +394,8 @@ mod tests {
         if cfg!(windows) {
             let sep = |p: &str| p.replace('/', "\\");
             assert_eq!(
-                rel(r"C:\p\Área\.lace\Temp\eco\x.v", r"C:\p\Área\eco\eco"),
-                Some(sep("../../.lace/Temp/eco/x.v"))
+                rel(r"C:\p\Área\.aurora8\Temp\eco\x.v", r"C:\p\Área\eco\eco"),
+                Some(sep("../../.aurora8/Temp/eco/x.v"))
             );
             assert_eq!(
                 rel(r"C:\Users\José\AppData\SAPHO", r"c:\Users\José\proj"),
@@ -412,8 +412,8 @@ mod tests {
             assert_eq!(rel(r"\\srv\share\a.v", r"C:\p"), None);
         } else {
             assert_eq!(
-                rel("/p/Área/.lace/Temp/eco/x.v", "/p/Área/eco/eco"),
-                Some("../../.lace/Temp/eco/x.v".into())
+                rel("/p/Área/.aurora8/Temp/eco/x.v", "/p/Área/eco/eco"),
+                Some("../../.aurora8/Temp/eco/x.v".into())
             );
             assert_eq!(rel("/p/a.v", "/p"), Some("a.v".into()));
             assert_eq!(rel("/p", "/p"), Some(".".into()));

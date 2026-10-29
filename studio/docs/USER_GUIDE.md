@@ -31,7 +31,7 @@ numa pasta fora do padrão, indique-a em Preferências > Bundle do Lace.
 
 Os projetos são os `.spf` da AURORA: um projeto da AURORA abre no Studio, e
 o que o Studio grava continua legível pela AURORA. Os temporários ficam em
-`.lace/` (a AURORA usava `.aurora/`).
+`.aurora8/` (a AURORA usava `.aurora/`).
 
 **Abertura.** Enquanto o Studio abre, uma janela pequena mostra o logo do
 Lace sendo desenhado, com um sinal que corre pelos fios, e o que está
@@ -166,7 +166,7 @@ pastas que você abre ficam lembradas por projeto.
 | outros arquivos do sistema | o editor | abrem em abas |
 
 Com um arquivo do mesmo nome no destino, o Studio pergunta antes de
-substituir, e o que estava lá vai para a lixeira. O `.spf`, a pasta `.lace`
+substituir, e o que estava lá vai para a lixeira. O `.spf`, a pasta `.aurora8`
 e as pastas dos processadores não se movem: o Lace os acha pelo lugar.
 
 **Se o `.spf` for apagado** com o projeto aberto (pelo gerenciador de
@@ -561,7 +561,7 @@ de existir a onda do alvo.
 Um testbench sem `$finish` não termina sozinho: use Parar, ou defina um
 prazo em Preferências > Simulação.
 
-Cada operação grava um relatório no histórico do projeto (`.lace/reports/`),
+Cada operação grava um relatório no histórico do projeto (`.aurora8/reports/`),
 como a CLI. O número aparece no fim da rodada, no INFO.
 
 ## 6. INFO, terminais, problemas e shell
@@ -978,7 +978,7 @@ status está escondida; Esc duas vezes não sai do zen, Ctrl+K Z sai.
 | "O projeto não tem módulo de topo" | botão direito num módulo, no explorador > Definir como topo; ou Projeto > Escolher o módulo de topo |
 | "O processador ainda não foi compilado" | C± (F6) com o processador no alvo |
 | O Verilator falha por falta de compilador | instale g++ (ou clang++), make e Perl; ou indique a pasta deles em Preferências > Bundle do Lace > Compilador do Verilator |
-| O surfer-aurora fecha logo ao abrir | sem display gráfico, ou onda inválida; o log dele fica em `.lace/Temp/surfer/<onda>.log` |
+| O surfer-aurora fecha logo ao abrir | sem display gráfico, ou onda inválida; o log dele fica em `.aurora8/Temp/surfer/<onda>.log` |
 | A aba da onda diz que o bundle não traz o cliente web | o bundle é anterior ao cliente web do Surfer; a onda abre em janela até um bundle novo |
 | A aba da onda recusa uma onda grande | acima de 256 MB a onda abre em janela (o ícone de janela, no alto da aba) |
 | "O arquivo mudou no disco" ao salvar | outro programa alterou o arquivo; escolha sobrescrever ou recarregar |

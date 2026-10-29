@@ -37,7 +37,7 @@ fn tempdir() -> (tempfile::TempDir, Utf8PathBuf) {
     (dir, path)
 }
 
-/// Copia um projeto sem `.lace/` e sem a pasta de saída dos processadores
+/// Copia um projeto sem `.aurora8/` e sem a pasta de saída dos processadores
 /// (`<proc>/<proc>/`), os restos de um build anterior.
 fn copy_dir(from: &Utf8Path, to: &Utf8Path) {
     copy_tree(from, to, 0);
@@ -50,7 +50,7 @@ fn copy_tree(from: &Utf8Path, to: &Utf8Path, depth: usize) {
         let name = entry.file_name();
         // `from` é a pasta de um processador, filha da raiz.
         let output_folder = depth == 1 && from.file_name() == Some(name);
-        if name == ".lace" || output_folder {
+        if name == ".aurora8" || output_folder {
             continue;
         }
         let target = to.join(name);
@@ -1051,7 +1051,7 @@ fn hierarchy_shows_design_and_testbench() {
         ))
         .stdout(predicate::str::contains("Hierarchy (iverilog): finished"));
     // Não compila nem grava relatório.
-    assert!(!root.join(".lace/reports").exists());
+    assert!(!root.join(".aurora8/reports").exists());
 
     let result = json(
         lace_in(&root)
@@ -1652,7 +1652,7 @@ fn wave_without_argument_uses_the_project_waveform() {
         err["error"]["message"]
             .as_str()
             .unwrap()
-            .contains(&format!(".lace/Temp/surfer/{name}.log")),
+            .contains(&format!(".aurora8/Temp/surfer/{name}.log")),
         "{err}"
     );
     let beside: Vec<_> = std::fs::read_dir(wave.parent().unwrap())
@@ -1885,7 +1885,7 @@ fn interrupt_cancels_and_leaves_no_simulator_behind() {
         .unwrap();
 
     // Espera o vvp começar: o .vvp aparece antes da simulação.
-    let image = root.join(".lace/Temp/infinito_tb.vvp");
+    let image = root.join(".aurora8/Temp/infinito_tb.vvp");
     let started = std::time::Instant::now();
     while !image.is_file() {
         assert!(started.elapsed().as_secs() < 30, "a simulação não começou");
@@ -2052,7 +2052,7 @@ fn report_without_history_explains_itself() {
 /// Relatórios de mentira: `clean` não lê o conteúdo.
 fn fake_reports(root: &Utf8Path, numbers: &[u32]) {
     for n in numbers {
-        let dir = root.join(format!(".lace/reports/run-{n:06}"));
+        let dir = root.join(format!(".aurora8/reports/run-{n:06}"));
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("report.txt"), "x").unwrap();
     }
@@ -2123,7 +2123,7 @@ fn report_clean_removes_named_old_or_all_reports() {
     assert!(text.contains("report numbers are not reused"), "{text}");
     assert!(report_ids(&root).is_empty());
     // O número não volta: o próximo relatório seria o run-000007.
-    let sequence = std::fs::read_to_string(root.join(".lace/reports/sequence")).unwrap();
+    let sequence = std::fs::read_to_string(root.join(".aurora8/reports/sequence")).unwrap();
     assert_eq!(sequence.trim(), "6");
 }
 

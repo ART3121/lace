@@ -217,7 +217,7 @@ por fora, o backend recusa com `conflict` e a interface pergunta:
 sobrescrever, recarregar ou cancelar.
 
 `watcher.rs` vigia a pasta do projeto (crate `notify`), junta os caminhos
-por 300 ms e emite `studio://fs-changed`. O que muda em `.lace/` e `.git/`
+por 300 ms e emite `studio://fs-changed`. O que muda em `.aurora8/` e `.git/`
 não é avisado: muda o tempo todo durante uma operação e não aparece na
 árvore. Só mudança conta (criar, gravar, apagar, renomear, atributos): o
 inotify avisa também quando um arquivo é aberto para leitura, e repassar
@@ -227,7 +227,7 @@ o `.spf`.
 Copiar (`fs_copy`, o arrastar do gerenciador de arquivos) só vale com
 destino no projeto. Mover e renomear na árvore são o `project.move` do
 servidor (o `Project::move_path` do Lace), que mantém o `.spf` em dia e
-recusa o que fica no lugar (o `.spf`, `.lace/`, as pastas e o fonte dos
+recusa o que fica no lugar (o `.spf`, `.aurora8/`, as pastas e o fonte dos
 processadores). Com `overwrite`, o que está no destino vai para a lixeira e
 o movimento é tentado de novo, menos quando o destino é o que o Lace mantém
 no lugar, a pasta do projeto ou uma pasta que contém a origem: aí o erro é

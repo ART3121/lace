@@ -517,7 +517,7 @@ pub(crate) fn design_roots(
 /// A síntese é a do RTLViewer da AURORA: elabora a hierarquia, converte processos
 /// em lógica e limpa, sem mapear para uma FPGA. Serve para visualizar, não
 /// para estimar área. Os arquivos ficam em
-/// `<projeto>/.lace/Temp/synth/<topo>/`: o script (`yosys_script.ys`), o log
+/// `<projeto>/.aurora8/Temp/synth/<topo>/`: o script (`yosys_script.ys`), o log
 /// (`yosys.log`) e o netlist.
 ///
 /// Com [`DesignTarget::TopLevel`], entram os mesmos arquivos de
@@ -944,7 +944,7 @@ fn yosys_script(
 /// contrário.
 ///
 /// `before` é a pasta do testbench original quando o Icarus compila a cópia
-/// com o dump injetado, que fica em `.lace/Temp`: o `include` relativo à
+/// com o dump injetado, que fica em `.aurora8/Temp`: o `include` relativo à
 /// pasta dele continua achando o arquivo. Os caminhos vão com `/`
 /// ([`icarus_path`](crate::process::icarus_path)), sem o que o
 /// `-grelative-include` não funciona no Windows.

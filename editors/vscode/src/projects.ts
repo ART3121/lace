@@ -16,8 +16,8 @@ export interface LaceProject {
 }
 
 const ACTIVE_KEY = 'lace.activeProject';
-// O .lace/ é do próprio Lace (temporários, relatórios), nunca um projeto.
-const EXCLUDE = '**/{node_modules,.git,.lace}/**';
+// O .aurora8/ é do próprio Lace (temporários, relatórios), nunca um projeto.
+const EXCLUDE = '**/{node_modules,.git,.aurora8}/**';
 
 export class Projects implements vscode.Disposable {
   private list: LaceProject[] = [];

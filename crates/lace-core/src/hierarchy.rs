@@ -10,7 +10,7 @@
 //!             -o <trabalho>/proc-<nome>.vvp <saída>/<nome>.v <saída>/<nome>_tb.v
 //! ```
 //!
-//! `<trabalho>` é `<raiz>/.lace/Temp/hierarchy/`, refeita a cada chamada. Os
+//! `<trabalho>` é `<raiz>/.aurora8/Temp/hierarchy/`, refeita a cada chamada. Os
 //! arquivos do design e dos testbenches são os de [`check`](crate::check).
 //!
 //! O `.vvp` que o `iverilog` grava lista cada escopo elaborado numa linha:

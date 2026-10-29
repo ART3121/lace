@@ -171,7 +171,7 @@ está no [README](README.md#como-as-partes-se-ligam).
 | `synth.rs` | `check` (Icarus e, com `lint`, Verilator), `synthesize` (Yosys), `render_schematic` (`show` do Yosys e `dot`); `CheckOptions`, `DesignTarget`; os arquivos do design (`project_sources`, `processor_verilog`), que `hierarchy.rs` também usa |
 | `hierarchy.rs` | `hierarchy`: a árvore de instâncias do design e de cada testbench, elaborada pelo Icarus e lida do `.vvp` (`parse_vvp`); `HierarchyOptions`, `HierarchyResult`, `Elaboration`, `ModuleInstance` |
 | `stats.rs` | `SynthesisStatistics`: lê o `stat -json` do Yosys que a síntese grava (`SynthesisMetric`, `CellUsage`) |
-| `history.rs` | módulo público `lace_core::history`: o relatório de cada operação e o histórico em `.lace/reports/` (`record`, `list`, `load`, `latest`, `report_text`), a comparação (`compare`, `compare_reports`, `previous_comparable`) e o texto do `report.txt` (`render`) |
+| `history.rs` | módulo público `lace_core::history`: o relatório de cada operação e o histórico em `.aurora8/reports/` (`record`, `list`, `load`, `latest`, `report_text`), a comparação (`compare`, `compare_reports`, `previous_comparable`) e o texto do `report.txt` (`render`) |
 | `wave.rs` | `open_waveform` (surfer-aurora) e `ViewerOptions` |
 | `wave_signals.rs` | a escolha dos sinais que a onda do testbench grava: a árvore elaborada pelo Icarus (`wave_signals`), a escolha em `wave/<testbench>.json` (`read_selection`, `write_selection`) e o layout salvo (`layout_file`) |
 | `fpga/` | módulo público `lace_core::fpga` ([docs/FPGA.md](docs/FPGA.md)): as placas (`board.rs`, com os JSONs de `crates/lace-core/boards/` embutidos), o `fpga.json` e a resolução das ligações bit a bit (`config.rs`), o topo da placa gerado (`wrapper.rs`), o Quartus do sistema e a invocação dos programas dele (`quartus.rs`), o `.qsf` e o `.sdc` (`qsf.rs`), a leitura dos resumos de recursos e de tempo (`summary.rs`), a compilação para a placa (`build.rs`), o registro da compilação (`manifest.rs`, o `lace-build.json`), a conferência dos pinos depois do Fitter (`pins.rs`), a gravação na placa pelo Quartus Programmer (`program.rs`) e `prepare`, que junta tudo para um projeto |
@@ -555,7 +555,7 @@ Algumas regras o compilador e o clippy cobram; as outras, a revisão.
   Core não citam comandos; os comandos aparecem só em `hint`, na CLI.
 - **O Core nunca sobrescreve código do usuário.** Criar processador ou
   arquivo recusa se o arquivo já existe; só artefatos gerados (a pasta de
-  saída de cada processador, `.lace/Temp/`) são reescritos. A conversão da
+  saída de cada processador, `.aurora8/Temp/`) são reescritos. A conversão da
   estrutura antiga (`convert_layout`) move sem apagar nem sobrescrever.
 - **Tipos públicos.** Os enums públicos são `#[non_exhaustive]` (hoje faltam
   `FlowRequest`, `Progress`, `WavePolicy`, `WaveSource`, `LayoutPolicy` e

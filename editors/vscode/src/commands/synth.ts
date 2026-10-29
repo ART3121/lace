@@ -78,7 +78,7 @@ export async function synthesize(deps: RunDeps, target: SynthTarget): Promise<La
 /**
  * "Lace: Abrir o RTL viewer": o netlist da última síntese do alvo. Nesta
  * sessão, o que o JSON do synth disse; de antes, o que ficou no disco, em
- * `.lace/Temp/synth/<alvo>/hierarchy.json` (onde o Lace grava, e onde o
+ * `.aurora8/Temp/synth/<alvo>/hierarchy.json` (onde o Lace grava, e onde o
  * Studio também procura, em SchematicView); sem nenhum, sintetiza.
  */
 export async function openRtlViewer(deps: RunDeps, target: SynthTarget): Promise<void> {
@@ -87,7 +87,7 @@ export async function openRtlViewer(deps: RunDeps, target: SynthTarget): Promise
     return;
   }
   const name = target.kind === 'processor' ? target.name : deps.status.report?.top_module;
-  const onDisk = name ? join(project.root, '.lace', 'Temp', 'synth', name, 'hierarchy.json') : undefined;
+  const onDisk = name ? join(project.root, '.aurora8', 'Temp', 'synth', name, 'hierarchy.json') : undefined;
   const netlist = lastNetlist.get(targetKey(project.spf, target)) ?? (onDisk && existsSync(onDisk) ? onDisk : undefined);
   if (netlist) {
     await deps.viewer.show(netlist, target);

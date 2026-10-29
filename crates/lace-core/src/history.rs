@@ -6,7 +6,7 @@
 //! em JSON, numa pasta nova do histórico:
 //!
 //! ```text
-//! <projeto>/.lace/reports/
+//! <projeto>/.aurora8/reports/
 //!   run-000001/
 //!     report.txt     o relatório, como `lace report show` o mostra
 //!     record.json    metadados, estatísticas da síntese e tempos da simulação
@@ -53,7 +53,7 @@ use crate::synth::{CheckResult, SchematicResult, SynthesisResult};
 use crate::toolchain::{Tool, Toolchain};
 
 /// A pasta do histórico, relativa à raiz do projeto.
-pub const REPORTS_DIR: &str = ".lace/reports";
+pub const REPORTS_DIR: &str = ".aurora8/reports";
 
 /// O formato do `record.json` que este Lace grava e entende.
 pub const RECORD_SCHEMA: u32 = 1;

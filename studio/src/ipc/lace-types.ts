@@ -3666,7 +3666,7 @@ export interface ProcessorStatus {
    */
   output_dir: string;
   /**
-   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
    * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;
@@ -3911,7 +3911,7 @@ export interface Processor {
    */
   output_dir: string;
   /**
-   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
    * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;
@@ -6517,7 +6517,7 @@ export interface Processor1 {
    */
   output_dir: string;
   /**
-   * `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+   * `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
    * Verilator, a cópia instrumentada do testbench, a trava de execução).
    */
   temp_dir: string;

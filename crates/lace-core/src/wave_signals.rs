@@ -408,7 +408,7 @@ pub fn wave_testbench(project: &Project) -> Result<String> {
 
 /// Elabora o testbench do projeto com o Icarus e devolve a árvore de sinais,
 /// com a escolha gravada. A elaboração vai para
-/// `.lace/Temp/wave/signals.vvp`; nada no projeto muda.
+/// `.aurora8/Temp/wave/signals.vvp`; nada no projeto muda.
 ///
 /// Uma elaboração que falha não é erro: o resultado vem sem árvore, com os
 /// erros do Icarus em `diagnostics`.
@@ -462,7 +462,7 @@ type Elaborated = (
 );
 
 /// Elabora `testbench` com o design e lê a árvore a partir de `module`, com
-/// a imagem do Icarus em `.lace/Temp/wave/<image>.vvp`.
+/// a imagem do Icarus em `.aurora8/Temp/wave/<image>.vvp`.
 fn elaborate_tree(
     toolchain: &Toolchain,
     project: &Project,

@@ -24,7 +24,7 @@
 //! simulate   <build>/obj_dir_<dut>/V<dut> --trace --trace-file <raiz>/<teste>.vcd   cwd raiz
 //! ```
 //!
-//! em que `<build>` é `.lace/Temp/cocotb/<módulo de teste>/`. O `cmds.f`
+//! em que `<build>` é `.aurora8/Temp/cocotb/<módulo de teste>/`. O `cmds.f`
 //! traz `+timescale+1ns/1ps` (no Verilator, `--timescale`), o padrão do
 //! runner do cocotb, para os módulos sem `` `timescale ``: sem ele, o
 //! `Timer(1, "ns")` de um teste falha num design sem `` `timescale ``, cuja
@@ -45,7 +45,7 @@
 //! O que o simulador precisa para carregar o cocotb (a VPI, a biblioteca do
 //! Python e as variáveis de ambiente, que mudam do cocotb 1 para o 2) vem de
 //! uma sonda rodada com o Python do componente `cocotb` (`cocotb_probe.py`),
-//! guardada em `.lace/Temp/cocotb/probe.json` até o bundle mudar. Os `.pyc`
+//! guardada em `.aurora8/Temp/cocotb/probe.json` até o bundle mudar. Os `.pyc`
 //! vão para a pasta de cache do usuário (`PYTHONPYCACHEPREFIX`): nem o
 //! bundle, que pode ser só leitura, nem a pasta do projeto ganham
 //! `__pycache__`. Sem isso, o cocotb do bundle, que não vem compilado, levava
@@ -424,7 +424,7 @@ struct CachedProbe {
 pub(crate) struct CocotbRun {
     /// O `.py`.
     pub testbench: Utf8PathBuf,
-    /// A pasta do testbench em `.lace/Temp/cocotb/`: o `.vvp` ou o
+    /// A pasta do testbench em `.aurora8/Temp/cocotb/`: o `.vvp` ou o
     /// `obj_dir` do Verilator, o `cmds.f`, o módulo de dump e o
     /// `results.xml`.
     pub build: Utf8PathBuf,
@@ -451,7 +451,7 @@ pub(crate) struct CocotbRun {
 
 /// Prepara a simulação de `testbench` com `dut` no topo, no `simulator`:
 /// roda a sonda (ou usa a guardada) e grava o `cmds.f` e, no Icarus com
-/// onda, o módulo de dump em `.lace/Temp/cocotb/<módulo de teste>/`. `fast`
+/// onda, o módulo de dump em `.aurora8/Temp/cocotb/<módulo de teste>/`. `fast`
 /// é a simulação rápida, sem onda. `None` se o cancelamento foi pedido
 /// durante a sonda.
 ///

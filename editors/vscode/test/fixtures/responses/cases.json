@@ -224,7 +224,7 @@
       "stdout": "synth-sem-svg.events.jsonl",
       "creates": [
         {
-          "path": "${ROOT}/.lace/Temp/synth/contador/hierarchy.json",
+          "path": "${ROOT}/.aurora8/Temp/synth/contador/hierarchy.json",
           "from": "synth-sem-svg.created.json"
         }
       ]
@@ -242,11 +242,11 @@
       "stdout": "synth.events.jsonl",
       "creates": [
         {
-          "path": "${ROOT}/.lace/Temp/synth/contador/hierarchy.json",
+          "path": "${ROOT}/.aurora8/Temp/synth/contador/hierarchy.json",
           "from": "synth.created.json"
         },
         {
-          "path": "${ROOT}/.lace/Temp/synth/contador/contador.svg",
+          "path": "${ROOT}/.aurora8/Temp/synth/contador/contador.svg",
           "from": "synth.created.svg"
         }
       ]
@@ -265,7 +265,7 @@
       "stdout": "synth-soma.events.jsonl",
       "creates": [
         {
-          "path": "${ROOT}/.lace/Temp/synth/soma/hierarchy.json",
+          "path": "${ROOT}/.aurora8/Temp/synth/soma/hierarchy.json",
           "from": "synth-soma.created.json"
         }
       ]

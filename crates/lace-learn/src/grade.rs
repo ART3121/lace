@@ -5,7 +5,7 @@
 //!
 //! A correção não muda o estado da pasta de exercícios: quem chama marca o
 //! exercício como resolvido ([`Workspace::set_solved`]) quando o veredito é
-//! [`Verdict::Solved`]. Ela também não grava relatório em `.lace/reports`.
+//! [`Verdict::Solved`]. Ela também não grava relatório em `.aurora8/reports`.
 
 use std::time::{Duration, Instant};
 

@@ -78,7 +78,7 @@ describe('Lace: Sintetizar', () => {
     assert.equal(process.env.LACE_OPENER ?? 'vscode', 'vscode');
     // A pasta e os arquivos no mesmo instante, como na primeira síntese de um
     // alvo: o vigia do VS Code não veria (poller.ts); a extensão confere.
-    const dir = join(workspace, '.lace', 'Temp', 'synth', 'soma');
+    const dir = join(workspace, '.aurora8', 'Temp', 'synth', 'soma');
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'hierarchy.json'), readFileSync(join(RESPONSES, 'synth-soma.created.json')));
     writeFileSync(join(dir, 'rtl-viewer.html'), '<html></html>');

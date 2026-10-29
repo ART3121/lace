@@ -117,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<LaceEx
   // síntese cria (poller.ts).
   context.environmentVariableCollection.replace('LACE_OPENER', 'vscode');
   context.environmentVariableCollection.description = 'O lace synth --open abre o RTL viewer numa aba do VS Code';
-  const synthDir = () => (projects.active ? join(projects.active.root, '.lace', 'Temp', 'synth') : undefined);
+  const synthDir = () => (projects.active ? join(projects.active.root, '.aurora8', 'Temp', 'synth') : undefined);
   const viewerPages = new ChangePoller(
     async () => {
       const dir = synthDir();

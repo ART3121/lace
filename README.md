@@ -192,7 +192,7 @@ lace wave -p filtro
 ```
 
 Cada `build`, `check`, `sim` e `synth` grava um relatório no projeto
-(`.lace/reports/`): a máquina, as ferramentas e versões, o tempo de cada
+(`.aurora8/reports/`): a máquina, as ferramentas e versões, o tempo de cada
 passo e, na síntese, as estatísticas do Yosys:
 
 ```sh

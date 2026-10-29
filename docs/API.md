@@ -203,12 +203,12 @@ a pasta e o nome do usuário (no Linux, também `LANG` e `TMPDIR`). A lista
       <processador>.asm, .v, _data.mif, _inst.mif, _tb.v
       prog_log.txt, src_lines.txt, trad_opcode.txt, app_log.txt, pc_<processador>_mem.txt
       output_<n>.txt, toma_<n>.txt, <processador>_tb.fst   o que a simulação grava
-  .lace/Temp/<processador>/      o que só o Lace usa: .vvp, obj_dir, testbench instrumentado
-  .lace/Temp/                    simulação do projeto (.vvp, obj_dir, testbench instrumentado)
-  .lace/Temp/synth/<topo>/       síntese: script, log, netlist, esquemáticos
-  .lace/Temp/hierarchy/          hierarquia: um .vvp por elaboração, refeita a cada chamada
-  .lace/reports/                 o histórico de relatórios (5.9)
-  .lace/fpga/<placa>/            o projeto do Quartus e os arquivos de gravação (5.10)
+  .aurora8/Temp/<processador>/      o que só o Lace usa: .vvp, obj_dir, testbench instrumentado
+  .aurora8/Temp/                    simulação do projeto (.vvp, obj_dir, testbench instrumentado)
+  .aurora8/Temp/synth/<topo>/       síntese: script, log, netlist, esquemáticos
+  .aurora8/Temp/hierarchy/          hierarquia: um .vvp por elaboração, refeita a cada chamada
+  .aurora8/reports/                 o histórico de relatórios (5.9)
+  .aurora8/fpga/<placa>/            o projeto do Quartus e os arquivos de gravação (5.10)
 ```
 
 É a estrutura do YANC 7.1, a de quem o usa no terminal (`cmmcomp soma.cmm`
@@ -233,7 +233,7 @@ A raiz é sempre o diretório do `.spf`. O `basePath` gravado dentro do arquivo
 
 `Processor` tem `name`, `language`, `dir` (a pasta do processador),
 `source` (`<dir>/<nome>.<ext>`), `output_dir` (`<dir>/<nome>`, a pasta de
-saída), `temp_dir` (`.lace/Temp/<nome>`), `frequency_mhz`, `clocks` e
+saída), `temp_dir` (`.aurora8/Temp/<nome>`), `frequency_mhz`, `clocks` e
 `show_arrays`. Os caminhos dos arquivos gerados: `assembly_path()`,
 `verilog_path()`, `testbench_path()` e `files_read_by_verilog()` (as duas
 memórias e a tabela do PC, que o Verilog gerado lê pelo nome e que quem o
@@ -250,13 +250,13 @@ pasta do processador) e `output_path(n)` (na de saída).
 | `Project::create(pai, nome)` | Cria `<pai>/<nome>/<nome>.spf` vazio, no formato da AURORA. Recusa se já existir. |
 | `project.add_processor(&NewProcessor)` | Cria a pasta do processador, o fonte-modelo dentro dela (3.5) e a entrada no `.spf`; a pasta de saída nasce no primeiro `build`. Recusa nome repetido, nome que não passa em `validate_new_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
 | `project.configure_processor(nome, &ProcessorConfig)` | Grava `clk`, `numClocks` e `showArrays` no `.spf` (campos `None` ficam como estão). Uma entrada no formato antigo (só o nome) vira objeto. Valem a partir do próximo `build`. Frequência de 1 a `MAX_FREQUENCY_MHZ` (500000) e clocks de 1 a `MAX_CLOCKS` (2147483647); fora disso, `InvalidParameter`, e nada é gravado. |
-| `project.remove_processor(nome)` | Tira o processador do projeto e grava o `.spf`: a entrada em `structure.processors` (no formato antigo ou de objeto), os arquivos registrados de dentro da pasta dele (o Verilog e o testbench gerados), com a escolha de topo ou de testbench que apontava para eles, e a pasta temporária `.lace/Temp/<nome>`. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer em `unregistered_verilog`. Devolve `RemovedProcessor`: `name`, `dir` (para quem quiser apagar a pasta; a CLI e o Studio a mandam para a lixeira, se pedido) e `unregistered` (os `ProjectFile` que saíram, com o papel e a marca de topo). Nome que não existe: `ProcessorNotFound`, e nada muda. |
+| `project.remove_processor(nome)` | Tira o processador do projeto e grava o `.spf`: a entrada em `structure.processors` (no formato antigo ou de objeto), os arquivos registrados de dentro da pasta dele (o Verilog e o testbench gerados), com a escolha de topo ou de testbench que apontava para eles, e a pasta temporária `.aurora8/Temp/<nome>`. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer em `unregistered_verilog`. Devolve `RemovedProcessor`: `name`, `dir` (para quem quiser apagar a pasta; a CLI e o Studio a mandam para a lixeira, se pedido) e `unregistered` (os `ProjectFile` que saíram, com o papel e a marca de topo). Nome que não existe: `ProcessorNotFound`, e nada muda. |
 | `project.issues()` | O que está estranho no `.spf` sem impedir de abrir (`Vec<ProjectIssue>`, abaixo). Só lê. |
 | `processor.is_built()` | O `<nome>.v` e o testbench existem na pasta de saída. Não diz se estão atualizados em relação ao fonte. |
 | `project.legacy_processors()`, `project.convert_layout()` | Os processadores na estrutura do YANC 6.x, e a conversão deles (3.6). |
 | `project.buildable_processors()` | Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o botão Wave da AURORA compila antes de simular o projeto. Um na estrutura do YANC 6.x entra, e o build dele recusa com `LegacyLayout`, em vez de a simulação usar o Verilog velho de `Hardware/`. |
 
-Todo método que altera o projeto trava `.lace/spf.lock`, relê o `.spf` do
+Todo método que altera o projeto trava `.aurora8/spf.lock`, relê o `.spf` do
 disco, aplica a mudança e grava na hora (gravação atômica: arquivo
 temporário e `rename`): duas gravações ao mesmo tempo, como a do Studio e a
 da CLI, entram uma depois da outra, e nenhuma perde a da outra. Não existe
@@ -352,7 +352,7 @@ de projeto, para avisar enquanto o usuário digita. Para um processador
 novo, `validate_new_processor_name(nome)` recusa também, sem diferença de
 maiúsculas, os nomes das pastas do Lace (`synth`, `hierarchy`, `lint`,
 `wave`, `surfer`, `cocotb`): o processador dividiria a pasta com uma
-operação do Lace (`.lace/Temp/<nome>`, ou `wave/`, a das escolhas de
+operação do Lace (`.aurora8/Temp/<nome>`, ou `wave/`, a das escolhas de
 sinais). Um processador que já existe com um desses nomes continua abrindo
 e compilando.
 
@@ -531,7 +531,7 @@ arquivo, vale o único que nenhum outro do arquivo instancia
 simula `principal`).
 
 `unregistered_verilog()` procura na pasta do projeto e nas subpastas (até 4
-níveis), menos `.lace/`, as ocultas, as pastas dos processadores e a
+níveis), menos `.aurora8/`, as ocultas, as pastas dos processadores e a
 `TopLevel/` legada, cujos `.v` já entram sozinhos.
 
 `move_path(de, para)` move ou renomeia um arquivo ou uma pasta dentro do
@@ -545,9 +545,9 @@ criadas. Os dois são absolutos ou relativos à raiz.
   `topLevelFile`, `testbenchFile` e `topLevelModule` acompanham. O papel e a
   marca de topo ou de testbench escolhido não mudam.
 - Ficam onde estão, porque o Core os acha pelo lugar: o `.spf`, a pasta
-  `.lace` e, de cada processador, a pasta, a pasta de saída e o fonte
+  `.aurora8` e, de cada processador, a pasta, a pasta de saída e o fonte
   (`CannotMove`). O resto de dentro delas (entradas, saídas, gerados) pode
-  mudar de lugar. Nada vai para dentro de `.lace`, e
+  mudar de lugar. Nada vai para dentro de `.aurora8`, e
   uma pasta não vai para dentro dela mesma (`CannotMove`).
 - O destino que já existe não é sobrescrito (`PathExists`), inclusive um
   link quebrado; renomear só a caixa (`a.v` para `A.v`) funciona também num
@@ -867,8 +867,8 @@ aviso diz que os clocks acabaram antes do fim do programa e que as saídas
 param ali; o status continua `succeeded`.
 
 Um build (5.1) ou uma simulação de um processador trava
-`.lace/Temp/<nome>.lock` enquanto roda, e `simulate_project` trava a do
-projeto (`.lace/Temp/.project.lock`) e a de cada processador. Uma segunda
+`.aurora8/Temp/<nome>.lock` enquanto roda, e `simulate_project` trava a do
+projeto (`.aurora8/Temp/.project.lock`) e a de cada processador. Uma segunda
 operação no mesmo processador, de outro processo (o Studio e a CLI) ou da
 mesma, não espera: é `OperationInProgress`, e nada é alterado. Sem a trava,
 as duas regravariam a pasta de saída e a temporária ao mesmo tempo e
@@ -933,7 +933,7 @@ extensão é trocado numa cópia do testbench, com as mesmas linhas: o
 `<nome>_tb.vcd` que o testbench do `asmcomp` pede vira `<nome>_tb.fst` no
 Icarus, e um `saida.fst` vira `saida.vcd` no Verilator. A cópia é a que o
 Lace já simula, `T/instr_<nome>_tb.v` num processador e
-`.lace/Temp/instr_<testbench>` no projeto (5.3), e o arquivo do usuário não
+`.aurora8/Temp/instr_<testbench>` no projeto (5.3), e o arquivo do usuário não
 muda. Uma chamada de `$dumpfile` quebrada em linhas não é trocada, e o
 Icarus grava VCD no nome que ela der. `SimulationResult.waveform` traz o
 caminho e o formato.
@@ -992,7 +992,7 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
    - um arquivo do usuário na raiz não é sobrescrito: se a raiz já tem um
      `x` diferente, ele fica, a simulação lê esse, e sai um aviso. O Lace só
      atualiza as cópias que ele mesmo fez, anotadas em
-     `.lace/Temp/data_copies.txt`.
+     `.aurora8/Temp/data_copies.txt`.
 5. O `$dumpfile` vale com texto entre aspas ou com um `localparam`,
    `parameter` ou `` `define `` de texto (`$dumpfile(ONDA)`). Com uma
    expressão que o Lace não resolve, nada é injetado, a onda não entra no
@@ -1000,10 +1000,10 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
    o `-fst` dele gravavam FST no `.vcd` do usuário). Um `$dumpfile` sem
    `$dumpvars` dá um aviso: nenhum sinal é gravado e a onda não sai. Um
    `$dumpfile` com a extensão de outro formato vai para uma cópia em
-   `.lace/Temp/instr_<testbench>`, com a extensão trocada (5.2): `saida.vcd`
+   `.aurora8/Temp/instr_<testbench>`, com a extensão trocada (5.2): `saida.vcd`
    vira `saida.fst` no Icarus.
    Se o testbench não tem `$dumpfile`, simula uma cópia em
-   `.lace/Temp/instr_<testbench>` com `$dumpfile("<tb>.fst");
+   `.aurora8/Temp/instr_<testbench>` com `$dumpfile("<tb>.fst");
    $dumpvars(0, <tb>);` antes do `endmodule` do módulo do testbench
    (comentário e texto entre aspas não contam), em que `<tb>` é esse módulo
    (`<tb>.vcd` no Verilator). O bloco entra sem quebrar linha, e os
@@ -1014,7 +1014,7 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
    onda. Na simulação rápida (5.2), nada disso: o testbench roda como está,
    e não há onda.
 6. Roda os mesmos comandos de 5.2, com CWD na raiz e `.vvp`/`obj_dir` em
-   `.lace/Temp/`, e o mesmo `timeout`. A onda fica na raiz, com o nome do
+   `.aurora8/Temp/`, e o mesmo `timeout`. A onda fica na raiz, com o nome do
    `$dumpfile` e a extensão do formato.
 
 Os processadores não são compilados aqui. Chame `build` para cada um antes.
@@ -1028,7 +1028,7 @@ linhas).
 
 Com um testbench `.py`, `simulate_project` roda os testes cocotb no Icarus
 ou no Verilator, pelos passos de sempre.
-Com `<B>` = `<raiz>/.lace/Temp/cocotb/<módulo de teste>` e `<dut>` o módulo
+Com `<B>` = `<raiz>/.aurora8/Temp/cocotb/<módulo de teste>` e `<dut>` o módulo
 da diretiva (ou o topo):
 
 | Simulador | Passo | Comando | CWD |
@@ -1051,7 +1051,7 @@ com `--trace` em `<raiz>/<módulo de teste>.vcd`. A VPI do cocotb entra na
 ligação: no Windows a estática, `libcocotbvpi_verilator.a`, com `-L<libs>
 -lgpi`; no Linux e no macOS a compartilhada, com `-Wl,-rpath,<libs>
 -L<libs>`, como no `Makefile.verilator` do cocotb. No Windows, o
-`PYTHONPATH` começa por `.lace/Temp/cocotb/site/`, com um
+`PYTHONPATH` começa por `.aurora8/Temp/cocotb/site/`, com um
 `sitecustomize.py` que põe a pasta do Python entre as que o Windows procura
 ao carregar DLLs (`os.add_dll_directory`): o Python dentro do modelo não
 acha as DLLs das extensões dele pelo `PATH` (o `binascii` carrega a do
@@ -1063,7 +1063,7 @@ Na simulação rápida (5.2) os testes rodam sem onda: no Icarus sem o
 
 O que o simulador precisa para carregar o cocotb vem de uma sonda
 (`cocotb_probe.py`) rodada com o Python do componente `cocotb` e guardada
-em `.lace/Temp/cocotb/probe.json` até o bundle mudar: a VPI para o Icarus,
+em `.aurora8/Temp/cocotb/probe.json` até o bundle mudar: a VPI para o Icarus,
 a VPI e o `verilator.cpp` para o Verilator, a biblioteca do Python, o ponto
 de entrada e o `sys.path`. Com isso o simulador recebe `PYGPI_PYTHON_BIN`, `PYTHONPATH` (a pasta do `.py`, a raiz e o
 `sys.path` do Python), `TOPLEVEL_LANG=verilog`, `COCOTB_RESULTS_FILE`, as
@@ -1192,7 +1192,7 @@ grava a imagem (`-o`, sem `-tnull`) e lê dela a árvore. Não compila os
 processadores, não grava relatório no histórico (é uma consulta, como
 `Project::files`) e não gera nada fora da pasta de trabalho.
 
-Com `<design>` = os arquivos do `check` e `<T>` = `<raiz>/.lace/Temp/hierarchy`,
+Com `<design>` = os arquivos do `check` e `<T>` = `<raiz>/.aurora8/Temp/hierarchy`,
 refeita a cada chamada:
 
 | Passo | Comando | Quando |
@@ -1283,7 +1283,7 @@ na raiz, e o Verilog de cada processador lê as memórias pelo nome, relativo
 a ela: antes da síntese, as memórias e o `pc_<nome>_mem.txt` de cada
 processador compilado vão para a raiz (`Processor::files_read_by_verilog`).
 
-Script gravado em `.lace/Temp/synth/<topo>/yosys_script.ys`:
+Script gravado em `.aurora8/Temp/synth/<topo>/yosys_script.ys`:
 
 ```
 read_verilog -setattr src "<arquivo>"     (um por arquivo)
@@ -1384,7 +1384,7 @@ embutidos, que o componente `rtl-viewer` do bundle traz. Não roda ferramenta.
 `surfer-aurora <onda> [-c <arquivo.sucl> | -s <arquivo.surf.ron>]`, destacado,
 CWD na pasta da onda. Retorna na hora. O stdout e o stderr vão para
 `<onda>.log` (`contador_tb.fst.log`) numa pasta oculta, nunca ao lado da
-onda: `.lace/Temp/surfer/` do projeto que contém a onda; com a onda fora de
+onda: `.aurora8/Temp/surfer/` do projeto que contém a onda; com a onda fora de
 projeto, a pasta de cache do usuário (`$XDG_CACHE_HOME/lace/surfer` ou
 `~/.cache/lace/surfer` no Linux, `~/Library/Caches/lace/surfer` no macOS,
 `%TEMP%\lace\surfer` no Windows). Abrir a mesma onda de novo sobrescreve o
@@ -1484,7 +1484,7 @@ nem sinal na raiz nem processador.
 
 ### 5.7.2 `prepare_wave_layout(&onda) -> Result<Option<PreparedLayout>>`
 
-Grava o layout em `.lace/Temp/surfer/<onda sem extensão>-<hash do caminho>/` do projeto que
+Grava o layout em `.aurora8/Temp/surfer/<onda sem extensão>-<hash do caminho>/` do projeto que
 contém a onda (fora de projeto, na pasta de cache do usuário, como o log do
 Surfer): `<onda>.surf.ron` e os tradutores em `.surfer/mappings/<nome>`, sem
 os de antes. `ViewerOptions::with_layout(&preparado)` abre com ele:
@@ -1513,7 +1513,7 @@ grava e o que o layout mostra. O nome do testbench é o do módulo dele
 
 | Função | Faz |
 |---|---|
-| `wave_signals(&toolchain, &projeto, &control)` | elabora o testbench do projeto com o Icarus (a elaboração da `hierarchy`, em `.lace/Temp/wave/signals.vvp`) e devolve a árvore: escopos (instâncias, blocos `generate` e blocos com nome, cada um com o caminho, o módulo e se é um processador SAPHO) e sinais (nome, caminho, largura, `reg`/`wire`/`integer`/`real`, a direção quando é porta), com a escolha gravada e os itens dela que a árvore não tem (`unknown`). Uma elaboração que falha vem sem árvore, com os erros em `diagnostics` |
+| `wave_signals(&toolchain, &projeto, &control)` | elabora o testbench do projeto com o Icarus (a elaboração da `hierarchy`, em `.aurora8/Temp/wave/signals.vvp`) e devolve a árvore: escopos (instâncias, blocos `generate` e blocos com nome, cada um com o caminho, o módulo e se é um processador SAPHO) e sinais (nome, caminho, largura, `reg`/`wire`/`integer`/`real`, a direção quando é porta), com a escolha gravada e os itens dela que a árvore não tem (`unknown`). Uma elaboração que falha vem sem árvore, com os erros em `diagnostics` |
 | `read_selection(&projeto, módulo)` | a escolha de `wave/<módulo>.json`; vazia sem o arquivo |
 | `write_selection(&projeto, módulo, &itens)` | grava a escolha, em ordem e sem o que um escopo dela já cobre; vazia, apaga o arquivo |
 | `SignalScope::contains`, `scope`, `without` | conferir um caminho na árvore, achar um escopo e tirar um item da escolha (um escopo escolhido que contém o item dá lugar ao resto dele) |
@@ -1544,7 +1544,7 @@ recebe, para a onda de um testbench do projeto (`None` fora de projeto):
 
 - sem o arquivo, ele nasce com o layout gerado (`layout.state`);
 - com o arquivo como o Lace o gravou da última vez (o SHA-256 fica em
-  `.lace/wave/generated.json`), ele é refeito com o layout gerado agora;
+  `.aurora8/wave/generated.json`), ele é refeito com o layout gerado agora;
 - com o arquivo mudado, porque o Surfer salvou nele (Ctrl+S), ele fica como
   está: `SavedLayout::customized`, e `state` é o conteúdo dele.
 
@@ -1708,7 +1708,7 @@ let record = history::record(&project, &toolchain, &operation)?;   // run-000042
 ```
 
 ```
-<projeto>/.lace/reports/
+<projeto>/.aurora8/reports/
   run-000001/
     report.txt     o relatório, para gente
     record.json    o que a comparação usa (RunRecord)
@@ -1797,7 +1797,7 @@ ajuste) e o Verilog do topo da placa (`board_top`).
    diretório de quem o compila: as memórias e a tabela do PC vão para a
    pasta da placa, a do projeto do Quartus, antes da compilação. Que o
    Quartus procura ali é suposição, ainda não conferida numa compilação;
-2. grava em `fpga::build_dir(projeto, placa)`, `<raiz>/.lace/fpga/<placa>/`,
+2. grava em `fpga::build_dir(projeto, placa)`, `<raiz>/.aurora8/fpga/<placa>/`,
    o topo da placa (`lace_board_top.v`), o `.qsf` (a FPGA, os fontes da
    síntese mais o topo da placa, um pino por bit com o padrão de I/O, o
    `.rbf` e o `.svf` sem compressão) e o `.sdc` (um `create_clock` por
@@ -2078,9 +2078,9 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 | `synthesis_statistics` | `synth/<topo>/stat.json` (não obrigatório) | `synthesize` |
 | `schematic_graph` | `synth/<topo>/<módulo>.dot` | `render_schematic` |
 | `schematic` | `synth/<topo>/<módulo>.svg` | `render_schematic` |
-| `board_top` | `.lace/fpga/<placa>/lace_board_top.v` (não obrigatório) | `fpga::build` |
-| `quartus_project` | `.lace/fpga/<placa>/lace_board_top.qsf` (não obrigatório) | `fpga::build` |
-| `sram_object` | `.lace/fpga/<placa>/output_files/lace_board_top.sof` | `fpga::build` |
+| `board_top` | `.aurora8/fpga/<placa>/lace_board_top.v` (não obrigatório) | `fpga::build` |
+| `quartus_project` | `.aurora8/fpga/<placa>/lace_board_top.qsf` (não obrigatório) | `fpga::build` |
+| `sram_object` | `.aurora8/fpga/<placa>/output_files/lace_board_top.sof` | `fpga::build` |
 | `raw_binary` | `output_files/lace_board_top.rbf` (não obrigatório) | `fpga::build` |
 | `serial_vector_format` | `output_files/lace_board_top.svf` (não obrigatório) | `fpga::build` |
 
@@ -2159,8 +2159,8 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
         "program": "/bin/bash",
         "args": ["/opt/lace/toolchain/oss-cad-suite/bin/iverilog",
                  "-grelative-include", "-I", "/home/eu/projetos/soma/soma/soma",
-                 "-y", "/opt/lace/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp",
-                 "/home/eu/projetos/soma/soma/soma/soma.v", "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v"],
+                 "-y", "/opt/lace/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp",
+                 "/home/eu/projetos/soma/soma/soma/soma.v", "/home/eu/projetos/soma/.aurora8/Temp/soma/instr_soma_tb.v"],
         "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
@@ -2175,13 +2175,13 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
       "tool": "vvp",
       "command": {
         "program": "/bin/bash",
-        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "-fst"],
+        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp", "-fst"],
         "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
       },
       "termination": { "kind": "exited", "value": 0 },
-      "stdout": "FST info: dumpfile soma_tb.fst opened for output.\nInfo: end of program!\n/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)\n",
+      "stdout": "FST info: dumpfile soma_tb.fst opened for output.\nInfo: end of program!\n/home/eu/projetos/soma/.aurora8/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)\n",
       "stderr": "",
       "duration_ms": 66
     }
@@ -2191,10 +2191,10 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
       "file": null, "line": null, "column": null, "raw": "FST info: dumpfile soma_tb.fst opened for output." },
     { "tool": "vvp", "severity": "info", "message": "$finish called at 985000 (1ps)",
       "file": "/home/eu/projetos/soma/soma/soma/soma_tb.v", "line": 61, "column": null,
-      "raw": "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)" }
+      "raw": "/home/eu/projetos/soma/.aurora8/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)" }
   ],
   "artifacts": [
-    { "kind": "icarus_image", "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "required": true, "fresh": true },
+    { "kind": "icarus_image", "path": "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp", "required": true, "fresh": true },
     { "kind": "waveform", "path": "/home/eu/projetos/soma/soma/soma/soma_tb.fst", "required": true, "fresh": true },
     { "kind": "simulation_output", "path": "/home/eu/projetos/soma/soma/soma/output_0.txt", "required": false, "fresh": true }
   ],
@@ -2269,7 +2269,7 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `InvalidProject` | `invalid_project` | diretório ou arquivo do projeto ausente ou em conflito | ver `path` e `reason` |
 | `ProjectExists` | `project_exists` | `create` sobre um `.spf` existente | abrir em vez de criar |
 | `OutsideProject` | `outside_project` | `move_path` com um caminho fora da pasta do projeto | usar um caminho do projeto |
-| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.lace`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.lace`; de uma pasta para dentro dela mesma; `record_move` de uma origem que ainda existe | ver `reason` |
+| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.aurora8`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.aurora8`; de uma pasta para dentro dela mesma; `record_move` de uma origem que ainda existe | ver `reason` |
 | `PathExists` | `path_exists` | o destino de `move_path` já existe | outro destino, ou tirar o que está lá |
 | `ProcessorExists` | `processor_exists` | `add_processor` com nome repetido | outro nome |
 | `ProcessorNotFound` | `processor_not_found` | nome inexistente | ver `available` |
@@ -2435,7 +2435,7 @@ O que muda por sistema, e como o Lace trata:
 |---|---|---|
 | Abrir projeto | regrava o `.spf` (`lastOpened`, `exists`) | só lê |
 | `clk` fracionário | trunca | recusa |
-| Diretório temporário | `<raiz>/.aurora/Temp` | `<raiz>/.lace/Temp` |
+| Diretório temporário | `<raiz>/.aurora/Temp` | `<raiz>/.aurora8/Temp` |
 | Idioma do YANC | o da interface (`--lang=pt` ou `--lang=en`) | sempre inglês (`--lang=en`) |
 | Ambiente do filho | herda o da AURORA | vazio + o mínimo |
 | Classificação de arquivos | por conteúdo, refeita a cada carga do projeto | por conteúdo, com a mesma regra, quando `add_verilog` registra; o papel fica gravado no `.spf` |
@@ -2450,6 +2450,6 @@ O que muda por sistema, e como o Lace trata:
 | Ferramentas | `components/` baixados pela AURORA | bundle versionado instalado com o Lace |
 | Esquemático | netlistsvg (fork próprio), dentro do processo, ~50 skins | `show` do Yosys + `dot` do Graphviz; o Studio desenha o próprio, do `hierarchy.json`, com o ELK |
 | Onda do Verilator | FST | VCD (o FST do Verilator do bundle exige lz4 e zlib do sistema) |
-| Layout do Surfer | gera `.surf.ron` e tradutores na pasta de configuração do usuário | gera o mesmo layout (`wave_layout`), com os tradutores em `.lace/Temp/surfer/` |
+| Layout do Surfer | gera `.surf.ron` e tradutores na pasta de configuração do usuário | gera o mesmo layout (`wave_layout`), com os tradutores em `.aurora8/Temp/surfer/` |
 | Sinais fora dos processadores no layout | todos os escopos | só os da raiz do testbench; com escolha de sinais (5.7.3), os escolhidos, um grupo por escopo |
 | Teste de hardware (THTEST) | harness C++ próprio | não implementado |

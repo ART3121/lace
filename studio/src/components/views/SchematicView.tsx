@@ -36,7 +36,7 @@ function useNetlistOnDisk(enabled: boolean): string | null {
   useEffect(() => {
     setFound(null);
     if (!enabled || !snapshot || !target) return;
-    const path = joinPath(snapshot.root, '.lace', 'Temp', 'synth', target, 'hierarchy.json');
+    const path = joinPath(snapshot.root, '.aurora8', 'Temp', 'synth', target, 'hierarchy.json');
     let cancelled = false;
     void api.fs
       .stat(path)

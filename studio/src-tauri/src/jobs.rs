@@ -10,7 +10,7 @@
 //! `cli_output`.
 //!
 //! Só uma operação roda por vez (erro `busy`): duas no mesmo projeto
-//! dividiriam o `.lace/Temp`, e uma instalação no meio de um fluxo trocaria
+//! dividiriam o `.aurora8/Temp`, e uma instalação no meio de um fluxo trocaria
 //! as ferramentas dele.
 
 use std::panic::AssertUnwindSafe;

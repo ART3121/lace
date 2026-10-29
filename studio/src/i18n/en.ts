@@ -785,7 +785,7 @@ export const en: Record<Key, string> = {
   'reports.cleanCount': 'Deleting {count}:',
   'reports.cleanNothing': 'No report is deleted with this choice.',
   'reports.cleanSubmit': 'Delete ({count})',
-  'reports.cleanHint': 'Deletes from .lace/reports, like lace report clean. The number of a deleted report is never reused.',
+  'reports.cleanHint': 'Deletes from .aurora8/reports, like lace report clean. The number of a deleted report is never reused.',
   'reports.openFile': 'Open report.txt',
   'reports.unreadable': 'unreadable',
   'reports.synthesis': 'synthesis',

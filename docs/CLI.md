@@ -63,7 +63,7 @@ acha o repositório. Fora de qualquer projeto, o erro é `project_not_found`.
 `-C` aponta outro lugar para começar a busca.
 
 **Dentro da pasta de um processador** (`soma/`, a pasta de saída
-`soma/soma/` ou `.lace/Temp/soma/`), os comandos que
+`soma/soma/` ou `.aurora8/Temp/soma/`), os comandos que
 recebem um processador e não receberam nenhum agem sobre ele: `build`,
 `check`, `sim`, `wave`, `synth` e `proc set`. No resto do projeto, eles agem
 sobre o projeto inteiro (`proc set` pede o nome). `lace status` marca o
@@ -174,7 +174,7 @@ mais nova ([FPGA.md](FPGA.md)). `lace tools` mostra o que achou.
 | `lace status` | os avisos do `.spf` (`warning: ...`), os módulos registrados (o topo marcado com o nome do módulo), os testbenches (o simulado marcado), os `.v`, os `.sv` e os testbenches cocotb (`.py` com `@cocotb.test`) da pasta que não estão registrados, com a dica `lace add <arquivo>`, e os processadores (linguagem, frequência, clocks, arrays, se está compilado, e `(this folder)` no da pasta atual). Num projeto vazio, os primeiros passos dos dois fluxos | `Project::open`, `Project::issues`, `Project::files`, `Project::top_module`, `Project::unregistered_verilog`, `Processor::is_built`, `Project::processor_at` |
 
 Os arquivos não registrados são procurados na pasta do projeto e nas
-subpastas, até 4 níveis, menos `.lace/`, as ocultas, as pastas dos
+subpastas, até 4 níveis, menos `.aurora8/`, as ocultas, as pastas dos
 processadores, a `TopLevel/` legada da AURORA e as de outro projeto, com
 `.spf` próprio.
 
@@ -212,7 +212,7 @@ nenhum estava.
 caminho `DESTINO` (renomear). As pastas que faltam são criadas. Com várias origens,
 `DESTINO` precisa ser uma pasta (código 2). Para cada origem, diz de onde
 para onde foi e quais arquivos continuam no projeto, com o papel de cada um.
-Ficam no lugar o `.spf`, a pasta `.lace` e, de cada processador, a pasta,
+Ficam no lugar o `.spf`, a pasta `.aurora8` e, de cada processador, a pasta,
 a pasta de saída e o fonte (`cannot_move`); o destino
 que existe não é sobrescrito (`path_exists`). As origens anteriores à que
 falhou já foram movidas.
@@ -340,7 +340,7 @@ Fast simulation of contador_tb (Verilator): finished in 383 ms
 `--open` mostra o netlist da síntese no RTL viewer, o esquemático
 interativo que o Studio tem numa aba: entrar nos submódulos, buscar, destacar
 uma rede, exportar o SVG. O Lace grava `rtl-viewer.html` ao lado do netlist
-(`.lace/Temp/synth/<alvo>/`), um arquivo só, com o viewer e o netlist dentro,
+(`.aurora8/Temp/synth/<alvo>/`), um arquivo só, com o viewer e o netlist dentro,
 que abre em qualquer navegador sem servidor e sem rede, e o abre no navegador
 padrão pelo abridor do sistema (`xdg-open`, `open`, o Explorer). Fora do
 Studio e do VS Code, clicar numa célula mostra o arquivo e a linha, mas não
@@ -451,7 +451,7 @@ Simulation of contador_tb (Icarus): finished in 0.09 s
     done      elaborate     iverilog       65 ms
     done      simulate      vvp            20 ms
   Generated:
-    Icarus image        .lace/Temp/contador_tb.vvp
+    Icarus image        .aurora8/Temp/contador_tb.vvp
     waveform            contador_tb.fst
   Open the waveform with: lace wave
 Report run-000002: lace report show 2
@@ -606,7 +606,7 @@ fechar. Se o Surfer fechar em menos de 1,5 s (sem display, onda inválida), o
 comando falha com código 2 (`process_exited_early`) e mostra o fim do log do
 Surfer (`RunningProcess::ensure_started`).
 
-O log do Surfer não fica ao lado da onda: vai para `.lace/Temp/surfer/` do
+O log do Surfer não fica ao lado da onda: vai para `.aurora8/Temp/surfer/` do
 projeto, como `contador_tb.fst.log`, e cada abertura da mesma onda
 sobrescreve o anterior. Uma onda fora de projeto (`lace wave` com um arquivo
 de outra pasta) deixa o log na pasta de cache do usuário, `~/.cache/lace/surfer`
@@ -616,7 +616,7 @@ Windows.
 ### Relatórios
 
 Cada `lace build`, `check`, `sim` e `synth` que roda alguma ferramenta grava
-um relatório no histórico do projeto, `.lace/reports/run-NNNNNN/`, e diz no
+um relatório no histórico do projeto, `.aurora8/reports/run-NNNNNN/`, e diz no
 fim qual foi (`Report run-000042: lace report show 42`). A operação que
 falha também grava; a que nem começa (projeto inválido, componente que
 falta) não. Se o relatório não puder ser gravado, a operação não falha por
@@ -715,7 +715,7 @@ A placa e a ligação das portas do topo aos sinais dela ficam no
 |---|---|---|
 | `lace fpga boards [PLACA]` | as placas conhecidas; com uma, os sinais, os pinos, o padrão de I/O e quais são ativos em nível baixo | `fpga::boards`, `fpga::board` |
 | `lace fpga check [--show-top]` | confere o `fpga.json` contra a placa e as portas do topo e mostra o que vai em cada porta e em cada sinal da placa, com os ajustes de largura; com `--show-top`, o Verilog do topo da placa | `fpga::prepare` |
-| `lace fpga build` | confere o `fpga.json`, a placa e o Quartus, compila os processadores, grava o projeto do Quartus em `.lace/fpga/<placa>/` e roda `quartus_map`, `quartus_fit`, `quartus_asm` e `quartus_sta` (passos `synthesize`, `fit`, `bitstream` e `timing`). Depois do Fitter confere cada pino no `.pin` contra a placa, e reprova antes do `.sof` se algum ficou fora do lugar. Mostra os erros e avisos do Quartus com o número da mensagem, os recursos da FPGA e a Fmax e as folgas de cada clock. Folga negativa é aviso, não falha | `fpga::build` |
+| `lace fpga build` | confere o `fpga.json`, a placa e o Quartus, compila os processadores, grava o projeto do Quartus em `.aurora8/fpga/<placa>/` e roda `quartus_map`, `quartus_fit`, `quartus_asm` e `quartus_sta` (passos `synthesize`, `fit`, `bitstream` e `timing`). Depois do Fitter confere cada pino no `.pin` contra a placa, e reprova antes do `.sof` se algum ficou fora do lugar. Mostra os erros e avisos do Quartus com o número da mensagem, os recursos da FPGA e a Fmax e as folgas de cada clock. Folga negativa é aviso, não falha | `fpga::build` |
 | `lace fpga program [--cable NOME] [--list]` | grava na placa o `.sof` da última `lace fpga build` pelo Quartus Programmer (`quartus_pgm -c <cabo> -m jtag -o "p;output_files/lace_board_top.sof@<posição>"`), pelo primeiro cabo ligado ou pelo de `--cable`. Recusa, antes de procurar o cabo, um `.sof` que não descreve o projeto de agora (`stale_bitstream`: um fonte, uma memória, o `fpga.json` ou a placa mudou, ou o `.sof` foi trocado). A gravação vai para a SRAM da FPGA e some ao desligar a placa. Com `--list`, só os cabos (`quartus_pgm -l`) | `fpga::program`, `fpga::cables` |
 
 A compilação e a gravação para a placa não entram no histórico
@@ -926,7 +926,7 @@ O `lace mcp`, para um agente:
   padrão do servidor: o da pasta em que ele foi aberto, ou o do `-C`
   global (`lace -C <projeto> mcp`). Sem padrão e sem o campo, a ferramenta
   responde um erro que diz isso; `project_find` lista os `.spf` abaixo de
-  uma pasta (3 níveis por padrão, fora `.lace`, `.git`, `node_modules`,
+  uma pasta (3 níveis por padrão, fora `.aurora8`, `.git`, `node_modules`,
   `target` e `.claude`). O `initialize` diz qual é o padrão.
 - **O resultado.** `content` traz um resumo em texto para o agente: o
   fluxo e o status, cada processador compilado, os erros como
@@ -1168,10 +1168,10 @@ cortado):
 ```
 {"event":"step_started","step":"elaborate","tool":"iverilog","command":{"program":"/bin/bash","args":["..."],"cwd":"/home/eu/contador","env":[["PATH","/usr/bin:/bin"]],"inherit":[]}}
 {"event":"step_finished","step":"elaborate","tool":"iverilog","termination":{"kind":"exited","value":0},"duration_ms":111}
-{"event":"step_started","step":"simulate","tool":"vvp","command":{"program":"/bin/bash","args":["/opt/lace/toolchain/oss-cad-suite/bin/vvp","-n","-i","/home/eu/contador/.lace/Temp/contador_tb.vvp","-fst"],"cwd":"/home/eu/contador","env":[["PATH","/usr/bin:/bin"]],"inherit":[]}}
+{"event":"step_started","step":"simulate","tool":"vvp","command":{"program":"/bin/bash","args":["/opt/lace/toolchain/oss-cad-suite/bin/vvp","-n","-i","/home/eu/contador/.aurora8/Temp/contador_tb.vvp","-fst"],"cwd":"/home/eu/contador","env":[["PATH","/usr/bin:/bin"]],"inherit":[]}}
 {"event":"output","step":"simulate","tool":"vvp","stream":"stdout","line":"FST info: dumpfile contador_tb.fst opened for output.","diagnostic":true}
 {"event":"output","step":"simulate","tool":"vvp","stream":"stdout","line":"q = 10","diagnostic":false}
-{"event":"output","step":"simulate","tool":"vvp","stream":"stdout","line":"/home/eu/contador/.lace/Temp/instr_contador_tb.v:15: $finish called at 112000 (1ps)","diagnostic":true}
+{"event":"output","step":"simulate","tool":"vvp","stream":"stdout","line":"/home/eu/contador/.aurora8/Temp/instr_contador_tb.v:15: $finish called at 112000 (1ps)","diagnostic":true}
 {"event":"step_finished","step":"simulate","tool":"vvp","termination":{"kind":"exited","value":0},"duration_ms":49}
 {"event":"result","result":{"builds":[],"simulation":{"top":"contador_tb","simulator":"icarus","status":"succeeded","...":"..."},"outputs":[],"surfer_pid":null}}
 ```

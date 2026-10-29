@@ -11,7 +11,7 @@
 //!       <processador>.asm, .v, _data.mif, _inst.mif, _tb.v
 //!       prog_log.txt, src_lines.txt, trad_opcode.txt, app_log.txt,
 //!       pc_<processador>_mem.txt, output_N.txt, toma_K.txt, a onda
-//!   .lace/Temp/<processador>/  # o que só o Lace usa (o .vvp, o modelo do
+//!   .aurora8/Temp/<processador>/  # o que só o Lace usa (o .vvp, o modelo do
 //!                              # Verilator, a cópia instrumentada do testbench)
 //! ```
 //!
@@ -94,6 +94,24 @@ pub const MAX_PROJECT_NAME: usize = 64;
 /// folga.
 pub const MAX_PROCESSOR_NAME: usize = 64;
 
+/// A pasta do projeto que é só nossa: intermediários (`Temp/`), relatórios,
+/// projetos de placa e a trava do `.spf`. O nome tem o 8 porque a `.aurora`
+/// é da AURORA 7, que pode abrir o mesmo projeto; até a renomeação, era a
+/// `.lace`.
+pub const PROJECT_DIR: &str = ".aurora8";
+
+/// Leva a `.lace` de um projeto do Lace para a [`PROJECT_DIR`], quando ela
+/// ainda não existe, com o que tinha dentro (relatórios, placas). É melhor
+/// esforço: se o renomear falhar (no Windows, um arquivo aberto lá dentro),
+/// a `.lace` fica, e a pasta nova nasce vazia no primeiro uso.
+pub(crate) fn migrate_project_dir(root: &Utf8Path) {
+    let old = root.join(".lace");
+    let new = root.join(PROJECT_DIR);
+    if old.is_dir() && !new.exists() {
+        let _ = std::fs::rename(&old, &new);
+    }
+}
+
 /// Linguagem do programa de um processador. Em JSON: `"cmm"` ou `"cpp"`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, JsonSchema, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -155,7 +173,7 @@ pub struct Processor {
     /// simulação, que roda nela.
     #[schemars(with = "String")]
     pub output_dir: Utf8PathBuf,
-    /// `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
+    /// `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do
     /// Verilator, a cópia instrumentada do testbench, a trava de execução).
     #[schemars(with = "String")]
     pub temp_dir: Utf8PathBuf,
@@ -589,7 +607,7 @@ impl NewProcessor {
 ///
 /// Os métodos que alteram o projeto (`add_processor`, `add_file`,
 /// `set_top_level`, ...) gravam o `.spf` na hora; não há "salvar". Cada um
-/// trava `.lace/spf.lock`, relê o `.spf` do disco, aplica a mudança e grava:
+/// trava `.aurora8/spf.lock`, relê o `.spf` do disco, aplica a mudança e grava:
 /// duas gravações ao mesmo tempo (o Lace Studio e a CLI no terminal, dois
 /// `lace add`) entram uma depois da outra, e nenhuma perde a da outra. Para
 /// ler o que outro programa mudou sem gravar, abra de novo: o `Project` só
@@ -612,9 +630,11 @@ impl Project {
     /// Abre um projeto a partir do `.spf` ou do diretório que o contém
     /// (`<dir>/<nome-do-dir>.spf`, ou o único `.spf` do diretório).
     ///
-    /// Só lê: ao contrário da AURORA, abrir não regrava o arquivo. Os
-    /// diretórios dos processadores não precisam existir para abrir; eles são
-    /// criados no primeiro [`build`](crate::build).
+    /// Não regrava o `.spf`, ao contrário da AURORA 7. A única escrita é a
+    /// da pasta `.lace` de um projeto do Lace, que vira a [`PROJECT_DIR`]
+    /// ([`migrate_project_dir`]). Os diretórios dos processadores não
+    /// precisam existir para abrir; eles são criados no primeiro
+    /// [`build`](crate::build).
     ///
     /// # Erros
     ///
@@ -651,7 +671,9 @@ impl Project {
             Some(p) if !p.as_str().is_empty() => p.to_owned(),
             _ => Utf8PathBuf::from("."),
         };
-        let spf_path = paths::canonicalize(&parent)?.join(name);
+        let root = paths::canonicalize(&parent)?;
+        migrate_project_dir(&root);
+        let spf_path = root.join(name);
         let text = std::fs::read_to_string(&spf_path)
             .map_err(LaceError::io("Reading project", &spf_path))?;
         let document = spf::parse(&spf_path, &text)?;
@@ -701,7 +723,7 @@ impl Project {
     }
 
     /// O processador cuja pasta contém `path` (a pasta dele, com a de saída
-    /// dentro, ou a temporária dele em `.lace/Temp/`). `None` fora de todas.
+    /// dentro, ou a temporária dele em `.aurora8/Temp/`). `None` fora de todas.
     pub fn processor_at(&self, path: impl AsRef<Utf8Path>) -> Option<&Processor> {
         let path = path.as_ref();
         let path = paths::canonicalize(path).unwrap_or_else(|_| path.to_owned());
@@ -970,7 +992,7 @@ impl Project {
 
     /// Regrava o `.spf`, alinhando `basePath` e `projectPath` à raiz atual e
     /// atualizando `lastModified`, como o escritor da AURORA.
-    /// Antes de mudar o projeto: trava `.lace/spf.lock` (espera quem estiver
+    /// Antes de mudar o projeto: trava `.aurora8/spf.lock` (espera quem estiver
     /// gravando, de outro processo ou de outra thread) e relê o `.spf` do
     /// disco, para a mudança cair sobre a versão mais nova. A trava fica até
     /// o próximo `save`. Chamado no começo de cada método que grava, antes de
@@ -979,7 +1001,7 @@ impl Project {
         if self.write_lock.is_some() {
             return Ok(());
         }
-        let dir = self.root.join(".lace");
+        let dir = self.root.join(".aurora8");
         std::fs::create_dir_all(&dir).map_err(LaceError::io("Creating directory", &dir))?;
         let path = dir.join("spf.lock");
         let file = std::fs::OpenOptions::new()
@@ -1040,10 +1062,10 @@ impl Project {
         &self.spf_path
     }
 
-    /// Intermediários do projeto inteiro (`<raiz>/.lace/Temp`): o `.vvp` e o
+    /// Intermediários do projeto inteiro (`<raiz>/.aurora8/Temp`): o `.vvp` e o
     /// `obj_dir` da simulação do projeto, a síntese, os esquemáticos.
     pub fn temp_dir(&self) -> Utf8PathBuf {
-        self.root.join(".lace").join("Temp")
+        self.root.join(".aurora8").join("Temp")
     }
 
     /// Os processadores, na ordem do `.spf`.
@@ -1176,7 +1198,7 @@ impl Project {
     /// `structure.processors`, saem das listas os arquivos registrados de
     /// dentro da pasta dele (o Verilog e o testbench que o build gerou), com
     /// a escolha de topo ou de testbench que apontava para eles, e sai o que
-    /// só o Lace guardava dele (`.lace/Temp/<nome>`).
+    /// só o Lace guardava dele (`.aurora8/Temp/<nome>`).
     ///
     /// A pasta do processador, com o fonte e as entradas, fica no disco, como
     /// um arquivo em [`Project::remove_verilog`]. Quem quiser apagá-la usa
@@ -1297,7 +1319,7 @@ fn processor_paths(
         language,
         source: dir.join(file),
         output_dir: dir.join(name),
-        temp_dir: root.join(".lace").join("Temp").join(name),
+        temp_dir: root.join(".aurora8").join("Temp").join(name),
         dir,
         frequency_mhz: DEFAULT_FREQUENCY_MHZ,
         clocks: DEFAULT_CLOCKS,
@@ -1558,10 +1580,10 @@ pub fn validate_processor_name(name: &str) -> Result<()> {
 }
 
 /// As pastas do próprio Lace com nome que um processador poderia ter:
-/// `.lace/Temp/<nome>` (o lint, a síntese, a hierarquia, a árvore de sinais,
+/// `.aurora8/Temp/<nome>` (o lint, a síntese, a hierarquia, a árvore de sinais,
 /// os layouts do Surfer, o cocotb) e `wave/` na raiz, com as escolhas de
 /// sinais. Um processador assim dividiria a pasta com uma operação do Lace:
-/// a hierarquia apaga `.lace/Temp/hierarchy`, que seria a pasta temporária
+/// a hierarquia apaga `.aurora8/Temp/hierarchy`, que seria a pasta temporária
 /// do processador `hierarchy`, com a onda dele; remover o processador
 /// `synth` apagava a síntese do projeto; e a pasta do processador `wave` é a
 /// das escolhas de sinais, que remover o processador com a pasta mandaria
@@ -1592,7 +1614,7 @@ pub fn validate_new_processor_name(name: &str) -> Result<()> {
     if LACE_FOLDERS.iter().any(|f| f.eq_ignore_ascii_case(name)) {
         return Err(LaceError::InvalidName {
             name: name.to_owned(),
-            reason: "Lace keeps a folder with this name for its own work (.lace/Temp/<name>, or wave/ for the signal choices), and the processor would share it".into(),
+            reason: "Lace keeps a folder with this name for its own work (.aurora8/Temp/<name>, or wave/ for the signal choices), and the processor would share it".into(),
         });
     }
     Ok(())
@@ -2124,6 +2146,28 @@ mod tests {
         (dir, path)
     }
 
+    /// A `.lace` de um projeto do Lace vira a `.aurora8` ao abrir, com o que
+    /// tinha dentro; com as duas, nenhuma muda.
+    #[test]
+    fn opening_moves_the_lace_folder_to_aurora8() {
+        let (_guard, dir) = tmp();
+        let project = Project::create(&dir, "demo").unwrap();
+        let root = project.root().to_owned();
+        let _ = std::fs::remove_dir_all(root.join(PROJECT_DIR));
+        let report = root.join(".lace/reports/run-000001/report.json");
+        std::fs::create_dir_all(report.parent().unwrap()).unwrap();
+        std::fs::write(&report, "{}").unwrap();
+
+        Project::open(project.spf_path()).unwrap();
+        assert!(!root.join(".lace").exists());
+        assert!(root.join(".aurora8/reports/run-000001/report.json").is_file());
+
+        std::fs::create_dir_all(root.join(".lace/fpga")).unwrap();
+        Project::open(project.spf_path()).unwrap();
+        assert!(root.join(".lace/fpga").is_dir());
+        assert!(root.join(".aurora8/reports").is_dir());
+    }
+
     #[test]
     fn discover_climbs_to_the_project_from_any_inner_folder() {
         let (_guard, dir) = tmp();
@@ -2152,7 +2196,7 @@ mod tests {
             assert_eq!(found.processor_at(inner).unwrap().name, "soma", "{inner}");
         }
         assert!(found.processor_at(&root).is_none());
-        assert!(found.processor_at(root.join(".lace")).is_none());
+        assert!(found.processor_at(root.join(".aurora8")).is_none());
 
         // Fora de qualquer projeto.
         let (_outside_guard, outside) = tmp();
@@ -2211,7 +2255,7 @@ mod tests {
         assert_eq!(names, [("soma", Language::Cmm), ("filtro", Language::Cpp)]);
         let soma = reopened.processor("soma").unwrap();
         assert_eq!(soma.frequency_mhz, DEFAULT_FREQUENCY_MHZ);
-        assert_eq!(soma.temp_dir, root.join(".lace/Temp/soma"));
+        assert_eq!(soma.temp_dir, root.join(".aurora8/Temp/soma"));
     }
 
     #[test]

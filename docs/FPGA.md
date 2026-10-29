@@ -22,7 +22,7 @@ botão FPGA da barra de ferramentas, as ações do menu Fluxo e da paleta, a
 seção FPGA do navegador de fluxo, o console Placa e o Quartus Prime das
 Preferências e da tela do bundle; os comandos da placa no backend do
 Studio respondem `experimental_disabled`. O `fpga.json` e a pasta
-`.lace/fpga/` do projeto ficam como estão.
+`.aurora8/fpga/` do projeto ficam como estão.
 
 ## Placas
 
@@ -176,7 +176,7 @@ lace fpga build
    um por passo.
 
 ```text
-<raiz>/.lace/fpga/<placa>/
+<raiz>/.aurora8/fpga/<placa>/
   lace_board_top.v      o topo da placa
   lace_board_top.qsf    a FPGA, os fontes e os pinos
   lace_board_top.sdc    os clocks da placa
@@ -226,7 +226,7 @@ Saída real de `lace fpga build` no projeto `bcd_prot`, com o Quartus Prime
 ```
   quartus: warning: 1 pins must meet Intel FPGA requirements for 3.3-, 3.0-, and 2.5-V interfaces. For more information, refer to AN 447: Interfacing Cyclone IV E Devices with 3.3/3.0/2.5-V LVTTL/LVCMOS I/O Systems. [169177]
   Generated:
-    bitstream (.sof)    .lace\fpga\de2-115\output_files\lace_board_top.sof
+    bitstream (.sof)    .aurora8\fpga\de2-115\output_files\lace_board_top.sof
   Resources:
     Total logic elements                677 / 114480 (<1%)
     Total registers                     39

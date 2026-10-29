@@ -92,9 +92,9 @@
 //!   <processador>/            fonte .cmm ou .cpp, input_<n>.txt, arquivos de arrays (usuário)
 //!   <processador>/<processador>/  tudo o que o YANC gera (.asm, .v, .mif, testbench,
 //!                             tabelas) e o que a simulação grava (output_<n>.txt, a onda)
-//!   .lace/Temp/<processador>/ o que só o Lace usa: .vvp, modelo do Verilator, testbench instrumentado
-//!   .lace/Temp/               simulação do projeto, síntese (synth/<topo>/), hierarquia (hierarchy/)
-//!   .lace/fpga/<placa>/       o projeto do Quartus e os arquivos de gravação (fpga::build)
+//!   .aurora8/Temp/<processador>/ o que só o Lace usa: .vvp, modelo do Verilator, testbench instrumentado
+//!   .aurora8/Temp/               simulação do projeto, síntese (synth/<topo>/), hierarquia (hierarchy/)
+//!   .aurora8/fpga/<placa>/       o projeto do Quartus e os arquivos de gravação (fpga::build)
 //! ```
 //!
 //! # Garantias

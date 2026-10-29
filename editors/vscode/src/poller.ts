@@ -2,7 +2,7 @@
 // do VS Code (createFileSystemWatcher) não vê. Quando uma árvore de pastas é
 // criada e já recebe um arquivo no mesmo instante, o vigia não passa a olhar
 // as subpastas dela, nem depois: é o que o `lace synth` faz em
-// `.lace/Temp/synth/<alvo>/` na primeira síntese de um alvo. Um `stat` por
+// `.aurora8/Temp/synth/<alvo>/` na primeira síntese de um alvo. Um `stat` por
 // arquivo a cada dois segundos não falha assim.
 
 import { stat } from 'node:fs/promises';

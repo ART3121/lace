@@ -4,7 +4,7 @@
 //! do Windows, onde o desinstalador termina depois que o `lace` sai.
 //!
 //! Também sai o arquivo de configuração da versão 0.1.0, que nenhuma versão
-//! nova lê. Ficam os projetos (e o `.lace/` de cada um) e o que o
+//! nova lê. Ficam os projetos (e o `.aurora8/` de cada um) e o que o
 //! surfer-aurora guarda no perfil do usuário, que o Surfer e a AURORA
 //! compartilham.
 

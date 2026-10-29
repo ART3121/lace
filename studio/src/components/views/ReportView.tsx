@@ -1,5 +1,5 @@
 // Um relatório do histórico (`lace report show`): o texto que o Lace grava
-// em .lace/reports/run-NNNNNN/report.txt.
+// em .aurora8/reports/run-NNNNNN/report.txt.
 
 import { GitCompare, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';

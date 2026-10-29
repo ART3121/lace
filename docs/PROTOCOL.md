@@ -2348,7 +2348,7 @@ pasta do processador (`<nome>.cmm` antes de `<nome>.cpp`); senão C±.
 | `dir` | `string` | sim | `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos do C). |
 | `source` | `string` | sim | O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`. |
 | `output_dir` | `string` | sim | `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog, as memórias, o testbench, as tabelas da onda e as saídas da simulação, que roda nela. |
-| `temp_dir` | `string` | sim | `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
+| `temp_dir` | `string` | sim | `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
 | `frequency_mhz` | `integer` | sim | Frequência de operação em MHz (`-f` do `asmcomp`). |
 | `clocks` | `integer` | sim | Clocks a simular (`-c` do `asmcomp`, vai para o testbench). |
 | `show_arrays` | `boolean` | sim | Exporta cada elemento de array como um sinal da onda (`--wave-arrays` do `cmmcomp`). |
@@ -2392,7 +2392,7 @@ Um processador, com o que uma interface precisa saber dele além do
 | `dir` | `string` | sim | `<raiz>/<nome>`: o fonte e os arquivos que a pessoa escreve (os que inicializam arrays, `input_<n>.txt`, `cade_<n>.txt`, os cabeçalhos do C). |
 | `source` | `string` | sim | O programa-fonte, `<dir>/<nome>.cmm` ou `.cpp`. |
 | `output_dir` | `string` | sim | `<dir>/<nome>`, a pasta de saída do YANC (`-o`): o `.asm`, o Verilog, as memórias, o testbench, as tabelas da onda e as saídas da simulação, que roda nela. |
-| `temp_dir` | `string` | sim | `<raiz>/.lace/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
+| `temp_dir` | `string` | sim | `<raiz>/.aurora8/Temp/<nome>`: o que só o Lace usa (o `.vvp`, o modelo do Verilator, a cópia instrumentada do testbench, a trava de execução). |
 | `frequency_mhz` | `integer` | sim | Frequência de operação em MHz (`-f` do `asmcomp`). |
 | `clocks` | `integer` | sim | Clocks a simular (`-c` do `asmcomp`, vai para o testbench). |
 | `show_arrays` | `boolean` | sim | Exporta cada elemento de array como um sinal da onda (`--wave-arrays` do `cmmcomp`). |

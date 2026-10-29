@@ -163,7 +163,7 @@ const PROJECT_FIND: &str = "project_find";
 /// Até onde `project_find` desce por padrão.
 const FIND_DEPTH: u64 = 3;
 /// As pastas que `project_find` não entra.
-const FIND_SKIP: &[&str] = &[".lace", ".git", "node_modules", "target", ".claude"];
+const FIND_SKIP: &[&str] = &[".aurora8", ".git", "node_modules", "target", ".claude"];
 
 /// `lace mcp`. `project_dir` é o `-C` global (a pasta atual por padrão): o
 /// projeto padrão das ferramentas é o dele, se há um. `cancel` é o pedido

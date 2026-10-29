@@ -2,6 +2,12 @@
 
 ## Não publicada
 
+- A pasta do projeto que é só nossa (intermediários, relatórios, projetos
+  de placa e a trava do `.spf`) passa de `.lace/` para `.aurora8/`. O 8 a
+  separa da `.aurora/`, que é da AURORA 7 e pode estar no mesmo projeto.
+  Abrir um projeto que tem `.lace/` a renomeia para `.aurora8/`, com o que
+  tinha dentro.
+
 - O Lace Studio passa a se chamar AURORA IDE nos textos da CLI, do
   instalador e da documentação. O atalho do menu Iniciar e o da área de
   trabalho no Windows e o do menu de aplicativos no Linux trocam de nome; o

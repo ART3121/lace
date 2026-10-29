@@ -189,7 +189,7 @@ fn copy_tree(from: &Utf8Path, to: &Utf8Path, depth: usize) {
         let entry = entry.unwrap();
         let name = entry.file_name();
         let output_folder = depth == 1 && from.file_name() == Some(name);
-        if name == ".lace" || output_folder {
+        if name == ".aurora8" || output_folder {
             continue;
         }
         let target = to.join(name);
