@@ -1,4 +1,4 @@
-# Arquitetura do Lace Studio
+# Arquitetura da AURORA IDE
 
 Este documento explica como o Studio é feito: as duas metades (backend em
 Rust e interface em React), como elas conversam, como uma operação roda do
@@ -22,7 +22,7 @@ Sumário:
 ## 1. Visão geral
 
 ```
-┌─────────────────────── processo do Lace Studio ───────────────────────┐
+┌─────────────────────── processo da AURORA IDE ────────────────────────┐
 │                                                                       │
 │  WebView (React)                       Rust (src-tauri)               │
 │  ┌──────────────────────┐   invoke   ┌──────────────────────────┐     │

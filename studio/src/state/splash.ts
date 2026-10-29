@@ -48,14 +48,14 @@ export function rememberSplashLook(theme: Theme, version: string | undefined): v
       fg: ui.text0,
       muted: ui.text2,
       track: ui.border,
-      // Os fios do logo nas cores dos arquivos da marca (public/brand).
-      strand: dark ? '#f4efe6' : '#2e4374',
+      // O camaleão na cor do AuroraMark da janela.
+      mark: ui.brandFill,
       pulse: dark ? ui.brandText : ui.brand,
     },
   };
   try {
     localStorage.setItem(LOOK, JSON.stringify(look));
   } catch {
-    // Sem armazenamento, o próximo splash nasce nas cores do Atlas.
+    // Sem armazenamento, o próximo splash nasce nas cores do Azul.
   }
 }

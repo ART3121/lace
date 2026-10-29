@@ -86,7 +86,7 @@ impl Feature {
                 "FPGA boards: the fpga.json connections, the Quartus Prime build and board programming"
             }
             Feature::Assistant => {
-                "AI assistant: lace chat, the Assistant view of Lace Studio and lace mcp, the Lace tools for an agent such as Claude Code"
+                "AI assistant: lace chat, the Assistant view of AURORA IDE and lace mcp, the Lace tools for an agent such as Claude Code"
             }
         }
     }

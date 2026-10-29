@@ -29,7 +29,7 @@
 ; Reinstalar troca o bundle pelo da nova seleção; os componentes que a pasta
 ; já tem (do assistente ou do `lace install`) vêm marcados.
 ;
-; A cara do Lace: o ícone do Lace Studio, as imagens de art\ (geradas da
+; A cara do Lace: o ícone da AURORA IDE, as imagens de art\ (geradas da
 ; marca por scripts/installer_art.py) e o modo claro ou escuro do Windows.
 
 #ifndef Stage
@@ -65,7 +65,7 @@ AppVersion={#LaceVersion}
 AppVerName=Lace {#LaceVersion}
 AppPublisher=NIPS-CERN, Faculdade de Engenharia da UFJF
 AppPublisherURL=https://nipscern.com
-AppComments=NIPS-CERN development tools, from SAPHO processors to Verilog, and Lace Studio (bundle {#Bundle})
+AppComments=NIPS-CERN development tools, from SAPHO processors to Verilog, and AURORA IDE (bundle {#Bundle})
 VersionInfoVersion={#LaceVersion}
 DefaultDirName={code:DefaultDir}
 DisableProgramGroupPage=yes
@@ -116,11 +116,11 @@ Name: "pt"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 en.WelcomeLabel1=Welcome to Lace {#LaceVersion}
 pt.WelcomeLabel1=Bem-vindo ao Lace {#LaceVersion}
 #ifdef Web
-en.WelcomeLabel2=Lace orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and Lace Studio is its graphical environment.%n%nThis wizard downloads from the Lace release only the apps you choose, at the exact versions of bundle {#Bundle}, each one checked against its SHA-256. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
-pt.WelcomeLabel2=O Lace orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e o Lace Studio é o ambiente gráfico dele.%n%nEste assistente baixa da release do Lace só os aplicativos que você escolher, nas versões exatas do bundle {#Bundle}, cada um conferido pelo SHA-256. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
+en.WelcomeLabel2=Lace orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and AURORA IDE is its graphical environment.%n%nThis wizard downloads from the Lace release only the apps you choose, at the exact versions of bundle {#Bundle}, each one checked against its SHA-256. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
+pt.WelcomeLabel2=O Lace orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e a AURORA IDE é o ambiente gráfico dele.%n%nEste assistente baixa da release do Lace só os aplicativos que você escolher, nas versões exatas do bundle {#Bundle}, cada um conferido pelo SHA-256. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
 #else
-en.WelcomeLabel2=Lace orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and Lace Studio is its graphical environment.%n%nLace only uses the tools of the bundle installed with it, at the exact versions of bundle {#Bundle}. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
-pt.WelcomeLabel2=O Lace orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e o Lace Studio é o ambiente gráfico dele.%n%nO Lace só usa as ferramentas do bundle instalado com ele, nas versões exatas do bundle {#Bundle}. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
+en.WelcomeLabel2=Lace orchestrates the development tools of NIPS-CERN, from SAPHO processors to Verilog, and AURORA IDE is its graphical environment.%n%nLace only uses the tools of the bundle installed with it, at the exact versions of bundle {#Bundle}. Verilator comes with the g++, make and Perl it uses, so there is no need to install MSYS2.%n%nNext you choose a profile: {#DefaultProfile} is the recommended one, and the Custom installation is for advanced use.
+pt.WelcomeLabel2=O Lace orquestra as ferramentas de desenvolvimento do NIPS-CERN, dos processadores SAPHO ao Verilog, e a AURORA IDE é o ambiente gráfico dele.%n%nO Lace só usa as ferramentas do bundle instalado com ele, nas versões exatas do bundle {#Bundle}. O Verilator vem com o g++, o make e o Perl que ele usa: não é preciso instalar o MSYS2.%n%nEm seguida você escolhe um perfil: o {#DefaultProfile} é o recomendado, e a instalação personalizada é para uso avançado.
 #endif
 en.WizardSelectComponents=Choose a profile
 pt.WizardSelectComponents=Escolha um perfil
@@ -130,18 +130,18 @@ en.SelectComponentsLabel2=Each profile installs the apps marked in the list. To 
 pt.SelectComponentsLabel2=Cada perfil instala os aplicativos marcados na lista. Para escolher você mesmo, use a Personalizada (avançada). Para acrescentar aplicativos depois: lace install.
 en.FinishedHeadingLabel=Lace is ready
 pt.FinishedHeadingLabel=O Lace está pronto
-en.FinishedLabel=Open Lace Studio from the Start menu, or open a new terminal and run: lace tools --verify
-pt.FinishedLabel=Abra o Lace Studio pelo menu Iniciar, ou abra um terminal novo e rode: lace tools --verify
+en.FinishedLabel=Open AURORA IDE from the Start menu, or open a new terminal and run: lace tools --verify
+pt.FinishedLabel=Abra a AURORA IDE pelo menu Iniciar, ou abra um terminal novo e rode: lace tools --verify
 
 ; Os textos do [Code], das tarefas e do [Run]. Os dos tipos e dos
 ; componentes vêm do components.iss.
 [CustomMessages]
 en.TaskPath=Add Lace to PATH, to use "lace" in any terminal
 pt.TaskPath=Pôr o Lace no PATH, para usar o "lace" em qualquer terminal
-en.TaskStudioIcon=Create a desktop shortcut for Lace Studio
-pt.TaskStudioIcon=Criar um atalho do Lace Studio na área de trabalho
-en.RunStudio=Open Lace Studio
-pt.RunStudio=Abrir o Lace Studio
+en.TaskStudioIcon=Create a desktop shortcut for AURORA IDE
+pt.TaskStudioIcon=Criar um atalho da AURORA IDE na área de trabalho
+en.RunStudio=Open AURORA IDE
+pt.RunStudio=Abrir a AURORA IDE
 en.PreviousInstall=Lace %1 is installed on this computer: this wizard replaces it with Lace %2, and the apps it has stay selected.
 pt.PreviousInstall=O Lace %1 está instalado neste computador: este assistente o troca pelo Lace %2, e os aplicativos que ele tem continuam marcados.
 en.DownloadTitle=Downloading the apps
@@ -162,8 +162,8 @@ en.SpaceInPath=The selected folder has a space in its path, and the make used by
 pt.SpaceInPath=A pasta escolhida tem um espaço no caminho, e o make que o Verilator usa não aceita espaços.
 en.InstallThereAnyway=Install there anyway?
 pt.InstallThereAnyway=Instalar lá mesmo assim?
-en.WebView2Missing=Lace Studio uses the Microsoft Edge WebView2 Runtime, which is not installed on this computer. Lace Studio will open only after you install it from https://developer.microsoft.com/microsoft-edge/webview2/ (Evergreen Runtime); the rest of Lace works without it.
-pt.WebView2Missing=O Lace Studio usa o Microsoft Edge WebView2 Runtime, que não está instalado neste computador. O Lace Studio só abre depois que você o instalar de https://developer.microsoft.com/microsoft-edge/webview2/ (Evergreen Runtime); o resto do Lace funciona sem ele.
+en.WebView2Missing=AURORA IDE uses the Microsoft Edge WebView2 Runtime, which is not installed on this computer. AURORA IDE will open only after you install it from https://developer.microsoft.com/microsoft-edge/webview2/ (Evergreen Runtime); the rest of Lace works without it.
+pt.WebView2Missing=A AURORA IDE usa o Microsoft Edge WebView2 Runtime, que não está instalado neste computador. A AURORA IDE só abre depois que você o instalar de https://developer.microsoft.com/microsoft-edge/webview2/ (Evergreen Runtime); o resto do Lace funciona sem ele.
 en.InstallNowAnyway=Install Lace now anyway?
 pt.InstallNowAnyway=Instalar o Lace agora mesmo assim?
 en.ForeignToolchain=The folder %1 already exists and is not from a Lace installation, and installing would replace it. Choose another folder, or move it away first.
@@ -176,8 +176,8 @@ Name: "studioicon"; Description: "{cm:TaskStudioIcon}"; Components: studio; Flag
 ; O Lace Studio fica no bundle (toolchain\studio, o componente studio) e acha
 ; o bundle por estar dentro dele.
 [Icons]
-Name: "{autoprograms}\Lace Studio"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio
-Name: "{autodesktop}\Lace Studio"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Tasks: studioicon
+Name: "{autoprograms}\AURORA IDE"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio
+Name: "{autodesktop}\AURORA IDE"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Tasks: studioicon
 
 ; O Lace Studio que pediu a atualização (`lace update --reopen-studio`, que
 ; passa /REOPENSTUDIO=1) fechou para o assistente trocar os arquivos dele: ele
@@ -187,6 +187,10 @@ Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Flags: n
 Filename: "{app}\toolchain\studio\lace-studio.exe"; Description: "{cm:RunStudio}"; Components: studio; Flags: postinstall nowait skipifsilent unchecked; Check: not ReopenStudio
 
 [InstallDelete]
+; Os atalhos de quando a AURORA IDE se chamava Lace Studio: os de agora têm
+; o nome novo, e os velhos ficariam ao lado deles.
+Type: files; Name: "{autoprograms}\Lace Studio.lnk"
+Type: files; Name: "{autodesktop}\Lace Studio.lnk"
 #ifndef Web
 ; Reinstalar troca o bundle inteiro: o que foi desmarcado sai. O assistente
 ; que baixa os aplicativos troca o toolchain\ ele mesmo (o `lace setup`).
@@ -559,7 +563,7 @@ begin
       PreselectOnce;
     { Antes de instalar, e não depois: sem o WebView2, o Studio não abre. }
     if WizardIsComponentSelected('studio') and not HasWebView2 then begin
-      Log('Warning: The WebView2 Runtime, which Lace Studio uses, is not installed.');
+      Log('Warning: The WebView2 Runtime, which AURORA IDE uses, is not installed.');
       if not WizardSilent then
         Result := MsgBox(CustomMessage('WebView2Missing') + #13#10#13#10 + CustomMessage('InstallNowAnyway'), mbConfirmation, MB_YESNO) = IDYES;
     end;

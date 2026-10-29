@@ -7,6 +7,21 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Alterado
 
+- O Lace Studio passa a se chamar **AURORA IDE**: no título da janela, no
+  splash, na tela inicial, em Sobre, nos menus e nos avisos. O logo é o
+  camaleão do ícone da AURORA, com o mesmo contorno e em cor chapada, na cor
+  de destaque do tema; os ícones do aplicativo são o camaleão azul num
+  quadrado grafite. O executável, a pasta das preferências e o
+  `Lace Studio.app` do macOS continuam com o nome antigo até a versão que
+  renomeia o Lace.
+- Três temas novos, cada um com o seu claro: **Azul**, **Âmbar** e
+  **Grafite**. Têm os mesmos cinzas quase neutros e uma cor de destaque;
+  no código, só as palavras reservadas levam o destaque, e números e textos
+  levam uma segunda cor. O Azul é o padrão, e o Azul Claro é o claro do
+  "Do sistema". Quem estava no Atlas ou no Atlas Branco, os padrões de
+  antes, passa uma vez para o Azul ou o Azul Claro; o Atlas continua na
+  lista.
+- O splash mostra o camaleão numa volta, a partir do focinho.
 - O Studio passou a ser cliente do servidor do Lace (`lace serve`), como a
   extensão do VS Code: abre o `lace` como processo filho e pede a ele o
   projeto, os fluxos, o histórico, a placa FPGA, os exercícios, instalar e

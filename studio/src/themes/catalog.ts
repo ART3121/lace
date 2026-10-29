@@ -1,9 +1,10 @@
 // O catálogo de temas, na ordem em que aparecem nas Preferências.
 //
-// Os do Lace são o Atlas, no azul da identidade visual do ATLAS, e o Atlas
-// Branco, no azul do CERN.
-// O Aurora Legacy traz a paleta da AURORA. Os outros seguem a paleta oficial
-// de cada tema, conferida na fonte em 2026-10-04:
+// Os da AURORA IDE são o Azul, o Âmbar e o Grafite, cada um com o seu claro:
+// os mesmos cinzas e uma cor de destaque por paleta. O Atlas, no azul da
+// identidade visual do ATLAS, e o Atlas Branco, no azul do CERN, foram os do
+// Lace Studio. O Aurora Legacy traz a paleta da AURORA Electron. Os outros
+// seguem a paleta oficial de cada tema, conferida na fonte em 2026-10-04:
 //
 // | Tema                 | Fonte                                                        |
 // |----------------------|--------------------------------------------------------------|
@@ -26,7 +27,268 @@
 // do próprio tema, e onde faltava um tom (texto secundário, borda forte) ele
 // sai de `mix` entre duas cores do tema.
 
-import { alpha, mix, tokenRule, type Theme } from './model';
+import { alpha, mix, tokenRule, type Scheme, type Theme } from './model';
+
+// AURORA IDE ---------------------------------------------------------------
+
+/**
+ * Os cinzas dos temas da AURORA IDE, comuns às três paletas: quase neutros,
+ * com um nada de azul (matiz 260 e croma 0,006 no OKLCH). As barras e a barra
+ * lateral ficam num tom só e o editor um tom acima; no claro, editor e menus
+ * em branco sobre barras quase brancas. Todo texto tem pelo menos 4,5:1 com o
+ * fundo do editor, o das barras e o dos menus. Os terminais têm os seis
+ * matizes com a mesma luminosidade, com o vermelho e o verde iguais ao erro e
+ * ao ok da interface.
+ */
+const AURORA_DARK = {
+  bars: '#101214',
+  editor: '#141619',
+  raised: '#1C1E21',
+  control: '#252729',
+  controlHover: '#2F3033',
+  border: '#232528',
+  borderStrong: '#36383B',
+  text0: '#EAEDF1',
+  text1: '#BBBEC2',
+  text2: '#909296',
+  text3: '#595B5E',
+  code: '#CFD1D5',
+  lineHighlight: '#181A1C',
+  lineNumber: '#6D6F72',
+  indentGuide: '#1C1E21',
+  ok: '#6DC88F',
+  warn: '#F2985F',
+  error: '#F2716A',
+  info: '#79B8ED',
+  ansi: {
+    black: '#101214',
+    red: '#F2716A',
+    green: '#6DC88F',
+    yellow: '#E2C162',
+    blue: '#75AEF5',
+    magenta: '#D58ECF',
+    cyan: '#26C0CF',
+    white: '#CFD1D5',
+    brightBlack: '#909296',
+    brightRed: '#FFB4AD',
+    brightGreen: '#A0DCAC',
+    brightYellow: '#F4D88C',
+    brightBlue: '#A3CEFF',
+    brightMagenta: '#EDB6E7',
+    brightCyan: '#7FDCE6',
+    brightWhite: '#F4F5F7',
+  },
+};
+
+const AURORA_LIGHT: typeof AURORA_DARK = {
+  bars: '#F5F7F9',
+  editor: '#FFFFFF',
+  raised: '#FFFFFF',
+  control: '#EDEEF1',
+  controlHover: '#E4E6EA',
+  border: '#DEE0E3',
+  borderStrong: '#C2C4C8',
+  text0: '#191B1D',
+  text1: '#46484B',
+  text2: '#67696C',
+  text3: '#9C9EA2',
+  code: '#2C2E31',
+  lineHighlight: '#F5F7F9',
+  lineNumber: '#8A8C90',
+  indentGuide: '#EDEEF1',
+  ok: '#1E7546',
+  warn: '#B05315',
+  error: '#BE2F2C',
+  info: '#2266A4',
+  ansi: {
+    black: '#191B1D',
+    red: '#BE2F2C',
+    green: '#1E7546',
+    yellow: '#816500',
+    blue: '#2863AB',
+    magenta: '#8B4486',
+    cyan: '#007686',
+    white: '#46484B',
+    brightBlack: '#67696C',
+    brightRed: '#BB5752',
+    brightGreen: '#348F4F',
+    brightYellow: '#9A7D22',
+    brightBlue: '#407BC5',
+    brightMagenta: '#A45B9F',
+    brightCyan: '#008F9F',
+    brightWhite: '#191B1D',
+  },
+};
+
+/** A cor de uma paleta da AURORA IDE num esquema. */
+interface AuroraAccent {
+  /** Linhas e indicadores (foco, aba ativa): 3:1 com as barras e o editor. */
+  line: string;
+  /** O destaque em texto, nas palavras reservadas e no cursor. */
+  text: string;
+  /** O preenchimento do botão principal, que é também a cor do logo. */
+  fill: string;
+  fillHover: string;
+  /** O texto sobre `fill`. */
+  onFill: string;
+  /** Números, textos e constantes: a segunda cor do código. */
+  literal: string;
+  /** A opacidade de `fill` na seleção. */
+  selection: number;
+}
+
+/**
+ * Um tema da AURORA IDE. A sintaxe tem duas cores além dos cinzas: o
+ * destaque nas palavras reservadas e nos tipos, e `literal` em números,
+ * textos e constantes. Funções em `text0`, o resto do código em `code`,
+ * operadores e comentários em `text2`. A busca usa `literal`, para não se
+ * confundir com a seleção, que usa o destaque. `bold` põe as palavras
+ * reservadas em negrito, para o Grafite, cujo destaque é o próprio texto.
+ */
+function aurora(id: string, name: string, scheme: Scheme, pair: string, accent: AuroraAccent, bold = false): Theme {
+  const dark = scheme === 'dark';
+  const base = dark ? AURORA_DARK : AURORA_LIGHT;
+  const selection = alpha(accent.fill, accent.selection);
+  return {
+    id,
+    name,
+    scheme,
+    pair,
+    ui: {
+      bg0: base.bars,
+      bg1: base.bars,
+      bg2: base.raised,
+      bg3: base.control,
+      bg4: base.controlHover,
+      bgEditor: base.editor,
+      border: base.border,
+      borderStrong: base.borderStrong,
+      text0: base.text0,
+      text1: base.text1,
+      text2: base.text2,
+      text3: base.text3,
+      brand: accent.line,
+      brandText: accent.text,
+      brandFill: accent.fill,
+      brandFillHover: accent.fillHover,
+      brandContrast: accent.onFill,
+      ok: base.ok,
+      warn: base.warn,
+      error: base.error,
+      info: base.info,
+    },
+    syntax: {
+      fg: base.code,
+      comment: base.text2,
+      keyword: accent.text,
+      control: accent.text,
+      type: accent.text,
+      func: base.text0,
+      number: accent.literal,
+      string: accent.literal,
+      constant: accent.literal,
+      variable: base.code,
+      tag: accent.text,
+      operator: base.text2,
+      delimiter: base.text2,
+      directive: base.text1,
+      style: bold ? { keyword: 'bold', type: 'bold', directive: '' } : { directive: '' },
+    },
+    editor: {
+      selection,
+      lineHighlight: base.lineHighlight,
+      lineNumber: base.lineNumber,
+      lineNumberActive: base.text0,
+      cursor: accent.text,
+      findMatch: alpha(accent.literal, dark ? 0.38 : 0.3),
+      findMatchHighlight: alpha(accent.literal, dark ? 0.18 : 0.14),
+      indentGuide: base.indentGuide,
+      indentGuideActive: base.borderStrong,
+    },
+    terminal: { foreground: base.code, selection, ...base.ansi },
+  };
+}
+
+/** O padrão: o azul de destaque, com areia nos números e textos. O botão
+ * principal leva texto escuro, que tem 6,8:1 sobre o azul. */
+const azul = aurora('azul', 'Azul', 'dark', 'azul-claro', {
+  line: '#59A0F9',
+  text: '#73AEF8',
+  fill: '#59A0F9',
+  fillHover: '#70ADFA',
+  onFill: '#141619',
+  literal: '#E2BD93',
+  selection: 0.3,
+});
+
+const azulClaro = aurora('azul-claro', 'Azul Claro', 'light', 'azul', {
+  line: '#236ADE',
+  text: '#2062CE',
+  fill: '#236ADE',
+  fillHover: '#205FC8',
+  onFill: '#FFFFFF',
+  literal: '#86572D',
+  selection: 0.18,
+});
+
+/** O âmbar, a cor do amanhecer, com azul-claro nos números e textos. */
+const ambar = aurora('ambar', 'Âmbar', 'dark', 'ambar-claro', {
+  line: '#F5B33B',
+  text: '#F5BD56',
+  fill: '#F5B33B',
+  fillHover: '#F6BE56',
+  onFill: '#141619',
+  literal: '#8EC6E7',
+  selection: 0.26,
+});
+
+/** No claro, o âmbar do botão e do logo (#E38F00) fica em 2,4:1 com as
+ * barras: as linhas usam um âmbar mais escuro, e o texto, um castanho. */
+const ambarClaro = aurora('ambar-claro', 'Âmbar Claro', 'light', 'ambar', {
+  line: '#CB7400',
+  text: '#97570D',
+  fill: '#E38F00',
+  fillHover: '#CC8100',
+  onFill: '#191B1D',
+  literal: '#1F6A96',
+  selection: 0.22,
+});
+
+/** Sem cor de destaque: o destaque é o próprio texto, e as palavras
+ * reservadas vão em negrito. */
+const grafite = aurora(
+  'grafite',
+  'Grafite',
+  'dark',
+  'grafite-claro',
+  {
+    line: '#EAEDF1',
+    text: '#EAEDF1',
+    fill: '#EAEDF1',
+    fillHover: '#D3D6DA',
+    onFill: '#141619',
+    literal: '#E2BD93',
+    selection: 0.18,
+  },
+  true,
+);
+
+const grafiteClaro = aurora(
+  'grafite-claro',
+  'Grafite Claro',
+  'light',
+  'grafite',
+  {
+    line: '#191B1D',
+    text: '#191B1D',
+    fill: '#191B1D',
+    fillHover: '#36383B',
+    onFill: '#FFFFFF',
+    literal: '#86572D',
+    selection: 0.12,
+  },
+  true,
+);
 
 /**
  * O azul do CERN: Pantone 286 C, #0033A0 (R0 G51 B160), com os quatro tons
@@ -60,13 +322,13 @@ const ATLAS_BLUE = {
   vivid: '#2AAAF4',
 };
 
-// Lace -------------------------------------------------------------------
+// Atlas ------------------------------------------------------------------
 
-/** O padrão: o azul do ATLAS de destaque sobre fundos de ardósia, um cinza
- * puxado para o mesmo azul, com o editor um tom abaixo da barra lateral e
- * das barras. A sintaxe tem um tom por papel, com a palavra reservada no
- * azul do ATLAS; todo texto tem pelo menos 4,5:1 com o fundo do editor,
- * menos o comentário (4,1:1). */
+/** O padrão do Lace Studio: o azul do ATLAS de destaque sobre fundos de
+ * ardósia, um cinza puxado para o mesmo azul, com o editor um tom abaixo da
+ * barra lateral e das barras. A sintaxe tem um tom por papel, com a palavra
+ * reservada no azul do ATLAS; todo texto tem pelo menos 4,5:1 com o fundo do
+ * editor, menos o comentário (4,1:1). */
 const atlas: Theme = {
   id: 'atlas',
   name: 'Atlas',
@@ -1411,6 +1673,12 @@ const tokyoNight: Theme = {
 };
 
 export const THEMES: Theme[] = [
+  azul,
+  azulClaro,
+  ambar,
+  ambarClaro,
+  grafite,
+  grafiteClaro,
   atlas,
   atlasLight,
   auroraLegacy,

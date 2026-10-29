@@ -1,5 +1,5 @@
 /**
- * cmm.ts: a linguagem C± (.cmm) no Monaco do Lace Studio.
+ * cmm.ts: a linguagem C± (.cmm) no Monaco da AURORA IDE.
  *
  * Portado da AURORA em 2026-10-03, de:
  *   lace/vendor/aurora/js/editor/monaco_editor.js   (buildCMMTokenizer, setupCMMLanguage,

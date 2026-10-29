@@ -1,6 +1,6 @@
 [package]
 name = "lace-studio"
-description = "Lace Studio: o ambiente gráfico do Lace para Verilog e processadores SAPHO"
+description = "AURORA IDE: o ambiente gráfico do Lace para Verilog e processadores SAPHO"
 version = "0.9.0"
 edition = "2024"
 rust-version = "1.90"

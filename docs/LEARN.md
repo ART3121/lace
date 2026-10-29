@@ -79,7 +79,7 @@ como os outros comandos acham o projeto.
 | `lace learn wave [NOME]` | abre a onda da última correção, arrumada |
 | `lace learn dev check [TRILHA]` | confere uma trilha (para quem escreve exercícios, abaixo) |
 
-### No Lace Studio
+### Na AURORA IDE
 
 A vista Exercícios (Exibir > Exercícios, ou Ferramentas > Exercícios) cria
 ou abre a pasta de exercícios e lista os capítulos, com o que já foi

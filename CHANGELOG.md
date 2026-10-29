@@ -2,6 +2,13 @@
 
 ## Não publicada
 
+- O Lace Studio passa a se chamar AURORA IDE nos textos da CLI, do
+  instalador e da documentação. O atalho do menu Iniciar e o da área de
+  trabalho no Windows e o do menu de aplicativos no Linux trocam de nome; o
+  instalador do Windows apaga os atalhos com o nome antigo. O componente
+  continua `studio`, e o executável, `lace-studio`. As mudanças da IDE
+  estão em studio/CHANGELOG.md.
+
 - Simulação, síntese, hierarquia e escolha de sinais funcionam com o
   projeto numa pasta com acento, outro alfabeto ou emoji, como
   `OneDrive\Área de Trabalho` ou a cópia `teste - Cópia` que o Explorer

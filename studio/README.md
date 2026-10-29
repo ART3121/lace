@@ -1,11 +1,17 @@
-# Lace Studio
+# AURORA IDE
 
 O ambiente gráfico do [Lace](https://github.com/ART3121/lace) para projetos
-Verilog e processadores SAPHO. Substitui a AURORA: cria e abre projetos
+Verilog e processadores SAPHO. Sucede a AURORA 7, feita em Electron: cria e abre projetos
 `.spf`, edita C±, C e Verilog, compila pelo YANC, verifica e simula com
 Icarus Verilog e Verilator, sintetiza com Yosys, desenha o esquemático com
 Graphviz, abre a onda no surfer-aurora e guarda o relatório de cada
 operação.
+
+Até 2026-10-29 se chamava Lace Studio. A pasta `studio/`, o componente
+`studio` do bundle, o executável `lace-studio`, o `Lace Studio.app` do macOS
+e a pasta das preferências (`com.nipscern.lace-studio`) ficam com o nome
+antigo até a versão que renomeia o Lace para AURORA, porque o instalador e
+a atualização dependem deles.
 
 É um aplicativo [Tauri 2](https://tauri.app): o backend em Rust usa o
 `lace-core` como biblioteca, sem passar pela linha de comando, e a interface

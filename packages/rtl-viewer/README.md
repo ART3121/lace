@@ -9,7 +9,7 @@ Três lugares o usam:
 
 | Onde | Como |
 |---|---|
-| Lace Studio | compila o fonte deste pacote direto (`studio/vite.config.ts`) e o mostra numa aba, com os botões e o menu do Studio |
+| AURORA IDE | compila o fonte deste pacote direto (`studio/vite.config.ts`) e o mostra numa aba, com os botões e o menu da IDE |
 | Extensão do VS Code | carrega `dist/rtl-viewer.js` num webview, com `dist/theme-vscode.css`; o netlist vem da extensão |
 | `lace synth --open` | o modelo `dist/rtl-viewer.html`, que vira o componente `rtl-viewer` do bundle; o Core o preenche com o netlist (`lace_core::rtl_viewer`) e o navegador o abre |
 

@@ -33,7 +33,7 @@ Bundle `2026.10.22`. Os pacotes, com as versões fixadas em
 | OSS CAD Suite | release 2026-10-22 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys, o `dot` do Graphviz e o openFPGALoader. Windows: o Yosys e o openFPGALoader | pacote oficial, conferido pelo SHA-256 publicado |
 | msys | `ucrt64-v2` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
-| studio | a versão do Lace | o Lace Studio: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
+| studio | a versão do Lace | a AURORA IDE: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
 | lace-learn | a versão do Lace | as trilhas de exercícios do `lace learn` ([LEARN.md](LEARN.md)): textos, `.v` e `.json` | copiadas de `lace-learn/` deste repositório |
 | rtl-viewer | a versão do Lace | o modelo do HTML do RTL viewer (`rtl-viewer.html`), que o `lace synth --open` preenche com o netlist: o viewer, o React e o worker do layout num arquivo só | gerado de `packages/rtl-viewer/` deste repositório pelo empacotamento (`npm ci`, `npm run build`) |
 
@@ -148,7 +148,7 @@ Um bundle só abre na plataforma para a qual foi montado.
     msys/                     só no Windows: ucrt64/ e usr/bin/ do bloco MSYS2
     surfer-aurora/            surfer-aurora[.exe], web/ (o cliente web: index.html, surfer.js, surfer_bg.wasm)
     graphviz/                 só no Windows
-    studio/                   o Lace Studio: lace-studio[.exe], ou Lace Studio.app no macOS
+    studio/                   a AURORA IDE: lace-studio[.exe], ou Lace Studio.app no macOS
     lace-learn/               as trilhas do lace learn
     rtl-viewer/               rtl-viewer.html, o modelo do HTML do lace synth --open
 ```
@@ -261,7 +261,7 @@ Instalar o compilador:
   `surfer-aurora-<versão>` deste repositório; o `bundle.py` baixa e
   confere pelo SHA-256 do `prebuilt` em `bundle/versions.json`, em vez de
   compilar em cada release (uns 14 minutos por plataforma). O cliente web, igual nas três plataformas, vem
-  do zip publicado: é ele que o Lace Studio mostra numa aba, ligado a um
+  do zip publicado: é ele que a AURORA IDE mostra numa aba, ligado a um
   `surfer-aurora server` da mesma versão (o cliente recusa um servidor com
   outra versão do leitor de ondas).
 

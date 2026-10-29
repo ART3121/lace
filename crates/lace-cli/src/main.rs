@@ -216,7 +216,7 @@ enum Command {
         /// Update from a local Lace installer of the new version (folder, .tar.gz, payload/, or a folder with the release files), without network
         #[arg(long, value_name = "PATH", conflicts_with = "full")]
         from: Option<Utf8PathBuf>,
-        /// Run by Lace Studio, which closes for the update: on Windows, the setup wizard opens it again when it finishes
+        /// Run by AURORA IDE, which closes for the update: on Windows, the setup wizard opens it again when it finishes
         #[arg(long, hide = true)]
         reopen_studio: bool,
     },
@@ -365,13 +365,13 @@ struct ExperimentalArgs {
 
 #[derive(Subcommand)]
 enum ExperimentalCommand {
-    /// Turn an experimental component on, for the CLI and Lace Studio
+    /// Turn an experimental component on, for the CLI and AURORA IDE
     Enable {
         /// The component
         #[arg(value_parser = experimental::component_parser())]
         component: String,
     },
-    /// Turn an experimental component off, for the CLI and Lace Studio
+    /// Turn an experimental component off, for the CLI and AURORA IDE
     Disable {
         /// The component
         #[arg(value_parser = experimental::component_parser())]

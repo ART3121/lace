@@ -1,4 +1,4 @@
-// A aba Sobre: o que é o Studio, as versões (do Studio, do Lace e dos
+// A aba Sobre: o que é a AURORA IDE, as versões (dela, do Lace e dos
 // componentes do bundle, do Tauri e do motor de páginas), onde ficam as
 // preferências e o bundle, e os links. "Copiar informações" junta tudo num
 // texto, para anexar a um relato de problema.
@@ -19,7 +19,7 @@ import { Button, IconButton } from '../common';
 /** O texto de "Copiar informações", sempre em inglês, como as mensagens do
  * Lace: é para quem vai ler o relato. */
 function diagnostics(info: AppInfo | null, toolchain: ToolchainInfo | null): string {
-  const lines = [`Lace Studio ${info?.version ?? '?'}${info?.debug ? ' (development build)' : ''}`];
+  const lines = [`AURORA IDE ${info?.version ?? '?'}${info?.debug ? ' (development build)' : ''}`];
   lines.push(`System: ${info?.os ?? '?'}`);
   if (toolchain?.found) {
     lines.push(`Lace bundle: ${toolchain.bundle} (${toolchain.platform}), from ${toolchain.origin ?? '?'}: ${toolchain.root}`);
@@ -83,9 +83,9 @@ export function AboutView() {
   return (
     <div className="view-page about">
       <header className="about__header">
-        <img src="/brand/lace-icon.svg" alt="" className="about__logo" />
+        <img src="/brand/aurora-icon.svg" alt="" className="about__logo" />
         <div>
-          <h1>Lace Studio</h1>
+          <h1>AURORA IDE</h1>
           <p className="muted">
             {t('about.version', { version: info?.version ?? '' })}
             {info?.debug ? ` (${t('about.debugBuild')})` : ''}
@@ -109,7 +109,7 @@ export function AboutView() {
         <section>
           <h2>{t('about.versions')}</h2>
           <dl className="kv">
-            <dt>Lace Studio</dt>
+            <dt>AURORA IDE</dt>
             <dd className="mono">{info?.version}</dd>
             <dt>{t('about.lace')}</dt>
             <dd className="mono">{found ? `${toolchain!.bundle} (${toolchain!.platform})` : t('about.laceMissing')}</dd>

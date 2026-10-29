@@ -12,7 +12,7 @@ import { useTour } from '../../state/tour';
 import { guarded } from '../../state/toasts';
 import { api } from '../../ipc/api';
 import { dirName } from '../../util/paths';
-import { Kbd, LaceMark } from '../common';
+import { AuroraMark, Kbd } from '../common';
 
 export function WelcomeView() {
   const t = useT();
@@ -27,7 +27,7 @@ export function WelcomeView() {
   return (
     <div className="view-page welcome">
       <header className="welcome__header">
-        <LaceMark className="welcome__logo" />
+        <AuroraMark className="welcome__logo" />
         <div>
           <h1>{t('welcome.title')}</h1>
           <p className="muted">{t('welcome.subtitle')}</p>

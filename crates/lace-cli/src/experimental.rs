@@ -56,7 +56,7 @@ fn feature(id: &str) -> anyhow::Result<Feature> {
 fn list(report: &ExperimentalReport) {
     println(&paint(
         BOLD,
-        "Experimental components, off until enabled here or in Lace Studio (Settings > Experimental)",
+        "Experimental components, off until enabled here or in AURORA IDE (Settings > Experimental)",
     ));
     let width = report
         .components

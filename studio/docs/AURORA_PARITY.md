@@ -1,6 +1,7 @@
 # Paridade com a AURORA
 
-O Lace Studio substitui a AURORA e precisa fazer tudo o que ela fazia. Esta
+A AURORA IDE substitui a AURORA 7, feita em Electron, e precisa fazer tudo o
+que ela fazia. Esta
 página lista cada recurso da AURORA, levantado do código dela
 (`lace/vendor/aurora`), e diz onde ele está no Studio ou por que ainda não
 está. Atualize a linha no mesmo commit que mudar o estado de um recurso.

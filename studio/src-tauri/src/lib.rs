@@ -1,4 +1,4 @@
-//! Lace Studio: o backend do ambiente gráfico do Lace.
+//! AURORA IDE: o backend do ambiente gráfico do Lace.
 //!
 //! O backend é um cliente do servidor do Lace (`lace serve`), como a
 //! extensão do VS Code: o que é do Lace (o projeto, os fluxos, o histórico,
@@ -172,7 +172,7 @@ pub fn run() {
             wave_tab::wave_tab_close,
         ])
         .build(tauri::generate_context!())
-        .expect("Lace Studio could not start");
+        .expect("AURORA IDE could not start");
     app.run(|app, event| {
         if let RunEvent::Exit = event {
             shutdown(app);

@@ -702,7 +702,7 @@ ele desligado, todo `lace fpga` sai com 2 e o aviso de como ligar:
 ```
 $ lace fpga build
 Error: The experimental component fpga (FPGA boards) is disabled
-  Enable it with: lace experimental enable fpga (in Lace Studio: Settings > Experimental)
+  Enable it with: lace experimental enable fpga (in AURORA IDE: Settings > Experimental)
 ```
 
 Ligado com `lace experimental enable fpga` (ou no Studio, em Preferências >
@@ -1051,7 +1051,7 @@ CLI acrescenta o comando que resolve:
 | `stale_bitstream` | `Build for the board again with: lace fpga build, then program` |
 | `no_cable` | `Connect the board through its USB-Blaster port, turn it on and set its RUN/PROG switch to RUN; on Windows the USB-Blaster driver is in the drivers folder of Quartus, and on Linux the cable needs a udev rule (see docs/FPGA.md)` |
 | `quartus_missing` | `Install Quartus Prime Lite (Windows or Linux) with the device support of the board, or set its folder with --quartus <DIR> or LACE_QUARTUS` |
-| `experimental_disabled` | `Enable it with: lace experimental enable <componente> (in Lace Studio: Settings > Experimental)` |
+| `experimental_disabled` | `Enable it with: lace experimental enable <componente> (in AURORA IDE: Settings > Experimental)` |
 | `no_waveform` | `Simulate first with: lace sim`; na onda de um processador, `Simulate first with: lace sim -p <processador>` |
 | `signal_not_found` | sem caminho parecido no design, `List them with: lace wave signals`; com, nenhuma: a mensagem sugere os caminhos |
 | `testbench_not_elaborated` | `See the errors with: lace check` |

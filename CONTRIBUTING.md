@@ -252,7 +252,7 @@ a onda.
 | `plan.rs` | os perfis de instalação e a seleção de componentes |
 | `pack.rs` | o `lace-pack`: os pedaços da TUI (`tui`), o estágio do Inno Setup (`inno`) e os arquivos da release (`release_assets`) |
 | `tui.rs` | a instalação guiada no terminal (`App`), também a lista do `lace install` (`App::for_adding`) |
-| `desktop.rs` | o atalho do Lace Studio no menu de aplicativos, no Linux e no macOS |
+| `desktop.rs` | o atalho da AURORA IDE no menu de aplicativos, no Linux e no macOS |
 | `brand.rs` | as cores e a marca do Lace no terminal |
 | `error.rs` | `Error`: os erros que atravessam a fronteira, com código próprio |
 | `main.rs`, `bin/lace-pack.rs` | os executáveis `lace-installer` (o `install` do instalador de Linux e macOS) e `lace-pack` |
@@ -281,7 +281,7 @@ a onda.
 | `packages/rtl-viewer/` | o RTL viewer, o esquemático interativo do netlist da síntese, em TypeScript e React: o Studio compila o fonte dele (`studio/vite.config.ts`), e o build dele (`npm run build`) gera o bundle da extensão do VS Code e o modelo do HTML do `lace synth --open`, que vira o componente `rtl-viewer` |
 | `editors/vscode/` | a extensão do VS Code, em TypeScript, que fala com o Lace pelo `lace serve` ou, com um Lace sem ele (ou `lace.transport` em `cli`), pela CLI com `--json`; tem versão própria e testes próprios ([README](editors/vscode/README.md)), e o teste de contrato dela quebra quando `docs/schema/` muda |
 | `crates/lace-installer/tests/` | `install.rs` (empacota um bundle pequeno e instala de verdade) e `update.rs` (duas versões de um bundle pequeno: instala a primeira e atualiza para a segunda trocando só o que mudou) |
-| `studio/` | o Lace Studio, em Tauri: o backend em Rust (`studio/src-tauri/`, fora do workspace, com o próprio `Cargo.lock`) e a interface em React (`studio/src/`); o guia é o [studio/docs/DEVELOPMENT.md](studio/docs/DEVELOPMENT.md) |
+| `studio/` | a AURORA IDE (antes Lace Studio), em Tauri: o backend em Rust (`studio/src-tauri/`, fora do workspace, com o próprio `Cargo.lock`) e a interface em React (`studio/src/`); o guia é o [studio/docs/DEVELOPMENT.md](studio/docs/DEVELOPMENT.md) |
 | `examples/` | os projetos `soma`, `com_erro` e `contador`, usados pelos testes |
 | `bundle/versions.json` | a versão e o hash de cada pacote do bundle |
 | `bundle/components.json` | o que cada componente leva de cada pacote |

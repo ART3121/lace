@@ -15,7 +15,7 @@ interface AppState {
   settings: Settings | null;
   toolchain: ToolchainInfo | null;
   recent: RecentStatus[];
-  /** O tema em uso, já resolvido: o "Do sistema" vira o Atlas ou o Atlas Branco. */
+  /** O tema em uso, já resolvido: o "Do sistema" vira o Azul ou o Azul Claro. */
   theme: Theme;
 
   init: () => Promise<Settings | null>;

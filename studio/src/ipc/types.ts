@@ -78,6 +78,8 @@ export interface Settings {
   language: 'system' | 'pt' | 'en';
   /** O id de um tema de themes/catalog.ts, ou `system`. */
   theme: string;
+  /** O tema já passou pela troca do Atlas para o Azul (settings.rs). */
+  aurora_themes: boolean;
   toolchain_dir: string | null;
   compiler_dir: string | null;
   /** O Quartus Prime, como o `--quartus` da CLI; null: os locais padrão. */

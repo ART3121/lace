@@ -1,6 +1,6 @@
 # Guia do usuário
 
-Como usar o Lace Studio: a janela, os dois fluxos de trabalho (Verilog e
+Como usar a AURORA IDE: a janela, os dois fluxos de trabalho (Verilog e
 processador SAPHO), o que aparece no INFO e nos terminais, os atalhos e as
 preferências. Quem vem da AURORA encontra os mesmos botões com os mesmos
 nomes e teclas (C± F6, Verilog F7, Wave F8, RTLViewer F10).
@@ -54,7 +54,7 @@ de uma versão anterior não abre o tour sozinho.
 ## 2. A janela
 
 ```
- título       Arquivo Editar Exibir Projeto Fluxo Ferramentas Ajuda   projeto - Lace Studio   _ □ X
+ título       Arquivo Editar Exibir Projeto Fluxo Ferramentas Ajuda   projeto - AURORA IDE    _ □ X
  ferramentas  Novo Abrir Salvar | Alvo [Projeto] | C± Verilog | Wave Rápida | Onda Sinais | RTLViewer | Parar
  ┌──┬────────────────┬──────────────────────────────────┬──────────────┐
  │  │ barra lateral  │ abas: arquivos e vistas          │ barra lateral│
@@ -866,7 +866,7 @@ As preferências ficam em `settings.json`, na pasta de configuração do
 aplicativo: `~/.config/com.nipscern.lace-studio/` no Linux,
 `%APPDATA%\com.nipscern.lace-studio\` no Windows,
 `~/Library/Application Support/com.nipscern.lace-studio/` no macOS. O
-caminho exato aparece em Ajuda > Sobre o Lace Studio.
+caminho exato aparece em Ajuda > Sobre a AURORA IDE.
 
 ### Temas
 
@@ -898,7 +898,7 @@ Gruvbox, Solarized) ou, num tema sem par, para o Atlas Branco ou o Atlas.
 
 ## 9.1 Sobre
 
-Ajuda > Sobre o Lace Studio abre uma aba com a versão do Studio, a do bundle do Lace e a
+Ajuda > Sobre a AURORA IDE abre uma aba com a versão da IDE, a do bundle do Lace e a
 de cada componente (com os que faltam instalar), as do Tauri e do motor de
 páginas do sistema (WebKitGTK, WebView2 ou WKWebView), as pastas das
 preferências e do bundle (o botão ao lado abre a pasta) e os links da

@@ -1,5 +1,5 @@
 /*
- * Estilos do Lace Studio. Todas as cores e medidas vêm de tokens.css.
+ * Estilos da AURORA IDE. Todas as cores e medidas vêm de tokens.css.
  * Ordem: base, estrutura da janela, barras, barra lateral, editor, painel,
  * vistas, controles, diálogos e avisos.
  */
@@ -199,6 +199,13 @@ a {
   padding: 0 var(--space-2);
   background: var(--bg-0);
   border-bottom: 1px solid var(--border);
+}
+
+/* O camaleão (AuroraMark), na cor de preenchimento do destaque do tema. */
+.aurora-mark {
+  display: block;
+  flex: none;
+  fill: var(--brand-fill);
 }
 
 .menubar__logo {

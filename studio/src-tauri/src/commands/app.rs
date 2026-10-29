@@ -12,7 +12,8 @@ use crate::state::{AppState, blocking};
 /// O que a tela "Sobre" mostra.
 #[derive(Debug, Clone, Serialize)]
 pub struct AppInfo {
-    /// `Lace Studio`.
+    /// O `productName` do tauri.conf.json: `Lace Studio` até a versão que
+    /// renomeia o Lace, embora a interface já se chame AURORA IDE.
     pub name: String,
     /// A versão do Studio.
     pub version: String,

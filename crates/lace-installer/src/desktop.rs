@@ -1,4 +1,4 @@
-//! O atalho do Lace Studio no menu de aplicativos, quando o componente
+//! O atalho da AURORA IDE no menu de aplicativos, quando o componente
 //! `studio` está instalado:
 //!
 //! - no Linux, `lace-studio.desktop` na pasta de aplicativos do usuário
@@ -125,7 +125,7 @@ fn write_shortcut(shortcut: &Path, studio: &Path, prefix: &Path) -> anyhow::Resu
     let text = format!(
         "[Desktop Entry]\n\
          Type=Application\n\
-         Name=Lace Studio\n\
+         Name=AURORA IDE\n\
          GenericName=Hardware development environment\n\
          Comment=Verilog projects and SAPHO processors, with the Lace tools\n\
          Exec={exec}\n\
@@ -156,20 +156,20 @@ fn write_launcher(studio: &Path) -> anyhow::Result<PathBuf> {
     .fix();
     let script = format!(
         "#!/bin/sh\n\
-         # Abre o Lace Studio pelo atalho do menu (gravado pelo instalador do Lace).\n\
+         # Abre a AURORA IDE pelo atalho do menu (gravado pelo instalador do Lace).\n\
          # Sem uma biblioteca do sistema, o Studio não abre, e o erro iria para\n\
          # um terminal que não existe: aqui ele aparece numa janela.\n\
          studio={studio}\n\
          missing=$(ldd \"$studio\" 2>/dev/null | sed -n 's/^[[:space:]]*\\([^ ]*\\) => not found.*/\\1/p' | tr '\\n' ' ')\n\
          if [ -n \"$missing\" ]; then\n\
-         \x20   text=\"Lace Studio cannot start: this system does not have $missing\n\
-         Lace Studio needs webkit2gtk 4.1. {fix}\"\n\
+         \x20   text=\"AURORA IDE cannot start: this system does not have $missing\n\
+         AURORA IDE needs webkit2gtk 4.1. {fix}\"\n\
          \x20   if command -v kdialog >/dev/null 2>&1; then\n\
-         \x20       kdialog --title 'Lace Studio' --error \"$text\"\n\
+         \x20       kdialog --title 'AURORA IDE' --error \"$text\"\n\
          \x20   elif command -v zenity >/dev/null 2>&1; then\n\
-         \x20       zenity --error --no-markup --title='Lace Studio' --text=\"$text\"\n\
+         \x20       zenity --error --no-markup --title='AURORA IDE' --text=\"$text\"\n\
          \x20   elif command -v notify-send >/dev/null 2>&1; then\n\
-         \x20       notify-send -u critical 'Lace Studio' \"$text\"\n\
+         \x20       notify-send -u critical 'AURORA IDE' \"$text\"\n\
          \x20   elif command -v xmessage >/dev/null 2>&1; then\n\
          \x20       xmessage \"$text\"\n\
          \x20   fi\n\
@@ -243,7 +243,7 @@ impl MissingRuntime {
     /// O aviso inteiro, em uma linha.
     pub fn message(&self) -> String {
         format!(
-            "Lace Studio needs webkit2gtk 4.1, which this system does not have. {}",
+            "AURORA IDE needs webkit2gtk 4.1, which this system does not have. {}",
             self.fix()
         )
     }
@@ -304,7 +304,7 @@ pub fn offer_runtime_install(studio_installed: bool) {
         return;
     }
     if answer.trim().to_lowercase().starts_with('n') {
-        println!("Lace Studio will not open until webkit2gtk 4.1 is installed: {line}");
+        println!("AURORA IDE will not open until webkit2gtk 4.1 is installed: {line}");
         return;
     }
     let status = std::process::Command::new(&command[0])
@@ -312,7 +312,7 @@ pub fn offer_runtime_install(studio_installed: bool) {
         .status();
     match status {
         Ok(status) if status.success() && missing_runtime().is_none() => {
-            println!("webkit2gtk 4.1 is installed: Lace Studio is ready to open");
+            println!("webkit2gtk 4.1 is installed: AURORA IDE is ready to open");
         }
         Ok(_) => eprintln!("webkit2gtk 4.1 was not installed. {}", missing.fix()),
         Err(e) => eprintln!("Could not run {line} ({e}). {}", missing.fix()),

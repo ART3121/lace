@@ -50,7 +50,7 @@ interface ProjectState {
 /** O título da janela, o do sistema (barra de tarefas, Alt+Tab) e o da barra
  * de título integrada (TitleBar.tsx). */
 export function windowTitle(name: string | null): string {
-  return name ? `${name} - Lace Studio` : 'Lace Studio';
+  return name ? `${name} - AURORA IDE` : 'AURORA IDE';
 }
 
 async function setTitle(name: string | null): Promise<void> {

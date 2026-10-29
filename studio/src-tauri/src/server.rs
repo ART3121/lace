@@ -357,7 +357,7 @@ impl Session {
             return Err(IpcError::new(
                 codes::LACE_INCOMPATIBLE,
                 format!(
-                    "{} speaks protocol {}, and this Lace Studio speaks {PROTOCOL_VERSION}: use a lace of the same version as the Studio (Preferences > Lace bundle)",
+                    "{} speaks protocol {}, and this AURORA IDE speaks {PROTOCOL_VERSION}: use a lace of the same version as the IDE (Settings > Lace bundle)",
                     session.key.lace,
                     protocol.map_or_else(|| "?".to_owned(), |p| p.to_string()),
                 ),

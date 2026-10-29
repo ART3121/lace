@@ -533,7 +533,7 @@ function ThemeGrid({ value, onChange }: { value: string; onChange: (id: string) 
   );
 }
 
-/** Um cartão da grade. `note` aparece ao lado do nome (o "padrão" do Atlas);
+/** Um cartão da grade. `note` aparece ao lado do nome (o "padrão" do Azul);
  * `hint`, só ao passar o mouse. */
 function ThemeCard({
   name,

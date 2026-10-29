@@ -22,7 +22,7 @@ o YANC, verifica e simula com Icarus Verilog e Verilator, sintetiza com
 Yosys, desenha o esquemático com Graphviz e abre as ondas no surfer-aurora.
 
 Duas interfaces sobre o mesmo núcleo (`lace-core`): a linha de comando
-`lace` e o [Lace Studio](studio/README.md), o ambiente gráfico (editor,
+`lace` e a [AURORA IDE](studio/README.md), o ambiente gráfico (editor,
 compilação, simulação e ondas numa janela), em `studio/`. O instalador
 traz os dois. Para quem prefere o VS Code, a
 [extensão do Lace](editors/vscode/README.md) usa a linha de comando e se
@@ -41,9 +41,9 @@ Arch ou mais novos), macOS 13 ou mais novo em Apple Silicon, Windows 10 e
 
 ## Instalar
 
-No Linux, o Lace Studio usa o webkit2gtk 4.1 do sistema, que o instalador
+No Linux, a AURORA IDE usa o webkit2gtk 4.1 do sistema, que o instalador
 não traz. O GNOME costuma já tê-lo; o KDE Plasma, o Arch e os ambientes
-leves, em geral, não. Sem ele, o Studio não abre. Instale antes, ou deixe o
+leves, em geral, não. Sem ele, a IDE não abre. Instale antes, ou deixe o
 instalador oferecer no fim:
 
 ```sh
@@ -113,7 +113,7 @@ Lace (CLI & Core) vem sempre.
 
 | Componente | O que é |
 |---|---|
-| Lace Studio | o ambiente gráfico; no Linux precisa do webkit2gtk 4.1 do sistema |
+| AURORA IDE | o ambiente gráfico; no Linux precisa do webkit2gtk 4.1 do sistema |
 | YANC | compiladores C± e C do SAPHO e a biblioteca SAPHO |
 | Icarus Verilog | simulador Verilog, o padrão do `lace sim`, e a verificação do `lace check` |
 | Verilator | simulador compilado e o `lace check --lint`; no Linux e no macOS precisa de `g++` ou `clang++`, `make` e Perl do sistema, no Windows vem com eles |
@@ -231,7 +231,7 @@ as ferramentas rodam. O formato de cada um está em
 
 A linha de comando `lace` linka as bibliotecas e chama as funções do
 `lace-core`. Os outros programas falam com um processo filho, o servidor do
-Lace (`lace serve`), por JSON-RPC: o Lace Studio, que o abre sozinho, a
+Lace (`lace serve`), por JSON-RPC: a AURORA IDE, que o abre sozinha, a
 extensão do VS Code e scripts. Os pedidos e as respostas são os do crate
 `lace-protocol` ([docs/PROTOCOL.md](docs/PROTOCOL.md)). Um agente de IA
 fala com o mesmo servidor em MCP: o `lace serve` reconhece o idioma pelo
@@ -247,7 +247,7 @@ Assistente são experimentais: só funcionam depois de
 | Documento | Para quê |
 |---|---|
 | [docs/INSTALL.md](docs/INSTALL.md) | instalar, mudar componentes, remover |
-| [studio/README.md](studio/README.md) | o Lace Studio: usar, compilar, a documentação dele (`studio/docs/`) |
+| [studio/README.md](studio/README.md) | a AURORA IDE: usar, compilar, a documentação dela (`studio/docs/`) |
 | [editors/vscode/README.md](editors/vscode/README.md) | a extensão do VS Code: o que faz, configurações, compilar e testar |
 | [docs/CLI.md](docs/CLI.md) | a linha de comando `lace` |
 | [docs/LEARN.md](docs/LEARN.md) | os exercícios do `lace learn`: fazer e escrever |
@@ -288,7 +288,7 @@ O que montar o bundle exige está em [docs/BUNDLE.md](docs/BUNDLE.md).
 
 ## Licença
 
-O Lace e o Lace Studio estão sob a licença MIT ([LICENSE](LICENSE)).
+O Lace e a AURORA IDE estão sob a licença MIT ([LICENSE](LICENSE)).
 As ferramentas do bundle (YANC, Icarus Verilog, Verilator, cocotb, Yosys,
 Graphviz, surfer-aurora, openFPGALoader) seguem as licenças delas. O
 Quartus Prime não vem com o Lace: cada um instala o seu, sob a licença da

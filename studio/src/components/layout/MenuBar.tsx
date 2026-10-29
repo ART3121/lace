@@ -17,7 +17,7 @@ import { useExperimental } from '../../state/experimental';
 import { useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { useProject } from '../../state/project';
-import { LaceMark, MenuList, openContextMenu, type MenuItem } from '../common';
+import { AuroraMark, MenuList, openContextMenu, type MenuItem } from '../common';
 import { actionItem, APPEARANCE_ENTRIES, chromeMenu, LAYOUT_ENTRIES } from './layoutMenus';
 import { RunControls } from './RunControls';
 
@@ -241,7 +241,7 @@ export function Menus() {
 export function MenuBar({ menus, run }: { menus: boolean; run: boolean }) {
   return (
     <div className="menubar" onContextMenu={chromeContextMenu}>
-      <LaceMark className="menubar__logo" />
+      <AuroraMark className="menubar__logo" />
       {menus && <Menus />}
       {run && <RunControls variant="titlebar" />}
     </div>

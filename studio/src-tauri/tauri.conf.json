@@ -13,14 +13,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "Lace Studio",
+        "title": "AURORA IDE",
         "width": 1440,
         "height": 900,
         "minWidth": 960,
         "minHeight": 600,
         "center": true,
         "visible": false,
-        "backgroundColor": "#12171D",
+        "backgroundColor": "#101214",
         "dragDropEnabled": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
@@ -31,7 +31,7 @@
       },
       {
         "label": "splash",
-        "title": "Lace Studio",
+        "title": "AURORA IDE",
         "url": "splash.html",
         "width": 440,
         "height": 300,
@@ -42,7 +42,7 @@
         "decorations": false,
         "shadow": false,
         "focus": true,
-        "backgroundColor": "#12171D"
+        "backgroundColor": "#101214"
       }
     ],
     "security": {
@@ -55,7 +55,7 @@
     "targets": "all",
     "category": "DeveloperTool",
     "shortDescription": "Ambiente de desenvolvimento do Lace: Verilog e processadores SAPHO",
-    "longDescription": "Lace Studio é o ambiente gráfico do Lace, do NIPS-CERN (UFJF): projetos Verilog e processadores SAPHO, compilação C± pelo YANC, verificação e simulação com Icarus e Verilator, síntese com Yosys, esquemático com Graphviz e ondas no surfer-aurora.",
+    "longDescription": "AURORA IDE é o ambiente gráfico do Lace, do NIPS-CERN (UFJF): projetos Verilog e processadores SAPHO, compilação C± pelo YANC, verificação e simulação com Icarus e Verilator, síntese com Yosys, esquemático com Graphviz e ondas no surfer-aurora.",
     "copyright": "NIPS-CERN",
     "publisher": "NIPS-CERN",
     "homepage": "https://nipscern.com",

@@ -1,5 +1,5 @@
 /**
- * asm.ts: o assembly do SAPHO (.asm) no Monaco do Lace Studio.
+ * asm.ts: o assembly do SAPHO (.asm) no Monaco da AURORA IDE.
  *
  * Portado da AURORA em 2026-10-03, de:
  *   lace/vendor/aurora/js/editor/monaco_editor.js   (setupASMLanguage, temas asm-dark/asm-light)

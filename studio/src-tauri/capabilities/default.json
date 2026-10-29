@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissões da janela principal do Lace Studio. Os comandos próprios do Studio (invoke) não passam por aqui: valem para a janela inteira.",
+  "description": "Permissões da janela principal da AURORA IDE. Os comandos próprios do Studio (invoke) não passam por aqui: valem para a janela inteira.",
   "windows": [
     "main"
   ],

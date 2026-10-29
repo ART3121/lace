@@ -6,7 +6,7 @@
     "data: caminhos que entram sem fecho (os módulos do Python, por exemplo).",
     "exclude: caminhos que não entram, mesmo que casem com select ou data.",
     "keep: exceções ao exclude: entram mesmo casando com ele (alguns pacotes do site-packages do Python, sem os outros).",
-    "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora, Lace Studio).",
+    "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora, AURORA IDE).",
     "run: os executáveis que o Lace roda; o SHA-256 de cada um vai para o manifesto.",
     "Padrões: caminho exato, 'dir/**' para tudo abaixo de dir, ou glob de fnmatch.",
     "Chaves de plataforma: linux-x64, darwin-arm64, windows-x64; 'unix' vale para as duas primeiras.",
@@ -238,7 +238,7 @@
     },
     {
       "name": "studio",
-      "label": "Lace Studio",
+      "label": "AURORA IDE",
       "description": {
         "linux-x64": "The graphical environment (editor, build, simulation, waves); needs the system webkit2gtk 4.1",
         "windows-x64": "The graphical environment (editor, build, simulation, waves); needs the WebView2 runtime that comes with Windows 10 and 11",

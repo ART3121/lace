@@ -14,7 +14,6 @@ import {
 } from 'react';
 import { create } from 'zustand';
 
-import { useApp } from '../state/app';
 
 type ButtonVariant = 'default' | 'primary' | 'danger' | 'ghost';
 
@@ -201,14 +200,26 @@ export function StatusDot({ status }: { status?: 'ok' | 'failed' | 'running' }) 
   return <span className={`dot${status ? ` dot--${status}` : ''}`} aria-hidden />;
 }
 
+/** O contorno do camaleão, o ícone da AURORA (o `sapho_aurora_icon.svg` da
+ * AURORA Electron), com a rotação de 180 graus do original já aplicada aos
+ * números. É o mesmo de public/brand/aurora-*.svg e do splash. */
+export const AURORA_MARK_PATH =
+  'M3930 1801l0 282l57 -7c768 -88 1469 233 1886 864c544 825 369 1947 -402 2566c-359 289 -769 434 -1223 434c-312 0 -590 -66 -873 -208c-161 -80 -371 -226 -452 -314l-22 -24l173 -173l174 -174l74 60c240 197 496 303 806 333c145 15 316 0 479 -40c563 -138 914 -496 1050 -1070c30 -130 42 -390 24 -521c-80 -553 -453 -1004 -978 -1178c-165 -55 -239 -66 -458 -66c-213 0 -264 7 -440 62c-83 26 -249 102 -323 148l-42 26l0 -315c0 -208 -3 -316 -10 -316c-21 0 -187 89 -275 147c-301 199 -532 454 -691 765l-55 108l48 0c26 0 430 -5 897 -10c888 -11 940 -10 1078 31c437 128 726 557 678 1009c-12 118 -38 210 -90 318c-50 104 -86 157 -169 244c-201 214 -502 324 -793 290c-179 -21 -380 -106 -495 -208l-48 -43l174 -174l174 -175l49 34c94 64 240 90 357 63c195 -45 350 -238 351 -436c0 -203 -128 -381 -319 -443l-70 -22l-1231 8l-1230 9l0 -31c0 -63 53 -294 101 -439c144 -433 412 -832 753 -1119c276 -233 589 -402 928 -501c118 -34 309 -75 354 -75l24 0l0 281z';
+
+/** O quadrado justo em volta do camaleão, com ele no centro. */
+export const AURORA_MARK_VIEWBOX = '1769.4 1520 4420 4420';
+
 /**
- * O símbolo do Lace, sem fundo. Os arquivos ficam em public/brand/: o traço
- * azul-marinho serve ao tema claro e o creme ao escuro.
+ * O camaleão da AURORA, sem fundo, na cor de preenchimento do destaque do
+ * tema (`--brand-fill`): azul no Azul, âmbar no Âmbar, a cor do texto no
+ * Grafite.
  */
-export function LaceMark({ className }: { className?: string }) {
-  const dark = useApp((s) => s.theme.scheme === 'dark');
-  const file = dark ? 'lace-mark-reverse.svg' : 'lace-mark.svg';
-  return <img src={`/brand/${file}`} alt="" className={className} />;
+export function AuroraMark({ className }: { className?: string }) {
+  return (
+    <svg className={className ? `aurora-mark ${className}` : 'aurora-mark'} viewBox={AURORA_MARK_VIEWBOX} aria-hidden="true">
+      <path d={AURORA_MARK_PATH} />
+    </svg>
+  );
 }
 
 export function Empty({ icon, children }: { icon?: ReactNode; children: ReactNode }) {

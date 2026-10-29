@@ -1631,7 +1631,7 @@ fn hint(error: &LaceError) -> Option<String> {
         }
         LaceError::QuartusMissing => QUARTUS_HINT.into(),
         LaceError::ExperimentalDisabled { feature } => format!(
-            "Enable it with: lace experimental enable {feature} (in Lace Studio: Settings > Experimental)"
+            "Enable it with: lace experimental enable {feature} (in AURORA IDE: Settings > Experimental)"
         ),
         LaceError::NoWaveform { processor, .. } => match processor {
             Some(p) => format!("Simulate first with: lace sim -p {p}"),
@@ -1661,7 +1661,7 @@ fn hint_for_info(info: &lace_core::ErrorInfo) -> Option<String> {
             None => "Simulate first with: lace sim".into(),
         },
         "experimental_disabled" => format!(
-            "Enable it with: lace experimental enable {} (in Lace Studio: Settings > Experimental)",
+            "Enable it with: lace experimental enable {} (in AURORA IDE: Settings > Experimental)",
             field("feature")?
         ),
         _ => return None,

@@ -119,7 +119,7 @@ impl Hooks for CliHooks<'_> {
             plan.to, applied.applied.replaced, applied.applied.removed, applied.applied.verified
         );
         if cfg!(windows) && plan.changed.iter().any(|c| c == component::STUDIO) {
-            println!("If Lace Studio is open, close it and open it again to use the new version");
+            println!("If AURORA IDE is open, close it and open it again to use the new version");
         }
     }
 }

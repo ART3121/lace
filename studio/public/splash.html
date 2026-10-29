@@ -1,24 +1,24 @@
 <!doctype html>
 <!--
-  O splash do Lace Studio: a janela pequena, sem moldura, que aparece logo ao
+  O splash da AURORA IDE: a janela pequena, sem moldura, que aparece logo ao
   abrir (janela `splash` do tauri.conf.json) enquanto a principal carrega
-  escondida por trás. O logo é desenhado traço a traço, e depois um sinal
-  corre pelos fios (splash.js). As cores padrão são as do tema Atlas; o
-  splash.js troca pelas do último tema usado.
+  escondida por trás. O camaleão aparece numa volta, como um ponteiro que
+  varre o desenho a partir do focinho (splash.js). As cores padrão são as do
+  tema Azul; o splash.js troca pelas do último tema usado.
 -->
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lace Studio</title>
+    <title>AURORA IDE</title>
     <style>
       :root {
-        --bg: #12171d;
-        --fg: #e6edf3;
-        --muted: #8693a0;
-        --strand: #f4efe6;
-        --pulse: #54a6d5;
-        --track: #252e38;
+        --bg: #101214;
+        --fg: #eaedf1;
+        --muted: #909296;
+        --mark: #59a0f9;
+        --pulse: #73aef8;
+        --track: #232528;
       }
 
       html,
@@ -45,65 +45,47 @@
       }
 
       .mark {
-        width: 104px;
-        height: 104px;
-        overflow: visible;
+        width: 92px;
+        height: 92px;
       }
 
       .mark path {
-        fill: none;
-        stroke-width: 6;
-        stroke-linecap: round;
-        stroke-linejoin: round;
+        fill: var(--mark);
       }
 
-      .strand {
-        stroke: var(--strand);
-      }
-
-      /* O brilho é o filtro SVG #glow: o drop-shadow do CSS não vale para
-         elementos dentro do SVG no WebKit (macOS e Linux). */
-      .pulse {
-        stroke: var(--pulse);
-        filter: url(#glow);
-      }
-
-      /* O nome: o wordmark do Lace, pintado na cor do texto pela máscara, e
-         "Studio" ao lado. Aparece quando o desenho do logo termina. */
+      /* O nome aparece quando a volta do camaleão termina. */
       .name {
         display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 18px;
+        align-items: baseline;
+        gap: 9px;
+        margin-top: 22px;
         opacity: 0;
-        animation: rise 600ms ease-out 1050ms forwards;
+        animation: rise 600ms ease-out 850ms forwards;
       }
 
       .wordmark {
-        width: 63px;
-        height: 32px;
-        background: var(--fg);
-        -webkit-mask: url('brand/lace-wordmark.svg') no-repeat center / contain;
-        mask: url('brand/lace-wordmark.svg') no-repeat center / contain;
+        font-size: 25px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
       }
 
-      .studio {
+      .product {
         color: var(--muted);
         font-size: 25px;
         font-weight: 300;
-        letter-spacing: 0.01em;
+        letter-spacing: 0.02em;
       }
 
       .status {
         min-height: 16px;
-        margin-top: 22px;
+        margin-top: 20px;
         color: var(--muted);
         font-size: 12px;
         opacity: 0;
-        animation: rise 500ms ease-out 1350ms forwards;
+        animation: rise 500ms ease-out 1150ms forwards;
       }
 
-      /* A barra sem fim: um trecho que corre enquanto o Studio abre. */
+      /* A barra sem fim: um trecho que corre enquanto a IDE abre. */
       .bar {
         position: relative;
         width: 168px;
@@ -113,7 +95,7 @@
         border-radius: 1px;
         background: var(--track);
         opacity: 0;
-        animation: rise 500ms ease-out 1350ms forwards;
+        animation: rise 500ms ease-out 1150ms forwards;
       }
 
       .bar::after {
@@ -172,29 +154,22 @@
   </head>
   <body>
     <main class="splash">
-      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+      <svg class="mark" viewBox="1769.4 1520 4420 4420" aria-hidden="true">
         <defs>
-          <!-- A região cobre o desenho todo: com a da caixa de cada trecho, o
-               traço de um trecho quase reto sairia cortado. -->
-          <filter id="glow" filterUnits="userSpaceOnUse" x="-8" y="-8" width="80" height="80">
-            <feGaussianBlur stdDeviation="1.2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+          <!-- A máscara é um traço grosso em volta do centro da espiral: com
+               o tracejado, ele vira uma fatia que cresce de 0 a 360 graus e
+               mostra o desenho na ordem em que a espiral corre. Sem o
+               splash.js, o traço inteiro mostra o camaleão todo. -->
+          <mask id="sweep" maskUnits="userSpaceOnUse" x="1769.4" y="1520" width="4420" height="4420">
+            <circle id="sweep-arc" cx="4249" cy="4004" r="1300" fill="none" stroke="#fff" stroke-width="2600" transform="rotate(180 4249 4004)" />
+          </mask>
         </defs>
-        <!-- Os dois fios do laço, cada um em dois trechos (o vão é onde o
-             outro fio passa por cima): a1 e a2, b1 e b2, na ordem em que o
-             fio corre, da esquerda para a direita. -->
-        <path class="strand" data-strand="a" d="M4 19 L12.6 19.06 L13.5 19.36 L14.4 19.91 L15.3 20.71 L16.2 21.73 L17.1 22.95 L18 24.36 L18.9 25.92 L19.8 27.6 L20.7 29.36 L21.6 31.18 L22.5 33.02 L23.4 34.84 L24.3 36.6 L25.2 38.26 L26.1 39.81 L27 41.19 L27.9 42.4 L28.8 43.39 L29.7 44.16 L30.6 44.69 L31.5 44.96 L32.4 44.97 L33.3 44.73 L34.2 44.23 L35.1 43.49 L36 42.52 L36.9 41.34 L37.2 40.9" />
-        <path class="strand" data-strand="a" d="M46.8 23.1 L47.7 21.85 L48.6 20.81 L49.5 19.99 L50.4 19.41 L51.3 19.08 L52 19 L60 19" />
-        <path class="strand" data-strand="b" d="M4 45 L12.6 44.94 L13.5 44.64 L14.4 44.09 L15.3 43.29 L16.2 42.27 L17.1 41.05 L17.1 41.05" />
-        <path class="strand" data-strand="b" d="M26.7 23.25 L27.6 21.98 L28.5 20.92 L29.4 20.07 L30.3 19.46 L31.2 19.1 L32.1 19 L33 19.16 L33.9 19.57 L34.8 20.24 L35.7 21.13 L36.6 22.25 L37.5 23.56 L38.4 25.03 L39.3 26.65 L40.2 28.37 L41.1 30.17 L42 32 L42.9 33.83 L43.8 35.63 L44.7 37.35 L45.6 38.97 L46.5 40.44 L47.4 41.75 L48.3 42.87 L49.2 43.76 L50.1 44.43 L51 44.84 L51.9 45 L60 45" />
+        <!-- O contorno do camaleão: o mesmo do AuroraMark (src/components/common.tsx). -->
+        <path mask="url(#sweep)" d="M3930 1801l0 282l57 -7c768 -88 1469 233 1886 864c544 825 369 1947 -402 2566c-359 289 -769 434 -1223 434c-312 0 -590 -66 -873 -208c-161 -80 -371 -226 -452 -314l-22 -24l173 -173l174 -174l74 60c240 197 496 303 806 333c145 15 316 0 479 -40c563 -138 914 -496 1050 -1070c30 -130 42 -390 24 -521c-80 -553 -453 -1004 -978 -1178c-165 -55 -239 -66 -458 -66c-213 0 -264 7 -440 62c-83 26 -249 102 -323 148l-42 26l0 -315c0 -208 -3 -316 -10 -316c-21 0 -187 89 -275 147c-301 199 -532 454 -691 765l-55 108l48 0c26 0 430 -5 897 -10c888 -11 940 -10 1078 31c437 128 726 557 678 1009c-12 118 -38 210 -90 318c-50 104 -86 157 -169 244c-201 214 -502 324 -793 290c-179 -21 -380 -106 -495 -208l-48 -43l174 -174l174 -175l49 34c94 64 240 90 357 63c195 -45 350 -238 351 -436c0 -203 -128 -381 -319 -443l-70 -22l-1231 8l-1230 9l0 -31c0 -63 53 -294 101 -439c144 -433 412 -832 753 -1119c276 -233 589 -402 928 -501c118 -34 309 -75 354 -75l24 0l0 281z" />
       </svg>
-      <div class="name" aria-label="Lace Studio">
-        <span class="wordmark" aria-hidden="true"></span>
-        <span class="studio" aria-hidden="true">Studio</span>
+      <div class="name" aria-label="AURORA IDE">
+        <span class="wordmark" aria-hidden="true">AURORA</span>
+        <span class="product" aria-hidden="true">IDE</span>
       </div>
       <div class="status" id="status" role="status"></div>
       <div class="bar" aria-hidden="true"></div>

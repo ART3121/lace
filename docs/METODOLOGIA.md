@@ -27,7 +27,7 @@ lace-core          a regra: projeto, fluxos, ferramentas e erros
   lace-agent       o assistente de IA, sobre o core (experimental)
 lace-protocol      o contrato: pedidos, respostas e schemas, sobre o core, o lace-learn e o instalador
 lace-cli           o binário lace: os comandos de texto, o lace serve (que fala também MCP), o lace mcp e o lace chat
-studio/src-tauri   o backend do Lace Studio: cliente do lace serve, mais o que é só do Studio
+studio/src-tauri   o backend da AURORA IDE: cliente do lace serve, mais o que é só da IDE
 studio/src         a interface do Studio, em TypeScript
 editors/vscode     a extensão do VS Code, em TypeScript, pelo lace serve ou pela CLI
 ```

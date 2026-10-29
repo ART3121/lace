@@ -1021,7 +1021,7 @@ pub fn added_lines(report: &AddReport, index: &Index) -> Vec<Line<'static>> {
 fn studio_lines(shortcut: Option<&Path>, installed: bool) -> Vec<Line<'static>> {
     let mut lines = Vec::new();
     if let Some(shortcut) = shortcut {
-        lines.push(kv("Lace Studio", &shortcut.to_string_lossy()));
+        lines.push(kv("AURORA IDE", &shortcut.to_string_lossy()));
     }
     if installed && let Some(missing) = crate::desktop::missing_runtime() {
         lines.push(Line::from(Span::styled(
