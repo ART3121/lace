@@ -7,9 +7,9 @@
 import { useLang } from '../i18n';
 import type { Theme } from '../themes';
 
-const STATUS = 'lace-studio:splash:status';
-const LOOK = 'lace-studio:splash:look';
-const BORN = 'lace-studio:splash:born';
+const STATUS = 'aurora-ide:splash:status';
+const LOOK = 'aurora-ide:splash:look';
+const BORN = 'aurora-ide:splash:born';
 
 /** Quanto falta para o splash ter ficado `min` ms na tela, contado de quando
  * ele apareceu (ele grava a hora). Sem esse registro, ou com um de outra

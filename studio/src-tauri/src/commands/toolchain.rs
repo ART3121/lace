@@ -78,18 +78,18 @@ pub async fn aurora_install(
 /// (o binário dele foi trocado) e a interface reinicia o Studio
 /// ([`crate::exit`]). Com o assistente do Windows, ela fecha o Studio para
 /// ele trocar os arquivos, e o assistente abre o Studio quando termina
-/// (`reopen_studio`).
+/// (`reopen_ide`).
 #[tauri::command]
 pub async fn aurora_update(app: AppHandle, channel: Channel<Value>) -> IpcResult<u32> {
     let command = if cfg!(windows) {
-        "aurora update --yes --json --reopen-studio"
+        "aurora update --yes --json --reopen-ide"
     } else {
         "aurora update --yes --json"
     };
     let operation = Operation {
         command: command.to_owned(),
         method: "update.apply",
-        params: json!({ "reopen_studio": cfg!(windows) }),
+        params: json!({ "reopen_ide": cfg!(windows) }),
     };
     jobs::start(&app, operation, channel, |reply| {
         installer_outcome("update", reply)

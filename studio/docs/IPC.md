@@ -129,7 +129,7 @@ O que vale saber de alguns métodos, do lado da interface:
 | `app_exit` | `restart: boolean` | (não volta: o Studio sai) |
 | `splash_close` | | (fecha o splash, a janela com o logo que fica na frente enquanto a principal abre escondida; a interface chama logo depois de mostrar a principal) |
 
-`log_frontend` escreve no log do backend, com o alvo `lace_studio::ui`, o
+`log_frontend` escreve no log do backend, com o alvo `aurora_ide::ui`, o
 que a interface manda: erros de JavaScript, `console.error` e todo erro
 mostrado num aviso. `dev_smoke_script` alimenta o roteiro de fumaça
 (DEVELOPMENT.md, seção 3).
@@ -251,7 +251,7 @@ recusa nome e parâmetro que o YANC não compila (`invalid_name`,
 
 Uma operação por vez: começar outra com uma rodando é `busy`. O fluxo vai
 ao servidor pelo `flow.run`, com o comando que o `flow.command` dá
-(`lace-studio sim -p soma`), e cancelar manda o `$/cancel` do pedido. Os
+(`aurora-ide sim -p soma`), e cancelar manda o `$/cancel` do pedido. Os
 fluxos `fpga_build` e `fpga_program` são da placa FPGA, experimental: com
 ela desligada, o servidor recusa com `experimental_disabled`, e a operação
 termina em `failed`.
@@ -306,7 +306,7 @@ O `FlowOutcome` do protocolo, com `wave_tab`, que o Studio acrescenta:
 
 | Campo | Conteúdo |
 |---|---|
-| `flow`, `command` | o fluxo e o comando equivalente (`lace-studio sim -p soma`) |
+| `flow`, `command` | o fluxo e o comando equivalente (`aurora-ide sim -p soma`) |
 | `status` | como terminou: o pior entre as fases que rodaram (`succeeded`, `failed`, `crashed`, `incomplete`, `timed_out`, `cancelled`) |
 | `succeeded` | tudo deu certo (`status` é `succeeded`) |
 | `builds` | `BuildResult[]` dos builds feitos antes (ou do próprio build) |
@@ -370,7 +370,7 @@ responde com `prefix: null` e `aurora_update` falha com `no_installation`.
 com a versão instalada, a nova e a pasta (o `UpdateReport` de
 `aurora_update_check`). No Windows pede ao assistente de instalação, quando a
 atualização cai nele, para abrir o Studio de novo no fim
-(`reopen_studio`); o servidor roda num Job Object que deixa o assistente
+(`reopen_ide`); o servidor roda num Job Object que deixa o assistente
 sair dele, e o assistente sobrevive ao Studio, que fecha para ele trocar
 os arquivos. A interface chama `aurora_update_check` sozinha ao abrir e a
 cada 12 horas (`check_updates` nas preferências), e depois de `updated`

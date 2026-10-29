@@ -12,8 +12,7 @@ use crate::state::{AppState, blocking};
 /// O que a tela "Sobre" mostra.
 #[derive(Debug, Clone, Serialize)]
 pub struct AppInfo {
-    /// O `productName` do tauri.conf.json: `Lace Studio` até a versão que
-    /// renomeia o Lace, embora a interface já se chame AURORA IDE.
+    /// O `productName` do tauri.conf.json: `AURORA IDE`.
     pub name: String,
     /// A versão do Studio.
     pub version: String,
@@ -109,9 +108,9 @@ pub async fn recent_forget(app: AppHandle, spf: String) -> IpcResult<()> {
 #[tauri::command]
 pub fn log_frontend(level: String, message: String) {
     match level.as_str() {
-        "error" => tracing::error!(target: "lace_studio::ui", "{message}"),
-        "warn" => tracing::warn!(target: "lace_studio::ui", "{message}"),
-        _ => tracing::info!(target: "lace_studio::ui", "{message}"),
+        "error" => tracing::error!(target: "aurora_ide::ui", "{message}"),
+        "warn" => tracing::warn!(target: "aurora_ide::ui", "{message}"),
+        _ => tracing::info!(target: "aurora_ide::ui", "{message}"),
     }
 }
 

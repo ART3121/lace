@@ -1,10 +1,10 @@
 //! O atalho da AURORA IDE no menu de aplicativos, quando o componente
 //! `studio` está instalado:
 //!
-//! - no Linux, `lace-studio.desktop` na pasta de aplicativos do usuário
+//! - no Linux, `aurora-ide.desktop` na pasta de aplicativos do usuário
 //!   (`$XDG_DATA_HOME/applications`, ou `~/.local/share/applications`; como
 //!   root, `/usr/local/share/applications`);
-//! - no macOS, o symlink `Lace Studio.app` em `~/Applications` (como root,
+//! - no macOS, o symlink `AURORA IDE.app` em `~/Applications` (como root,
 //!   `/Applications`), para o `.app` que fica no bundle;
 //! - no Windows, quem cria o atalho no menu Iniciar é o assistente (Inno
 //!   Setup); aqui não há nada a fazer.
@@ -21,14 +21,14 @@ use anyhow::Context;
 use crate::install::{home, is_root};
 
 /// O arquivo do atalho no Linux.
-pub const DESKTOP_FILE: &str = "lace-studio.desktop";
+pub const DESKTOP_FILE: &str = "aurora-ide.desktop";
 /// O `.app` do Studio no macOS (o `productName` do `tauri.conf.json`).
-pub const APP_NAME: &str = "Lace Studio.app";
+pub const APP_NAME: &str = "AURORA IDE.app";
 /// A linha do `.desktop` que diz de que instalação ele é.
 const PREFIX_KEY: &str = "X-Lace-Prefix=";
-/// O lançador que o atalho do Linux abre, ao lado do `lace-studio`
+/// O lançador que o atalho do Linux abre, ao lado do `aurora-ide`
 /// ([`write_launcher`]).
-const LAUNCHER: &str = "lace-studio-launch";
+const LAUNCHER: &str = "aurora-ide-launch";
 
 /// Onde fica o atalho nesta plataforma; `None` no Windows.
 pub fn shortcut_path() -> Option<PathBuf> {
@@ -64,7 +64,7 @@ fn studio_in(prefix: &Path) -> PathBuf {
     if cfg!(target_os = "macos") {
         studio.join(APP_NAME)
     } else {
-        studio.join("lace-studio")
+        studio.join("aurora-ide")
     }
 }
 
@@ -120,7 +120,7 @@ fn write_shortcut(shortcut: &Path, studio: &Path, _prefix: &Path) -> anyhow::Res
 
 #[cfg(not(target_os = "macos"))]
 fn write_shortcut(shortcut: &Path, studio: &Path, prefix: &Path) -> anyhow::Result<()> {
-    let icon = studio.with_file_name("lace-studio.png");
+    let icon = studio.with_file_name("aurora-ide.png");
     let launcher = write_launcher(studio)?;
     let text = format!(
         "[Desktop Entry]\n\
@@ -378,8 +378,8 @@ mod tests {
     #[test]
     fn exec_quotes_and_escapes_the_program() {
         assert_eq!(
-            desktop_exec(Path::new("/opt/my aurora/toolchain/studio/lace-studio")),
-            "\"/opt/my aurora/toolchain/studio/lace-studio\""
+            desktop_exec(Path::new("/opt/my aurora/toolchain/studio/aurora-ide")),
+            "\"/opt/my aurora/toolchain/studio/aurora-ide\""
         );
         assert_eq!(desktop_exec(Path::new("/a$b")), "\"/a\\\\$b\"");
     }

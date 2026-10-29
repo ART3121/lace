@@ -7,7 +7,7 @@
 //! registrar o Verilog gerado, simular, ler as portas, gravar o relatório,
 //! abrir a onda, corrigir um exercício) é a do Lace, a mesma da CLI, e roda
 //! no servidor. Aqui ficam só as decisões da interface: o programa
-//! `lace-studio` do comando que vai para o histórico, e se a onda abre em
+//! `aurora-ide` do comando que vai para o histórico, e se a onda abre em
 //! janela ou numa aba (preferência `wave_viewer`).
 
 use camino::Utf8Path;
@@ -25,8 +25,8 @@ use crate::toolchain;
 const STEP_OUTPUT_LIMIT: usize = 256 * 1024;
 
 /// O programa do comando de um fluxo do Studio: quem rodou foi o Studio, não
-/// a CLI (`lace-studio sim -p soma`).
-const PROGRAM: &str = "lace-studio";
+/// a CLI (`aurora-ide sim -p soma`).
+const PROGRAM: &str = "aurora-ide";
 
 /// O que fazer com a resposta do servidor no fim de um fluxo.
 pub struct Finisher {
@@ -131,7 +131,7 @@ mod tests {
     fn finisher(wave_tab: bool) -> Finisher {
         Finisher {
             flow: "simulate".to_owned(),
-            command: "lace-studio sim".to_owned(),
+            command: "aurora-ide sim".to_owned(),
             wave_tab,
         }
     }

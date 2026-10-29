@@ -64,7 +64,7 @@ abre a janela. Salvar um arquivo de `src/` recarrega a interface na hora;
 salvar um de `src-tauri/` recompila e reabre o aplicativo. A primeira
 compilação do backend leva vários minutos (o Tauri e o WebKitGTK).
 
-Log do backend no terminal: `RUST_LOG=lace_studio_lib=debug npm run tauri dev`. O
+Log do backend no terminal: `RUST_LOG=aurora_ide_lib=debug npm run tauri dev`. O
 stderr do servidor do Lace sai no mesmo log, com o alvo `aurora_serve`.
 O inspetor da WebView abre com Ctrl+Shift+I, só na build de
 desenvolvimento (o menu de contexto do navegador fica desligado fora dos
@@ -153,7 +153,7 @@ chromium-browser --headless=new --enable-logging=stderr --virtual-time-budget=20
 ```
 
 Os erros da interface (exceções, `console.error`, avisos de erro) também vão
-para o log do backend, com o alvo `lace_studio::ui`, e também quanto a
+para o log do backend, com o alvo `aurora_ide::ui`, e também quanto a
 abertura levou (`Startup: modules loaded in ... ms, first frame at ...
 ms`, contado da navegação da WebView).
 

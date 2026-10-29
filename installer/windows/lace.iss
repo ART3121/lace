@@ -83,7 +83,7 @@ WizardStyle=modern dynamic
 ; (SIZE_PERCENT em scripts/installer_art.py).
 WizardSizePercent=130,150
 SetupIconFile=..\..\studio\src-tauri\icons\icon.ico
-UninstallDisplayIcon={app}\toolchain\studio\lace-studio.exe
+UninstallDisplayIcon={app}\toolchain\studio\aurora-ide.exe
 ; As imagens em 100% e 200%; o assistente escolhe pela escala da tela. São
 ; as mesmas no modo escuro: o fundo delas já é o azul da marca.
 WizardImageFile=art\wizard-164.png,art\wizard-328.png
@@ -176,15 +176,15 @@ Name: "studioicon"; Description: "{cm:TaskStudioIcon}"; Components: studio; Flag
 ; O Lace Studio fica no bundle (toolchain\studio, o componente studio) e acha
 ; o bundle por estar dentro dele.
 [Icons]
-Name: "{autoprograms}\AURORA IDE"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio
-Name: "{autodesktop}\AURORA IDE"; Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Tasks: studioicon
+Name: "{autoprograms}\AURORA IDE"; Filename: "{app}\toolchain\studio\aurora-ide.exe"; Components: studio
+Name: "{autodesktop}\AURORA IDE"; Filename: "{app}\toolchain\studio\aurora-ide.exe"; Components: studio; Tasks: studioicon
 
-; O Lace Studio que pediu a atualização (`aurora update --reopen-studio`, que
-; passa /REOPENSTUDIO=1) fechou para o assistente trocar os arquivos dele: ele
+; O Lace Studio que pediu a atualização (`aurora update --reopen-ide`, que
+; passa /REOPENIDE=1) fechou para o assistente trocar os arquivos dele: ele
 ; abre de novo sozinho, sem a caixa da página final.
 [Run]
-Filename: "{app}\toolchain\studio\lace-studio.exe"; Components: studio; Flags: nowait runasoriginaluser; Check: ReopenStudio
-Filename: "{app}\toolchain\studio\lace-studio.exe"; Description: "{cm:RunStudio}"; Components: studio; Flags: postinstall nowait skipifsilent unchecked; Check: not ReopenStudio
+Filename: "{app}\toolchain\studio\aurora-ide.exe"; Components: studio; Flags: nowait runasoriginaluser; Check: ReopenIde
+Filename: "{app}\toolchain\studio\aurora-ide.exe"; Description: "{cm:RunStudio}"; Components: studio; Flags: postinstall nowait skipifsilent unchecked; Check: not ReopenIde
 
 [InstallDelete]
 ; Os atalhos de quando a AURORA IDE se chamava Lace Studio: os de agora têm
@@ -359,11 +359,11 @@ end;
   página de componentes, ou antes de instalar numa instalação silenciosa
   sem /COMPONENTS. Uma seleção que não é a de nenhum perfil põe o tipo em
   Custom, com a lista. }
-{ /REOPENSTUDIO=1: o `aurora update` do Lace Studio abriu este assistente, e o
+{ /REOPENIDE=1: o `aurora update` do Lace Studio abriu este assistente, e o
   Studio fechou para ele (ver [Run]). }
-function ReopenStudio: Boolean;
+function ReopenIde: Boolean;
 begin
-  Result := ExpandConstant('{param:REOPENSTUDIO|0}') = '1';
+  Result := ExpandConstant('{param:REOPENIDE|0}') = '1';
 end;
 
 procedure PreselectOnce;

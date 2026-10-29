@@ -686,7 +686,7 @@ export const useEditor = create<EditorState>((set, get) => {
         activeGroup: Math.max(0, kept.findIndex((group) => group.id === activeGroup)),
       };
       try {
-        localStorage.setItem(`lace-studio:session:${spf}`, JSON.stringify(session));
+        localStorage.setItem(`aurora-ide:session:${spf}`, JSON.stringify(session));
       } catch {
         // Sem armazenamento, a sessão só não é lembrada.
       }
@@ -695,7 +695,7 @@ export const useEditor = create<EditorState>((set, get) => {
     restoreSession: async (spf) => {
       let session: SavedSession | null = null;
       try {
-        session = JSON.parse(localStorage.getItem(`lace-studio:session:${spf}`) ?? 'null');
+        session = JSON.parse(localStorage.getItem(`aurora-ide:session:${spf}`) ?? 'null');
       } catch {
         session = null;
       }

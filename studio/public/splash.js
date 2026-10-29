@@ -7,9 +7,9 @@
 // versão (src/state/splash.ts); daqui se lê sem permissão nenhuma do Tauri.
 // Ela fecha o splash quando aparece.
 (() => {
-  const STATUS = 'lace-studio:splash:status';
-  const LOOK = 'lace-studio:splash:look';
-  const BORN = 'lace-studio:splash:born';
+  const STATUS = 'aurora-ide:splash:status';
+  const LOOK = 'aurora-ide:splash:look';
+  const BORN = 'aurora-ide:splash:born';
 
   // Quando este splash apareceu: a janela principal conta daqui o tempo
   // mínimo dele na tela.

@@ -574,7 +574,7 @@ operações escrevem, e o **Terminal**, o shell. Depois deles vem
 
 ```
 ── Simulação · 14:02:31 ───────────────────────
-$ lace-studio sim -p soma
+$ aurora-ide sim -p soma
 ▸ Compilando processadores (YANC)
   cmmcomp
     (o que o cmmcomp escreveu)
@@ -863,9 +863,9 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Experimental | os recursos do Lace que ainda mudam muito, desligados por padrão: hoje, a **Placa FPGA** (seção 7.2) e o **Assistente de IA** (a vista Assistente, uma conversa com o Claude Code instalado na máquina sobre o projeto aberto, com as ferramentas do Lace; ligado, ganha a própria página de Preferências). Ficam no `experimental.json` da pasta de configuração do Lace (o caminho aparece na página), não no `settings.json`, e valem também para a CLI (`aurora experimental`) |
 
 As preferências ficam em `settings.json`, na pasta de configuração do
-aplicativo: `~/.config/com.nipscern.lace-studio/` no Linux,
-`%APPDATA%\com.nipscern.lace-studio\` no Windows,
-`~/Library/Application Support/com.nipscern.lace-studio/` no macOS. O
+aplicativo: `~/.config/com.nipscern.aurora-ide/` no Linux,
+`%APPDATA%\com.nipscern.aurora-ide\` no Windows,
+`~/Library/Application Support/com.nipscern.aurora-ide/` no macOS. O
 caminho exato aparece em Ajuda > Sobre a AURORA IDE.
 
 ### Temas

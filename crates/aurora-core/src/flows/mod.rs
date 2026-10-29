@@ -206,7 +206,7 @@ impl FlowRequest {
     }
 
     /// O comando da CLI equivalente ao pedido, começando por `program`
-    /// (`aurora`, ou `lace-studio` quando quem rodou foi o Studio), para o
+    /// (`aurora`, ou `aurora-ide` quando quem rodou foi o Studio), para o
     /// relatório e para o console: `aurora sim -p soma --verilator`. Um
     /// argumento vazio ou com espaço vai entre aspas duplas, como na CLI.
     pub fn command_line(&self, program: &str) -> String {
@@ -317,7 +317,7 @@ pub(crate) fn quoted(text: &str) -> String {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct FlowOptions {
     /// O texto do comando para o histórico e para o console (`aurora sim -p
-    /// soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um
+    /// soma`, `aurora-ide sim -p soma`). A CLI passa a linha digitada; um
     /// cliente sem linha de comando monta com [`FlowRequest::command_line`].
     pub command: String,
     /// Quando a operação começou, para o relatório: a CLI toma antes de
@@ -733,8 +733,8 @@ mod tests {
             open_wave: true,
         };
         assert_eq!(
-            request.command_line("lace-studio"),
-            "lace-studio sim -p soma --verilator --timeout 30 --open"
+            request.command_line("aurora-ide"),
+            "aurora-ide sim -p soma --verilator --timeout 30 --open"
         );
         let fast = FlowRequest::Simulate {
             processor: None,

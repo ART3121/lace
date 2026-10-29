@@ -9,7 +9,7 @@
 // ela escreveu, recuado embaixo do nome dela:
 //
 //   ── Simulação · 14:02:31 ────────────────────────
-//   $ lace-studio sim -p soma
+//   $ aurora-ide sim -p soma
 //   ▸ Compilando processadores (YANC)
 //     cmmcomp
 //       (o que o cmmcomp escreveu)

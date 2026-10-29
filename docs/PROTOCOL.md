@@ -33,7 +33,7 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`processor.outputs`](#metodo-processor-outputs) | lista de `integer` | Os valores de uma porta de saída da última simulação do processador. |
 | [`processor.defaults`](#metodo-processor-defaults) | [`NewProcessor`](#tipo-newprocessor) | Os padrões de um processador novo (os da AURORA), para um formulário começar preenchido. |
 | [`flow.run`](#metodo-flow-run) | [`FlowOutcome`](#tipo-flowoutcome) | Roda um fluxo ([`FlowRequest`](#tipo-flowrequest)). |
-| [`flow.command`](#metodo-flow-command) | `string` | O comando equivalente de um fluxo, como a CLI o escreveria e como ele vai para o histórico (`lace-studio sim -p soma`), para uma interface mostrar antes de rodar. |
+| [`flow.command`](#metodo-flow-command) | `string` | O comando equivalente de um fluxo, como a CLI o escreveria e como ele vai para o histórico (`aurora-ide sim -p soma`), para uma interface mostrar antes de rodar. |
 | [`wave.open`](#metodo-wave-open) | [`WaveOpened`](#tipo-waveopened) | Abre uma onda no surfer-aurora. |
 | [`wave.signals`](#metodo-wave-signals) | [`WaveSignals`](#tipo-wavesignals) | A árvore de sinais do testbench do projeto, com a escolha gravada. |
 | [`wave.choose`](#metodo-wave-choose) | [`WaveChoiceOutcome`](#tipo-wavechoiceoutcome) | Muda a escolha de sinais. |
@@ -342,7 +342,7 @@ Resultado: [`FlowOutcome`](#tipo-flowoutcome).
 #### `flow.command`
 
 O comando equivalente de um fluxo, como a CLI o escreveria e como ele
-vai para o histórico (`lace-studio sim -p soma`), para uma interface
+vai para o histórico (`aurora-ide sim -p soma`), para uma interface
 mostrar antes de rodar. Resposta: o texto.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
@@ -696,7 +696,7 @@ seguida: o binário dele foi trocado.
 |---|---|---|---|
 | `full` | `boolean` | não (padrão: `false`) | O instalador inteiro, sem tentar por componentes. |
 | `from` | `string` \| `null` | não (padrão: `null`) | Um instalador no disco, sem rede. |
-| `reopen_studio` | `boolean` | não (padrão: `false`) | No Windows, quando o assistente de instalação roda: abrir o Lace Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio pede isso e fecha, para o assistente trocar os arquivos dele. |
+| `reopen_ide` | `boolean` | não (padrão: `false`) | No Windows, quando o assistente de instalação roda: abrir o Lace Studio quando ele terminar (o `--reopen-ide` da CLI). O Studio pede isso e fecha, para o assistente trocar os arquivos dele. |
 
 Resultado: [`UpdateReport`](#tipo-updatereport).
 
@@ -1607,7 +1607,7 @@ O que é da interface, não do fluxo.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `command` | `string` | sim | O texto do comando para o histórico e para o console (`aurora sim -p soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um cliente sem linha de comando monta com `FlowRequest::command_line`. |
+| `command` | `string` | sim | O texto do comando para o histórico e para o console (`aurora sim -p soma`, `aurora-ide sim -p soma`). A CLI passa a linha digitada; um cliente sem linha de comando monta com `FlowRequest::command_line`. |
 | `wave` | [`WavePolicy`](#tipo-wavepolicy) | não (padrão: `"window"`) | Como abrir a onda quando o pedido tem `open_wave`. |
 | `viewer_opener` | `string` \| `null` | não (padrão: `null`) | Quem abre o RTL viewer do `synth --open`: `None` abre no navegador do sistema; `Some(nome)` só grava o HTML, para quem chamou abrir (o `AURORA_OPENER=vscode` do terminal da extensão do VS Code). |
 

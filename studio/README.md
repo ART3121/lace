@@ -8,8 +8,8 @@ Graphviz, abre a onda no surfer-aurora e guarda o relatório de cada
 operação.
 
 Até 2026-10-29 se chamava Lace Studio. A pasta `studio/`, o componente
-`studio` do bundle, o executável `lace-studio`, o `Lace Studio.app` do macOS
-e a pasta das preferências (`com.nipscern.lace-studio`) ficam com o nome
+`studio` do bundle, o executável `aurora-ide`, o `AURORA IDE.app` do macOS
+e a pasta das preferências (`com.nipscern.aurora-ide`) ficam com o nome
 antigo até a versão que renomeia o Lace para AURORA, porque o instalador e
 a atualização dependem deles.
 

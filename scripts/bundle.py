@@ -264,7 +264,7 @@ def pkg_surfer_aurora(spec, plat, work, cache):
 def pkg_studio(spec, plat, work, cache):
     """O Lace Studio, compilado de studio/ deste repositório pelo Tauri (a
     interface pelo Vite, embutida no executável). No macOS sai o
-    `Lace Studio.app`; no Linux e no Windows, o executável, que usa o
+    `AURORA IDE.app`; no Linux e no Windows, o executável, que usa o
     WebView do sistema (webkit2gtk 4.1, WebView2)."""
     src = ROOT / spec["path"]
     conf = json.loads((src / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
@@ -291,9 +291,9 @@ def pkg_studio(spec, plat, work, cache):
         shutil.copytree(app, stage / app.name, symlinks=True)
     else:
         exe = ".exe" if plat == "windows-x64" else ""
-        shutil.copy2(target / "release" / f"lace-studio{exe}", stage / f"lace-studio{exe}")
+        shutil.copy2(target / "release" / f"aurora-ide{exe}", stage / f"aurora-ide{exe}")
         # O ícone que o instalador põe no atalho do menu de aplicativos.
-        shutil.copy2(src / "src-tauri" / "icons" / "128x128.png", stage / "lace-studio.png")
+        shutil.copy2(src / "src-tauri" / "icons" / "128x128.png", stage / "aurora-ide.png")
     return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
 
 

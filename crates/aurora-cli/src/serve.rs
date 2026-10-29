@@ -1198,9 +1198,9 @@ impl Server {
             Request::UpdateApply {
                 full,
                 from,
-                reopen_studio,
+                reopen_ide,
             } => {
-                let reopen = reopen_studio.then_some(Reopen::Studio);
+                let reopen = reopen_ide.then_some(Reopen::Studio);
                 let report = self.update(id, &emit, full, from.as_deref(), reopen, &cancel)?;
                 Response::Update(Box::new(report))
             }
@@ -1951,10 +1951,10 @@ mod tests {
             "flow.command",
             json!({
                 "request": { "flow": "simulate", "processor": "soma", "simulator": "icarus", "open_wave": true },
-                "program": "lace-studio",
+                "program": "aurora-ide",
             }),
         );
-        assert_eq!(command, "lace-studio sim -p soma --open");
+        assert_eq!(command, "aurora-ide sim -p soma --open");
         let learn = call(
             "flow.command",
             json!({ "request": { "flow": "learn", "root": root, "exercise": "mux 2" } }),

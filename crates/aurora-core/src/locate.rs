@@ -205,7 +205,7 @@ fn open_bundle(lookup: &Lookup) -> Result<(Toolchain, Origin)> {
 
 /// O bundle que contém o executável: a primeira pasta acima dele com um
 /// `bundle.json`, com os symlinks resolvidos. Cinco níveis cobrem o `.app`
-/// do macOS (`toolchain/studio/Lace Studio.app/Contents/MacOS`).
+/// do macOS (`toolchain/studio/AURORA IDE.app/Contents/MacOS`).
 fn containing_bundle(exe: &Utf8Path) -> Option<Utf8PathBuf> {
     let exe = dunce::canonicalize(exe)
         .ok()
@@ -509,7 +509,7 @@ mod tests {
         fake_bundle(&bundle);
         let exe_dir = bundle.join("studio");
         std::fs::create_dir_all(&exe_dir).unwrap();
-        let exe = exe_dir.join("lace-studio.exe");
+        let exe = exe_dir.join("aurora-ide.exe");
         std::fs::write(&exe, "").unwrap();
         let other = root.join("outra/toolchain");
         fake_bundle(&other);

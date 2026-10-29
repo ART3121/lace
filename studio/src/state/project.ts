@@ -63,7 +63,7 @@ async function setTitle(name: string | null): Promise<void> {
 
 function loadTarget(spf: string): string | null {
   try {
-    return localStorage.getItem(`lace-studio:target:${spf}`);
+    return localStorage.getItem(`aurora-ide:target:${spf}`);
   } catch {
     return null;
   }
@@ -256,8 +256,8 @@ export const useProject = create<ProjectState>((set, get) => ({
     const spf = get().snapshot?.spf;
     if (!spf) return;
     try {
-      if (name) localStorage.setItem(`lace-studio:target:${spf}`, name);
-      else localStorage.removeItem(`lace-studio:target:${spf}`);
+      if (name) localStorage.setItem(`aurora-ide:target:${spf}`, name);
+      else localStorage.removeItem(`aurora-ide:target:${spf}`);
     } catch {
       // Sem armazenamento, o alvo só não é lembrado.
     }

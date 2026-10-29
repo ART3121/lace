@@ -248,9 +248,9 @@
       "closure": false,
       "select": { "*": ["**"] },
       "run": {
-        "linux-x64": ["lace-studio"],
-        "darwin-arm64": ["Lace Studio.app/Contents/MacOS/lace-studio"],
-        "windows-x64": ["lace-studio.exe"]
+        "linux-x64": ["aurora-ide"],
+        "darwin-arm64": ["AURORA IDE.app/Contents/MacOS/aurora-ide"],
+        "windows-x64": ["aurora-ide.exe"]
       }
     },
     {

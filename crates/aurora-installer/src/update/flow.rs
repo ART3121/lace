@@ -835,7 +835,7 @@ fn windows(
         }
     }
     if options.reopen == Some(Reopen::Studio) {
-        command.arg("/REOPENSTUDIO=1");
+        command.arg("/REOPENIDE=1");
     }
     installation::open_wizard(&mut command).map_err(|error| Error::WizardFailed {
         reason: format!("Opening {setup}: {error}"),

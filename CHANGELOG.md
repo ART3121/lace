@@ -2,6 +2,10 @@
 
 ## Não publicada
 
+- O `--reopen-studio` do `aurora update` passa a ser `--reopen-ide`, e o
+  `reopen_studio` do `update.apply`, `reopen_ide`. O executável da IDE no
+  bundle passa a ser `aurora-ide` (no macOS, `AURORA IDE.app`), e o atalho
+  do Linux, `aurora-ide.desktop`.
 - As variáveis de ambiente passam de `LACE_*` para `AURORA_*`
   (`AURORA_TOOLCHAIN`, `AURORA_COMPILER`, `AURORA_QUARTUS`,
   `AURORA_LEARN_DIR`...); a do programa que a IDE abre, `LACE_STUDIO_LACE`,

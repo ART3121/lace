@@ -33,7 +33,7 @@ Bundle `2026.10.22`. Os pacotes, com as versões fixadas em
 | OSS CAD Suite | release 2026-10-22 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys, o `dot` do Graphviz e o openFPGALoader. Windows: o Yosys e o openFPGALoader | pacote oficial, conferido pelo SHA-256 publicado |
 | msys | `ucrt64-v2` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
-| studio | a versão do Lace | a AURORA IDE: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
+| studio | a versão do Lace | a AURORA IDE: o executável `aurora-ide` (Linux, Windows) ou o `AURORA IDE.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
 | aurora-learn | a versão do Lace | as trilhas de exercícios do `aurora learn` ([LEARN.md](LEARN.md)): textos, `.v` e `.json` | copiadas de `aurora-learn/` deste repositório |
 | rtl-viewer | a versão do Lace | o modelo do HTML do RTL viewer (`rtl-viewer.html`), que o `aurora synth --open` preenche com o netlist: o viewer, o React e o worker do layout num arquivo só | gerado de `packages/rtl-viewer/` deste repositório pelo empacotamento (`npm ci`, `npm run build`) |
 
@@ -148,7 +148,7 @@ Um bundle só abre na plataforma para a qual foi montado.
     msys/                     só no Windows: ucrt64/ e usr/bin/ do bloco MSYS2
     surfer-aurora/            surfer-aurora[.exe], web/ (o cliente web: index.html, surfer.js, surfer_bg.wasm)
     graphviz/                 só no Windows
-    studio/                   a AURORA IDE: lace-studio[.exe], ou Lace Studio.app no macOS
+    studio/                   a AURORA IDE: aurora-ide[.exe], ou AURORA IDE.app no macOS
     aurora-learn/               as trilhas do aurora learn
     rtl-viewer/               rtl-viewer.html, o modelo do HTML do aurora synth --open
 ```

@@ -1181,7 +1181,7 @@ function DragGhost() {
 
 // O painel -----------------------------------------------------------------
 
-const EXPANDED_KEY = 'lace-studio:expanded:';
+const EXPANDED_KEY = 'aurora-ide:expanded:';
 
 /** Quantas pastas o "expandir tudo" da árvore de arquivos abre, no máximo. */
 const EXPAND_ALL_LIMIT = 400;

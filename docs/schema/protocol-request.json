@@ -611,7 +611,7 @@
       ]
     },
     {
-      "description": "O comando equivalente de um fluxo, como a CLI o escreveria e como ele\nvai para o histórico (`lace-studio sim -p soma`), para uma interface\nmostrar antes de rodar. Resposta: o texto.",
+      "description": "O comando equivalente de um fluxo, como a CLI o escreveria e como ele\nvai para o histórico (`aurora-ide sim -p soma`), para uma interface\nmostrar antes de rodar. Resposta: o texto.",
       "type": "object",
       "properties": {
         "method": {
@@ -1335,8 +1335,8 @@
               ],
               "default": null
             },
-            "reopen_studio": {
-              "description": "No Windows, quando o assistente de instalação roda: abrir o Lace\nStudio quando ele terminar (o `--reopen-studio` da CLI). O Studio\npede isso e fecha, para o assistente trocar os arquivos dele.",
+            "reopen_ide": {
+              "description": "No Windows, quando o assistente de instalação roda: abrir o Lace\nStudio quando ele terminar (o `--reopen-ide` da CLI). O Studio\npede isso e fecha, para o assistente trocar os arquivos dele.",
               "type": "boolean",
               "default": false
             }
@@ -2047,7 +2047,7 @@
       "type": "object",
       "properties": {
         "command": {
-          "description": "O texto do comando para o histórico e para o console (`aurora sim -p\nsoma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um\ncliente sem linha de comando monta com [`FlowRequest::command_line`].",
+          "description": "O texto do comando para o histórico e para o console (`aurora sim -p\nsoma`, `aurora-ide sim -p soma`). A CLI passa a linha digitada; um\ncliente sem linha de comando monta com [`FlowRequest::command_line`].",
           "type": "string"
         },
         "wave": {

@@ -218,7 +218,7 @@ enum Command {
         from: Option<Utf8PathBuf>,
         /// Run by AURORA IDE, which closes for the update: on Windows, the setup wizard opens it again when it finishes
         #[arg(long, hide = true)]
-        reopen_studio: bool,
+        reopen_ide: bool,
     },
     /// Install the bundle apps from the downloaded release files (run by the Windows web installer)
     #[command(hide = true)]

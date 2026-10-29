@@ -1798,10 +1798,10 @@ export type Request =
         from?: string | null;
         /**
          * No Windows, quando o assistente de instalação roda: abrir o Lace
-         * Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio
+         * Studio quando ele terminar (o `--reopen-ide` da CLI). O Studio
          * pede isso e fecha, para o assistente trocar os arquivos dele.
          */
-        reopen_studio?: boolean;
+        reopen_ide?: boolean;
       };
     }
   | {
@@ -3444,7 +3444,7 @@ export interface ProcessorConfig {
 export interface FlowOptions {
   /**
    * O texto do comando para o histórico e para o console (`aurora sim -p
-   * soma`, `lace-studio sim -p soma`). A CLI passa a linha digitada; um
+   * soma`, `aurora-ide sim -p soma`). A CLI passa a linha digitada; um
    * cliente sem linha de comando monta com [`FlowRequest::command_line`].
    */
   command: string;

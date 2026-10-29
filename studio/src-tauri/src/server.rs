@@ -337,7 +337,7 @@ impl Session {
                 })
                 .map_err(|e| IpcError::new(codes::INTERNAL, e.to_string()))?;
         }
-        let client = format!("lace-studio {}", env!("CARGO_PKG_VERSION"));
+        let client = format!("aurora-ide {}", env!("CARGO_PKG_VERSION"));
         let info = match session.request(
             "initialize",
             json!({ "client": client }),

@@ -41,10 +41,10 @@ pub struct Options<'a> {
     pub full: bool,
     /// `--from`: um instalador no disco, sem rede.
     pub from: Option<&'a Utf8Path>,
-    /// `--reopen-studio`: quem pede é o Lace Studio, que fecha para a
+    /// `--reopen-ide`: quem pede é o Lace Studio, que fecha para a
     /// atualização. No Windows, o assistente de instalação o abre de novo
     /// quando termina.
-    pub reopen_studio: bool,
+    pub reopen_ide: bool,
 }
 
 /// O que a CLI mostra e pergunta no meio da atualização.
@@ -174,7 +174,7 @@ pub fn run(
         check: options.check,
         full: options.full,
         from: options.from,
-        reopen: options.reopen_studio.then_some(Reopen::Studio),
+        reopen: options.reopen_ide.then_some(Reopen::Studio),
         bar: if text { Bar::Curl } else { Bar::Quiet },
         child_output: if text {
             ChildOutput::Inherit

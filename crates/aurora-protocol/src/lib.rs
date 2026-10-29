@@ -447,7 +447,7 @@ pub enum Request {
         step_output_limit: Option<usize>,
     },
     /// O comando equivalente de um fluxo, como a CLI o escreveria e como ele
-    /// vai para o histórico (`lace-studio sim -p soma`), para uma interface
+    /// vai para o histórico (`aurora-ide sim -p soma`), para uma interface
     /// mostrar antes de rodar. Resposta: o texto.
     #[serde(rename = "flow.command")]
     FlowCommand {
@@ -674,10 +674,10 @@ pub enum Request {
         #[schemars(with = "Option<String>")]
         from: Option<Utf8PathBuf>,
         /// No Windows, quando o assistente de instalação roda: abrir o Lace
-        /// Studio quando ele terminar (o `--reopen-studio` da CLI). O Studio
+        /// Studio quando ele terminar (o `--reopen-ide` da CLI). O Studio
         /// pede isso e fecha, para o assistente trocar os arquivos dele.
         #[serde(default)]
-        reopen_studio: bool,
+        reopen_ide: bool,
     },
     /// Instala componentes do bundle. Enquanto roda, `install`; no fim, o
     /// relatório do instalador. Um nome que não é do bundle é recusado
@@ -1056,7 +1056,7 @@ mod tests {
             Request::UpdateApply {
                 full: false,
                 from: None,
-                reopen_studio: false,
+                reopen_ide: false,
             }
             .is_installation()
         );

@@ -297,6 +297,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurora-ide"
+version = "0.9.0"
+dependencies = [
+ "aurora-agent",
+ "aurora-protocol",
+ "camino",
+ "notify",
+ "portable-pty",
+ "regex",
+ "serde",
+ "serde_json",
+ "signal-hook",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tiny_http",
+ "tracing",
+ "tracing-subscriber",
+ "trash",
+ "win32job",
+]
+
+[[package]]
 name = "aurora-installer"
 version = "0.9.0"
 dependencies = [
@@ -2200,32 +2226,6 @@ checksum = "07293a4e297ac234359b510362495713f75ea345d5307140414f20c69ffeb087"
 dependencies = [
  "bitflags 2.13.2",
  "libc",
-]
-
-[[package]]
-name = "lace-studio"
-version = "0.9.0"
-dependencies = [
- "aurora-agent",
- "aurora-protocol",
- "camino",
- "notify",
- "portable-pty",
- "regex",
- "serde",
- "serde_json",
- "signal-hook",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tempfile",
- "thiserror 2.0.21",
- "tiny_http",
- "tracing",
- "tracing-subscriber",
- "trash",
- "win32job",
 ]
 
 [[package]]

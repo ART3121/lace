@@ -17,12 +17,12 @@
 //! ```
 
 use camino::{Utf8Path, Utf8PathBuf};
-use lace_studio_lib::error::IpcError;
-use lace_studio_lib::flows;
-use lace_studio_lib::jobs::JobMessage;
-use lace_studio_lib::server::AuroraServer;
-use lace_studio_lib::settings::Settings;
-use lace_studio_lib::toolchain;
+use aurora_ide_lib::error::IpcError;
+use aurora_ide_lib::flows;
+use aurora_ide_lib::jobs::JobMessage;
+use aurora_ide_lib::server::AuroraServer;
+use aurora_ide_lib::settings::Settings;
+use aurora_ide_lib::toolchain;
 use serde_json::{Value, json};
 
 fn skip(reason: &str) -> Option<Settings> {
@@ -158,7 +158,7 @@ fn command(server: &AuroraServer, settings: &Settings, request: Value) -> String
         .call(
             settings,
             "flow.command",
-            json!({ "request": request, "program": "lace-studio" }),
+            json!({ "request": request, "program": "aurora-ide" }),
         )
         .unwrap()
         .as_str()
@@ -207,7 +207,7 @@ fn verilog_project_checks_simulates_and_synthesizes() {
             "timeout_s": 300, "open_wave": true,
         });
         let fast = run(&server, fast, &settings, &spf);
-        assert_eq!(fast["command"], "lace-studio sim --fast --timeout 300");
+        assert_eq!(fast["command"], "aurora-ide sim --fast --timeout 300");
         let simulation = &fast["simulation"];
         assert_eq!(
             simulation["status"], "succeeded",
@@ -302,7 +302,7 @@ fn processor_builds_and_simulates_with_port_values() {
         Some(0),
         "o F7 não compila"
     );
-    assert_eq!(check["command"], "lace-studio check -p soma");
+    assert_eq!(check["command"], "aurora-ide check -p soma");
     let targets = check["check"]["targets"].as_array().unwrap();
     assert!(targets.iter().any(|t| t == "soma_tb"), "{targets:?}");
     server.stop();
@@ -360,21 +360,21 @@ fn command_line_mirrors_the_cli() {
     });
     assert_eq!(
         command(&server, &settings, simulate),
-        "lace-studio sim -p soma --verilator --timeout 30 --open"
+        "aurora-ide sim -p soma --verilator --timeout 30 --open"
     );
     // A Rápida não tem onda para abrir: o `--open` sai, como a CLI exige.
     let fast =
         json!({ "flow": "simulate", "simulator": "icarus", "fast": true, "open_wave": true });
-    assert_eq!(command(&server, &settings, fast), "lace-studio sim --fast");
+    assert_eq!(command(&server, &settings, fast), "aurora-ide sim --fast");
     let check = json!({ "flow": "check", "file": "rtl/a b.v", "lint": true });
     assert_eq!(
         command(&server, &settings, check),
-        "lace-studio check \"rtl/a b.v\" --lint"
+        "aurora-ide check \"rtl/a b.v\" --lint"
     );
     let check = json!({ "flow": "check", "processor": "soma" });
     assert_eq!(
         command(&server, &settings, check),
-        "lace-studio check -p soma"
+        "aurora-ide check -p soma"
     );
     server.stop();
 }
@@ -421,7 +421,7 @@ fn learn_flow_checks_an_exercise_and_records_it() {
     let request = json!({ "flow": "learn", "root": root, "exercise": "mux2" });
     assert_eq!(
         command(&server, &settings, request.clone()),
-        "lace-studio learn check mux2"
+        "aurora-ide learn check mux2"
     );
     // O arquivo inicial não atribui a saída.
     let wrong = run(&server, request.clone(), &settings, &spf);
@@ -459,12 +459,12 @@ fn fpga_build_refuses_before_building() {
     let request = json!({ "flow": "fpga_build" });
     assert_eq!(
         command(&server, &settings, request.clone()),
-        "lace-studio fpga build"
+        "aurora-ide fpga build"
     );
     let program = json!({ "flow": "fpga_program", "cable": "USB-Blaster [USB-0]" });
     assert_eq!(
         command(&server, &settings, program),
-        "lace-studio fpga program --cable \"USB-Blaster [USB-0]\""
+        "aurora-ide fpga program --cable \"USB-Blaster [USB-0]\""
     );
     let (_dir, spf) = example("soma");
     // Com a placa desligada nesta máquina, o fluxo recusa antes de olhar o

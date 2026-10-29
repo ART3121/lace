@@ -75,7 +75,7 @@ const NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 function rememberProjectsDir(parent: string) {
   try {
-    localStorage.setItem('lace-studio:projectsParent', parent);
+    localStorage.setItem('aurora-ide:projectsParent', parent);
   } catch {
     // Só não lembra a pasta.
   }

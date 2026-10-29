@@ -11,9 +11,16 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   splash, na tela inicial, em Sobre, nos menus e nos avisos. O logo é o
   camaleão do ícone da AURORA, com o mesmo contorno e em cor chapada, na cor
   de destaque do tema; os ícones do aplicativo são o camaleão azul num
-  quadrado grafite. O executável, a pasta das preferências e o
-  `Lace Studio.app` do macOS continuam com o nome antigo até a versão que
-  renomeia o Lace.
+  quadrado grafite.
+- O executável passa a ser `aurora-ide`, o `productName`, AURORA IDE (no
+  macOS, `AURORA IDE.app`), e o identificador, `com.nipscern.aurora-ide`.
+  Na primeira abertura, a IDE copia o `settings.json` do Lace Studio da
+  pasta antiga (`com.nipscern.lace-studio`), com as preferências, os
+  layouts e os recentes. As chaves do localStorage passam a começar por
+  `aurora-ide:`: a sessão de cada projeto e o splash começam do zero.
+- A IDE abre o `aurora` como servidor, pelo protocolo 2. A variável de
+  desenvolvimento passa a ser `AURORA_IDE_CLI`, e a preferência, Programa
+  aurora (`aurora_path`; o `lace_path` antigo vale).
 - Três temas novos, cada um com o seu claro: **Azul**, **Âmbar** e
   **Grafite**. Têm os mesmos cinzas quase neutros e uma cor de destaque;
   no código, só as palavras reservadas levam o destaque, e números e textos

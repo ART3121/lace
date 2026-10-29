@@ -66,7 +66,7 @@ const DEFAULTS: ViewerOptions = { netNames: true, flags: true, busWidths: true, 
 
 /**
  * Um estado novo. `storageKey` guarda as preferências no `localStorage`
- * (o Studio usa `lace-studio:rtlViewer`); sem ela, valem até fechar.
+ * (o Studio usa `aurora-ide:rtlViewer`); sem ela, valem até fechar.
  */
 export function createRtlViewerStore(options: { storageKey?: string } = {}): RtlViewerStore {
   const { storageKey } = options;

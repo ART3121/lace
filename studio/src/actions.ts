@@ -316,7 +316,7 @@ async function fullFlow() {
  * (`Projetos` na pasta do usuário, que o backend cria). A padrão não fica
  * guardada, para que mudá-la valha também para quem já usou o Studio. */
 export async function projectsFolder() {
-  const saved = localStorage.getItem('lace-studio:projectsParent');
+  const saved = localStorage.getItem('aurora-ide:projectsParent');
   if (saved) return saved;
   return isTauri() ? api.project.defaultParent() : 'Projetos';
 }

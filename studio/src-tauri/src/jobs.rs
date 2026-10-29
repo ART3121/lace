@@ -115,7 +115,7 @@ fn message_of(method: &str, mut params: Value) -> (Option<Value>, Option<String>
 /// Um pedido ao servidor que roda como operação: o comando que o console
 /// mostra, o método do protocolo e os parâmetros.
 pub struct Operation {
-    /// O comando equivalente (`lace-studio sim -p soma`, `aurora install ...`).
+    /// O comando equivalente (`aurora-ide sim -p soma`, `aurora install ...`).
     pub command: String,
     /// O método (`flow.run`, `learn.check`, `install.add`, `update.apply`).
     pub method: &'static str,
@@ -312,7 +312,7 @@ mod tests {
         assert_eq!(line.as_deref(), Some("  Verifying the executables"));
         let value = serde_json::to_value(JobMessage::Started {
             job: 7,
-            command: "lace-studio build".into(),
+            command: "aurora-ide build".into(),
         })
         .unwrap();
         assert_eq!(value["type"], "started");

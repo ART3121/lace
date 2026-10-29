@@ -146,10 +146,10 @@ que cada componente dele exige, e o `bundle.py` recusa um que não traga.
 
 A AURORA IDE fica no bundle, em `toolchain/studio/`, e usa o bundle em que
 está. O atalho
-dele vai para o menu de aplicativos: o `lace-studio.desktop` em
-`~/.local/share/applications` no Linux (que abre o `lace-studio-launch`, ao
+dele vai para o menu de aplicativos: o `aurora-ide.desktop` em
+`~/.local/share/applications` no Linux (que abre o `aurora-ide-launch`, ao
 lado do Studio: ele confere as bibliotecas do sistema antes de abrir), o
-`Lace Studio.app` em
+`AURORA IDE.app` em
 `~/Applications` no macOS (um symlink para o do bundle), o menu Iniciar no
 Windows.
 
@@ -240,7 +240,7 @@ precisa ser o instalado; outro bundle é atualizar (`aurora update`).
 
 No Windows, o Studio instalado pelo `aurora install studio` não ganha atalho
 no menu Iniciar (o atalho é do assistente): abra
-`<pasta>\toolchain\studio\lace-studio.exe`, ou rode o assistente de novo
+`<pasta>\toolchain\studio\aurora-ide.exe`, ou rode o assistente de novo
 com o Studio marcado.
 
 O desinstalador do Windows apaga o `toolchain/` inteiro, com o que o
@@ -318,8 +318,8 @@ não interrompe.
 |---|---|---|
 | Pasta | `~/.local/share/aurora` | `/opt/aurora` |
 | Atalho | `~/.local/bin/aurora` | `/usr/local/bin/aurora` |
-| Studio no menu (Linux) | `~/.local/share/applications/lace-studio.desktop` | `/usr/local/share/applications/lace-studio.desktop` |
-| Studio no menu (macOS) | `~/Applications/Lace Studio.app` | `/Applications/Lace Studio.app` |
+| Studio no menu (Linux) | `~/.local/share/applications/aurora-ide.desktop` | `/usr/local/share/applications/aurora-ide.desktop` |
+| Studio no menu (macOS) | `~/Applications/AURORA IDE.app` | `/Applications/AURORA IDE.app` |
 
 Se a pasta do atalho não estiver no `PATH`, o instalador diz a linha para
 pôr no `~/.bashrc` ou `~/.zshrc`, e o comando do fish

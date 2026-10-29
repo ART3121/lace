@@ -129,7 +129,7 @@ interface LayoutState {
   toggleZenShell: () => void;
 }
 
-const STORAGE_KEY = 'lace-studio:layout';
+const STORAGE_KEY = 'aurora-ide:layout';
 const STORAGE_VERSION = 2;
 
 interface Stored {

@@ -215,7 +215,7 @@ fn shutdown(app: &AppHandle) {
 fn init_tracing() {
     use tracing_subscriber::EnvFilter;
     let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("warn,lace_studio_lib=info,lace_studio=info"));
+        .unwrap_or_else(|_| EnvFilter::new("warn,aurora_ide_lib=info,aurora_ide=info"));
     let _ = tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_writer(std::io::stderr)

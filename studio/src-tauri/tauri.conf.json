@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Lace Studio",
+  "productName": "AURORA IDE",
   "version": "0.9.0",
-  "identifier": "com.nipscern.lace-studio",
+  "identifier": "com.nipscern.aurora-ide",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",

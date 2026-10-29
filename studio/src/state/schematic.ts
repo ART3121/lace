@@ -9,7 +9,7 @@ import { createRtlViewerStore, type NetlistReader } from '@lace/rtl-viewer';
 
 import { api } from '../ipc/api';
 
-export const useSchematic = createRtlViewerStore({ storageKey: 'lace-studio:rtlViewer' });
+export const useSchematic = createRtlViewerStore({ storageKey: 'aurora-ide:rtlViewer' });
 
 /** Lê o netlist pelo backend do Studio. */
 export const netlistReader: NetlistReader = {

@@ -36,11 +36,11 @@ import { useProject } from './project';
 import { guarded, showError, useToasts } from './toasts';
 import { openWaveTab, useWaveReloads, waveInTab } from './waves';
 
-const ROOT_KEY = 'lace-studio:learn-root';
-const AUTO_KEY = 'lace-studio:learn-auto';
+const ROOT_KEY = 'aurora-ide:learn-root';
+const AUTO_KEY = 'aurora-ide:learn-auto';
 /** Se o painel estava à mostra antes da sessão de exercícios, para voltar
  * a ele ao sair (também depois de fechar e abrir o Studio no meio dela). */
-const PANEL_KEY = 'lace-studio:learn-panel';
+const PANEL_KEY = 'aurora-ide:learn-panel';
 
 function stored(key: string): string | null {
   try {

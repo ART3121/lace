@@ -29,7 +29,7 @@ const RESULT_MS = 6000;
 
 /** Quantas vezes o aviso de como sair aparece. */
 const HINT_LIMIT = 3;
-const HINT_KEY = 'lace-studio:zen-hints';
+const HINT_KEY = 'aurora-ide:zen-hints';
 
 /** A largura do editor centralizado: 110 colunas da fonte do editor (a
  * JetBrains Mono tem 0,6 em de avanço) mais a margem dos números de linha. */

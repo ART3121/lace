@@ -1,9 +1,9 @@
 //! As preferências do Studio e a lista de projetos recentes.
 //!
 //! Ficam num arquivo só, `settings.json`, na pasta de configuração do
-//! aplicativo (`~/.config/com.nipscern.lace-studio/` no Linux,
-//! `%APPDATA%\com.nipscern.lace-studio\` no Windows,
-//! `~/Library/Application Support/com.nipscern.lace-studio/` no macOS).
+//! aplicativo (`~/.config/com.nipscern.aurora-ide/` no Linux,
+//! `%APPDATA%\com.nipscern.aurora-ide\` no Windows,
+//! `~/Library/Application Support/com.nipscern.aurora-ide/` no macOS).
 //!
 //! A leitura é tolerante: campo ausente fica com o padrão, e um arquivo
 //! ilegível é renomeado para `settings.json.bad` e o Studio abre com os
@@ -267,6 +267,28 @@ pub struct RecentProject {
     pub opened_at_ms: u64,
 }
 
+/// A pasta de configuração do Lace Studio, o nome da AURORA IDE até a
+/// renomeação (o `identifier` do Tauri de antes), vizinha da de agora.
+const LACE_STUDIO_DIR: &str = "com.nipscern.lace-studio";
+
+/// Copia o `settings.json` do Lace Studio para `dir` quando `dir` ainda não
+/// tem um: quem vem do Lace Studio fica com as preferências, os layouts e os
+/// recentes. A pasta antiga fica como estava.
+fn adopt_lace_studio_settings(dir: &Utf8Path) {
+    let new = dir.join("settings.json");
+    if new.exists() {
+        return;
+    }
+    let Some(old) = dir.parent().map(|parent| parent.join(LACE_STUDIO_DIR).join("settings.json")) else {
+        return;
+    };
+    if old.is_file() && std::fs::create_dir_all(dir).is_ok() {
+        if let Err(error) = std::fs::copy(&old, &new) {
+            tracing::warn!("Could not copy {old} to {new}: {error}");
+        }
+    }
+}
+
 /// As preferências na memória e o arquivo onde ficam.
 pub struct SettingsStore {
     path: Utf8PathBuf,
@@ -274,8 +296,10 @@ pub struct SettingsStore {
 }
 
 impl SettingsStore {
-    /// Lê `<dir>/settings.json`, ou começa com os padrões.
+    /// Lê `<dir>/settings.json`, ou começa com os padrões. Sem ele, traz
+    /// antes o do Lace Studio ([`adopt_lace_studio_settings`]).
     pub fn load(dir: &Utf8Path) -> Self {
+        adopt_lace_studio_settings(dir);
         let path = dir.join("settings.json");
         let current = match std::fs::read_to_string(&path) {
             Ok(text) => match serde_json::from_str::<Settings>(&text) {
@@ -504,9 +528,35 @@ mod tests {
         }
     }
 
+    /// Sem preferências, a IDE traz as do Lace Studio da pasta vizinha; com
+    /// elas, a antiga não conta.
+    #[test]
+    fn the_lace_studio_settings_come_along_once() {
+        let root = tempfile::tempdir().unwrap();
+        let root = Utf8Path::from_path(root.path()).unwrap();
+        let old = root.join(LACE_STUDIO_DIR);
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(
+            old.join("settings.json"),
+            r#"{ "language": "en", "theme": "atlas", "lace_path": "C:/x/lace.exe" }"#,
+        )
+        .unwrap();
+        let dir = root.join("com.nipscern.aurora-ide");
+
+        let settings = SettingsStore::load(&dir).get();
+        assert_eq!(settings.language, "en");
+        assert_eq!(settings.theme, "azul");
+        assert_eq!(settings.aurora_path.as_deref(), Some("C:/x/lace.exe"));
+        assert!(dir.join("settings.json").is_file());
+        assert!(old.join("settings.json").is_file());
+
+        std::fs::write(old.join("settings.json"), r#"{ "language": "pt" }"#).unwrap();
+        assert_eq!(SettingsStore::load(&dir).get().language, "en");
+    }
+
     /// Os campos com o nome do Lace Studio valem com o nome novo.
     #[test]
-    fn lace_studio_fields_are_read_under_the_new_names() {
+    fn aurora_ide_fields_are_read_under_the_new_names() {
         let settings: Settings = serde_json::from_str(
             r#"{ "lace_path": "C:/aurora/target/debug/aurora.exe", "assistant_lace": "/opt/aurora/bin/aurora" }"#,
         )

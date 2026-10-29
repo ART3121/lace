@@ -116,7 +116,7 @@ pub async fn project_hierarchy(app: AppHandle) -> IpcResult<Value> {
             json!({
                 "project": state.spf()?,
                 "request": { "flow": "hierarchy" },
-                "options": { "command": "lace-studio hierarchy" },
+                "options": { "command": "aurora-ide hierarchy" },
                 "output": false,
             }),
         )?;

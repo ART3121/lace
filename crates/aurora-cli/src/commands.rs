@@ -132,7 +132,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
             yes,
             full,
             from,
-            reopen_studio,
+            reopen_ide,
         } => {
             let from = from.as_deref().map(settings::absolute).transpose()?;
             crate::update::run(
@@ -143,7 +143,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
                     yes: *yes,
                     full: *full,
                     from: from.as_deref(),
-                    reopen_studio: *reopen_studio,
+                    reopen_ide: *reopen_ide,
                 },
                 control.cancel_token(),
             )?

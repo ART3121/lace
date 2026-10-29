@@ -602,7 +602,7 @@ Exemplo: F8 (Wave) com o alvo no projeto.
 2. `useJobs.run` grava os arquivos abertos (compilar o que está na tela),
    marca a operação como rodando e chama `api.flow.start` com um `Channel`.
 3. `jobs::flow_start` pede ao servidor o comando do fluxo (`flow.command`:
-   `lace-studio sim --open`), decide se a onda abre em janela ou numa aba
+   `aurora-ide sim --open`), decide se a onda abre em janela ou numa aba
    (preferência `wave_viewer` e o cliente web no bundle), reserva a vaga
    (`busy` se já houver uma), manda `started` e, numa thread de trabalho,
    pede o `flow.run` ao servidor. Devolve o identificador.
@@ -687,7 +687,7 @@ protocolo:
 | Os comandos que repetiam um método (retrato, ordem, conversão, nomes, configurar e remover processador, saídas, histórico, recursos experimentais, placa FPGA, conferência do bundle, sinais e layout salvo da onda) | os métodos do protocolo, pelo `aurora_call` |
 | Arquivos, topo, testbench, processador novo, mover com substituir, escolher sinais, abrir a onda | `project.add`, `project.remove`, `project.top`, `project.testbench`, `processor.add`, `project.move` com `overwrite`, `wave.choose` com `set`, `wave.open` (com o layout do exercício) |
 | Os fluxos, a correção de um exercício, a entrega em lotes e o corte da saída | `flow.run` (com o fluxo `learn` e `step_output_limit`) e `flow.command` |
-| Instalar, atualizar, as linhas do console do instalador | `install.add`, `update.apply` (com `reopen_studio`), `update.check` e o `line` da notificação `install` |
+| Instalar, atualizar, as linhas do console do instalador | `install.add`, `update.apply` (com `reopen_ide`), `update.check` e o `line` da notificação `install` |
 | Os padrões de processador, os módulos de um texto, os nomes de testbench, o topo da placa, o layout da aba de onda, os exercícios do `aurora learn` | `processor.defaults`, `verilog.modules`, `verilog.testbench_names`, `fpga.top`, `wave.layout`, `learn.tracks`, `learn.status`, `learn.init`, `learn.set_current`, `learn.reset` |
 
 O que ficou no Studio é dele: achar o `aurora` que serve (como a extensão do
