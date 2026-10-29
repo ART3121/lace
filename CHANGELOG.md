@@ -20,6 +20,12 @@
   com identificação própria e a pasta `Programs\AURORA` (`C:\AURORA` como
   administrador). Um Lace instalado fica onde está, até sair pelo
   desinstalador dele.
+- Os instaladores trocam a marca do Lace pela da AURORA. No assistente do
+  Windows, a faixa da esquerda tem o camaleão azul e o nome AURORA no fundo
+  grafite do tema Azul, e o canto das outras páginas, o ícone da AURORA
+  IDE. No instalador de terminal, o camaleão aparece em braille, e o azul
+  do tema vai para os títulos e a barra de progresso. O nome AURORA
+  desenhado em curvas fica em `studio/public/brand/aurora-wordmark.svg`.
 - A AURORA API e a AURORA IDE passam a ter versões próprias. A primeira
   release com o nome novo é a API 1.0.0 com a IDE 8.0.0; o `release.yml`
   confere só a versão da API na tag, e o `bundle.py` continua conferindo a

@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Gera as imagens do assistente de instalação do Windows a partir da marca.
 
-Lê os SVG de studio/public/brand (os fios da marca e o nome "AURORA") e grava
-em installer/windows/art/ os PNG que o aurora.iss usa:
+Lê os SVG de studio/public/brand (o camaleão e o nome "AURORA") e grava em
+installer/windows/art/ os PNG que o aurora.iss usa:
 
   wizard-164.png, wizard-328.png   a faixa da esquerda das páginas de
                                    boas-vindas e de fim (100% e 200%), na
                                    proporção do WizardSizePercent do aurora.iss
   small-55.png, small-110.png      o ícone do canto das outras páginas
 
-Só a biblioteca padrão: o desenho é feito aqui (traços com ponta redonda e
-preenchimento com a regra nonzero, com antisserrilhado por amostragem) e o
-PNG é escrito à mão. Rode de novo quando a marca mudar:
+Só a biblioteca padrão: o desenho é feito aqui (preenchimento com a regra
+nonzero, com antisserrilhado por amostragem) e o PNG é escrito à mão. Rode
+de novo quando a marca mudar:
 
   python scripts/installer_art.py
 """
@@ -26,10 +26,11 @@ ROOT = Path(__file__).resolve().parent.parent
 BRAND = ROOT / "studio" / "public" / "brand"
 OUT = ROOT / "installer" / "windows" / "art"
 
-NAVY = (0x2E, 0x43, 0x74)
-NAVY_DEEP = (0x1D, 0x2B, 0x4D)
-CREAM = (0xF4, 0xEF, 0xE6)
-SKY = (0x9B, 0xB0, 0xE8)
+# As cores do tema Azul da AURORA IDE: o fundo grafite do ícone, o azul do
+# camaleão no escuro e o texto claro.
+GRAPHITE = (0x14, 0x16, 0x19)
+BLUE = (0x59, 0xA0, 0xF9)
+LIGHT = (0xEA, 0xED, 0xF1)
 
 # O WizardSizePercent do aurora.iss (largura, altura): a faixa da esquerda,
 # 164 por 314 no tamanho 100,100, cresce nessa proporção.
@@ -39,64 +40,88 @@ SIZE_PERCENT = (130, 150)
 # ------------------------------------------------------------- SVG -----
 
 def tokens(d):
-    return re.findall(r"[MLHVQZ]|-?\d*\.?\d+(?:e-?\d+)?", d)
+    return re.findall(r"[MmLlHhVvCcQqZz]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?", d)
 
 
-def flatten(d):
-    """Os contornos de um caminho só com M, L, H, V, Q e Z, em polígonos."""
+def flatten(d, steps=12):
+    """Os contornos de um caminho SVG (M, L, H, V, C, Q e Z, absolutos ou
+    relativos) em polígonos; cada curva vira `steps` retas."""
     shapes, current = [], []
-    x = y = 0.0
-    it = iter(tokens(d))
-    cmd = None
-    for tok in it:
-        if tok in "MLHVQZ":
-            cmd = tok
-            if cmd == "Z":
+    x = y = sx = sy = 0.0
+    toks = tokens(d)
+    i, cmd = 0, None
+
+    def num():
+        nonlocal i
+        i += 1
+        return float(toks[i - 1])
+
+    while i < len(toks):
+        if toks[i].isalpha():
+            cmd = toks[i]
+            i += 1
+            if cmd in "Zz":
                 if current:
                     shapes.append(current)
                 current = []
+                x, y = sx, sy
                 continue
-            tok = next(it)
-        if cmd == "M":
+        rel = cmd.islower()
+        ox, oy = (x, y) if rel else (0.0, 0.0)
+        c = cmd.upper()
+        if c == "M":
             if current:
                 shapes.append(current)
-            x, y = float(tok), float(next(it))
+            x, y = ox + num(), oy + num()
+            sx, sy = x, y
             current = [(x, y)]
-            cmd = "L"
-        elif cmd == "L":
-            x, y = float(tok), float(next(it))
+            cmd = "l" if rel else "L"
+        elif c == "L":
+            x, y = ox + num(), oy + num()
             current.append((x, y))
-        elif cmd == "H":
-            x = float(tok)
+        elif c == "H":
+            x = ox + num()
             current.append((x, y))
-        elif cmd == "V":
-            y = float(tok)
+        elif c == "V":
+            y = oy + num()
             current.append((x, y))
-        elif cmd == "Q":
-            cx, cy = float(tok), float(next(it))
-            ex, ey = float(next(it)), float(next(it))
-            for i in range(1, 9):
-                t = i / 8
-                px = (1 - t) ** 2 * x + 2 * (1 - t) * t * cx + t * t * ex
-                py = (1 - t) ** 2 * y + 2 * (1 - t) * t * cy + t * t * ey
-                current.append((px, py))
-            x, y = ex, ey
+        elif c == "C":
+            c1 = (ox + num(), oy + num())
+            c2 = (ox + num(), oy + num())
+            end = (ox + num(), oy + num())
+            for k in range(1, steps + 1):
+                t = k / steps
+                u = 1 - t
+                current.append((
+                    u**3 * x + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t**3 * end[0],
+                    u**3 * y + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t**3 * end[1],
+                ))
+            x, y = end
+        elif c == "Q":
+            c1 = (ox + num(), oy + num())
+            end = (ox + num(), oy + num())
+            for k in range(1, steps + 1):
+                t = k / steps
+                u = 1 - t
+                current.append((
+                    u * u * x + 2 * u * t * c1[0] + t * t * end[0],
+                    u * u * y + 2 * u * t * c1[1] + t * t * end[1],
+                ))
+            x, y = end
     if current:
         shapes.append(current)
     return shapes
 
 
-def brand_paths():
-    """Os fios da marca (polilinhas) e o nome "AURORA" (polígonos), no quadro
-    do lockup (206 por 64)."""
-    svg = (BRAND / "lace-lockup.svg").read_text(encoding="utf-8")
-    stroke_group = re.search(r'<g fill="none" stroke="[^"]+"[^>]*>(.*?)</g>', svg, re.S).group(1)
-    wires = [flatten(d)[0] for d in re.findall(r' d="([^"]+)"', stroke_group)]
-    rest = svg.replace(stroke_group, "")
-    word = []
-    for d in re.findall(r'<path fill="[^"]+" d="([^"]+)"', rest):
-        word.extend(flatten(d))
-    return wires, word
+def brand_shape(name):
+    """O desenho de um SVG da marca: os polígonos de todos os caminhos e o
+    viewBox (x, y, largura, altura)."""
+    svg = (BRAND / name).read_text(encoding="utf-8")
+    box = tuple(float(v) for v in re.search(r'viewBox="([^"]+)"', svg).group(1).split())
+    polygons = []
+    for d in re.findall(r' d="([^"]+)"', svg):
+        polygons.extend(flatten(d))
+    return polygons, box
 
 
 # ---------------------------------------------------------- desenho -----
@@ -111,13 +136,6 @@ class Canvas:
             for x in range(self.w):
                 self.blend(x, y, color, alpha)
 
-    def gradient(self, top, bottom):
-        for y in range(self.h):
-            t = y / max(1, self.h - 1)
-            c = tuple(round(a + (b - a) * t) for a, b in zip(top, bottom))
-            for x in range(self.w):
-                self.px[y][x] = (*c, 255)
-
     def blend(self, x, y, color, alpha):
         if alpha <= 0 or not (0 <= x < self.w and 0 <= y < self.h):
             return
@@ -131,28 +149,6 @@ class Canvas:
             for c, o in zip(color, (r, g, b))
         ]
         self.px[y][x] = (*[round(v) for v in mix], round(out_a * 255))
-
-    def stroke(self, points, width, color, alpha=1.0):
-        """Polilinha com ponta e junção redondas."""
-        r = width / 2
-        cover = {}
-        for (x0, y0), (x1, y1) in zip(points, points[1:]):
-            minx = int(math.floor(min(x0, x1) - r - 1))
-            maxx = int(math.ceil(max(x0, x1) + r + 1))
-            miny = int(math.floor(min(y0, y1) - r - 1))
-            maxy = int(math.ceil(max(y0, y1) + r + 1))
-            dx, dy = x1 - x0, y1 - y0
-            ll = dx * dx + dy * dy
-            for py in range(max(0, miny), min(self.h, maxy + 1)):
-                for px in range(max(0, minx), min(self.w, maxx + 1)):
-                    cx, cy = px + 0.5, py + 0.5
-                    t = 0.0 if ll == 0 else max(0.0, min(1.0, ((cx - x0) * dx + (cy - y0) * dy) / ll))
-                    d = math.hypot(cx - (x0 + t * dx), cy - (y0 + t * dy))
-                    c = max(0.0, min(1.0, r + 0.5 - d))
-                    if c > cover.get((px, py), 0):
-                        cover[(px, py)] = c
-        for (px, py), c in cover.items():
-            self.blend(px, py, color, c * alpha)
 
     def fill(self, polygons, color, alpha=1.0, samples=4):
         """Preenchimento nonzero, com `samples` x `samples` amostras por pixel."""
@@ -213,64 +209,42 @@ class Canvas:
         path.write_bytes(png)
 
 
-def place(points, scale, dx, dy):
-    return [(x * scale + dx, y * scale + dy) for x, y in points]
+def place(polygons, box, width, left, top):
+    """Os polígonos de um desenho com o viewBox `box`, na largura `width`,
+    com o canto de cima à esquerda em (`left`, `top`)."""
+    s = width / box[2]
+    return [[((x - box[0]) * s + left, (y - box[1]) * s + top) for x, y in poly] for poly in polygons]
 
 
 # ---------------------------------------------------------- imagens -----
 
-MARK_BOX = (4, 19, 60, 45)  # onde os fios ficam no quadro do lockup
-
-
 def wizard(w, h):
-    """A faixa da esquerda: fundo azul da marca, os fios em creme, o nome
-    embaixo deles e, no pé, uma barra de fios cruzados em azul claro."""
-    wires, word = brand_paths()
+    """A faixa da esquerda: fundo grafite, o camaleão azul e o nome embaixo
+    dele, um pouco acima do meio da faixa."""
+    mark, mark_box = brand_shape("aurora-mark.svg")
+    word, word_box = brand_shape("aurora-wordmark.svg")
     k = w / 164
     c = Canvas(w, h)
-    c.gradient(NAVY, NAVY_DEEP)
+    c.fill_rect(GRAPHITE)
 
-    # Os fios, grandes, um pouco acima do meio da faixa.
-    mark_w = 120 * k
-    s = mark_w / (MARK_BOX[2] - MARK_BOX[0])
-    dx = (w - mark_w) / 2 - MARK_BOX[0] * s
-    top = h * 0.24
-    dy = top - MARK_BOX[1] * s
-    for wire in wires:
-        c.stroke(place(wire, s, dx, dy), 6 * s, CREAM)
-
-    # O nome, centrado embaixo.
-    xs = [x for poly in word for x, _ in poly]
-    ys = [y for poly in word for _, y in poly]
-    word_w = 84 * k
-    sw = word_w / (max(xs) - min(xs))
-    wdx = (w - word_w) / 2 - min(xs) * sw
-    wdy = top + 72 * k - min(ys) * sw
-    c.fill([place(p, sw, wdx, wdy) for p in word], CREAM)
-
-    # No pé, os fios repetidos lado a lado, como uma renda.
-    band_s = 20 * k / (MARK_BOX[2] - MARK_BOX[0])
-    unit = (MARK_BOX[2] - MARK_BOX[0]) * band_s
-    for row, alpha in ((0, 0.34), (1, 0.18), (2, 0.09)):
-        y = h - (58 - row * 17) * k - MARK_BOX[1] * band_s
-        x = -MARK_BOX[0] * band_s - (unit / 2 if row % 2 else 0)
-        while x < w:
-            for wire in wires:
-                c.stroke(place(wire, band_s, x, y), 6 * band_s, SKY, alpha)
-            x += unit
+    mark_w = 76 * k
+    word_w = 112 * k
+    word_h = word_w * word_box[3] / word_box[2]
+    gap = 26 * k
+    top = h * 0.42 - (mark_w + gap + word_h) / 2
+    c.fill(place(mark, mark_box, mark_w, (w - mark_w) / 2, top), BLUE)
+    c.fill(place(word, word_box, word_w, (w - word_w) / 2, top + mark_w + gap), LIGHT)
     return c
 
 
 def small(size):
-    """O ícone do aplicativo: quadrado azul de cantos redondos com os fios."""
-    wires, _ = brand_paths()
+    """O ícone da AURORA IDE (aurora-icon.svg): quadrado grafite de cantos
+    redondos com o camaleão azul."""
+    mark, mark_box = brand_shape("aurora-mark.svg")
     c = Canvas(size, size)
-    c.fill_rect(NAVY)
+    c.fill_rect(GRAPHITE)
     c.round_mask(size * 14 / 64)
-    s = size * 0.78 / 64
-    off = size * 0.11
-    for wire in wires:
-        c.stroke(place(wire, s, off, off), 6 * s, CREAM)
+    c.fill(place(mark, mark_box, size * 40 / 64, size * 12 / 64, size * 12 / 64), BLUE)
     return c
 
 

@@ -13,7 +13,7 @@
 //! [`App::draw`]. Os dois são separados para testar as telas sem terminal.
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, OnceLock, mpsc};
 use std::time::Duration;
 
 use aurora_core::SystemCompiler;
@@ -546,11 +546,14 @@ impl App {
             [one] => (*one).to_owned(),
             [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
         };
-        // A marca, com o nome ao lado, na altura dos fios.
-        let mark = brand::mark(MARK_COLS);
+        // A marca, com o nome ao lado, no meio da altura dela. O desenho sai
+        // da rasterização do contorno: uma vez só, não a cada quadro.
+        static MARK: OnceLock<Vec<String>> = OnceLock::new();
+        let mark = MARK.get_or_init(|| brand::mark(MARK_COLS));
         let beside = [
             Span::raw(""),
-            Span::styled("AURORA", bold().fg(brand::cream())),
+            Span::raw(""),
+            Span::styled("AURORA", bold().fg(brand::light())),
             Span::styled("NIPS-CERN · UFJF", dim()),
         ];
         let mut lines: Vec<Line> = mark
@@ -1116,8 +1119,9 @@ pub fn report_lines(report: &Report, index: &Index) -> Vec<Line<'static>> {
 /// perfil.
 const AURORA_LABEL: &str = "AURORA (CLI & Core)";
 
-/// A largura da marca na tela de boas-vindas, em colunas.
-const MARK_COLS: usize = 20;
+/// A largura da marca na tela de boas-vindas, em colunas: com 12, o
+/// camaleão ocupa 6 linhas, e a espiral ainda se lê.
+const MARK_COLS: usize = 12;
 
 fn kv(key: &str, value: &str) -> Line<'static> {
     Line::from(vec![
