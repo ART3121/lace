@@ -24,9 +24,11 @@
 // Abrir, fechar ou mover uma região anima: o desenho troca dentro de uma
 // transição de vista (`document.startViewTransition`), e o navegador anima o
 // tamanho e o lugar de cada região entre a foto de antes e a de depois
-// (app.css, `data-transicao`). O estado do layout muda na hora, como sempre;
-// só a cópia que a janela desenha (`useShownLayout`) espera a foto de antes.
-// Sem a API, ou com o sistema pedindo menos movimento, a troca é na hora.
+// (app.css, `data-transicao`). Só as partes que mudam são fotografadas, e a
+// janela inteira nunca (`moves`): cada foto pesa na placa de vídeo em todos
+// os quadros da animação. O estado do layout muda na hora, como sempre; só a
+// cópia que a janela desenha (`useShownLayout`) espera a foto de antes. Sem a
+// API, ou com o sistema pedindo menos movimento, a troca é na hora.
 
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -106,15 +108,46 @@ function arrangement(shown: Shown): string {
   return [regions.left.visible, regions.right.visible, regions.panel.visible, panelPosition, bars.activitybar, shown.zen, shown.zenShell, shown.maximized].join();
 }
 
-/** As regiões desenhadas antes e depois de uma transição: nelas os botões da
- * direita do cabeçalho viram uma foto à parte e ficam presos à borda direita
- * enquanto a região muda de tamanho (app.css). */
-function staying(previous: Shown, next: Shown): string {
+/** O que uma transição mexe. Cada parte com nome vira duas fotos e uma
+ * camada a mais em cada quadro; a que não muda fica sem nome e é desenhada
+ * viva, e a janela inteira nunca é fotografada (app.css). No zen (`zen`), as
+ * barras de fora da área de trabalho saem e voltam com nome próprio. */
+interface Moves {
+  /** As partes com nome (app.css, `data-nomes`). */
+  names: string;
+  /** As regiões que ficam abertas e mudam de largura: nelas os botões da
+   * direita do cabeçalho viram uma foto à parte, presa à borda direita
+   * (app.css, `data-ficam`). */
+  staying: string;
+  /** Entra ou sai do zen: o editor esmaece entre as duas fotos (`growth`). */
+  zen: boolean;
+}
+
+function moves(previous: Shown, next: Shown): Moves {
+  const a = previous.live;
+  const b = next.live;
+  const zen = previous.zen !== next.zen;
+  const shell = (previous.zen && previous.zenShell) || (next.zen && next.zenShell);
+  const bar = a.bars.activitybar !== b.bars.activitybar || zen;
+  const position = a.panelPosition !== b.panelPosition;
+  const panel = a.regions.panel.visible !== b.regions.panel.visible || previous.maximized !== next.maximized || position;
+  // Com o painel à direita, ele divide a largura com o editor.
+  const atRight = a.panelPosition === 'right' || b.panelPosition === 'right';
+  const horizontal =
+    a.regions.left.visible !== b.regions.left.visible || a.regions.right.visible !== b.regions.right.visible || bar || position || (panel && atRight);
+  const shown = (key: 'left' | 'right' | 'panel') => a.regions[key].visible || b.regions[key].visible;
+  const names = ['editor'];
+  if (horizontal && shown('left')) names.push('esquerda');
+  if (horizontal && shown('right')) names.push('direita');
+  if (shown('panel')) names.push('painel');
+  if (bar) names.push('barra');
+  if (zen) names.push('barras');
+  if (shell) names.push('gaveta');
   const editor = (shown: Shown) => !(shown.maximized && shown.live.regions.panel.visible);
-  const names: string[] = [];
-  if (previous.live.regions.panel.visible && next.live.regions.panel.visible) names.push('painel');
-  if (editor(previous) && editor(next)) names.push('editor');
-  return names.join(' ');
+  const staying: string[] = [];
+  if (horizontal && a.regions.panel.visible && b.regions.panel.visible) staying.push('painel');
+  if (horizontal && editor(previous) && editor(next)) staying.push('editor');
+  return { names: names.join(' '), staying: staying.join(' '), zen };
 }
 
 /** Cada região pelo nome que tem na transição (app.css). */
@@ -138,13 +171,15 @@ function measure(root: HTMLElement | null): Map<string, DOMRect> {
 
 /** As regiões desenhadas antes e depois que só crescem e as que só encolhem.
  * Essas mostram uma foto só, a maior (app.css); a que cresce numa direção e
- * encolhe na outra, ou só muda de lugar, esmaece entre as duas. */
-function growth(before: Map<string, DOMRect>, after: Map<string, DOMRect>): { grows: string; shrinks: string } {
+ * encolhe na outra, ou só muda de lugar, esmaece entre as duas. As de
+ * `fading` esmaecem sempre: no zen, o texto centralizado da foto nova do
+ * editor, preso no canto da caixa velha, pularia para o lado. */
+function growth(before: Map<string, DOMRect>, after: Map<string, DOMRect>, fading: readonly string[]): { grows: string; shrinks: string } {
   const grows: string[] = [];
   const shrinks: string[] = [];
   for (const [name, old] of before) {
     const now = after.get(name);
-    if (!now) continue;
+    if (!now || fading.includes(name)) continue;
     const width = now.width - old.width;
     const height = now.height - old.height;
     if (Math.abs(width) < 1 && Math.abs(height) < 1) continue;
@@ -155,7 +190,7 @@ function growth(before: Map<string, DOMRect>, after: Map<string, DOMRect>): { gr
 }
 
 /** As marcas que uma transição põe no <html> para o app.css. */
-const MARKS = ['transicao', 'ficam', 'boasVindas', 'cresce', 'encolhe'] as const;
+const MARKS = ['transicao', 'nomes', 'ficam', 'boasVindas', 'cresce', 'encolhe'] as const;
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -258,8 +293,10 @@ export function Workbench() {
       // que escolhem a animação de cada uma, só depois da troca.
       const side = () => (current.current.bottom ? 'baixo' : 'direita');
       const before = measure(workbench.current);
+      const { names, staying, zen } = moves(previous, next);
       root.dataset.transicao = side();
-      root.dataset.ficam = staying(previous, next);
+      root.dataset.nomes = names;
+      root.dataset.ficam = staying;
       root.toggleAttribute('data-boas-vindas', !!workbench.current?.querySelector('.editor-area .welcome'));
       running += 1;
       const transition = document.startViewTransition(async () => {
@@ -274,7 +311,7 @@ export function Workbench() {
         flushSync(() => settle.current());
         await tick();
         if (after.live.regions.panel.visible) root.dataset.transicao = side();
-        const { grows, shrinks } = growth(before, measure(workbench.current));
+        const { grows, shrinks } = growth(before, measure(workbench.current), zen ? ['editor'] : []);
         root.dataset.cresce = grows;
         root.dataset.encolhe = shrinks;
       });

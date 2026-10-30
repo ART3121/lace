@@ -69,10 +69,13 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   lateral entra e sai pela borda dela como uma gaveta, o painel sobe e
   desce, e maximizar faz o painel crescer por cima do editor. O editor e o
   painel ao lado acompanham a borda que anda, com os botões da direita do
-  cabeçalho parados no lugar, e o zen entra e sai junto com as barras de
-  cima. Menus, diálogos, avisos e a vista que troca numa região aberta
-  entram com um esmaecer curto. Com o sistema pedindo menos movimento, ou
-  num WebView sem `document.startViewTransition`, a troca é na hora.
+  cabeçalho parados no lugar. No zen, as barras de fora da área de trabalho
+  esmaecem, e o editor troca a foto velha pela nova em sequência, sem o
+  texto em dobro. Só as regiões que mudam são fotografadas, e a janela
+  inteira nunca, para a animação não pesar na placa de vídeo. Menus,
+  diálogos, avisos e a vista que troca numa região aberta entram com um
+  esmaecer curto. Com o sistema pedindo menos movimento, ou num WebView sem
+  `document.startViewTransition`, a troca é na hora.
 - **Exercícios**: a correção mostra a primeira amostra errada numa tabela
   (as entradas, e cada saída com o esperado e o seu, a que errou em
   destaque), os avisos do lint do Verilator sobre o seu arquivo e o latch

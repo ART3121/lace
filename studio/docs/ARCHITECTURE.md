@@ -361,13 +361,24 @@ transição só muda dentro da troca, depois da foto de antes. O App lê o zen
 dessa cópia, para as barras de cima saírem na mesma transição. Na troca, os
 tamanhos do layout entram antes da foto de depois (`settle`): durante a
 transição o navegador não roda quadros, e o `enforce` ficaria para depois.
-As marcas no `<html>` dão nome às fotos (`data-transicao`, `data-ficam`) e
-escolhem a animação de cada uma (`data-cresce` e `data-encolhe`, pela
-medida das regiões antes e depois); as regras ficam no fim do `app.css`. A
-região que abre entra pela borda dela, com a foto andando e o recorte
-andando ao contrário; a que só muda de tamanho mostra uma foto só, a maior,
-presa no canto de cima. Sem a API, ou com o sistema pedindo menos
-movimento, a troca é na hora.
+As marcas no `<html>` dão nome às fotos (`data-transicao`, `data-nomes`,
+`data-ficam`) e escolhem a animação de cada uma (`data-cresce` e
+`data-encolhe`, pela medida das regiões antes e depois); as regras ficam no
+fim do `app.css`. A região que abre entra pela borda dela, com a foto
+andando e o recorte andando ao contrário; a que só muda de tamanho mostra
+uma foto só, a maior, presa no canto de cima. Sem a API, ou com o sistema
+pedindo menos movimento, a troca é na hora.
+
+Cada foto custa na placa de vídeo, em todos os quadros da animação, e por
+isso só tem nome o que muda (`moves` decide pelo arranjo de antes e de
+depois): numa troca do painel embaixo, o editor e o painel; as laterais e a
+barra de atividades, só quando a largura muda. A janela inteira nunca é
+fotografada, e o que fica sem nome é desenhado vivo, no lugar novo. No zen,
+as barras de fora da área de trabalho ganham nome e esmaecem, e o editor,
+cujo texto passa a ficar centralizado, troca a foto velha pela nova em
+sequência. Medido na IDE real num Intel HD 4600, com um projeto aberto,
+as 30 transições do roteiro de teste perderam 26 quadros, contra 80 com a
+janela inteira e todas as regiões fotografadas.
 
 **Regiões** (`components/layout/Region.tsx`). O cabeçalho é o título da
 vista na barra lateral do lado da barra de atividades, que escolhe a vista;

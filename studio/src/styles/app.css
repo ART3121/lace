@@ -5162,25 +5162,63 @@ body.is-dragging * {
 }
 
 /* As regiões só têm nome durante a transição (`data-transicao` no <html>,
-   com o lado do painel): com nome, cada uma é fotografada à parte, e o
-   navegador anima o tamanho e o lugar dela. */
-:root[data-transicao] .region--left {
+   com o lado do painel), e só as que mudam (`data-nomes`): com nome, cada
+   uma é fotografada à parte, e o navegador anima o tamanho e o lugar dela.
+   A janela inteira não é fotografada: duas fotos dela esmaecendo uma na
+   outra, em todo quadro, eram o que mais pesava na placa de vídeo. O que
+   fica sem nome é desenhado vivo, já no lugar novo. */
+:root[data-transicao] {
+  view-transition-name: none;
+}
+
+/* No zen, as barras de fora da área de trabalho saem e voltam esmaecendo,
+   com nome próprio, em vez de sumir na hora; a gaveta do shell do zen entra
+   e sai por baixo, como o painel. */
+:root[data-nomes~='barras'] .menubar {
+  view-transition-name: barra-menus;
+}
+
+:root[data-nomes~='barras'] .menubar__menus {
+  view-transition-name: menus;
+}
+
+:root[data-nomes~='barras'] .run--titlebar {
+  view-transition-name: comandos-topo;
+}
+
+:root[data-nomes~='barras'] .toolbar {
+  view-transition-name: barra-ferramentas;
+}
+
+:root[data-nomes~='barras'] .statusbar {
+  view-transition-name: barra-status;
+}
+
+:root[data-nomes~='barras'] .zen-hud {
+  view-transition-name: indicador-zen;
+}
+
+:root[data-nomes~='gaveta'] .zen-shell {
+  view-transition-name: gaveta-zen;
+}
+
+:root[data-nomes~='esquerda'] .region--left {
   view-transition-name: regiao-esquerda;
 }
 
-:root[data-transicao] .region--right {
+:root[data-nomes~='direita'] .region--right {
   view-transition-name: regiao-direita;
 }
 
-:root[data-transicao] .region--panel {
+:root[data-nomes~='painel'] .region--panel {
   view-transition-name: regiao-painel;
 }
 
-:root[data-transicao] .editor-area {
+:root[data-nomes~='editor'] .editor-area {
   view-transition-name: regiao-editor;
 }
 
-:root[data-transicao] .activitybar {
+:root[data-nomes~='barra'] .activitybar {
   view-transition-name: barra-atividades;
 }
 
@@ -5219,6 +5257,17 @@ body.is-dragging * {
 :root[data-boas-vindas]::view-transition-old(regiao-editor),
 :root[data-boas-vindas]::view-transition-new(regiao-editor) {
   object-position: center top;
+}
+
+/* No zen o texto do editor muda de lugar (fica centralizado): a foto velha
+   sai nos primeiros 35% da animação e a nova entra no resto, em vez de as
+   duas esmaecerem juntas e o texto aparecer em dobro. */
+:root[data-nomes~='barras']::view-transition-old(regiao-editor) {
+  animation: esmaece calc(var(--movimento) * 0.35) ease-out both;
+}
+
+:root[data-nomes~='barras']::view-transition-new(regiao-editor) {
+  animation: aparece calc(var(--movimento) * 0.65) ease-out calc(var(--movimento) * 0.35) both;
 }
 
 /* A região que só cresce ou só encolhe (`data-cresce`, `data-encolhe`)
@@ -5272,11 +5321,13 @@ body.is-dragging * {
   animation: sai-pela-direita var(--movimento) var(--movimento-curva) both;
 }
 
-:root[data-transicao='baixo']::view-transition-new(regiao-painel):only-child {
+:root[data-transicao='baixo']::view-transition-new(regiao-painel):only-child,
+::view-transition-new(gaveta-zen):only-child {
   animation: entra-por-baixo var(--movimento) var(--movimento-curva) both;
 }
 
-:root[data-transicao='baixo']::view-transition-old(regiao-painel):only-child {
+:root[data-transicao='baixo']::view-transition-old(regiao-painel):only-child,
+::view-transition-old(gaveta-zen):only-child {
   animation: sai-por-baixo var(--movimento) var(--movimento-curva) both;
 }
 
@@ -5379,6 +5430,12 @@ body.is-dragging * {
 
 @keyframes aparece {
   from {
+    opacity: 0;
+  }
+}
+
+@keyframes esmaece {
+  to {
     opacity: 0;
   }
 }
