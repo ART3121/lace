@@ -46,6 +46,11 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Acrescentado
 
+- A tela inicial ganha uma aurora no pé: três senoides finas que correm
+  devagar, uma para cada lado, com as pontas apagadas. As cores são as da
+  aurora da AURORA 7 (menta, azul e violeta) no Boreal e nos temas de fora,
+  as do amanhecer no Alvorada e as da lua no Lunar. Com o sistema pedindo
+  menos movimento, as linhas ficam paradas.
 - **Exercícios**: a correção mostra a primeira amostra errada numa tabela
   (as entradas, e cada saída com o esperado e o seu, a que errou em
   destaque), os avisos do lint do Verilator sobre o seu arquivo e o latch

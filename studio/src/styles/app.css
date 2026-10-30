@@ -2031,6 +2031,87 @@ body.is-dragging * {
   fill: #191b1d;
 }
 
+/* A aurora da tela inicial (WelcomeView, AuroraWaves): três senoides finas no
+   pé da área do editor, que correm devagar, uma para cada lado, com as pontas
+   apagadas; a tela fica por cima. As cores são as da aurora da AURORA 7
+   (menta, azul e violeta) no Boreal e nos temas de fora, as do amanhecer no
+   Alvorada e as da lua no Lunar, mais escuras nos temas claros. */
+.welcome {
+  position: relative;
+}
+
+.welcome-aurora {
+  --aurora-1: #5fe0b0;
+  --aurora-2: #59a0f9;
+  --aurora-3: #8e83e8;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 120px;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+}
+
+:root[data-theme='light'] .welcome-aurora {
+  --aurora-1: #179a70;
+  --aurora-2: #236ade;
+  --aurora-3: #6b5fd3;
+}
+
+:root[data-theme-id='alvorada'] .welcome-aurora {
+  --aurora-1: #f5b33b;
+  --aurora-2: #f2856a;
+  --aurora-3: #e891b8;
+}
+
+:root[data-theme-id='alvorada-clara'] .welcome-aurora {
+  --aurora-1: #e38f00;
+  --aurora-2: #d9643f;
+  --aurora-3: #c7578a;
+}
+
+:root[data-theme-id='lunar'] .welcome-aurora {
+  --aurora-1: #eaedf1;
+  --aurora-2: #9db4cf;
+  --aurora-3: #bbbec2;
+}
+
+:root[data-theme-id='lunar-claro'] .welcome-aurora {
+  --aurora-1: #191b1d;
+  --aurora-2: #4a6a8f;
+  --aurora-3: #67696c;
+}
+
+.welcome-aurora__line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  animation: welcome-aurora-flow 60s linear infinite;
+}
+
+.welcome-aurora__line path {
+  fill: none;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes welcome-aurora-flow {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-aurora__line {
+    animation: none;
+  }
+}
+
 .welcome__header h1 {
   font-size: var(--text-2xl);
   font-weight: 500;
