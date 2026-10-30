@@ -178,3 +178,9 @@ export function applyThemeCss(theme: Theme): void {
   root.dataset.theme = theme.scheme;
   root.dataset.themeId = theme.id;
 }
+
+/** A aparência da interface no <html> (`data-look`, app.css): `islands` liga
+ * as ilhas; qualquer outro valor, a clássica. */
+export function applyLook(look: string | undefined): void {
+  document.documentElement.dataset.look = look === 'islands' ? 'islands' : 'classic';
+}

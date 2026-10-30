@@ -36,6 +36,11 @@ pub struct Settings {
     /// então era o tema inteiro (`boreal-claro`) ou `system`.
     #[serde(default)]
     pub theme_mode: String,
+    /// A aparência da interface: `classic`, com as regiões encostadas e
+    /// separadas por linhas, ou `islands`, com as regiões em ilhas de cantos
+    /// redondos e vãos entre elas. Um valor que a interface não conhece vale
+    /// `classic`.
+    pub look: String,
     /// Outro bundle no lugar do instalado, como o `--toolchain` da CLI.
     /// `None`: procura a instalação da AURORA (ver `toolchain.rs`).
     pub toolchain_dir: Option<String>,
@@ -150,6 +155,7 @@ impl Default for Settings {
             language: "system".into(),
             theme: "boreal".into(),
             theme_mode: "dark".into(),
+            look: "classic".into(),
             toolchain_dir: None,
             aurora_path: None,
             compiler_dir: None,
@@ -565,6 +571,18 @@ mod tests {
         assert_eq!(settings.theme, "austral");
         assert_eq!(settings.theme_mode, "system");
         assert_eq!(Settings::default().theme_mode, "dark");
+    }
+
+    /// Um `settings.json` de antes da aparência abre na clássica; a escolhida
+    /// fica.
+    #[test]
+    fn the_look_is_classic_unless_chosen() {
+        let dir = tempfile::tempdir().unwrap();
+        let dir = Utf8Path::from_path(dir.path()).unwrap();
+        std::fs::write(dir.join("settings.json"), r#"{ "theme": "boreal" }"#).unwrap();
+        assert_eq!(SettingsStore::load(dir).get().look, "classic");
+        std::fs::write(dir.join("settings.json"), r#"{ "look": "islands" }"#).unwrap();
+        assert_eq!(SettingsStore::load(dir).get().look, "islands");
     }
 
     /// Sem preferências, a IDE traz as do Lace Studio da pasta vizinha; com

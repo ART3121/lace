@@ -854,7 +854,7 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Página | Preferência |
 |---|---|
 | Geral | idioma (do sistema, português, inglês), reabrir o último projeto, procurar atualizações ao abrir e a cada 12 horas (seção 8); no Windows, o shell do terminal: PowerShell ou Prompt de Comando (`cmd`) |
-| Aparência | o tema (ver abaixo) |
+| Aparência | a interface (clássica ou em ilhas) e o tema (ver abaixo) |
 | Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem), o modelo da barra de ferramentas e os itens dela e da barra de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
@@ -870,7 +870,14 @@ caminho exato aparece em Ajuda > Sobre a AURORA IDE.
 
 ### Temas
 
-Em Preferências > Aparência, o tema tem duas escolhas: o modo (Escuro,
+Em Preferências > Aparência, a **Interface** escolhe o desenho da janela: a
+Clássica, o padrão, com as regiões encostadas e separadas por linhas; ou
+Ilhas, com as barras laterais, o editor e o painel em ilhas de cantos
+redondos, separadas por vãos, as abas em pílula e o ícone ativo da barra de
+atividades num quadrado tingido do destaque. As duas valem com qualquer
+tema.
+
+Logo abaixo, o tema tem duas escolhas: o modo (Escuro,
 Claro ou Do sistema, que acompanha o sistema e troca junto com ele) e a
 paleta, com um cartão por paleta e a prévia no modo escolhido. Clicar
 aplica na hora. A paleta também se escolhe com Ctrl+K T (aperte Ctrl+K,

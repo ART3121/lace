@@ -184,6 +184,19 @@ function AppearancePage({ settings }: { settings: Settings }) {
   const scheme = schemeOf(settings.theme_mode, prefersDark());
   return (
     <SettingsGroup title={t('settings.theme')}>
+      <SettingRow label={t('settings.look')}>
+        {() => (
+          <Segmented
+            label={t('settings.look')}
+            value={settings.look === 'islands' ? 'islands' : 'classic'}
+            options={[
+              { value: 'classic', label: t('settings.look.classic') },
+              { value: 'islands', label: t('settings.look.islands') },
+            ]}
+            onChange={(value) => set('look', value)}
+          />
+        )}
+      </SettingRow>
       <SettingRow label={t('settings.theme.mode')}>
         {() => (
           <Segmented

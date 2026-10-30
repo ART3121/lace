@@ -80,6 +80,9 @@ export interface Settings {
   theme: string;
   /** O modo: um esquema fixo, ou o do sistema. */
   theme_mode: 'dark' | 'light' | 'system';
+  /** A aparência: a clássica, com as regiões separadas por linhas, ou as
+   * ilhas (app.css, `data-look`). */
+  look: 'classic' | 'islands';
   toolchain_dir: string | null;
   compiler_dir: string | null;
   /** O Quartus Prime, como o `--quartus` da CLI; null: os locais padrão. */

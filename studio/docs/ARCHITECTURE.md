@@ -567,6 +567,13 @@ seguindo o sistema. `App.tsx` repassa a troca aos consoles e ao shell; o `Monaco
 ao Monaco. As medidas (fontes, espaços, raios, alturas) ficam em
 `styles/tokens.css`.
 
+A aparência (`settings.look`) é à parte do tema: `applyLook` põe
+`data-look` (`classic` ou `islands`) no `<html>`, e as ilhas são uma camada
+de regras sob `:root[data-look='islands']`, na seção Ilhas do `app.css`, que
+muda raios, fundos, bordas e vãos sem mexer nos componentes. Um componente
+novo nas regiões, nas abas ou na barra de atividades precisa ser conferido
+nas duas aparências.
+
 ### 4.7 RTLViewer
 
 O esquemático sai do netlist da síntese (`hierarchy.json`, o `write_json`

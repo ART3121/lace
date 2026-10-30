@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { useLang } from '../i18n';
 import { api } from '../ipc/api';
 import type { AppInfo, RecentStatus, Settings, ToolchainInfo } from '../ipc/types';
-import { applyThemeCss, resolveTheme, type Theme } from '../themes';
+import { applyLook, applyThemeCss, resolveTheme, type Theme } from '../themes';
 import { showError } from './toasts';
 
 interface AppState {
@@ -40,6 +40,7 @@ function themeFor(settings: Pick<Settings, 'theme' | 'theme_mode'> | null | unde
 // quadro; o tema das preferências chega em `init`.
 const initialTheme = themeFor(null);
 applyThemeCss(initialTheme);
+applyLook(undefined);
 
 export const useApp = create<AppState>((set, get) => ({
   info: null,
@@ -53,6 +54,7 @@ export const useApp = create<AppState>((set, get) => ({
       const [info, settings] = await Promise.all([api.app.info(), api.app.settings()]);
       const theme = themeFor(settings);
       applyThemeCss(theme);
+      applyLook(settings.look);
       useLang.getState().setLang(settings.language);
       set({ info, settings, theme });
       void get().refreshToolchain();
@@ -72,6 +74,7 @@ export const useApp = create<AppState>((set, get) => ({
     const theme = themeFor(next);
     set({ settings: next, theme });
     applyThemeCss(theme);
+    applyLook(next.look);
     useLang.getState().setLang(next.language);
     try {
       const saved = await api.app.saveSettings(next);
@@ -85,6 +88,7 @@ export const useApp = create<AppState>((set, get) => ({
       const theme = themeFor(current);
       set({ settings: current, theme });
       applyThemeCss(theme);
+      applyLook(current.look);
       useLang.getState().setLang(current.language);
       showError(error);
     }

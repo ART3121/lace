@@ -5150,6 +5150,148 @@ body.is-dragging * {
   justify-content: center;
 }
 
+/* Ilhas ------------------------------------------------------------------ */
+
+/* A aparência em ilhas (Preferências > Aparência > Interface, `data-look` no
+   <html>); a clássica é o resto deste arquivo. As regiões (barras laterais,
+   editor e painel) viram ilhas de cantos redondos e borda fina sobre o fundo
+   das barras, com vãos no lugar das linhas; as abas viram pílulas; o ícone
+   ativo da barra de atividades fica num quadrado redondo tingido do
+   destaque; e botões, campos e menus ganham cantos um pouco mais redondos.
+   Uma tela nova precisa ser conferida nas duas aparências. */
+:root[data-look='islands'] {
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --island-radius: 10px;
+  --island-gap: 6px;
+  --island-ground: var(--bg-0);
+  --island-hover: color-mix(in oklab, var(--text-0) 6%, transparent);
+  --island-active: color-mix(in oklab, var(--text-0) 10%, transparent);
+}
+
+/* O chão: as barras ficam nele, sem linhas. */
+:root[data-look='islands'] .app,
+:root[data-look='islands'] .titlebar,
+:root[data-look='islands'] .menubar,
+:root[data-look='islands'] .toolbar,
+:root[data-look='islands'] .statusbar,
+:root[data-look='islands'] .activitybar {
+  background: var(--island-ground);
+  border-color: transparent;
+}
+
+:root[data-look='islands'] .workbench {
+  padding: 0 var(--island-gap) var(--island-gap) 0;
+  background: var(--island-ground);
+}
+
+/* Sem a barra de atividades à esquerda, o vão da esquerda é da área de
+   trabalho. */
+:root[data-look='islands'] .workbench > .workbench__main:first-child {
+  margin-left: var(--island-gap);
+}
+
+/* As ilhas, todas no fundo do editor, com a borda das linhas de antes. */
+:root[data-look='islands'] .region,
+:root[data-look='islands'] .editor-area {
+  border: 1px solid var(--border);
+  border-radius: var(--island-radius);
+}
+
+:root[data-look='islands'] .region__view--side,
+:root[data-look='islands'] .sidebar {
+  background: var(--bg-editor);
+}
+
+/* Os vãos no lugar das linhas; ao passar o mouse, um traço curto no meio. */
+:root[data-look='islands'] .resize-handle,
+:root[data-look='islands'] .resize-handle:hover,
+:root[data-look='islands'] .resize-handle[data-separator='active'] {
+  background: transparent;
+}
+
+:root[data-look='islands'] .resize-handle--vertical {
+  width: var(--island-gap);
+}
+
+:root[data-look='islands'] .resize-handle--horizontal {
+  height: var(--island-gap);
+}
+
+:root[data-look='islands'] .resize-handle:hover::before,
+:root[data-look='islands'] .resize-handle[data-separator='active']::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 36px;
+  border-radius: 1px;
+  background: var(--text-3);
+  transform: translate(-50%, -50%);
+}
+
+:root[data-look='islands'] .resize-handle--horizontal:hover::before,
+:root[data-look='islands'] .resize-handle--horizontal[data-separator='active']::before {
+  width: 36px;
+  height: 2px;
+}
+
+/* Abas em pílula, no fundo da ilha. */
+:root[data-look='islands'] .editor-group__header,
+:root[data-look='islands'] .panel__header {
+  background: var(--bg-editor);
+  border-bottom-color: transparent;
+}
+
+:root[data-look='islands'] .tabbar {
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--space-1);
+}
+
+:root[data-look='islands'] .tab {
+  height: calc(var(--h-tab) - 10px);
+  border-right: 0;
+  border-radius: var(--radius-md);
+}
+
+:root[data-look='islands'] .tab:hover,
+:root[data-look='islands'] .panel__tab:hover {
+  background: var(--island-hover);
+}
+
+:root[data-look='islands'] .tab.is-active,
+:root[data-look='islands'] .panel__tab.is-active {
+  background: var(--island-active);
+  box-shadow: none;
+}
+
+:root[data-look='islands'] .panel__tab {
+  height: 24px;
+  border-radius: var(--radius-md);
+}
+
+/* A barra de atividades: o ícone ativo num quadrado redondo tingido do
+   destaque, como a navegação do Colab. */
+:root[data-look='islands'] .activitybar__item {
+  width: 34px;
+  height: 34px;
+  margin: 3px 0;
+  border-radius: var(--radius-lg);
+}
+
+:root[data-look='islands'] .activitybar__item:hover {
+  background: var(--island-hover);
+}
+
+:root[data-look='islands'] .activitybar__item.is-active {
+  background: color-mix(in oklab, var(--brand) 18%, transparent);
+  color: var(--brand-text);
+  box-shadow: none;
+}
+
 /* Movimento -------------------------------------------------------------- */
 
 /* Curto e leve: menus, diálogos, avisos e a vista que troca dentro de uma
