@@ -551,8 +551,9 @@ e as dos terminais, e dele saem:
 | tema do Monaco | `editor/monaco.ts`, `setMonacoTheme` | regras de token pelos papéis da sintaxe, mais as das gramáticas C± e asm (`cmmTokenRules(syntax)`) |
 | tema do xterm.js | `console/consoles.ts`, `terminalTheme` | as 16 cores ANSI; o shell troca o cursor (`shell.ts`) |
 
-`useApp.theme` é o tema resolvido (o "Do sistema" vira o Boreal ou o Boreal
-Claro). `App.tsx` repassa a troca aos consoles e ao shell; o `MonacoHost`,
+`useApp.theme` é o tema resolvido: a paleta (`settings.theme`, o id do tema
+escuro dela) no esquema do modo (`settings.theme_mode`), com o "Do sistema"
+seguindo o sistema. `App.tsx` repassa a troca aos consoles e ao shell; o `MonacoHost`,
 ao Monaco. As medidas (fontes, espaços, raios, alturas) ficam em
 `styles/tokens.css`.
 

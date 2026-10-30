@@ -17,7 +17,7 @@ import { useProject } from '../../state/project';
 import { removeReports } from '../../state/reports';
 import { applyLayout, namedLayouts, useLayoutStatus, type NamedLayout } from '../../state/savedLayouts';
 import { guarded } from '../../state/toasts';
-import { SYSTEM_THEME, THEMES, themeById } from '../../themes';
+import { PALETTES, paletteName, paletteOf, themeById } from '../../themes';
 import { baseName, joinPath, relativeTo } from '../../util/paths';
 import { Button, Checkbox, Field, Kbd } from '../common';
 import { WaveSignalsDialog } from './WaveSignalsDialog';
@@ -659,17 +659,19 @@ function QuickOpen() {
   );
 }
 
-/** "Selecionar tema": os temas da paleta, com o esquema ao lado. Escolher
- * grava a preferência, como nas Preferências. */
+/** "Selecionar tema": as paletas, com os esquemas que cada uma tem.
+ * Escolher grava a paleta, como nas Preferências; o modo (escuro, claro ou
+ * do sistema) fica como está. */
 function ThemePicker() {
   const t = useT();
-  const current = useApp((s) => s.settings?.theme);
-  const items = [SYSTEM_THEME, ...THEMES.map((theme) => theme.id)];
-  const name = (id: string) => (id === SYSTEM_THEME ? t('settings.theme.system') : (themeById(id)?.name ?? id));
-  const detail = (id: string) => {
-    if (id === SYSTEM_THEME) return t('settings.theme.systemHint');
-    return themeById(id)?.scheme === 'light' ? t('settings.theme.light') : t('settings.theme.dark');
+  const current = useApp((s) => paletteOf(s.settings?.theme).id);
+  const items = PALETTES.map((palette) => palette.id);
+  const name = (id: string) => {
+    const palette = themeById(id);
+    return palette ? paletteName(palette) : id;
   };
+  const detail = (id: string) =>
+    themeById(id)?.pair ? t('settings.theme.bothSchemes') : t('settings.theme.darkOnly');
   return (
     <ListPicker
       placeholder={t('dialog.theme.placeholder')}

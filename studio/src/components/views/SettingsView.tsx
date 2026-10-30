@@ -23,11 +23,11 @@ import { useEffect, useState, type CSSProperties, type KeyboardEvent, type React
 import { restartShell } from '../../console/shell';
 import { useT, type Key } from '../../i18n';
 import type { Settings } from '../../ipc/types';
-import { useApp } from '../../state/app';
+import { prefersDark, useApp } from '../../state/app';
 import { useAssistant } from '../../state/assistant';
 import { useExperimental, useFeature } from '../../state/experimental';
 import { SETTINGS_PAGES, useSettingsPage, type SettingsPage } from '../../state/settingsPage';
-import { DEFAULT_LIGHT_THEME, DEFAULT_THEME, SYSTEM_THEME, THEMES, themeById, type SyntaxColors, type Theme } from '../../themes';
+import { DEFAULT_THEME, PALETTES, paletteName, paletteOf, paletteTheme, schemeOf, type Scheme, type SyntaxColors, type Theme } from '../../themes';
 import { Button, Segmented, Switch } from '../common';
 import { LayoutSettings } from './LayoutSettings';
 import { SettingRow, SettingsGroup } from './settingsParts';
@@ -178,10 +178,28 @@ function GeneralPage({ settings }: { settings: Settings }) {
 function AppearancePage({ settings }: { settings: Settings }) {
   const t = useT();
   const set = setter(useApp((s) => s.updateSettings));
+  // O tema em uso muda quando o sistema troca de esquema: com ele, as prévias
+  // do "Do sistema" acompanham.
+  useApp((s) => s.theme);
+  const scheme = schemeOf(settings.theme_mode, prefersDark());
   return (
     <SettingsGroup title={t('settings.theme')}>
+      <SettingRow label={t('settings.theme.mode')}>
+        {() => (
+          <Segmented
+            label={t('settings.theme.mode')}
+            value={settings.theme_mode}
+            options={[
+              { value: 'dark', label: t('settings.theme.dark') },
+              { value: 'light', label: t('settings.theme.light') },
+              { value: 'system', label: t('settings.theme.system') },
+            ]}
+            onChange={(value) => set('theme_mode', value)}
+          />
+        )}
+      </SettingRow>
       <div className="settings-group__block">
-        <ThemeGrid value={settings.theme} onChange={(id) => set('theme', id)} />
+        <ThemeGrid value={settings.theme} scheme={scheme} onChange={(id) => set('theme', id)} />
       </div>
     </SettingsGroup>
   );
@@ -501,51 +519,47 @@ function ExperimentalPage() {
 }
 
 /**
- * A escolha do tema: um cartão por tema, com uma prévia desenhada nas cores
- * dele, e o "Do sistema" primeiro. Clicar aplica e grava na hora.
+ * A escolha da paleta: um cartão por paleta, com uma prévia desenhada no
+ * esquema do modo; a paleta só escura mostra a prévia escura e diz isso.
+ * Clicar aplica e grava na hora.
  */
-function ThemeGrid({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+function ThemeGrid({ value, scheme, onChange }: { value: string; scheme: Scheme; onChange: (id: string) => void }) {
   const t = useT();
-  const selected = themeById(value) ? value : value === SYSTEM_THEME ? SYSTEM_THEME : DEFAULT_THEME;
+  const selected = paletteOf(value).id;
   return (
     <div className="theme-grid" role="radiogroup" aria-label={t('settings.theme')}>
-      <ThemeCard
-        name={t('settings.theme.system')}
-        hint={t('settings.theme.systemHint')}
-        selected={selected === SYSTEM_THEME}
-        onSelect={() => onChange(SYSTEM_THEME)}
-      >
-        <ThemePreview theme={themeById(DEFAULT_THEME)!} />
-        <ThemePreview theme={themeById(DEFAULT_LIGHT_THEME)!} half />
-      </ThemeCard>
-      {THEMES.map((theme) => (
+      {PALETTES.map((palette) => (
         <ThemeCard
-          key={theme.id}
-          name={theme.name}
-          note={theme.id === DEFAULT_THEME ? t('settings.theme.default') : undefined}
-          selected={selected === theme.id}
-          onSelect={() => onChange(theme.id)}
+          key={palette.id}
+          name={paletteName(palette)}
+          note={
+            palette.id === DEFAULT_THEME
+              ? t('settings.theme.default')
+              : palette.pair
+                ? undefined
+                : t('settings.theme.darkOnly')
+          }
+          selected={selected === palette.id}
+          onSelect={() => onChange(palette.id)}
         >
-          <ThemePreview theme={theme} />
+          <ThemePreview theme={paletteTheme(palette, scheme)} />
         </ThemeCard>
       ))}
     </div>
   );
 }
 
-/** Um cartão da grade. `note` aparece ao lado do nome (o "padrão" do Boreal);
- * `hint`, só ao passar o mouse. */
+/** Um cartão da grade. `note` aparece ao lado do nome (o "padrão" do Boreal,
+ * o "só escuro" do Dracula). */
 function ThemeCard({
   name,
   note,
-  hint,
   selected,
   onSelect,
   children,
 }: {
   name: string;
   note?: string;
-  hint?: string;
   selected: boolean;
   onSelect: () => void;
   children: ReactNode;
@@ -556,7 +570,7 @@ function ThemeCard({
       role="radio"
       aria-checked={selected}
       className={`theme-card${selected ? ' is-selected' : ''}`}
-      title={hint ? `${name}: ${hint}` : name}
+      title={name}
       onClick={onSelect}
     >
       <span className="theme-card__preview">{children}</span>
@@ -582,11 +596,11 @@ const PREVIEW_LINES: [Exclude<keyof SyntaxColors, 'style'>, number][][] = [
  * lateral com o item ativo, aba com a linha de destaque, código e barra de
  * status. As cores vêm do tema que ela mostra, não do tema em uso.
  */
-function ThemePreview({ theme, half = false }: { theme: Theme; half?: boolean }) {
+function ThemePreview({ theme }: { theme: Theme }) {
   const { ui, syntax } = theme;
   const color = (value: string): CSSProperties => ({ background: value });
   return (
-    <span className={`theme-preview${half ? ' theme-preview--half' : ''}`} style={{ background: ui.bgEditor }} aria-hidden>
+    <span className="theme-preview" style={{ background: ui.bgEditor }} aria-hidden>
       <span className="theme-preview__activity" style={color(ui.bg0)}>
         <span style={color(ui.brand)} />
       </span>

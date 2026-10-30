@@ -11,43 +11,74 @@
 // Nenhuma cor de tema fica fora deste módulo: os componentes usam as
 // variáveis, e as medidas (fontes, espaços, raios) continuam em
 // styles/tokens.css. Os temas estão em catalog.ts.
+//
+// A preferência é uma paleta e um modo. A paleta (`settings.theme`) é o id do
+// tema escuro dela, com o claro no `pair`; o modo (`settings.theme_mode`) é
+// escuro, claro ou o do sistema. Uma paleta só escura (o Dracula, o Aurora
+// Legacy) fica escura em qualquer modo.
 
 import { THEMES } from './catalog';
-import { alpha, legible, mix, type Theme, type UiColors } from './model';
+import { alpha, legible, mix, type Scheme, type Theme, type UiColors } from './model';
 
 export * from './model';
 
 export { THEMES };
 
-/** O tema padrão. O settings.rs leva a ele quem tinha um tema que saiu: o
- * Atlas, o padrão do Lace Studio, ou o "escuro" de antes dele. */
+/** A paleta padrão. O settings.rs leva a ela quem tinha um tema que saiu: o
+ * Atlas, o padrão do Lace Studio, o "escuro" de antes dele e os temas de fora
+ * que não ficaram. */
 export const DEFAULT_THEME = 'boreal';
-/** O claro do "Do sistema", e o de quem tinha o Atlas Branco ou o "claro". */
+/** O tema claro da paleta padrão. */
 export const DEFAULT_LIGHT_THEME = 'boreal-claro';
-/** A preferência que segue o esquema do sistema. */
-export const SYSTEM_THEME = 'system';
+
+/** O modo: um esquema fixo, ou o do sistema. */
+export type ThemeMode = Scheme | 'system';
 
 const BY_ID = new Map(THEMES.map((theme) => [theme.id, theme]));
+
+/** As paletas, na ordem do catálogo: o tema escuro de cada uma, ou o único
+ * de uma paleta só escura. */
+export const PALETTES: Theme[] = THEMES.filter((theme) => theme.scheme === 'dark' || !theme.pair);
 
 export function themeById(id: string): Theme | undefined {
   return BY_ID.get(id);
 }
 
-/**
- * O tema de uma preferência. `system` fica com o Boreal ou o Boreal Claro,
- * conforme o sistema; um id desconhecido (de uma versão mais nova, ou de um
- * tema que saiu) cai no padrão.
- */
-export function resolveTheme(preference: string | undefined, systemDark: boolean): Theme {
-  if (!preference || preference === SYSTEM_THEME) {
-    return BY_ID.get(systemDark ? DEFAULT_THEME : DEFAULT_LIGHT_THEME)!;
-  }
-  return BY_ID.get(preference) ?? BY_ID.get(DEFAULT_THEME)!;
+/** O nome da paleta: o `family` do tema escuro, ou o nome dele. */
+export function paletteName(palette: Theme): string {
+  return palette.family ?? palette.name;
 }
 
-/** O tema para onde "Alternar tema claro e escuro" leva. */
-export function toggledTheme(theme: Theme): string {
-  return theme.pair ?? (theme.scheme === 'dark' ? DEFAULT_LIGHT_THEME : DEFAULT_THEME);
+/** A paleta de um id: o tema escuro dela. Um id desconhecido (de uma versão
+ * mais nova, ou de um tema que saiu) cai na paleta padrão. */
+export function paletteOf(id: string | undefined): Theme {
+  const theme = (id && BY_ID.get(id)) || BY_ID.get(DEFAULT_THEME)!;
+  return theme.scheme === 'light' && theme.pair ? (BY_ID.get(theme.pair) ?? theme) : theme;
+}
+
+/** O esquema de um modo; o "Do sistema" segue `systemDark`, e um modo
+ * desconhecido vale o escuro. */
+export function schemeOf(mode: string | undefined, systemDark: boolean): Scheme {
+  if (mode === 'light') return 'light';
+  if (mode === 'system') return systemDark ? 'dark' : 'light';
+  return 'dark';
+}
+
+/** O tema de uma paleta num esquema; a paleta só escura fica escura. */
+export function paletteTheme(palette: Theme, scheme: Scheme): Theme {
+  if (palette.scheme === scheme || !palette.pair) return palette;
+  return BY_ID.get(palette.pair) ?? palette;
+}
+
+/** O tema da preferência: a paleta no esquema do modo. */
+export function resolveTheme(palette: string | undefined, mode: string | undefined, systemDark: boolean): Theme {
+  return paletteTheme(paletteOf(palette), schemeOf(mode, systemDark));
+}
+
+/** O modo para onde "Alternar tema claro e escuro" leva: o contrário do
+ * esquema em uso. */
+export function toggledMode(theme: Theme): ThemeMode {
+  return theme.scheme === 'dark' ? 'light' : 'dark';
 }
 
 // Interface ---------------------------------------------------------------

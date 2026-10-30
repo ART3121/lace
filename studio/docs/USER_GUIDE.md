@@ -870,35 +870,26 @@ caminho exato aparece em Ajuda > Sobre a AURORA IDE.
 
 ### Temas
 
-Em Preferências > Aparência, cada tema tem um cartão com uma prévia nas
-cores dele; clicar aplica na hora. Também dá para escolher com Ctrl+K T
-(aperte Ctrl+K, solte, aperte T) ou em Exibir > Selecionar tema, que abrem
-a lista na paleta. O tema pinta a interface, o editor (inclusive C± e o
-assembly) e os consoles.
+Em Preferências > Aparência, o tema tem duas escolhas: o modo (Escuro,
+Claro ou Do sistema, que acompanha o sistema e troca junto com ele) e a
+paleta, com um cartão por paleta e a prévia no modo escolhido. Clicar
+aplica na hora. A paleta também se escolhe com Ctrl+K T (aperte Ctrl+K,
+solte, aperte T) ou em Exibir > Selecionar tema, que abrem a lista na
+paleta de comandos, e Exibir > Alternar tema claro e escuro troca o modo. O
+tema pinta a interface, o editor (inclusive C± e o assembly) e os consoles.
 
-| Tema | Esquema | Origem |
+| Paleta | Modos | Origem |
 |---|---|---|
-| Boreal (padrão), Boreal Claro | escuro, claro | os da AURORA IDE: cinzas quase neutros com o azul da aurora boreal de destaque |
-| Austral, Austral Claro | escuro, claro | os mesmos cinzas, com o verde da Aurora antiga de destaque e o lilás dela nos números e textos |
-| Nebulosa, Nebulosa Clara | escuro, claro | os mesmos cinzas, com o violeta da Aurora antiga de destaque e a menta dela nos números e textos |
-| Alvorada, Alvorada Clara | escuro, claro | os mesmos cinzas, com o âmbar do amanhecer |
-| Lunar, Lunar Claro | escuro, claro | os mesmos cinzas, sem cor de destaque: o destaque é o próprio texto, com as palavras reservadas em negrito |
-| Aurora Legacy | escuro | as cores da AURORA |
-| Dark Modern, Light Modern | escuro, claro | os padrões do VS Code |
-| Dracula | escuro | |
-| Gruvbox Dark, Gruvbox Light | escuro, claro | |
-| Monokai | escuro | |
-| Nord | escuro | |
-| One Dark Pro | escuro | o do Atom |
-| Solarized Dark, Solarized Light | escuro, claro | |
-| Catppuccin Mocha | escuro | |
-| Tokyo Night | escuro | |
+| Boreal (padrão) | escuro e claro | os da AURORA IDE: cinzas quase neutros com o azul da aurora boreal de destaque |
+| Austral | escuro e claro | os mesmos cinzas, com o verde da Aurora antiga de destaque e o lilás dela nos números e textos |
+| Nebulosa | escuro e claro | os mesmos cinzas, com o violeta da Aurora antiga de destaque e a menta dela nos números e textos |
+| Alvorada | escuro e claro | os mesmos cinzas, com o âmbar do amanhecer |
+| Lunar | escuro e claro | os mesmos cinzas, sem cor de destaque: o destaque é o próprio texto, com as palavras reservadas em negrito |
+| Aurora Legacy | só escuro | as cores da AURORA |
+| VS Code | escuro e claro | o Dark Modern e o Light Modern, os padrões do VS Code |
+| Dracula | só escuro | |
 
-**Do sistema** fica com o Boreal quando o sistema está no modo escuro e com
-o Boreal Claro no claro, e troca junto com ele. Exibir > Alternar tema claro
-e escuro vai para o par do tema (os cinco da AURORA IDE com os seus
-claros, Dark e Light Modern, Gruvbox, Solarized) ou, num tema sem par, para
-o Boreal Claro ou o Boreal.
+Uma paleta só escura fica escura em qualquer modo.
 
 ## 9.1 Sobre
 

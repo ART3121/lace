@@ -26,7 +26,7 @@ interface Shell {
 }
 
 let shell: Shell | null = null;
-let theme: Theme = resolveTheme(DEFAULT_THEME, true);
+let theme: Theme = resolveTheme(DEFAULT_THEME, 'dark', true);
 /** Os contêineres que mostram o terminal, do mais antigo ao atual: a aba
  * Terminal, em qualquer região, e a gaveta do zen. Como nos consoles, o
  * último a montar fica com ele e, ao sair, o devolve ao anterior. */

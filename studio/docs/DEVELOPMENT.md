@@ -250,8 +250,9 @@ nunca cor literal. Uma variável nova entra em `UiColors`
 ficou sem ela.
 
 Para um tema novo, um objeto a mais no catálogo, com a fonte das cores na
-tabela do começo do arquivo. O id não muda depois de lançado: ele fica
-gravado no `settings.json` de quem escolheu o tema.
+tabela do começo do arquivo. Uma paleta com escuro e claro são dois
+objetos, cada um com o outro no `pair`; o `settings.json` grava o id do
+escuro, que não muda depois de lançado.
 
 Os temas da AURORA IDE (o Boreal, que é o padrão, o Austral, o Nebulosa,
 o Alvorada e o Lunar, cada um com o seu claro) saem da função `aurora` do

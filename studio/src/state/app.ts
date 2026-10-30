@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { useLang } from '../i18n';
 import { api } from '../ipc/api';
 import type { AppInfo, RecentStatus, Settings, ToolchainInfo } from '../ipc/types';
-import { applyThemeCss, DEFAULT_THEME, resolveTheme, type Theme } from '../themes';
+import { applyThemeCss, resolveTheme, type Theme } from '../themes';
 import { showError } from './toasts';
 
 interface AppState {
@@ -15,7 +15,8 @@ interface AppState {
   settings: Settings | null;
   toolchain: ToolchainInfo | null;
   recent: RecentStatus[];
-  /** O tema em uso, já resolvido: o "Do sistema" vira o Boreal ou o Boreal Claro. */
+  /** O tema em uso, já resolvido: a paleta das preferências no esquema do
+   * modo, com o "Do sistema" seguindo o sistema. */
   theme: Theme;
 
   init: () => Promise<Settings | null>;
@@ -26,13 +27,18 @@ interface AppState {
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-function themeFor(preference: string | undefined): Theme {
-  return resolveTheme(preference, darkQuery.matches);
+/** O sistema está no modo escuro? É o que o "Do sistema" segue. */
+export function prefersDark(): boolean {
+  return darkQuery.matches;
+}
+
+function themeFor(settings: Pick<Settings, 'theme' | 'theme_mode'> | null | undefined): Theme {
+  return resolveTheme(settings?.theme, settings?.theme_mode, darkQuery.matches);
 }
 
 // O padrão vai para a página já ao carregar o módulo, antes do primeiro
 // quadro; o tema das preferências chega em `init`.
-const initialTheme = themeFor(DEFAULT_THEME);
+const initialTheme = themeFor(null);
 applyThemeCss(initialTheme);
 
 export const useApp = create<AppState>((set, get) => ({
@@ -45,7 +51,7 @@ export const useApp = create<AppState>((set, get) => ({
   init: async () => {
     try {
       const [info, settings] = await Promise.all([api.app.info(), api.app.settings()]);
-      const theme = themeFor(settings.theme);
+      const theme = themeFor(settings);
       applyThemeCss(theme);
       useLang.getState().setLang(settings.language);
       set({ info, settings, theme });
@@ -63,7 +69,7 @@ export const useApp = create<AppState>((set, get) => ({
     if (!current) return;
     const next = change(current);
     // Aplica na hora e grava depois; um erro ao gravar volta ao anterior.
-    const theme = themeFor(next.theme);
+    const theme = themeFor(next);
     set({ settings: next, theme });
     applyThemeCss(theme);
     useLang.getState().setLang(next.language);
@@ -76,7 +82,7 @@ export const useApp = create<AppState>((set, get) => ({
         current.quartus_dir !== next.quartus_dir;
       if (toolchainChanged) void get().refreshToolchain();
     } catch (error) {
-      const theme = themeFor(current.theme);
+      const theme = themeFor(current);
       set({ settings: current, theme });
       applyThemeCss(theme);
       useLang.getState().setLang(current.language);
@@ -103,7 +109,7 @@ export const useApp = create<AppState>((set, get) => ({
 
 // Com "Do sistema", o tema acompanha a troca de esquema do sistema.
 darkQuery.addEventListener('change', () => {
-  const theme = themeFor(useApp.getState().settings?.theme ?? DEFAULT_THEME);
+  const theme = themeFor(useApp.getState().settings);
   applyThemeCss(theme);
   useApp.setState({ theme });
 });

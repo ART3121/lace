@@ -29,10 +29,18 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   no Austral, o lilás dela vai nos números e textos; no Nebulosa, a
   menta. Têm os mesmos cinzas quase neutros e uma cor de destaque; no
   código, só as palavras reservadas levam o destaque, e números e textos
-  levam uma segunda cor. O Boreal é o padrão, e o Boreal Claro é o claro
-  do "Do sistema".
+  levam uma segunda cor. O Boreal é o padrão.
+- O tema passa a ser uma paleta e um modo. Em Preferências > Aparência, o
+  modo (Escuro, Claro ou Do sistema) fica à parte, e cada paleta tem um
+  cartão só, que serve aos dois esquemas; Exibir > Alternar tema claro e
+  escuro troca o modo. O Dark Modern e o Light Modern viram a paleta VS
+  Code; o Dracula e o Aurora Legacy são só escuros e ficam escuros em
+  qualquer modo. Saem os temas de fora que não são do VS Code nem o
+  Dracula (Gruvbox Dark e Light, Monokai, Nord, One Dark Pro, Solarized
+  Dark e Light, Catppuccin Mocha e Tokyo Night): quem estava num deles
+  passa para o Boreal, no mesmo esquema.
 - O Atlas e o Atlas Branco, os padrões do Lace Studio, saem da lista:
-  quem estava neles passa para o Boreal ou o Boreal Claro.
+  quem estava neles passa para o Boreal, escuro ou claro.
 - O splash mostra o camaleão numa volta, a partir do focinho.
 - O Studio passou a ser cliente do servidor do Lace (`lace serve`), como a
   extensão do VS Code: abre o `lace` como processo filho e pede a ele o

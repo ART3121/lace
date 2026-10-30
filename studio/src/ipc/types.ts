@@ -76,8 +76,10 @@ export interface AppInfo {
 /** `settings.rs`: Settings. */
 export interface Settings {
   language: 'system' | 'pt' | 'en';
-  /** O id de um tema de themes/catalog.ts, ou `system`. */
+  /** A paleta: o id do tema escuro dela em themes/catalog.ts. */
   theme: string;
+  /** O modo: um esquema fixo, ou o do sistema. */
+  theme_mode: 'dark' | 'light' | 'system';
   toolchain_dir: string | null;
   compiler_dir: string | null;
   /** O Quartus Prime, como o `--quartus` da CLI; null: os locais padrão. */

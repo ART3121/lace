@@ -140,12 +140,18 @@ export interface TokenRule {
 }
 
 export interface Theme {
-  /** O que fica gravado em `settings.theme`. Não mudar depois de lançado. */
+  /** O id. O do tema escuro de cada paleta (ou do único, numa paleta só
+   * escura) é o que fica gravado em `settings.theme`. Não mudar depois de
+   * lançado. */
   id: string;
   /** Nome próprio, igual em todos os idiomas. */
   name: string;
+  /** O nome da paleta nas Preferências, quando não é o do tema escuro (o
+   * Dark Modern e o Light Modern são a paleta VS Code). */
+  family?: string;
   scheme: Scheme;
-  /** O tema do outro esquema na mesma família, para "Alternar tema claro e escuro". */
+  /** O tema do outro esquema na mesma paleta: o claro de um escuro e o
+   * escuro de um claro. Sem ele, a paleta é só escura. */
   pair?: string;
   ui: UiColors;
   syntax: SyntaxColors;

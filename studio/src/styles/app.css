@@ -3067,11 +3067,6 @@ body.is-dragging * {
   display: flex;
 }
 
-/* O "Do sistema": o claro por cima do escuro, cortado na diagonal. */
-.theme-preview--half {
-  clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%);
-}
-
 .theme-preview__activity {
   flex: none;
   width: 12px;

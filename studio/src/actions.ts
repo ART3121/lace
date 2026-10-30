@@ -62,7 +62,7 @@ import { useSettingsPage } from './state/settingsPage';
 import { guarded, showError, useToasts } from './state/toasts';
 import { useTour } from './state/tour';
 import { openWaveTab, waveInTab } from './state/waves';
-import { toggledTheme } from './themes';
+import { toggledMode } from './themes';
 import { baseName, extension, isInside, joinPath, relativeTo, resolveFrom } from './util/paths';
 
 export type ActionCategory = 'file' | 'edit' | 'view' | 'project' | 'flow' | 'tools' | 'help';
@@ -717,7 +717,7 @@ export const ACTIONS: Action[] = [
     label: 'action.toggleTheme',
     category: 'view',
     run: () =>
-      useApp.getState().updateSettings((s) => ({ ...s, theme: toggledTheme(useApp.getState().theme) })),
+      useApp.getState().updateSettings((s) => ({ ...s, theme_mode: toggledMode(useApp.getState().theme) })),
   },
   { id: 'selectTheme', label: 'action.selectTheme', category: 'view', keys: 'Ctrl+K T', run: () => openDialog({ kind: 'theme' }) },
 

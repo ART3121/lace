@@ -100,7 +100,7 @@ const runTitles = new Map<number, string>();
 let currentRun = 0;
 /** A primeira linha de erro da rodada atual no INFO. */
 let runError: IMarker | null = null;
-let currentTheme: ITheme = terminalTheme(resolveTheme(DEFAULT_THEME, true));
+let currentTheme: ITheme = terminalTheme(resolveTheme(DEFAULT_THEME, 'dark', true));
 let fontSize = 12;
 
 /** Quem abre um arquivo a partir de um link `arquivo:linha` no console. */

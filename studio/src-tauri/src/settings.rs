@@ -27,11 +27,15 @@ const MAX_RECENT: usize = 15;
 pub struct Settings {
     /// Idioma da interface: `system`, `pt` ou `en`.
     pub language: String,
-    /// Tema: o id de um tema de `src/themes/catalog.ts` (`boreal`,
-    /// `boreal-claro`, `dracula`...) ou `system`, que fica com o Boreal ou o
-    /// Boreal Claro conforme o sistema. Um id que a interface não conhece
-    /// vale o padrão, `boreal`.
+    /// A paleta do tema: o id do tema escuro dela em
+    /// `src/themes/catalog.ts` (`boreal`, `dark-modern`, `dracula`...). Um id
+    /// que a interface não conhece vale o padrão, `boreal`.
     pub theme: String,
+    /// O modo do tema: `dark`, `light` ou `system` (segue o sistema). Vazio
+    /// num `settings.json` de antes do campo: `migrate` o tira do `theme`, que
+    /// então era o tema inteiro (`boreal-claro`) ou `system`.
+    #[serde(default)]
+    pub theme_mode: String,
     /// Outro bundle no lugar do instalado, como o `--toolchain` da CLI.
     /// `None`: procura a instalação da AURORA (ver `toolchain.rs`).
     pub toolchain_dir: Option<String>,
@@ -114,13 +118,28 @@ fn already_toured() -> bool {
 impl Settings {
     /// Traz valores gravados por versões anteriores para os de agora.
     fn migrate(&mut self) {
-        // Os temas que saíram vão para o padrão: o `dark` e o `light`, os
-        // únicos até 2026-10-04, e o Atlas e o Atlas Branco, os padrões do
-        // Lace Studio, que saíram do catálogo em 2026-10-29.
-        match self.theme.as_str() {
-            "dark" | "atlas" => self.theme = "boreal".into(),
-            "light" | "atlas-light" => self.theme = "boreal-claro".into(),
-            _ => {}
+        // O tema era um id só (o claro de cada paleta tinha o seu) ou
+        // `system`; agora é a paleta e o modo. Os temas que saíram vão para o
+        // Boreal: o `dark` e o `light`, os únicos até 2026-10-04; o Atlas e o
+        // Atlas Branco, os padrões do Lace Studio; e os de fora que não são o
+        // Dark e o Light Modern nem o Dracula, que saíram em 2026-10-30.
+        let (palette, mode) = match self.theme.as_str() {
+            "system" => ("boreal", "system"),
+            "dark" | "atlas" | "gruvbox-dark" | "monokai" | "nord" | "one-dark"
+            | "solarized-dark" | "catppuccin-mocha" | "tokyo-night" => ("boreal", "dark"),
+            "light" | "atlas-light" | "gruvbox-light" | "solarized-light" => ("boreal", "light"),
+            "light-modern" => ("dark-modern", "light"),
+            id => match id
+                .strip_suffix("-claro")
+                .or_else(|| id.strip_suffix("-clara"))
+            {
+                Some(dark) => (dark, "light"),
+                None => (id, "dark"),
+            },
+        };
+        self.theme = palette.to_owned();
+        if self.theme_mode.is_empty() {
+            self.theme_mode = mode.to_owned();
         }
     }
 }
@@ -130,6 +149,7 @@ impl Default for Settings {
         Settings {
             language: "system".into(),
             theme: "boreal".into(),
+            theme_mode: "dark".into(),
             toolchain_dir: None,
             aurora_path: None,
             compiler_dir: None,
@@ -491,27 +511,60 @@ mod tests {
         assert!(dir.join("settings.json.bad").is_file());
     }
 
-    /// Os temas que saíram (o `dark` e o `light` até 2026-10-04, depois o
-    /// Atlas e o Atlas Branco) viram o Boreal e o Boreal Claro; o resto fica.
+    /// O tema de antes do modo vira paleta e modo: o claro de uma paleta dá
+    /// o modo claro, o `system` dá o "Do sistema", e os temas que saíram (o
+    /// `dark` e o `light`, o Atlas e os de fora que não ficaram) vão para o
+    /// Boreal no esquema que tinham.
     #[test]
-    fn removed_themes_become_boreal() {
+    fn the_old_theme_becomes_palette_and_mode() {
         let dir = tempfile::tempdir().unwrap();
         let dir = Utf8Path::from_path(dir.path()).unwrap();
-        for (old, new) in [
-            ("dark", "boreal"),
-            ("light", "boreal-claro"),
-            ("atlas", "boreal"),
-            ("atlas-light", "boreal-claro"),
-            ("system", "system"),
-            ("dracula", "dracula"),
+        for (old, palette, mode) in [
+            ("boreal", "boreal", "dark"),
+            ("boreal-claro", "boreal", "light"),
+            ("alvorada-clara", "alvorada", "light"),
+            ("nebulosa", "nebulosa", "dark"),
+            ("system", "boreal", "system"),
+            ("dark-modern", "dark-modern", "dark"),
+            ("light-modern", "dark-modern", "light"),
+            ("dracula", "dracula", "dark"),
+            ("aurora-legacy", "aurora-legacy", "dark"),
+            ("dark", "boreal", "dark"),
+            ("light", "boreal", "light"),
+            ("atlas", "boreal", "dark"),
+            ("atlas-light", "boreal", "light"),
+            ("monokai", "boreal", "dark"),
+            ("tokyo-night", "boreal", "dark"),
+            ("solarized-light", "boreal", "light"),
         ] {
             std::fs::write(
                 dir.join("settings.json"),
                 format!(r#"{{ "theme": "{old}" }}"#),
             )
             .unwrap();
-            assert_eq!(SettingsStore::load(dir).get().theme, new);
+            let settings = SettingsStore::load(dir).get();
+            assert_eq!(
+                (settings.theme.as_str(), settings.theme_mode.as_str()),
+                (palette, mode),
+                "{old}"
+            );
         }
+    }
+
+    /// Com o modo gravado, a paleta e o modo ficam como estão.
+    #[test]
+    fn palette_and_mode_are_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        let dir = Utf8Path::from_path(dir.path()).unwrap();
+        std::fs::write(
+            dir.join("settings.json"),
+            r#"{ "theme": "austral", "theme_mode": "system" }"#,
+        )
+        .unwrap();
+        let settings = SettingsStore::load(dir).get();
+        assert_eq!(settings.theme, "austral");
+        assert_eq!(settings.theme_mode, "system");
+        assert_eq!(Settings::default().theme_mode, "dark");
     }
 
     /// Sem preferências, a IDE traz as do Lace Studio da pasta vizinha; com
@@ -571,7 +624,9 @@ mod tests {
             r#"{ "theme": "atlas", "aurora_themes": true }"#,
         )
         .unwrap();
-        assert_eq!(SettingsStore::load(dir).get().theme, "boreal");
+        let settings = SettingsStore::load(dir).get();
+        assert_eq!(settings.theme, "boreal");
+        assert_eq!(settings.theme_mode, "dark");
         assert_eq!(Settings::default().theme, "boreal");
     }
 }
