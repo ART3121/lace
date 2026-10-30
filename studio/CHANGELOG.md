@@ -29,7 +29,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   no Austral, o lilás dela vai nos números e textos; no Nebulosa, a
   menta. Têm os mesmos cinzas quase neutros e uma cor de destaque; no
   código, só as palavras reservadas levam o destaque, e números e textos
-  levam uma segunda cor. O Boreal é o padrão.
+  levam uma segunda cor. O Lunar deixa a interface no prata do texto e
+  pinta o código com cores de luar: azul nas palavras reservadas, lilás
+  nos tipos e dourado nos números e textos. O Boreal é o padrão.
 - O tema passa a ser uma paleta e um modo. Em Preferências > Aparência, o
   modo (Escuro, Claro ou Do sistema) fica à parte, e cada paleta tem um
   cartão só, que serve aos dois esquemas; Exibir > Alternar tema claro e

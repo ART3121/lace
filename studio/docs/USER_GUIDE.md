@@ -884,7 +884,7 @@ tema pinta a interface, o editor (inclusive C± e o assembly) e os consoles.
 | Austral | escuro e claro | os mesmos cinzas, com o verde da Aurora antiga de destaque e o lilás dela nos números e textos |
 | Nebulosa | escuro e claro | os mesmos cinzas, com o violeta da Aurora antiga de destaque e a menta dela nos números e textos |
 | Alvorada | escuro e claro | os mesmos cinzas, com o âmbar do amanhecer |
-| Lunar | escuro e claro | os mesmos cinzas, sem cor de destaque: o destaque é o próprio texto, com as palavras reservadas em negrito |
+| Lunar | escuro e claro | os mesmos cinzas, com a interface no prata do texto; no código, azul de luar nas palavras reservadas (em negrito), lilás prateado nos tipos e dourado nos números e textos |
 | Aurora Legacy | só escuro | as cores da AURORA |
 | VS Code | escuro e claro | o Dark Modern e o Light Modern, os padrões do VS Code |
 | Dracula | só escuro | |

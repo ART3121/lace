@@ -129,6 +129,10 @@ interface AuroraAccent {
   literal: string;
   /** A opacidade de `fill` na seleção. */
   selection: number;
+  /** As palavras reservadas e os tipos no código, quando não vão no `text`:
+   * o Lunar tem a interface no prata do texto, e o código ganha cor própria. */
+  keyword?: string;
+  type?: string;
 }
 
 /**
@@ -137,7 +141,8 @@ interface AuroraAccent {
  * textos e constantes. Funções em `text0`, o resto do código em `code`,
  * operadores e comentários em `text2`. A busca usa `literal`, para não se
  * confundir com a seleção, que usa o destaque. `bold` põe as palavras
- * reservadas em negrito, para o Lunar, cujo destaque é o próprio texto.
+ * reservadas em negrito, para o Lunar, cuja interface não tem cor de
+ * destaque.
  */
 function aurora(id: string, name: string, scheme: Scheme, pair: string, accent: AuroraAccent, bold = false): Theme {
   const dark = scheme === 'dark';
@@ -174,15 +179,15 @@ function aurora(id: string, name: string, scheme: Scheme, pair: string, accent: 
     syntax: {
       fg: base.code,
       comment: base.text2,
-      keyword: accent.text,
-      control: accent.text,
-      type: accent.text,
+      keyword: accent.keyword ?? accent.text,
+      control: accent.keyword ?? accent.text,
+      type: accent.type ?? accent.text,
       func: base.text0,
       number: accent.literal,
       string: accent.literal,
       constant: accent.literal,
       variable: base.code,
-      tag: accent.text,
+      tag: accent.type ?? accent.text,
       operator: base.text2,
       delimiter: base.text2,
       directive: base.text1,
@@ -297,8 +302,10 @@ const alvoradaClara = aurora('alvorada-clara', 'Alvorada Clara', 'light', 'alvor
   selection: 0.22,
 });
 
-/** Sem cor de destaque: o destaque é o próprio texto, e as palavras
- * reservadas vão em negrito. */
+/** A interface sem cor de destaque, no prata do próprio texto. O código tem
+ * cores de luar: as palavras reservadas em negrito num azul (#99C2ED,
+ * 9,8:1), os tipos num lilás prateado (10,2:1) e os números e textos num
+ * dourado (11:1). */
 const lunar = aurora(
   'lunar',
   'Lunar',
@@ -310,8 +317,10 @@ const lunar = aurora(
     fill: '#EAEDF1',
     fillHover: '#D3D6DA',
     onFill: '#141619',
-    literal: '#E2BD93',
+    literal: '#EFC37E',
     selection: 0.18,
+    keyword: '#99C2ED',
+    type: '#C6BDE8',
   },
   true,
 );
@@ -327,8 +336,10 @@ const lunarClaro = aurora(
     fill: '#191B1D',
     fillHover: '#36383B',
     onFill: '#FFFFFF',
-    literal: '#86572D',
+    literal: '#935A11',
     selection: 0.12,
+    keyword: '#285994',
+    type: '#5F4E8D',
   },
   true,
 );
