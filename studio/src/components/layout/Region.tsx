@@ -89,8 +89,8 @@ export function Region({ region, mode }: { region: RegionId; mode: RegionMode })
   const active = live.regions[region].active;
   const side = region !== 'panel';
   // A vista que entra no lugar de outra, com a região já aberta, entra com
-  // um esmaecer (app.css); a da região que acabou de abrir, não: essa entra
-  // com a transição de vista do Workbench.
+  // um esmaecer (app.css); a da região que acabou de abrir, não: abrir e
+  // fechar regiões é na hora.
   const shownView = useRef(active);
   const switched = useRef(false);
   if (shownView.current !== active) {

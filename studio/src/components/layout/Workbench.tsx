@@ -20,24 +20,13 @@
 // Numa janela estreita, primeiro os mínimos diminuem; se ainda não couber, a
 // barra lateral direita deixa de ser desenhada e depois o painel volta para
 // baixo. Isso só muda o desenho: o layout continua o mesmo.
-//
-// Abrir, fechar ou mover uma região anima: o desenho troca dentro de uma
-// transição de vista (`document.startViewTransition`), e o navegador anima o
-// tamanho e o lugar de cada região entre a foto de antes e a de depois
-// (app.css, `data-transicao`). Só as partes que mudam são fotografadas, e a
-// janela inteira nunca (`moves`): cada foto pesa na placa de vídeo em todos
-// os quadros da animação. O estado do layout muda na hora, como sempre; só a
-// cópia que a janela desenha (`useShownLayout`) espera a foto de antes. Sem a
-// API, ou com o sistema pedindo menos movimento, a troca é na hora.
 
 import { useEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import { Group, Panel, Separator, usePanelRef, type PanelImperativeHandle } from 'react-resizable-panels';
-import { create } from 'zustand';
 
 import { useEditor } from '../../state/editor';
 import { useLayout } from '../../state/layout';
-import type { LayoutBody, LayoutSizes } from '../../state/layoutModel';
+import type { LayoutSizes } from '../../state/layoutModel';
 import { snapshotSize } from '../../state/savedLayouts';
 import { EditorArea } from '../editor/EditorArea';
 import { ActivityBar } from './ActivityBar';
@@ -82,123 +71,6 @@ function fitWorkbench(width: number, left: boolean, right: boolean, panelAtRight
   return result(tight, false, false);
 }
 
-/** O que a área de trabalho desenha do layout. */
-interface Shown {
-  live: LayoutBody;
-  zen: boolean;
-  zenShell: boolean;
-  maximized: boolean;
-  epoch: number;
-}
-
-function shownOf(state: ReturnType<typeof useLayout.getState>): Shown {
-  return { live: state.live, zen: state.zen, zenShell: state.zenShell, maximized: state.panelMaximized, epoch: state.epoch };
-}
-
-/** O layout como a janela o desenha: o do `useLayout`, que numa transição só
- * chega aqui na troca de foto. O App lê o zen daqui, para as barras de cima
- * saírem e voltarem na mesma transição das regiões. */
-export const useShownLayout = create<Shown>(() => shownOf(useLayout.getState()));
-
-/** O arranjo da janela: o que muda de lugar e vale a animação (uma região
- * que abre ou fecha, o painel que muda de lado ou maximiza, o zen, a barra
- * de atividades que troca de lado). Tamanhos e vistas ativas não entram. */
-function arrangement(shown: Shown): string {
-  const { regions, panelPosition, bars } = shown.live;
-  return [regions.left.visible, regions.right.visible, regions.panel.visible, panelPosition, bars.activitybar, shown.zen, shown.zenShell, shown.maximized].join();
-}
-
-/** O que uma transição mexe. Cada parte com nome vira duas fotos e uma
- * camada a mais em cada quadro; a que não muda fica sem nome e é desenhada
- * viva, e a janela inteira nunca é fotografada (app.css). No zen (`zen`), as
- * barras de fora da área de trabalho saem e voltam com nome próprio. */
-interface Moves {
-  /** As partes com nome (app.css, `data-nomes`). */
-  names: string;
-  /** As regiões que ficam abertas e mudam de largura: nelas os botões da
-   * direita do cabeçalho viram uma foto à parte, presa à borda direita
-   * (app.css, `data-ficam`). */
-  staying: string;
-  /** Entra ou sai do zen: o editor esmaece entre as duas fotos (`growth`). */
-  zen: boolean;
-}
-
-function moves(previous: Shown, next: Shown): Moves {
-  const a = previous.live;
-  const b = next.live;
-  const zen = previous.zen !== next.zen;
-  const shell = (previous.zen && previous.zenShell) || (next.zen && next.zenShell);
-  const bar = a.bars.activitybar !== b.bars.activitybar || zen;
-  const position = a.panelPosition !== b.panelPosition;
-  const panel = a.regions.panel.visible !== b.regions.panel.visible || previous.maximized !== next.maximized || position;
-  // Com o painel à direita, ele divide a largura com o editor.
-  const atRight = a.panelPosition === 'right' || b.panelPosition === 'right';
-  const horizontal =
-    a.regions.left.visible !== b.regions.left.visible || a.regions.right.visible !== b.regions.right.visible || bar || position || (panel && atRight);
-  const shown = (key: 'left' | 'right' | 'panel') => a.regions[key].visible || b.regions[key].visible;
-  const names = ['editor'];
-  if (horizontal && shown('left')) names.push('esquerda');
-  if (horizontal && shown('right')) names.push('direita');
-  if (shown('panel')) names.push('painel');
-  if (bar) names.push('barra');
-  if (zen) names.push('barras');
-  if (shell) names.push('gaveta');
-  const editor = (shown: Shown) => !(shown.maximized && shown.live.regions.panel.visible);
-  const staying: string[] = [];
-  if (horizontal && a.regions.panel.visible && b.regions.panel.visible) staying.push('painel');
-  if (horizontal && editor(previous) && editor(next)) staying.push('editor');
-  return { names: names.join(' '), staying: staying.join(' '), zen };
-}
-
-/** Cada região pelo nome que tem na transição (app.css). */
-const MEASURED = [
-  ['esquerda', '.region--left'],
-  ['direita', '.region--right'],
-  ['painel', '.region--panel'],
-  ['editor', '.editor-area'],
-] as const;
-
-/** O tamanho de cada região desenhada; o editor escondido pelo painel
- * maximizado não entra. */
-function measure(root: HTMLElement | null): Map<string, DOMRect> {
-  const sizes = new Map<string, DOMRect>();
-  for (const [name, selector] of MEASURED) {
-    const rect = root?.querySelector(selector)?.getBoundingClientRect();
-    if (rect && rect.width > 0 && rect.height > 0) sizes.set(name, rect);
-  }
-  return sizes;
-}
-
-/** As regiões desenhadas antes e depois que só crescem e as que só encolhem.
- * Essas mostram uma foto só, a maior (app.css); a que cresce numa direção e
- * encolhe na outra, ou só muda de lugar, esmaece entre as duas. As de
- * `fading` esmaecem sempre: no zen, o texto centralizado da foto nova do
- * editor, preso no canto da caixa velha, pularia para o lado. */
-function growth(before: Map<string, DOMRect>, after: Map<string, DOMRect>, fading: readonly string[]): { grows: string; shrinks: string } {
-  const grows: string[] = [];
-  const shrinks: string[] = [];
-  for (const [name, old] of before) {
-    const now = after.get(name);
-    if (!now || fading.includes(name)) continue;
-    const width = now.width - old.width;
-    const height = now.height - old.height;
-    if (Math.abs(width) < 1 && Math.abs(height) < 1) continue;
-    if (width > -1 && height > -1) grows.push(name);
-    else if (width < 1 && height < 1) shrinks.push(name);
-  }
-  return { grows: grows.join(' '), shrinks: shrinks.join(' ') };
-}
-
-/** As marcas que uma transição põe no <html> para o app.css. */
-const MARKS = ['transicao', 'nomes', 'ficam', 'boasVindas', 'cresce', 'encolhe'] as const;
-
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-/** Uma volta do laço de eventos. Durante a transição de vista o navegador não
- * roda quadros (`requestAnimationFrame`), só tarefas: os efeitos do React e o
- * registro de um painel novo na biblioteca correm nelas. */
-const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-
 /** O tamanho de um painel montado, em pixels; `undefined` se ainda não há. */
 function sizeOf(ref: React.RefObject<PanelImperativeHandle | null>): number | undefined {
   try {
@@ -210,9 +82,12 @@ function sizeOf(ref: React.RefObject<PanelImperativeHandle | null>): number | un
 }
 
 export function Workbench() {
-  const { live, zen, zenShell, maximized, epoch } = useShownLayout();
+  const live = useLayout((s) => s.live);
+  const zen = useLayout((s) => s.zen);
+  const zenShell = useLayout((s) => s.zenShell);
+  const maximized = useLayout((s) => s.panelMaximized);
+  const epoch = useLayout((s) => s.epoch);
   const { regions, bars, sizes } = live;
-  const workbench = useRef<HTMLDivElement>(null);
 
   const [width, setWidth] = useState(0);
   const groupElement = useRef<HTMLDivElement>(null);
@@ -244,83 +119,22 @@ export function Workbench() {
   // a biblioteca o põe; ela não avisa mudança quando nada muda, então isso
   // não volta a se chamar sozinho.
   const frame = useRef(0);
-  const settle = useRef(() => {});
-  settle.current = () => {
-    const state = useLayout.getState();
-    const want = (ref: React.RefObject<PanelImperativeHandle | null>, size: number) => {
-      const now = sizeOf(ref);
-      if (now !== undefined && Math.abs(now - size) > 1) ref.current?.resize(size);
-    };
-    want(leftRef, state.live.sizes.left);
-    want(rightRef, state.live.sizes.right);
-    if (!state.panelMaximized) want(panelRef, current.current.bottom ? state.live.sizes.panelBottom : state.live.sizes.panelRight);
-  };
   const enforce = useRef(() => {});
   enforce.current = () => {
     if (frame.current) return;
     frame.current = requestAnimationFrame(() => {
       frame.current = 0;
-      settle.current();
+      const state = useLayout.getState();
+      const want = (ref: React.RefObject<PanelImperativeHandle | null>, size: number) => {
+        const now = sizeOf(ref);
+        if (now !== undefined && Math.abs(now - size) > 1) ref.current?.resize(size);
+      };
+      want(leftRef, state.live.sizes.left);
+      want(rightRef, state.live.sizes.right);
+      if (!state.panelMaximized) want(panelRef, current.current.bottom ? state.live.sizes.panelBottom : state.live.sizes.panelRight);
     });
   };
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
-
-  // O desenho segue o layout: na hora, quando só mudam tamanhos e vistas;
-  // numa transição de vista, quando muda o arranjo. Enquanto a transição não
-  // desenha o depois, uma mudança nova só troca o alvo dela.
-  const target = useRef<Shown | null>(null);
-  useEffect(() => {
-    const setShown = (shown: Shown) => useShownLayout.setState(shown, true);
-    let drawn = shownOf(useLayout.getState());
-    setShown(drawn);
-    let running = 0;
-    const root = document.documentElement;
-    return useLayout.subscribe((state) => {
-      const next = shownOf(state);
-      if (target.current) {
-        target.current = next;
-        drawn = next;
-        return;
-      }
-      const previous = drawn;
-      drawn = next;
-      if (arrangement(next) === arrangement(previous) || !('startViewTransition' in document) || reducedMotion.matches) {
-        setShown(next);
-        return;
-      }
-      target.current = next;
-      // As marcas que dão nome às fotos valem já para a foto de antes; as
-      // que escolhem a animação de cada uma, só depois da troca.
-      const side = () => (current.current.bottom ? 'baixo' : 'direita');
-      const before = measure(workbench.current);
-      const { names, staying, zen } = moves(previous, next);
-      root.dataset.transicao = side();
-      root.dataset.nomes = names;
-      root.dataset.ficam = staying;
-      root.toggleAttribute('data-boas-vindas', !!workbench.current?.querySelector('.editor-area .welcome'));
-      running += 1;
-      const transition = document.startViewTransition(async () => {
-        const after = target.current ?? next;
-        target.current = null;
-        flushSync(() => setShown(after));
-        // A biblioteca registra um painel novo numa renderização a mais, e
-        // só então ele aceita os tamanhos do layout, que fora da transição
-        // entram um quadro depois (`enforce`): aqui entram antes da foto.
-        await tick();
-        await tick();
-        flushSync(() => settle.current());
-        await tick();
-        if (after.live.regions.panel.visible) root.dataset.transicao = side();
-        const { grows, shrinks } = growth(before, measure(workbench.current), zen ? ['editor'] : []);
-        root.dataset.cresce = grows;
-        root.dataset.encolhe = shrinks;
-      });
-      void transition.finished.finally(() => {
-        running -= 1;
-        if (running === 0) for (const mark of MARKS) delete root.dataset[mark];
-      });
-    });
-  }, []);
 
   // Arrastar uma divisão grava os tamanhos; qualquer outra mudança (um painel
   // que apareceu, a orientação trocada, a janela redimensionada, a memória da
@@ -365,7 +179,7 @@ export function Workbench() {
   };
 
   return (
-    <div className="workbench" ref={workbench}>
+    <div className="workbench">
       {activity === 'left' && <ActivityBar side="left" />}
       <Group orientation="horizontal" className="workbench__main" elementRef={groupElement} onLayoutChanged={capture}>
         {show.left && (
