@@ -9,9 +9,10 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 - O Lace Studio passa a se chamar **AURORA IDE**: no título da janela, no
   splash, na tela inicial, em Sobre, nos menus e nos avisos. O logo é o
-  camaleão do ícone da AURORA, com o mesmo contorno e em cor chapada, na cor
-  de destaque do tema; os ícones do aplicativo são o camaleão azul num
-  quadrado grafite.
+  camaleão do ícone da AURORA, com o mesmo contorno e em cor chapada: na
+  barra de menus, na cor de destaque do tema; na tela inicial, branco nos
+  temas escuros e grafite nos claros. Os ícones do aplicativo são o
+  camaleão azul num quadrado grafite.
 - O executável passa a ser `aurora-ide`, o `productName`, AURORA IDE (no
   macOS, `AURORA IDE.app`), e o identificador, `com.nipscern.aurora-ide`.
   Na primeira abertura, a IDE copia o `settings.json` do Lace Studio da
@@ -21,13 +22,14 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - A IDE abre o `aurora` como servidor, pelo protocolo 2. A variável de
   desenvolvimento passa a ser `AURORA_IDE_CLI`, e a preferência, Programa
   aurora (`aurora_path`; o `lace_path` antigo vale).
-- Três temas novos, cada um com o seu claro: **Azul**, **Âmbar** e
-  **Grafite**. Têm os mesmos cinzas quase neutros e uma cor de destaque;
-  no código, só as palavras reservadas levam o destaque, e números e textos
-  levam uma segunda cor. O Azul é o padrão, e o Azul Claro é o claro do
-  "Do sistema". Quem estava no Atlas ou no Atlas Branco, os padrões de
-  antes, passa uma vez para o Azul ou o Azul Claro; o Atlas continua na
-  lista.
+- Três temas novos, cada um com o seu claro: **Boreal**, **Alvorada** e
+  **Lunar**, com o azul da aurora boreal, o âmbar do amanhecer e o prata
+  da lua. Têm os mesmos cinzas quase neutros e uma cor de destaque; no
+  código, só as palavras reservadas levam o destaque, e números e textos
+  levam uma segunda cor. O Boreal é o padrão, e o Boreal Claro é o claro
+  do "Do sistema".
+- O Atlas e o Atlas Branco, os padrões do Lace Studio, saem da lista:
+  quem estava neles passa para o Boreal ou o Boreal Claro.
 - O splash mostra o camaleão numa volta, a partir do focinho.
 - O Studio passou a ser cliente do servidor do Lace (`lace serve`), como a
   extensão do VS Code: abre o `lace` como processo filho e pede a ele o

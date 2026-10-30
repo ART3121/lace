@@ -905,7 +905,7 @@ export const pt = {
   'settings.language.system': 'Do sistema',
   'settings.theme': 'Tema',
   'settings.theme.system': 'Do sistema',
-  'settings.theme.systemHint': 'Azul ou Azul Claro, conforme o sistema',
+  'settings.theme.systemHint': 'Boreal ou Boreal Claro, conforme o sistema',
   'settings.theme.dark': 'Escuro',
   'settings.theme.light': 'Claro',
   'settings.theme.default': 'padrão',

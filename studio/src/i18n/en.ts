@@ -875,7 +875,7 @@ export const en: Record<Key, string> = {
   'settings.language.system': 'System',
   'settings.theme': 'Theme',
   'settings.theme.system': 'System',
-  'settings.theme.systemHint': 'Azul or Azul Claro, following the system',
+  'settings.theme.systemHint': 'Boreal or Boreal Claro, following the system',
   'settings.theme.dark': 'Dark',
   'settings.theme.light': 'Light',
   'settings.theme.default': 'default',

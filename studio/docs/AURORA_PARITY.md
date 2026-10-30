@@ -158,7 +158,7 @@ próximas sessões.
 | Atalhos configuráveis | Fase 2 | a tabela já está em `actions.ts` |
 | Componentes: baixar, remover, conferir | Feito | Ferramentas da AURORA: componentes, executáveis, compilador do Verilator, conferência dos hashes, instalar (`aurora install`); remover componente a AURORA não faz |
 | Inglês e português | Feito | o YANC roda sempre em inglês (`--lang=en`), por decisão da AURORA |
-| Temas | Feito | a AURORA tinha só o escuro; o Studio tem 15, com o Atlas de padrão e o Aurora Legacy nas cores da AURORA |
+| Temas | Feito | a AURORA tinha só o escuro; o Studio tem 19, com o Boreal de padrão e o Aurora Legacy nas cores da AURORA |
 | Atualização | Feito | procura e instala atualização da AURORA e do bundle (`aurora update`), com o próprio Studio, que é um componente do bundle; procura sozinho ao abrir e a cada 12 horas (preferência `check_updates`), oferece a versão nova e reinicia nela; também em Ferramentas > Procurar atualizações |
 | Manual offline num navegador interno | Fase 2 | hoje, Ajuda > Manual do SAPHO abre o site |
 | Sobre | Feito | |
@@ -188,7 +188,7 @@ editor com C±, asm e Verilog, os fluxos (C±, Verilog, Wave, Rápida, RTLViewer
 com saída ao vivo e cancelamento, consoles por etapa, Problemas, terminal de
 shell, esquemático, estatísticas, relatórios (comparar e limpar), hierarquia
 elaborada pelo Icarus, ferramentas do bundle, preferências, português e
-inglês, 15 temas (Atlas de padrão), modo Vim, editor dividido em até três
+inglês, 19 temas (Boreal de padrão), modo Vim, editor dividido em até três
 grupos, a onda numa aba com o layout dos processadores (variáveis, assembly,
 linha do C±).
 

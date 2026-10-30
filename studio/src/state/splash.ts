@@ -56,6 +56,6 @@ export function rememberSplashLook(theme: Theme, version: string | undefined): v
   try {
     localStorage.setItem(LOOK, JSON.stringify(look));
   } catch {
-    // Sem armazenamento, o próximo splash nasce nas cores do Azul.
+    // Sem armazenamento, o próximo splash nasce nas cores do Boreal.
   }
 }

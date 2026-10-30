@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BRAND = ROOT / "studio" / "public" / "brand"
 OUT = ROOT / "installer" / "windows" / "art"
 
-# As cores do tema Azul da AURORA IDE: o fundo grafite do ícone, o azul do
+# As cores do tema Boreal da AURORA IDE: o fundo grafite do ícone, o azul do
 # camaleão no escuro e o texto claro.
 GRAPHITE = (0x14, 0x16, 0x19)
 BLUE = (0x59, 0xA0, 0xF9)

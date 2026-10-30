@@ -27,17 +27,11 @@ const MAX_RECENT: usize = 15;
 pub struct Settings {
     /// Idioma da interface: `system`, `pt` ou `en`.
     pub language: String,
-    /// Tema: o id de um tema de `src/themes/catalog.ts` (`azul`,
-    /// `azul-claro`, `dracula`...) ou `system`, que fica com o Azul ou o
-    /// Azul Claro conforme o sistema. Um id que a interface não conhece
-    /// vale o padrão, `azul`.
+    /// Tema: o id de um tema de `src/themes/catalog.ts` (`boreal`,
+    /// `boreal-claro`, `dracula`...) ou `system`, que fica com o Boreal ou o
+    /// Boreal Claro conforme o sistema. Um id que a interface não conhece
+    /// vale o padrão, `boreal`.
     pub theme: String,
-    /// O tema já passou pela troca do padrão do Lace Studio (o Atlas) para o
-    /// da AURORA IDE (o Azul). Um `settings.json` de antes, sem o campo,
-    /// vale `false`, e `migrate` leva o Atlas e o Atlas Branco ao Azul e ao
-    /// Azul Claro uma vez só: quem escolher o Atlas depois fica com ele.
-    #[serde(default)]
-    pub aurora_themes: bool,
     /// Outro bundle no lugar do instalado, como o `--toolchain` da CLI.
     /// `None`: procura a instalação da AURORA (ver `toolchain.rs`).
     pub toolchain_dir: Option<String>,
@@ -120,22 +114,13 @@ fn already_toured() -> bool {
 impl Settings {
     /// Traz valores gravados por versões anteriores para os de agora.
     fn migrate(&mut self) {
-        // Até 2026-10-04 havia só os temas `dark` e `light`, que viraram o
-        // Atlas e o Atlas Branco.
+        // Os temas que saíram vão para o padrão: o `dark` e o `light`, os
+        // únicos até 2026-10-04, e o Atlas e o Atlas Branco, os padrões do
+        // Lace Studio, que saíram do catálogo em 2026-10-29.
         match self.theme.as_str() {
-            "dark" => self.theme = "atlas".into(),
-            "light" => self.theme = "atlas-light".into(),
+            "dark" | "atlas" => self.theme = "boreal".into(),
+            "light" | "atlas-light" => self.theme = "boreal-claro".into(),
             _ => {}
-        }
-        // Até 2026-10-29 o padrão era o Atlas, que ficava gravado mesmo em
-        // quem nunca escolheu tema; a AURORA IDE começa no Azul.
-        if !self.aurora_themes {
-            match self.theme.as_str() {
-                "atlas" => self.theme = "azul".into(),
-                "atlas-light" => self.theme = "azul-claro".into(),
-                _ => {}
-            }
-            self.aurora_themes = true;
         }
     }
 }
@@ -144,8 +129,7 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             language: "system".into(),
-            theme: "azul".into(),
-            aurora_themes: true,
+            theme: "boreal".into(),
             toolchain_dir: None,
             aurora_path: None,
             compiler_dir: None,
@@ -450,12 +434,12 @@ mod tests {
         // Gravar outra preferência devolve os layouts como vieram.
         store
             .set(Settings {
-                theme: "atlas".into(),
+                theme: "lunar".into(),
                 ..settings
             })
             .unwrap();
         let reloaded = SettingsStore::load(dir).get();
-        assert_eq!(reloaded.theme, "atlas");
+        assert_eq!(reloaded.theme, "lunar");
         assert_eq!(serde_json::json!(reloaded.layouts.saved), layouts["saved"]);
     }
 
@@ -503,21 +487,21 @@ mod tests {
         let dir = Utf8Path::from_path(dir.path()).unwrap();
         std::fs::write(dir.join("settings.json"), "{ não é json").unwrap();
         let store = SettingsStore::load(dir);
-        assert_eq!(store.get().theme, "azul");
+        assert_eq!(store.get().theme, "boreal");
         assert!(dir.join("settings.json.bad").is_file());
     }
 
-    /// Os padrões de antes (o `dark` e o `light` até 2026-10-04, depois o
-    /// Atlas e o Atlas Branco) viram o Azul e o Azul Claro; o resto fica.
+    /// Os temas que saíram (o `dark` e o `light` até 2026-10-04, depois o
+    /// Atlas e o Atlas Branco) viram o Boreal e o Boreal Claro; o resto fica.
     #[test]
-    fn old_default_themes_become_azul() {
+    fn removed_themes_become_boreal() {
         let dir = tempfile::tempdir().unwrap();
         let dir = Utf8Path::from_path(dir.path()).unwrap();
         for (old, new) in [
-            ("dark", "azul"),
-            ("light", "azul-claro"),
-            ("atlas", "azul"),
-            ("atlas-light", "azul-claro"),
+            ("dark", "boreal"),
+            ("light", "boreal-claro"),
+            ("atlas", "boreal"),
+            ("atlas-light", "boreal-claro"),
             ("system", "system"),
             ("dracula", "dracula"),
         ] {
@@ -526,9 +510,7 @@ mod tests {
                 format!(r#"{{ "theme": "{old}" }}"#),
             )
             .unwrap();
-            let settings = SettingsStore::load(dir).get();
-            assert_eq!(settings.theme, new);
-            assert!(settings.aurora_themes);
+            assert_eq!(SettingsStore::load(dir).get().theme, new);
         }
     }
 
@@ -549,7 +531,7 @@ mod tests {
 
         let settings = SettingsStore::load(&dir).get();
         assert_eq!(settings.language, "en");
-        assert_eq!(settings.theme, "azul");
+        assert_eq!(settings.theme, "boreal");
         assert_eq!(settings.aurora_path.as_deref(), Some("C:/x/lace.exe"));
         assert!(dir.join("settings.json").is_file());
         assert!(old.join("settings.json").is_file());
@@ -578,9 +560,10 @@ mod tests {
         assert_eq!(saved["aurora_path"], "C:/aurora/target/debug/aurora.exe");
     }
 
-    /// O Atlas escolhido na AURORA IDE fica: a troca para o Azul é uma vez só.
+    /// O Atlas escolhido numa AURORA IDE de desenvolvimento, que gravava o
+    /// `aurora_themes`, também vai para o Boreal: o campo antigo não conta.
     #[test]
-    fn atlas_chosen_after_the_change_stays() {
+    fn atlas_chosen_in_a_development_build_also_becomes_boreal() {
         let dir = tempfile::tempdir().unwrap();
         let dir = Utf8Path::from_path(dir.path()).unwrap();
         std::fs::write(
@@ -588,8 +571,7 @@ mod tests {
             r#"{ "theme": "atlas", "aurora_themes": true }"#,
         )
         .unwrap();
-        assert_eq!(SettingsStore::load(dir).get().theme, "atlas");
-        assert_eq!(Settings::default().theme, "azul");
-        assert!(Settings::default().aurora_themes);
+        assert_eq!(SettingsStore::load(dir).get().theme, "boreal");
+        assert_eq!(Settings::default().theme, "boreal");
     }
 }

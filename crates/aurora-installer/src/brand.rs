@@ -1,4 +1,4 @@
-//! A cara da AURORA no terminal: as cores do tema Azul e o camaleão desenhado
+//! A cara da AURORA no terminal: as cores do tema Boreal e o camaleão desenhado
 //! em braille, do mesmo contorno do `studio/public/brand/aurora-mark.svg`.
 
 use std::sync::OnceLock;
@@ -27,7 +27,7 @@ fn truecolor() -> bool {
     })
 }
 
-/// O azul do tema Azul no escuro (`#59a0f9`, o do camaleão): títulos, o item
+/// O azul do tema Boreal no escuro (`#59a0f9`, o do camaleão): títulos, o item
 /// escolhido, a barra de progresso.
 pub fn accent() -> Color {
     if truecolor() {

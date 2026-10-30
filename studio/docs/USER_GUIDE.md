@@ -40,7 +40,7 @@ janela principal aparece quando a AURORA foi achada e o último projeto
 reabriu, ou depois de 8 segundos, o que vier antes; aí a pequena fecha.
 
 **Tour pela interface.** Na primeira vez que o Studio abre num computador,
-com o tema Atlas, o idioma do sistema e o layout Padrão, ele começa um tour
+com o tema Boreal, o idioma do sistema e o layout Padrão, ele começa um tour
 pela janela: tudo escurece, e uma parte de cada vez fica acesa, com um
 cartão que diz o que ela faz. A parte acesa continua funcionando: dá para
 clicar nela, e alguns passos pedem uma tarefa (abrir o menu Fluxo, trocar
@@ -878,8 +878,9 @@ assembly) e os consoles.
 
 | Tema | Esquema | Origem |
 |---|---|---|
-| Atlas (padrão) | escuro | o do Studio: o azul do ATLAS sobre fundos de ardósia, sintaxe com um tom por papel |
-| Atlas Branco | claro | o claro do Studio, no azul do CERN |
+| Boreal (padrão), Boreal Claro | escuro, claro | os da AURORA IDE: cinzas quase neutros com o azul da aurora boreal de destaque |
+| Alvorada, Alvorada Clara | escuro, claro | os mesmos cinzas, com o âmbar do amanhecer |
+| Lunar, Lunar Claro | escuro, claro | os mesmos cinzas, sem cor de destaque: o destaque é o próprio texto, com as palavras reservadas em negrito |
 | Aurora Legacy | escuro | as cores da AURORA |
 | Dark Modern, Light Modern | escuro, claro | os padrões do VS Code |
 | Dracula | escuro | |
@@ -891,10 +892,11 @@ assembly) e os consoles.
 | Catppuccin Mocha | escuro | |
 | Tokyo Night | escuro | |
 
-**Do sistema** fica com o Atlas quando o sistema está no modo escuro e com o
-Atlas Branco no claro, e troca junto com ele. Exibir > Alternar tema claro e
-escuro vai para o par do tema (Atlas e Atlas Branco, Dark e Light Modern,
-Gruvbox, Solarized) ou, num tema sem par, para o Atlas Branco ou o Atlas.
+**Do sistema** fica com o Boreal quando o sistema está no modo escuro e com
+o Boreal Claro no claro, e troca junto com ele. Exibir > Alternar tema claro
+e escuro vai para o par do tema (Boreal, Alvorada e Lunar com os seus
+claros, Dark e Light Modern, Gruvbox, Solarized) ou, num tema sem par, para
+o Boreal Claro ou o Boreal.
 
 ## 9.1 Sobre
 

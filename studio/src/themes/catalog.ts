@@ -1,9 +1,9 @@
 // O catálogo de temas, na ordem em que aparecem nas Preferências.
 //
-// Os da AURORA IDE são o Azul, o Âmbar e o Grafite, cada um com o seu claro:
-// os mesmos cinzas e uma cor de destaque por paleta. O Atlas, no azul da
-// identidade visual do ATLAS, e o Atlas Branco, no azul do CERN, foram os do
-// Lace Studio. O Aurora Legacy traz a paleta da AURORA Electron. Os outros
+// Os da AURORA IDE são o Boreal, o Alvorada e o Lunar, cada um com o seu
+// claro: os mesmos cinzas e uma cor de destaque por paleta, o azul da
+// aurora boreal, o âmbar do amanhecer e o prata da lua. O Aurora Legacy traz
+// a paleta da AURORA Electron. Os outros
 // seguem a paleta oficial de cada tema, conferida na fonte em 2026-10-04:
 //
 // | Tema                 | Fonte                                                        |
@@ -27,7 +27,7 @@
 // do próprio tema, e onde faltava um tom (texto secundário, borda forte) ele
 // sai de `mix` entre duas cores do tema.
 
-import { alpha, mix, tokenRule, type Scheme, type Theme } from './model';
+import { alpha, mix, type Scheme, type Theme } from './model';
 
 // AURORA IDE ---------------------------------------------------------------
 
@@ -143,7 +143,7 @@ interface AuroraAccent {
  * textos e constantes. Funções em `text0`, o resto do código em `code`,
  * operadores e comentários em `text2`. A busca usa `literal`, para não se
  * confundir com a seleção, que usa o destaque. `bold` põe as palavras
- * reservadas em negrito, para o Grafite, cujo destaque é o próprio texto.
+ * reservadas em negrito, para o Lunar, cujo destaque é o próprio texto.
  */
 function aurora(id: string, name: string, scheme: Scheme, pair: string, accent: AuroraAccent, bold = false): Theme {
   const dark = scheme === 'dark';
@@ -211,7 +211,7 @@ function aurora(id: string, name: string, scheme: Scheme, pair: string, accent: 
 
 /** O padrão: o azul de destaque, com areia nos números e textos. O botão
  * principal leva texto escuro, que tem 6,8:1 sobre o azul. */
-const azul = aurora('azul', 'Azul', 'dark', 'azul-claro', {
+const boreal = aurora('boreal', 'Boreal', 'dark', 'boreal-claro', {
   line: '#59A0F9',
   text: '#73AEF8',
   fill: '#59A0F9',
@@ -221,7 +221,7 @@ const azul = aurora('azul', 'Azul', 'dark', 'azul-claro', {
   selection: 0.3,
 });
 
-const azulClaro = aurora('azul-claro', 'Azul Claro', 'light', 'azul', {
+const borealClaro = aurora('boreal-claro', 'Boreal Claro', 'light', 'boreal', {
   line: '#236ADE',
   text: '#2062CE',
   fill: '#236ADE',
@@ -232,7 +232,7 @@ const azulClaro = aurora('azul-claro', 'Azul Claro', 'light', 'azul', {
 });
 
 /** O âmbar, a cor do amanhecer, com azul-claro nos números e textos. */
-const ambar = aurora('ambar', 'Âmbar', 'dark', 'ambar-claro', {
+const alvorada = aurora('alvorada', 'Alvorada', 'dark', 'alvorada-clara', {
   line: '#F5B33B',
   text: '#F5BD56',
   fill: '#F5B33B',
@@ -244,7 +244,7 @@ const ambar = aurora('ambar', 'Âmbar', 'dark', 'ambar-claro', {
 
 /** No claro, o âmbar do botão e do logo (#E38F00) fica em 2,4:1 com as
  * barras: as linhas usam um âmbar mais escuro, e o texto, um castanho. */
-const ambarClaro = aurora('ambar-claro', 'Âmbar Claro', 'light', 'ambar', {
+const alvoradaClara = aurora('alvorada-clara', 'Alvorada Clara', 'light', 'alvorada', {
   line: '#CB7400',
   text: '#97570D',
   fill: '#E38F00',
@@ -256,11 +256,11 @@ const ambarClaro = aurora('ambar-claro', 'Âmbar Claro', 'light', 'ambar', {
 
 /** Sem cor de destaque: o destaque é o próprio texto, e as palavras
  * reservadas vão em negrito. */
-const grafite = aurora(
-  'grafite',
-  'Grafite',
+const lunar = aurora(
+  'lunar',
+  'Lunar',
   'dark',
-  'grafite-claro',
+  'lunar-claro',
   {
     line: '#EAEDF1',
     text: '#EAEDF1',
@@ -273,11 +273,11 @@ const grafite = aurora(
   true,
 );
 
-const grafiteClaro = aurora(
-  'grafite-claro',
-  'Grafite Claro',
+const lunarClaro = aurora(
+  'lunar-claro',
+  'Lunar Claro',
   'light',
-  'grafite',
+  'lunar',
   {
     line: '#191B1D',
     text: '#191B1D',
@@ -289,219 +289,6 @@ const grafiteClaro = aurora(
   },
   true,
 );
-
-/**
- * O azul do CERN: Pantone 286 C, #0033A0 (R0 G51 B160), com os quatro tons
- * da paleta oficial, conforme design-guidelines.web.cern.ch/guidelines/colours.
- * É o destaque do Atlas Branco, onde serve para linhas, texto e
- * preenchimento.
- */
-const CERN_BLUE = {
-  base: '#0033A0',
-  t80: '#385CB4',
-  t60: '#6B84C5',
-  t40: '#9BAEDB',
-  t20: '#CDD6ED',
-};
-
-/**
- * O azul do ATLAS: #0B80C3 (R11 G128 B195), a única cor da identidade visual
- * do experimento, conforme atlas.cern/design (conferido em 2026-10-07). Os
- * tons seguem a regra dos do CERN: `t70` e `t50` são o azul com 70% e 50%
- * de cor, o resto branco. O branco sobre o #0B80C3 fica em 4,3:1, abaixo dos
- * 4,5:1 de texto; o preenchimento dos botões é o mesmo azul 3% mais escuro,
- * o tom mais claro que segura o texto branco, e o sob o mouse, 12%. `vivid`
- * é o mesmo matiz (202°) com 90% de saturação, para o que precisa saltar.
- */
-const ATLAS_BLUE = {
-  base: '#0B80C3',
-  fill: '#0B7CBD',
-  fillHover: '#0A71AC',
-  t70: '#54A6D5',
-  t50: '#85C0E1',
-  vivid: '#2AAAF4',
-};
-
-// Atlas ------------------------------------------------------------------
-
-/** O padrão do Lace Studio: o azul do ATLAS de destaque sobre fundos de
- * ardósia, um cinza puxado para o mesmo azul, com o editor um tom abaixo da
- * barra lateral e das barras. A sintaxe tem um tom por papel, com a palavra
- * reservada no azul do ATLAS; todo texto tem pelo menos 4,5:1 com o fundo do
- * editor, menos o comentário (4,1:1). */
-const atlas: Theme = {
-  id: 'atlas',
-  name: 'Atlas',
-  scheme: 'dark',
-  pair: 'atlas-light',
-  ui: {
-    bg0: '#12171D',
-    bg1: '#171D24',
-    bg2: '#1C232B',
-    bg3: '#232B35',
-    bg4: '#2B3540',
-    bgEditor: '#0F1419',
-    border: '#252E38',
-    borderStrong: '#36424F',
-    text0: '#E6EDF3',
-    text1: '#B6C2CD',
-    text2: '#8693A0',
-    text3: '#5A6673',
-    brand: ATLAS_BLUE.base,
-    brandText: ATLAS_BLUE.t70,
-    brandFill: ATLAS_BLUE.fill,
-    brandFillHover: ATLAS_BLUE.fillHover,
-    brandContrast: '#FFFFFF',
-    ok: '#4FBF7F',
-    warn: '#E3A548',
-    error: '#EF6461',
-    info: ATLAS_BLUE.t70,
-  },
-  syntax: {
-    fg: '#D7DFE7',
-    comment: '#6B7886',
-    keyword: ATLAS_BLUE.t70,
-    control: '#E8737A',
-    type: '#3FC1A5',
-    func: '#E6C26E',
-    number: '#F29E5C',
-    string: '#97CF78',
-    constant: '#F29E5C',
-    variable: '#A9BED3',
-    tag: ATLAS_BLUE.t70,
-    operator: '#9FB0C0',
-    delimiter: '#8794A1',
-    directive: '#C49AF0',
-  },
-  editor: {
-    selection: alpha(ATLAS_BLUE.base, 0.4),
-    selectionInactive: alpha(ATLAS_BLUE.base, 0.22),
-    lineHighlight: '#151B22',
-    lineNumber: '#4E5A66',
-    lineNumberActive: '#B6C2CD',
-    cursor: ATLAS_BLUE.t70,
-    findMatch: '#7A5A14',
-    findMatchHighlight: '#4A3B16',
-    indentGuide: '#1C232B',
-    indentGuideActive: '#33404D',
-  },
-  terminal: {
-    foreground: '#CBD5DF',
-    selection: alpha(ATLAS_BLUE.base, 0.4),
-    black: '#12171D',
-    red: '#EF6461',
-    green: '#4FBF7F',
-    yellow: '#E6C26E',
-    blue: ATLAS_BLUE.t70,
-    magenta: '#C49AF0',
-    cyan: '#45C3D1',
-    white: '#D7DFE7',
-    brightBlack: '#6B7886',
-    brightRed: '#FF8580',
-    brightGreen: '#74D69B',
-    brightYellow: '#F0D592',
-    brightBlue: ATLAS_BLUE.t50,
-    brightMagenta: '#D7B8F6',
-    brightCyan: '#77D7E2',
-    brightWhite: '#F2F6FA',
-  },
-  // O começo e o fim de cada unidade do Verilog (module e endmodule, e os
-  // pares de primitive, interface, package e program) em negrito, no azul
-  // vivo: a moldura do arquivo salta das outras palavras reservadas. A
-  // gramática do Monaco dá `keyword.<palavra>.sv` ao .v e ao .sv.
-  rules: [
-    'module',
-    'macromodule',
-    'endmodule',
-    'primitive',
-    'endprimitive',
-    'interface',
-    'endinterface',
-    'package',
-    'endpackage',
-    'program',
-    'endprogram',
-  ].map((word) => tokenRule(`keyword.${word}.sv`, ATLAS_BLUE.vivid, 'bold')),
-};
-
-/** O Atlas claro. O #0033A0 serve para linhas, texto e preenchimento. */
-const atlasLight: Theme = {
-  id: 'atlas-light',
-  name: 'Atlas Branco',
-  scheme: 'light',
-  pair: 'atlas',
-  ui: {
-    bg0: '#ECECEC',
-    bg1: '#F4F4F4',
-    bg2: '#FAFAFA',
-    bg3: '#ECECEC',
-    bg4: '#E2E2E2',
-    bgEditor: '#FFFFFF',
-    border: '#DEDEDE',
-    borderStrong: '#C8C8C8',
-    text0: '#1C1C1C',
-    text1: '#3E3E3E',
-    text2: '#6B6B6B',
-    text3: '#9E9E9E',
-    brand: CERN_BLUE.base,
-    brandText: CERN_BLUE.base,
-    brandFill: CERN_BLUE.base,
-    brandFillHover: CERN_BLUE.t80,
-    brandContrast: '#FFFFFF',
-    ok: '#3F7D3F',
-    warn: '#946414',
-    error: '#B5443C',
-    info: '#4B6386',
-  },
-  syntax: {
-    fg: '#1C1C1C',
-    comment: '#8C8C8C',
-    keyword: '#3E5A80',
-    control: '#98482F',
-    type: '#4E6B36',
-    func: '#4E6B36',
-    number: '#85601E',
-    string: '#98482F',
-    constant: '#85601E',
-    variable: '#4E6C96',
-    tag: '#3E5A80',
-    operator: '#555555',
-    delimiter: '#555555',
-    directive: '#333333',
-  },
-  editor: {
-    selection: CERN_BLUE.t20,
-    selectionInactive: alpha(CERN_BLUE.t20, 0.6),
-    lineHighlight: '#F4F4F4',
-    lineNumber: '#B0B0B0',
-    lineNumberActive: '#3E3E3E',
-    cursor: '#1C1C1C',
-    findMatch: '#D0D0D0',
-    findMatchHighlight: '#E6E6E6',
-    indentGuide: '#ECECEC',
-    indentGuideActive: '#C8C8C8',
-  },
-  terminal: {
-    foreground: '#2B2B2B',
-    selection: CERN_BLUE.t20,
-    black: '#1C1C1C',
-    red: '#B5443C',
-    green: '#3F7D3F',
-    yellow: '#946414',
-    blue: '#3E5A80',
-    magenta: '#5E5670',
-    cyan: '#4B6386',
-    white: '#3E3E3E',
-    brightBlack: '#8C8C8C',
-    brightRed: '#C65A52',
-    brightGreen: '#4F914F',
-    brightYellow: '#A8761E',
-    brightBlue: '#4E6C96',
-    brightMagenta: '#70688A',
-    brightCyan: '#5B7499',
-    brightWhite: '#1C1C1C',
-  },
-};
 
 /**
  * A paleta da AURORA: céu noturno (#0A0D14), violeta #8E83E8 de destaque e
@@ -1673,14 +1460,12 @@ const tokyoNight: Theme = {
 };
 
 export const THEMES: Theme[] = [
-  azul,
-  azulClaro,
-  ambar,
-  ambarClaro,
-  grafite,
-  grafiteClaro,
-  atlas,
-  atlasLight,
+  boreal,
+  borealClaro,
+  alvorada,
+  alvoradaClara,
+  lunar,
+  lunarClaro,
   auroraLegacy,
   darkModern,
   lightModern,

@@ -2018,9 +2018,17 @@ body.is-dragging * {
   margin: var(--space-5) 0 var(--space-6);
 }
 
+/* O logo da tela inicial fica numa cor só, fora do destaque do tema:
+   branco nos temas escuros e grafite (o texto dos temas claros da AURORA)
+   nos claros, onde o branco sumiria no fundo. */
 .welcome__logo {
   width: 56px;
   height: 56px;
+  fill: #ffffff;
+}
+
+:root[data-theme='light'] .welcome__logo {
+  fill: #191b1d;
 }
 
 .welcome__header h1 {
@@ -2361,9 +2369,9 @@ body.is-dragging * {
 
 /* O interruptor (common.tsx, Switch). Desligado, contorno e bolinha na cor do
    texto secundário; ligado, o preenchimento do destaque com o contorno na cor
-   de linha do destaque. Nos 15 temas do catálogo, os dois contornos
+   de linha do destaque. Nos temas do catálogo, os dois contornos
    contrastam 3:1 ou mais com o fundo das Preferências (--bg-1); o
-   preenchimento sozinho, no Atlas, não chegaria a 2:1. */
+   preenchimento sozinho não garante isso. */
 .switch {
   position: relative;
   flex: none;

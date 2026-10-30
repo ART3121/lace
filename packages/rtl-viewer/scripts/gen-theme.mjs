@@ -1,5 +1,5 @@
 // Gera src/theme-standalone.css: as variáveis que o viewer usa, com os
-// valores dos temas padrão do Studio (azul e azul-claro, de
+// valores dos temas padrão do Studio (boreal e boreal-claro, de
 // studio/src/themes) e dos tokens dele (studio/src/styles/tokens.css). É o
 // tema do HTML do `aurora synth --open`, que segue o claro ou o escuro do
 // sistema; o desenho sai com as mesmas cores do Studio.

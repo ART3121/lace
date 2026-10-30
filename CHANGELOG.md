@@ -22,7 +22,7 @@
   desinstalador dele.
 - Os instaladores trocam a marca do Lace pela da AURORA. No assistente do
   Windows, a faixa da esquerda tem o camaleão azul e o nome AURORA no fundo
-  grafite do tema Azul, e o canto das outras páginas, o ícone da AURORA
+  grafite do tema Boreal, e o canto das outras páginas, o ícone da AURORA
   IDE. No instalador de terminal, o camaleão aparece em braille, e o azul
   do tema vai para os títulos e a barra de progresso. O nome AURORA
   desenhado em curvas fica em `studio/public/brand/aurora-wordmark.svg`.

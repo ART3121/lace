@@ -211,8 +211,8 @@ export const AURORA_MARK_VIEWBOX = '1769.4 1520 4420 4420';
 
 /**
  * O camaleão da AURORA, sem fundo, na cor de preenchimento do destaque do
- * tema (`--brand-fill`): azul no Azul, âmbar no Âmbar, a cor do texto no
- * Grafite.
+ * tema (`--brand-fill`): azul no Boreal, âmbar no Alvorada, a cor do texto
+ * no Lunar. A tela inicial troca a cor pela do `.welcome__logo`.
  */
 export function AuroraMark({ className }: { className?: string }) {
   return (

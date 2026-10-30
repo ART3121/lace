@@ -19,11 +19,11 @@ export * from './model';
 
 export { THEMES };
 
-/** O tema padrão. O settings.rs leva a ele quem tinha o Atlas, o padrão do
- * Lace Studio, ou o "escuro" de antes do Atlas. */
-export const DEFAULT_THEME = 'azul';
+/** O tema padrão. O settings.rs leva a ele quem tinha um tema que saiu: o
+ * Atlas, o padrão do Lace Studio, ou o "escuro" de antes dele. */
+export const DEFAULT_THEME = 'boreal';
 /** O claro do "Do sistema", e o de quem tinha o Atlas Branco ou o "claro". */
-export const DEFAULT_LIGHT_THEME = 'azul-claro';
+export const DEFAULT_LIGHT_THEME = 'boreal-claro';
 /** A preferência que segue o esquema do sistema. */
 export const SYSTEM_THEME = 'system';
 
@@ -34,7 +34,7 @@ export function themeById(id: string): Theme | undefined {
 }
 
 /**
- * O tema de uma preferência. `system` fica com o Azul ou o Azul Claro,
+ * O tema de uma preferência. `system` fica com o Boreal ou o Boreal Claro,
  * conforme o sistema; um id desconhecido (de uma versão mais nova, ou de um
  * tema que saiu) cai no padrão.
  */

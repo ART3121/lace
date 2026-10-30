@@ -28,7 +28,7 @@
   };
 
   // As cores, o idioma e a versão da última abertura; sem eles, as cores do
-  // Azul (no CSS) e o idioma do sistema.
+  // Boreal (no CSS) e o idioma do sistema.
   let lang = (navigator.language || '').toLowerCase().startsWith('pt') ? 'pt' : 'en';
   try {
     const look = JSON.parse(read(LOOK) || 'null');
