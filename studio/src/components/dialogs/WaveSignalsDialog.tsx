@@ -8,11 +8,11 @@
 // Abre pelo botão Sinais da barra de ferramentas, pelo da aba da onda, pelo
 // Navegador de fluxo, pelo menu Fluxo e pelo menu do testbench simulado.
 
-import { ChevronDown, ChevronRight, Cpu } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 
 import { runSimulation } from '../../actions';
 import { useT } from '../../i18n';
+import { ChevronDown, ChevronRight, Cpu } from '../../icons';
 import { api } from '../../ipc/api';
 import type { SignalScope, WaveSignal, WaveSignals } from '../../ipc/aurora-types';
 import type { IpcError } from '../../ipc/types';

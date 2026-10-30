@@ -4,10 +4,10 @@
 // state/updates.ts) e a instalação de componentes (`aurora install`). A saída
 // da última instalação ou atualização aparece aqui.
 
-import { CircleArrowUp, CircleCheck, CircleX, Download, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../i18n';
+import { CircleArrowUp, CircleCheck, CircleX, Download, RefreshCw, ShieldCheck } from '../../icons';
 import { api } from '../../ipc/api';
 import type { FileMismatch } from '../../ipc/aurora-types';
 import { useApp } from '../../state/app';

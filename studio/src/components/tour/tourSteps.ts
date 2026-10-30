@@ -7,6 +7,7 @@
 // `done` fica verdadeiro. Se a tarefa não dá para fazer agora (`can`) ou já
 // está feita quando o passo começa, ele vira um passo comum, com o Próximo.
 
+import { t, type Key } from '../../i18n';
 import {
   Columns3,
   Command,
@@ -21,10 +22,8 @@ import {
   Rocket,
   SquareTerminal,
   Workflow,
-  type LucideIcon,
-} from 'lucide-react';
-
-import { t, type Key } from '../../i18n';
+  type IconComponent,
+} from '../../icons';
 import { useDialogs } from '../../state/dialogs';
 import { isOnScreen, useLayout, type ViewId } from '../../state/layout';
 
@@ -34,7 +33,7 @@ export type TaskMemo = Record<string, boolean>;
 
 export interface TourStep {
   id: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   /** O passo vale nesta janela. Sem `shown`, vale sempre. */
   shown?: () => boolean;
   /** O que fica aceso. Sem ele (ou sem o que ele acha), o cartão fica no

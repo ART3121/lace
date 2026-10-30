@@ -23,9 +23,8 @@ import {
   Search,
   SquareTerminal,
   Workflow,
-  type LucideIcon,
-} from 'lucide-react';
-
+  type IconComponent,
+} from '../../icons';
 import { useLayout, type ViewId } from '../../state/layout';
 import { ConsoleView, ProblemsView, ShellView, useProblemCount } from '../panel/PanelViews';
 import { Explorer } from '../sidebar/Explorer';
@@ -35,7 +34,7 @@ import { LearnPanel } from '../sidebar/LearnPanel';
 import { ReportsPanel } from '../sidebar/ReportsPanel';
 import { SearchPanel } from '../sidebar/SearchPanel';
 
-export const VIEW_ICONS: Record<ViewId, LucideIcon> = {
+export const VIEW_ICONS: Record<ViewId, IconComponent> = {
   explorer: FolderTree,
   flow: Workflow,
   search: Search,

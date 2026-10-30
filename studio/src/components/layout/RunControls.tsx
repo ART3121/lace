@@ -13,12 +13,12 @@
 // sem mudar o botão. Cada um dos três controles pode ser escondido pelo menu
 // de contexto deles ou por Preferências > Layout da janela.
 
-import { ChevronDown, CircleStop, Play, type LucideIcon } from 'lucide-react';
 import { useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 import { action, isAvailable, isEnabled, runAction, runBuild, toolbarItemAvailable } from '../../actions';
 import { useT, t as translate } from '../../i18n';
 import type { Key } from '../../i18n';
+import { ChevronDown, CircleStop, Play, type IconComponent } from '../../icons';
 import type { ProjectSnapshot } from '../../ipc/types';
 import { useApp } from '../../state/app';
 import { useExperimental } from '../../state/experimental';
@@ -54,7 +54,7 @@ function savedStep(): string {
 interface Run {
   label: string;
   title: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   enabled: boolean;
   run: () => void;
 }

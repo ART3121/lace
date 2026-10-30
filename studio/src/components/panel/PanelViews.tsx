@@ -7,12 +7,12 @@
 // Qual está aberto e qual está na frente fica no layout da janela: vale nas
 // próximas sessões até o usuário fechar o terminal.
 
-import { ChevronsUpDown, Eraser, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { attachConsole, clearConsole, detachConsole, fitConsole } from '../../console/consoles';
 import { attachShell, detachShell, fitShell, restartShell } from '../../console/shell';
 import { useT, type Key } from '../../i18n';
+import { ChevronsUpDown, Eraser, Plus, X } from '../../icons';
 import type { Diagnostic, ProjectIssue } from '../../ipc/aurora-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';

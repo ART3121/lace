@@ -574,6 +574,16 @@ muda raios, fundos, bordas e vãos sem mexer nos componentes. Um componente
 novo nas regiões, nas abas ou na barra de atividades precisa ser conferido
 nas duas aparências.
 
+Os ícones (`settings.icons`) também são à parte do tema. `src/icons` exporta
+um componente por ícone, com os nomes do Lucide, e cada um desenha o do
+pacote em uso (`useIconPack`, que `applyIcons` troca): Lucide, Phosphor,
+Tabler ou Material Symbols. O Phosphor não tem traço variável e vai pelo
+peso; o Material vem dos SVGs do pacote, um caminho por arquivo. Os quatro
+pacotes entram no build, uns 340 kB a mais que só o Lucide. Os ícones de
+arquivo da AURORA são desenhos próprios (`icons/files.tsx`), na cor de
+`--file-*`, que sai da paleta dos terminais do tema, como as famílias do
+RTLViewer: as cores da sintaxe repetem tons entre papéis.
+
 ### 4.7 RTLViewer
 
 O esquemático sai do netlist da síntese (`hierarchy.json`, o `write_json`

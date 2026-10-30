@@ -41,6 +41,10 @@ pub struct Settings {
     /// redondos e vãos entre elas. Um valor que a interface não conhece vale
     /// `classic`.
     pub look: String,
+    /// O pacote de ícones da interface: `lucide`, `phosphor`, `tabler` ou
+    /// `material` (`src/icons`). Um valor que a interface não conhece vale
+    /// `lucide`.
+    pub icons: String,
     /// Outro bundle no lugar do instalado, como o `--toolchain` da CLI.
     /// `None`: procura a instalação da AURORA (ver `toolchain.rs`).
     pub toolchain_dir: Option<String>,
@@ -156,6 +160,7 @@ impl Default for Settings {
             theme: "boreal".into(),
             theme_mode: "dark".into(),
             look: "classic".into(),
+            icons: "lucide".into(),
             toolchain_dir: None,
             aurora_path: None,
             compiler_dir: None,
@@ -583,6 +588,18 @@ mod tests {
         assert_eq!(SettingsStore::load(dir).get().look, "classic");
         std::fs::write(dir.join("settings.json"), r#"{ "look": "islands" }"#).unwrap();
         assert_eq!(SettingsStore::load(dir).get().look, "islands");
+    }
+
+    /// Um `settings.json` de antes dos pacotes de ícones abre no Lucide; o
+    /// escolhido fica.
+    #[test]
+    fn the_icons_are_lucide_unless_chosen() {
+        let dir = tempfile::tempdir().unwrap();
+        let dir = Utf8Path::from_path(dir.path()).unwrap();
+        std::fs::write(dir.join("settings.json"), r#"{ "theme": "boreal" }"#).unwrap();
+        assert_eq!(SettingsStore::load(dir).get().icons, "lucide");
+        std::fs::write(dir.join("settings.json"), r#"{ "icons": "tabler" }"#).unwrap();
+        assert_eq!(SettingsStore::load(dir).get().icons, "tabler");
     }
 
     /// Sem preferências, a IDE traz as do Lace Studio da pasta vizinha; com

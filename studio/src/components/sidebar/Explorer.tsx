@@ -16,6 +16,21 @@
 // sobe), Enter abre, F2 renomeia e Delete manda para a lixeira.
 
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+
+import {
+  addVerilogFiles,
+  newFileIn,
+  newFolderIn,
+  openWave,
+  removeProcessor,
+  runBuild,
+  runCheck,
+  runFastSimulation,
+  runSimulation,
+  runSynthesis,
+} from '../../actions';
+import { errorText, t, useLang, useT, type Key } from '../../i18n';
 import {
   Activity,
   Boxes,
@@ -36,22 +51,7 @@ import {
   Plus,
   RefreshCw,
   SquareFunction,
-} from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-
-import {
-  addVerilogFiles,
-  newFileIn,
-  newFolderIn,
-  openWave,
-  removeProcessor,
-  runBuild,
-  runCheck,
-  runFastSimulation,
-  runSimulation,
-  runSynthesis,
-} from '../../actions';
-import { errorText, t, useLang, useT, type Key } from '../../i18n';
+} from '../../icons';
 import { api } from '../../ipc/api';
 import type { DirEntry, Elaboration, ModuleInstance, ProcessorStatus, ProjectFile } from '../../ipc/types';
 import { confirm, openDialog, prompt } from '../../state/dialogs';

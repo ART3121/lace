@@ -1,9 +1,9 @@
 // Busca em todos os arquivos de texto do projeto (Ctrl+Shift+F).
 
-import { CaseSensitive, Regex } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useT } from '../../i18n';
+import { CaseSensitive, Regex } from '../../icons';
 import { api } from '../../ipc/api';
 import type { IpcError, SearchMatch } from '../../ipc/types';
 import { useEditor } from '../../state/editor';

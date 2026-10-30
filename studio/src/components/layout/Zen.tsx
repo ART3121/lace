@@ -9,7 +9,6 @@
 // - watchZen: tela cheia e o aviso de como sair.
 
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { CircleAlert, CircleCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useChord } from '../../actions';
@@ -17,6 +16,7 @@ import { attachShell, detachShell, fitShell } from '../../console/shell';
 import { activeEditor } from '../../editor/host';
 import { setVimStatusNode } from '../../editor/vim';
 import { formatDuration, t, useT, type Key } from '../../i18n';
+import { CircleAlert, CircleCheck, TriangleAlert } from '../../icons';
 import { useApp } from '../../state/app';
 import { lastFlowKey, phaseKey, useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';

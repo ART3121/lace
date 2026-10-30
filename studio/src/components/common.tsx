@@ -1,7 +1,6 @@
 // Componentes pequenos usados em toda a interface: botões, campos,
 // marcadores, seções recolhíveis, o menu de contexto e o símbolo da AURORA.
 
-import { Check, ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react';
 import {
   createContext,
   useContext,
@@ -14,6 +13,7 @@ import {
 } from 'react';
 import { create } from 'zustand';
 
+import { Check, ChevronDown, ChevronRight, LoaderCircle } from '../icons';
 
 type ButtonVariant = 'default' | 'primary' | 'danger' | 'ghost';
 

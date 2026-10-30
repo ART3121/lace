@@ -83,6 +83,8 @@ export interface Settings {
   /** A aparência: a clássica, com as regiões separadas por linhas, ou as
    * ilhas (app.css, `data-look`). */
   look: 'classic' | 'islands';
+  /** O pacote de ícones da interface (src/icons). */
+  icons: 'lucide' | 'phosphor' | 'tabler' | 'material';
   toolchain_dir: string | null;
   compiler_dir: string | null;
   /** O Quartus Prime, como o `--quartus` da CLI; null: os locais padrão. */

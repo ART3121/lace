@@ -914,6 +914,8 @@ export const pt = {
   'settings.look': 'Interface',
   'settings.look.classic': 'Clássica',
   'settings.look.islands': 'Ilhas',
+  'settings.icons': 'Ícones',
+  'about.icons': 'Ícones',
   'settings.restoreLast': 'Reabrir o último projeto ao iniciar',
   'settings.checkUpdates': 'Procurar atualizações',
   'settings.checkUpdatesHint': 'Ao abrir a IDE e a cada 12 horas, procura uma release nova da AURORA e oferece a atualização.',

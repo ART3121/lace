@@ -225,6 +225,26 @@ Para o que só existe no Studio (janela, arquivo, terminal, preferência):
 3. Acrescente a ação que a revela em `actions.ts` (`revealView` com
    `explicit`) e, se fizer sentido, no menu Exibir.
 
+### Um ícone novo
+
+A interface importa os ícones de `src/icons` (`import { Play } from
+'../icons'`), nunca de um pacote, e os nomes são os do Lucide. Para usar um
+ícone que ainda não está lá:
+
+1. Acrescente o nome do Lucide em `src/icons/lucide.ts` (no import e no
+   objeto) e a linha dele em `src/icons/names.ts`.
+2. Dê a ele um desenho em `phosphor.tsx`, `tabler.tsx` e `material.tsx`; no
+   Material, pelo arquivo do SVG (`@material-symbols/svg-400/outlined/<nome>.svg?raw`).
+   A checagem de tipos acusa o pacote que ficar sem ele, e um arquivo do
+   Material que não existe quebra o `npm run build`.
+3. Confira o desenho nos quatro pacotes, em Preferências > Aparência >
+   Ícones.
+
+Os ícones de arquivo da AURORA (Verilog, testbench, C±, assembly, MIF, onda
+e projeto) são desenhos próprios, em `src/icons/files.tsx`; o tipo de cada
+arquivo sai de `fileKind` (`components/editor/tabIcons.ts`), e a cor, de
+`--file-*` (`themes/index.ts`).
+
 Os layouts gravados antes não precisam de migração: uma vista que não está
 em região nenhuma vai para a região padrão dela (`normalizeBody`). Pelo
 mesmo motivo, um item novo da barra de ferramentas ou de status

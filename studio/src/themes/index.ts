@@ -104,7 +104,7 @@ export function uiTokens(theme: Theme): Record<string, string> {
     windowCloseText: ui.windowCloseText ?? '#FFFFFF',
   };
   const tokens: Record<string, string> = {};
-  for (const [key, value] of Object.entries({ ...complete, ...schematicColors(theme) })) {
+  for (const [key, value] of Object.entries({ ...complete, ...schematicColors(theme), ...fileColors(theme) })) {
     tokens[key.replace(/([A-Z]|\d+)/g, '-$1').toLowerCase()] = value;
   }
   return tokens;
@@ -154,6 +154,27 @@ function schematicColors(theme: Theme): Record<string, string> {
     colors[`sch${name}Fill`] = mix(canvas, ink, dark ? 0.16 : 0.09);
   }
   return colors;
+}
+
+/**
+ * As cores dos ícones de arquivo da AURORA (`--file-*`, icons/files.tsx). Como
+ * as famílias do RTLViewer, cada tipo pega um tom da paleta dos terminais, que
+ * todo tema define com seis matizes distintos (as cores da sintaxe repetem
+ * tons entre papéis), puxado na direção do texto até ter contraste 3:1 com o
+ * fundo da barra lateral.
+ */
+function fileColors(theme: Theme): Record<string, string> {
+  const { ui, terminal } = theme;
+  const tone = (color: string) => legible(color, ui.text0, ui.bg1, 3);
+  return {
+    fileVerilog: tone(terminal.blue),
+    fileTestbench: tone(terminal.green),
+    fileCmm: tone(terminal.magenta),
+    fileAsm: tone(terminal.yellow),
+    fileMif: tone(terminal.cyan),
+    fileWave: tone(mix(terminal.red, terminal.yellow, 0.35)),
+    fileProject: tone(ui.brand),
+  };
 }
 
 let styleElement: HTMLStyleElement | null = null;

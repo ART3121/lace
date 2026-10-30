@@ -6,10 +6,9 @@
 // vazio no lugar antigo; o botão abre então o projeto no lugar novo. Aparece
 // no alto do Explorer e no lugar do Navegador de fluxo.
 
-import { FolderOpen, FolderPlus, TriangleAlert } from 'lucide-react';
-
 import { openProjectDialog } from '../../actions';
 import { useT } from '../../i18n';
+import { FolderOpen, FolderPlus, TriangleAlert } from '../../icons';
 import { openDialog } from '../../state/dialogs';
 import { useProject } from '../../state/project';
 import { baseName, dirName } from '../../util/paths';

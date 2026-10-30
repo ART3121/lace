@@ -11,6 +11,9 @@
 // arquivo ficou velho.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+
+import { runFpgaBuild, runFpgaBuildAndProgram, runFpgaProgram } from '../../actions';
+import { formatDuration, useT, type Key } from '../../i18n';
 import {
   Cable,
   CircleCheck,
@@ -24,10 +27,7 @@ import {
   TriangleAlert,
   Trash2,
   Upload,
-} from 'lucide-react';
-
-import { runFpgaBuild, runFpgaBuildAndProgram, runFpgaProgram } from '../../actions';
-import { formatDuration, useT, type Key } from '../../i18n';
+} from '../../icons';
 import { api } from '../../ipc/api';
 import type { Board, BoardSignal, FpgaBuildResult, ResourceUsage } from '../../ipc/aurora-types';
 import type { BitstreamState, FpgaConfig, FpgaPrepared, IpcError, ModuleInterface } from '../../ipc/types';

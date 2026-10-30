@@ -1,10 +1,10 @@
 // Um relatório do histórico (`aurora report show`): o texto que a AURORA grava
 // em .aurora8/reports/run-NNNNNN/report.txt.
 
-import { GitCompare, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useT } from '../../i18n';
+import { GitCompare, FileText } from '../../icons';
 import { api, type ReportView as Report } from '../../ipc/api';
 import { useEditor } from '../../state/editor';
 import { showError } from '../../state/toasts';

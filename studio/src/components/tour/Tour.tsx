@@ -10,10 +10,10 @@
 // voltam e Esc sai, quando o foco está no cartão ou em lugar nenhum; com um
 // diálogo aberto, as teclas são dele.
 
-import { CircleCheck, MousePointerClick, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { useT } from '../../i18n';
+import { CircleCheck, MousePointerClick, X } from '../../icons';
 import { openDialog, useDialogs } from '../../state/dialogs';
 import { useTour } from '../../state/tour';
 import { Button, IconButton, Kbd } from '../common';

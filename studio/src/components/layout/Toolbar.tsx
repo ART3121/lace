@@ -11,11 +11,11 @@
 // Preferências > Layout da janela); um grupo sem nenhum botão some com o
 // separador.
 
-import { CircleStop } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { action, isEnabled, runAction, signalChoice, toolbarItemAvailable } from '../../actions';
 import { useT, t as translate } from '../../i18n';
+import { CircleStop } from '../../icons';
 import { useApp } from '../../state/app';
 import { useExperimental } from '../../state/experimental';
 import { phaseKey, useJobs } from '../../state/jobs';

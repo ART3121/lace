@@ -2,11 +2,11 @@
 // arrays, o painel do botão C± da AURORA), as entradas e as saídas da
 // última simulação.
 
-import { Activity, CircuitBoard, FileCode, Hammer, Play, Plus, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { hasComponent, openWave, runBuild, runFastSimulation, runSimulation, runSynthesis } from '../../actions';
 import { useLang, useT } from '../../i18n';
+import { Activity, CircuitBoard, FileCode, Hammer, Play, Plus, Zap } from '../../icons';
 import { api } from '../../ipc/api';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';

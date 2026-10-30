@@ -1,20 +1,29 @@
 // A aba Sobre: o que é a AURORA IDE, as versões (dela, da AURORA e dos
 // componentes do bundle, do Tauri e do motor de páginas), onde ficam as
-// preferências e o bundle, e os links. "Copiar informações" junta tudo num
-// texto, para anexar a um relato de problema.
+// preferências e o bundle, os links e os pacotes de ícones com a licença de
+// cada um. "Copiar informações" junta tudo num texto, para anexar a um
+// relato de problema.
 
 import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
-import { BookOpen, Check, Copy, Download, ExternalLink, FolderOpen, Wrench } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
 import { AURORA_CLI_DOCS, NIPSCERN_GITHUB, NIPSCERN_SITE, runAction, SAPHO_MANUAL } from '../../actions';
 import { t, useT } from '../../i18n';
+import { BookOpen, Check, Copy, Download, ExternalLink, FolderOpen, Wrench } from '../../icons';
 import type { AppInfo, ToolchainInfo } from '../../ipc/types';
 import { useApp } from '../../state/app';
 import { useEditor } from '../../state/editor';
 import { showError } from '../../state/toasts';
 import { copyText } from '../../util/clipboard';
 import { Button, IconButton } from '../common';
+
+/** Os pacotes de ícones da interface (src/icons), com a licença de cada um. */
+const ICON_CREDITS = [
+  { name: 'Lucide', license: 'ISC', href: 'https://lucide.dev' },
+  { name: 'Phosphor', license: 'MIT', href: 'https://phosphoricons.com' },
+  { name: 'Tabler Icons', license: 'MIT', href: 'https://tabler.io/icons' },
+  { name: 'Material Symbols', license: 'Apache 2.0', href: 'https://fonts.google.com/icons' },
+];
 
 /** O texto de "Copiar informações", sempre em inglês, como as mensagens do
  * AURORA: é para quem vai ler o relato. */
@@ -172,6 +181,18 @@ export function AboutView() {
               <Link href={NIPSCERN_GITHUB}>github.com/nipscernlab</Link>
             </li>
           </ul>
+
+          <h2>{t('about.icons')}</h2>
+          <dl className="kv">
+            {ICON_CREDITS.map((credit) => (
+              <Fragment key={credit.name}>
+                <dt>
+                  <Link href={credit.href}>{credit.name}</Link>
+                </dt>
+                <dd className="muted">{credit.license}</dd>
+              </Fragment>
+            ))}
+          </dl>
         </section>
       </div>
 

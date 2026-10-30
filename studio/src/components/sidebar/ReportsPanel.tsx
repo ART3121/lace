@@ -2,10 +2,10 @@
 // para o mais antigo, com a limpeza (`aurora report clean`): o botão da
 // lixeira abre o diálogo de limpar, e o menu de cada relatório o apaga.
 
-import { GitCompare, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useT } from '../../i18n';
+import { GitCompare, RefreshCw, Trash2 } from '../../icons';
 import { api } from '../../ipc/api';
 import type { RunSummary } from '../../ipc/aurora-types';
 import { openDialog } from '../../state/dialogs';
