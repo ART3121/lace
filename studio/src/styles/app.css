@@ -2018,17 +2018,13 @@ body.is-dragging * {
   margin: var(--space-5) 0 var(--space-6);
 }
 
-/* O logo da tela inicial fica numa cor só, fora do destaque do tema:
-   branco nos temas escuros e grafite (o texto dos temas claros da AURORA)
-   nos claros, onde o branco sumiria no fundo. */
+/* O camaleão ao lado do nome, como marca d'água: na cor do texto e quase
+   transparente, mesclado ao fundo de qualquer tema, fora do destaque. */
 .welcome__logo {
   width: 56px;
   height: 56px;
-  fill: #ffffff;
-}
-
-:root[data-theme='light'] .welcome__logo {
-  fill: #191b1d;
+  fill: var(--text-0);
+  opacity: 0.12;
 }
 
 /* A aurora da tela inicial (WelcomeView, AuroraWaves): três senoides finas no

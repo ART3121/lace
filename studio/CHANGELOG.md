@@ -10,9 +10,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - O Lace Studio passa a se chamar **AURORA IDE**: no título da janela, no
   splash, na tela inicial, em Sobre, nos menus e nos avisos. O logo é o
   camaleão do ícone da AURORA, com o mesmo contorno e em cor chapada: na
-  barra de menus, na cor de destaque do tema; na tela inicial, branco nos
-  temas escuros e grafite nos claros. Os ícones do aplicativo são o
-  camaleão azul num quadrado grafite.
+  barra de menus, na cor de destaque do tema; na tela inicial, ao lado do
+  nome, apagado como marca d'água. Os ícones do aplicativo são o camaleão
+  azul num quadrado grafite.
 - O executável passa a ser `aurora-ide`, o `productName`, AURORA IDE (no
   macOS, `AURORA IDE.app`), e o identificador, `com.nipscern.aurora-ide`.
   Na primeira abertura, a IDE copia o `settings.json` do Lace Studio da
