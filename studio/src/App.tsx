@@ -15,7 +15,7 @@ import { MenuBar } from './components/layout/MenuBar';
 import { StatusBar } from './components/layout/StatusBar';
 import { TitleBar } from './components/layout/TitleBar';
 import { Toolbar } from './components/layout/Toolbar';
-import { Workbench } from './components/layout/Workbench';
+import { useShownLayout, Workbench } from './components/layout/Workbench';
 import { watchZen, ZenHud, zenWidth } from './components/layout/Zen';
 import { externalDrop, externalLeave, externalOver } from './components/sidebar/dnd';
 import { Toasts } from './components/Toasts';
@@ -266,7 +266,9 @@ async function openLinkedFile(path: string, line: number, column: number): Promi
 }
 
 export function App() {
-  const zen = useLayout((s) => s.zen);
+  // O zen como a janela o desenha: numa transição de layout ele muda junto
+  // com as regiões (Workbench.tsx).
+  const zen = useShownLayout((s) => s.zen);
   const bars = useLayout((s) => s.live.bars);
   const menus = !zen && bars.menubar;
   // A barra de ferramentas do modelo do layout: a clássica numa linha
@@ -283,7 +285,7 @@ export function App() {
   // Sem a barra de status, o indicador do zen fica no lugar dela: a linha do
   // Vim, a espera de um atalho e o resultado da operação continuam à vista.
   const hud = zen || !bars.statusbar;
-  const zenShell = useLayout((s) => s.zenShell);
+  const zenShell = useShownLayout((s) => s.zenShell);
   // No zen, com um grupo só, o editor e a gaveta do shell ficam numa coluna
   // centralizada (Preferências > Editor > Modo zen).
   const centered = useApp((s) => s.settings?.zen?.center_layout ?? true);

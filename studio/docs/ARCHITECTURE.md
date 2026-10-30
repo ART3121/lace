@@ -354,6 +354,21 @@ Numa janela estreita (`fitWorkbench`), primeiro os mínimos diminuem; se
 ainda não couber, a barra lateral direita não é desenhada e depois o painel
 vai para baixo. Isso só muda o desenho, não o layout.
 
+**Movimento.** Abrir, fechar ou mover uma região anima numa transição de
+vista (`document.startViewTransition`). O `useLayout` muda na hora, como
+sempre; a janela desenha uma cópia dele (`useShownLayout`), que numa
+transição só muda dentro da troca, depois da foto de antes. O App lê o zen
+dessa cópia, para as barras de cima saírem na mesma transição. Na troca, os
+tamanhos do layout entram antes da foto de depois (`settle`): durante a
+transição o navegador não roda quadros, e o `enforce` ficaria para depois.
+As marcas no `<html>` dão nome às fotos (`data-transicao`, `data-ficam`) e
+escolhem a animação de cada uma (`data-cresce` e `data-encolhe`, pela
+medida das regiões antes e depois); as regras ficam no fim do `app.css`. A
+região que abre entra pela borda dela, com a foto andando e o recorte
+andando ao contrário; a que só muda de tamanho mostra uma foto só, a maior,
+presa no canto de cima. Sem a API, ou com o sistema pedindo menos
+movimento, a troca é na hora.
+
 **Regiões** (`components/layout/Region.tsx`). O cabeçalho é o título da
 vista na barra lateral do lado da barra de atividades, que escolhe a vista;
 nas outras regiões, são abas (com texto no painel, com ícone nas laterais).

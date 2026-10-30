@@ -11,7 +11,7 @@
 // Os botões da vista (ViewActions.tsx) vêm antes dos da região.
 
 import { ChevronDown, Maximize2, Minimize2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { action } from '../../actions';
 import { useT, type Key } from '../../i18n';
@@ -88,6 +88,15 @@ export function Region({ region, mode }: { region: RegionId; mode: RegionMode })
   const views = visibleViews(live, region);
   const active = live.regions[region].active;
   const side = region !== 'panel';
+  // A vista que entra no lugar de outra, com a região já aberta, entra com
+  // um esmaecer (app.css); a da região que acabou de abrir, não: essa entra
+  // com a transição de vista do Workbench.
+  const shownView = useRef(active);
+  const switched = useRef(false);
+  if (shownView.current !== active) {
+    switched.current = shownView.current != null;
+    shownView.current = active;
+  }
   const menu = (e: React.MouseEvent) => openContextMenu(e, regionMenu(region));
 
   const header =
@@ -124,7 +133,11 @@ export function Region({ region, mode }: { region: RegionId; mode: RegionMode })
       <ActionsSlot.Provider value={slot}>
         <div className="region__body">
           {active ? (
-            <div key={active} className={`region__view region__view--${viewKind(active)}`} data-view={active}>
+            <div
+              key={active}
+              className={`region__view region__view--${viewKind(active)}${switched.current ? ' region__view--troca' : ''}`}
+              data-view={active}
+            >
               <ViewContent view={active} />
             </div>
           ) : (

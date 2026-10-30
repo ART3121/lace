@@ -5149,3 +5149,259 @@ body.is-dragging * {
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* Movimento -------------------------------------------------------------- */
+
+/* Curto e leve. As regiões abrem, fecham e mudam de lugar numa transição de
+   vista (Workbench.tsx); menus, diálogos, avisos e a vista que troca dentro
+   de uma região entram com um esmaecer de 120 a 200 ms. Com o sistema pedindo
+   menos movimento, nada anima. */
+:root {
+  --movimento: 250ms;
+  --movimento-curva: ease;
+}
+
+/* As regiões só têm nome durante a transição (`data-transicao` no <html>,
+   com o lado do painel): com nome, cada uma é fotografada à parte, e o
+   navegador anima o tamanho e o lugar dela. */
+:root[data-transicao] .region--left {
+  view-transition-name: regiao-esquerda;
+}
+
+:root[data-transicao] .region--right {
+  view-transition-name: regiao-direita;
+}
+
+:root[data-transicao] .region--panel {
+  view-transition-name: regiao-painel;
+}
+
+:root[data-transicao] .editor-area {
+  view-transition-name: regiao-editor;
+}
+
+:root[data-transicao] .activitybar {
+  view-transition-name: barra-atividades;
+}
+
+/* Os botões da direita do cabeçalho, no painel e no editor que ficam abertos
+   (`data-ficam`), viram uma foto à parte: andam com a borda direita, em vez
+   de sumir cortados junto com o resto da foto. Com o editor dividido há
+   botões em cada grupo, e um nome não pode se repetir. */
+:root[data-ficam~='painel'] .region--panel .panel__actions {
+  view-transition-name: acoes-painel;
+}
+
+:root[data-ficam~='editor'] .editor-group:not(.is-split) .editor-group__actions {
+  view-transition-name: acoes-editor;
+}
+
+/* A aurora da tela inicial fica no pé do editor: numa foto à parte ela anda
+   com a borda de baixo, em vez de sumir cortada enquanto o painel sobe. */
+:root[data-boas-vindas] .editor-group:not(.is-split) .welcome-aurora {
+  view-transition-name: aurora-inicial;
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--movimento);
+  animation-timing-function: var(--movimento-curva);
+}
+
+/* A foto não estica: fica presa no canto de cima, e a borda que anda revela
+   ou corta o conteúdo. A tela de boas-vindas, centrada, fica presa no meio. */
+::view-transition-old(*),
+::view-transition-new(*) {
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
+}
+
+:root[data-boas-vindas]::view-transition-old(regiao-editor),
+:root[data-boas-vindas]::view-transition-new(regiao-editor) {
+  object-position: center top;
+}
+
+/* A região que só cresce ou só encolhe (`data-cresce`, `data-encolhe`)
+   mostra uma foto só, a maior, sem esmaecer: a gaveta que entra ou sai cobre
+   a sobra. Duas fotos esmaecendo juntas mostrariam em dobro o que muda de
+   lugar. */
+:root[data-cresce~='esquerda']::view-transition-old(regiao-esquerda),
+:root[data-cresce~='direita']::view-transition-old(regiao-direita),
+:root[data-cresce~='painel']::view-transition-old(regiao-painel),
+:root[data-cresce~='editor']::view-transition-old(regiao-editor),
+:root[data-encolhe~='esquerda']::view-transition-new(regiao-esquerda),
+:root[data-encolhe~='direita']::view-transition-new(regiao-direita),
+:root[data-encolhe~='painel']::view-transition-new(regiao-painel),
+:root[data-encolhe~='editor']::view-transition-new(regiao-editor) {
+  animation: none;
+  opacity: 0;
+}
+
+:root[data-cresce~='esquerda']::view-transition-new(regiao-esquerda),
+:root[data-cresce~='direita']::view-transition-new(regiao-direita),
+:root[data-cresce~='painel']::view-transition-new(regiao-painel),
+:root[data-cresce~='editor']::view-transition-new(regiao-editor),
+:root[data-encolhe~='esquerda']::view-transition-old(regiao-esquerda),
+:root[data-encolhe~='direita']::view-transition-old(regiao-direita),
+:root[data-encolhe~='painel']::view-transition-old(regiao-painel),
+:root[data-encolhe~='editor']::view-transition-old(regiao-editor) {
+  animation: none;
+  opacity: 1;
+}
+
+/* A região que abre entra como uma gaveta pela borda dela, no passo do
+   editor ao lado, e a que fecha sai pela mesma borda. A foto anda, e o
+   recorte anda ao contrário para ela não passar da borda da região (por
+   cima da barra de atividades ou da de status). O recorte vai de `inset()` a
+   `inset()`: de `none` ele não se interpola e pularia no meio. */
+::view-transition-new(regiao-esquerda):only-child {
+  animation: entra-pela-esquerda var(--movimento) var(--movimento-curva) both;
+}
+
+::view-transition-old(regiao-esquerda):only-child {
+  animation: sai-pela-esquerda var(--movimento) var(--movimento-curva) both;
+}
+
+::view-transition-new(regiao-direita):only-child,
+:root[data-transicao='direita']::view-transition-new(regiao-painel):only-child {
+  animation: entra-pela-direita var(--movimento) var(--movimento-curva) both;
+}
+
+::view-transition-old(regiao-direita):only-child,
+:root[data-transicao='direita']::view-transition-old(regiao-painel):only-child {
+  animation: sai-pela-direita var(--movimento) var(--movimento-curva) both;
+}
+
+:root[data-transicao='baixo']::view-transition-new(regiao-painel):only-child {
+  animation: entra-por-baixo var(--movimento) var(--movimento-curva) both;
+}
+
+:root[data-transicao='baixo']::view-transition-old(regiao-painel):only-child {
+  animation: sai-por-baixo var(--movimento) var(--movimento-curva) both;
+}
+
+@keyframes entra-pela-esquerda {
+  from {
+    transform: translateX(-100%);
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    transform: translateX(0);
+    clip-path: inset(0);
+  }
+}
+
+@keyframes sai-pela-esquerda {
+  from {
+    transform: translateX(0);
+    clip-path: inset(0);
+  }
+  to {
+    transform: translateX(-100%);
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
+@keyframes entra-pela-direita {
+  from {
+    transform: translateX(100%);
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    transform: translateX(0);
+    clip-path: inset(0);
+  }
+}
+
+@keyframes sai-pela-direita {
+  from {
+    transform: translateX(0);
+    clip-path: inset(0);
+  }
+  to {
+    transform: translateX(100%);
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+@keyframes entra-por-baixo {
+  from {
+    transform: translateY(100%);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    transform: translateY(0);
+    clip-path: inset(0);
+  }
+}
+
+@keyframes sai-por-baixo {
+  from {
+    transform: translateY(0);
+    clip-path: inset(0);
+  }
+  to {
+    transform: translateY(100%);
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+/* O que aparece por cima: menus descem um pouco, diálogos crescem um pouco,
+   avisos sobem um pouco, e a vista nova de uma região aparece. */
+.menu {
+  transform-origin: top left;
+  animation: surge 120ms var(--movimento-curva);
+}
+
+.dialog-overlay {
+  animation: aparece 140ms ease-out;
+}
+
+.dialog {
+  transform-origin: top center;
+  animation: surge 160ms var(--movimento-curva);
+}
+
+.toast {
+  animation: sobe 200ms var(--movimento-curva);
+}
+
+.region__view--troca {
+  animation: aparece 140ms ease-out;
+}
+
+@keyframes surge {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes aparece {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sobe {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .dialog-overlay,
+  .dialog,
+  .toast,
+  .region__view--troca {
+    animation: none;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
