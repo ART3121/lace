@@ -879,6 +879,8 @@ assembly) e os consoles.
 | Tema | Esquema | Origem |
 |---|---|---|
 | Boreal (padrão), Boreal Claro | escuro, claro | os da AURORA IDE: cinzas quase neutros com o azul da aurora boreal de destaque |
+| Austral, Austral Claro | escuro, claro | os mesmos cinzas, com o verde da Aurora antiga de destaque e o lilás dela nos números e textos |
+| Nebulosa, Nebulosa Clara | escuro, claro | os mesmos cinzas, com o violeta da Aurora antiga de destaque e a menta dela nos números e textos |
 | Alvorada, Alvorada Clara | escuro, claro | os mesmos cinzas, com o âmbar do amanhecer |
 | Lunar, Lunar Claro | escuro, claro | os mesmos cinzas, sem cor de destaque: o destaque é o próprio texto, com as palavras reservadas em negrito |
 | Aurora Legacy | escuro | as cores da AURORA |
@@ -894,7 +896,7 @@ assembly) e os consoles.
 
 **Do sistema** fica com o Boreal quando o sistema está no modo escuro e com
 o Boreal Claro no claro, e troca junto com ele. Exibir > Alternar tema claro
-e escuro vai para o par do tema (Boreal, Alvorada e Lunar com os seus
+e escuro vai para o par do tema (os cinco da AURORA IDE com os seus
 claros, Dark e Light Modern, Gruvbox, Solarized) ou, num tema sem par, para
 o Boreal Claro ou o Boreal.
 

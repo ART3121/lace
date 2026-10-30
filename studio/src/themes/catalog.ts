@@ -1,10 +1,12 @@
 // O catálogo de temas, na ordem em que aparecem nas Preferências.
 //
-// Os da AURORA IDE são o Boreal, o Alvorada e o Lunar, cada um com o seu
-// claro: os mesmos cinzas e uma cor de destaque por paleta, o azul da
-// aurora boreal, o âmbar do amanhecer e o prata da lua. O Aurora Legacy traz
-// a paleta da AURORA Electron. Os outros
-// seguem a paleta oficial de cada tema, conferida na fonte em 2026-10-04:
+// Os da AURORA IDE são o Boreal, o Austral, o Nebulosa, o Alvorada e o
+// Lunar, cada um com o seu claro: os mesmos cinzas e uma cor de destaque por
+// paleta, o azul da aurora boreal, o verde da austral, o violeta das
+// nebulosas, o âmbar do amanhecer e o prata da lua. O verde e o violeta são
+// os da Aurora antiga, separados. O Aurora Legacy traz a paleta inteira da
+// AURORA Electron. Os outros seguem a paleta oficial de cada tema, conferida
+// na fonte em 2026-10-04:
 //
 // | Tema                 | Fonte                                                        |
 // |----------------------|--------------------------------------------------------------|
@@ -229,6 +231,55 @@ const borealClaro = aurora('boreal-claro', 'Boreal Claro', 'light', 'boreal', {
   onFill: '#FFFFFF',
   literal: '#86572D',
   selection: 0.18,
+});
+
+/** O verde da aurora austral, o do "ok" da Aurora antiga, com o lilás dela
+ * nos números e textos. O botão leva texto escuro, que tem 9,9:1. */
+const austral = aurora('austral', 'Austral', 'dark', 'austral-claro', {
+  line: '#5DD4A8',
+  text: '#68DEB1',
+  fill: '#5DD4A8',
+  fillHover: '#69E0B3',
+  onFill: '#141619',
+  literal: '#AEA7ED',
+  selection: 0.24,
+});
+
+/** No claro, o verde do botão (#2AA578, com texto escuro) não chega a 3:1
+ * com as barras: as linhas usam um verde mais escuro, e o texto, um
+ * verde-garrafa. Os números e textos vão no violeta do Nebulosa Clara. */
+const australClaro = aurora('austral-claro', 'Austral Claro', 'light', 'austral', {
+  line: '#1F8A63',
+  text: '#17704F',
+  fill: '#2AA578',
+  fillHover: '#13986C',
+  onFill: '#191B1D',
+  literal: '#5B50B8',
+  selection: 0.18,
+});
+
+/** O violeta da Aurora antiga (#8E83E8, o destaque dela), com a menta dela
+ * nos números e textos. O botão leva texto escuro, que tem 5,7:1. */
+const nebulosa = aurora('nebulosa', 'Nebulosa', 'dark', 'nebulosa-clara', {
+  line: '#8E83E8',
+  text: '#A89EF0',
+  fill: '#8E83E8',
+  fillHover: '#988EF4',
+  onFill: '#141619',
+  literal: '#75D4AE',
+  selection: 0.3,
+});
+
+/** No claro, o violeta do botão da Aurora antiga (#6E63C8), que segura o
+ * texto branco (4,9:1) e as linhas (4,6:1 com as barras). */
+const nebulosaClara = aurora('nebulosa-clara', 'Nebulosa Clara', 'light', 'nebulosa', {
+  line: '#6E63C8',
+  text: '#5B50B8',
+  fill: '#6E63C8',
+  fillHover: '#6458BC',
+  onFill: '#FFFFFF',
+  literal: '#1E7A5A',
+  selection: 0.16,
 });
 
 /** O âmbar, a cor do amanhecer, com azul-claro nos números e textos. */
@@ -1462,6 +1513,10 @@ const tokyoNight: Theme = {
 export const THEMES: Theme[] = [
   boreal,
   borealClaro,
+  austral,
+  australClaro,
+  nebulosa,
+  nebulosaClara,
   alvorada,
   alvoradaClara,
   lunar,

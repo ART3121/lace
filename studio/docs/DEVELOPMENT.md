@@ -253,8 +253,9 @@ Para um tema novo, um objeto a mais no catálogo, com a fonte das cores na
 tabela do começo do arquivo. O id não muda depois de lançado: ele fica
 gravado no `settings.json` de quem escolheu o tema.
 
-Os temas da AURORA IDE (o Boreal, que é o padrão, o Alvorada e o Lunar,
-cada um com o seu claro) saem da função `aurora` do catálogo: os mesmos
+Os temas da AURORA IDE (o Boreal, que é o padrão, o Austral, o Nebulosa,
+o Alvorada e o Lunar, cada um com o seu claro) saem da função `aurora` do
+catálogo: os mesmos
 cinzas quase neutros e uma cor de destaque por paleta, que na sintaxe vai
 para as palavras reservadas e os tipos, com uma segunda cor em números e
 textos. As medidas (fontes, espaços, raios, alturas) ficam

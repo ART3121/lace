@@ -22,9 +22,12 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - A IDE abre o `aurora` como servidor, pelo protocolo 2. A variável de
   desenvolvimento passa a ser `AURORA_IDE_CLI`, e a preferência, Programa
   aurora (`aurora_path`; o `lace_path` antigo vale).
-- Três temas novos, cada um com o seu claro: **Boreal**, **Alvorada** e
-  **Lunar**, com o azul da aurora boreal, o âmbar do amanhecer e o prata
-  da lua. Têm os mesmos cinzas quase neutros e uma cor de destaque; no
+- Cinco temas novos, cada um com o seu claro: **Boreal**, **Austral**,
+  **Nebulosa**, **Alvorada** e **Lunar**, com o azul da aurora boreal, o
+  verde da austral, o violeta das nebulosas, o âmbar do amanhecer e o
+  prata da lua. O verde e o violeta são os da Aurora antiga, separados:
+  no Austral, o lilás dela vai nos números e textos; no Nebulosa, a
+  menta. Têm os mesmos cinzas quase neutros e uma cor de destaque; no
   código, só as palavras reservadas levam o destaque, e números e textos
   levam uma segunda cor. O Boreal é o padrão, e o Boreal Claro é o claro
   do "Do sistema".
@@ -49,7 +52,8 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - A tela inicial ganha uma aurora no pé: três senoides finas que correm
   devagar, uma para cada lado, com as pontas apagadas. As cores são as da
   aurora da AURORA 7 (menta, azul e violeta) no Boreal e nos temas de fora,
-  as do amanhecer no Alvorada e as da lua no Lunar. Com o sistema pedindo
+  os verdes no Austral, o violeta e o rosa no Nebulosa, as do amanhecer no
+  Alvorada e as da lua no Lunar. Com o sistema pedindo
   menos movimento, as linhas ficam paradas.
 - **Exercícios**: a correção mostra a primeira amostra errada numa tabela
   (as entradas, e cada saída com o esperado e o seu, a que errou em

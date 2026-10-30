@@ -2034,7 +2034,8 @@ body.is-dragging * {
 /* A aurora da tela inicial (WelcomeView, AuroraWaves): três senoides finas no
    pé da área do editor, que correm devagar, uma para cada lado, com as pontas
    apagadas; a tela fica por cima. As cores são as da aurora da AURORA 7
-   (menta, azul e violeta) no Boreal e nos temas de fora, as do amanhecer no
+   (menta, azul e violeta) no Boreal e nos temas de fora, os verdes e o azul
+   dela no Austral, o violeta, o rosa e o azul no Nebulosa, as do amanhecer no
    Alvorada e as da lua no Lunar, mais escuras nos temas claros. */
 .welcome {
   position: relative;
@@ -2071,6 +2072,30 @@ body.is-dragging * {
   --aurora-1: #e38f00;
   --aurora-2: #d9643f;
   --aurora-3: #c7578a;
+}
+
+:root[data-theme-id='austral'] .welcome-aurora {
+  --aurora-1: #5fe0b0;
+  --aurora-2: #4fd3c2;
+  --aurora-3: #5bb8e8;
+}
+
+:root[data-theme-id='austral-claro'] .welcome-aurora {
+  --aurora-1: #179a70;
+  --aurora-2: #0f8a7c;
+  --aurora-3: #2b7fbf;
+}
+
+:root[data-theme-id='nebulosa'] .welcome-aurora {
+  --aurora-1: #8e83e8;
+  --aurora-2: #e68fb8;
+  --aurora-3: #5bb8e8;
+}
+
+:root[data-theme-id='nebulosa-clara'] .welcome-aurora {
+  --aurora-1: #6b5fd3;
+  --aurora-2: #c25a8c;
+  --aurora-3: #2b7fbf;
 }
 
 :root[data-theme-id='lunar'] .welcome-aurora {
