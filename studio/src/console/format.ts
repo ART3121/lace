@@ -9,7 +9,7 @@
 // ela escreveu, recuado embaixo do nome dela:
 //
 //   ── Simulação · 14:02:31 ────────────────────────
-//   $ lace-studio sim -p soma
+//   $ aurora-ide sim -p soma
 //   ▸ Compilando processadores (YANC)
 //     cmmcomp
 //       (o que o cmmcomp escreveu)
@@ -22,7 +22,7 @@
 //       Relatório run-000042 gravado no histórico
 //   ── ✓ Terminou em 0,7 s · erros: 0, avisos: 0 ───
 
-import type { Status } from '../ipc/lace-types';
+import type { Status } from '../ipc/aurora-types';
 
 const RED = '\x1b[31m';
 const YELLOW = '\x1b[33m';
@@ -48,7 +48,7 @@ const MARKS: Record<Outcome, string> = {
 const BLOCK = '  ';
 const BODY = '    ';
 
-/** O marcador de um status do Lace: cancelar e passar do prazo não são
+/** O marcador de um status da AURORA: cancelar e passar do prazo não são
  * falha da ferramenta. */
 export function outcomeOf(status: Status): Outcome {
   if (status === 'succeeded') return 'ok';
@@ -91,7 +91,7 @@ export function output(line: string): string {
 // `warning`, `%Warning-WIDTH` e o "heads up" dos avisos do YANC.
 const SEVERITY_WORD = /\b(error|fatal|warning)\b|\bheads up\b/i;
 
-/** Uma mensagem que a ferramenta escreveu e que o Lace reconhece como dela
+/** Uma mensagem que a ferramenta escreveu e que a AURORA reconhece como dela
  * (erro, aviso, nota): só a primeira palavra de gravidade ganha cor. */
 export function toolMessage(line: string): string {
   return `${BODY}${line.replace(SEVERITY_WORD, (word) => `${/error|fatal/i.test(word) ? RED : YELLOW}${word}${RESET}`)}`;
@@ -128,7 +128,7 @@ export function note(text: string): string {
   return `${BODY}${DIM}${text}${RESET}`;
 }
 
-/** Um diagnóstico que o Lace montou (`arquivo:linha: gravidade: mensagem`),
+/** Um diagnóstico que a AURORA montou (`arquivo:linha: gravidade: mensagem`),
  * com a cor só na gravidade. */
 export function diagnostic(where: string, severity: string, label: string, message: string): string {
   const color = severity === 'error' ? RED : severity === 'warning' ? YELLOW : DIM;

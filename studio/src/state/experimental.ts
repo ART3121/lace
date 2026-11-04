@@ -1,8 +1,8 @@
-// Os recursos experimentais do Lace: partes que ainda mudam muito e que
+// Os recursos experimentais da AURORA: partes que ainda mudam muito e que
 // ficam desligadas até o usuário ligar, em Preferências > Experimental.
 // Quem guarda o que está ligado é o Core (experimental.json, na pasta de
-// configuração do Lace), e a CLI lê o mesmo arquivo: ligar aqui também
-// libera o `lace fpga`, e um `lace experimental enable` dado num terminal
+// configuração da AURORA), e a CLI lê o mesmo arquivo: ligar aqui também
+// libera o `aurora fpga`, e um `aurora experimental enable` dado num terminal
 // vale aqui quando a janela volta a ter o foco (App.tsx).
 //
 // Desligado, um recurso sai da janela: não fica cinza, some. Hoje há dois.
@@ -18,7 +18,7 @@
 import { create } from 'zustand';
 
 import { api } from '../ipc/api';
-import type { ExperimentalReport, Feature, FeatureState } from '../ipc/lace-types';
+import type { ExperimentalReport, Feature, FeatureState } from '../ipc/aurora-types';
 import { onErrorCode, showError } from './toasts';
 
 interface ExperimentalState {

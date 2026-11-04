@@ -1,13 +1,13 @@
 // Arrastar na vista de fontes: um arquivo do RTL ou dos testbenches solto
-// sobre outro da mesma lista muda a ordem de compilação (`lace order`); um
-// arquivo do explorador solto na vista entra no projeto (`lace add`), como
+// sobre outro da mesma lista muda a ordem de compilação (`aurora order`); um
+// arquivo do explorador solto na vista entra no projeto (`aurora add`), como
 // testbench se cair nos testbenches.
 
 import * as vscode from 'vscode';
 
 import type { SourceNode } from './provider';
 
-const MIME = 'application/vnd.code.tree.lace.sources';
+const MIME = 'application/vnd.code.tree.aurora.sources';
 
 export interface DropActions {
   /** Os arquivos arrastados para o lugar de `target`, ou para o começo da lista. */

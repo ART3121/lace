@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ReportCleanReport",
-  "description": "`lace report clean`: os relatórios apagados.",
+  "description": "`aurora report clean`: os relatórios apagados.",
   "type": "object",
   "properties": {
     "removed": {

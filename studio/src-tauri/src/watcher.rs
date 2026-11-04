@@ -5,7 +5,7 @@
 //! abertas cujo arquivo mudou por fora.
 //!
 //! O evento é `studio://fs-changed`, com `{ paths: [...] }`, no máximo um a
-//! cada 300 ms. O que muda em `.lace/` (temporários, relatórios) e em
+//! cada 300 ms. O que muda em `.aurora8/` (temporários, relatórios) e em
 //! `.git/` não é avisado: muda o tempo todo durante uma operação e não
 //! aparece na árvore.
 //!
@@ -78,7 +78,7 @@ pub fn watch(app: &AppHandle, state: &AppState, root: &Utf8Path) {
     // Junta os caminhos por 300 ms e avisa uma vez. A thread acaba quando o
     // vigia sai (o `tx` vai junto, e o `recv` falha).
     let app = app.clone();
-    let ignored = [root.join(".lace"), root.join(".git")];
+    let ignored = [root.join(".aurora8"), root.join(".git")];
     std::thread::spawn(move || {
         while let Ok(first) = rx.recv() {
             let mut paths = vec![first];

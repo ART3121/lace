@@ -1,6 +1,6 @@
 // Os botões, o indicador de espera e o menu de contexto do viewer. Quem
 // abriga pode trocar pelos seus (o Studio troca, para o viewer ter a cara do
-// resto dele); o VS Code e o HTML do `lace synth --open` usam estes.
+// resto dele); o VS Code e o HTML do `aurora synth --open` usam estes.
 
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ComponentType } from 'react';

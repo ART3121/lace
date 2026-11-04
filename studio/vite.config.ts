@@ -8,8 +8,8 @@ import react from '@vitejs/plugin-react';
 // o Vite falha em vez de escolher outra que o Tauri não conhece.
 const host = process.env.TAURI_DEV_HOST;
 
-// O RTL viewer é um pacote do Lace fora do Studio (packages/rtl-viewer), que
-// a extensão do VS Code e o `lace synth --open` também usam. O Studio
+// O RTL viewer é um pacote da AURORA fora do Studio (packages/rtl-viewer), que
+// a extensão do VS Code e o `aurora synth --open` também usam. O Studio
 // compila o fonte dele direto.
 const rtlViewer = fileURLToPath(new URL('../packages/rtl-viewer/src', import.meta.url));
 
@@ -22,8 +22,8 @@ export default defineConfig({
     // haveria dois React na mesma página.
     dedupe: ['react', 'react-dom', 'zustand', 'lucide-react', 'elkjs'],
     alias: [
-      { find: /^@lace\/rtl-viewer$/, replacement: `${rtlViewer}/index.ts` },
-      { find: /^@lace\/rtl-viewer\/(.*)$/, replacement: `${rtlViewer}/$1` },
+      { find: /^@aurora\/rtl-viewer$/, replacement: `${rtlViewer}/index.ts` },
+      { find: /^@aurora\/rtl-viewer\/(.*)$/, replacement: `${rtlViewer}/$1` },
       // O monaco-vim declara primeiro, para navegador, um UMD que chama
       // `require('monaco-editor/...')`, e o Vite escolhe esse; no navegador
       // não há `require` e a interface não abre. A versão ESM serve.
@@ -35,6 +35,12 @@ export default defineConfig({
       // não exporta mais (o `exports` dele mapeia `monaco-editor/<x>` para
       // `esm/vs/<x>.js`). Redirecionado, é o mesmo Monaco do resto do Studio.
       { find: /^monaco-editor\/esm\/vs\/(.*)$/, replacement: 'monaco-editor/$1' },
+      // O Monaco 0.57 importa uma cópia do DOMPurify 3.4.15 que vem dentro
+      // dele (esm/vs/base/browser/dompurify), com falhas corrigidas na 3.4.17.
+      // O `overrides` do package.json só troca o pacote dompurify do
+      // node_modules; este alias faz o Monaco usar esse pacote no lugar da
+      // cópia. Os dois saem quando um Monaco novo trouxer a versão corrigida.
+      { find: /^\.\/dompurify\/dompurify\.js$/, replacement: 'dompurify' },
     ],
   },
   server: {

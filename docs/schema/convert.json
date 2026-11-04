@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ConvertReport",
-  "description": "`lace convert`.",
+  "description": "`aurora convert`.",
   "type": "object",
   "properties": {
     "project": {

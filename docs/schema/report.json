@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ReportShowReport",
-  "description": "`lace report` e `lace report show`: um relatório guardado.",
+  "description": "`aurora report` e `aurora report show`: um relatório guardado.",
   "type": "object",
   "properties": {
     "id": {
@@ -99,8 +99,8 @@
           "format": "uint64",
           "minimum": 0
         },
-        "lace_version": {
-          "description": "A versão do Lace que gravou.",
+        "aurora_version": {
+          "description": "A versão que gravou. `lace_version` nos relatórios gravados pelo\nLace, que a `.lace` levada para a `.aurora8` traz.",
           "type": "string"
         },
         "project": {
@@ -158,7 +158,7 @@
         "command",
         "status",
         "duration_ms",
-        "lace_version",
+        "aurora_version",
         "project",
         "project_name",
         "bundle",
@@ -198,7 +198,7 @@
           "const": "cancelled"
         },
         {
-          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "description": "Um passo passou do prazo e a AURORA o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
           "type": "string",
           "const": "timed_out"
         }
@@ -287,7 +287,7 @@
       ]
     },
     "Environment": {
-      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: o Lace só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
+      "description": "A máquina onde a operação rodou. O que o sistema não informa sem rodar\noutro programa fica `null`: a AURORA só lê arquivos do sistema (no Linux,\n`/proc` e `/etc/os-release`) e o `uname`.",
       "type": "object",
       "properties": {
         "hostname": {
@@ -524,7 +524,7 @@
           "minimum": 0
         },
         "total_ms": {
-          "description": "A simulação inteira, medida à parte: com a preparação do Lace.",
+          "description": "A simulação inteira, medida à parte: com a preparação da AURORA.",
           "type": [
             "integer",
             "null"

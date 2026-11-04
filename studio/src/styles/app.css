@@ -1,5 +1,5 @@
 /*
- * Estilos do Lace Studio. Todas as cores e medidas vêm de tokens.css.
+ * Estilos da AURORA IDE. Todas as cores e medidas vêm de tokens.css.
  * Ordem: base, estrutura da janela, barras, barra lateral, editor, painel,
  * vistas, controles, diálogos e avisos.
  */
@@ -199,6 +199,13 @@ a {
   padding: 0 var(--space-2);
   background: var(--bg-0);
   border-bottom: 1px solid var(--border);
+}
+
+/* O camaleão (AuroraMark), na cor de preenchimento do destaque do tema. */
+.aurora-mark {
+  display: block;
+  flex: none;
+  fill: var(--brand-fill);
 }
 
 .menubar__logo {
@@ -1059,6 +1066,36 @@ body.is-dragging * {
   color: var(--text-2);
 }
 
+/* Os ícones de arquivo da AURORA, cada tipo na cor dele no tema
+   (components/editor/fileIcons.tsx, themes/index.ts). */
+.file-icon--verilog {
+  color: var(--file-verilog);
+}
+
+.file-icon--testbench {
+  color: var(--file-testbench);
+}
+
+.file-icon--cmm {
+  color: var(--file-cmm);
+}
+
+.file-icon--asm {
+  color: var(--file-asm);
+}
+
+.file-icon--mif {
+  color: var(--file-mif);
+}
+
+.file-icon--wave {
+  color: var(--file-wave);
+}
+
+.file-icon--project {
+  color: var(--file-project);
+}
+
 .tree__label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1701,7 +1738,7 @@ body.is-dragging * {
   color: var(--text-0);
 }
 
-/* Lace mais novo publicado, ou a atualização esperando o reinício. */
+/* AURORA mais nova publicado, ou a atualização esperando o reinício. */
 .statusbar__update {
   color: var(--brand-text);
 }
@@ -1814,7 +1851,7 @@ body.is-dragging * {
   color: var(--ok);
 }
 
-/* A saída da última instalação ou atualização (`lace install`, `lace update`). */
+/* A saída da última instalação ou atualização (`aurora install`, `aurora update`). */
 .cli-log {
   margin: var(--space-2) 0 var(--space-3);
   padding: var(--space-2) var(--space-3);
@@ -1845,7 +1882,7 @@ body.is-dragging * {
   color: var(--text-2);
 }
 
-/* Há um Lace mais novo: o texto e, ao lado, o botão de atualizar. */
+/* Há uma AURORA mais nova: o texto e, ao lado, o botão de atualizar. */
 .update-offer {
   display: flex;
   flex-wrap: wrap;
@@ -2011,9 +2048,119 @@ body.is-dragging * {
   margin: var(--space-5) 0 var(--space-6);
 }
 
+/* O camaleão ao lado do nome, como marca d'água: na cor do texto e quase
+   transparente, mesclado ao fundo de qualquer tema, fora do destaque. */
 .welcome__logo {
   width: 56px;
   height: 56px;
+  fill: var(--text-0);
+  opacity: 0.12;
+}
+
+/* A aurora da tela inicial (WelcomeView, AuroraWaves): três senoides finas no
+   pé da área do editor, que correm devagar, uma para cada lado, com as pontas
+   apagadas; a tela fica por cima. As cores são as da aurora da AURORA 7
+   (menta, azul e violeta) no Boreal e nos temas de fora, os verdes e o azul
+   dela no Austral, o violeta, o rosa e o azul no Nebulosa, as do amanhecer no
+   Alvorada e as da lua no Lunar, mais escuras nos temas claros. */
+.welcome {
+  position: relative;
+}
+
+.welcome-aurora {
+  --aurora-1: #5fe0b0;
+  --aurora-2: #59a0f9;
+  --aurora-3: #8e83e8;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 120px;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+}
+
+:root[data-theme='light'] .welcome-aurora {
+  --aurora-1: #179a70;
+  --aurora-2: #236ade;
+  --aurora-3: #6b5fd3;
+}
+
+:root[data-theme-id='alvorada'] .welcome-aurora {
+  --aurora-1: #f5b33b;
+  --aurora-2: #f2856a;
+  --aurora-3: #e891b8;
+}
+
+:root[data-theme-id='alvorada-clara'] .welcome-aurora {
+  --aurora-1: #e38f00;
+  --aurora-2: #d9643f;
+  --aurora-3: #c7578a;
+}
+
+:root[data-theme-id='austral'] .welcome-aurora {
+  --aurora-1: #5fe0b0;
+  --aurora-2: #4fd3c2;
+  --aurora-3: #5bb8e8;
+}
+
+:root[data-theme-id='austral-claro'] .welcome-aurora {
+  --aurora-1: #179a70;
+  --aurora-2: #0f8a7c;
+  --aurora-3: #2b7fbf;
+}
+
+:root[data-theme-id='nebulosa'] .welcome-aurora {
+  --aurora-1: #8e83e8;
+  --aurora-2: #e68fb8;
+  --aurora-3: #5bb8e8;
+}
+
+:root[data-theme-id='nebulosa-clara'] .welcome-aurora {
+  --aurora-1: #6b5fd3;
+  --aurora-2: #c25a8c;
+  --aurora-3: #2b7fbf;
+}
+
+:root[data-theme-id='lunar'] .welcome-aurora {
+  --aurora-1: #eaedf1;
+  --aurora-2: #9db4cf;
+  --aurora-3: #bbbec2;
+}
+
+:root[data-theme-id='lunar-claro'] .welcome-aurora {
+  --aurora-1: #191b1d;
+  --aurora-2: #4a6a8f;
+  --aurora-3: #67696c;
+}
+
+.welcome-aurora__line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  animation: welcome-aurora-flow 60s linear infinite;
+}
+
+.welcome-aurora__line path {
+  fill: none;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes welcome-aurora-flow {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-aurora__line {
+    animation: none;
+  }
 }
 
 .welcome__header h1 {
@@ -2354,9 +2501,9 @@ body.is-dragging * {
 
 /* O interruptor (common.tsx, Switch). Desligado, contorno e bolinha na cor do
    texto secundário; ligado, o preenchimento do destaque com o contorno na cor
-   de linha do destaque. Nos 15 temas do catálogo, os dois contornos
+   de linha do destaque. Nos temas do catálogo, os dois contornos
    contrastam 3:1 ou mais com o fundo das Preferências (--bg-1); o
-   preenchimento sozinho, no Atlas, não chegaria a 2:1. */
+   preenchimento sozinho não garante isso. */
 .switch {
   position: relative;
   flex: none;
@@ -2948,11 +3095,6 @@ body.is-dragging * {
   position: absolute;
   inset: 0;
   display: flex;
-}
-
-/* O "Do sistema": o claro por cima do escuro, cortado na diagonal. */
-.theme-preview--half {
-  clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%);
 }
 
 .theme-preview__activity {
@@ -4003,7 +4145,7 @@ body.is-dragging * {
   padding: var(--space-5);
 }
 
-/* Exercícios (lace learn) ------------------------------------------------- */
+/* Exercícios (aurora learn) ----------------------------------------------- */
 
 .learn-start {
   display: flex;
@@ -5036,4 +5178,210 @@ body.is-dragging * {
   gap: var(--space-2);
   flex-wrap: wrap;
   justify-content: center;
+}
+
+/* Ilhas ------------------------------------------------------------------ */
+
+/* A aparência em ilhas (Preferências > Aparência > Interface, `data-look` no
+   <html>); a clássica é o resto deste arquivo. As regiões (barras laterais,
+   editor e painel) viram ilhas de cantos redondos e borda fina sobre o fundo
+   das barras, com vãos no lugar das linhas; as abas viram pílulas; o ícone
+   ativo da barra de atividades fica num quadrado redondo tingido do
+   destaque; e botões, campos e menus ganham cantos um pouco mais redondos.
+   Uma tela nova precisa ser conferida nas duas aparências. */
+:root[data-look='islands'] {
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --island-radius: 10px;
+  --island-gap: 6px;
+  --island-ground: var(--bg-0);
+  --island-hover: color-mix(in oklab, var(--text-0) 6%, transparent);
+  --island-active: color-mix(in oklab, var(--text-0) 10%, transparent);
+}
+
+/* O chão: as barras ficam nele, sem linhas. */
+:root[data-look='islands'] .app,
+:root[data-look='islands'] .titlebar,
+:root[data-look='islands'] .menubar,
+:root[data-look='islands'] .toolbar,
+:root[data-look='islands'] .statusbar,
+:root[data-look='islands'] .activitybar {
+  background: var(--island-ground);
+  border-color: transparent;
+}
+
+:root[data-look='islands'] .workbench {
+  padding: 0 var(--island-gap) var(--island-gap) 0;
+  background: var(--island-ground);
+}
+
+/* Sem a barra de atividades à esquerda, o vão da esquerda é da área de
+   trabalho. */
+:root[data-look='islands'] .workbench > .workbench__main:first-child {
+  margin-left: var(--island-gap);
+}
+
+/* As ilhas, todas no fundo do editor, com a borda das linhas de antes. */
+:root[data-look='islands'] .region,
+:root[data-look='islands'] .editor-area {
+  border: 1px solid var(--border);
+  border-radius: var(--island-radius);
+}
+
+:root[data-look='islands'] .region__view--side,
+:root[data-look='islands'] .sidebar {
+  background: var(--bg-editor);
+}
+
+/* Os vãos no lugar das linhas; ao passar o mouse, um traço curto no meio. */
+:root[data-look='islands'] .resize-handle,
+:root[data-look='islands'] .resize-handle:hover,
+:root[data-look='islands'] .resize-handle[data-separator='active'] {
+  background: transparent;
+}
+
+:root[data-look='islands'] .resize-handle--vertical {
+  width: var(--island-gap);
+}
+
+:root[data-look='islands'] .resize-handle--horizontal {
+  height: var(--island-gap);
+}
+
+:root[data-look='islands'] .resize-handle:hover::before,
+:root[data-look='islands'] .resize-handle[data-separator='active']::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 36px;
+  border-radius: 1px;
+  background: var(--text-3);
+  transform: translate(-50%, -50%);
+}
+
+:root[data-look='islands'] .resize-handle--horizontal:hover::before,
+:root[data-look='islands'] .resize-handle--horizontal[data-separator='active']::before {
+  width: 36px;
+  height: 2px;
+}
+
+/* Abas em pílula, no fundo da ilha. */
+:root[data-look='islands'] .editor-group__header,
+:root[data-look='islands'] .panel__header {
+  background: var(--bg-editor);
+  border-bottom-color: transparent;
+}
+
+:root[data-look='islands'] .tabbar {
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--space-1);
+}
+
+:root[data-look='islands'] .tab {
+  height: calc(var(--h-tab) - 10px);
+  border-right: 0;
+  border-radius: var(--radius-md);
+}
+
+:root[data-look='islands'] .tab:hover,
+:root[data-look='islands'] .panel__tab:hover {
+  background: var(--island-hover);
+}
+
+:root[data-look='islands'] .tab.is-active,
+:root[data-look='islands'] .panel__tab.is-active {
+  background: var(--island-active);
+  box-shadow: none;
+}
+
+:root[data-look='islands'] .panel__tab {
+  height: 24px;
+  border-radius: var(--radius-md);
+}
+
+/* A barra de atividades: o ícone ativo num quadrado redondo tingido do
+   destaque, como a navegação do Colab. */
+:root[data-look='islands'] .activitybar__item {
+  width: 34px;
+  height: 34px;
+  margin: 3px 0;
+  border-radius: var(--radius-lg);
+}
+
+:root[data-look='islands'] .activitybar__item:hover {
+  background: var(--island-hover);
+}
+
+:root[data-look='islands'] .activitybar__item.is-active {
+  background: color-mix(in oklab, var(--brand) 18%, transparent);
+  color: var(--brand-text);
+  box-shadow: none;
+}
+
+/* Movimento -------------------------------------------------------------- */
+
+/* Curto e leve: menus, diálogos, avisos e a vista que troca dentro de uma
+   região aberta entram com um esmaecer de 120 a 200 ms. Abrir, fechar e
+   mover regiões é na hora (docs/ARCHITECTURE.md, Movimento). Com o sistema
+   pedindo menos movimento, nada anima. */
+:root {
+  --movimento-curva: ease;
+}
+
+/* O que aparece por cima: menus descem um pouco, diálogos crescem um pouco,
+   avisos sobem um pouco, e a vista nova de uma região aparece. */
+.menu {
+  transform-origin: top left;
+  animation: surge 120ms var(--movimento-curva);
+}
+
+.dialog-overlay {
+  animation: aparece 140ms ease-out;
+}
+
+.dialog {
+  transform-origin: top center;
+  animation: surge 160ms var(--movimento-curva);
+}
+
+.toast {
+  animation: sobe 200ms var(--movimento-curva);
+}
+
+.region__view--troca {
+  animation: aparece 140ms ease-out;
+}
+
+@keyframes surge {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes aparece {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sobe {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .dialog-overlay,
+  .dialog,
+  .toast,
+  .region__view--troca {
+    animation: none;
+  }
 }

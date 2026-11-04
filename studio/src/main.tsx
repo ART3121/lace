@@ -5,7 +5,7 @@ import '@fontsource-variable/jetbrains-mono';
 import '@xterm/xterm/css/xterm.css';
 import './styles/tokens.css';
 import './styles/app.css';
-import '@lace/rtl-viewer/rtl-viewer.css';
+import '@aurora/rtl-viewer/rtl-viewer.css';
 
 import { invoke } from '@tauri-apps/api/core';
 import { createRoot } from 'react-dom/client';

@@ -1,14 +1,14 @@
-# Lace-Core: guia da API
+# AURORA-Core: guia da API
 
 Este guia explica como a API funciona como um todo: conceitos, o que cada
 operação executa, o que lê e escreve no disco, o formato dos resultados e dos
 erros. A referência item a item está na documentação do código:
 
 ```
-cargo doc -p lace-core --no-deps --open
+cargo doc -p aurora-core --no-deps --open
 ```
 
-Todo item público do `lace-core` tem documentação (o crate compila com
+Todo item público do `aurora-core` tem documentação (o crate compila com
 `#![deny(missing_docs)]`), e os exemplos da documentação rodam como teste em
 `cargo test`.
 
@@ -33,14 +33,14 @@ A API tem quatro peças:
 
 | Peça | Tipo | O que é |
 |---|---|---|
-| Toolchain | `Toolchain` | O bundle de ferramentas instalado com o Lace, aberto e conferido. É de onde o Lace executa as ferramentas; o que ele roda de fora do bundle está em 2.4, 2.5, 5.6.1 e 5.8. |
+| Toolchain | `Toolchain` | O bundle de ferramentas instalado com a AURORA, aberto e conferido. É de onde a AURORA executa as ferramentas; o que ele roda de fora do bundle está em 2.4, 2.5, 5.6.1 e 5.8. |
 | Projeto | `Project` | Um `.spf` da AURORA aberto, com seus arquivos Verilog e processadores. |
 | Processador | `Processor` | Um processador SAPHO do projeto: nome, linguagem, caminhos, parâmetros de simulação. |
 | Operação | funções livres | `build`, `simulate`, `simulate_project`, `check`, `hierarchy`, `synthesize`, `render_schematic`, `wave_signals`, `open_waveform`. Cada uma recebe a toolchain e o que operar, e devolve um resultado. As que executam ferramentas, todas menos `open_waveform`, recebem por último um `&Control`, que cancela a operação e mostra o que as ferramentas escrevem enquanto rodam (5.8). |
 
 Um projeto é Verilog; processadores SAPHO são opcionais. Quando existem, o
 cliente os compila com `build` antes de verificar, simular ou sintetizar,
-como a CLI faz. O módulo `lace_core::verilog` (4.2) trabalha sobre o texto
+como a CLI faz. O módulo `aurora_core::verilog` (4.2) trabalha sobre o texto
 Verilog: classifica arquivos, acha módulos, lê portas e gera os
 arquivos-modelo.
 
@@ -51,7 +51,7 @@ antes é erro (`NotBuilt`).
 O ciclo de uso é sempre o mesmo:
 
 ```rust
-use lace_core::*;
+use aurora_core::*;
 
 let exe = camino::Utf8PathBuf::try_from(std::env::current_exe()?)?;
 let toolchain = Toolchain::locate(&exe)?;      // <instalação>/toolchain
@@ -70,7 +70,7 @@ if !built.succeeded() {
 
 ## 2. O bundle (`Toolchain`)
 
-O Lace só executa ferramentas de um bundle versionado instalado com ele:
+A AURORA só executa ferramentas de um bundle versionado instalado com ele:
 YANC, surfer-aurora e uma release fixa do OSS CAD Suite (Icarus, Verilator,
 cocotb, Yosys, `dot`, openFPGALoader); no Windows, o Icarus, o Verilator e o
 cocotb vêm do bloco MSYS2 do lace-toolchain (`msys/`), e o `dot`, do
@@ -100,18 +100,18 @@ os symlinks, fica dentro do bundle. Um bundle pode ser parcial (os
 componentes que o usuário escolheu, ou só o YANC para testes de build): a
 ferramenta de um componente não instalado dá `ComponentMissing` quando for
 usada. `locate` resolve os symlinks do caminho do executável antes de
-procurar, para o atalho `~/.local/bin/lace` do instalador funcionar.
+procurar, para o atalho `~/.local/bin/aurora` do instalador funcionar.
 
 ### 2.2 Consultar
 
 | Método | Devolve |
 |---|---|
 | `manifest()` | o `BundleManifest`: identificador, plataforma e os componentes instalados, na ordem de `component::ALL` (`BundleComponent`: nome, versão, diretório, origem, SHA-256 do pacote e o hash de cada executável) |
-| `component(nome)` | um componente instalado (nomes em `lace_core::component`), ou `None` |
+| `component(nome)` | um componente instalado (nomes em `aurora_core::component`), ou `None` |
 | `verified_files()` | quantos executáveis os manifestos listam |
 | `tool(Tool)` | o caminho do executável, conferido no disco agora; recusa um symlink que sai do bundle (`InvalidBundle`) e, para o Verilator, a falta do `bin/verilator_bin` que o script Perl chama (sem ele, o script o procuraria no `PATH`) |
 | `available()` | as ferramentas presentes |
-| `tools()` | as ferramentas que o Lace roda: todas, menos o `appcomp` e o `cpppp`, que o YANC 7.1 não tem mais (ficam em `Tool` para os relatórios antigos); é a lista do `lace tools` e da aba Toolchain do Studio |
+| `tools()` | as ferramentas que a AURORA roda: todas, menos o `appcomp` e o `cpppp`, que o YANC 7.1 não tem mais (ficam em `Tool` para os relatórios antigos); é a lista do `aurora tools` e da aba Toolchain do Studio |
 | `hdl_dir()`, `macros_dir()`, `headers_dir()` | os diretórios do YANC (`SAPHO/`, `Macros/`, `Header/`) |
 | `surfer_web_dir()` | o cliente web do Surfer (`surfer-aurora/web/`: `index.html`, `surfer.js`, `surfer_bg.wasm`); `ToolchainIncomplete` num bundle que não o traz |
 | `system_compiler()` | o `SystemCompiler` do Verilator, se encontrado |
@@ -173,13 +173,13 @@ variáveis de ambiente para achá-lo, e quem abre o bundle passa o que achou.
 | `fpga::Quartus::in_dir(dir)` | a instalação numa pasta declarada: a da versão, a `quartus` dentro dela ou a dos programas |
 | `toolchain.with_quartus(Some(q))` / `toolchain.quartus()` | prende ao `Toolchain` e consulta |
 
-A CLI e o Studio usam a pasta declarada (`--quartus`, `LACE_QUARTUS`, a
+A CLI e o Studio usam a pasta declarada (`--quartus`, `AURORA_QUARTUS`, a
 preferência do Studio), senão `QUARTUS_ROOTDIR`, senão `detect`. Sem
 Quartus, `tool(Tool::Quartus)` e `fpga::build` (5.10) dão
 `QuartusMissing`.
 
 Os programas do Quartus rodam com `QUARTUS_ROOTDIR` na instalação achada,
-o `PATH` na pasta dos programas e no sistema base, e, do ambiente do Lace,
+o `PATH` na pasta dos programas e no sistema base, e, do ambiente da AURORA,
 a pasta e o nome do usuário (no Linux, também `LANG` e `TMPDIR`). A lista
 é dedução, não conferida com o Quartus rodando.
 
@@ -203,12 +203,12 @@ a pasta e o nome do usuário (no Linux, também `LANG` e `TMPDIR`). A lista
       <processador>.asm, .v, _data.mif, _inst.mif, _tb.v
       prog_log.txt, src_lines.txt, trad_opcode.txt, app_log.txt, pc_<processador>_mem.txt
       output_<n>.txt, toma_<n>.txt, <processador>_tb.fst   o que a simulação grava
-  .lace/Temp/<processador>/      o que só o Lace usa: .vvp, obj_dir, testbench instrumentado
-  .lace/Temp/                    simulação do projeto (.vvp, obj_dir, testbench instrumentado)
-  .lace/Temp/synth/<topo>/       síntese: script, log, netlist, esquemáticos
-  .lace/Temp/hierarchy/          hierarquia: um .vvp por elaboração, refeita a cada chamada
-  .lace/reports/                 o histórico de relatórios (5.9)
-  .lace/fpga/<placa>/            o projeto do Quartus e os arquivos de gravação (5.10)
+  .aurora8/Temp/<processador>/      o que só a AURORA usa: .vvp, obj_dir, testbench instrumentado
+  .aurora8/Temp/                    simulação do projeto (.vvp, obj_dir, testbench instrumentado)
+  .aurora8/Temp/synth/<topo>/       síntese: script, log, netlist, esquemáticos
+  .aurora8/Temp/hierarchy/          hierarquia: um .vvp por elaboração, refeita a cada chamada
+  .aurora8/reports/                 o histórico de relatórios (5.9)
+  .aurora8/fpga/<placa>/            o projeto do Quartus e os arquivos de gravação (5.10)
 ```
 
 É a estrutura do YANC 7.1, a de quem o usa no terminal (`cmmcomp soma.cmm`
@@ -233,7 +233,7 @@ A raiz é sempre o diretório do `.spf`. O `basePath` gravado dentro do arquivo
 
 `Processor` tem `name`, `language`, `dir` (a pasta do processador),
 `source` (`<dir>/<nome>.<ext>`), `output_dir` (`<dir>/<nome>`, a pasta de
-saída), `temp_dir` (`.lace/Temp/<nome>`), `frequency_mhz`, `clocks` e
+saída), `temp_dir` (`.aurora8/Temp/<nome>`), `frequency_mhz`, `clocks` e
 `show_arrays`. Os caminhos dos arquivos gerados: `assembly_path()`,
 `verilog_path()`, `testbench_path()` e `files_read_by_verilog()` (as duas
 memórias e a tabela do PC, que o Verilog gerado lê pelo nome e que quem o
@@ -250,13 +250,13 @@ pasta do processador) e `output_path(n)` (na de saída).
 | `Project::create(pai, nome)` | Cria `<pai>/<nome>/<nome>.spf` vazio, no formato da AURORA. Recusa se já existir. |
 | `project.add_processor(&NewProcessor)` | Cria a pasta do processador, o fonte-modelo dentro dela (3.5) e a entrada no `.spf`; a pasta de saída nasce no primeiro `build`. Recusa nome repetido, nome que não passa em `validate_new_processor_name` (3.4), parâmetro que não passa em `NewProcessor::validate` (`InvalidParameter`, abaixo) e fonte que já exista no disco. |
 | `project.configure_processor(nome, &ProcessorConfig)` | Grava `clk`, `numClocks` e `showArrays` no `.spf` (campos `None` ficam como estão). Uma entrada no formato antigo (só o nome) vira objeto. Valem a partir do próximo `build`. Frequência de 1 a `MAX_FREQUENCY_MHZ` (500000) e clocks de 1 a `MAX_CLOCKS` (2147483647); fora disso, `InvalidParameter`, e nada é gravado. |
-| `project.remove_processor(nome)` | Tira o processador do projeto e grava o `.spf`: a entrada em `structure.processors` (no formato antigo ou de objeto), os arquivos registrados de dentro da pasta dele (o Verilog e o testbench gerados), com a escolha de topo ou de testbench que apontava para eles, e a pasta temporária `.lace/Temp/<nome>`. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer em `unregistered_verilog`. Devolve `RemovedProcessor`: `name`, `dir` (para quem quiser apagar a pasta; a CLI e o Studio a mandam para a lixeira, se pedido) e `unregistered` (os `ProjectFile` que saíram, com o papel e a marca de topo). Nome que não existe: `ProcessorNotFound`, e nada muda. |
+| `project.remove_processor(nome)` | Tira o processador do projeto e grava o `.spf`: a entrada em `structure.processors` (no formato antigo ou de objeto), os arquivos registrados de dentro da pasta dele (o Verilog e o testbench gerados), com a escolha de topo ou de testbench que apontava para eles, e a pasta temporária `.aurora8/Temp/<nome>`. A pasta do processador fica no disco, e os `.v` gerados nela passam a aparecer em `unregistered_verilog`. Devolve `RemovedProcessor`: `name`, `dir` (para quem quiser apagar a pasta; a CLI e o Studio a mandam para a lixeira, se pedido) e `unregistered` (os `ProjectFile` que saíram, com o papel e a marca de topo). Nome que não existe: `ProcessorNotFound`, e nada muda. |
 | `project.issues()` | O que está estranho no `.spf` sem impedir de abrir (`Vec<ProjectIssue>`, abaixo). Só lê. |
 | `processor.is_built()` | O `<nome>.v` e o testbench existem na pasta de saída. Não diz se estão atualizados em relação ao fonte. |
 | `project.legacy_processors()`, `project.convert_layout()` | Os processadores na estrutura do YANC 6.x, e a conversão deles (3.6). |
 | `project.buildable_processors()` | Os processadores que têm o fonte no disco, na ordem do `.spf`: os que o botão Wave da AURORA compila antes de simular o projeto. Um na estrutura do YANC 6.x entra, e o build dele recusa com `LegacyLayout`, em vez de a simulação usar o Verilog velho de `Hardware/`. |
 
-Todo método que altera o projeto trava `.lace/spf.lock`, relê o `.spf` do
+Todo método que altera o projeto trava `.aurora8/spf.lock`, relê o `.spf` do
 disco, aplica a mudança e grava na hora (gravação atômica: arquivo
 temporário e `rename`): duas gravações ao mesmo tempo, como a do Studio e a
 da CLI, entram uma depois da outra, e nenhuma perde a da outra. Não existe
@@ -265,7 +265,7 @@ outro programa faça no `.spf`: para ler sem gravar, abra de novo.
 
 `NewProcessor::validate()` confere os parâmetros contra o que o YANC
 compila, e é o que `add_processor` aplica. Portas de entrada e de saída: de 0
-a `MAX_PORTS` (256, teto do Lace; o `asmcomp` gera testbench corrompido com
+a `MAX_PORTS` (256, teto da AURORA; o `asmcomp` gera testbench corrompido com
 100000). Só em C±: `#NBEXPO` de 2 a 8 (acima disso o `cmmcomp` converte
 constantes com o `float` da máquina), `#NBMANT` de pelo menos 2, `#NUBITS`
 até 32 e igual a `#NBMANT + #NBEXPO + 1` (o `asmcomp` exige), `#NUGAIN`
@@ -296,7 +296,7 @@ parâmetro (`#NUBITS`), o valor e a regra. Em C, só as portas contam.
 | `structure.processors` | sim | `add_processor`, `configure_processor`, `remove_processor` |
 | `structure.synthesizableFiles`, `testbenchFiles` | sim | `add_verilog`, `remove_verilog`, `set_top`, `add_file`, `remove_file`, `reorder_file`, `set_top_level`, `set_testbench`, `move_path`, `record_move`, `register_generated`, `remove_processor`, `convert_layout`; toda gravação conserta os caminhos achados pela cauda e tira as entradas repetidas (4.1) |
 | `structure.topLevelFile`, `testbenchFile` | sim | `add_verilog` (o primeiro de cada papel), `remove_verilog`, `set_top`, `set_top_level`, `set_testbench`, `move_path`, `record_move`, `register_generated`, `remove_processor`, `convert_layout` |
-| `structure.topLevelModule` (campo do Lace) | sim | `set_top` com nome de módulo; sai com `set_top_level` e quando o arquivo de topo sai da lista |
+| `structure.topLevelModule` (campo da AURORA) | sim | `set_top` com nome de módulo; sai com `set_top_level` e quando o arquivo de topo sai da lista |
 | qualquer outro (`commandOverrides`, `folders`, ...) | não | preservado como estava |
 
 A leitura é tolerante como a da AURORA: JSON estrito primeiro; se falhar, tira
@@ -323,7 +323,7 @@ Cada processador é uma string (formato antigo) ou um objeto:
 | `showArrays` | booleano | `false` | `show_arrays`, `--wave-arrays` do `cmmcomp` |
 
 `clk: 12.5` é erro (`InvalidProjectFile`). A AURORA trunca para 12 em
-silêncio; o Lace recusa para não compilar com um valor que ninguém escolheu.
+silêncio; a AURORA recusa para não compilar com um valor que ninguém escolheu.
 Também é `InvalidProjectFile` ao abrir: `clk` acima de 500000 ou `numClocks`
 acima de 2147483647 (as faixas de `configure_processor`), nome de
 processador vazio (tomaria a raiz como pasta dele), com `/`, `\` ou `:`, ou
@@ -339,20 +339,20 @@ num projeto da estrutura do YANC 6.x, em `Software/`; `.cmm` antes de
 
 | Nome | Regra | Por quê |
 |---|---|---|
-| Processador | a regra do YANC 7.1 (`Compilers/common/proc_name.c`): `[A-Za-z_][A-Za-z0-9_]*`, sem começar por `__`, fora as palavras reservadas do Verilog e do SystemVerilog (`module`, `logic`, `int`, `void`, ...); e mais, do Lace: até `MAX_PROCESSOR_NAME` (64) caracteres, fora os módulos da biblioteca SAPHO (`core`, `processor`, `ula`, ...) e os nomes reservados do Windows (`validate_processor_name`) | vira a pasta, o nome do fonte e o módulo Verilog, e o YANC recusa um fonte com nome que não serve de módulo; `core` instanciaria a si mesmo. Palavras do C± que não são do Verilog (`in`, `out`, `sqrt`) servem: conferido compilando e simulando |
+| Processador | a regra do YANC 7.1 (`Compilers/common/proc_name.c`): `[A-Za-z_][A-Za-z0-9_]*`, sem começar por `__`, fora as palavras reservadas do Verilog e do SystemVerilog (`module`, `logic`, `int`, `void`, ...); e mais, da AURORA: até `MAX_PROCESSOR_NAME` (64) caracteres, fora os módulos da biblioteca SAPHO (`core`, `processor`, `ula`, ...) e os nomes reservados do Windows (`validate_processor_name`) | vira a pasta, o nome do fonte e o módulo Verilog, e o YANC recusa um fonte com nome que não serve de módulo; `core` instanciaria a si mesmo. Palavras do C± que não são do Verilog (`in`, `out`, `sqrt`) servem: conferido compilando e simulando |
 | Módulo de topo | o escolhido pelo nome com `set_top` (campo `topLevelModule`), senão o único módulo do arquivo de topo, ou o que tem o nome do arquivo (`top_module`, 4.1) | vai em `hierarchy -top` da síntese e no `--top-module` do lint |
 | Arquivo de topo | qualquer Verilog, inclusive o `<nome>/<nome>/<nome>.v` gerado de um processador, menos nome de testbench: `tb_<nome>.v`, `<nome>_tb.v`, `tb.v` (`verilog::is_testbench_name`) | o testbench não é o design |
 | Módulo do testbench | a mesma regra, no testbench (`testbench_module`) | vai em `-s` e `--top-module` da simulação do projeto e do `check` |
 | Projeto | letras sem acento (`A-Z`, `a-z`), dígitos, `_` e `-`, começando por letra, até `MAX_PROJECT_NAME` (64) caracteres; fora `CON`, `COM1` e os outros nomes reservados do Windows (`validate_project_name`). `create` também recusa um nome que só difere na caixa de outro da mesma pasta (`Ok1` ao lado de `ok1`), e não deixa pasta para trás se não conseguir gravar o `.spf` | vira a pasta, o `.spf` e parte do caminho de tudo que as ferramentas recebem; espaço e acento exigem que cada script e ferramenta cite o argumento direito |
 
 A AURORA de antes da 7.1 aceitava `-` em nome de processador; o YANC 7.1
-recusa o arquivo, e o Lace também.
+recusa o arquivo, e a AURORA também.
 `validate_processor_name(nome)` é pública, como a
 de projeto, para avisar enquanto o usuário digita. Para um processador
 novo, `validate_new_processor_name(nome)` recusa também, sem diferença de
-maiúsculas, os nomes das pastas do Lace (`synth`, `hierarchy`, `lint`,
+maiúsculas, os nomes das pastas da AURORA (`synth`, `hierarchy`, `lint`,
 `wave`, `surfer`, `cocotb`): o processador dividiria a pasta com uma
-operação do Lace (`.lace/Temp/<nome>`, ou `wave/`, a das escolhas de
+operação da AURORA (`.aurora8/Temp/<nome>`, ou `wave/`, a das escolhas de
 sinais). Um processador que já existe com um desses nomes continua abrindo
 e compilando.
 
@@ -452,8 +452,8 @@ na AURORA (4.4).
 |---|---|
 | `add_verilog(toolchain, caminho, testbench) -> Result<AddedFile>` | registra um arquivo (`.v`, `.sv`, ou `.py`, testbench cocotb); se ele não existe, cria a partir do modelo |
 | `remove_verilog(caminho) -> Result<bool>` | tira das duas listas e das escolhas de topo e testbench, sem apagar do disco; diz se estava registrado |
-| `add_verilog_files(toolchain, caminhos, testbench) -> Result<Vec<AddedFile>>` | registra vários, na ordem, conferindo todos antes de registrar o primeiro: um nome ruim no meio da lista não deixa metade registrada (`lace add`, `project.add`) |
-| `remove_verilog_files(caminhos) -> Result<RemoveOutcome>` | tira vários, na ordem, e diz quais estavam registrados e quais não (`lace remove`, `project.remove`) |
+| `add_verilog_files(toolchain, caminhos, testbench) -> Result<Vec<AddedFile>>` | registra vários, na ordem, conferindo todos antes de registrar o primeiro: um nome ruim no meio da lista não deixa metade registrada (`aurora add`, `project.add`) |
+| `remove_verilog_files(caminhos) -> Result<RemoveOutcome>` | tira vários, na ordem, e diz quais estavam registrados e quais não (`aurora remove`, `project.remove`) |
 | `set_top(alvo) -> Result<Utf8PathBuf>` | escolhe o topo por arquivo ou por nome de módulo; devolve o arquivo |
 | `top_module() -> Result<Option<String>>` | o nome do módulo de topo |
 | `testbench_module() -> Result<Option<String>>` | o nome do módulo do testbench escolhido; num `.py`, o módulo Python dos testes (o nome do arquivo) |
@@ -469,7 +469,7 @@ na AURORA (4.4).
 | `set_top_level(caminho)` | arquivo de topo: `topLevelFile` + `isTopLevel` exclusivo; registra se não estava; recusa nome de testbench (3.4) |
 | `resolve_path(texto)` | converte um caminho como está no `.spf` para absoluto |
 | `move_path(de, para) -> Result<MovedPath>` | move ou renomeia um arquivo ou pasta do projeto; os arquivos registrados continuam registrados no lugar novo |
-| `record_move(de, para) -> Result<MovedPath>` | registra no `.spf` um movimento que já aconteceu fora do Lace, sem tocar no disco |
+| `record_move(de, para) -> Result<MovedPath>` | registra no `.spf` um movimento que já aconteceu fora da AURORA, sem tocar no disco |
 | `replace_refusal(de, destino) -> Option<&str>` | por que o que está em `destino` não pode sair para dar lugar a `de`, num `move_path` que achou o destino ocupado (`PathExists`), ou `None` se pode: a pergunta de quem oferece substituir o destino (o Studio, que o manda para a lixeira); o Core nunca sobrescreve |
 | `register_generated(builds) -> Result<Vec<AddedFile>>` | registra o `<nome>.v` e o `<nome>_tb.v` que cada build bem-sucedido gerou na pasta de saída e o projeto ainda não tem (5.1.1) |
 
@@ -515,7 +515,7 @@ continua entrando uma vez só no design, porque `check`, a simulação, a
 síntese e a hierarquia tiram os repetidos. Nome de testbench (`tb_<nome>.v`,
 `<nome>_tb.v`, `tb.v`) é `InvalidName`, e nada muda; senão, procura um módulo com esse nome nos
 sintetizáveis registrados e grava o arquivo e o nome do módulo
-(`structure.topLevelModule`, campo do Lace que a AURORA ignora), para
+(`structure.topLevelModule`, campo da AURORA que a AURORA ignora), para
 arquivos com vários módulos. Se nenhum declara, é `ModuleNotFound`, com os
 módulos do projeto em `available` (sem repetição); se mais de um declara, é
 `AmbiguousModule`, com os arquivos, e o topo se escolhe pelo arquivo. Um
@@ -531,7 +531,7 @@ arquivo, vale o único que nenhum outro do arquivo instancia
 simula `principal`).
 
 `unregistered_verilog()` procura na pasta do projeto e nas subpastas (até 4
-níveis), menos `.lace/`, as ocultas, as pastas dos processadores e a
+níveis), menos `.aurora8/`, as ocultas, as pastas dos processadores e a
 `TopLevel/` legada, cujos `.v` já entram sozinhos.
 
 `move_path(de, para)` move ou renomeia um arquivo ou uma pasta dentro do
@@ -545,9 +545,9 @@ criadas. Os dois são absolutos ou relativos à raiz.
   `topLevelFile`, `testbenchFile` e `topLevelModule` acompanham. O papel e a
   marca de topo ou de testbench escolhido não mudam.
 - Ficam onde estão, porque o Core os acha pelo lugar: o `.spf`, a pasta
-  `.lace` e, de cada processador, a pasta, a pasta de saída e o fonte
+  `.aurora8` e, de cada processador, a pasta, a pasta de saída e o fonte
   (`CannotMove`). O resto de dentro delas (entradas, saídas, gerados) pode
-  mudar de lugar. Nada vai para dentro de `.lace`, e
+  mudar de lugar. Nada vai para dentro de `.aurora8`, e
   uma pasta não vai para dentro dela mesma (`CannotMove`).
 - O destino que já existe não é sobrescrito (`PathExists`), inclusive um
   link quebrado; renomear só a caixa (`a.v` para `A.v`) funciona também num
@@ -559,7 +559,7 @@ criadas. Os dois são absolutos ou relativos à raiz.
 - `de` igual a `para` não faz nada.
 
 `record_move(de, para)` é o `move_path` para o que já foi movido fora do
-Lace (no explorador de um editor, com o `mv`), como o `hg mv --after`: só o
+AURORA (no explorador de um editor, com o `mv`), como o `hg mv --after`: só o
 `.spf` muda, do mesmo jeito. As regras do que fica no lugar são as mesmas;
 o disco tem que bater com o movimento: `de` que ainda existe é
 `CannotMove`, e `para` que não existe é `InvalidProject`. Só a caixa
@@ -605,7 +605,7 @@ caminho de hoje.
 
 ### 4.2 O módulo `verilog`
 
-`lace_core::verilog` trabalha sobre texto. Só `read_interfaces` executa
+`aurora_core::verilog` trabalha sobre texto. Só `read_interfaces` executa
 uma ferramenta, o Yosys, e só quando ele está instalado.
 
 | Função | Devolve |
@@ -690,7 +690,7 @@ repete).
 ### 4.4 O módulo `cocotb`
 
 Um `.py` em `testbenchFiles` é um testbench cocotb: só os testes
-(`@cocotb.test()`), e o Lace monta a simulação (5.3.2). O módulo que os
+(`@cocotb.test()`), e a AURORA monta a simulação (5.3.2). O módulo que os
 testes recebem como `dut` vem da diretiva da AURORA, uma linha só de
 comentário `# aurora-toplevel: <módulo>` (com `:` ou `=`, sem distinção de
 caixa), ou, sem ela, do topo do projeto, com um aviso. O nome do arquivo é o
@@ -742,7 +742,7 @@ Comandos, com `D` = pasta do processador e `O` = pasta de saída (`D/<nome>`):
 a usa para dizer o que não chegou a rodar.
 
 Cada ferramenta acha `SAPHO/`, `Macros/` e `Header/` ao lado do próprio
-executável (o Lace confere antes que o bundle os tem). O compilador grava em
+executável (a AURORA confere antes que o bundle os tem). O compilador grava em
 `O` o `.asm`, `prog_log.txt` (com a pasta do fonte, `srcdir`, onde o
 `asmcomp` lê os arquivos que inicializam arrays), `src_lines.txt` e
 `pc_<nome>_mem.txt`; o `asmcomp`, ao lado do `.asm`, o Verilog, as
@@ -758,10 +758,10 @@ síntese e a placa, que leem o Verilog de outro lugar, copiam antes as
 memórias e a tabela (`Processor::files_read_by_verilog`).
 
 Um `#PRNAME` ou `#pragma yanc prname` que sobrou de um fonte da 6.x é erro
-do compilador, que diz para apagar a linha; o Lace deixa a mensagem vir
+do compilador, que diz para apagar a linha; a AURORA deixa a mensagem vir
 dele, com a linha, como qualquer erro do fonte.
 
-O Lace pede as mensagens em inglês (`--lang=en`), mesmo com `YANC_LANG=pt`
+A AURORA pede as mensagens em inglês (`--lang=en`), mesmo com `YANC_LANG=pt`
 no ambiente, para que o parser trabalhe sobre um idioma só.
 
 `BuildOptions` sobrepõe `frequency_mhz`, `clocks` e `show_arrays` só neste
@@ -867,8 +867,8 @@ aviso diz que os clocks acabaram antes do fim do programa e que as saídas
 param ali; o status continua `succeeded`.
 
 Um build (5.1) ou uma simulação de um processador trava
-`.lace/Temp/<nome>.lock` enquanto roda, e `simulate_project` trava a do
-projeto (`.lace/Temp/.project.lock`) e a de cada processador. Uma segunda
+`.aurora8/Temp/<nome>.lock` enquanto roda, e `simulate_project` trava a do
+projeto (`.aurora8/Temp/.project.lock`) e a de cada processador. Uma segunda
 operação no mesmo processador, de outro processo (o Studio e a CLI) ou da
 mesma, não espera: é `OperationInProgress`, e nada é alterado. Sem a trava,
 as duas regravariam a pasta de saída e a temporária ao mesmo tempo e
@@ -903,7 +903,7 @@ Na simulação rápida saem `--trace`, `--no-trace-top` e `--autoflush`
 
 No Linux e no macOS, o script `verilator` roda pelo Perl do
 `SystemCompiler`, com `PATH` = o diretório do script (`bin/` do OSS CAD
-Suite), depois os diretórios do compilador, e `LC_ALL=C`. No Windows o Lace
+Suite), depois os diretórios do compilador, e `LC_ALL=C`. No Windows a AURORA
 não passa pelo script: roda direto o `verilator_bin.exe` de `ucrt64/bin`, com
 `PATH` = esse diretório, depois os do compilador e o `System32`, `LC_ALL=C` e
 o `VERILATOR_ROOT` que o script deduziria do próprio caminho. Pelo script, o
@@ -923,7 +923,7 @@ C++ de novo, o `make` não recompila nada e a simulação só roda o executável
 |---|---|---|
 | `simulator` | (obrigatório em `new`) | `Icarus` ou `Verilator` |
 | `build_jobs` | `None` (`-j 0`, todos os núcleos) | paralelismo da compilação C++ do Verilator |
-| `timeout` | `None` (sem limite) | prazo do passo `simulate` (o `vvp` ou o modelo do Verilator), sem contar elaboração e compilação. Passou dele, o Lace encerra a simulação e o resultado vem com `status: timed_out` e o que o testbench escreveu até ali (5.8) |
+| `timeout` | `None` (sem limite) | prazo do passo `simulate` (o `vvp` ou o modelo do Verilator), sem contar elaboração e compilação. Passou dele, a AURORA encerra a simulação e o resultado vem com `status: timed_out` e o que o testbench escreveu até ali (5.8) |
 | `fast` | `false` | a simulação rápida, sem onda (abaixo) |
 
 O formato da onda não é opção: o Icarus grava FST (`vvp -fst`) e o
@@ -932,8 +932,8 @@ testbench e a extensão do formato. Um `$dumpfile` com outra
 extensão é trocado numa cópia do testbench, com as mesmas linhas: o
 `<nome>_tb.vcd` que o testbench do `asmcomp` pede vira `<nome>_tb.fst` no
 Icarus, e um `saida.fst` vira `saida.vcd` no Verilator. A cópia é a que o
-Lace já simula, `T/instr_<nome>_tb.v` num processador e
-`.lace/Temp/instr_<testbench>` no projeto (5.3), e o arquivo do usuário não
+AURORA já simula, `T/instr_<nome>_tb.v` num processador e
+`.aurora8/Temp/instr_<testbench>` no projeto (5.3), e o arquivo do usuário não
 muda. Uma chamada de `$dumpfile` quebrada em linhas não é trocada, e o
 Icarus grava VCD no nome que ela der. `SimulationResult.waveform` traz o
 caminho e o formato.
@@ -947,13 +947,13 @@ Verilator, qualquer que seja o `simulator`: o passo `verilate` não leva
 do `obj_dir_<topo>` da simulação com onda (alternar entre as duas não
 recompila tudo a cada vez), e o modelo ignora os `$dumpfile` e `$dumpvars`
 do testbench (escreve na saída `$dumpvar ignored, as Verilated without
---trace`). O Lace não injeta o dump padrão nem troca a extensão do
+--trace`). A AURORA não injeta o dump padrão nem troca a extensão do
 `$dumpfile`; o `+define+YANC_TRACE` continua, porque o testbench que o YANC
 gera lê os sinais de simulação do processador para achar o fim do programa.
 Um testbench cocotb roda os testes no `simulator` (5.3.2). O resultado vem
 com `fast: true`, o simulador que rodou em `simulator` e `waveform: null`.
 A AURORA comenta os `$dumpfile` e `$dumpvars` numa cópia do testbench; o
-Lace não precisa: o Verilator 5 do bundle os ignora sozinho. Sem
+AURORA não precisa: o Verilator 5 do bundle os ignora sozinho. Sem
 `--autoflush`, como na AURORA, o `$display` chega em blocos, e não linha a
 linha: num testbench que imprime a cada ciclo, o flush de cada linha chegava
 a dobrar o tempo da simulação (medido no Linux em 2026-10-12: 1 milhão de
@@ -990,20 +990,20 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
      o Icarus faz, o caminho relativo à raiz, e se ele não existe entra em
      `missing_inputs`;
    - um arquivo do usuário na raiz não é sobrescrito: se a raiz já tem um
-     `x` diferente, ele fica, a simulação lê esse, e sai um aviso. O Lace só
+     `x` diferente, ele fica, a simulação lê esse, e sai um aviso. A AURORA só
      atualiza as cópias que ele mesmo fez, anotadas em
-     `.lace/Temp/data_copies.txt`.
+     `.aurora8/Temp/data_copies.txt`.
 5. O `$dumpfile` vale com texto entre aspas ou com um `localparam`,
    `parameter` ou `` `define `` de texto (`$dumpfile(ONDA)`). Com uma
-   expressão que o Lace não resolve, nada é injetado, a onda não entra no
+   expressão que a AURORA não resolve, nada é injetado, a onda não entra no
    resultado, e `waveform_path` dá `InvalidProject` (antes, o dump injetado e
    o `-fst` dele gravavam FST no `.vcd` do usuário). Um `$dumpfile` sem
    `$dumpvars` dá um aviso: nenhum sinal é gravado e a onda não sai. Um
    `$dumpfile` com a extensão de outro formato vai para uma cópia em
-   `.lace/Temp/instr_<testbench>`, com a extensão trocada (5.2): `saida.vcd`
+   `.aurora8/Temp/instr_<testbench>`, com a extensão trocada (5.2): `saida.vcd`
    vira `saida.fst` no Icarus.
    Se o testbench não tem `$dumpfile`, simula uma cópia em
-   `.lace/Temp/instr_<testbench>` com `$dumpfile("<tb>.fst");
+   `.aurora8/Temp/instr_<testbench>` com `$dumpfile("<tb>.fst");
    $dumpvars(0, <tb>);` antes do `endmodule` do módulo do testbench
    (comentário e texto entre aspas não contam), em que `<tb>` é esse módulo
    (`<tb>.vcd` no Verilator). O bloco entra sem quebrar linha, e os
@@ -1014,26 +1014,26 @@ Simula o testbench do projeto, como o botão Wave da AURORA.
    onda. Na simulação rápida (5.2), nada disso: o testbench roda como está,
    e não há onda.
 6. Roda os mesmos comandos de 5.2, com CWD na raiz e `.vvp`/`obj_dir` em
-   `.lace/Temp/`, e o mesmo `timeout`. A onda fica na raiz, com o nome do
+   `.aurora8/Temp/`, e o mesmo `timeout`. A onda fica na raiz, com o nome do
    `$dumpfile` e a extensão do formato.
 
 Os processadores não são compilados aqui. Chame `build` para cada um antes.
 
 Uma onda VCD do Icarus acima de 100 MB vem com um aviso: um `$dumpfile`
 terminado em `.fst` grava os mesmos sinais várias vezes menor. Só acontece
-quando o Lace não troca a extensão do `$dumpfile` (a chamada quebrada em
+quando a AURORA não troca a extensão do `$dumpfile` (a chamada quebrada em
 linhas).
 
 ### 5.3.2 Testbench cocotb
 
 Com um testbench `.py`, `simulate_project` roda os testes cocotb no Icarus
 ou no Verilator, pelos passos de sempre.
-Com `<B>` = `<raiz>/.lace/Temp/cocotb/<módulo de teste>` e `<dut>` o módulo
+Com `<B>` = `<raiz>/.aurora8/Temp/cocotb/<módulo de teste>` e `<dut>` o módulo
 da diretiva (ou o topo):
 
 | Simulador | Passo | Comando | CWD |
 |---|---|---|---|
-| Icarus | `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s lace_cocotb_dump -o <B>/<dut>.vvp <design> <B>/lace_cocotb_dump.v` | raiz |
+| Icarus | `elaborate` | `iverilog -grelative-include -I <raiz> [-g2012] [-y <SAPHO>] -s <dut> -f <B>/cmds.f -s aurora_cocotb_dump -o <B>/<dut>.vvp <design> <B>/aurora_cocotb_dump.v` | raiz |
 | Icarus | `simulate` | `vvp -n [-i] -m <VPI do cocotb> <B>/<dut>.vvp -fst` | raiz |
 | Verilator | `verilate` | `perl verilator --cc --exe --build --vpi --public-flat-rw --prefix Vtop -o V<dut> --timescale 1ns/1ps -LDFLAGS <VPI do cocotb> ... --trace --no-trace-top <as flags de 5.2> --top-module <dut> -Mdir <B>/obj_dir_<dut> [-y <SAPHO>] <verilator.cpp do cocotb> <design>` (no Windows, `verilator_bin.exe` no lugar de `perl verilator`) | `<B>` |
 | Verilator | `simulate` | `<B>/obj_dir_<dut>/V<dut> --trace --trace-file <raiz>/<módulo de teste>.vcd` | raiz |
@@ -1042,7 +1042,7 @@ da diretiva (ou o topo):
 sem o testbench, e os `pc_<nome>_mem.txt` dos processadores também vão para
 a raiz. O `cmds.f` traz `+timescale+1ns/1ps`, o padrão do runner do cocotb,
 para os módulos sem `` `timescale `` (no Verilator, `--timescale`). O
-`lace_cocotb_dump` grava `<raiz>/<módulo de teste>.fst` com
+`aurora_cocotb_dump` grava `<raiz>/<módulo de teste>.fst` com
 `$dumpvars(0, <dut>)`.
 
 No Verilator, o modelo tem o `main` do cocotb (`share/lib/verilator/verilator.cpp`),
@@ -1051,19 +1051,19 @@ com `--trace` em `<raiz>/<módulo de teste>.vcd`. A VPI do cocotb entra na
 ligação: no Windows a estática, `libcocotbvpi_verilator.a`, com `-L<libs>
 -lgpi`; no Linux e no macOS a compartilhada, com `-Wl,-rpath,<libs>
 -L<libs>`, como no `Makefile.verilator` do cocotb. No Windows, o
-`PYTHONPATH` começa por `.lace/Temp/cocotb/site/`, com um
+`PYTHONPATH` começa por `.aurora8/Temp/cocotb/site/`, com um
 `sitecustomize.py` que põe a pasta do Python entre as que o Windows procura
 ao carregar DLLs (`os.add_dll_directory`): o Python dentro do modelo não
 acha as DLLs das extensões dele pelo `PATH` (o `binascii` carrega a do
 `zlib`), e o modelo, ao contrário do `vvp`, não fica na pasta do Python.
 
 Na simulação rápida (5.2) os testes rodam sem onda: no Icarus sem o
-`lace_cocotb_dump` e com `vvp ... -none`; no Verilator com o modelo sem
+`aurora_cocotb_dump` e com `vvp ... -none`; no Verilator com o modelo sem
 `--trace`, em `<B>/obj_dir_fast_<dut>`.
 
 O que o simulador precisa para carregar o cocotb vem de uma sonda
 (`cocotb_probe.py`) rodada com o Python do componente `cocotb` e guardada
-em `.lace/Temp/cocotb/probe.json` até o bundle mudar: a VPI para o Icarus,
+em `.aurora8/Temp/cocotb/probe.json` até o bundle mudar: a VPI para o Icarus,
 a VPI e o `verilator.cpp` para o Verilator, a biblioteca do Python, o ponto
 de entrada e o `sys.path`. Com isso o simulador recebe `PYGPI_PYTHON_BIN`, `PYTHONPATH` (a pasta do `.py`, a raiz e o
 `sys.path` do Python), `TOPLEVEL_LANG=verilog`, `COCOTB_RESULTS_FILE`, as
@@ -1090,18 +1090,18 @@ Verilator 5.050 do bundle, nos dois simuladores; no Linux e no macOS, com o
 
 ### 5.3.1 `waveform_path(&Project, Option<&Processor>) -> Result<Utf8PathBuf>`
 
-Onde a simulação grava a onda, sem simular: é o que `lace wave` abre sem
+Onde a simulação grava a onda, sem simular: é o que `aurora wave` abre sem
 argumento. Com um processador, a do testbench que o `asmcomp` gerou
 (`<nome>/<nome>/<nome>_tb.fst` ou `.vcd`, na pasta de saída); sem, a do
 testbench do projeto: o nome do `$dumpfile` dele, ou, sem `$dumpfile`, a
-onda que o Lace injeta na pasta onde ele roda (5.3, passos 3 e 5). Das duas extensões, `.fst` do Icarus e
+onda que a AURORA injeta na pasta onde ele roda (5.3, passos 3 e 5). Das duas extensões, `.fst` do Icarus e
 `.vcd` do Verilator, vale a mais recente (a do Icarus se nenhuma existe
 ainda). Com um testbench cocotb, `<raiz>/<módulo de teste>.fst` (Icarus)
 ou `.vcd` (Verilator), a mais recente (5.3.2).
 
 Erros: `NoTestbench` sem testbench; `NotBuilt` se o processador ainda não
 foi compilado; `InvalidProject` se o `$dumpfile` do testbench é uma
-expressão que o Lace não resolve (5.3, passo 5).
+expressão que a AURORA não resolve (5.3, passo 5).
 
 ### 5.4 `check(&Toolchain, &Project, &CheckOptions, &Control) -> Result<CheckResult>`
 
@@ -1129,7 +1129,7 @@ palavras num passe por arquivo (um projeto de 1500 arquivos leva
 milissegundos), e entram em `CheckResult.targets`.
 
 O `iverilog` só avisa de uma macro indefinida ("macro NBITS undefined (and
-assumed null)") e segue com a macro vazia; o Lace trata como erro, com a
+assumed null)") e segue com a macro vazia; a AURORA trata como erro, com a
 explicação de que um `` `define `` só vale para os arquivos depois dele na
 lista do projeto, e o passo falha mesmo com o `iverilog` saindo com 0.
 Antes, `check` e `sim` passavam com a largura errada, e só a síntese
@@ -1174,7 +1174,7 @@ arquivo, o único que o outro não instancia.
 Com `lint` e sem o Verilator instalado, a verificação roda do mesmo jeito,
 sem o passo `lint`, e um diagnóstico de aviso diz que o lint não rodou.
 
-Os processadores não são compilados aqui, nem pelo `lace check` (5.11):
+Os processadores não são compilados aqui, nem pelo `aurora check` (5.11):
 um processador sem o Verilog gerado num projeto com outro Verilog fica de
 fora, com um aviso, e, sem nada para verificar, o erro é `NotBuilt`.
 
@@ -1192,7 +1192,7 @@ grava a imagem (`-o`, sem `-tnull`) e lê dela a árvore. Não compila os
 processadores, não grava relatório no histórico (é uma consulta, como
 `Project::files`) e não gera nada fora da pasta de trabalho.
 
-Com `<design>` = os arquivos do `check` e `<T>` = `<raiz>/.lace/Temp/hierarchy`,
+Com `<design>` = os arquivos do `check` e `<T>` = `<raiz>/.aurora8/Temp/hierarchy`,
 refeita a cada chamada:
 
 | Passo | Comando | Quando |
@@ -1283,7 +1283,7 @@ na raiz, e o Verilog de cada processador lê as memórias pelo nome, relativo
 a ela: antes da síntese, as memórias e o `pc_<nome>_mem.txt` de cada
 processador compilado vão para a raiz (`Processor::files_read_by_verilog`).
 
-Script gravado em `.lace/Temp/synth/<topo>/yosys_script.ys`:
+Script gravado em `.aurora8/Temp/synth/<topo>/yosys_script.ys`:
 
 ```
 read_verilog -setattr src "<arquivo>"     (um por arquivo)
@@ -1318,7 +1318,7 @@ um erro relaciona a queda com a recursão.
 
 O `write_json` do Yosys grava cada byte fora do ASCII como `\uFFFFFFxx`, o que
 estraga os caminhos com acento nos atributos `src` e faz o `read_json` do
-próprio Yosys recusar o netlist. Depois da síntese, o Lace devolve esses
+próprio Yosys recusar o netlist. Depois da síntese, a AURORA devolve esses
 bytes ao texto UTF-8 que eram.
 
 `SynthesisResult.statistics` é o que o `stat` do Yosys contou no mesmo
@@ -1342,7 +1342,7 @@ LUT, DSP, ocupação ou temporização. `None` quando a síntese falhou ou o
    Gera `<dir>/<módulo>.dot`.
 3. Passo `render`: `dot -Tsvg <módulo>.dot -o <módulo>.svg`, CWD `<dir>`. Uma
    mensagem `Error:` do `dot` conta como falha mesmo com código 0. No Linux,
-   o Lace grava `<dir>/fonts.conf` a partir do modelo do OSS CAD Suite e
+   a AURORA grava `<dir>/fonts.conf` a partir do modelo do OSS CAD Suite e
    passa `FONTCONFIG_FILE` e `FONTCONFIG_PATH`: o `dot` usa as fontes do
    bundle, com o cache em `<dir>/fontconfig-cache`. Sem isso ele leria a
    configuração de fontes do sistema, e o SVG mudaria de máquina para
@@ -1375,19 +1375,19 @@ embutidos, que o componente `rtl-viewer` do bundle traz. Não roda ferramenta.
 
 | Função | O que faz |
 |---|---|
-| `rtl_viewer::template(&Toolchain) -> Result<Utf8PathBuf>` | o modelo: o de `LACE_RTL_VIEWER` (`TEMPLATE_ENV`), se definida, ou o do componente. `ComponentMissing("rtl-viewer")` sem o componente; `ToolchainIncomplete` sem o arquivo |
+| `rtl_viewer::template(&Toolchain) -> Result<Utf8PathBuf>` | o modelo: o de `AURORA_RTL_VIEWER` (`TEMPLATE_ENV`), se definida, ou o do componente. `ComponentMissing("rtl-viewer")` sem o componente; `ToolchainIncomplete` sem o arquivo |
 | `rtl_viewer::write(&modelo, &netlist, título) -> Result<Utf8PathBuf>` | preenche o modelo com o netlist (`SynthesisResult::netlist`) e grava `rtl-viewer.html` na pasta dele, sobrescrevendo o de antes. Os `<` do JSON viram `\u003c`, para um `</script>` dentro de uma string do netlist não fechar o elemento. `ToolchainIncomplete` se o modelo não tem os lugares do netlist e da configuração |
-| `open_with_system(&caminho) -> Result<()>` | abre um arquivo com o programa padrão do sistema (`xdg-open`, `open`, o Explorer), sem esperar por ele. É uma das exceções à regra de só rodar ferramentas do bundle, com o compilador do Verilator (2.4), o Quartus (2.5) e o `taskkill` (5.8): o navegador do usuário não vem nele. O abridor é chamado pelo nome, sem caminho fixo, e herda o ambiente do Lace. `Spawn` se o abridor não pôde rodar |
+| `open_with_system(&caminho) -> Result<()>` | abre um arquivo com o programa padrão do sistema (`xdg-open`, `open`, o Explorer), sem esperar por ele. É uma das exceções à regra de só rodar ferramentas do bundle, com o compilador do Verilator (2.4), o Quartus (2.5) e o `taskkill` (5.8): o navegador do usuário não vem nele. O abridor é chamado pelo nome, sem caminho fixo, e herda o ambiente da AURORA. `Spawn` se o abridor não pôde rodar |
 
 ### 5.7 `open_waveform(&Toolchain, &onda, &ViewerOptions) -> Result<RunningProcess>`
 
 `surfer-aurora <onda> [-c <arquivo.sucl> | -s <arquivo.surf.ron>]`, destacado,
 CWD na pasta da onda. Retorna na hora. O stdout e o stderr vão para
 `<onda>.log` (`contador_tb.fst.log`) numa pasta oculta, nunca ao lado da
-onda: `.lace/Temp/surfer/` do projeto que contém a onda; com a onda fora de
-projeto, a pasta de cache do usuário (`$XDG_CACHE_HOME/lace/surfer` ou
-`~/.cache/lace/surfer` no Linux, `~/Library/Caches/lace/surfer` no macOS,
-`%TEMP%\lace\surfer` no Windows). Abrir a mesma onda de novo sobrescreve o
+onda: `.aurora8/Temp/surfer/` do projeto que contém a onda; com a onda fora de
+projeto, a pasta de cache do usuário (`$XDG_CACHE_HOME/aurora/surfer` ou
+`~/.cache/aurora/surfer` no Linux, `~/Library/Caches/aurora/surfer` no macOS,
+`%TEMP%\aurora\surfer` no Windows). Abrir a mesma onda de novo sobrescreve o
 log; `RunningProcess::log_file()` diz onde ele ficou.
 Não recebe `Control`: o surfer-aurora não é um passo da operação, e o
 cancelamento não o fecha.
@@ -1441,9 +1441,9 @@ pasta da onda, se ela tem `pc_<nome>_mem.txt`):
 
 | Tabela do YANC | Tradutor | Sinal |
 |---|---|---|
-| `trad_opcode.txt` (`<índice> <mnemônico> <operando>`) | `lace_asm_<proc>`, `Bits` = largura do `valr2` | `valr2` |
-| `src_lines.txt` (`<linha> <texto>`; -1, -2 e -3 viram `0xFFFFF`, `0xFFFFE`, `0xFFFFD` em 20 bits) | `lace_src_<proc>` | `linetabs` |
-| os valores dos complexos no corpo da onda | `lace_complex`, um `0b<bits> <re> <im>i` por valor | `comp_me3_*`, `comp_arr_me3_*` |
+| `trad_opcode.txt` (`<índice> <mnemônico> <operando>`) | `aurora_asm_<proc>`, `Bits` = largura do `valr2` | `valr2` |
+| `src_lines.txt` (`<linha> <texto>`; -1, -2 e -3 viram `0xFFFFF`, `0xFFFFE`, `0xFFFFD` em 20 bits) | `aurora_src_<proc>` | `linetabs` |
+| os valores dos complexos no corpo da onda | `aurora_complex`, um `0b<bits> <re> <im>i` por valor | `comp_me3_*`, `comp_arr_me3_*` |
 
 Linha de tabela sem texto sai: o Surfer recusa o tradutor inteiro por ela.
 Sem a tabela, o sinal aparece como número (`Unsigned`, `Signed`).
@@ -1484,13 +1484,13 @@ nem sinal na raiz nem processador.
 
 ### 5.7.2 `prepare_wave_layout(&onda) -> Result<Option<PreparedLayout>>`
 
-Grava o layout em `.lace/Temp/surfer/<onda sem extensão>-<hash do caminho>/` do projeto que
+Grava o layout em `.aurora8/Temp/surfer/<onda sem extensão>-<hash do caminho>/` do projeto que
 contém a onda (fora de projeto, na pasta de cache do usuário, como o log do
 Surfer): `<onda>.surf.ron` e os tradutores em `.surfer/mappings/<nome>`, sem
 os de antes. `ViewerOptions::with_layout(&preparado)` abre com ele:
 
 ```rust
-if let Some(layout) = lace_core::prepare_wave_layout(&onda)? {
+if let Some(layout) = aurora_core::prepare_wave_layout(&onda)? {
     open_waveform(&toolchain, &onda, &ViewerOptions::with_layout(&layout))?;
 }
 ```
@@ -1513,7 +1513,7 @@ grava e o que o layout mostra. O nome do testbench é o do módulo dele
 
 | Função | Faz |
 |---|---|
-| `wave_signals(&toolchain, &projeto, &control)` | elabora o testbench do projeto com o Icarus (a elaboração da `hierarchy`, em `.lace/Temp/wave/signals.vvp`) e devolve a árvore: escopos (instâncias, blocos `generate` e blocos com nome, cada um com o caminho, o módulo e se é um processador SAPHO) e sinais (nome, caminho, largura, `reg`/`wire`/`integer`/`real`, a direção quando é porta), com a escolha gravada e os itens dela que a árvore não tem (`unknown`). Uma elaboração que falha vem sem árvore, com os erros em `diagnostics` |
+| `wave_signals(&toolchain, &projeto, &control)` | elabora o testbench do projeto com o Icarus (a elaboração da `hierarchy`, em `.aurora8/Temp/wave/signals.vvp`) e devolve a árvore: escopos (instâncias, blocos `generate` e blocos com nome, cada um com o caminho, o módulo e se é um processador SAPHO) e sinais (nome, caminho, largura, `reg`/`wire`/`integer`/`real`, a direção quando é porta), com a escolha gravada e os itens dela que a árvore não tem (`unknown`). Uma elaboração que falha vem sem árvore, com os erros em `diagnostics` |
 | `read_selection(&projeto, módulo)` | a escolha de `wave/<módulo>.json`; vazia sem o arquivo |
 | `write_selection(&projeto, módulo, &itens)` | grava a escolha, em ordem e sem o que um escopo dela já cobre; vazia, apaga o arquivo |
 | `SignalScope::contains`, `scope`, `without` | conferir um caminho na árvore, achar um escopo e tirar um item da escolha (um escopo escolhido que contém o item dá lugar ao resto dele) |
@@ -1528,7 +1528,7 @@ Com escolha, `simulate_project` (5.3) elabora o testbench (para conferir os
 itens e achar os processadores SAPHO) e simula uma cópia dele: o primeiro
 `$dumpvars` vira `begin $dumpvars(0, <itens>); $dumpvars(1, <processador>); end`,
 os outros viram comentário, e sem `$dumpvars` a escolha entra depois do
-`$dumpfile`, ou no dump que o Lace injeta. As linhas do arquivo continuam as
+`$dumpfile`, ou no dump que a AURORA injeta. As linhas do arquivo continuam as
 mesmas. Um processador que a escolha não cobre entra com o escopo dele
 (nível 1: as variáveis, o I/O, o PC e a linha), porque o layout precisa.
 Um item que o design não tem mais é um aviso no resultado, com o arquivo da
@@ -1543,8 +1543,8 @@ O layout que o usuário arruma no Surfer fica no projeto,
 recebe, para a onda de um testbench do projeto (`None` fora de projeto):
 
 - sem o arquivo, ele nasce com o layout gerado (`layout.state`);
-- com o arquivo como o Lace o gravou da última vez (o SHA-256 fica em
-  `.lace/wave/generated.json`), ele é refeito com o layout gerado agora;
+- com o arquivo como a AURORA o gravou da última vez (o SHA-256 fica em
+  `.aurora8/wave/generated.json`), ele é refeito com o layout gerado agora;
 - com o arquivo mudado, porque o Surfer salvou nele (Ctrl+S), ele fica como
   está: `SavedLayout::customized`, e `state` é o conteúdo dele.
 
@@ -1591,12 +1591,12 @@ at`, `VCD info:` ou `FST info:`, o `ERROR:` de um `$error`). `false` é saída
 do programa, como o `$display` do testbench. A decisão é linha a linha
 (`diagnostics::is_message`). Os eventos só adiantam o que chega depois no
 resultado (`StepReport`). As linhas de stdout e de stderr chegam na ordem em
-que o Lace as leu, que pode não ser a ordem exata em que a ferramenta as
+que a AURORA as leu, que pode não ser a ordem exata em que a ferramenta as
 escreveu.
 
 O receptor roda na thread da operação, no meio dela: deve ser rápido
 (mandar o evento por um canal, escrever uma linha) e não pode chamar outra
-operação do Lace.
+operação da AURORA.
 
 Numa GUI, a operação roda numa thread de trabalho, e a interface fica com um
 clone do `CancelToken` (`Control`, `CancelToken` e `Event` são
@@ -1604,7 +1604,7 @@ clone do `CancelToken` (`Control`, `CancelToken` e `Event` são
 
 ```rust
 use std::sync::mpsc;
-use lace_core::*;
+use aurora_core::*;
 
 // toolchain e project abertos como na seção 1.
 let cancel = CancelToken::new();
@@ -1629,26 +1629,26 @@ for event in received {
 let result = worker.join().expect("a thread terminou")?;
 ```
 
-**O que acontece com os processos.** O Lace lê stdout e stderr linha a
+**O que acontece com os processos.** A AURORA lê stdout e stderr linha a
 linha, em duas threads, e confere o cancelamento e o prazo a cada 20 ms,
 mesmo enquanto a ferramenta escreve sem parar. Encerrar é encerrar tudo o
 que a ferramenta iniciou: o `iverilog` roda o `ivlpp` e o `ivl`, o
 Verilator roda o `make`, que roda o compilador C++.
 
-- **Unix:** cada passo roda num grupo de processos próprio. O Lace manda
+- **Unix:** cada passo roda num grupo de processos próprio. A AURORA manda
   SIGTERM ao grupo e, se o processo não sair em 1 s, SIGKILL. Fora do grupo
-  do Lace, os filhos não recebem o Ctrl+C do terminal: quem os encerra é o
-  Lace, ao ver o pedido.
+  da AURORA, os filhos não recebem o Ctrl+C do terminal: quem os encerra é o
+  AURORA, ao ver o pedido.
 - **Windows:** cada passo roda num Job Object com
   `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` (`ProcessJob`): encerrar é fechar o
   job, e tudo o que a ferramenta iniciou termina junto. O que sobrar quando o
-  passo acaba também termina, e o mesmo vale se o processo do Lace morrer,
+  passo acaba também termina, e o mesmo vale se o processo da AURORA morrer,
   mesmo à força: o sistema fecha o handle do job. Se o sistema recusar o
   job, o `taskkill /T /F` do `System32` encerra a árvore. O `taskkill.exe` só
   serve para encerrar ([BUNDLE.md](BUNDLE.md), seção 4); os outros programas
-  do sistema que o Lace roda são o compilador do Verilator (2.4), o Quartus
+  do sistema que a AURORA roda são o compilador do Verilator (2.4), o Quartus
   (2.5) e o abridor de `open_with_system` (5.6.1).
-  Nenhuma ferramenta abre janela de console (`hide_console`): se o Lace tem
+  Nenhuma ferramenta abre janela de console (`hide_console`): se a AURORA tem
   console (um terminal, ou o que quem o criou lhe deu), ela divide esse
   console, e o Ctrl+C chega a ela também; se não tem (o Studio), ela leva
   `CREATE_NO_WINDOW` e ganha um console próprio, sem janela, ao custo de um
@@ -1673,13 +1673,13 @@ passo `render` do `dot` (`SchematicOptions::timeout`, 60 s por padrão, 5.6).
 
 **O custo da saída ao vivo.** Num pipe, o `vvp` guarda o stdout em buffer:
 o `$display` só sai quando o buffer enche ou no fim, e se perde se o
-processo for morto. Com um receptor de eventos, o Lace roda o `vvp` com `-i`, que
+processo for morto. Com um receptor de eventos, a AURORA roda o `vvp` com `-i`, que
 tira o buffer, ao custo de uma escrita por linha. Sem receptor, fica o
 buffer, que é mais rápido. O Verilator compila com `--autoflush` (5.2), com
 ou sem receptor, porque trocar a flag conforme o receptor recompilaria o
 modelo; a simulação rápida, que tem modelo próprio, compila sem.
 
-O Lace lê o pipe em blocos de até 64 KiB e passa adiante, de uma vez, as
+A AURORA lê o pipe em blocos de até 64 KiB e passa adiante, de uma vez, as
 linhas inteiras de cada bloco, e não uma linha por vez: num testbench que
 imprime sem parar, o caminho de cada linha até o receptor custava mais que
 a simulação escrevê-la (medido em 2026-10-12, 2 milhões de linhas: 1,28 s
@@ -1690,25 +1690,25 @@ em vez de a fila crescer na memória.
 ### 5.9 Relatório e histórico: o módulo `history`
 
 Depois de uma operação, a interface chama `history::record` com o que cada
-fase devolveu, e o Lace grava um relatório no histórico do projeto. Nenhuma
+fase devolveu, e a AURORA grava um relatório no histórico do projeto. Nenhuma
 operação grava sozinha: quem decide é quem chama. Os fluxos de
-`lace_core::flows` (5.11), que a CLI, o Studio e o `lace serve` usam,
+`aurora_core::flows` (5.11), que a CLI, o Studio e o `aurora serve` usam,
 gravam depois de `build`, `check`, `simulate` e `synthesize`.
 
 ```rust
-use lace_core::history::{self, Operation};
+use aurora_core::history::{self, Operation};
 
 let started = std::time::SystemTime::now();
-let builds = lace_core::build_processors(&toolchain, project.buildable_processors(), &opts, OnFailure::Stop, &control, |_| {})?;
-let sim = lace_core::simulate_project(&toolchain, &project, &options, &control)?;
-let operation = Operation::new("lace sim", started)
+let builds = aurora_core::build_processors(&toolchain, project.buildable_processors(), &opts, OnFailure::Stop, &control, |_| {})?;
+let sim = aurora_core::simulate_project(&toolchain, &project, &options, &control)?;
+let operation = Operation::new("aurora sim", started)
     .with_builds(&builds)
     .with_simulation(&sim);
 let record = history::record(&project, &toolchain, &operation)?;   // run-000042
 ```
 
 ```
-<projeto>/.lace/reports/
+<projeto>/.aurora8/reports/
   run-000001/
     report.txt     o relatório, para gente
     record.json    o que a comparação usa (RunRecord)
@@ -1725,7 +1725,7 @@ Apagar é em dois passos, para a interface mostrar e confirmar antes:
 escolhida. Um relatório gravado entre os dois não sai sem ter sido mostrado.
 
 ```rust
-use lace_core::history::{self, Cleanup};
+use aurora_core::history::{self, Cleanup};
 
 let doomed = history::plan_cleanup(&project, &Cleanup::KeepLatest(10))?;
 // mostrar `doomed` e confirmar
@@ -1738,9 +1738,9 @@ let removed = history::remove(&project, &doomed)?;
 | `list(&Project) -> Result<Vec<RunSummary>>` | os relatórios, do mais novo para o mais antigo; um `record.json` ilegível aparece com `readable: false` |
 | `load(&Project, id)`, `latest(&Project)` | um relatório (`run-000042` ou `42`), o mais novo |
 | `report_text(&Project, id)`, `report_path(&Project, id)` | o `report.txt` e onde ele fica |
-| `view(&Project, id) -> Result<ReportView>` | o relatório pedido, ou o mais novo sem `id`, com o texto e o caminho do `report.txt` (`lace report show`, `history.show`) |
-| `clean(&Project, ids) -> Result<CleanOutcome>` | apaga os relatórios do plano e conta os que ficaram (`lace report clean`, `history.clean`) |
-| `compare_reports(&Project, atual, referência)` | escolhe e compara, como `lace report compare`; os dois vêm do histórico do projeto, então se comparam mesmo depois de a pasta mudar de lugar; sem parte nenhuma em comum (uma simulação contra uma síntese), `NotComparable` |
+| `view(&Project, id) -> Result<ReportView>` | o relatório pedido, ou o mais novo sem `id`, com o texto e o caminho do `report.txt` (`aurora report show`, `history.show`) |
+| `clean(&Project, ids) -> Result<CleanOutcome>` | apaga os relatórios do plano e conta os que ficaram (`aurora report clean`, `history.clean`) |
+| `compare_reports(&Project, atual, referência)` | escolhe e compara, como `aurora report compare`; os dois vêm do histórico do projeto, então se comparam mesmo depois de a pasta mudar de lugar; sem parte nenhuma em comum (uma simulação contra uma síntese), `NotComparable` |
 | `previous_comparable(&Project, &RunRecord)` | o anterior mais novo que se compara em pelo menos uma parte, de preferência um que terminou bem (uma simulação que estourou o prazo só serve sem outra) |
 | `compare(&referência, &atual) -> Result<RunComparison>` | compara dois relatórios; não lê nem roda nada |
 | `compare_metric(Option<u64>, Option<u64>)` | compara dois números |
@@ -1749,7 +1749,7 @@ let removed = history::remove(&project, &doomed)?;
 | `remove(&Project, &ids) -> Result<Vec<String>>` | apaga e devolve os que saíram; um que já não existe é pulado. Grava em `sequence` o maior número publicado antes de apagar, e renomeia cada pasta para um nome oculto antes de apagá-la |
 
 `RunRecord` tem `metadata` (`RunMetadata`: comando, status, duração, versão
-do Lace, um hash da raiz do projeto, bundle, topo, a máquina e o contexto da
+da AURORA, um hash da raiz do projeto, bundle, topo, a máquina e o contexto da
 síntese e da simulação, com hashes dos fontes e das entradas), `synthesis`
 (as `SynthesisStatistics` da síntese) e `simulation` (`SimulationTimings`:
 compilação, execução e total em milissegundos, e o tempo simulado do
@@ -1762,7 +1762,7 @@ simulador e testbench. O resto que difere vira aviso em `warnings`, sem
 invalidar a comparação: fontes, entradas, versões das ferramentas, onda
 ligada num só, tempo simulado diferente, a máquina (um hash do sistema, da
 arquitetura, do processador, do número de processadores e do nome da
-máquina), simulação que não terminou bem, versão do Lace. Cada número
+máquina), simulação que não terminou bem, versão da AURORA. Cada número
 comparado é um `MetricComparison`: os dois valores, a `Change`
 (`unchanged`, `increased`, `decreased`, `added`, `removed`,
 `not_comparable`), a diferença e a porcentagem da referência, que é `None`
@@ -1797,8 +1797,8 @@ ajuste) e o Verilog do topo da placa (`board_top`).
    diretório de quem o compila: as memórias e a tabela do PC vão para a
    pasta da placa, a do projeto do Quartus, antes da compilação. Que o
    Quartus procura ali é suposição, ainda não conferida numa compilação;
-2. grava em `fpga::build_dir(projeto, placa)`, `<raiz>/.lace/fpga/<placa>/`,
-   o topo da placa (`lace_board_top.v`), o `.qsf` (a FPGA, os fontes da
+2. grava em `fpga::build_dir(projeto, placa)`, `<raiz>/.aurora8/fpga/<placa>/`,
+   o topo da placa (`aurora_board_top.v`), o `.qsf` (a FPGA, os fontes da
    síntese mais o topo da placa, um pino por bit com o padrão de I/O, o
    `.rbf` e o `.svf` sem compressão) e o `.sdc` (um `create_clock` por
    clock da placa ligado ao topo);
@@ -1809,7 +1809,7 @@ ajuste) e o Verilog do topo da placa (`board_top`).
    direção e no padrão de I/O dela, posto pela atribuição e não pelo
    Fitter. Uma diferença reprova o `fit` (um diagnóstico por bit) antes do
    `.sof`;
-5. terminada, grava o `lace-build.json`: o SHA-256 do `.sof` e de cada
+5. terminada, grava o `aurora-build.json`: o SHA-256 do `.sof` e de cada
    entrada (fontes, memórias `.mif`, `fpga.json`, definição da placa).
 
 `FpgaBuildResult`, além dos campos comuns (6.1): `board`, `top`, `dir`,
@@ -1824,10 +1824,10 @@ uma vez.
 `fpga::program(&Toolchain, &Project, cable: Option<&str>, &Control) ->
 Result<FpgaProgramResult>` grava o `.sof` da última `build` pelo Quartus
 Programmer: um passo `program`/`quartus`, `quartus_pgm -c <cabo> -m jtag -o
-"p;output_files/lace_board_top.sof@<posição>"` na pasta da placa, com a
+"p;output_files/aurora_board_top.sof@<posição>"` na pasta da placa, com a
 posição da FPGA na cadeia JTAG da placa. Sem `cable`, o primeiro de
 `fpga::cables(&Toolchain)` (o `quartus_pgm -l`). Antes, confere o
-`lace-build.json` contra o projeto de agora, pelo conteúdo, e recusa com
+`aurora-build.json` contra o projeto de agora, pelo conteúdo, e recusa com
 `StaleBitstream` (cada diferença) um `.sof` velho, trocado ou de outra
 placa. `fpga::bitstream_state(&Toolchain, &Project) -> Result<BitstreamState>`
 faz a mesma conferência sem gravar: `bitstream`, `built_at_ms` e `reasons`
@@ -1836,7 +1836,7 @@ faz a mesma conferência sem gravar: `bitstream`, `built_at_ms` e `reasons`
 `fpga::modules` lista os módulos que podem ir para a placa e
 `fpga::top_interface` dá as portas de um (ou do topo do projeto), para
 montar as ligações antes de estarem certas. `Prepared::connections` traz
-cada ligação como texto (`target`, `source`), como o `lace fpga check`
+cada ligação como texto (`target`, `source`), como o `aurora fpga check`
 mostra.
 `FpgaProgramResult` traz `board`, `bitstream`, `cable`, `position`,
 `quartus` e os campos comuns, menos `artifacts`.
@@ -1848,16 +1848,16 @@ Prime 17.1, 18.0 e 18.1.
 
 ### 5.10.1 Recursos experimentais: o módulo `experimental`
 
-Partes do Lace que ainda mudam muito ficam desligadas até o usuário ligar.
+Partes da AURORA que ainda mudam muito ficam desligadas até o usuário ligar.
 `Feature` lista os recursos (hoje, `Feature::Fpga`, a placa FPGA, e
-`Feature::Assistant`, o assistente de IA: `lace chat`, `lace mcp` e a vista
+`Feature::Assistant`, o assistente de IA: `aurora chat`, `aurora mcp` e a vista
 Assistente do Studio), com `id()` (`"fpga"`, `"assistant"`, o identificador
 do arquivo e da CLI), `name()` e `description()`, em inglês; `Feature::ALL`
 tem todos.
 
 O que está ligado fica em `experimental.json`, na pasta de configuração do
-Lace do usuário (`%APPDATA%\lace` no Windows, `$XDG_CONFIG_HOME/lace` ou
-`~/.config/lace` no Linux, `~/Library/Application Support/lace` no macOS),
+AURORA do usuário (`%APPDATA%\aurora` no Windows, `$XDG_CONFIG_HOME/aurora` ou
+`~/.config/aurora` no Linux, `~/Library/Application Support/aurora` no macOS),
 como `{"enabled": ["fpga"]}`. `settings_path()` devolve o arquivo (`None`
 sem `APPDATA` ou `HOME`).
 
@@ -1866,7 +1866,7 @@ sem `APPDATA` ou `HOME`).
 | `is_enabled(Feature) -> bool` | o recurso está ligado |
 | `require(Feature) -> Result<()>` | `ExperimentalDisabled` se ele está desligado |
 | `states() -> Vec<FeatureState>` | cada recurso, se está ligado e a descrição |
-| `info() -> ExperimentalInfo` | o arquivo e cada recurso (`lace experimental`, `experimental.list`) |
+| `info() -> ExperimentalInfo` | o arquivo e cada recurso (`aurora experimental`, `experimental.list`) |
 | `set_enabled(Feature, bool) -> Result<()>` | liga ou desliga, gravando o arquivo de forma atômica e criando a pasta |
 
 A leitura falha fechada: sem a pasta, sem o arquivo ou com ele ilegível,
@@ -1880,9 +1880,9 @@ compô-las: compilar os processadores antes de simular, registrar no `.spf`
 o que o YANC gerou, ler as portas de saída, gravar o relatório, abrir a
 onda. Essa composição morava duas vezes, na CLI e no Studio, e divergia;
 agora mora aqui, uma vez: a CLI chama estas funções direto, e o despacho
-do `lace serve`, que o Studio e a extensão usam, chama as mesmas.
+do `aurora serve`, que o Studio e a extensão usam, chama as mesmas.
 
-**`lace_core::flows`.** Um [`FlowRequest`] (`build`, `check`, `hierarchy`,
+**`aurora_core::flows`.** Um [`FlowRequest`] (`build`, `check`, `hierarchy`,
 `simulate`, `synthesize`, `schematic`, `fpga_build`, `fpga_program`; em
 JSON, etiquetado por `flow`) entra em `flows::run(&Toolchain, &mut
 Project, &FlowRequest, &FlowOptions, progress, &Control) ->
@@ -1906,7 +1906,7 @@ processadores; a simulação para no primeiro build que falhar
 que não precisam dele: o recurso experimental do fluxo, os processadores
 que o pedido nomeia e o `build` de um projeto sem processadores, que nem
 precisa do bundle. Quem chama passa como acha o bundle, e o erro dele sai
-com o tipo de quem chama; é o que a CLI e o despacho do `lace serve`
+com o tipo de quem chama; é o que a CLI e o despacho do `aurora serve`
 chamam, para seguirem a mesma ordem. `flows::open_wave_with` faz o mesmo
 com a onda: confere que ela existe antes de pedir o bundle.
 `flows::open_wave` abre uma onda com a política de layout
@@ -1914,14 +1914,14 @@ com a onda: confere que ela existe antes de pedir o bundle.
 que não existe, do projeto ou um arquivo, é `no_waveform`.
 `flows::choose_signals` muda a escolha de sinais: `all` a esvazia, `add` e
 `remove` acrescentam e tiram, `set` troca a escolha inteira; os caminhos
-são conferidos na árvore do testbench elaborado. O `lace learn` tem o seu
-em `lace_learn::flows`, e `lace_learn::layout::with_exercise_layout` dá à
+são conferidos na árvore do testbench elaborado. O `aurora learn` tem o seu
+em `aurora_learn::flows`, e `aurora_learn::layout::with_exercise_layout` dá à
 onda de um exercício o layout da correção, quando o pedido quer o gerado.
 `FlowRequest::Learn` é a correção de um exercício como fluxo, com o
-resultado em `FlowOutcome::learn`: quem a roda é o servidor do Lace, que
-linka o lace-learn, e o `flows::run` do core responde `unsupported`.
+resultado em `FlowOutcome::learn`: quem a roda é o servidor da AURORA, que
+linka o aurora-learn, e o `flows::run` do core responde `unsupported`.
 
-**`lace_core::delivery`.** A entrega da saída ao vivo para uma interface
+**`aurora_core::delivery`.** A entrega da saída ao vivo para uma interface
 com fila: o `Dispatcher` recebe os eventos do `Control` e o `Progress` e
 entrega [`Notification`] em lotes (`phase`, `events`, `output_omitted`,
 `build`, `install`), no máximo a cada 30 ms ou 500 eventos, com um teto de
@@ -1929,30 +1929,30 @@ linhas (20 000 de uma vez e depois 5 000 por segundo; o que passa vira
 `output_omitted`, no lugar onde estaria) e um canal limitado: com a fila cheia, a ferramenta espera o cliente até
 500 ms por linha (`Limits::send_timeout`) e, se a entrega continuar parada,
 a linha fica de fora e entra em `output_omitted`, em vez de a memória crescer. Era o código de
-`jobs.rs` do Studio; agora o Studio, o `lace serve` e o `lace mcp` usam o
+`jobs.rs` do Studio; agora o Studio, o `aurora serve` e o `aurora mcp` usam o
 mesmo.
 
-**`lace_core::locate`.** A busca do bundle a partir de outro programa, com
+**`aurora_core::locate`.** A busca do bundle a partir de outro programa, com
 a ordem que o Studio usava: a pasta declarada (`settings`), a variável
 (`environment`), o bundle que contém o executável (`exe`, onde o instalador
-põe o Studio), as pastas padrão do instalador, o `lace` do `PATH` e, por
+põe o Studio), as pastas padrão do instalador, o `aurora` do `PATH` e, por
 último, o bundle ao lado do executável, como a CLI. Quem chama monta o [`Lookup`] com o que
 leu do ambiente e das preferências (o core não lê o ambiente para achar o bundle), e `resolve`
 devolve o bundle com a origem (`Found`); `describe` monta o
 [`ToolchainInfo`] da tela de ferramentas do Studio e do `toolchain.info` do
-`lace serve`: o que o `lace tools` mostra, em dados (o `lace tools` monta a
+`aurora serve`: o que o `aurora tools` mostra, em dados (o `aurora tools` monta a
 tela dele a partir daqui).
 `Project::status()` devolve o retrato do projeto ([`ProjectStatus`]: o
-`lace status` e a árvore do Studio) e `Processor::output_ports` as portas
+`aurora status` e a árvore do Studio) e `Processor::output_ports` as portas
 de saída lidas pelo nome do arquivo.
 
-**O contrato, no crate `lace-protocol`.** Os pedidos e as respostas do
-`lace serve` moram num crate próprio, acima do core, do `lace-learn` e do
-`lace-installer`; o core não conhece o protocolo. O crate tem [`Request`]
+**O contrato, no crate `aurora-protocol`.** Os pedidos e as respostas do
+`aurora serve` moram num crate próprio, acima do core, do `aurora-learn` e do
+`aurora-installer`; o core não conhece o protocolo. O crate tem [`Request`]
 (um método por operação, com grupo e ponto: `project.status`, `flow.run`,
 `history.list`, `update.check`, ...), [`Response`] (o valor em si, sem
 etiqueta: os tipos do core, o `UpdateReport` e o `InstallReport` do
-instalador e os tipos do `lace-learn`), [`ServerInfo`], [`ShutdownReason`]
+instalador e os tipos do `aurora-learn`), [`ServerInfo`], [`ShutdownReason`]
 e os tipos de resposta que nenhuma função do core devolve (`TopOutcome`,
 `NameCheck`, `ProcessorRemoval`, `WaveLayoutInfo`). Os resultados de
 funções do core ficam no core, ao lado delas: `RemoveOutcome` em `files`,
@@ -1961,23 +1961,23 @@ funções do core ficam no core, ao lado delas: `RemoveOutcome` em `files`,
 `request_schema()` gera o schema dos pedidos na vista de quem desserializa
 (um campo com padrão é opcional) e `response_schema()` o das respostas e
 notificações; a CLI os grava em `docs/schema/protocol-request.json` e
-`protocol-response.json`, e os dois `gen-lace-types` (Studio, VS Code)
+`protocol-response.json`, e os dois `gen-aurora-types` (Studio, VS Code)
 geram os tipos TypeScript deles. A macro `methods!` declara cada método
 uma vez, com o nome, o tipo do resultado e as marcações (se só lê, se mexe
 na instalação, se vira ferramenta de agente): dela saem `METHODS`, a lista
 dos métodos, `METHOD_INFO` e `result_schema()`, o schema do `result` de
-cada um, que um teste do `lace serve` confere contra o que o servidor
+cada um, que um teste do `aurora serve` confere contra o que o servidor
 devolve; uma variante de `Request` sem linha nela não compila. Os três schemas geram a
-referência legível, [PROTOCOL.md](PROTOCOL.md). O `lace
-serve` é o transporte deste contrato por stdio, e o `lace mcp` o
-adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-lace-serve-e-lace-mcp)).
+referência legível, [PROTOCOL.md](PROTOCOL.md). O `aurora
+serve` é o transporte deste contrato por stdio, e o `aurora mcp` o
+adaptador para um agente ([CLI.md](CLI.md#a-api-para-outros-programas-aurora-serve-e-aurora-mcp)).
 
 **`ErrorInfo`.** O erro pronto para atravessar uma fronteira: `code` (o
-`LaceError::code()`, ou um código de quem chamou), `message`, `hint` (o
+`AuroraError::code()`, ou um código de quem chamou), `message`, `hint` (o
 que fazer, quando quem mostra sabe; o core não o preenche) e `data` (os
 campos da variante, quando há: `available`, `files`, `path`, `reason`,
 ...), os dois últimos omitidos no JSON quando não há. É o `error` do
-`--json` da CLI, o `error.data` do `lace serve` e o que vai dentro de um
+`--json` da CLI, o `error.data` do `aurora serve` e o que vai dentro de um
 `FlowOutcome` (`schematic_error`, `rtl_viewer_error`, `wave_error`).
 
 ---
@@ -1998,11 +1998,11 @@ o que os tipos geram.
 | Campo | Tipo | Conteúdo |
 |---|---|---|
 | `status` | `Status` | `succeeded`, `failed`, `crashed`, `incomplete`, `cancelled`, `timed_out` |
-| `failed_step` | `Option<Step>` | o passo que falhou ou que o Lace encerrou; num cancelamento pedido antes de um passo começar, esse passo, que não rodou |
+| `failed_step` | `Option<Step>` | o passo que falhou ou que a AURORA encerrou; num cancelamento pedido antes de um passo começar, esse passo, que não rodou |
 | `steps` | `Vec<StepReport>` | um por programa executado, na ordem |
 | `diagnostics` | `Vec<Diagnostic>` | mensagens interpretadas de todos os passos |
 | `artifacts` | `Vec<Artifact>` | arquivos esperados, com `fresh` |
-| `duration_ms` | `u64` | quanto a operação levou, do começo ao fim, com a preparação do Lace |
+| `duration_ms` | `u64` | quanto a operação levou, do começo ao fim, com a preparação da AURORA |
 
 `CheckResult` não tem `artifacts` e tem `targets`, os módulos elaborados
 como raiz (5.4). `HierarchyResult` tem `design` e `testbenches`, e o
@@ -2017,7 +2017,7 @@ como raiz (5.4). `HierarchyResult` tem `design` e `testbenches`, e o
 | `crashed` | um passo morreu por sinal (Unix) ou exceção NTSTATUS (Windows): defeito da ferramenta |
 | `incomplete` | os passos deram certo, mas falta artefato obrigatório |
 | `cancelled` | o cancelamento foi pedido (`CancelToken`): o passo que rodava foi encerrado e os seguintes não rodaram (5.8) |
-| `timed_out` | um passo passou do prazo e o Lace o encerrou; numa simulação, é o testbench que não chega ao `$finish` (5.8) |
+| `timed_out` | um passo passou do prazo e a AURORA o encerrou; numa simulação, é o testbench que não chega ao `$finish` (5.8) |
 
 Os passos param no primeiro que falhar e quando o cancelamento é pedido. A
 exceção é `hierarchy`, em que cada elaboração roda mesmo que uma anterior
@@ -2048,8 +2048,8 @@ qualquer passo à mão.
 `Termination` em JSON: `{"kind": "exited", "value": 1}`,
 `{"kind": "signaled", "value": 11}`, `{"kind": "exception", "value": ...}`,
 `{"kind": "cancelled"}`, `{"kind": "timed_out"}`, `{"kind": "unknown"}`.
-`cancelled` e `timed_out` são processos que o próprio Lace encerrou (5.8);
-`signaled` é um processo que morreu por um sinal que não veio do Lace.
+`cancelled` e `timed_out` são processos que a própria AURORA encerrou (5.8);
+`signaled` é um processo que morreu por um sinal que não veio da AURORA.
 
 ### 6.3 Artefatos
 
@@ -2078,17 +2078,17 @@ Obrigatórios aparecem sempre; intermediários, só se existirem.
 | `synthesis_statistics` | `synth/<topo>/stat.json` (não obrigatório) | `synthesize` |
 | `schematic_graph` | `synth/<topo>/<módulo>.dot` | `render_schematic` |
 | `schematic` | `synth/<topo>/<módulo>.svg` | `render_schematic` |
-| `board_top` | `.lace/fpga/<placa>/lace_board_top.v` (não obrigatório) | `fpga::build` |
-| `quartus_project` | `.lace/fpga/<placa>/lace_board_top.qsf` (não obrigatório) | `fpga::build` |
-| `sram_object` | `.lace/fpga/<placa>/output_files/lace_board_top.sof` | `fpga::build` |
-| `raw_binary` | `output_files/lace_board_top.rbf` (não obrigatório) | `fpga::build` |
-| `serial_vector_format` | `output_files/lace_board_top.svf` (não obrigatório) | `fpga::build` |
+| `board_top` | `.aurora8/fpga/<placa>/aurora_board_top.v` (não obrigatório) | `fpga::build` |
+| `quartus_project` | `.aurora8/fpga/<placa>/aurora_board_top.qsf` (não obrigatório) | `fpga::build` |
+| `sram_object` | `.aurora8/fpga/<placa>/output_files/aurora_board_top.sof` | `fpga::build` |
+| `raw_binary` | `output_files/aurora_board_top.rbf` (não obrigatório) | `fpga::build` |
+| `serial_vector_format` | `output_files/aurora_board_top.svf` (não obrigatório) | `fpga::build` |
 
 ### 6.4 Exemplo: build com erro
 
 Um elemento de `results` na saída real de
-`lace -C com_erro build -p conta --json` (caminhos encurtados, bundle em
-`/opt/lace/toolchain`, com o YANC 7.1, artefatos e o `duration_ms` cortados):
+`aurora -C com_erro build -p conta --json` (caminhos encurtados, bundle em
+`/opt/aurora/toolchain`, com o YANC 7.1, artefatos e o `duration_ms` cortados):
 
 ```json
 {
@@ -2103,7 +2103,7 @@ Um elemento de `results` na saída real de
       "step": "compile",
       "tool": "cmmcomp",
       "command": {
-        "program": "/opt/lace/toolchain/yanc/bin/cmmcomp",
+        "program": "/opt/aurora/toolchain/yanc/bin/cmmcomp",
         "args": ["/home/eu/projetos/com_erro/conta/conta.cmm",
                  "-o", "/home/eu/projetos/com_erro/conta/conta", "--lang=en"],
         "cwd": "/home/eu/projetos/com_erro/conta",
@@ -2139,9 +2139,9 @@ achar o erro; o `.v` não, porque o `asmcomp` nem rodou.
 
 ### 6.5 Exemplo: simulação
 
-Exemplo de `lace -C soma sim -p soma --json`, campo `simulation` (caminhos
-encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no macOS, o
-`iverilog` e o `vvp` do bundle são lançadores em bash, que o Lace roda pelo
+Exemplo de `aurora -C soma sim -p soma --json`, campo `simulation` (caminhos
+encurtados, bundle em `/opt/aurora/toolchain`, sem o `duration_ms`). No Linux e no macOS, o
+`iverilog` e o `vvp` do bundle são lançadores em bash, que a AURORA roda pelo
 `/bin/bash` com `PATH=/usr/bin:/bin` (9.1):
 
 ```json
@@ -2157,10 +2157,10 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
       "tool": "iverilog",
       "command": {
         "program": "/bin/bash",
-        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/iverilog",
+        "args": ["/opt/aurora/toolchain/oss-cad-suite/bin/iverilog",
                  "-grelative-include", "-I", "/home/eu/projetos/soma/soma/soma",
-                 "-y", "/opt/lace/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp",
-                 "/home/eu/projetos/soma/soma/soma/soma.v", "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v"],
+                 "-y", "/opt/aurora/toolchain/yanc/SAPHO", "-s", "soma_tb", "-o", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp",
+                 "/home/eu/projetos/soma/soma/soma/soma.v", "/home/eu/projetos/soma/.aurora8/Temp/soma/instr_soma_tb.v"],
         "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
@@ -2175,13 +2175,13 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
       "tool": "vvp",
       "command": {
         "program": "/bin/bash",
-        "args": ["/opt/lace/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "-fst"],
+        "args": ["/opt/aurora/toolchain/oss-cad-suite/bin/vvp", "-n", "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp", "-fst"],
         "cwd": "/home/eu/projetos/soma/soma/soma",
         "env": [["PATH", "/usr/bin:/bin"]],
         "inherit": []
       },
       "termination": { "kind": "exited", "value": 0 },
-      "stdout": "FST info: dumpfile soma_tb.fst opened for output.\nInfo: end of program!\n/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)\n",
+      "stdout": "FST info: dumpfile soma_tb.fst opened for output.\nInfo: end of program!\n/home/eu/projetos/soma/.aurora8/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)\n",
       "stderr": "",
       "duration_ms": 66
     }
@@ -2191,10 +2191,10 @@ encurtados, bundle em `/opt/lace/toolchain`, sem o `duration_ms`). No Linux e no
       "file": null, "line": null, "column": null, "raw": "FST info: dumpfile soma_tb.fst opened for output." },
     { "tool": "vvp", "severity": "info", "message": "$finish called at 985000 (1ps)",
       "file": "/home/eu/projetos/soma/soma/soma/soma_tb.v", "line": 61, "column": null,
-      "raw": "/home/eu/projetos/soma/.lace/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)" }
+      "raw": "/home/eu/projetos/soma/.aurora8/Temp/soma/instr_soma_tb.v:61: $finish called at 985000 (1ps)" }
   ],
   "artifacts": [
-    { "kind": "icarus_image", "path": "/home/eu/projetos/soma/.lace/Temp/soma/soma_tb.vvp", "required": true, "fresh": true },
+    { "kind": "icarus_image", "path": "/home/eu/projetos/soma/.aurora8/Temp/soma/soma_tb.vvp", "required": true, "fresh": true },
     { "kind": "waveform", "path": "/home/eu/projetos/soma/soma/soma/soma_tb.fst", "required": true, "fresh": true },
     { "kind": "simulation_output", "path": "/home/eu/projetos/soma/soma/soma/output_0.txt", "required": false, "fresh": true }
   ],
@@ -2215,7 +2215,7 @@ campos de localização são opcionais.
 
 | Ferramenta | Formato reconhecido | Arquivo |
 |---|---|---|
-| `cmmcomp`, `asmcomp` (e o `appcomp` dos relatórios antigos) | `Error on line N: ...`, `Syntax error on line N. ...`, `Heads up on line N: ...`, `Warning on line N: ...`, `Error: ...`, `Info: ...`, `Error in function f: ...` (sem linha); `asmcomp`: `Error: line N of file 'x' ...` | o fonte do processador (preenchido pelo Lace), ou o arquivo de dados citado |
+| `cmmcomp`, `asmcomp` (e o `appcomp` dos relatórios antigos) | `Error on line N: ...`, `Syntax error on line N. ...`, `Heads up on line N: ...`, `Warning on line N: ...`, `Error: ...`, `Info: ...`, `Error in function f: ...` (sem linha); `asmcomp`: `Error: line N of file 'x' ...` | o fonte do processador (preenchido pela AURORA), ou o arquivo de dados citado |
 | `cppcomp` | `<arquivo>:<linha>: error: ...`, `<ferramenta>: ...` | o fonte, ou o cabeçalho incluído onde está o erro |
 | `iverilog`, `vvp` | `<arquivo>:<linha>: error: ...`, `<arquivo>:<linha>: syntax error`, `<arquivo>: No such file or directory`, `ERROR: ...`, `FATAL: ...` | o que a ferramenta cita |
 | `verilator` | `%Error: <arquivo>:<linha>:<coluna>: ...`, `%Warning-<CÓDIGO>: ...` (o código vai para o fim da mensagem entre colchetes); erros do `g++` no formato C | o que a ferramenta cita |
@@ -2245,7 +2245,7 @@ Regras:
   resumo `info` só.
 - No `iverilog`, a macro indefinida é erro (5.4), e um erro faz o passo
   falhar mesmo com código 0.
-- As mensagens do YANC vêm em inglês, porque o Lace pede `--lang=en`.
+- As mensagens do YANC vêm em inglês, porque a AURORA pede `--lang=en`.
 - No Quartus, os `Info` (centenas) ficam de fora, as linhas indentadas
   entram no `raw` da mensagem de cima, e o resumo de uma ferramenta que
   falhou (`Error: Quartus Prime Fitter was unsuccessful. ...`, com os
@@ -2255,21 +2255,21 @@ Regras:
 
 ## 8. Erros
 
-`LaceError` é para quando a operação não pôde rodar. `code()` devolve um
+`AuroraError` é para quando a operação não pôde rodar. `code()` devolve um
 identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 
 | Variante | `code()` | Quando | O que fazer |
 |---|---|---|---|
-| `BundleNotFound` | `bundle_not_found` | não há `toolchain/` com `bundle.json` ao lado do executável | reinstalar o Lace |
+| `BundleNotFound` | `bundle_not_found` | não há `toolchain/` com `bundle.json` ao lado do executável | reinstalar a AURORA |
 | `InvalidBundle` | `invalid_bundle` | manifesto ausente ou inválido, formato diferente de `BUNDLE_SCHEMA`, outra plataforma, componente ausente ou fora do bundle, executável que é symlink para fora do bundle | reinstalar, ou montar o bundle certo |
 | `UnsupportedPlatform` | `unsupported_platform` | fora de Linux x64, macOS arm64, Windows x64 | não há bundle |
-| `ComponentMissing` | `component_missing` | o componente da ferramenta não foi instalado; a mensagem não diz como instalar, que é de cada interface | `lace install <componente>`, ou o botão Instalar do Studio |
+| `ComponentMissing` | `component_missing` | o componente da ferramenta não foi instalado; a mensagem não diz como instalar, que é de cada interface | `aurora install <componente>`, ou o botão Instalar do Studio |
 | `ToolchainIncomplete` | `toolchain_incomplete` | o componente está lá, mas falta o executável (ou o `verilator_bin`), ou um diretório do YANC | reinstalar |
-| `SystemCompilerMissing` | `system_compiler_missing` | Linux e macOS: Verilator (simulação ou `check` com `lint`) sem compilador C++, `make` e Perl do sistema | instalar (ver BUNDLE.md) ou, na CLI, declarar com `--compiler <DIR>` ou `LACE_COMPILER` |
+| `SystemCompilerMissing` | `system_compiler_missing` | Linux e macOS: Verilator (simulação ou `check` com `lint`) sem compilador C++, `make` e Perl do sistema | instalar (ver BUNDLE.md) ou, na CLI, declarar com `--compiler <DIR>` ou `AURORA_COMPILER` |
 | `InvalidProject` | `invalid_project` | diretório ou arquivo do projeto ausente ou em conflito | ver `path` e `reason` |
 | `ProjectExists` | `project_exists` | `create` sobre um `.spf` existente | abrir em vez de criar |
 | `OutsideProject` | `outside_project` | `move_path` com um caminho fora da pasta do projeto | usar um caminho do projeto |
-| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.lace`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.lace`; de uma pasta para dentro dela mesma; `record_move` de uma origem que ainda existe | ver `reason` |
+| `CannotMove` | `cannot_move` | `move_path` do `.spf`, de `.aurora8`, da pasta de um processador, das pastas dele ou do fonte; para dentro de `.aurora8`; de uma pasta para dentro dela mesma; `record_move` de uma origem que ainda existe | ver `reason` |
 | `PathExists` | `path_exists` | o destino de `move_path` já existe | outro destino, ou tirar o que está lá |
 | `ProcessorExists` | `processor_exists` | `add_processor` com nome repetido | outro nome |
 | `ProcessorNotFound` | `processor_not_found` | nome inexistente | ver `available` |
@@ -2287,14 +2287,14 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `ModuleNotFound` | `module_not_found` | `set_top` com um nome que nenhum sintetizável registrado declara; `top_module` ou `testbench_module` num arquivo sem um módulo que dê para usar; `render_schematic` de um módulo fora do netlist | ver `available` |
 | `AmbiguousModule` | `ambiguous_module` | `set_top` com um nome que mais de um sintetizável declara | escolher pelo arquivo (`files`) |
 | `InvalidParameter` | `invalid_parameter` | `add_processor` com parâmetro que o YANC não compila (`NewProcessor::validate`); `configure_processor` com frequência ou clocks fora da faixa | ver `name`, `value` e `reason` |
-| `OperationInProgress` | `operation_in_progress` | outra operação do Lace usa os mesmos arquivos de trabalho, de outro processo ou do mesmo: o build ou a simulação do mesmo processador; a simulação do projeto, a síntese ou o build da placa com o build de um processador dele; duas simulações do projeto ou sínteses; duas verificações com lint, duas hierarquias, duas árvores de sinais ou dois builds da mesma placa | esperar a outra terminar |
+| `OperationInProgress` | `operation_in_progress` | outra operação da AURORA usa os mesmos arquivos de trabalho, de outro processo ou do mesmo: o build ou a simulação do mesmo processador; a simulação do projeto, a síntese ou o build da placa com o build de um processador dele; duas simulações do projeto ou sínteses; duas verificações com lint, duas hierarquias, duas árvores de sinais ou dois builds da mesma placa | esperar a outra terminar |
 | `InvalidNetlist` | `invalid_netlist` | netlist ilegível | ver `modules` da síntese |
 | `InvalidDataFile` | `invalid_data_file` | linha de `input_<n>.txt`/`output_<n>.txt` que não é inteiro | corrigir a linha indicada |
 | `ProcessExitedEarly` | `process_exited_early` | o Surfer fechou logo ao abrir | ver o fim do log (`tail`) |
 | `NonUtf8Path` | `non_utf8_path` | caminho não UTF-8 | renomear |
 | `PathTooLong` | `path_too_long` | caminho acima de `YANC_PATH_LIMIT` (259 no Windows, 1000 nos outros) | mover o projeto |
 | `Spawn` | `spawn` | processo não iniciou | ver permissão e caminho |
-| `Io` | `io` | leitura ou escrita do Lace falhou | ver `context` e `path` |
+| `Io` | `io` | leitura ou escrita da AURORA falhou | ver `context` e `path` |
 | `ProjectNotFound` | `project_not_found` | `Project::discover` sem `.spf` na pasta nem nas de cima | rodar de dentro de um projeto, ou criar um |
 | `NoReports` | `no_reports` | `latest` ou `compare_reports` num projeto sem relatório guardado | rodar uma operação e gravar |
 | `ReportNotFound` | `report_not_found` | `load`, `report_text` com um identificador que não existe | ver `list` |
@@ -2308,15 +2308,15 @@ identificador estável, o mesmo que a CLI põe em `error.code` no JSON.
 | `NoCable` | `no_cable` | `fpga::program` sem `cable` e sem cabo de gravação ligado | ligar a placa pela porta do USB-Blaster, e o driver dele |
 | `StaleBitstream` | `stale_bitstream` | `fpga::program` com um `.sof` que não descreve o projeto de agora: um fonte, uma memória, o `fpga.json` ou a placa mudou depois da compilação, o `.sof` foi trocado, ou a compilação não terminou | `fpga::build` de novo |
 | `QuartusMissing` | `quartus_missing` | `fpga::build`, `fpga::program` ou `tool(Tool::Quartus)` sem Quartus (2.5) | instalar o Quartus Prime Lite com o suporte à família da placa, ou declarar a pasta dele |
-| `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `lace experimental enable <recurso>`, ou Preferências > Experimental no Studio |
-| `Unsupported` | `unsupported` | `flows::run` com `FlowRequest::Learn`: a correção de um exercício roda no servidor do Lace, que linka o lace-learn | pedir pelo `lace serve` (`flow.run`), ou corrigir com `lace learn check` |
-| `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe, porque a simulação não rodou ou não chegou ao fim, ou de um arquivo que não existe | simular antes (`lace sim [-p X]`, o botão Simular) |
+| `ExperimentalDisabled` | `experimental_disabled` | `experimental::require` com o recurso desligado (5.10.1) | ligar o recurso: `aurora experimental enable <recurso>`, ou Preferências > Experimental no Studio |
+| `Unsupported` | `unsupported` | `flows::run` com `FlowRequest::Learn`: a correção de um exercício roda no servidor da AURORA, que linka o aurora-learn | pedir pelo `aurora serve` (`flow.run`), ou corrigir com `aurora learn check` |
+| `NoWaveform` | `no_waveform` | `flows::open_wave` de uma onda do projeto (ou de um processador) que ainda não existe, porque a simulação não rodou ou não chegou ao fim, ou de um arquivo que não existe | simular antes (`aurora sim [-p X]`, o botão Simular) |
 | `SignalNotFound` | `signal_not_found` | `flows::choose_signals` com um caminho que a árvore do testbench elaborado não tem; `similar` traz os parecidos | ver `similar`, ou `wave_signals` |
 | `SignalNotChosen` | `signal_not_chosen` | tirar da escolha um caminho que não está na escolha gravada nem no design | ver a escolha (`wave_signals`) |
-| `TestbenchNotElaborated` | `testbench_not_elaborated` | a escolha de sinais precisa da árvore do testbench, e a elaboração dele pelo Icarus falhou; `reason` é a primeira mensagem | corrigir o testbench (`lace check`) |
+| `TestbenchNotElaborated` | `testbench_not_elaborated` | a escolha de sinais precisa da árvore do testbench, e a elaboração dele pelo Icarus falhou; `reason` é a primeira mensagem | corrigir o testbench (`aurora check`) |
 
 O enum é `#[non_exhaustive]`: todo `match` precisa de `_`. Para atravessar
-uma fronteira (JSON, outro processo), um `LaceError` vira [`ErrorInfo`]
+uma fronteira (JSON, outro processo), um `AuroraError` vira [`ErrorInfo`]
 (`ErrorInfo::from(&error)`; 5.11).
 
 ---
@@ -2331,13 +2331,13 @@ Garantias:
   `hierarchy`, `synthesize`, `render_schematic`, `wave_signals`, `fpga_build`,
   `fpga_program`); o cliente configura o
   subscriber.
-- **Só o bundle.** Toda ferramenta sai do bundle instalado com o Lace, num
+- **Só o bundle.** Toda ferramenta sai do bundle instalado com a AURORA, num
   caminho fixo por plataforma. Nada do `PATH`, nada configurável. As exceções
   são a do Verilator no Linux e no macOS (compilador, `make` e Perl do
   sistema, em locais fixos ou numa pasta declarada; no Windows os três vêm
   no bundle) e a do Quartus Prime, para as placas Intel (2.5), de pastas
   padrão ou declaradas, nunca do `PATH`.
-- **Ambiente explícito.** Toda ferramenta parte de um ambiente vazio (o abridor de `open_with_system` e o `taskkill` herdam o do Lace). No Windows
+- **Ambiente explícito.** Toda ferramenta parte de um ambiente vazio (o abridor de `open_with_system` e o `taskkill` herdam o da AURORA). No Windows
   recebe `SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `ProgramData`, `TEMP`,
   `TMP`; as ferramentas do OSS CAD
   Suite recebem `PATH` com `bin;lib` do pacote, e as do `msys/`, com
@@ -2353,18 +2353,18 @@ Garantias:
   passou do prazo encerra o processo do passo com tudo o que ele iniciou:
   no Unix, o grupo de processos do passo (SIGTERM, depois SIGKILL); no
   Windows, o Job Object do passo, que também encerra a árvore quando o
-  processo do Lace morre (5.8).
+  processo da AURORA morre (5.8).
 - **Nunca sobrescreve código.** `add_processor` e `add_file` com conteúdo
   recusam se o arquivo já existir; `add_verilog` só cria o arquivo que não
   existe e registra como está o que existe. `move_path` recusa um destino
   que já existe. `write_input` substitui a entrada, que é estímulo.
-- **Threads.** `Toolchain`, `Project`, os resultados, `LaceError`,
+- **Threads.** `Toolchain`, `Project`, os resultados, `AuroraError`,
   `Control`, `CancelToken` e `Event` são `Send + Sync`; `RunningProcess` é
   `Send`. Uma GUI roda as operações numa thread de trabalho e cancela da
   thread da interface (5.8).
-- **FFI.** A superfície pública só expõe tipos do Lace, da `std`, de
+- **FFI.** A superfície pública só expõe tipos da AURORA, da `std`, de
   `camino` (caminhos), de `serde`, de `serde_json` (o `Value` de
-  `ErrorInfo::data`, `LaceError::data`, `Notification::Install` e
+  `ErrorInfo::data`, `AuroraError::data`, `Notification::Install` e
   `FlowOutcome::learn`) e de `schemars` (derive). Os enums são
   `#[non_exhaustive]`, menos os da 0.9.0 em `flows`, `delivery` e `locate`
   (`FlowRequest`, `WavePolicy`, `Progress`, `WaveSource`, `LayoutPolicy`,
@@ -2380,9 +2380,9 @@ Limites desta versão:
 - No Unix, um SIGKILL no processo que usa a biblioteca não tem como
   encerrar os filhos: eles rodam num grupo de processos próprio e continuam
   rodando. O mesmo vale para um SIGTERM que o processo não trata. Quem
-  encerra um cliente do Lace de fora deve mandar SIGTERM, e o cliente deve
+  encerra um cliente da AURORA de fora deve mandar SIGTERM, e o cliente deve
   transformá-lo em `cancel()`, como a CLI faz (`cancel_on_signals`, em
-  `crates/lace-cli/src/main.rs`). No Windows os filhos estão no Job Object
+  `crates/aurora-cli/src/main.rs`). No Windows os filhos estão no Job Object
   do passo e terminam junto com o processo, de qualquer jeito que ele
   morra.
 - Sem build incremental: cada chamada roda tudo de novo (o modelo do
@@ -2390,13 +2390,13 @@ Limites desta versão:
   5.2).
 - O `StepReport` guarda de cada pipe os primeiros e os últimos 2 MiB; o meio
   de uma saída maior (um testbench que imprime sem parar) sai, e uma linha
-  `[Lace: N bytes of output left out here]` marca o corte. A saída ao vivo do
+  `[AURORA: N bytes of output left out here]` marca o corte. A saída ao vivo do
   `Control` (5.8) passa inteira. Os diagnósticos saem do que foi guardado.
 - Plataformas: ver 9.1.
 
 ### 9.1 Plataformas
 
-O Lace é escrito para Linux, macOS e Windows. O que foi conferido e como:
+A AURORA é escrito para Linux, macOS e Windows. O que foi conferido e como:
 
 | Verificação | Linux | Windows | macOS |
 |---|---|---|---|
@@ -2410,7 +2410,7 @@ O Wine executa a API do Windows (criação de processo, caminhos `C:\`,
 sistemas, com todas as ferramentas, é à mão: os testes contra uma
 instalação ([CONTRIBUTING.md](../CONTRIBUTING.md)).
 
-O que muda por sistema, e como o Lace trata:
+O que muda por sistema, e como a AURORA trata:
 
 | Assunto | Tratamento |
 |---|---|
@@ -2421,8 +2421,8 @@ O que muda por sistema, e como o Lace trata:
 | maiúsculas | processadores que diferem só na caixa são recusados (Windows e macOS não distinguem) |
 | ambiente do filho | Windows: `SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `ProgramData`, `TEMP`, `TMP`. Surfer: `HOME`, `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_*`, `TMPDIR` (Unix) ou `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` (Windows) |
 | término de processo | sinal no Unix (`Signaled`), NTSTATUS no Windows (`Exception`) |
-| encerrar um passo (cancelamento, prazo) | Unix: grupo de processos próprio por passo, SIGTERM ao grupo e SIGKILL depois de 1 s. Windows: Job Object por passo (`KILL_ON_JOB_CLOSE`), que encerra a árvore também quando o Lace morre; `taskkill /T /F` do `System32` se o sistema recusar o job |
-| janela de console | Windows: nenhuma (`hide_console`); com console o filho divide o do Lace, sem console leva `CREATE_NO_WINDOW` |
+| encerrar um passo (cancelamento, prazo) | Unix: grupo de processos próprio por passo, SIGTERM ao grupo e SIGKILL depois de 1 s. Windows: Job Object por passo (`KILL_ON_JOB_CLOSE`), que encerra a árvore também quando a AURORA morre; `taskkill /T /F` do `System32` se o sistema recusar o job |
+| janela de console | Windows: nenhuma (`hide_console`); com console o filho divide o da AURORA, sem console leva `CREATE_NO_WINDOW` |
 | ferramentas do OSS CAD Suite | lançadores bash via `/bin/bash` (Linux, macOS); `.exe` com `PATH=bin;lib` (Windows) |
 | Verilator | Linux e macOS: o script Perl pelo Perl do sistema; Windows: o `verilator_bin.exe` direto, com `VERILATOR_ROOT`; Python do bundle no `make`; sem `-march=native` no macOS |
 | fins de linha | CRLF aceito em toda leitura (`.spf`, fontes, saídas); no Windows o YANC grava CRLF |
@@ -2431,11 +2431,11 @@ O que muda por sistema, e como o Lace trata:
 
 ## 10. Diferenças em relação à AURORA
 
-| Assunto | AURORA | Lace |
+| Assunto | AURORA | AURORA |
 |---|---|---|
 | Abrir projeto | regrava o `.spf` (`lastOpened`, `exists`) | só lê |
 | `clk` fracionário | trunca | recusa |
-| Diretório temporário | `<raiz>/.aurora/Temp` | `<raiz>/.lace/Temp` |
+| Diretório temporário | `<raiz>/.aurora/Temp` | `<raiz>/.aurora8/Temp` |
 | Idioma do YANC | o da interface (`--lang=pt` ou `--lang=en`) | sempre inglês (`--lang=en`) |
 | Ambiente do filho | herda o da AURORA | vazio + o mínimo |
 | Classificação de arquivos | por conteúdo, refeita a cada carga do projeto | por conteúdo, com a mesma regra, quando `add_verilog` registra; o papel fica gravado no `.spf` |
@@ -2443,13 +2443,13 @@ O que muda por sistema, e como o Lace trata:
 | Hierarquia | montada pelo Yosys | elaborada pelo Icarus, do design e de cada testbench, com a biblioteca SAPHO (`hierarchy`) |
 | Nome de projeto | aceita espaço e acento | só letras sem acento, dígitos, `_` e `-`, começando por letra; os projetos que já existem abrem |
 | Formato da onda (Icarus) | `vvp -fst` sempre, no nome do `$dumpfile` (um `.vcd` com FST dentro) | FST, com a extensão `.fst` trocada numa cópia do testbench |
-| Testbench cocotb | o runner Python do cocotb, num processo, no Icarus ou no Verilator | os passos `elaborate` (ou `verilate`) e `simulate` do Lace, no Icarus ou no Verilator, com os testes em `SimulationResult::tests` |
+| Testbench cocotb | o runner Python do cocotb, num processo, no Icarus ou no Verilator | os passos `elaborate` (ou `verilate`) e `simulate` da AURORA, no Icarus ou no Verilator, com os testes em `SimulationResult::tests` |
 | Simulação rápida (Fast Sim) | Verilator sem `--trace-fst`, com os `$dumpfile`/`$dumpvars` comentados numa cópia do testbench; o botão só habilita com o Verilator escolhido; cocotb no simulador escolhido | Verilator sem `--trace`, com o testbench como está (o Verilator ignora o dump), qualquer que seja o simulador escolhido; cocotb no simulador escolhido (`SimulationOptions::fast`) |
 | Testbench sem `$dumpfile` | injeta `$dumpvars(1, <topo>)`: só o nível do testbench | injeta `$dumpvars(0, <tb>)`: todos os sinais, inclusive os do módulo testado |
 | Simulação de processador | só pelo modo projeto | `simulate` direto, além de `simulate_project` |
-| Ferramentas | `components/` baixados pela AURORA | bundle versionado instalado com o Lace |
+| Ferramentas | `components/` baixados pela AURORA | bundle versionado instalado com a AURORA |
 | Esquemático | netlistsvg (fork próprio), dentro do processo, ~50 skins | `show` do Yosys + `dot` do Graphviz; o Studio desenha o próprio, do `hierarchy.json`, com o ELK |
 | Onda do Verilator | FST | VCD (o FST do Verilator do bundle exige lz4 e zlib do sistema) |
-| Layout do Surfer | gera `.surf.ron` e tradutores na pasta de configuração do usuário | gera o mesmo layout (`wave_layout`), com os tradutores em `.lace/Temp/surfer/` |
+| Layout do Surfer | gera `.surf.ron` e tradutores na pasta de configuração do usuário | gera o mesmo layout (`wave_layout`), com os tradutores em `.aurora8/Temp/surfer/` |
 | Sinais fora dos processadores no layout | todos os escopos | só os da raiz do testbench; com escolha de sinais (5.7.3), os escolhidos, um grupo por escopo |
 | Teste de hardware (THTEST) | harness C++ próprio | não implementado |

@@ -127,6 +127,126 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurora-agent"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "aurora-core",
+ "camino",
+ "dunce",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
+name = "aurora-cli"
+version = "0.9.0"
+dependencies = [
+ "anstream",
+ "anstyle",
+ "anyhow",
+ "assert_cmd",
+ "aurora-agent",
+ "aurora-core",
+ "aurora-installer",
+ "aurora-learn",
+ "aurora-protocol",
+ "camino",
+ "clap",
+ "clap_complete",
+ "dunce",
+ "flate2",
+ "insta",
+ "jsonschema",
+ "predicates",
+ "ratatui",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "signal-hook",
+ "tar",
+ "tempfile",
+ "tracing",
+ "tracing-subscriber",
+ "trash",
+]
+
+[[package]]
+name = "aurora-core"
+version = "0.9.0"
+dependencies = [
+ "camino",
+ "dunce",
+ "fst-reader",
+ "insta",
+ "roxmltree",
+ "rustix",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+ "win32job",
+]
+
+[[package]]
+name = "aurora-installer"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "aurora-core",
+ "camino",
+ "clap",
+ "dunce",
+ "flate2",
+ "ratatui",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+ "zstd",
+]
+
+[[package]]
+name = "aurora-learn"
+version = "0.9.0"
+dependencies = [
+ "aurora-core",
+ "camino",
+ "dunce",
+ "insta",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
+name = "aurora-protocol"
+version = "0.9.0"
+dependencies = [
+ "aurora-core",
+ "aurora-installer",
+ "aurora-learn",
+ "camino",
+ "schemars",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -903,126 +1023,6 @@ dependencies = [
  "hashbrown 0.16.1",
  "portable-atomic",
  "thiserror 2.0.21",
-]
-
-[[package]]
-name = "lace-agent"
-version = "0.9.0"
-dependencies = [
- "anyhow",
- "camino",
- "dunce",
- "lace-core",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "tracing",
-]
-
-[[package]]
-name = "lace-cli"
-version = "0.9.0"
-dependencies = [
- "anstream",
- "anstyle",
- "anyhow",
- "assert_cmd",
- "camino",
- "clap",
- "clap_complete",
- "dunce",
- "flate2",
- "insta",
- "jsonschema",
- "lace-agent",
- "lace-core",
- "lace-installer",
- "lace-learn",
- "lace-protocol",
- "predicates",
- "ratatui",
- "schemars",
- "serde",
- "serde_json",
- "sha2",
- "signal-hook",
- "tar",
- "tempfile",
- "tracing",
- "tracing-subscriber",
- "trash",
-]
-
-[[package]]
-name = "lace-core"
-version = "0.9.0"
-dependencies = [
- "camino",
- "dunce",
- "fst-reader",
- "insta",
- "roxmltree",
- "rustix",
- "schemars",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.21",
- "tracing",
- "win32job",
-]
-
-[[package]]
-name = "lace-installer"
-version = "0.9.0"
-dependencies = [
- "anyhow",
- "camino",
- "clap",
- "dunce",
- "flate2",
- "lace-core",
- "ratatui",
- "schemars",
- "serde",
- "serde_json",
- "sha2",
- "tar",
- "tempfile",
- "thiserror 2.0.21",
- "tracing",
- "zstd",
-]
-
-[[package]]
-name = "lace-learn"
-version = "0.9.0"
-dependencies = [
- "camino",
- "dunce",
- "insta",
- "lace-core",
- "schemars",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "tracing",
-]
-
-[[package]]
-name = "lace-protocol"
-version = "0.9.0"
-dependencies = [
- "camino",
- "lace-core",
- "lace-installer",
- "lace-learn",
- "schemars",
- "serde",
- "serde_json",
 ]
 
 [[package]]

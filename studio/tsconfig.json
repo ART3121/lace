@@ -15,8 +15,8 @@
     "noEmit": true,
     "types": ["vite/client"],
     "paths": {
-      "@lace/rtl-viewer": ["../packages/rtl-viewer/src/index.ts"],
-      "@lace/rtl-viewer/*": ["../packages/rtl-viewer/src/*"],
+      "@aurora/rtl-viewer": ["../packages/rtl-viewer/src/index.ts"],
+      "@aurora/rtl-viewer/*": ["../packages/rtl-viewer/src/*"],
       "react": ["./node_modules/@types/react"],
       "react/*": ["./node_modules/@types/react/*"],
       "react-dom": ["./node_modules/@types/react-dom"],

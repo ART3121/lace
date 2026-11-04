@@ -22,7 +22,7 @@ import { create } from 'zustand';
 import { disposeModel, ensureModel, getModel, uriFor } from '../editor/monaco';
 import { t } from '../i18n';
 import { api } from '../ipc/api';
-import type { Feature } from '../ipc/lace-types';
+import type { Feature } from '../ipc/aurora-types';
 import type { IpcError } from '../ipc/types';
 import { baseName, isInside, systemPath } from '../util/paths';
 import { confirm } from './dialogs';
@@ -686,7 +686,7 @@ export const useEditor = create<EditorState>((set, get) => {
         activeGroup: Math.max(0, kept.findIndex((group) => group.id === activeGroup)),
       };
       try {
-        localStorage.setItem(`lace-studio:session:${spf}`, JSON.stringify(session));
+        localStorage.setItem(`aurora-ide:session:${spf}`, JSON.stringify(session));
       } catch {
         // Sem armazenamento, a sessão só não é lembrada.
       }
@@ -695,7 +695,7 @@ export const useEditor = create<EditorState>((set, get) => {
     restoreSession: async (spf) => {
       let session: SavedSession | null = null;
       try {
-        session = JSON.parse(localStorage.getItem(`lace-studio:session:${spf}`) ?? 'null');
+        session = JSON.parse(localStorage.getItem(`aurora-ide:session:${spf}`) ?? 'null');
       } catch {
         session = null;
       }

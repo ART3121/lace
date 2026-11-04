@@ -2,7 +2,7 @@
 # (packages/rtl-viewer/): tipos e lint, os testes unitários e de contrato nas
 # três plataformas e o teste de integração no Linux, num VS Code de verdade
 # sob xvfb. Roda quando muda a extensão, o viewer ou docs/schema/, que é o
-# contrato dela com o Lace.
+# contrato dela com a AURORA.
 
 name: vscode
 
@@ -52,7 +52,7 @@ jobs:
           npm run lint
       - name: Unitários e contrato
         run: npm run test:unit
-      # O lace falso roda pelo shebang, e no Windows um .mjs não executa sem
+      # O aurora falso roda pelo shebang, e no Windows um .mjs não executa sem
       # shell (a extensão nunca usa shell): a integração fica no Linux.
       - name: Integração
         if: runner.os == 'Linux'

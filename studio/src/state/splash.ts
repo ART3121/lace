@@ -7,9 +7,9 @@
 import { useLang } from '../i18n';
 import type { Theme } from '../themes';
 
-const STATUS = 'lace-studio:splash:status';
-const LOOK = 'lace-studio:splash:look';
-const BORN = 'lace-studio:splash:born';
+const STATUS = 'aurora-ide:splash:status';
+const LOOK = 'aurora-ide:splash:look';
+const BORN = 'aurora-ide:splash:born';
 
 /** Quanto falta para o splash ter ficado `min` ms na tela, contado de quando
  * ele apareceu (ele grava a hora). Sem esse registro, ou com um de outra
@@ -26,7 +26,7 @@ export function splashRemaining(min: number): number {
   return Math.max(0, min - performance.now());
 }
 
-/** O que aparece embaixo do logo: "Procurando o Lace", "Reabrindo contador".
+/** O que aparece embaixo do logo: "Procurando a AURORA", "Reabrindo contador".
  * Vai com a hora: o splash ignora o que sobrou de uma abertura anterior. */
 export function splashStatus(text: string): void {
   try {
@@ -48,14 +48,14 @@ export function rememberSplashLook(theme: Theme, version: string | undefined): v
       fg: ui.text0,
       muted: ui.text2,
       track: ui.border,
-      // Os fios do logo nas cores dos arquivos da marca (public/brand).
-      strand: dark ? '#f4efe6' : '#2e4374',
+      // O camaleão na cor do AuroraMark da janela.
+      mark: ui.brandFill,
       pulse: dark ? ui.brandText : ui.brand,
     },
   };
   try {
     localStorage.setItem(LOOK, JSON.stringify(look));
   } catch {
-    // Sem armazenamento, o próximo splash nasce nas cores do Atlas.
+    // Sem armazenamento, o próximo splash nasce nas cores do Boreal.
   }
 }

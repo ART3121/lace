@@ -1,4 +1,4 @@
-// Comparar caminhos que vêm de dois lugares: o Lace devolve o caminho
+// Comparar caminhos que vêm de dois lugares: a AURORA devolve o caminho
 // canônico (`C:\Users\...`), e o `Uri.fsPath` do VS Code, a letra do drive
 // em minúscula (`c:\Users\...`). No Windows o sistema de arquivos não
 // distingue a caixa, e um nome que chega com `/` é o mesmo de `\`. Sem

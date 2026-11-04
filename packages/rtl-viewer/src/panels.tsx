@@ -120,7 +120,7 @@ function Parameters({ list }: { list: [string, string][] }) {
 }
 
 function SourceLink({ src, onOpen }: { src: SourceRef; onOpen?: (src: SourceRef) => void }) {
-  // Sem quem abra o arquivo (o HTML do `lace synth --open`), só o nome e a linha.
+  // Sem quem abra o arquivo (o HTML do `aurora synth --open`), só o nome e a linha.
   if (!onOpen) {
     return (
       <span className="rtlViewer-link" title={`${src.file}:${src.line}`}>

@@ -11,42 +11,74 @@
 // Nenhuma cor de tema fica fora deste módulo: os componentes usam as
 // variáveis, e as medidas (fontes, espaços, raios) continuam em
 // styles/tokens.css. Os temas estão em catalog.ts.
+//
+// A preferência é uma paleta e um modo. A paleta (`settings.theme`) é o id do
+// tema escuro dela, com o claro no `pair`; o modo (`settings.theme_mode`) é
+// escuro, claro ou o do sistema. Uma paleta só escura (o Dracula, o Aurora
+// Legacy) fica escura em qualquer modo.
 
 import { THEMES } from './catalog';
-import { alpha, legible, mix, type Theme, type UiColors } from './model';
+import { alpha, legible, mix, type Scheme, type Theme, type UiColors } from './model';
 
 export * from './model';
 
 export { THEMES };
 
-/** O tema padrão, também o de quem tinha "escuro" gravado. */
-export const DEFAULT_THEME = 'atlas';
-/** O claro do "Do sistema", também o de quem tinha "claro" gravado. */
-export const DEFAULT_LIGHT_THEME = 'atlas-light';
-/** A preferência que segue o esquema do sistema. */
-export const SYSTEM_THEME = 'system';
+/** A paleta padrão. O settings.rs leva a ela quem tinha um tema que saiu: o
+ * Atlas, o padrão do Lace Studio, o "escuro" de antes dele e os temas de fora
+ * que não ficaram. */
+export const DEFAULT_THEME = 'boreal';
+/** O tema claro da paleta padrão. */
+export const DEFAULT_LIGHT_THEME = 'boreal-claro';
+
+/** O modo: um esquema fixo, ou o do sistema. */
+export type ThemeMode = Scheme | 'system';
 
 const BY_ID = new Map(THEMES.map((theme) => [theme.id, theme]));
+
+/** As paletas, na ordem do catálogo: o tema escuro de cada uma, ou o único
+ * de uma paleta só escura. */
+export const PALETTES: Theme[] = THEMES.filter((theme) => theme.scheme === 'dark' || !theme.pair);
 
 export function themeById(id: string): Theme | undefined {
   return BY_ID.get(id);
 }
 
-/**
- * O tema de uma preferência. `system` fica com o Atlas ou o Atlas Branco,
- * conforme o sistema; um id desconhecido (de uma versão mais nova, ou de um
- * tema que saiu) cai no padrão.
- */
-export function resolveTheme(preference: string | undefined, systemDark: boolean): Theme {
-  if (!preference || preference === SYSTEM_THEME) {
-    return BY_ID.get(systemDark ? DEFAULT_THEME : DEFAULT_LIGHT_THEME)!;
-  }
-  return BY_ID.get(preference) ?? BY_ID.get(DEFAULT_THEME)!;
+/** O nome da paleta: o `family` do tema escuro, ou o nome dele. */
+export function paletteName(palette: Theme): string {
+  return palette.family ?? palette.name;
 }
 
-/** O tema para onde "Alternar tema claro e escuro" leva. */
-export function toggledTheme(theme: Theme): string {
-  return theme.pair ?? (theme.scheme === 'dark' ? DEFAULT_LIGHT_THEME : DEFAULT_THEME);
+/** A paleta de um id: o tema escuro dela. Um id desconhecido (de uma versão
+ * mais nova, ou de um tema que saiu) cai na paleta padrão. */
+export function paletteOf(id: string | undefined): Theme {
+  const theme = (id && BY_ID.get(id)) || BY_ID.get(DEFAULT_THEME)!;
+  return theme.scheme === 'light' && theme.pair ? (BY_ID.get(theme.pair) ?? theme) : theme;
+}
+
+/** O esquema de um modo; o "Do sistema" segue `systemDark`, e um modo
+ * desconhecido vale o escuro. */
+export function schemeOf(mode: string | undefined, systemDark: boolean): Scheme {
+  if (mode === 'light') return 'light';
+  if (mode === 'system') return systemDark ? 'dark' : 'light';
+  return 'dark';
+}
+
+/** O tema de uma paleta num esquema; a paleta só escura fica escura. */
+export function paletteTheme(palette: Theme, scheme: Scheme): Theme {
+  if (palette.scheme === scheme || !palette.pair) return palette;
+  return BY_ID.get(palette.pair) ?? palette;
+}
+
+/** O tema da preferência: a paleta no esquema do modo. */
+export function resolveTheme(palette: string | undefined, mode: string | undefined, systemDark: boolean): Theme {
+  return paletteTheme(paletteOf(palette), schemeOf(mode, systemDark));
+}
+
+/** O modo para onde "Alternar tema claro e escuro" leva: o contrário do
+ * esquema em uso. */
+export function toggledMode(theme: Theme): ThemeMode {
+  return theme.scheme === 'dark' ? 'light' : 'dark';
 }
 
 // Interface ---------------------------------------------------------------
@@ -72,7 +104,7 @@ export function uiTokens(theme: Theme): Record<string, string> {
     windowCloseText: ui.windowCloseText ?? '#FFFFFF',
   };
   const tokens: Record<string, string> = {};
-  for (const [key, value] of Object.entries({ ...complete, ...schematicColors(theme) })) {
+  for (const [key, value] of Object.entries({ ...complete, ...schematicColors(theme), ...fileColors(theme) })) {
     tokens[key.replace(/([A-Z]|\d+)/g, '-$1').toLowerCase()] = value;
   }
   return tokens;
@@ -124,6 +156,27 @@ function schematicColors(theme: Theme): Record<string, string> {
   return colors;
 }
 
+/**
+ * As cores dos ícones de arquivo da AURORA (`--file-*`,
+ * components/editor/fileIcons.tsx). Como as famílias do RTLViewer, cada tipo
+ * pega um tom da paleta dos terminais, que todo tema define com seis matizes
+ * distintos (as cores da sintaxe repetem tons entre papéis), puxado na
+ * direção do texto até ter contraste 3:1 com o fundo da barra lateral.
+ */
+function fileColors(theme: Theme): Record<string, string> {
+  const { ui, terminal } = theme;
+  const tone = (color: string) => legible(color, ui.text0, ui.bg1, 3);
+  return {
+    fileVerilog: tone(terminal.blue),
+    fileTestbench: tone(terminal.green),
+    fileCmm: tone(terminal.magenta),
+    fileAsm: tone(terminal.yellow),
+    fileMif: tone(terminal.cyan),
+    fileWave: tone(mix(terminal.red, terminal.yellow, 0.35)),
+    fileProject: tone(ui.brand),
+  };
+}
+
 let styleElement: HTMLStyleElement | null = null;
 let appliedTheme: Theme | null = null;
 
@@ -137,7 +190,7 @@ export function applyThemeCss(theme: Theme): void {
   appliedTheme = theme;
   if (!styleElement) {
     styleElement = document.createElement('style');
-    styleElement.id = 'lace-theme';
+    styleElement.id = 'aurora-theme';
     document.head.appendChild(styleElement);
   }
   const lines = Object.entries(uiTokens(theme)).map(([name, value]) => `  --${name}: ${value};`);
@@ -145,4 +198,10 @@ export function applyThemeCss(theme: Theme): void {
   const root = document.documentElement;
   root.dataset.theme = theme.scheme;
   root.dataset.themeId = theme.id;
+}
+
+/** A aparência da interface no <html> (`data-look`, app.css): `islands` liga
+ * as ilhas; qualquer outro valor, a clássica. */
+export function applyLook(look: string | undefined): void {
+  document.documentElement.dataset.look = look === 'islands' ? 'islands' : 'classic';
 }

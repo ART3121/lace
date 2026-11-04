@@ -14,7 +14,7 @@ import { useT } from '../../i18n';
 import { useProject, windowTitle } from '../../state/project';
 import { useTitleBar } from '../../state/titleBar';
 import { showError } from '../../state/toasts';
-import { LaceMark } from '../common';
+import { AuroraMark } from '../common';
 import { chromeContextMenu, Menus } from './MenuBar';
 import { RunControls } from './RunControls';
 
@@ -29,7 +29,7 @@ export function TitleBar({ menus, run }: { menus: boolean; run: boolean }) {
       onContextMenu={chromeContextMenu}
     >
       <div className="titlebar__start">
-        {!mac && <LaceMark className="menubar__logo" />}
+        {!mac && <AuroraMark className="menubar__logo" />}
         {menus && <Menus />}
       </div>
       <div className="titlebar__title">{title}</div>

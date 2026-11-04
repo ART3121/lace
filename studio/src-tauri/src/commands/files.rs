@@ -79,7 +79,7 @@ pub async fn fs_read_dir(app: AppHandle, path: String) -> IpcResult<Vec<DirEntry
     .await
 }
 
-/// Marca os arquivos com nome de testbench, pela regra do Lace, numa
+/// Marca os arquivos com nome de testbench, pela regra da AURORA, numa
 /// pergunta só ao servidor. Sem servidor, a lista sai sem a marca: a árvore
 /// funciona do mesmo jeito.
 fn mark_testbenches(state: &AppState, entries: &mut [DirEntry]) {
@@ -214,7 +214,7 @@ fn write_atomically(path: &Utf8Path, content: &str) -> std::io::Result<()> {
     };
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     let tmp = dir.join(format!(
-        ".{}.{}-{n}.lace-tmp",
+        ".{}.{}-{n}.aurora-tmp",
         name.to_string_lossy(),
         std::process::id()
     ));
@@ -418,7 +418,7 @@ pub(crate) fn copy_recursive(from: &Utf8Path, to: &Utf8Path) -> IpcResult<()> {
 }
 
 /// Todos os arquivos do projeto, para o "abrir rápido" (Ctrl+P). Pula as
-/// pastas ocultas (inclusive `.lace/`) e as de [`SKIPPED_DIRS`].
+/// pastas ocultas (inclusive `.aurora8/`) e as de [`SKIPPED_DIRS`].
 #[tauri::command]
 pub async fn fs_list_files(app: AppHandle) -> IpcResult<Vec<Utf8PathBuf>> {
     blocking(app, |_, state| {

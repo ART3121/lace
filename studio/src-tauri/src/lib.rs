@@ -1,7 +1,7 @@
-//! Lace Studio: o backend do ambiente gráfico do Lace.
+//! AURORA IDE: o backend do ambiente gráfico da AURORA.
 //!
-//! O backend é um cliente do servidor do Lace (`lace serve`), como a
-//! extensão do VS Code: o que é do Lace (o projeto, os fluxos, o histórico,
+//! O backend é um cliente do servidor da AURORA (`aurora serve`), como a
+//! extensão do VS Code: o que é da AURORA (o projeto, os fluxos, o histórico,
 //! instalar e atualizar) é um pedido do protocolo ao servidor, e o que fica
 //! aqui é do Studio: as janelas, os arquivos, o terminal, a vigia da pasta,
 //! as preferências e a onda numa aba. A interface (React, em `src/`) só
@@ -12,12 +12,12 @@
 //! | [`commands::project`] | abrir, criar e fechar o projeto, a pasta padrão, a hierarquia |
 //! | [`commands::files`] | árvore, ler e gravar texto, criar, renomear, copiar, lixeira, busca |
 //! | [`jobs`] e [`flows`] | build, check, sim, synth, esquemático, placa, correção, instalar e atualizar: pedidos ao servidor que rodam como operações canceláveis, com saída ao vivo |
-//! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `lace mcp` (`lace-agent`); só com o recurso ligado |
-//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `lace install`, `lace update` e `lace update --check` pelo servidor |
+//! | [`assistant`] | o assistente de IA: sessões do Claude Code com o `aurora mcp` (`aurora-agent`); só com o recurso ligado |
+//! | [`commands::toolchain`] e [`toolchain`] | o bundle, `aurora install`, `aurora update` e `aurora update --check` pelo servidor |
 //! | [`terminal`] | o terminal de shell |
 //! | [`commands::app`] | versão, preferências, recentes, sair e reiniciar |
 //! | [`wave_tab`] | a onda numa aba: o cliente web do Surfer servido pelo Studio, e o layout que ela salva no projeto |
-//! | [`server`] | o servidor do Lace (`lace serve`) e o `lace_call`, por onde passam os métodos do protocolo |
+//! | [`server`] | o servidor da AURORA (`aurora serve`) e o `aurora_call`, por onde passam os métodos do protocolo |
 //!
 //! A referência de cada comando, com o formato do que recebe e devolve,
 //! está em `docs/IPC.md`.
@@ -124,7 +124,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            server::lace_call,
+            server::aurora_call,
             commands::app::app_info,
             commands::app::settings_get,
             commands::app::settings_set,
@@ -151,9 +151,9 @@ pub fn run() {
             commands::files::fs_list_files,
             commands::files::fs_search,
             commands::toolchain::toolchain_info,
-            commands::toolchain::lace_update_check,
-            commands::toolchain::lace_install,
-            commands::toolchain::lace_update,
+            commands::toolchain::aurora_update_check,
+            commands::toolchain::aurora_install,
+            commands::toolchain::aurora_update,
             jobs::flow_start,
             jobs::flow_cancel,
             jobs::flow_running,
@@ -172,7 +172,7 @@ pub fn run() {
             wave_tab::wave_tab_close,
         ])
         .build(tauri::generate_context!())
-        .expect("Lace Studio could not start");
+        .expect("AURORA IDE could not start");
     app.run(|app, event| {
         if let RunEvent::Exit = event {
             shutdown(app);
@@ -215,7 +215,7 @@ fn shutdown(app: &AppHandle) {
 fn init_tracing() {
     use tracing_subscriber::EnvFilter;
     let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("warn,lace_studio_lib=info,lace_studio=info"));
+        .unwrap_or_else(|_| EnvFilter::new("warn,aurora_ide_lib=info,aurora_ide=info"));
     let _ = tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_writer(std::io::stderr)
@@ -227,7 +227,7 @@ mod signals {
     //! SIGTERM, SIGINT e SIGHUP fecham o Studio do jeito certo: cancelam a
     //! operação rodando antes de sair. Sem isso, um sinal mataria só o
     //! Studio, e a ferramenta, num grupo de processos próprio, continuaria
-    //! rodando (API.md do Lace, 9, "Limites").
+    //! rodando (API.md da AURORA, 9, "Limites").
 
     use signal_hook::consts::{SIGHUP, SIGINT, SIGTERM};
     use signal_hook::iterator::Signals;

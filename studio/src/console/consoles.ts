@@ -20,7 +20,7 @@
 // status, o tempo e os problemas; o formato das linhas está em format.ts.
 // Um terminal de etapa aberto no meio do caminho mostra o que a etapa já
 // escreveu (`log`), com os cabeçalhos das rodadas em que ela escreveu algo.
-// A saída do `lace install` e do `lace update` aparece na tela do bundle
+// A saída do `aurora install` e do `aurora update` aparece na tela do bundle
 // (`views/ToolchainView.tsx`).
 //
 // Os terminais vivem fora do React: são criados uma vez e o elemento deles
@@ -39,7 +39,7 @@ import type { ConsoleChannel, ConsoleId } from '../state/layout';
 import { DEFAULT_THEME, legible, resolveTheme, type Theme } from '../themes';
 import { header } from './format';
 
-/** O estilo de uma linha do registro do `lace install` e do `lace update`,
+/** O estilo de uma linha do registro do `aurora install` e do `aurora update`,
  * que a tela do bundle mostra fora dos consoles. */
 export type LineStyle = 'plain' | 'error' | 'warning' | 'info' | 'success' | 'dim' | 'title' | 'command';
 
@@ -100,7 +100,7 @@ const runTitles = new Map<number, string>();
 let currentRun = 0;
 /** A primeira linha de erro da rodada atual no INFO. */
 let runError: IMarker | null = null;
-let currentTheme: ITheme = terminalTheme(resolveTheme(DEFAULT_THEME, true));
+let currentTheme: ITheme = terminalTheme(resolveTheme(DEFAULT_THEME, 'dark', true));
 let fontSize = 12;
 
 /** Quem abre um arquivo a partir de um link `arquivo:linha` no console. */
@@ -112,7 +112,7 @@ export function setLinkHandler(handler: LinkHandler): void {
 }
 
 // `caminho/arquivo.ext:linha[:coluna]`, como o Icarus, o Verilator, o Yosys
-// e o Lace escrevem. Um caminho absoluto (`C:\...`, `C:/...`, `/...`) pode ter
+// e a AURORA escrevem. Um caminho absoluto (`C:\...`, `C:/...`, `/...`) pode ter
 // espaço, acento e símbolos (`C:/Users/Ana/Área de Trabalho/p/a.v:7`): vai do
 // começo dele até o primeiro `.ext:linha`, sem passar pelo que um nome do
 // Windows não tem (`:`, `"`, `<`, `>`, `|`, `*`, `?`). Um relativo

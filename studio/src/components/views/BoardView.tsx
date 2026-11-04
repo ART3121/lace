@@ -2,8 +2,8 @@
 //
 //   1. Ligações: cada porta do topo e o sinal da placa que vai nela (o
 //      `fpga.json`), conferidas a cada mudança e gravadas sozinhas;
-//   2. Compilação: o Quartus gera o arquivo de gravação (`lace fpga build`);
-//   3. Gravação: o arquivo vai para a placa pelo cabo (`lace fpga program`).
+//   2. Compilação: o Quartus gera o arquivo de gravação (`aurora fpga build`);
+//   3. Gravação: o arquivo vai para a placa pelo cabo (`aurora fpga program`).
 //
 // O botão principal compila e grava. A saída do Quartus vai para o console
 // Placa; os erros, para Problemas. A gravação só aceita o arquivo que
@@ -29,7 +29,7 @@ import {
 import { runFpgaBuild, runFpgaBuildAndProgram, runFpgaProgram } from '../../actions';
 import { formatDuration, useT, type Key } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { Board, BoardSignal, FpgaBuildResult, ResourceUsage } from '../../ipc/lace-types';
+import type { Board, BoardSignal, FpgaBuildResult, ResourceUsage } from '../../ipc/aurora-types';
 import type { BitstreamState, FpgaConfig, FpgaPrepared, IpcError, ModuleInterface } from '../../ipc/types';
 import { useApp } from '../../state/app';
 import { useEditor } from '../../state/editor';

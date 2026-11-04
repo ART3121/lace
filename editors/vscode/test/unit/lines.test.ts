@@ -1,6 +1,6 @@
 import * as assert from 'node:assert/strict';
 
-import { LineSplitter } from '../../src/lace/lines';
+import { LineSplitter } from '../../src/aurora/lines';
 
 describe('LineSplitter', () => {
   it('só entrega a linha quando o \\n dela chega', () => {

@@ -7,6 +7,43 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Alterado
 
+- O Lace Studio passa a se chamar **AURORA IDE**: no título da janela, no
+  splash, na tela inicial, em Sobre, nos menus e nos avisos. O logo é o
+  camaleão do ícone da AURORA, com o mesmo contorno e em cor chapada: na
+  barra de menus, na cor de destaque do tema; na tela inicial, ao lado do
+  nome, apagado como marca d'água. Os ícones do aplicativo são o camaleão
+  azul num quadrado grafite.
+- O executável passa a ser `aurora-ide`, o `productName`, AURORA IDE (no
+  macOS, `AURORA IDE.app`), e o identificador, `com.nipscern.aurora-ide`.
+  Na primeira abertura, a IDE copia o `settings.json` do Lace Studio da
+  pasta antiga (`com.nipscern.lace-studio`), com as preferências, os
+  layouts e os recentes. As chaves do localStorage passam a começar por
+  `aurora-ide:`: a sessão de cada projeto e o splash começam do zero.
+- A IDE abre o `aurora` como servidor, pelo protocolo 2. A variável de
+  desenvolvimento passa a ser `AURORA_IDE_CLI`, e a preferência, Programa
+  aurora (`aurora_path`; o `lace_path` antigo vale).
+- Cinco temas novos, cada um com o seu claro: **Boreal**, **Austral**,
+  **Nebulosa**, **Alvorada** e **Lunar**, com o azul da aurora boreal, o
+  verde da austral, o violeta das nebulosas, o âmbar do amanhecer e o
+  prata da lua. O verde e o violeta são os da Aurora antiga, separados:
+  no Austral, o lilás dela vai nos números e textos; no Nebulosa, a
+  menta. Têm os mesmos cinzas quase neutros e uma cor de destaque; no
+  código, só as palavras reservadas levam o destaque, e números e textos
+  levam uma segunda cor. O Lunar deixa a interface no prata do texto e
+  pinta o código com cores de luar: azul nas palavras reservadas, lilás
+  nos tipos e dourado nos números e textos. O Boreal é o padrão.
+- O tema passa a ser uma paleta e um modo. Em Preferências > Aparência, o
+  modo (Escuro, Claro ou Do sistema) fica à parte, e cada paleta tem um
+  cartão só, que serve aos dois esquemas; Exibir > Alternar tema claro e
+  escuro troca o modo. O Dark Modern e o Light Modern viram a paleta VS
+  Code; o Dracula e o Aurora Legacy são só escuros e ficam escuros em
+  qualquer modo. Saem os temas de fora que não são do VS Code nem o
+  Dracula (Gruvbox Dark e Light, Monokai, Nord, One Dark Pro, Solarized
+  Dark e Light, Catppuccin Mocha e Tokyo Night): quem estava num deles
+  passa para o Boreal, no mesmo esquema.
+- O Atlas e o Atlas Branco, os padrões do Lace Studio, saem da lista:
+  quem estava neles passa para o Boreal, escuro ou claro.
+- O splash mostra o camaleão numa volta, a partir do focinho.
 - O Studio passou a ser cliente do servidor do Lace (`lace serve`), como a
   extensão do VS Code: abre o `lace` como processo filho e pede a ele o
   projeto, os fluxos, o histórico, a placa FPGA, os exercícios, instalar e
@@ -22,6 +59,22 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Acrescentado
 
+- A tela inicial ganha uma aurora no pé: três senoides finas que correm
+  devagar, uma para cada lado, com as pontas apagadas. As cores são as da
+  aurora da AURORA 7 (menta, azul e violeta) no Boreal e nos temas de fora,
+  os verdes no Austral, o violeta e o rosa no Nebulosa, as do amanhecer no
+  Alvorada e as da lua no Lunar. Com o sistema pedindo
+  menos movimento, as linhas ficam paradas.
+- Menus, diálogos, avisos e a vista que troca numa região aberta entram com
+  um esmaecer curto, de 120 a 200 ms. Com o sistema pedindo menos
+  movimento, nada anima.
+- Preferências > Aparência ganha **Interface**: a Clássica, o padrão, ou
+  Ilhas, com as barras laterais, o editor e o painel em ilhas de cantos
+  redondos separadas por vãos, as abas em pílula e o ícone ativo da barra de
+  atividades num quadrado tingido do destaque. Vale com qualquer tema.
+- Os arquivos do fluxo da AURORA ganham ícones próprios no explorador e
+  nas abas, cada tipo na cor dele no tema: Verilog, testbench, C±,
+  assembly, MIF, onda e o `.spf`.
 - **Exercícios**: a correção mostra a primeira amostra errada numa tabela
   (as entradas, e cada saída com o esperado e o seu, a que errou em
   destaque), os avisos do lint do Verilator sobre o seu arquivo e o latch
@@ -47,6 +100,14 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - Simular, sintetizar, ver a hierarquia e escolher sinais num projeto em
   pasta com acento ou outro alfabeto: o Lace recusava a simulação, e a
   síntese e a hierarquia falhavam.
+
+### Segurança
+
+- O editor usa o DOMPurify 3.4.17, que corrige falhas de XSS da 3.4.15. O
+  Monaco 0.57 traz a 3.4.15 dentro dele; a IDE passa a usar no lugar dela
+  o pacote corrigido.
+- O Vite vai para a 8.3.5, que corrige falhas do servidor de
+  desenvolvimento.
 
 ## [0.9.0] - 2026-10-20
 

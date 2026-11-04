@@ -2,6 +2,72 @@
 
 ## Não publicada
 
+- O nome Lace sai do texto: a documentação, as mensagens da CLI, os textos
+  da IDE, da extensão e do instalador passam a dizer AURORA. Ficam com o
+  nome antigo só as menções ao que veio do Lace (a pasta `.lace` que a
+  abertura renomeia, o `settings.json` do Lace Studio que a IDE copia, os
+  atalhos antigos que o instalador apaga).
+- Extensão do VS Code: passa a se chamar AURORA, e as configurações, os
+  comandos e os contextos passam de `lace.*` para `aurora.*` (`lace.path`
+  vira `aurora.path`). Ela fala com o `aurora` pelo protocolo 2, e o
+  `.vsix` da release passa a se chamar `aurora-vscode-<versão>.vsix`. O
+  pacote do RTL viewer passa a ser `@aurora/rtl-viewer`, e o ícone da
+  extensão na barra de atividades, o camaleão.
+- Os arquivos da release passam a se chamar `aurora-<versão>-<plataforma>`
+  (os instaladores, o índice e os pedaços do bundle), e o empacotador
+  recebe o executável em `--aurora`. O instalador do Windows passa a ser
+  `installer/windows/aurora.iss`: outro programa para o Windows, AURORA,
+  com identificação própria e a pasta `Programs\AURORA` (`C:\AURORA` como
+  administrador). Um Lace instalado fica onde está, até sair pelo
+  desinstalador dele.
+- Os instaladores trocam a marca do Lace pela da AURORA. No assistente do
+  Windows, a faixa da esquerda tem o camaleão azul e o nome AURORA no fundo
+  grafite do tema Boreal, e o canto das outras páginas, o ícone da AURORA
+  IDE. No instalador de terminal, o camaleão aparece em braille, e o azul
+  do tema vai para os títulos e a barra de progresso. O nome AURORA
+  desenhado em curvas fica em `studio/public/brand/aurora-wordmark.svg`.
+- A AURORA API e a AURORA IDE passam a ter versões próprias. A primeira
+  release com o nome novo é a API 1.0.0 com a IDE 8.0.0; o `release.yml`
+  confere só a versão da API na tag, e o `bundle.py` continua conferindo a
+  da IDE contra o `bundle/versions.json`.
+- O `--reopen-studio` do `aurora update` passa a ser `--reopen-ide`, e o
+  `reopen_studio` do `update.apply`, `reopen_ide`. O executável da IDE no
+  bundle passa a ser `aurora-ide` (no macOS, `AURORA IDE.app`), e o atalho
+  do Linux, `aurora-ide.desktop`.
+- As variáveis de ambiente passam de `LACE_*` para `AURORA_*`
+  (`AURORA_TOOLCHAIN`, `AURORA_COMPILER`, `AURORA_QUARTUS`,
+  `AURORA_LEARN_DIR`...); a do programa que a IDE abre, `LACE_STUDIO_LACE`,
+  vira `AURORA_IDE_CLI`. As pastas de configuração e de cache passam a se
+  chamar `aurora`, e a instalação de terminal vai para
+  `~/.local/share/aurora`, com o atalho em `~/.local/bin/aurora` (como
+  root, `/opt/aurora`).
+- Protocolo 2: os campos `lace` viram `aurora` (a versão no `initialize`, o
+  relatório do `update.check`), `lace_version` vira `aurora_version` (os
+  relatórios gravados pelo Lace continuam legíveis), e o servidor MCP passa
+  a se chamar `aurora`, com as ferramentas `mcp__aurora__*`. A IDE recusa
+  um servidor do protocolo 1.
+- O comando passa a ser `aurora`, e os crates, `aurora-core`, `aurora-cli`,
+  `aurora-protocol`, `aurora-installer`, `aurora-learn` e `aurora-agent`
+  (`LaceError` vira `AuroraError`). O empacotador passa a ser `aurora-pack`,
+  e o instalador de terminal, `aurora-installer`. As trilhas de exercícios
+  ficam em `aurora-learn/`, e a pasta de exercícios usa `.aurora-learn.json`
+  e `.aurora-learn/`: a pasta de exercícios feita pelo Lace não é
+  reconhecida, e o jeito é começar outra com `aurora learn init`.
+- A pasta do projeto que é só nossa (intermediários, relatórios, projetos
+  de placa e a trava do `.spf`) passa de `.lace/` para `.aurora8/`. O 8 a
+  separa da `.aurora/`, que é da AURORA 7 e pode estar no mesmo projeto.
+  Abrir um projeto que tem `.lace/` a renomeia para `.aurora8/`, com o que
+  tinha dentro. O registro da compilação para a placa passa de
+  `lace-build.json` para `aurora-build.json`: uma placa compilada pelo Lace
+  precisa ser compilada de novo, porque sem o registro a gravação recusa com
+  `stale_bitstream`.
+
+- O Lace Studio passa a se chamar AURORA IDE nos textos da CLI, do
+  instalador e da documentação. O atalho do menu Iniciar e o da área de
+  trabalho no Windows e o do menu de aplicativos no Linux trocam de nome; o
+  instalador do Windows apaga os atalhos com o nome antigo. O componente
+  continua `studio`. As mudanças da IDE estão em studio/CHANGELOG.md.
+
 - Simulação, síntese, hierarquia e escolha de sinais funcionam com o
   projeto numa pasta com acento, outro alfabeto ou emoji, como
   `OneDrive\Área de Trabalho` ou a cópia `teste - Cópia` que o Explorer

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ProcRemoveReport",
-  "description": "`lace proc remove`: o processador que saiu do projeto e se a pasta dele\nfoi para a lixeira (`--delete`).",
+  "description": "`aurora proc remove`: o processador que saiu do projeto e se a pasta dele\nfoi para a lixeira (`--delete`).",
   "type": "object",
   "properties": {
     "removed": {

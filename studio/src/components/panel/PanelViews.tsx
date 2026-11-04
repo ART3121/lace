@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { attachConsole, clearConsole, detachConsole, fitConsole } from '../../console/consoles';
 import { attachShell, detachShell, fitShell, restartShell } from '../../console/shell';
 import { useT, type Key } from '../../i18n';
-import type { Diagnostic, ProjectIssue } from '../../ipc/lace-types';
+import type { Diagnostic, ProjectIssue } from '../../ipc/aurora-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { useLayout, type ConsoleId, type ViewId } from '../../state/layout';

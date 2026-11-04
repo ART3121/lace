@@ -1,4 +1,4 @@
-// "Lace: Simular": `lace sim` no projeto (o testbench simulado), num
+// "AURORA: Simular": `aurora sim` no projeto (o testbench simulado), num
 // testbench (que passa a ser o do projeto) ou num processador. O que o
 // testbench escreve sai ao vivo, depois de "|"; no fim, as saídas das
 // portas do processador, os testes cocotb e a onda.
@@ -7,9 +7,9 @@ import { basename } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../lace/client';
-import type { SimReport } from '../lace/lace-types';
-import { formatDuration, formatLaceError } from '../messages';
+import type { AuroraRun } from '../aurora/client';
+import type { SimReport } from '../aurora/aurora-types';
+import { formatDuration, formatAuroraError } from '../messages';
 import type { RunResult } from '../runs';
 import { describeBuild, writeRegistered } from './build';
 import { processorOf, targetUri } from './common';
@@ -25,10 +25,10 @@ export async function simulate(
   deps: RunDeps,
   target: SimTarget,
   options: { fast?: boolean } = {},
-): Promise<LaceRun<SimReport> | undefined> {
+): Promise<AuroraRun<SimReport> | undefined> {
   const fast = options.fast ?? false;
-  const verilator = setting('lace.sim', 'verilator', false);
-  const timeout = setting('lace.sim', 'timeout', 0);
+  const verilator = setting('aurora.sim', 'verilator', false);
+  const timeout = setting('aurora.sim', 'timeout', 0);
   let summary: RunResult | undefined;
   const done = await runOperation(
     deps,
@@ -64,18 +64,18 @@ export async function simulate(
   const { run } = done;
   const output = 'Saída';
   if (run.status === 'error') {
-    void vscode.window.showErrorMessage(`Lace: ${formatLaceError(run.error)}`);
+    void vscode.window.showErrorMessage(`AURORA: ${formatAuroraError(run.error)}`);
   } else if (run.status === 'cancelled') {
-    vscode.window.setStatusBarMessage('Lace: simulação cancelada', 5000);
+    vscode.window.setStatusBarMessage('AURORA: simulação cancelada', 5000);
   } else if (run.status === 'failed') {
     void vscode.window
-      .showErrorMessage(`Lace: a simulação falhou: ${summary?.summary}.`, output)
+      .showErrorMessage(`AURORA: a simulação falhou: ${summary?.summary}.`, output)
       .then((choice) => choice === output && deps.runs.output.show());
   } else {
     const wave = 'Abrir a onda';
     const actions = run.result.simulation?.waveform ? [wave, output] : [output];
     void vscode.window
-      .showInformationMessage(`Lace: ${summary?.summary}.`, ...actions)
+      .showInformationMessage(`AURORA: ${summary?.summary}.`, ...actions)
       .then((choice) => {
         if (choice === wave) {
           void openWave(deps, target.kind === 'processor' ? target : { kind: 'project' });
@@ -88,10 +88,10 @@ export async function simulate(
 }
 
 /** Escreve o resumo na saída (portas, testes, onda) e o devolve para o botão. */
-export function summarizeSim(output: vscode.OutputChannel, run: LaceRun<SimReport>): RunResult {
+export function summarizeSim(output: vscode.OutputChannel, run: AuroraRun<SimReport>): RunResult {
   if (run.status === 'error') {
-    output.appendLine(`Erro: ${formatLaceError(run.error)}`);
-    return { outcome: 'error', summary: formatLaceError(run.error) };
+    output.appendLine(`Erro: ${formatAuroraError(run.error)}`);
+    return { outcome: 'error', summary: formatAuroraError(run.error) };
   }
   if (run.result === null) {
     output.appendLine('Cancelado.');
@@ -143,19 +143,19 @@ export function summarizeSim(output: vscode.OutputChannel, run: LaceRun<SimRepor
   };
 }
 
-export function simulateTestbench(deps: RunDeps, target?: unknown): Promise<LaceRun<SimReport> | undefined> {
+export function simulateTestbench(deps: RunDeps, target?: unknown): Promise<AuroraRun<SimReport> | undefined> {
   const uri = targetUri(target);
   if (uri?.scheme !== 'file') {
-    void vscode.window.showWarningMessage('Lace: escolha um testbench para simular.');
+    void vscode.window.showWarningMessage('AURORA: escolha um testbench para simular.');
     return Promise.resolve(undefined);
   }
   return simulate(deps, { kind: 'testbench', path: uri.fsPath });
 }
 
-export function simulateProcessor(deps: RunDeps, target?: unknown): Promise<LaceRun<SimReport> | undefined> {
+export function simulateProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<SimReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um processador na vista Fontes.');
     return Promise.resolve(undefined);
   }
   return simulate(deps, { kind: 'processor', name });

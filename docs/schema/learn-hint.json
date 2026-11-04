@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "LearnHintReport",
-  "description": "`lace learn hint`: as dicas de um exercício.",
+  "description": "`aurora learn hint`: as dicas de um exercício.",
   "type": "object",
   "properties": {
     "exercise": {

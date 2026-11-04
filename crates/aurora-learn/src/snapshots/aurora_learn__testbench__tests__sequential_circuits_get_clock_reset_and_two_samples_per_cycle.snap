@@ -1,0 +1,74 @@
+---
+source: crates/aurora-learn/src/testbench.rs
+expression: tb
+---
+// O testbench do exercício conta.
+// Gerado pelo aurora learn, que grava de novo este arquivo quando a trilha
+// muda: não edite.
+
+`timescale 1ns / 1ps
+`default_nettype wire
+`include "conta_ref.v"
+
+module tb_conta;
+    reg clk = 0;
+    reg reset = 1'b1;
+    reg en = 0;
+    wire [3:0] q;
+    wire [3:0] q_ref;
+    reg mismatch = 0;
+
+    conta dut (.clk(clk), .reset(reset), .en(en), .q(q));
+    conta_ref reference (.clk(clk), .reset(reset), .en(en), .q(q_ref));
+
+    integer aurora_samples = 0;
+    integer aurora_mismatched = 0;
+    integer aurora_q_errors = 0;
+    integer aurora_q_first = -1;
+    integer aurora_q_unknown = 0;
+    integer aurora_reset_errors = 0;
+    integer aurora_seed = 1;
+    integer aurora_i;
+
+    task compare;
+        begin
+            aurora_samples = aurora_samples + 1;
+            mismatch = 0;
+            if ((q_ref ^ q ^ q_ref) !== q_ref) begin
+                aurora_q_errors = aurora_q_errors + 1;
+                if (aurora_q_first < 0) aurora_q_first = $time;
+                if ((^q) === 1'bx) aurora_q_unknown = aurora_q_unknown + 1;
+                mismatch = 1;
+            end
+            if (mismatch && aurora_mismatched == 0) begin
+                $display("AURORA-LEARN first %0d %0d", $time, aurora_i);
+                $display("AURORA-LEARN first_in en %b", en);
+                $display("AURORA-LEARN first_in reset %b", reset);
+                $display("AURORA-LEARN first_out q %b %b", q_ref, q);
+            end
+            if (mismatch) aurora_mismatched = aurora_mismatched + 1;
+            if (mismatch && reset === 1'b1) aurora_reset_errors = aurora_reset_errors + 1;
+        end
+    endtask
+
+    always #5 clk = ~clk;
+
+    initial begin
+        $dumpfile(".aurora-learn/wave.fst");
+        $dumpvars(0, tb_conta);
+        for (aurora_i = 0; aurora_i < 40; aurora_i = aurora_i + 1) begin
+            @(posedge clk);
+            #2 compare;
+            #3;
+            en = $random(aurora_seed);
+            reset = (aurora_i < 1 || ($unsigned($random(aurora_seed)) % 8) == 0) ? 1'b1 : 1'b0;
+            #3 compare;
+        end
+        $display("AURORA-LEARN samples %0d", aurora_samples);
+        $display("AURORA-LEARN mismatched %0d", aurora_mismatched);
+        $display("AURORA-LEARN output q %0d %0d %0d", aurora_q_errors, aurora_q_first, aurora_q_unknown);
+        $display("AURORA-LEARN reset %0d", aurora_reset_errors);
+        $display("AURORA-LEARN end");
+        $finish;
+    end
+endmodule

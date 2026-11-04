@@ -6,7 +6,7 @@
 # em bundle/versions.json mudar. Compila nas três plataformas com o
 # `bundle.py --surfer-prebuilt` e publica os pacotes numa pré-release
 # `surfer-aurora-<versão>` deste repositório. Pré-release não vira a "última
-# release", que o install.sh, o install.ps1 e o `lace update` procuram.
+# release", que o install.sh, o install.ps1 e o `aurora update` procuram.
 # Depois, os SHA-256 do resumo da execução vão para o `prebuilt` do
 # surfer-aurora em bundle/versions.json.
 
@@ -81,7 +81,7 @@ jobs:
           else
             gh release create "$tag" ./*.tar.gz SHA256SUMS --prerelease --latest=false \
               --target "$GITHUB_SHA" --title "surfer-aurora $version, pré-compilado" \
-              --notes "O surfer-aurora $version compilado do commit fixado em bundle/versions.json, para o bundle do Lace não compilá-lo a cada release. Não é uma versão do Lace."
+              --notes "O surfer-aurora $version compilado do commit fixado em bundle/versions.json, para o bundle da AURORA não compilá-lo a cada release. Não é uma versão da AURORA."
           fi
           {
             echo "### SHA-256 para o prebuilt do surfer-aurora em bundle/versions.json"

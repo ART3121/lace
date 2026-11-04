@@ -1,14 +1,14 @@
 // O build do viewer para fora do Studio, em dist/:
 //
 //   rtl-viewer.js          o viewer num arquivo só (React e o worker do ELK
-//                          dentro), com `LaceRtlViewer.mount(elemento, opções)`
+//                          dentro), com `AuroraRtlViewer.mount(elemento, opções)`
 //   rtl-viewer.css         o CSS do viewer
 //   theme-vscode.css       as variáveis ligadas ao tema do VS Code
 //   theme-standalone.css   as variáveis com as cores do Studio, claro ou escuro
-//   rtl-viewer.html        o modelo do HTML autocontido do `lace synth --open`:
+//   rtl-viewer.html        o modelo do HTML autocontido do `aurora synth --open`:
 //                          tudo acima embutido, e dois lugares que o Core
-//                          preenche, @@LACE_NETLIST@@ (o hierarchy.json) e
-//                          @@LACE_CONFIG@@ (o caminho e a data dele)
+//                          preenche, @@AURORA_NETLIST@@ (o hierarchy.json) e
+//                          @@AURORA_CONFIG@@ (o caminho e a data dele)
 //
 // O Studio não usa nada disto: compila o fonte direto (studio/vite.config.ts).
 //
@@ -32,7 +32,7 @@ await build({
   outfile: join(dist, 'rtl-viewer.js'),
   bundle: true,
   format: 'iife',
-  globalName: 'LaceRtlViewer',
+  globalName: 'AuroraRtlViewer',
   platform: 'browser',
   target: 'es2022',
   jsx: 'automatic',
@@ -59,27 +59,27 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="generator" content="Lace RTL viewer">
+<meta name="generator" content="AURORA RTL viewer">
 <title>RTL viewer</title>
 <style>
 ${css}
-#lace-rtl-viewer { height: 100vh; }
+#aurora-rtl-viewer { height: 100vh; }
 </style>
 </head>
 <body>
-<div id="lace-rtl-viewer"></div>
-<script id="lace-netlist" type="application/json">@@LACE_NETLIST@@</script>
-<script id="lace-config" type="application/json">@@LACE_CONFIG@@</script>
+<div id="aurora-rtl-viewer"></div>
+<script id="aurora-netlist" type="application/json">@@AURORA_NETLIST@@</script>
+<script id="aurora-config" type="application/json">@@AURORA_CONFIG@@</script>
 <script>
 ${inline(js)}
 </script>
 <script>
 (() => {
-  const config = JSON.parse(document.getElementById('lace-config').textContent);
+  const config = JSON.parse(document.getElementById('aurora-config').textContent);
   if (config.title) document.title = config.title;
-  LaceRtlViewer.mount(document.getElementById('lace-rtl-viewer'), {
-    netlist: { path: config.path, text: document.getElementById('lace-netlist').textContent, modifiedMs: config.modifiedMs },
-    storageKey: 'lace-rtl-viewer',
+  AuroraRtlViewer.mount(document.getElementById('aurora-rtl-viewer'), {
+    netlist: { path: config.path, text: document.getElementById('aurora-netlist').textContent, modifiedMs: config.modifiedMs },
+    storageKey: 'aurora-rtl-viewer',
   });
 })();
 </script>

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Instala a última release do Lace (Linux x64, macOS Apple Silicon).
+# Instala a última release da AURORA (Linux x64, macOS Apple Silicon).
 #
 #   curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh
 #   curl -fsSL https://raw.githubusercontent.com/ART3121/lace/main/install.sh | sh -s -- --yes
@@ -7,11 +7,11 @@
 # Baixa o instalador da release, confere o SHA-256 com o SHA256SUMS da
 # release, extrai numa pasta provisória e roda o `install`. Os argumentos
 # depois de `sh -s --` vão para o `install` (--yes, --components, --prefix,
-# --no-link, --list). LACE_VERSION=0.2.0 fixa a versão.
+# --no-link, --list). AURORA_VERSION=0.2.0 fixa a versão.
 
 set -eu
 
-repo="${LACE_REPO:-ART3121/lace}"
+repo="${AURORA_REPO:-ART3121/lace}"
 
 die() {
     echo "Error: $*" >&2
@@ -21,7 +21,7 @@ die() {
 case "$(uname -s) $(uname -m)" in
     "Linux x86_64") platform=linux-x64 ;;
     "Darwin arm64") platform=darwin-arm64 ;;
-    *) die "No Lace installer for $(uname -s) $(uname -m) (only Linux x64 and macOS Apple Silicon; on Windows, use install.ps1)" ;;
+    *) die "Na AURORA installer for $(uname -s) $(uname -m) (only Linux x64 and macOS Apple Silicon; on Windows, use install.ps1)" ;;
 esac
 
 command -v curl >/dev/null 2>&1 || die "curl is required"
@@ -35,7 +35,7 @@ else
 fi
 
 # A última versão: /releases/latest redireciona para /releases/tag/v<versão>.
-version="${LACE_VERSION:-}"
+version="${AURORA_VERSION:-}"
 if [ -z "$version" ]; then
     latest=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$repo/releases/latest") ||
         die "Could not look up https://github.com/$repo/releases"
@@ -45,7 +45,7 @@ case "$version" in
     "" | */*) die "Could not find the latest version at https://github.com/$repo/releases" ;;
 esac
 
-name="lace-$version-$platform"
+name="aurora-$version-$platform"
 base="https://github.com/$repo/releases/download/v$version"
 
 # Fora do /tmp: há distribuições que o montam sem permissão de execução.
@@ -57,11 +57,11 @@ else
     cache="${XDG_CACHE_HOME:-$HOME/.cache}"
 fi
 mkdir -p "$cache"
-tmp=$(mktemp -d "$cache/lace-install.XXXXXX")
+tmp=$(mktemp -d "$cache/aurora-install.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 trap 'exit 130' INT TERM
 
-echo "Downloading Lace $version ($platform)"
+echo "Downloading AURORA $version ($platform)"
 curl -fL --progress-bar -o "$tmp/$name.tar.gz" "$base/$name.tar.gz" ||
     die "Could not download $base/$name.tar.gz"
 curl -fsSL -o "$tmp/SHA256SUMS" "$base/SHA256SUMS" ||

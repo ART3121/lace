@@ -1,16 +1,16 @@
-//! As operações longas: o Studio as pede ao servidor do Lace
+//! As operações longas: o Studio as pede ao servidor da AURORA
 //! ([`crate::server`]) e repassa à interface, por um `Channel` do Tauri, as
 //! notificações que o servidor manda enquanto elas rodam e, no fim, o
 //! resultado. Cancelar é o `$/cancel` do protocolo.
 //!
 //! As notificações (`phase`, `events`, `output_omitted`, `build`,
 //! `install`) chegam do servidor já em lotes e com o teto de linhas da
-//! entrega do core (`lace_core::delivery`): aqui elas só ganham o `type`
+//! entrega do core (`aurora_core::delivery`): aqui elas só ganham o `type`
 //! que a interface lê, e a linha do console de um `install` vai também como
 //! `cli_output`.
 //!
 //! Só uma operação roda por vez (erro `busy`): duas no mesmo projeto
-//! dividiriam o `.lace/Temp`, e uma instalação no meio de um fluxo trocaria
+//! dividiriam o `.aurora8/Temp`, e uma instalação no meio de um fluxo trocaria
 //! as ferramentas dele.
 
 use std::panic::AssertUnwindSafe;
@@ -51,7 +51,7 @@ pub enum JobMessage {
         /// O resultado.
         outcome: Value,
     },
-    /// O Lace não conseguiu rodar a operação.
+    /// A AURORA não conseguiu rodar a operação.
     Failed {
         /// O erro.
         error: IpcError,
@@ -115,7 +115,7 @@ fn message_of(method: &str, mut params: Value) -> (Option<Value>, Option<String>
 /// Um pedido ao servidor que roda como operação: o comando que o console
 /// mostra, o método do protocolo e os parâmetros.
 pub struct Operation {
-    /// O comando equivalente (`lace-studio sim -p soma`, `lace install ...`).
+    /// O comando equivalente (`aurora-ide sim -p soma`, `aurora install ...`).
     pub command: String,
     /// O método (`flow.run`, `learn.check`, `install.add`, `update.apply`).
     pub method: &'static str,
@@ -312,7 +312,7 @@ mod tests {
         assert_eq!(line.as_deref(), Some("  Verifying the executables"));
         let value = serde_json::to_value(JobMessage::Started {
             job: 7,
-            command: "lace-studio build".into(),
+            command: "aurora-ide build".into(),
         })
         .unwrap();
         assert_eq!(value["type"], "started");

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Monta o bundle de ferramentas do Lace para uma plataforma.
+"""Monta o bundle de ferramentas da AURORA para uma plataforma.
 
-O bundle é o único lugar de onde o Lace executa ferramentas. Este script é o
-único lugar que baixa ou compila alguma coisa: o Lace, em uso, só lê o
+O bundle é o único lugar de onde a AURORA executa ferramentas. Este script é o
+único lugar que baixa ou compila alguma coisa: a AURORA, em uso, só lê o
 bundle já montado.
 
     python3 scripts/bundle.py --out dist/toolchain
@@ -23,20 +23,20 @@ Os pacotes, com as versões exatas, estão em bundle/versions.json:
 - surfer-aurora: o executável pré-compilado do commit fixado do fork da
   AURORA, que o workflow surfer-aurora.yml publica numa pré-release deste
   repositório e versions.json fixa pelo SHA-256 (`prebuilt`, por
-  plataforma). Sem ele para a plataforma, ou com LACE_BUILD_SURFER,
+  plataforma). Sem ele para a plataforma, ou com AURORA_BUILD_SURFER,
   compilado do commit (cargo build --bin surfer, como o CI do fork), o que
   leva uns 14 minutos. --surfer-prebuilt DIR só compila e grava em DIR o
   pacote da plataforma, que o workflow publica;
 - graphviz: só no Windows, onde o OSS CAD Suite não traz o dot; zip oficial
   conferido pelo SHA-256 publicado;
-- studio: o Lace Studio, compilado de studio/ deste repositório
+- studio: a AURORA IDE, compilado de studio/ deste repositório
   (npm ci e tauri build); a versão de versions.json tem que ser a do
   studio/package.json e a do tauri.conf.json;
-- lace-learn: as trilhas de exercícios do `lace learn`, copiadas de
-  lace-learn/ deste repositório. Só dados: quem as corrige é o Lace.
-- rtl-viewer: o modelo do HTML do RTL viewer (`lace synth --open`),
+- aurora-learn: as trilhas de exercícios do `aurora learn`, copiadas de
+  aurora-learn/ deste repositório. Só dados: quem as corrige é a AURORA.
+- rtl-viewer: o modelo do HTML do RTL viewer (`aurora synth --open`),
   gerado de packages/rtl-viewer/ deste repositório (npm ci e npm run
-  build). Só dados: quem o preenche com o netlist é o Lace.
+  build). Só dados: quem o preenche com o netlist é a AURORA.
 
 Os componentes que o instalador oferece estão em bundle/components.json. O
 OSS CAD Suite vira quatro (icarus, verilator, yosys, graphviz): cada um leva
@@ -60,14 +60,14 @@ Node.js e, no Linux, as bibliotecas de desenvolvimento do webkit2gtk 4.1. No
 Windows, rode dentro do shell MINGW64 do MSYS2.
 
 Variáveis opcionais:
-  LACE_BUNDLE_CACHE   onde guardar downloads, clones e pacotes extraídos
+  AURORA_BUNDLE_CACHE   onde guardar downloads, clones e pacotes extraídos
                       (padrão: ./.bundle-cache)
   YANC_MAKE_ARGS      argumentos extras para o make do YANC
                       (no macOS: BISON=... FLEX=... do Homebrew)
-  LACE_MSYS_DIST      o dist/ de um build local do lace-toolchain (com o
+  AURORA_MSYS_DIST      o dist/ de um build local do lace-toolchain (com o
                       lace-msys-<tag>.zip e o .json), no lugar da release:
                       para testar um bloco de Windows antes de publicá-lo
-  LACE_BUILD_SURFER   compila o surfer-aurora mesmo com o pré-compilado
+  AURORA_BUILD_SURFER   compila o surfer-aurora mesmo com o pré-compilado
                       fixado em versions.json
 """
 
@@ -201,7 +201,7 @@ def build_surfer(spec, plat, cache):
     """Compila o surfer-aurora do commit fixado; devolve o executável e o fonte."""
     src = checkout(spec["repository"], spec["commit"], cache, "surfer-aurora")
     target = cache / "surfer-target"
-    # No Windows, o runtime do Visual C++ dentro do executável, como o do Lace
+    # No Windows, o runtime do Visual C++ dentro do executável, como o da AURORA
     # (.cargo/config.toml): sem ele, o surfer-aurora pede o VCRUNTIME140.dll.
     env = dict(
         os.environ,
@@ -238,7 +238,7 @@ def pkg_surfer_aurora(spec, plat, work, cache):
     # ele, cada release compilava o surfer-aurora de novo, uns 14 minutos
     # por plataforma.
     prebuilt = spec.get("prebuilt", {}).get(plat)
-    if prebuilt and not os.environ.get("LACE_BUILD_SURFER"):
+    if prebuilt and not os.environ.get("AURORA_BUILD_SURFER"):
         extract_tgz(download(prebuilt["url"], prebuilt["sha256"], cache), stage)
         if not (stage / f"surfer-aurora{exe}").is_file():
             sys.exit(f"o pacote pré-compilado do surfer-aurora não tem surfer-aurora{exe}")
@@ -247,7 +247,7 @@ def pkg_surfer_aurora(spec, plat, work, cache):
         shutil.copy2(binary, stage / f"surfer-aurora{exe}")
         for lic in src.glob("LICENSE*"):
             shutil.copy2(lic, stage / lic.name)
-    # O cliente web (WASM) da mesma tag, que a CI do fork publica: o Lace
+    # O cliente web (WASM) da mesma tag, que a CI do fork publica: a AURORA
     # Studio o mostra numa aba, ligado a um `surfer-aurora server`. Um zip
     # só serve às três plataformas, e cliente e servidor precisam ser da
     # mesma versão.
@@ -262,9 +262,9 @@ def pkg_surfer_aurora(spec, plat, work, cache):
 
 
 def pkg_studio(spec, plat, work, cache):
-    """O Lace Studio, compilado de studio/ deste repositório pelo Tauri (a
+    """A AURORA IDE, compilado de studio/ deste repositório pelo Tauri (a
     interface pelo Vite, embutida no executável). No macOS sai o
-    `Lace Studio.app`; no Linux e no Windows, o executável, que usa o
+    `AURORA IDE.app`; no Linux e no Windows, o executável, que usa o
     WebView do sistema (webkit2gtk 4.1, WebView2)."""
     src = ROOT / spec["path"]
     conf = json.loads((src / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
@@ -274,7 +274,7 @@ def pkg_studio(spec, plat, work, cache):
             sys.exit(f"studio: bundle/versions.json diz {spec['version']}, e {spec['path']}/{where} diz {version}")
     npm = shutil.which("npm")
     if not npm:
-        sys.exit("studio: o build do Lace Studio precisa do Node.js (npm)")
+        sys.exit("studio: o build da AURORA IDE precisa do Node.js (npm)")
     if not (src / "node_modules").is_dir():
         run([npm, "ci", "--no-audit", "--no-fund"], cwd=src)
     target = cache / "studio-target"
@@ -291,22 +291,22 @@ def pkg_studio(spec, plat, work, cache):
         shutil.copytree(app, stage / app.name, symlinks=True)
     else:
         exe = ".exe" if plat == "windows-x64" else ""
-        shutil.copy2(target / "release" / f"lace-studio{exe}", stage / f"lace-studio{exe}")
+        shutil.copy2(target / "release" / f"aurora-ide{exe}", stage / f"aurora-ide{exe}")
         # O ícone que o instalador põe no atalho do menu de aplicativos.
-        shutil.copy2(src / "src-tauri" / "icons" / "128x128.png", stage / "lace-studio.png")
-    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+        shutil.copy2(src / "src-tauri" / "icons" / "128x128.png", stage / "aurora-ide.png")
+    return stage, {"source": f"{spec['path']}/ (AURORA {spec['version']})"}
 
 
-def pkg_lace_learn(spec, plat, work, cache):
-    """As trilhas do `lace learn`, de lace-learn/ deste repositório: textos,
+def pkg_aurora_learn(spec, plat, work, cache):
+    """As trilhas do `aurora learn`, de aurora-learn/ deste repositório: textos,
     `.v` e `.json`, iguais nas três plataformas."""
     src = ROOT / spec["path"]
     if not any(src.glob("*/track.json")):
-        sys.exit(f"lace-learn: {src} não tem nenhuma trilha (<trilha>/track.json)")
-    stage = work / "lace-learn"
+        sys.exit(f"aurora-learn: {src} não tem nenhuma trilha (<trilha>/track.json)")
+    stage = work / "aurora-learn"
     shutil.rmtree(stage, ignore_errors=True)
     shutil.copytree(src, stage, ignore=shutil.ignore_patterns(".*"))
-    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+    return stage, {"source": f"{spec['path']}/ (AURORA {spec['version']})"}
 
 
 def pkg_rtl_viewer(spec, plat, work, cache):
@@ -327,7 +327,7 @@ def pkg_rtl_viewer(spec, plat, work, cache):
     shutil.rmtree(stage, ignore_errors=True)
     stage.mkdir(parents=True)
     shutil.copy2(template, stage / "rtl-viewer.html")
-    return stage, {"source": f"{spec['path']}/ (Lace {spec['version']})"}
+    return stage, {"source": f"{spec['path']}/ (AURORA {spec['version']})"}
 
 
 def pkg_graphviz(spec, plat, work, cache):
@@ -350,11 +350,11 @@ def pkg_graphviz(spec, plat, work, cache):
 def pkg_msys(spec, plat, work, cache):
     """O bloco de Windows do lace-toolchain: o zip (com msys/ na raiz) e o
     manifesto, que fica ao lado da pasta extraída (MSYS_MANIFEST)."""
-    local = os.environ.get("LACE_MSYS_DIST")
+    local = os.environ.get("AURORA_MSYS_DIST")
     if local:
         zips = sorted(Path(local).glob("lace-msys-*.zip"))
         if len(zips) != 1:
-            sys.exit(f"LACE_MSYS_DIST={local}: esperado um lace-msys-<tag>.zip, achados {len(zips)}")
+            sys.exit(f"AURORA_MSYS_DIST={local}: esperado um lace-msys-<tag>.zip, achados {len(zips)}")
         archive, manifest = zips[0], zips[0].with_suffix(".json")
         if not manifest.is_file():
             sys.exit(f"falta {manifest.name} ao lado de {archive.name}")
@@ -367,7 +367,7 @@ def pkg_msys(spec, plat, work, cache):
             sys.exit(
                 f"o pacote msys {spec['version']} ainda não tem SHA-256 em bundle/versions.json: "
                 "publique a release no lace-toolchain e preencha sha256 e manifest_sha256 "
-                "(ou aponte LACE_MSYS_DIST para o dist/ de um build local dele)"
+                "(ou aponte AURORA_MSYS_DIST para o dist/ de um build local dele)"
             )
         archive = download(asset["url"], asset["sha256"], cache)
         manifest = download(asset["manifest"], asset["manifest_sha256"], cache)
@@ -403,7 +403,7 @@ PACKAGES = {
     "surfer-aurora": pkg_surfer_aurora,
     "graphviz": pkg_graphviz,
     "studio": pkg_studio,
-    "lace-learn": pkg_lace_learn,
+    "aurora-learn": pkg_aurora_learn,
     "rtl-viewer": pkg_rtl_viewer,
 }
 
@@ -520,7 +520,7 @@ class Package:
                 if rel in self.present:
                     return rel, False
             return None, False
-        # Windows: a pasta do binário e o PATH que o Lace monta (bin;lib).
+        # Windows: a pasta do binário e o PATH que a AURORA monta (bin;lib).
         for d in (here, "bin", "lib"):
             rel = f"{d}/{name}".lower() if d else name.lower()
             if rel in self.lower:
@@ -740,7 +740,7 @@ def main():
     plat = args.platform or current_platform()
 
     pins = json.loads(args.versions.read_text(encoding="utf-8"))
-    cache = Path(os.environ.get("LACE_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
+    cache = Path(os.environ.get("AURORA_BUNDLE_CACHE", ROOT / ".bundle-cache")).resolve()
     if args.surfer_prebuilt:
         surfer_prebuilt(pins, plat, args.surfer_prebuilt.resolve(), cache)
         return
@@ -784,8 +784,8 @@ def main():
     (out / "components").mkdir()
     profiles = platform_profiles(catalog, {c["name"] for c in components})
     # O primeiro perfil é o padrão. O campo `recommended` dos componentes é
-    # o pertencer a ele, para o Lace anterior aos perfis, que lê o índice da
-    # release nova no `lace update` e exige o campo.
+    # o pertencer a ele, para a AURORA anterior aos perfis, que lê o índice da
+    # release nova no `aurora update` e exige o campo.
     default = set(profiles[0]["components"]) if profiles else set()
     contents = []
     for c in components:

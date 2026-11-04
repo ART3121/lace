@@ -4,11 +4,11 @@ import * as assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
-import type { CheckReport, Diagnostic } from '../../src/lace/lace-types';
+import type { CheckReport, Diagnostic } from '../../src/aurora/aurora-types';
 import { countProblems, describeCount, groupProblems } from '../../src/problems';
 import { RESPONSES } from '../support/fixtures';
 
-// Absoluto também no Windows (com a unidade), como a raiz que o lace status dá.
+// Absoluto também no Windows (com a unidade), como a raiz que o aurora status dá.
 const ROOT = resolve('/', 'projetos', 'projeto demo');
 const HOME = join('/', 'home', 'usuario');
 const inRoot = (file: string) => file.startsWith(ROOT + sep) || file.startsWith(`${ROOT}/`);

@@ -17,7 +17,7 @@
 // continua no layout, no mesmo lugar, para voltar quando o recurso ligar.
 
 import type { Key } from '../i18n';
-import type { Feature } from '../ipc/lace-types';
+import type { Feature } from '../ipc/aurora-types';
 
 /** Os terminais de etapa, com os nomes da AURORA (console/consoles.ts).
  * Ficam fechados até o usuário abrir um; o INFO recebe tudo o que eles

@@ -1,16 +1,16 @@
-// O `lace status` do projeto ativo, relido depois de cada comando da
+// O `aurora status` do projeto ativo, relido depois de cada comando da
 // extensão, quando o .spf muda no disco (o terminal, o Studio, um editor) e
 // quando um .v ou .sv é criado ou apagado (a lista dos não registrados).
 
 import * as vscode from 'vscode';
 
-import type { Connection, LaceConnection } from './connection';
-import type { ErrorInfo, StatusReport } from './lace/lace-types';
+import type { Connection, AuroraConnection } from './connection';
+import type { ErrorInfo, StatusReport } from './aurora/aurora-types';
 import type { Projects } from './projects';
 import { Coalescer, ContentMemory } from './refresh';
 
 export type StatusState =
-  /** Nada a ler: sem um lace utilizável ou sem projeto ativo. */
+  /** Nada a ler: sem um aurora utilizável ou sem projeto ativo. */
   | { kind: 'idle' }
   /** A primeira leitura do projeto ativo ainda não voltou. */
   | { kind: 'loading' }
@@ -40,7 +40,7 @@ export class ProjectStatus implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[];
 
   constructor(
-    private readonly connection: LaceConnection,
+    private readonly connection: AuroraConnection,
     private readonly projects: Projects,
     private readonly log: vscode.LogOutputChannel,
   ) {
@@ -138,7 +138,7 @@ export class ProjectStatus implements vscode.Disposable {
       this.memory.remember(content);
     }
     const next = await this.read(connection, project.spf);
-    // Se o lace ou o projeto ativo mudaram enquanto o status rodava, já há
+    // Se o aurora ou o projeto ativo mudaram enquanto o status rodava, já há
     // outra leitura marcada, e este resultado não vale mais.
     if (this.connection.state !== connection || this.projects.active?.spf !== project.spf) {
       return;
@@ -162,7 +162,7 @@ export class ProjectStatus implements vscode.Disposable {
         case 'error':
           return { kind: 'error', spf, error: run.error };
         default:
-          return { kind: 'error', spf, error: { code: 'unexpected', message: `lace status: ${run.status}` } };
+          return { kind: 'error', spf, error: { code: 'unexpected', message: `aurora status: ${run.status}` } };
       }
     } catch (error) {
       return { kind: 'error', spf, error: { code: 'process', message: (error as Error).message } };

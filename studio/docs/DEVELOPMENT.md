@@ -10,8 +10,8 @@ tipo de mudança. A arquitetura está em [ARCHITECTURE.md](ARCHITECTURE.md).
 | Rust | 1.90 ou mais novo (`rust-version` do `src-tauri/Cargo.toml`) | o backend; o Tauri 2.12 pede 1.90 |
 | Node.js | 22 | a interface (Vite, TypeScript) |
 | Dependências de sistema do Tauri | ver abaixo | WebView e GTK |
-| O repositório do Lace | o Studio está em `studio/` dele | o servidor que o Studio abre (`lace serve`, do `crates/lace-cli`), o `lace-agent` do assistente, que entra por caminho (`../../crates/`, em `src-tauri/Cargo.toml`), e os tipos, que saem de `../docs/schema` |
-| Uma instalação do Lace | qualquer | o bundle das ferramentas, para rodar o Studio e os testes de fluxo; ou um bundle em `LACE_TEST_BUNDLE` |
+| O repositório da AURORA | o Studio está em `studio/` dele | o servidor que o Studio abre (`aurora serve`, do `crates/aurora-cli`), o `aurora-agent` do assistente, que entra por caminho (`../../crates/`, em `src-tauri/Cargo.toml`), e os tipos, que saem de `../docs/schema` |
+| Uma instalação da AURORA | qualquer | o bundle das ferramentas, para rodar o Studio e os testes de fluxo; ou um bundle em `AURORA_TEST_BUNDLE` |
 
 Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
 (<https://v2.tauri.app/start/prerequisites/>), confira lá a lista atual:
@@ -21,12 +21,12 @@ Dependências de sistema, conforme a página de pré-requisitos do Tauri 2
 - **macOS:** as Command Line Tools do Xcode.
 - **Windows:** as Build Tools do Visual Studio com o C++ e o WebView2 (já vem no Windows 10 e 11 atualizados).
 
-O Studio está no repositório do Lace, em `studio/`:
+O Studio está no repositório da AURORA, em `studio/`:
 
 ```
-lace/
-  crates/lace-cli/    o lace, que o Studio abre como servidor (lace serve)
-  crates/lace-agent/  o assistente, que o Studio linka por caminho
+aurora/
+  crates/aurora-cli/    o aurora, que o Studio abre como servidor (aurora serve)
+  crates/aurora-agent/  o assistente, que o Studio linka por caminho
   docs/schema/        os tipos que o npm run gen:types lê
   studio/             este
 ```
@@ -34,23 +34,23 @@ lace/
 O `src-tauri/` tem o próprio workspace do Cargo e o próprio `Cargo.lock`:
 o `Cargo.toml` da raiz o deixa de fora (`exclude`), para os testes do Core
 e da CLI não precisarem do WebView nem da interface compilada. Os testes
-dos fluxos do Studio pedem o bundle instalado (`LACE_TEST_BUNDLE`) e um
-`lace` para servir, e rodam à mão.
+dos fluxos do Studio pedem o bundle instalado (`AURORA_TEST_BUNDLE`) e um
+`aurora` para servir, e rodam à mão.
 
-O Studio não linka o Core: tudo do Lace é pedido ao servidor, um `lace
+O Studio não linka o Core: tudo da AURORA é pedido ao servidor, um `aurora
 serve` filho (ARCHITECTURE.md, seção 3.2). Em desenvolvimento, o servidor
-precisa ser o `lace` do mesmo repositório, que fala os métodos que o Studio
+precisa ser o `aurora` do mesmo repositório, que fala os métodos que o Studio
 pede; o da instalação é de outra versão. Compile antes, na raiz, e aponte o
-Studio para ele com `LACE_STUDIO_LACE` (ou a preferência Programa lace, em
-Preferências > Bundle do Lace):
+Studio para ele com `AURORA_IDE_CLI` (ou a preferência Programa aurora, em
+Preferências > Bundle da AURORA):
 
 ```sh
-cargo build -p lace-cli          # na raiz: target/debug/lace
-LACE_STUDIO_LACE=../target/debug/lace npm run tauri dev
+cargo build -p aurora-cli          # na raiz: target/debug/aurora
+AURORA_IDE_CLI=../target/debug/aurora npm run tauri dev
 ```
 
-O bundle é o da instalação do Lace, achado pelo Studio e passado ao
-servidor em `--toolchain`, ou o de `LACE_TOOLCHAIN` ou da preferência.
+O bundle é o da instalação da AURORA, achado pelo Studio e passado ao
+servidor em `--toolchain`, ou o de `AURORA_TOOLCHAIN` ou da preferência.
 
 ## 2. Rodar
 
@@ -64,8 +64,8 @@ abre a janela. Salvar um arquivo de `src/` recarrega a interface na hora;
 salvar um de `src-tauri/` recompila e reabre o aplicativo. A primeira
 compilação do backend leva vários minutos (o Tauri e o WebKitGTK).
 
-Log do backend no terminal: `RUST_LOG=lace_studio_lib=debug npm run tauri dev`. O
-stderr do servidor do Lace sai no mesmo log, com o alvo `lace_serve`.
+Log do backend no terminal: `RUST_LOG=aurora_ide_lib=debug npm run tauri dev`. O
+stderr do servidor da AURORA sai no mesmo log, com o alvo `aurora_serve`.
 O inspetor da WebView abre com Ctrl+Shift+I, só na build de
 desenvolvimento (o menu de contexto do navegador fica desligado fora dos
 campos de texto, em `src/main.tsx`).
@@ -80,28 +80,28 @@ campos de texto, em `src/main.tsx`).
 | `cd src-tauri && cargo test` | os testes do backend: unidade e os fluxos de verdade |
 | `npm run tauri build` | o aplicativo inteiro e os instaladores da plataforma |
 
-Os testes de `src-tauri/tests/flows.rs` rodam, pelo servidor do Lace,
-check, sim, synth e build sobre cópias dos exemplos do Lace, a correção de
-um exercício (`learn`) sobre a trilha de teste do `lace-learn` e as recusas
+Os testes de `src-tauri/tests/flows.rs` rodam, pelo servidor da AURORA,
+check, sim, synth e build sobre cópias dos exemplos da AURORA, a correção de
+um exercício (`learn`) sobre a trilha de teste do `aurora-learn` e as recusas
 do `fpga_build`, com o bundle que o Studio acharia sozinho ou com
-`LACE_TEST_BUNDLE=/caminho/do/toolchain`. O servidor é o `lace` de
-`LACE_STUDIO_LACE` ou, sem ela, o `target/debug/lace` da raiz (compile antes
-com `cargo build -p lace-cli`). Os testes de unidade do `server.rs` que
-abrem um servidor de verdade também usam `LACE_STUDIO_LACE`. Sem bundle ou
-sem `lace`, avisam e passam; com `CI` definido, falham.
+`AURORA_TEST_BUNDLE=/caminho/do/toolchain`. O servidor é o `aurora` de
+`AURORA_IDE_CLI` ou, sem ela, o `target/debug/aurora` da raiz (compile antes
+com `cargo build -p aurora-cli`). Os testes de unidade do `server.rs` que
+abrem um servidor de verdade também usam `AURORA_IDE_CLI`. Sem bundle ou
+sem `aurora`, avisam e passam; com `CI` definido, falham.
 
 Antes de mandar uma mudança: `typecheck`, `clippy` sem aviso, `cargo test`
 e, se mexeu na interface, abrir o Studio e passar pelo que mudou.
 
 ### Roteiro de fumaça
 
-Na build de desenvolvimento, a variável `LACE_STUDIO_SMOKE` faz a interface
+Na build de desenvolvimento, a variável `AURORA_IDE_SMOKE` faz a interface
 rodar uma sequência de ações sozinha, pelo mesmo caminho dos botões
 (`src/dev/smoke.ts`). Serve para conferir a interface de ponta a ponta sem
 mouse nem teclado, e para capturar a tela de cada passo:
 
 ```sh
-LACE_STUDIO_SMOKE="wait:2000;open:rtl/contador.v;check;fastSim;synthesize;view:schematic" \
+AURORA_IDE_SMOKE="wait:2000;open:rtl/contador.v;check;fastSim;synthesize;view:schematic" \
 RUST_LOG=info npm run tauri dev
 ```
 
@@ -153,7 +153,7 @@ chromium-browser --headless=new --enable-logging=stderr --virtual-time-budget=20
 ```
 
 Os erros da interface (exceções, `console.error`, avisos de erro) também vão
-para o log do backend, com o alvo `lace_studio::ui`, e também quanto a
+para o log do backend, com o alvo `aurora_ide::ui`, e também quanto a
 abertura levou (`Startup: modules loaded in ... ms, first frame at ...
 ms`, contado da navegação da WebView).
 
@@ -175,22 +175,22 @@ precisa esperar esse tempo.
    `src/components/layout/MenuBar.tsx`. A paleta de comandos e a tabela de
    atalhos a pegam sozinhas.
 
-### Uma operação do Lace na interface
+### Uma operação da AURORA na interface
 
-O que é do Lace (o projeto, os fluxos, o histórico, a placa, os
+O que é da AURORA (o projeto, os fluxos, o histórico, a placa, os
 exercícios) não ganha comando no backend: é um método do protocolo, que a
-interface pede pelo `lace_call`. Se o método ainda não existe, ele nasce no
-Lace, com o passo a passo de
+interface pede pelo `aurora_call`. Se o método ainda não existe, ele nasce no
+AURORA, com o passo a passo de
 [docs/METODOLOGIA.md](../../docs/METODOLOGIA.md), seção 6, e chega ao
 Studio pelo servidor.
 
-1. Acrescente a função em `src/ipc/api.ts`, chamando `lace('<método>',
+1. Acrescente a função em `src/ipc/api.ts`, chamando `aurora('<método>',
    { parâmetros })`. O tipo do resultado já está em
-   `src/ipc/lace-types.ts`, gerado (veja "Um tipo do Core mudou", abaixo).
+   `src/ipc/aurora-types.ts`, gerado (veja "Um tipo do Core mudou", abaixo).
    O projeto aberto entra sozinho no campo `project`.
 2. Um método longo, com progresso (como o `flow.run`), vai como operação:
    `jobs::start`, com o pedido e o que fazer com a resposta.
-3. Documente em [IPC.md](IPC.md), na tabela do `lace_call`.
+3. Documente em [IPC.md](IPC.md), na tabela do `aurora_call`.
 
 ### Um comando novo no backend
 
@@ -204,7 +204,7 @@ Para o que só existe no Studio (janela, arquivo, terminal, preferência):
    Studio vai à mão em `src/ipc/types.ts`.
 4. Documente em [IPC.md](IPC.md).
 5. Lógica de orquestração (que ferramenta rodar, em que ordem) não entra
-   aqui: vai para o Lace, como método. Se precisar mesmo, isole-a em
+   aqui: vai para a AURORA, como método. Se precisar mesmo, isole-a em
    `flows.rs` e anote em ARCHITECTURE.md, seção 8.
 
 ### Uma vista nova (aba central)
@@ -235,10 +235,10 @@ está escondido, não o que aparece.
 
 ```sh
 npm run gen:types     # relê ../docs/schema/*.json
-git diff src/ipc/lace-types.ts
+git diff src/ipc/aurora-types.ts
 ```
 
-`LACE_REPO=/outro/lace npm run gen:types` lê de outro lugar.
+`AURORA_REPO=/outro/aurora npm run gen:types` lê de outro lugar.
 
 ### Cores, temas e medidas
 
@@ -250,13 +250,16 @@ nunca cor literal. Uma variável nova entra em `UiColors`
 ficou sem ela.
 
 Para um tema novo, um objeto a mais no catálogo, com a fonte das cores na
-tabela do começo do arquivo. O id não muda depois de lançado: ele fica
-gravado no `settings.json` de quem escolheu o tema.
+tabela do começo do arquivo. Uma paleta com escuro e claro são dois
+objetos, cada um com o outro no `pair`; o `settings.json` grava o id do
+escuro, que não muda depois de lançado.
 
-O padrão, Atlas, tem de destaque o azul do ATLAS (#0B80C3, a cor da
-identidade visual do experimento, atlas.cern/design) sobre fundos de ardósia,
-e a sintaxe com um tom por papel; todo texto dele tem pelo menos 4,5:1 com o
-fundo, menos o comentário. As medidas (fontes, espaços, raios, alturas) ficam
+Os temas da AURORA IDE (o Boreal, que é o padrão, o Austral, o Nebulosa,
+o Alvorada e o Lunar, cada um com o seu claro) saem da função `aurora` do
+catálogo: os mesmos
+cinzas quase neutros e uma cor de destaque por paleta, que na sintaxe vai
+para as palavras reservadas e os tipos, com uma segunda cor em números e
+textos. As medidas (fontes, espaços, raios, alturas) ficam
 em `src/styles/tokens.css`.
 
 ### Gramáticas de C± e do assembly
@@ -268,34 +271,34 @@ AURORA: onde as duas divergem há um comentário dizendo o que vale.
 ## 5. Convenções
 
 - Comentários e documentação em português; identificadores em inglês, como
-  no Lace.
+  na AURORA.
 - Texto de interface sempre por `t('chave')`, nunca literal no componente.
 - Sem travessão nem emoji em texto de interface, comentário ou documento.
 - Rust: `cargo fmt`, `clippy` sem aviso, `#![forbid(unsafe_code)]`.
-- Um commit por assunto, com a mensagem em português, como no Lace.
+- Um commit por assunto, com a mensagem em português, como na AURORA.
 
 ## 6. Versão e distribuição
 
-A versão do Studio é a do Lace e está em cinco lugares, que andam juntos:
-`package.json`, `package-lock.json`, `src-tauri/Cargo.toml`,
-`src-tauri/tauri.conf.json` e o pacote `studio` de `bundle/versions.json` da
-raiz. O `bundle.py` recusa o Studio com versões diferentes, e o
-`release.yml` recusa a tag se o Studio não tiver a versão do Lace
+A IDE tem versão própria, separada da AURORA API: a primeira com o nome
+novo é a 8.0.0. Ela está em cinco lugares, que andam juntos: `package.json`,
+`package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` e o
+pacote `studio` de `bundle/versions.json` da raiz. O `bundle.py` recusa a IDE
+com versões diferentes, e ela só sobe de versão quando muda
 ([docs/RELEASE.md](../../docs/RELEASE.md), seção 6.1). Anote a mudança em
 [CHANGELOG.md](../CHANGELOG.md).
 
-Os ícones do app em `src-tauri/icons/` saem de `public/brand/lace-icon.svg`.
+Os ícones do app em `src-tauri/icons/` saem de `public/brand/aurora-icon.svg`.
 O `tauri icon` gera também os de Android e iOS, que o Studio não usa, então
 gere numa pasta à parte e copie só os que já existem:
 
 ```sh
-npx tauri icon public/brand/lace-icon.svg -o /tmp/lace-icons
-for f in src-tauri/icons/*; do cp "/tmp/lace-icons/$(basename "$f")" "$f"; done
+npx tauri icon public/brand/aurora-icon.svg -o /tmp/aurora-icons
+for f in src-tauri/icons/*; do cp "/tmp/aurora-icons/$(basename "$f")" "$f"; done
 ```
 
 `npm run tauri build` gera os instaladores da plataforma em que roda
 (`.deb`, `.rpm` e AppImage no Linux; `.dmg` no macOS; `.msi` e `.exe` no
-Windows). Eles não vão para os usuários: o Studio sai no instalador do Lace,
+Windows). Eles não vão para os usuários: o Studio sai no instalador da AURORA,
 compilado pelo `scripts/bundle.py` da raiz (`tauri build --no-bundle`, e só o
 `.app` no macOS) nas três plataformas, no workflow
 `.github/workflows/installers.yml`, que o `release.yml` chama numa tag.

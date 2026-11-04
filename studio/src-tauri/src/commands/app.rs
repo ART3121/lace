@@ -12,14 +12,14 @@ use crate::state::{AppState, blocking};
 /// O que a tela "Sobre" mostra.
 #[derive(Debug, Clone, Serialize)]
 pub struct AppInfo {
-    /// `Lace Studio`.
+    /// O `productName` do tauri.conf.json: `AURORA IDE`.
     pub name: String,
     /// A versão do Studio.
     pub version: String,
     /// O sistema e a arquitetura (`linux-x86_64`).
     pub os: String,
-    /// A plataforma do Lace (`linux-x64`): a do bundle, pelo servidor.
-    pub lace_platform: Option<String>,
+    /// A plataforma da AURORA (`linux-x64`): a do bundle, pelo servidor.
+    pub aurora_platform: Option<String>,
     /// Onde ficam as preferências.
     pub config_dir: Option<Utf8PathBuf>,
     /// A versão do Tauri com que o Studio foi compilado.
@@ -31,10 +31,10 @@ pub struct AppInfo {
     pub debug: bool,
 }
 
-/// A versão e a plataforma. A do Lace vem do bundle, pelo servidor.
+/// A versão e a plataforma. A da AURORA vem do bundle, pelo servidor.
 #[tauri::command]
 pub async fn app_info(app: AppHandle) -> IpcResult<AppInfo> {
-    let lace_platform = blocking(app.clone(), |_, state| {
+    let aurora_platform = blocking(app.clone(), |_, state| {
         let info = crate::toolchain::info(&state.server, &state.settings.get());
         Ok(info["platform"].as_str().map(str::to_owned))
     })
@@ -43,7 +43,7 @@ pub async fn app_info(app: AppHandle) -> IpcResult<AppInfo> {
         name: app.package_info().name.clone(),
         version: app.package_info().version.to_string(),
         os: format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH),
-        lace_platform,
+        aurora_platform,
         config_dir: app
             .path()
             .app_config_dir()
@@ -108,19 +108,19 @@ pub async fn recent_forget(app: AppHandle, spf: String) -> IpcResult<()> {
 #[tauri::command]
 pub fn log_frontend(level: String, message: String) {
     match level.as_str() {
-        "error" => tracing::error!(target: "lace_studio::ui", "{message}"),
-        "warn" => tracing::warn!(target: "lace_studio::ui", "{message}"),
-        _ => tracing::info!(target: "lace_studio::ui", "{message}"),
+        "error" => tracing::error!(target: "aurora_ide::ui", "{message}"),
+        "warn" => tracing::warn!(target: "aurora_ide::ui", "{message}"),
+        _ => tracing::info!(target: "aurora_ide::ui", "{message}"),
     }
 }
 
-/// O roteiro de fumaça da variável `LACE_STUDIO_SMOKE`, só na build de
+/// O roteiro de fumaça da variável `AURORA_IDE_SMOKE`, só na build de
 /// desenvolvimento (`src/dev/smoke.ts`, docs/DEVELOPMENT.md). Na de release,
 /// sempre `None`.
 #[tauri::command]
 pub fn dev_smoke_script() -> Option<String> {
     if cfg!(debug_assertions) {
-        std::env::var("LACE_STUDIO_SMOKE")
+        std::env::var("AURORA_IDE_SMOKE")
             .ok()
             .filter(|s| !s.is_empty())
     } else {
@@ -128,7 +128,7 @@ pub fn dev_smoke_script() -> Option<String> {
     }
 }
 
-/// Fecha o Studio e, com `restart`, abre ele de novo: depois de o `lace
+/// Fecha o Studio e, com `restart`, abre ele de novo: depois de o `aurora
 /// update` trocar a instalação, o Studio que roda ainda é o antigo. Sem
 /// `restart`, só fecha, para o assistente de instalação do Windows trocar os
 /// arquivos dele. A interface grava os arquivos abertos antes de chamar.

@@ -3,8 +3,9 @@
 //
 // O mocha fica na 11, que é CommonJS: o 12 faz require() de módulo ESM, que
 // o Node do Electron do VS Code 1.90 (o mínimo de engines) não aceita. As
-// duas dependências dele com falha conhecida vão forçadas para as versões
-// corrigidas (overrides, no package.json).
+// dependências dele com falha conhecida (diff, serialize-javascript, glob e
+// minimatch) vão forçadas para as versões corrigidas (overrides, no
+// package.json), que têm build CommonJS.
 
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,7 +15,7 @@ import Mocha from 'mocha';
 export async function run(): Promise<void> {
   const mocha = new Mocha({ ui: 'bdd', timeout: 30000, color: true });
   // Os testes da pasta sem .spf ficam em vazia/; os do projeto, aqui.
-  const dir = process.env.LACE_TEST_SUITE === 'vazia' ? join(__dirname, 'vazia') : __dirname;
+  const dir = process.env.AURORA_TEST_SUITE === 'vazia' ? join(__dirname, 'vazia') : __dirname;
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.test.js'))) {
     mocha.addFile(join(dir, file));
   }

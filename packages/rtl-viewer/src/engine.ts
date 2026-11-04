@@ -3,7 +3,7 @@
 // exemplos (o ula_fdiv do proc_fft, 192 nós) leva 1,4 s.
 //
 // Quem cria o worker é quem abriga o viewer (setLayoutWorker): o Studio o
-// serve como arquivo, pelo Vite; o VS Code e o HTML do `lace synth --open`,
+// serve como arquivo, pelo Vite; o VS Code e o HTML do `aurora synth --open`,
 // do código embutido (workerFromSource), porque lá não há servidor.
 //
 // Cada desenho fica guardado pelo netlist (caminho e data) e pelo módulo:

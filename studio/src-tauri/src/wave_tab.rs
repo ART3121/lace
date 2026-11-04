@@ -19,8 +19,8 @@
 //! A aba é identificada por um segredo aleatório: o servidor só entrega o
 //! que foi registrado para uma aba aberta.
 //!
-//! O layout vem do servidor do Lace (`wave.layout`): o gerado dos
-//! processadores SAPHO, o de um exercício do `lace learn` e, numa onda de
+//! O layout vem do servidor da AURORA (`wave.layout`): o gerado dos
+//! processadores SAPHO, o de um exercício do `aurora learn` e, numa onda de
 //! testbench do projeto, o salvo em `wave/<testbench>.surf.ron`. Com o
 //! salvo, os comandos de partida registram `state_save_url_set
 //! <origem>/save/<aba>`, e o "salvar estado" do Surfer (Ctrl+S, que fica com
@@ -134,7 +134,7 @@ pub struct WaveTab {
     /// O layout salvo no projeto (`wave/<testbench>.surf.ron`), onde o
     /// Ctrl+S da aba salva; `null` numa onda fora de projeto.
     pub saved_layout: Option<Utf8PathBuf>,
-    /// O usuário salvou o layout depois que o Lace o gerou: a aba abre com
+    /// O usuário salvou o layout depois que a AURORA o gerou: a aba abre com
     /// o dele.
     pub customized: bool,
     /// A escolha de sinais que o layout segue; vazia: todos.
@@ -142,7 +142,7 @@ pub struct WaveTab {
 }
 
 /// Prepara `path` para uma aba e devolve a página do cliente web, com o
-/// layout do Lace quando houver (o `wave.layout` do servidor).
+/// layout da AURORA quando houver (o `wave.layout` do servidor).
 ///
 /// Erros: `surfer_web_missing` quando o bundle não traz o cliente web, e
 /// `wave_too_large` acima de [`MAX_TAB_WAVE`]; nos dois, a interface oferece
@@ -171,7 +171,7 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
         let web_dir = toolchain::surfer_web(&state.server, &settings).ok_or_else(|| {
             IpcError::new(
                 codes::SURFER_WEB_MISSING,
-                "The Lace bundle has no Surfer web client; open the waveform in a window",
+                "The AURORA bundle has no Surfer web client; open the waveform in a window",
             )
         })?;
         let reply = state
@@ -180,7 +180,7 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
         let info: LayoutInfo = serde_json::from_value(reply).map_err(|e| {
             IpcError::new(
                 codes::INTERNAL,
-                format!("The waveform layout from the lace server is not readable: {e}"),
+                format!("The waveform layout from the aurora server is not readable: {e}"),
             )
         })?;
         if let Some(error) = &info.layout_error {
@@ -192,7 +192,7 @@ pub async fn wave_tab_open(app: AppHandle, path: String) -> IpcResult<WaveTab> {
 
         let id = new_id();
         let name = waveform.file_name().unwrap_or("wave.vcd");
-        // A onda de um exercício do `lace learn` vem com os comandos da
+        // A onda de um exercício do `aurora learn` vem com os comandos da
         // correção: as saídas ao lado das da referência e o primeiro erro.
         let learn = info
             .exercise_layout
@@ -306,7 +306,7 @@ fn new_id() -> String {
 
 /// Os comandos de partida do cliente: carregar cada tradutor e depois o
 /// estado, que os usa; com o layout salvo no projeto (`saved`), o destino do
-/// salvar; numa onda de exercício do `lace learn`, os comandos da correção
+/// salvar; numa onda de exercício do `aurora learn`, os comandos da correção
 /// (`learn`). Vazio sem nenhum deles.
 fn startup_commands(
     origin: &str,
@@ -499,7 +499,7 @@ const KEY_FORWARDING: &str = r#"<script>
     if (!forwarded(e)) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    window.parent.postMessage({ lace: 'key', key: e.key, code: e.code, ctrlKey: e.ctrlKey,
+    window.parent.postMessage({ aurora: 'key', key: e.key, code: e.code, ctrlKey: e.ctrlKey,
       shiftKey: e.shiftKey, altKey: e.altKey, metaKey: e.metaKey }, '*');
   }, true);
 })();
@@ -545,7 +545,7 @@ mod tests {
             b"<!DOCTYPE html><html><head><script src=\"surfer.js\"></script>".to_vec(),
         );
         let page = String::from_utf8(page).unwrap();
-        let script = page.find("lace: 'key'").unwrap();
+        let script = page.find("aurora: 'key'").unwrap();
         assert!(
             script < page.find("surfer.js").unwrap(),
             "o ouvinte vem antes do cliente"

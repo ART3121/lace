@@ -1,4 +1,4 @@
-// A aba Sobre: o que é o Studio, as versões (do Studio, do Lace e dos
+// A aba Sobre: o que é a AURORA IDE, as versões (dela, da AURORA e dos
 // componentes do bundle, do Tauri e do motor de páginas), onde ficam as
 // preferências e o bundle, e os links. "Copiar informações" junta tudo num
 // texto, para anexar a um relato de problema.
@@ -7,7 +7,7 @@ import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { BookOpen, Check, Copy, Download, ExternalLink, FolderOpen, Wrench } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
-import { LACE_CLI_DOCS, NIPSCERN_GITHUB, NIPSCERN_SITE, runAction, SAPHO_MANUAL } from '../../actions';
+import { AURORA_CLI_DOCS, NIPSCERN_GITHUB, NIPSCERN_SITE, runAction, SAPHO_MANUAL } from '../../actions';
 import { t, useT } from '../../i18n';
 import type { AppInfo, ToolchainInfo } from '../../ipc/types';
 import { useApp } from '../../state/app';
@@ -17,17 +17,17 @@ import { copyText } from '../../util/clipboard';
 import { Button, IconButton } from '../common';
 
 /** O texto de "Copiar informações", sempre em inglês, como as mensagens do
- * Lace: é para quem vai ler o relato. */
+ * AURORA: é para quem vai ler o relato. */
 function diagnostics(info: AppInfo | null, toolchain: ToolchainInfo | null): string {
-  const lines = [`Lace Studio ${info?.version ?? '?'}${info?.debug ? ' (development build)' : ''}`];
+  const lines = [`AURORA IDE ${info?.version ?? '?'}${info?.debug ? ' (development build)' : ''}`];
   lines.push(`System: ${info?.os ?? '?'}`);
   if (toolchain?.found) {
-    lines.push(`Lace bundle: ${toolchain.bundle} (${toolchain.platform}), from ${toolchain.origin ?? '?'}: ${toolchain.root}`);
+    lines.push(`AURORA bundle: ${toolchain.bundle} (${toolchain.platform}), from ${toolchain.origin ?? '?'}: ${toolchain.root}`);
     lines.push(`Components: ${toolchain.components.map((c) => `${c.name} ${c.version}`).join(', ') || 'none'}`);
     if (toolchain.not_installed.length) lines.push(`Not installed: ${toolchain.not_installed.join(', ')}`);
-    lines.push(`lace CLI: ${toolchain.lace_cli ?? 'not found'}`);
+    lines.push(`aurora CLI: ${toolchain.aurora_cli ?? 'not found'}`);
   } else {
-    lines.push(`Lace bundle: not found${toolchain?.error ? ` (${toolchain.error.message})` : ''}`);
+    lines.push(`AURORA bundle: not found${toolchain?.error ? ` (${toolchain.error.message})` : ''}`);
   }
   lines.push(`Tauri ${info?.tauri_version ?? '?'}, ${info ? engineName(info.os) : 'web engine'} ${info?.webview_version ?? 'unknown'}`);
   if (info?.config_dir) lines.push(`Settings: ${info.config_dir}`);
@@ -83,9 +83,9 @@ export function AboutView() {
   return (
     <div className="view-page about">
       <header className="about__header">
-        <img src="/brand/lace-icon.svg" alt="" className="about__logo" />
+        <img src="/brand/aurora-icon.svg" alt="" className="about__logo" />
         <div>
-          <h1>Lace Studio</h1>
+          <h1>AURORA IDE</h1>
           <p className="muted">
             {t('about.version', { version: info?.version ?? '' })}
             {info?.debug ? ` (${t('about.debugBuild')})` : ''}
@@ -100,7 +100,7 @@ export function AboutView() {
         <Button icon={<Wrench size={14} />} onClick={() => useEditor.getState().openView('toolchain')}>
           {t('toolchain.title')}
         </Button>
-        <Button icon={<Download size={14} />} disabled={!toolchain?.lace_cli} onClick={() => runAction('checkUpdates')}>
+        <Button icon={<Download size={14} />} disabled={!toolchain?.aurora_cli} onClick={() => runAction('checkUpdates')}>
           {t('toolchain.checkUpdates')}
         </Button>
       </div>
@@ -109,10 +109,10 @@ export function AboutView() {
         <section>
           <h2>{t('about.versions')}</h2>
           <dl className="kv">
-            <dt>Lace Studio</dt>
+            <dt>AURORA IDE</dt>
             <dd className="mono">{info?.version}</dd>
-            <dt>{t('about.lace')}</dt>
-            <dd className="mono">{found ? `${toolchain!.bundle} (${toolchain!.platform})` : t('about.laceMissing')}</dd>
+            <dt>{t('about.aurora')}</dt>
+            <dd className="mono">{found ? `${toolchain!.bundle} (${toolchain!.platform})` : t('about.auroraMissing')}</dd>
             <dt>Tauri</dt>
             <dd className="mono">{info?.tauri_version}</dd>
             <dt>{t('about.webview')}</dt>
@@ -149,15 +149,15 @@ export function AboutView() {
             <PathValue path={info?.config_dir} />
             <dt>{t('toolchain.root')}</dt>
             <PathValue path={toolchain?.root} />
-            <dt>{t('toolchain.laceCli')}</dt>
-            <dd className="mono">{toolchain?.lace_cli ?? '-'}</dd>
+            <dt>{t('toolchain.auroraCli')}</dt>
+            <dd className="mono">{toolchain?.aurora_cli ?? '-'}</dd>
           </dl>
 
           <h2>{t('about.links')}</h2>
           <ul className="about__links">
             <li>
               <BookOpen size={14} />
-              <Link href={LACE_CLI_DOCS}>{t('about.laceDocs')}</Link>
+              <Link href={AURORA_CLI_DOCS}>{t('about.auroraDocs')}</Link>
             </li>
             <li>
               <BookOpen size={14} />

@@ -1,0 +1,93 @@
+---
+source: crates/aurora-core/tests/build.rs
+expression: "normalized(&result, &root, &toolchain)"
+---
+{
+  "processor": "conta",
+  "language": "cmm",
+  "status": "failed",
+  "failed_step": "compile",
+  "frequency_mhz": 100,
+  "clocks": 2000,
+  "steps": [
+    {
+      "step": "compile",
+      "tool": "cmmcomp",
+      "command": {
+        "program": "[TOOLCHAIN]/yanc/bin/cmmcomp",
+        "args": [
+          "[PROJETO]/conta/conta.cmm",
+          "-o",
+          "[PROJETO]/conta/conta",
+          "--lang=en"
+        ],
+        "cwd": "[PROJETO]/conta",
+        "env": [],
+        "inherit": []
+      },
+      "termination": {
+        "kind": "exited",
+        "value": 1
+      },
+      "stdout": "",
+      "stderr": "Error on line 15: c'mon dude, declare the variable 'total' properly!\n",
+      "duration_ms": "[ms]"
+    }
+  ],
+  "diagnostics": [
+    {
+      "tool": "cmmcomp",
+      "severity": "error",
+      "message": "c'mon dude, declare the variable 'total' properly!",
+      "file": "[PROJETO]/conta/conta.cmm",
+      "line": 15,
+      "column": null,
+      "raw": "Error on line 15: c'mon dude, declare the variable 'total' properly!"
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "assembly",
+      "path": "[PROJETO]/conta/conta/conta.asm",
+      "required": true,
+      "fresh": true
+    },
+    {
+      "kind": "verilog",
+      "path": "[PROJETO]/conta/conta/conta.v",
+      "required": true,
+      "fresh": false
+    },
+    {
+      "kind": "data_memory",
+      "path": "[PROJETO]/conta/conta/conta_data.mif",
+      "required": true,
+      "fresh": false
+    },
+    {
+      "kind": "instruction_memory",
+      "path": "[PROJETO]/conta/conta/conta_inst.mif",
+      "required": true,
+      "fresh": false
+    },
+    {
+      "kind": "testbench",
+      "path": "[PROJETO]/conta/conta/conta_tb.v",
+      "required": true,
+      "fresh": false
+    },
+    {
+      "kind": "program_counter_map",
+      "path": "[PROJETO]/conta/conta/pc_conta_mem.txt",
+      "required": false,
+      "fresh": true
+    },
+    {
+      "kind": "compiler_log",
+      "path": "[PROJETO]/conta/conta/prog_log.txt",
+      "required": false,
+      "fresh": true
+    }
+  ],
+  "duration_ms": "[ms]"
+}

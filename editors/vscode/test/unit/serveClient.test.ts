@@ -1,4 +1,4 @@
-// O ServeLaceClient contra um lace serve falso dentro do processo: o
+// O ServeAuroraClient contra um aurora serve falso dentro do processo: o
 // handshake, o que cada método manda, a volta para os relatórios da CLI, os
 // eventos, o cancelamento, a morte do processo e o encerramento.
 
@@ -8,8 +8,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 
-import { LaceProcessError } from '../../src/lace/client';
-import type { LaceCommand } from '../../src/lace/cliClient';
+import { AuroraProcessError } from '../../src/aurora/client';
+import type { AuroraCommand } from '../../src/aurora/cliClient';
 import type {
   CheckReport,
   Event,
@@ -18,8 +18,8 @@ import type {
   StatusReport,
   SynthReport,
   TopReport,
-} from '../../src/lace/lace-types';
-import { ServeLaceClient, type ServeProcess } from '../../src/lace/serveClient';
+} from '../../src/aurora/aurora-types';
+import { ServeAuroraClient, type ServeProcess } from '../../src/aurora/serveClient';
 import { RESPONSES } from '../support/fixtures';
 
 interface Incoming {
@@ -31,7 +31,7 @@ interface Incoming {
 /** O que o servidor falso responde a um pedido. */
 type Script = (request: Incoming, server: FakeServe) => void;
 
-/** Um lace serve falso: os streams de um processo, roteado por `script`. */
+/** Um aurora serve falso: os streams de um processo, roteado por `script`. */
 class FakeServe extends EventEmitter implements ServeProcess {
   readonly stdin = new PassThrough();
   readonly stdout = new PassThrough();
@@ -42,7 +42,7 @@ class FakeServe extends EventEmitter implements ServeProcess {
 
   constructor(
     private readonly script: Script,
-    readonly info: Record<string, unknown> = { lace: '0.9.0', protocol: 1, prefix: null, experimental: {}, methods: [] },
+    readonly info: Record<string, unknown> = { aurora: '0.9.0', protocol: 2, prefix: null, experimental: {}, methods: [] },
   ) {
     super();
     this.stdin.setEncoding('utf8');
@@ -101,7 +101,7 @@ class FakeServe extends EventEmitter implements ServeProcess {
   }
 }
 
-const command: LaceCommand = { file: '/usr/bin/lace', args: [] };
+const command: AuroraCommand = { file: '/usr/bin/aurora', args: [] };
 const spf = '/tmp/projeto demo/demo.spf';
 
 function recorded<T>(file: string): T {
@@ -144,7 +144,7 @@ function outcomeFrom(flow: string, report: Record<string, unknown>, status = 'su
   }));
   return {
     flow,
-    command: `lace ${flow}`,
+    command: `aurora ${flow}`,
     status,
     succeeded: status === 'succeeded',
     builds: report.builds ?? report.results ?? [],
@@ -170,7 +170,7 @@ function outcomeFrom(flow: string, report: Record<string, unknown>, status = 'su
 }
 
 interface Setup {
-  client: ServeLaceClient;
+  client: ServeAuroraClient;
   servers: FakeServe[];
   warnings: string[];
   infos: string[];
@@ -180,11 +180,11 @@ function setup(script: Script, info?: Record<string, unknown>): Setup {
   const servers: FakeServe[] = [];
   const warnings: string[] = [];
   const infos: string[] = [];
-  const client = new ServeLaceClient(
+  const client = new ServeAuroraClient(
     command,
     { info: (m) => infos.push(m), warn: (m) => warnings.push(m) },
     {
-      clientName: 'lace-vscode teste',
+      clientName: 'aurora-vscode teste',
       shutdownWaitMs: 200,
       spawn: () => {
         const server = new FakeServe(script, info);
@@ -198,27 +198,27 @@ function setup(script: Script, info?: Record<string, unknown>): Setup {
 
 const nothing: Script = (request, server) => server.fail(request.id as number, -32601, `Unknown method ${request.method}`);
 
-describe('ServeLaceClient', () => {
+describe('ServeAuroraClient', () => {
   it('abre o processo no primeiro pedido, manda initialize com o nome do cliente e lê a versão', async () => {
     const { client, servers, infos } = setup(nothing);
     assert.equal(servers.length, 0);
     assert.equal(await client.version(), '0.9.0');
     assert.equal(servers.length, 1);
     assert.deepEqual(servers[0].received, [
-      { jsonrpc: '2.0', id: 1, method: 'initialize', params: { client: 'lace-vscode teste' } },
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params: { client: 'aurora-vscode teste' } },
     ] as unknown as Incoming[]);
     // Outra chamada não abre outro processo.
     assert.equal(await client.version(), '0.9.0');
     assert.equal(servers.length, 1);
-    assert.ok(infos.some((m) => m.startsWith('$ /usr/bin/lace serve')));
+    assert.ok(infos.some((m) => m.startsWith('$ /usr/bin/aurora serve')));
     await client.dispose();
   });
 
   it('recusa um protocolo de outra versão e mata o processo', async () => {
-    const { client, servers } = setup(nothing, { lace: '1.0.0', protocol: 2 });
+    const { client, servers } = setup(nothing, { aurora: '1.0.0', protocol: 3 });
     await assert.rejects(client.version(), (error: unknown) => {
-      assert.ok(error instanceof LaceProcessError);
-      assert.match(error.message, /versão 2 do protocolo/);
+      assert.ok(error instanceof AuroraProcessError);
+      assert.match(error.message, /versão 3 do protocolo/);
       return true;
     });
     assert.ok(servers[0].killed);
@@ -298,7 +298,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'build', processors: ['soma'] },
-          options: { command: 'lace build -p soma', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora build -p soma', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -307,7 +307,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'check', lint: true, file: '/a.v' },
-          options: { command: 'lace check /a.v --lint', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora check /a.v --lint', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -323,7 +323,7 @@ describe('ServeLaceClient', () => {
             processor: 'soma',
             timeout_s: 30,
           },
-          options: { command: 'lace sim -p soma --fast --timeout 30', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora sim -p soma --fast --timeout 30', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -332,7 +332,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'simulate', simulator: 'icarus', fast: false, open_wave: false, testbench: '/tb.v' },
-          options: { command: 'lace sim /tb.v', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora sim /tb.v', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -341,7 +341,7 @@ describe('ServeLaceClient', () => {
         {
           project: spf,
           request: { flow: 'synthesize', schematic: true, open_viewer: false },
-          options: { command: 'lace synth --svg', wave: 'none', viewer_opener: 'vscode' },
+          options: { command: 'aurora synth --svg', wave: 'none', viewer_opener: 'vscode' },
           output: true,
         },
       ],
@@ -417,7 +417,7 @@ describe('ServeLaceClient', () => {
     await client.dispose();
   });
 
-  it('o status do outcome decide o LaceRun: failed, timed_out e cancelled', async () => {
+  it('o status do outcome decide o AuroraRun: failed, timed_out e cancelled', async () => {
     let status = 'failed';
     const { client } = setup((request, server) => server.respond(request.id as number, outcomeFrom('build', {}, status)));
     assert.equal((await client.build(spf)).status, 'failed');
@@ -442,7 +442,7 @@ describe('ServeLaceClient', () => {
         );
       }
       const outcome = outcomeFrom('synthesize', {});
-      outcome.schematic_error = { code: 'module_not_found', message: 'No module x', hint: 'lace synth' };
+      outcome.schematic_error = { code: 'module_not_found', message: 'No module x', hint: 'aurora synth' };
       return server.respond(request.id as number, outcome);
     });
     const sim = await client.sim(spf);
@@ -452,28 +452,28 @@ describe('ServeLaceClient', () => {
     const synth = await client.synth(spf);
     assert.deepEqual(synth, {
       status: 'error',
-      error: { code: 'module_not_found', message: 'No module x', hint: 'lace synth' },
+      error: { code: 'module_not_found', message: 'No module x', hint: 'aurora synth' },
     });
     await client.dispose();
   });
 
-  it('um erro -32000 vira status error com o código do core e a dica; sem data.code é LaceProcessError', async () => {
+  it('um erro -32000 vira status error com o código do core e a dica; sem data.code é AuroraProcessError', async () => {
     let withData = true;
     const { client } = setup((request, server) =>
       server.fail(
         request.id as number,
         -32000,
-        'No Lace project here',
-        withData ? { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: lace new' } : undefined,
+        'Na AURORA project here',
+        withData ? { code: 'project_not_found', message: 'Na AURORA project here', hint: 'Create one with: aurora new' } : undefined,
       ),
     );
     const run = await client.status(spf);
     assert.deepEqual(run, {
       status: 'error',
-      error: { code: 'project_not_found', message: 'No Lace project here', hint: 'Create one with: lace new' },
+      error: { code: 'project_not_found', message: 'Na AURORA project here', hint: 'Create one with: aurora new' },
     });
     withData = false;
-    await assert.rejects(client.status(spf), LaceProcessError);
+    await assert.rejects(client.status(spf), AuroraProcessError);
     await client.dispose();
   });
 
@@ -489,9 +489,9 @@ describe('ServeLaceClient', () => {
     code = -32001;
     assert.deepEqual(await client.status(spf), { status: 'cancelled', result: null });
     code = -32003;
-    await assert.rejects(client.status(spf), LaceProcessError);
+    await assert.rejects(client.status(spf), AuroraProcessError);
     code = -32700;
-    await assert.rejects(client.status(spf), LaceProcessError);
+    await assert.rejects(client.status(spf), AuroraProcessError);
     await client.dispose();
   });
 
@@ -542,7 +542,7 @@ describe('ServeLaceClient', () => {
     await client.dispose();
   });
 
-  it('a morte do processo rejeita o pedido com LaceProcessError e o próximo pedido reabre', async () => {
+  it('a morte do processo rejeita o pedido com AuroraProcessError e o próximo pedido reabre', async () => {
     const { client, servers, warnings } = setup((request, server) => {
       if (servers.length === 1) {
         server.writeStderr('thread panicked\n');
@@ -552,7 +552,7 @@ describe('ServeLaceClient', () => {
       server.respond(request.id as number, projectStatus());
     });
     await assert.rejects(client.status(spf), (error: unknown) => {
-      assert.ok(error instanceof LaceProcessError);
+      assert.ok(error instanceof AuroraProcessError);
       assert.match(error.message, /código 101/);
       assert.match(error.stderr, /panicked/);
       return true;
@@ -568,7 +568,7 @@ describe('ServeLaceClient', () => {
   it('depois de shutdown { reason: updated } o próximo pedido abre outro processo, e a versão nova avisa', async () => {
     const changed: string[] = [];
     const servers: FakeServe[] = [];
-    const client = new ServeLaceClient(command, undefined, {
+    const client = new ServeAuroraClient(command, undefined, {
       clientName: 'x',
       shutdownWaitMs: 200,
       onServerChanged: (v) => changed.push(v),
@@ -584,7 +584,7 @@ describe('ServeLaceClient', () => {
             }
             me.respond(request.id as number, projectStatus());
           },
-          { lace: version, protocol: 1 },
+          { aurora: version, protocol: 2 },
         );
         servers.push(server);
         return server;
@@ -610,7 +610,7 @@ describe('ServeLaceClient', () => {
     assert.ok(!polite.servers[0].killed);
 
     const stubborn: FakeServe[] = [];
-    const client = new ServeLaceClient(command, undefined, {
+    const client = new ServeAuroraClient(command, undefined, {
       clientName: 'x',
       shutdownWaitMs: 50,
       spawn: () => {
