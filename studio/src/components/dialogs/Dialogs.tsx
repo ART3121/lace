@@ -2,11 +2,11 @@
 
 import { isTauri } from '@tauri-apps/api/core';
 import { open as openNative } from '@tauri-apps/plugin-dialog';
+import { Check } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ACTIONS, isAvailable, isEnabled, projectsFolder, removeProcessor, runAction } from '../../actions';
 import { useT } from '../../i18n';
-import { Check } from '../../icons';
 import { api } from '../../ipc/api';
 import type { Language, NewProcessorDefaults } from '../../ipc/types';
 import { useApp } from '../../state/app';

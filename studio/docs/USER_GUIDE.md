@@ -854,7 +854,7 @@ do teclado também percorrem); a última aberta volta na próxima vez.
 | Página | Preferência |
 |---|---|
 | Geral | idioma (do sistema, português, inglês), reabrir o último projeto, procurar atualizações ao abrir e a cada 12 horas (seção 8); no Windows, o shell do terminal: PowerShell ou Prompt de Comando (`cmd`) |
-| Aparência | a interface (clássica ou em ilhas), o tema e os ícones (ver abaixo) |
+| Aparência | a interface (clássica ou em ilhas) e o tema (ver abaixo) |
 | Layout da janela | o layout em uso (trocar, salvar e restaurar à vista; salvar como, renomear, excluir e voltar ao padrão no menu ⋯), as barras, as regiões, a posição do painel, as vistas de cada região (o olho mostra ou esconde; o menu ⋯ muda de região ou de ordem), o modelo da barra de ferramentas e os itens dela e da barra de status (seção 2.4) |
 | Editor | tamanho da fonte, tabulação, quebra de linha, minimapa, salvar ao trocar de aba, modo Vim; e o grupo Modo zen: tela cheia, centralizar o editor, mostrar as abas, esconder os números de linha (seção 2.3) |
 | Simulação | simulador padrão, onde abrir a onda (numa aba ou em janela separada), abrir a onda depois de simular (o botão Wave), prazo da simulação, consoles detalhados |
@@ -898,13 +898,10 @@ tema pinta a interface, o editor (inclusive C± e o assembly) e os consoles.
 
 Uma paleta só escura fica escura em qualquer modo.
 
-### Ícones
+### Ícones de arquivo
 
-Em Preferências > Aparência > **Ícones**, um cartão por pacote, com a
-prévia de oito ícones dele: o Lucide (o padrão), o Phosphor, o Tabler e o
-Material Symbols. Clicar troca na hora todos os ícones da interface: barras,
-abas, menus, explorador e vistas. Os ícones de arquivo do fluxo da AURORA
-são da própria IDE e não mudam com o pacote, cada tipo na cor dele no tema:
+No explorador e nas abas, os arquivos do fluxo da AURORA têm ícone próprio,
+cada tipo na cor dele no tema:
 
 | Arquivo | Ícone |
 |---|---|
@@ -916,16 +913,13 @@ são da própria IDE e não mudam com o pacote, cada tipo na cor dele no tema:
 | Onda (`.vcd`, `.fst`, `.ghw`) | uma onda quadrada |
 | Projeto (`.spf`) | um selo com uma estrela |
 
-Os outros arquivos usam o ícone genérico do pacote escolhido.
-
 ## 9.1 Sobre
 
 Ajuda > Sobre a AURORA IDE abre uma aba com a versão da IDE, a do bundle da AURORA e a
 de cada componente (com os que faltam instalar), as do Tauri e do motor de
 páginas do sistema (WebKitGTK, WebView2 ou WKWebView), as pastas das
-preferências e do bundle (o botão ao lado abre a pasta), os links da
-documentação da AURORA, do manual do SAPHO e do NIPS-CERN, e os pacotes de
-ícones com a licença de cada um. **Copiar
+preferências e do bundle (o botão ao lado abre a pasta) e os links da
+documentação da AURORA, do manual do SAPHO e do NIPS-CERN. **Copiar
 informações** põe tudo isso, em inglês, na área de transferência, para
 anexar a um relato de problema.
 

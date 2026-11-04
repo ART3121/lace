@@ -7,6 +7,7 @@
 // barra de abas, para a posição; no conteúdo de um grupo, para o fim dele;
 // na faixa da direita do conteúdo, para um grupo novo, se couber.
 
+import { Columns2, X } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
@@ -14,7 +15,6 @@ import { create } from 'zustand';
 
 import { setEditorVisible } from '../../editor/host';
 import { t, useT } from '../../i18n';
-import { Columns2, X } from '../../icons';
 import { useApp } from '../../state/app';
 import { fileTabId, MAX_GROUPS, useEditor, type EditorGroup, type Tab } from '../../state/editor';
 import { useLayout } from '../../state/layout';

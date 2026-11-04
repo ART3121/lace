@@ -2,11 +2,11 @@
 // (wave_tab.rs) e ligado a um `surfer-aurora server` desta aba. Abrir a vista
 // sobe o servidor; fechar, ou trocar de onda, o encerra.
 
+import { AudioWaveform, ExternalLink, ListFilter, RotateCcw, RotateCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { openWaveWindow, signalChoice } from '../../actions';
 import { useT } from '../../i18n';
-import { AudioWaveform, ExternalLink, ListFilter, RotateCcw, RotateCw } from '../../icons';
 import { api } from '../../ipc/api';
 import type { IpcError, WaveTab } from '../../ipc/types';
 import { confirm, openDialog } from '../../state/dialogs';

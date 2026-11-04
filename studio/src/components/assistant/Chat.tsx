@@ -4,10 +4,10 @@
 // muda. Sem o Claude Code na máquina, a tela diz como instalar e abre as
 // Preferências.
 
+import { Bot, Hammer, PanelRight, Settings, Square, SendHorizontal, Sparkles, SquarePen, Wrench } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 
 import { useT } from '../../i18n';
-import { Bot, Hammer, PanelRight, Settings, Square, SendHorizontal, Sparkles, SquarePen, Wrench } from '../../icons';
 import { useApp } from '../../state/app';
 import { useAssistant, type ChatEntry } from '../../state/assistant';
 import { useEditor } from '../../state/editor';

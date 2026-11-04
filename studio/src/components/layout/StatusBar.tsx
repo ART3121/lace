@@ -8,12 +8,6 @@
 // linha do Vim aparecem sempre: sem elas, o teclado parece não responder. O
 // aviso de AURORA mais nova também, até a atualização.
 
-import { useEffect, useState } from 'react';
-
-import { action, runAction, useChord } from '../../actions';
-import { languageLabel } from '../../editor/monaco';
-import { setVimStatusNode } from '../../editor/vim';
-import { formatDuration, useT, type Key } from '../../i18n';
 import {
   CircleAlert,
   CircleArrowUp,
@@ -26,8 +20,14 @@ import {
   RotateCw,
   SquareSplitHorizontal,
   TriangleAlert,
-  type IconComponent,
-} from '../../icons';
+  type LucideIcon,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+import { action, runAction, useChord } from '../../actions';
+import { languageLabel } from '../../editor/monaco';
+import { setVimStatusNode } from '../../editor/vim';
+import { formatDuration, useT, type Key } from '../../i18n';
 import { useApp } from '../../state/app';
 import { useEditor } from '../../state/editor';
 import { lastFlowKey, phaseKey, useJobs } from '../../state/jobs';
@@ -55,7 +55,7 @@ function RegionToggles() {
   // Redesenha quando uma região aparece ou some (`checked` lê o estado).
   useLayout((s) => s.live.regions);
   const panelRight = useLayout((s) => s.live.panelPosition === 'right');
-  const toggles: { id: string; on: IconComponent; off: IconComponent }[] = [
+  const toggles: { id: string; on: LucideIcon; off: LucideIcon }[] = [
     { id: 'toggleSidebar', on: PanelLeft, off: PanelLeftDashed },
     panelRight
       ? { id: 'togglePanel', on: SquareSplitHorizontal, off: SquareSplitHorizontal }

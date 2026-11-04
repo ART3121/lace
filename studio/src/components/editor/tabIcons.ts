@@ -1,6 +1,6 @@
 // O ícone de cada aba e de cada arquivo do explorador: os arquivos do fluxo
-// da AURORA têm ícone próprio (icons/files.tsx); os outros, o genérico do
-// pacote pela extensão; as vistas, pelo tipo delas.
+// da AURORA têm ícone próprio (fileIcons.tsx); os outros, o do Lucide pela
+// extensão; as vistas, pelo tipo delas.
 
 import {
   AudioWaveform,
@@ -18,13 +18,13 @@ import {
   ScrollText,
   Settings,
   Wrench,
-  type IconComponent,
-  FILE_ICONS,
-  type FileKind,
-} from '../../icons';
+  type LucideIcon,
+} from 'lucide-react';
+
 import type { Tab } from '../../state/editor';
 import { useProject } from '../../state/project';
 import { baseName, extension, samePath } from '../../util/paths';
+import { FILE_ICONS, type FileKind } from './fileIcons';
 
 /** Testbench pelo projeto (a lista de testbenches do `.spf`) ou pelo nome:
  * `tb_<nome>.v`, `<nome>_tb.v` e o `test_<nome>.py` do cocotb. */
@@ -34,7 +34,7 @@ function isTestbench(path: string): boolean {
 }
 
 /** O tipo de um arquivo do fluxo da AURORA, que tem ícone próprio
- * (icons/files.tsx); os outros ficam sem tipo. */
+ * (fileIcons.tsx); os outros ficam sem tipo. */
 export function fileKind(path: string): FileKind | null {
   switch (extension(path)) {
     case 'v':
@@ -61,7 +61,7 @@ export function fileKind(path: string): FileKind | null {
   }
 }
 
-export function fileIcon(path: string): IconComponent {
+export function fileIcon(path: string): LucideIcon {
   const kind = fileKind(path);
   if (kind) return FILE_ICONS[kind];
   switch (extension(path)) {
@@ -79,7 +79,7 @@ export function fileIcon(path: string): IconComponent {
   }
 }
 
-export function tabIcon(tab: Tab): IconComponent {
+export function tabIcon(tab: Tab): LucideIcon {
   switch (tab.kind) {
     case 'file':
       return fileIcon(tab.path ?? '');

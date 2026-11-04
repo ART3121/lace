@@ -7,10 +7,6 @@
 // que valem também para a CLI (state/experimental.ts).
 
 import { open } from '@tauri-apps/plugin-dialog';
-import { useEffect, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
-
-import { restartShell } from '../../console/shell';
-import { useT, type Key } from '../../i18n';
 import {
   Activity,
   FileCode,
@@ -19,13 +15,13 @@ import {
   Package,
   Palette,
   SlidersHorizontal,
-  type IconComponent,
+  type LucideIcon,
   Bot,
-  ICON_PACKS,
-  PackIcon,
-  type IconName,
-  type IconPack,
-} from '../../icons';
+} from 'lucide-react';
+import { useEffect, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+
+import { restartShell } from '../../console/shell';
+import { useT, type Key } from '../../i18n';
 import type { Settings } from '../../ipc/types';
 import { prefersDark, useApp } from '../../state/app';
 import { useAssistant } from '../../state/assistant';
@@ -36,7 +32,7 @@ import { Button, Segmented, Switch } from '../common';
 import { LayoutSettings } from './LayoutSettings';
 import { SettingRow, SettingsGroup } from './settingsParts';
 
-const PAGES: Record<SettingsPage, { label: Key; icon: IconComponent }> = {
+const PAGES: Record<SettingsPage, { label: Key; icon: LucideIcon }> = {
   general: { label: 'settings.general', icon: SlidersHorizontal },
   appearance: { label: 'settings.appearance', icon: Palette },
   layout: { label: 'settings.layout', icon: LayoutTemplate },
@@ -187,79 +183,38 @@ function AppearancePage({ settings }: { settings: Settings }) {
   useApp((s) => s.theme);
   const scheme = schemeOf(settings.theme_mode, prefersDark());
   return (
-    <>
-      <SettingsGroup title={t('settings.theme')}>
-        <SettingRow label={t('settings.look')}>
-          {() => (
-            <Segmented
-              label={t('settings.look')}
-              value={settings.look === 'islands' ? 'islands' : 'classic'}
-              options={[
-                { value: 'classic', label: t('settings.look.classic') },
-                { value: 'islands', label: t('settings.look.islands') },
-              ]}
-              onChange={(value) => set('look', value)}
-            />
-          )}
-        </SettingRow>
-        <SettingRow label={t('settings.theme.mode')}>
-          {() => (
-            <Segmented
-              label={t('settings.theme.mode')}
-              value={settings.theme_mode}
-              options={[
-                { value: 'dark', label: t('settings.theme.dark') },
-                { value: 'light', label: t('settings.theme.light') },
-                { value: 'system', label: t('settings.theme.system') },
-              ]}
-              onChange={(value) => set('theme_mode', value)}
-            />
-          )}
-        </SettingRow>
-        <div className="settings-group__block">
-          <ThemeGrid value={settings.theme} scheme={scheme} onChange={(id) => set('theme', id)} />
-        </div>
-      </SettingsGroup>
-      <SettingsGroup title={t('settings.icons')}>
-        <div className="settings-group__block">
-          <IconPackGrid value={settings.icons} onChange={(pack) => set('icons', pack)} />
-        </div>
-      </SettingsGroup>
-    </>
-  );
-}
-
-/** Os ícones das prévias dos pacotes: um pouco de cada canto da IDE. */
-const PACK_PREVIEW: IconName[] = ['FolderTree', 'Search', 'Workflow', 'Hammer', 'Play', 'Activity', 'SquareTerminal', 'Settings'];
-
-const PACK_NAMES: Record<IconPack, string> = {
-  lucide: 'Lucide',
-  phosphor: 'Phosphor',
-  tabler: 'Tabler',
-  material: 'Material Symbols',
-};
-
-/** Os pacotes de ícones, com oito ícones de cada um na prévia. */
-function IconPackGrid({ value, onChange }: { value: string; onChange: (pack: IconPack) => void }) {
-  const t = useT();
-  return (
-    <div className="theme-grid" role="radiogroup" aria-label={t('settings.icons')}>
-      {ICON_PACKS.map((pack) => (
-        <ThemeCard
-          key={pack}
-          name={PACK_NAMES[pack]}
-          note={pack === 'lucide' ? t('settings.theme.default') : undefined}
-          selected={(value || 'lucide') === pack}
-          onSelect={() => onChange(pack)}
-        >
-          <span className="icon-pack-preview">
-            {PACK_PREVIEW.map((name) => (
-              <PackIcon key={name} pack={pack} name={name} size={18} />
-            ))}
-          </span>
-        </ThemeCard>
-      ))}
-    </div>
+    <SettingsGroup title={t('settings.theme')}>
+      <SettingRow label={t('settings.look')}>
+        {() => (
+          <Segmented
+            label={t('settings.look')}
+            value={settings.look === 'islands' ? 'islands' : 'classic'}
+            options={[
+              { value: 'classic', label: t('settings.look.classic') },
+              { value: 'islands', label: t('settings.look.islands') },
+            ]}
+            onChange={(value) => set('look', value)}
+          />
+        )}
+      </SettingRow>
+      <SettingRow label={t('settings.theme.mode')}>
+        {() => (
+          <Segmented
+            label={t('settings.theme.mode')}
+            value={settings.theme_mode}
+            options={[
+              { value: 'dark', label: t('settings.theme.dark') },
+              { value: 'light', label: t('settings.theme.light') },
+              { value: 'system', label: t('settings.theme.system') },
+            ]}
+            onChange={(value) => set('theme_mode', value)}
+          />
+        )}
+      </SettingRow>
+      <div className="settings-group__block">
+        <ThemeGrid value={settings.theme} scheme={scheme} onChange={(id) => set('theme', id)} />
+      </div>
+    </SettingsGroup>
   );
 }
 

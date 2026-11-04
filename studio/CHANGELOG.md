@@ -72,12 +72,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   Ilhas, com as barras laterais, o editor e o painel em ilhas de cantos
   redondos separadas por vãos, as abas em pílula e o ícone ativo da barra de
   atividades num quadrado tingido do destaque. Vale com qualquer tema.
-- Preferências > Aparência ganha **Ícones**: o Lucide, o padrão, o
-  Phosphor, o Tabler ou o Material Symbols, cada um num cartão com a prévia,
-  e a troca vale na hora para todos os ícones da interface. Os arquivos do
-  fluxo da AURORA ganham ícones próprios, cada tipo na cor dele no tema:
-  Verilog, testbench, C±, assembly, MIF, onda e o `.spf`. Ajuda > Sobre
-  lista os pacotes de ícones com a licença de cada um.
+- Os arquivos do fluxo da AURORA ganham ícones próprios no explorador e
+  nas abas, cada tipo na cor dele no tema: Verilog, testbench, C±,
+  assembly, MIF, onda e o `.spf`.
 - **Exercícios**: a correção mostra a primeira amostra errada numa tabela
   (as entradas, e cada saída com o esperado e o seu, a que errou em
   destaque), os avisos do lint do Verilator sobre o seu arquivo e o latch

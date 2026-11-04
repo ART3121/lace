@@ -10,11 +10,11 @@
 //
 // Os botões da vista (ViewActions.tsx) vêm antes dos da região.
 
+import { ChevronDown, Maximize2, Minimize2, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { action } from '../../actions';
 import { useT, type Key } from '../../i18n';
-import { ChevronDown, Maximize2, Minimize2, X } from '../../icons';
 import { useLayout, type RegionId, type ViewId } from '../../state/layout';
 import { VIEW_INFO, visibleViews } from '../../state/layoutModel';
 import { useProject } from '../../state/project';

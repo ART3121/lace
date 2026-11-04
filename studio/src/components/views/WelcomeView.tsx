@@ -1,10 +1,10 @@
 // A tela inicial: começar, recentes e o estado da instalação da AURORA.
 
 import { useId } from 'react';
+import { Compass, Cpu, FileCode, FolderOpen, FolderPlus, Wrench, X } from 'lucide-react';
 
 import { openProjectDialog } from '../../actions';
 import { useT } from '../../i18n';
-import { Compass, Cpu, FileCode, FolderOpen, FolderPlus, Wrench, X } from '../../icons';
 import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';

@@ -157,11 +157,11 @@ function schematicColors(theme: Theme): Record<string, string> {
 }
 
 /**
- * As cores dos ícones de arquivo da AURORA (`--file-*`, icons/files.tsx). Como
- * as famílias do RTLViewer, cada tipo pega um tom da paleta dos terminais, que
- * todo tema define com seis matizes distintos (as cores da sintaxe repetem
- * tons entre papéis), puxado na direção do texto até ter contraste 3:1 com o
- * fundo da barra lateral.
+ * As cores dos ícones de arquivo da AURORA (`--file-*`,
+ * components/editor/fileIcons.tsx). Como as famílias do RTLViewer, cada tipo
+ * pega um tom da paleta dos terminais, que todo tema define com seis matizes
+ * distintos (as cores da sintaxe repetem tons entre papéis), puxado na
+ * direção do texto até ter contraste 3:1 com o fundo da barra lateral.
  */
 function fileColors(theme: Theme): Record<string, string> {
   const { ui, terminal } = theme;

@@ -1,6 +1,7 @@
 // Os avisos rápidos, no canto inferior direito.
 
-import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from '../icons';
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
+
 import { useToasts } from '../state/toasts';
 
 const ICONS = { error: CircleAlert, success: CircleCheck, info: Info, warning: TriangleAlert };

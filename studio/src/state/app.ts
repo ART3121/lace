@@ -5,7 +5,6 @@
 import { create } from 'zustand';
 
 import { useLang } from '../i18n';
-import { applyIcons } from '../icons';
 import { api } from '../ipc/api';
 import type { AppInfo, RecentStatus, Settings, ToolchainInfo } from '../ipc/types';
 import { applyLook, applyThemeCss, resolveTheme, type Theme } from '../themes';
@@ -56,7 +55,6 @@ export const useApp = create<AppState>((set, get) => ({
       const theme = themeFor(settings);
       applyThemeCss(theme);
       applyLook(settings.look);
-      applyIcons(settings.icons);
       useLang.getState().setLang(settings.language);
       set({ info, settings, theme });
       void get().refreshToolchain();
@@ -77,7 +75,6 @@ export const useApp = create<AppState>((set, get) => ({
     set({ settings: next, theme });
     applyThemeCss(theme);
     applyLook(next.look);
-    applyIcons(next.icons);
     useLang.getState().setLang(next.language);
     try {
       const saved = await api.app.saveSettings(next);
@@ -92,7 +89,6 @@ export const useApp = create<AppState>((set, get) => ({
       set({ settings: current, theme });
       applyThemeCss(theme);
       applyLook(current.look);
-      applyIcons(current.icons);
       useLang.getState().setLang(current.language);
       showError(error);
     }

@@ -884,8 +884,6 @@ export const en: Record<Key, string> = {
   'settings.look': 'Interface',
   'settings.look.classic': 'Classic',
   'settings.look.islands': 'Islands',
-  'settings.icons': 'Icons',
-  'about.icons': 'Icons',
   'settings.restoreLast': 'Reopen the last project on start',
   'settings.checkUpdates': 'Check for updates',
   'settings.checkUpdatesHint': 'When the IDE opens and every 12 hours, looks for a new AURORA release and offers the update.',

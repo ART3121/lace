@@ -10,11 +10,11 @@
 // menu dela; e os itens das barras ficam recolhidos. As vistas e os itens de
 // recurso experimental desligado não aparecem.
 
+import { Eye, EyeOff, MoreHorizontal } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
 import { runAction, TOOLBAR_STYLE_ACTIONS, toolbarItemAvailable } from '../../actions';
 import { useT, type Key } from '../../i18n';
-import { Eye, EyeOff, MoreHorizontal } from '../../icons';
 import { useApp } from '../../state/app';
 import { useLayout, type RegionId, type ViewId } from '../../state/layout';
 import {

@@ -6,10 +6,10 @@
 // preferência ou o bundle mudam.
 
 import { open as openDialogNative } from '@tauri-apps/plugin-dialog';
+import { CircleCheck, Circle, FolderOpen, GraduationCap, ListChecks, Package, RefreshCw, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { errorText, useT } from '../../i18n';
-import { CircleCheck, Circle, FolderOpen, GraduationCap, ListChecks, Package, RefreshCw, X } from '../../icons';
 import { api } from '../../ipc/api';
 import type { IpcError, LearnTracks } from '../../ipc/types';
 import { useApp } from '../../state/app';

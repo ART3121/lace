@@ -3,8 +3,9 @@
 // ferramentas e preferências. Clicar na vista que já está na frente esconde
 // a barra lateral, como no VS Code.
 
+import { Settings, Wrench } from 'lucide-react';
+
 import { useT } from '../../i18n';
-import { Settings, Wrench } from '../../icons';
 import { useApp } from '../../state/app';
 import { useEditor } from '../../state/editor';
 import { useLayout } from '../../state/layout';

@@ -13,12 +13,7 @@ import { open as openDialogNative } from '@tauri-apps/plugin-dialog';
 import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { create } from 'zustand';
-
-import { activeEditor } from './editor/host';
-import { vimActive } from './editor/vim';
-import { t, type Key } from './i18n';
-import type { IconComponent } from './icons';
+import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
   Boxes,
@@ -44,7 +39,12 @@ import {
   SquareTerminal,
   Workflow,
   Zap,
-} from './icons';
+} from 'lucide-react';
+import { create } from 'zustand';
+
+import { activeEditor } from './editor/host';
+import { vimActive } from './editor/vim';
+import { t, type Key } from './i18n';
 import { api } from './ipc/api';
 import type { Feature, Simulator } from './ipc/aurora-types';
 import { useApp } from './state/app';
@@ -77,7 +77,7 @@ export interface Action {
   menuLabel?: Key;
   category: ActionCategory;
   keys?: string;
-  icon?: IconComponent;
+  icon?: LucideIcon;
   enabled?: () => boolean;
   /** Liga e desliga: os menus mostram a marca quando é `true`. */
   checked?: () => boolean;

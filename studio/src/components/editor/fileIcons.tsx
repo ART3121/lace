@@ -1,14 +1,12 @@
 // Os ícones de arquivo da AURORA: um desenho próprio para cada tipo do fluxo
 // (Verilog, testbench, C±, assembly, MIF, onda e o projeto), na cor do tipo
 // no tema (`--file-*`, themes/index.ts). Quem escolhe o tipo de um arquivo é
-// o `fileIcon` (components/editor/tabIcons.ts); os outros arquivos usam o
-// ícone genérico do pacote escolhido. Os desenhos são de traço, no grid de 24
-// do Lucide; com o Phosphor, que tem traço mais fino, o traço afina junto.
+// o `fileKind` (tabIcons.ts); os outros arquivos usam os ícones do Lucide.
+// Os desenhos seguem o grid de 24 e o traço do Lucide, e têm o tipo dele,
+// para abas e explorador usarem uns e outros do mesmo jeito.
 
-import type { ReactNode } from 'react';
-
-import { useIconPack } from './pack';
-import type { IconComponent, IconProps } from './types';
+import type { LucideIcon, LucideProps } from 'lucide-react';
+import { forwardRef, type ReactNode } from 'react';
 
 export type FileKind = 'verilog' | 'testbench' | 'cmm' | 'asm' | 'mif' | 'wave' | 'project';
 
@@ -59,18 +57,21 @@ const GLYPHS: Record<FileKind, ReactNode> = {
   ),
 };
 
-function fileGlyph(kind: FileKind): IconComponent {
-  function FileGlyph({ size = 24, strokeWidth, className, style }: IconProps) {
-    const thin = useIconPack((s) => s.pack === 'phosphor');
+function fileGlyph(kind: FileKind): LucideIcon {
+  const Glyph = forwardRef<SVGSVGElement, Omit<LucideProps, 'ref'>>(function FileGlyph(
+    { size = 24, strokeWidth = 2, className, style },
+    ref,
+  ) {
     return (
       <svg
+        ref={ref}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
         width={size}
         height={size}
         fill="none"
         stroke="currentColor"
-        strokeWidth={strokeWidth ?? (thin ? 1.6 : 2)}
+        strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={`file-icon file-icon--${kind}${className ? ` ${className}` : ''}`}
@@ -80,12 +81,12 @@ function fileGlyph(kind: FileKind): IconComponent {
         {GLYPHS[kind]}
       </svg>
     );
-  }
-  FileGlyph.displayName = `FileIcon(${kind})`;
-  return FileGlyph;
+  });
+  Glyph.displayName = `FileIcon(${kind})`;
+  return Glyph;
 }
 
-export const FILE_ICONS: Record<FileKind, IconComponent> = {
+export const FILE_ICONS: Record<FileKind, LucideIcon> = {
   verilog: fileGlyph('verilog'),
   testbench: fileGlyph('testbench'),
   cmm: fileGlyph('cmm'),

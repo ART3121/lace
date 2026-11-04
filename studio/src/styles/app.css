@@ -1067,7 +1067,7 @@ body.is-dragging * {
 }
 
 /* Os ícones de arquivo da AURORA, cada tipo na cor dele no tema
-   (icons/files.tsx, themes/index.ts). */
+   (components/editor/fileIcons.tsx, themes/index.ts). */
 .file-icon--verilog {
   color: var(--file-verilog);
 }
@@ -3089,19 +3089,6 @@ body.is-dragging * {
   color: var(--text-3);
   font-size: var(--text-xs);
   text-overflow: ellipsis;
-}
-
-/* A prévia de um pacote de ícones: oito ícones dele, em duas linhas, no
-   fundo do editor. */
-.icon-pack-preview {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  place-items: center;
-  padding: 10px 8px;
-  background: var(--bg-editor);
-  color: var(--text-1);
 }
 
 .theme-preview {

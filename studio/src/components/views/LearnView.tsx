@@ -4,9 +4,6 @@
 // mostram a próxima dica, abrem a onda e o esquemático, restauram o arquivo
 // e, depois de resolvido, abrem a solução e passam ao próximo.
 
-import { useMemo } from 'react';
-
-import { useT } from '../../i18n';
 import {
   Activity,
   ArrowRight,
@@ -16,7 +13,10 @@ import {
   Lightbulb,
   ListChecks,
   RotateCcw,
-} from '../../icons';
+} from 'lucide-react';
+import { useMemo } from 'react';
+
+import { useT } from '../../i18n';
 import type { Counterexample, Finding, Grade } from '../../ipc/aurora-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
