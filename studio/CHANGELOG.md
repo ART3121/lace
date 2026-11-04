@@ -101,6 +101,14 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   pasta com acento ou outro alfabeto: o Lace recusava a simulação, e a
   síntese e a hierarquia falhavam.
 
+### Segurança
+
+- O editor usa o DOMPurify 3.4.17, que corrige falhas de XSS da 3.4.15. O
+  Monaco 0.57 traz a 3.4.15 dentro dele; a IDE passa a usar no lugar dela
+  o pacote corrigido.
+- O Vite vai para a 8.3.5, que corrige falhas do servidor de
+  desenvolvimento.
+
 ## [0.9.0] - 2026-10-20
 
 ### Acrescentado

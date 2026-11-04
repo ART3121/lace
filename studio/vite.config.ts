@@ -35,6 +35,12 @@ export default defineConfig({
       // não exporta mais (o `exports` dele mapeia `monaco-editor/<x>` para
       // `esm/vs/<x>.js`). Redirecionado, é o mesmo Monaco do resto do Studio.
       { find: /^monaco-editor\/esm\/vs\/(.*)$/, replacement: 'monaco-editor/$1' },
+      // O Monaco 0.57 importa uma cópia do DOMPurify 3.4.15 que vem dentro
+      // dele (esm/vs/base/browser/dompurify), com falhas corrigidas na 3.4.17.
+      // O `overrides` do package.json só troca o pacote dompurify do
+      // node_modules; este alias faz o Monaco usar esse pacote no lugar da
+      // cópia. Os dois saem quando um Monaco novo trouxer a versão corrigida.
+      { find: /^\.\/dompurify\/dompurify\.js$/, replacement: 'dompurify' },
     ],
   },
   server: {
