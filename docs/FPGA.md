@@ -384,7 +384,9 @@ Terasic DE2-115 30.188 ms simulated in 0.3 s
 
 O Verilator do bundle compila o topo da placa, os fontes do projeto (com o
 Verilog e as memórias de cada processador SAPHO compilado) e um laço de
-simulação em C++ que simula os periféricos, em `.aurora8/Temp/vboard`. No
+simulação em C++ que simula os periféricos, em `.aurora8/Temp/vboard`, e
+roda na raiz do projeto, como a simulação: um `$readmemb("program.txt")`
+do projeto acha o arquivo. No
 Linux e no macOS ele usa o compilador C++ do sistema, como a simulação com
 o Verilator. A primeira compilação leva de 15 a 30 segundos; as seguintes
 só refazem o que mudou. Medido nesta máquina (Windows, 2026-11-05): um

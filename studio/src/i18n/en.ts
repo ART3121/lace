@@ -715,6 +715,7 @@ export const en: Record<Key, string> = {
   'vboard.uartEmpty': 'Nothing received yet',
   'vboard.uartPlaceholder': 'Text to send (Enter)',
   'vboard.uartClear': 'Clear',
+  'vboard.buttonHint': '{name}: hold to press; Shift+click latches it down (and releases it)',
   'board.board': 'Board',
   'board.top': 'Top',
   'board.topAuto': 'Project top ({name})',

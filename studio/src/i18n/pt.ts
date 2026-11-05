@@ -742,6 +742,7 @@ export const pt = {
   'vboard.uartEmpty': 'Nada recebido ainda',
   'vboard.uartPlaceholder': 'Texto para enviar (Enter)',
   'vboard.uartClear': 'Limpar',
+  'vboard.buttonHint': '{name}: segure para apertar; Shift+clique o prende apertado (e solta)',
   'board.board': 'Placa',
   'board.top': 'Topo',
   'board.topAuto': 'Topo do projeto ({name})',

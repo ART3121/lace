@@ -246,23 +246,36 @@ function Switches({ item, signal }: { item: LayoutPeripheral; signal: string }) 
 }
 
 function Buttons({ item, signal }: { item: LayoutPeripheral; signal: string }) {
+  const t = useT();
   const value = useVboard((s) => s.inputs[item.id] ?? 0);
   const setBit = useVboard((s) => s.setBit);
+  // Os botões presos com Shift+clique: ficam apertados até outro Shift+clique,
+  // para segurar um enquanto se aperta outro (zerar na aula 9: KEY[1]
+  // segurado e um aperto do KEY[0]).
+  const [latched, setLatched] = useState(0);
   return (
     <div className="vboard-row">
       {bitsDown(width(item, signal)).map((bit) => {
         const down = ((value >>> bit) & 1) === 1;
+        const isLatched = ((latched >>> bit) & 1) === 1;
         const release = () => {
+          if (isLatched) return;
           if (((useVboard.getState().inputs[item.id] ?? 0) >>> bit) & 1) setBit(item.id, bit, false);
         };
         return (
           <button
             key={bit}
             type="button"
-            className={`vboard-button${down ? ' is-down' : ''}`}
+            className={`vboard-button${down ? ' is-down' : ''}${isLatched ? ' is-latched' : ''}`}
             disabled={!item.connected}
-            title={`${signal}[${bit}]`}
+            title={t('vboard.buttonHint', { name: `${signal}[${bit}]` })}
             onPointerDown={(e) => {
+              if (e.shiftKey) {
+                setLatched(latched ^ (1 << bit));
+                setBit(item.id, bit, !isLatched);
+                return;
+              }
+              if (isLatched) return;
               (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
               setBit(item.id, bit, true);
             }}

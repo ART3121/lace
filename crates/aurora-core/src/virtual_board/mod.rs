@@ -402,8 +402,8 @@ pub fn build(
     let layout = layout_of(&prepared);
     let work = work_dir(project);
     let _span = tracing::info_span!("virtual_board_build", top = %layout.top).entered();
-    // Copia as memórias dos processadores para a pasta da placa: não corre
-    // com o build de um processador.
+    // Copia as memórias dos processadores para a raiz: não corre com o build
+    // de um processador.
     let _locks = crate::simulate::staging_locks(project, &work.join(".vboard"), project.name())?;
     std::fs::create_dir_all(&work).map_err(AuroraError::io("Creating directory", &work))?;
     write(
@@ -415,9 +415,10 @@ pub fn build(
         &harness::generate(&prepared.resolved),
     )?;
     write(&work.join("aurora_board.hpp"), RUNTIME)?;
-    // O `.v` de cada processador lê as memórias pelo nome, relativo ao CWD,
-    // que é esta pasta.
-    crate::simulate::stage_processor_files(project, &work)?;
+    // A placa roda na raiz do projeto, como a simulação e o Quartus: um
+    // `$readmemb("program.txt")` do projeto acha o arquivo, e o `.v` de cada
+    // processador, as memórias que o build dele gerou, copiadas para lá.
+    crate::simulate::stage_processor_files(project, project.root())?;
 
     let mut files = vec![work.join(format!("{}.v", crate::fpga::wrapper::TOP_MODULE))];
     files.extend(crate::synth::project_sources(project)?);

@@ -210,9 +210,10 @@ pub fn run(
         .filter(|e| e.is_file())
         .ok_or_else(|| AuroraError::VirtualBoardNotBuilt(super::executable_path(project)))?;
     let started = Instant::now();
-    let work = super::work_dir(project);
+    // Na raiz do projeto, como a simulação: os `$readmem` do projeto leem
+    // os arquivos pelo caminho relativo a ela ([`super::build`]).
     let invocation =
-        Invocation::new(executable, &work).search_path(&toolchain.verilated_model_path());
+        Invocation::new(executable, project.root()).search_path(&toolchain.verilated_model_path());
     let mut process = crate::process::spawn_interactive(&invocation)?;
     let (tx, rx) = mpsc::channel::<Message>();
     if let Some(stdout) = process.stdout.take() {

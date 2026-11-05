@@ -808,7 +808,8 @@ O periférico que o projeto não usa aparece apagado.
 15 a 30 segundos) e começa a simulação. Enquanto ela roda:
 
 - as chaves mudam com um clique, e o botão fica apertado enquanto o mouse
-  está em cima dele apertado;
+  está em cima dele apertado; Shift+clique prende o botão apertado até o
+  próximo Shift+clique, para segurar um botão enquanto se aperta outro;
 - o brilho de cada LED é o tempo que ele ficou aceso, então um LED em PWM
   aparece mais fraco;
 - com o teclado PS/2 ligado, clique na tela ou na área do teclado e digite:
