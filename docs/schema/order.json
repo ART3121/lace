@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OrderReport",
-  "description": "`lace order`.",
+  "description": "`aurora order`.",
   "type": "object",
   "properties": {
     "project": {

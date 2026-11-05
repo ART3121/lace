@@ -2,6 +2,6 @@ Error: Unexpected argument '--nao-existe' found
 
   Tip: To pass '--nao-existe' as a value, use '-- --nao-existe'
 
-Usage: lace top [OPTIONS] [FILE|MODULE]
+Usage: aurora top [OPTIONS] [FILE|MODULE]
 
 For more information, try '--help'.

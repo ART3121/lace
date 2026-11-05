@@ -1,5 +1,5 @@
 // O Monaco: workers, linguagens, temas, um modelo de texto por arquivo e os
-// marcadores dos diagnósticos do Lace.
+// marcadores dos diagnósticos da AURORA.
 //
 // Há uma instância só do editor (MonacoHost); cada arquivo aberto é um
 // modelo, identificado pelo caminho. Trocar de aba troca o modelo e
@@ -9,7 +9,7 @@ import * as monaco from 'monaco-editor';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/language/json/json.worker?worker';
 
-import type { Diagnostic } from '../ipc/lace-types';
+import type { Diagnostic } from '../ipc/aurora-types';
 import { alpha, tokenRule, uiTokens, type Theme } from '../themes';
 import { asmTokenRules, registerAsm } from './languages/asm';
 import { cmmTokenRules, registerCmm } from './languages/cmm';
@@ -227,7 +227,7 @@ const definedThemes = new Set<string>();
 /** Passa o Monaco (todas as instâncias) para o tema. Cada tema é definido no
  * Monaco na primeira vez que é usado. */
 export function setMonacoTheme(theme: Theme): void {
-  const name = `lace-${theme.id}`;
+  const name = `aurora-${theme.id}`;
   if (!definedThemes.has(name)) {
     monaco.editor.defineTheme(name, monacoTheme(theme));
     definedThemes.add(name);
@@ -262,7 +262,7 @@ function monacoKey(combo: string): number {
 export function bindEditorChord(keys: string, run: () => void): void {
   const [first, second] = keys.split(' ');
   if (!first || !second) throw new Error(`Atalho sem duas etapas: ${keys}`);
-  const command = `lace.chord.${keys}`;
+  const command = `aurora.chord.${keys}`;
   monaco.editor.registerCommand(command, () => run());
   monaco.editor.addKeybindingRule({ keybinding: monaco.KeyMod.chord(monacoKey(first), monacoKey(second)), command });
 }
@@ -292,7 +292,7 @@ export function disposeModel(path: string): void {
 
 // Diagnósticos -----------------------------------------------------------
 
-const OWNER = 'lace';
+const OWNER = 'aurora';
 let markersByFile = new Map<string, monaco.editor.IMarkerData[]>();
 
 function key(path: string): string {
@@ -323,7 +323,7 @@ function applyMarkers(model: monaco.editor.ITextModel): void {
   );
 }
 
-/** Troca os marcadores do Lace pelos diagnósticos da última operação. Só os
+/** Troca os marcadores da AURORA pelos diagnósticos da última operação. Só os
  * que têm arquivo e linha viram marcador; o resto fica no painel Problemas. */
 export function setDiagnostics(diagnostics: Diagnostic[]): void {
   const next = new Map<string, monaco.editor.IMarkerData[]>();

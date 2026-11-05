@@ -129,7 +129,7 @@ interface LayoutState {
   toggleZenShell: () => void;
 }
 
-const STORAGE_KEY = 'lace-studio:layout';
+const STORAGE_KEY = 'aurora-ide:layout';
 const STORAGE_VERSION = 2;
 
 interface Stored {
@@ -153,9 +153,9 @@ function migrate(old: Record<string, unknown>): LayoutBody {
   let body = DEFAULT_BODY;
   if (isViewId(old.sidebarView)) body = withRegion(body, 'left', { active: old.sidebarView });
   if (typeof old.sidebarVisible === 'boolean') body = withRegion(body, 'left', { visible: old.sidebarVisible });
-  // O console "Lace" saiu do painel, e os de etapa ficam fechados: quem
+  // O console "AURORA" saiu do painel, e os de etapa ficam fechados: quem
   // deixou um deles na frente passa ao INFO, que mostra tudo.
-  const tab = old.panelTab === 'lace' || isConsoleChannel(old.panelTab) ? 'info' : old.panelTab;
+  const tab = old.panelTab === 'aurora' || isConsoleChannel(old.panelTab) ? 'info' : old.panelTab;
   if (isViewId(tab)) body = withRegion(body, 'panel', { active: tab });
   if (typeof old.panelVisible === 'boolean') body = withRegion(body, 'panel', { visible: old.panelVisible });
   return normalizeBody(body);

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "WaveChoiceReport",
-  "description": "`lace wave select` e `lace wave unselect`: a escolha de sinais depois da\nmudança.",
+  "description": "`aurora wave select` e `aurora wave unselect`: a escolha de sinais depois da\nmudança.",
   "type": "object",
   "properties": {
     "testbench": {

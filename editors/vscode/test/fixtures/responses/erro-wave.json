@@ -1,1 +1,1 @@
-{"error":{"code":"no_testbench","message":"Project ${ROOT}/erro.spf has no testbench","hint":"Create it with: lace add <name>_tb.v, or a cocotb one with: lace add test_<name>.py"}}
+{"error":{"code":"no_testbench","message":"Project ${ROOT}/erro.spf has no testbench","hint":"Create it with: aurora add <name>_tb.v, or a cocotb one with: aurora add test_<name>.py"}}

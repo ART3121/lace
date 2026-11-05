@@ -1,9 +1,9 @@
-# Arquitetura do Lace Studio
+# Arquitetura da AURORA IDE
 
 Este documento explica como o Studio é feito: as duas metades (backend em
 Rust e interface em React), como elas conversam, como uma operação roda do
 clique até o resultado, onde mora cada estado e o que o Studio faz por conta
-própria em vez de deixar para o Lace. A referência de cada comando está em
+própria em vez de deixar para a AURORA. A referência de cada comando está em
 [IPC.md](IPC.md).
 
 Sumário:
@@ -15,43 +15,43 @@ Sumário:
 5. [Uma operação, do clique ao resultado](#5-uma-operação-do-clique-ao-resultado)
 6. [Contrato entre backend e interface](#6-contrato-entre-backend-e-interface)
 7. [Segurança](#7-segurança)
-8. [Pendências no Lace](#8-pendências-no-lace)
+8. [Pendências na AURORA](#8-pendências-na-aurora)
 
 ---
 
 ## 1. Visão geral
 
 ```
-┌─────────────────────── processo do Lace Studio ───────────────────────┐
+┌─────────────────────── processo da AURORA IDE ────────────────────────┐
 │                                                                       │
 │  WebView (React)                       Rust (src-tauri)               │
 │  ┌──────────────────────┐   invoke   ┌──────────────────────────┐     │
-│  │ componentes          │ ─────────▶ │ server.rs  (lace_call)   │─────┼──▶ lace serve ──▶ bundle do Lace
+│  │ componentes          │ ─────────▶ │ server.rs  (aurora_call)   │─────┼──▶ aurora serve ──▶ bundle da AURORA
 │  │ stores (zustand)     │            │ jobs.rs, flows.rs        │     │    (filho, stdio,   (YANC, Icarus,
 │  │ Monaco, xterm.js     │ ◀───────── │ commands/*  (Studio)     │     │     JSON-RPC)       Verilator, Yosys,
 │  └──────────────────────┘  Channel   │ terminal.rs (PTY)        │     │                     dot, surfer-aurora)
 │             ▲                        │ wave_tab.rs (HTTP local) │     │
 │             └──────────── emit ───── │ watcher.rs  (notify)     │     │
-│                                      │ assistant.rs             │─────┼──▶ lace-agent ──▶ claude ──▶ lace mcp
+│                                      │ assistant.rs             │─────┼──▶ aurora-agent ──▶ claude ──▶ aurora mcp
 │                                      └──────────────────────────┘     │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
 Três regras orientam tudo:
 
-- **A regra mora no Lace.** O backend é um cliente do servidor do Lace
-  (`lace serve`), como a extensão do VS Code: abre o `lace` como processo
-  filho e pede, pelo protocolo do Lace (JSON-RPC 2.0, uma mensagem por
+- **A regra mora na AURORA.** O backend é um cliente do servidor da AURORA
+  (`aurora serve`), como a extensão do VS Code: abre o `aurora` como processo
+  filho e pede, pelo protocolo da AURORA (JSON-RPC 2.0, uma mensagem por
   linha), o retrato do projeto, os fluxos, o histórico, instalar e
   atualizar. O Studio não sabe montar a linha de comando do `iverilog`, ler
-  a saída do `cmmcomp` nem compor um fluxo; não linka o `lace-core`, o
-  `lace-learn` nem o instalador. O que fica no backend é do Studio: as
+  a saída do `cmmcomp` nem compor um fluxo; não linka o `aurora-core`, o
+  `aurora-learn` nem o instalador. O que fica no backend é do Studio: as
   janelas, os arquivos, o terminal, a vigia da pasta, as preferências e a
-  onda numa aba. O assistente (`lace-agent`) é a exceção até a 1.0.
+  onda numa aba. O assistente (`aurora-agent`) é a exceção até a 1.0.
 - **O disco é a fonte da verdade.** O Studio guarda o caminho do `.spf`, e
   o servidor reabre o projeto a cada pedido, como a CLI faz a cada execução.
   O `.spf` pode mudar por fora (a CLI no terminal do próprio Studio, um
-  editor de texto), e um `Project` aberto não percebe (API.md do Lace, 3.2).
+  editor de texto), e um `Project` aberto não percebe (API.md da AURORA, 3.2).
 - **A interface nunca bloqueia.** Todo comando que toca o disco ou fala com
   o servidor roda numa thread de bloqueio (`state::blocking`); as operações
   longas rodam numa thread própria e mandam o progresso por um `Channel`
@@ -65,9 +65,9 @@ studio/
     main.tsx, App.tsx        entrada; a janela e as ligações globais
     actions.ts               todas as ações: menus, barra, paleta e atalhos leem daqui
     ipc/
-      api.ts                 uma função por comando Tauri ou método do protocolo (lace())
+      api.ts                 uma função por comando Tauri ou método do protocolo (aurora())
       types.ts               os tipos do Studio (espelho dos structs Rust)
-      lace-types.ts          os tipos do protocolo, GERADOS dos JSON Schemas do Lace
+      aurora-types.ts          os tipos do protocolo, GERADOS dos JSON Schemas da AURORA
     state/                   stores: app, project, editor, jobs, layout, titleBar, dialogs, toasts, hierarchy, reports, schematic, assistant, experimental, learn, settingsPage, tour, updates, waves;
                              layoutModel.ts e savedLayouts.ts (o modelo e os layouts com nome da janela); learnSession.ts, splash.ts e wideTabs.ts, sem store
     editor/                  Monaco: workers, tema, modelos, marcadores, gramáticas C± e asm, modo Vim
@@ -80,21 +80,21 @@ studio/
     dev/smoke.ts             roteiro de fumaça, só na build de desenvolvimento
   src-tauri/                 o backend (Rust)
     src/lib.rs               registro dos plugins, do estado e dos comandos
-    src/server.rs            o servidor do Lace (lace serve filho) e o lace_call
+    src/server.rs            o servidor da AURORA (aurora serve filho) e o aurora_call
     src/commands/            app, project, files, toolchain
     src/flows.rs             as decisões da interface num fluxo (o comando, a onda numa aba)
     src/jobs.rs              operações longas: o pedido ao servidor e as notificações para a interface
     src/terminal.rs          o terminal de shell (portable-pty)
-    src/assistant.rs         o assistente: sessões do Claude Code (lace-agent)
+    src/assistant.rs         o assistente: sessões do Claude Code (aurora-agent)
     src/watcher.rs           vigia da pasta do projeto (notify)
     src/wave_tab.rs          a onda numa aba: o servidor local do cliente web do Surfer
-    src/toolchain.rs         onde está o lace do servidor e o bundle dele
+    src/toolchain.rs         onde está o aurora do servidor e o bundle dele
     src/settings.rs          preferências e recentes (settings.json)
     src/state.rs, error.rs   estado do aplicativo e o erro dos comandos
     tests/flows.rs           os fluxos rodando de verdade, pelo servidor, contra o bundle
     capabilities/            permissões da janela (Tauri)
     tauri.conf.json          janela, CSP, empacotamento
-  scripts/gen-lace-types.mjs gera src/ipc/lace-types.ts
+  scripts/gen-aurora-types.mjs gera src/ipc/aurora-types.ts
   docs/                      esta documentação
 ```
 
@@ -112,13 +112,13 @@ studio/
 | `terminals` | os pseudoterminais abertos |
 | `watcher` | o vigia da pasta do projeto |
 | `assistants` | as sessões do assistente abertas, por identificador (`assistant::Assistants`) |
-| `server` | o servidor do Lace (`server::LaceServer`): o processo `lace serve`, aberto no primeiro pedido |
+| `server` | o servidor da AURORA (`server::AuroraServer`): o processo `aurora serve`, aberto no primeiro pedido |
 
-### 3.2 O servidor do Lace
+### 3.2 O servidor da AURORA
 
-`server.rs` abre o `lace serve` como processo filho no primeiro pedido,
-manda `initialize` e confere a versão do protocolo (um `lace` de outro
-protocolo é `lace_incompatible`; de outra versão do Lace, com o mesmo
+`server.rs` abre o `aurora serve` como processo filho no primeiro pedido,
+manda `initialize` e confere a versão do protocolo (um `aurora` de outro
+protocolo é `aurora_incompatible`; de outra versão da AURORA, com o mesmo
 protocolo, só um aviso no log). Um pedido é uma linha JSON no stdin dele, e
 uma thread lê o stdout: a resposta vai para quem a espera, pelo `id`, e uma
 notificação (`phase`, `events`, `output_omitted`, `build`, `install`) vai
@@ -126,20 +126,20 @@ para quem ouve o pedido dela. Se o servidor cai, quem esperava recebe
 `server_gone`, e o pedido seguinte o abre de novo.
 
 O servidor recebe o bundle (`--toolchain`), o compilador do Verilator
-(`--compiler`), o Quartus (`--quartus`) e as trilhas do `lace learn`
-(`LACE_LEARN_DIR`); mudou uma dessas coisas nas preferências, o pedido
+(`--compiler`), o Quartus (`--quartus`) e as trilhas do `aurora learn`
+(`AURORA_LEARN_DIR`); mudou uma dessas coisas nas preferências, o pedido
 seguinte fecha o servidor e abre outro. No Windows ele roda com
-`CREATE_NO_WINDOW` (o `lace` é um programa de console) e num Job Object que
+`CREATE_NO_WINDOW` (o `aurora` é um programa de console) e num Job Object que
 o leva junto quando o Studio fecha ou morre; o job deixa um processo sair
 dele, que é como o assistente de instalação, aberto pelo `update.apply`,
 sobrevive ao Studio. Ao fechar, o Studio manda `shutdown`, espera até 3 s e
 mata o que sobrou.
 
-O `lace_call` é a porta da interface para o protocolo: o método e os
-parâmetros, como o `lace serve` os recebe, e a resposta dele. O projeto
+O `aurora_call` é a porta da interface para o protocolo: o método e os
+parâmetros, como o `aurora serve` os recebe, e a resposta dele. O projeto
 aberto entra sozinho no campo `project`; quais métodos têm esse campo vem do
 schema dos pedidos (`docs/schema/protocol-request.json`, embutido no
-binário e conferido por teste contra o do Lace). Os métodos longos (os
+binário e conferido por teste contra o da AURORA). Os métodos longos (os
 fluxos, a correção, instalar e atualizar) não passam por ele: são
 operações (seção 5).
 
@@ -154,11 +154,11 @@ fora da thread da interface.
 
 | Módulo | Comandos |
 |---|---|
-| `server` | `lace_call`: os métodos do protocolo (o projeto, os processadores, o histórico, os sinais da onda, a placa FPGA, os exercícios, os recursos experimentais) |
+| `server` | `aurora_call`: os métodos do protocolo (o projeto, os processadores, o histórico, os sinais da onda, a placa FPGA, os exercícios, os recursos experimentais) |
 | `commands::app` | versão, preferências, recentes, sair e reiniciar, fechar o splash, o log da interface e o roteiro de fumaça |
 | `commands::project` | abrir, criar e fechar o projeto (o projeto aberto, os recentes e a vigia), a pasta padrão dos projetos, a hierarquia |
 | `commands::files` | ler pasta, ler e gravar texto (com detecção de conflito), criar, renomear, copiar, lixeira, lista para o "abrir rápido", busca |
-| `commands::toolchain` | a tela de ferramentas, `lace update [--check]` e `lace install`, pelo servidor |
+| `commands::toolchain` | a tela de ferramentas, `aurora update [--check]` e `aurora install`, pelo servidor |
 | `jobs` | começar, cancelar e consultar a operação (build, check, sim, synth, esquemático, exercício, placa) |
 | `terminal` | abrir, escrever, confirmar a saída, `cd`, redimensionar e encerrar o terminal de shell |
 | `assistant` | o assistente, experimental: abrir, mandar mensagem, interromper e encerrar uma sessão do Claude Code |
@@ -166,44 +166,44 @@ fora da thread da interface.
 
 ### 3.4 Erros
 
-`IpcError` (`error.rs`) é `{ code, message }`. A separação da API do Lace se
+`IpcError` (`error.rs`) é `{ code, message }`. A separação da API da AURORA se
 mantém:
 
-- `Err(IpcError)`: o Lace não conseguiu rodar (bundle, projeto, E/S). O
-  `code` é o do Lace (`LaceError::code()` ou um do servidor), estável, que
+- `Err(IpcError)`: a AURORA não conseguiu rodar (bundle, projeto, E/S). O
+  `code` é o da AURORA (`AuroraError::code()` ou um do servidor), estável, que
   chega do servidor em `error.data.code`, ou um dos códigos do Studio
   (`error::codes`: `no_project`, `spf_missing`, `busy`, `conflict`,
   `outside_project`, `exists`, `invalid_argument`, `terminal`,
   `unsafe_path`, `terminal_busy`, `io`, `surfer_web_missing`,
-  `wave_too_large`, `internal`, `assistant`, `lace_missing`,
-  `lace_incompatible`, `server_gone`, `cancelled`). A interface traduz pelo
+  `wave_too_large`, `internal`, `assistant`, `aurora_missing`,
+  `aurora_incompatible`, `server_gone`, `cancelled`). A interface traduz pelo
   código (`i18n`, chaves `error.<code>`) e mostra a mensagem original
   embaixo.
 - Uma operação que rodou e falhou é `Ok`, com `succeeded: false` e os
   diagnósticos no resultado. Isso vai para os consoles, para o painel
   Problemas e para os marcadores do editor, não para um aviso de erro.
 
-### 3.5 Onde está o Lace
+### 3.5 Onde está a AURORA
 
 A CLI acha o bundle ao lado do próprio executável. O Studio é outro
-programa: acha o `lace` que vai servir e o bundle que ele recebe, como a
-extensão do VS Code acha o `lace` dela (`toolchain.rs`). O `lace` é o de
-`LACE_STUDIO_LACE` (para desenvolvimento), o da preferência `lace_path`, o
-da instalação do bundle das preferências (`<instalação>/bin/lace`), o da
+programa: acha o `aurora` que vai servir e o bundle que ele recebe, como a
+extensão do VS Code acha o `aurora` dela (`toolchain.rs`). O `aurora` é o de
+`AURORA_IDE_CLI` (para desenvolvimento), o da preferência `aurora_path`, o
+da instalação do bundle das preferências (`<instalação>/bin/aurora`), o da
 instalação em que o Studio está (`<instalação>/toolchain/studio/`) e o do
-`PATH`, nessa ordem. O bundle é o da preferência, o de `LACE_TOOLCHAIN` ou
+`PATH`, nessa ordem. O bundle é o da preferência, o de `AURORA_TOOLCHAIN` ou
 o da instalação achada; sem nenhum, o servidor procura o dele. O resto (as
 ferramentas, os componentes, o compilador, o Quartus, o cliente web do
 Surfer) é o `toolchain.info` do servidor, que a tela de ferramentas mostra.
 
 O compilador do Verilator segue o `--compiler` da CLI: preferência ou
-`LACE_COMPILER`. Uma pasta declarada sem `perl`, `make` e um compilador C++
+`AURORA_COMPILER`. Uma pasta declarada sem `perl`, `make` e um compilador C++
 não derruba o bundle: o servidor segue sem compilador, a simulação com
 Verilator falha com `system_compiler_missing`, e a tela de ferramentas
 mostra o motivo. O Quartus, o mesmo.
 
 O servidor reabre o bundle a cada pedido (ler meia dúzia de JSON pequenos),
-para um `lace install` feito pelo terminal valer na hora.
+para um `aurora install` feito pelo terminal valer na hora.
 
 ### 3.6 Arquivos e vigia
 
@@ -217,7 +217,7 @@ por fora, o backend recusa com `conflict` e a interface pergunta:
 sobrescrever, recarregar ou cancelar.
 
 `watcher.rs` vigia a pasta do projeto (crate `notify`), junta os caminhos
-por 300 ms e emite `studio://fs-changed`. O que muda em `.lace/` e `.git/`
+por 300 ms e emite `studio://fs-changed`. O que muda em `.aurora8/` e `.git/`
 não é avisado: muda o tempo todo durante uma operação e não aparece na
 árvore. Só mudança conta (criar, gravar, apagar, renomear, atributos): o
 inotify avisa também quando um arquivo é aberto para leitura, e repassar
@@ -226,40 +226,40 @@ o `.spf`.
 
 Copiar (`fs_copy`, o arrastar do gerenciador de arquivos) só vale com
 destino no projeto. Mover e renomear na árvore são o `project.move` do
-servidor (o `Project::move_path` do Lace), que mantém o `.spf` em dia e
-recusa o que fica no lugar (o `.spf`, `.lace/`, as pastas e o fonte dos
+servidor (o `Project::move_path` da AURORA), que mantém o `.spf` em dia e
+recusa o que fica no lugar (o `.spf`, `.aurora8/`, as pastas e o fonte dos
 processadores). Com `overwrite`, o que está no destino vai para a lixeira e
-o movimento é tentado de novo, menos quando o destino é o que o Lace mantém
+o movimento é tentado de novo, menos quando o destino é o que a AURORA mantém
 no lugar, a pasta do projeto ou uma pasta que contém a origem: aí o erro é
-`cannot_replace`, e nada vai para a lixeira. O Lace nunca sobrescreve sem
+`cannot_replace`, e nada vai para a lixeira. A AURORA nunca sobrescreve sem
 `overwrite`.
 
 ### 3.7 Hierarquia e nome de projeto
 
-A hierarquia é o fluxo `hierarchy` do servidor (o `lace_core::hierarchy`,
-API.md do Lace, seção 5.4.1), pedido por `project_hierarchy` sem saída ao
-vivo: o Icarus elabora o design e cada testbench, e o Lace lê a árvore do
+A hierarquia é o fluxo `hierarchy` do servidor (o `aurora_core::hierarchy`,
+API.md da AURORA, seção 5.4.1), pedido por `project_hierarchy` sem saída ao
+vivo: o Icarus elabora o design e cada testbench, e a AURORA lê a árvore do
 `.vvp`. É o Icarus qualquer que seja o simulador escolhido; sem ele, a
 vista mostra o erro do componente.
 
-A regra de nome de projeto também é do Lace (`project.check_name`): o
+A regra de nome de projeto também é da AURORA (`project.check_name`): o
 `project.create` recusa, e o diálogo de projeto novo confere enquanto o
 usuário digita, para avisar antes. O de processador novo faz o mesmo com
-`processor.check_name` (que recusa também os nomes das pastas do Lace), e
+`processor.check_name` (que recusa também os nomes das pastas da AURORA), e
 mantém o `#NUBITS` igual a `#NBMANT + #NBEXPO + 1` enquanto o usuário muda
-a mantissa ou o expoente; o resto dos parâmetros o Lace confere ao criar
+a mantissa ou o expoente; o resto dos parâmetros a AURORA confere ao criar
 (`invalid_parameter`).
 
 ### 3.8 Encerrar
 
 Ao sair (evento `RunEvent::Exit`) e ao receber SIGTERM, SIGINT ou SIGHUP
 (Unix), o Studio cancela a operação rodando, espera até 3 s, encerra as
-sessões do assistente, fecha os terminais e fecha o servidor do Lace
+sessões do assistente, fecha os terminais e fecha o servidor da AURORA
 (`shutdown`, até 3 s, e depois mata). Sem isso, no Linux e no macOS, as
-ferramentas, que o Lace roda num grupo de processos próprio, continuariam
-rodando depois que o Studio saísse (API.md do Lace, seção 9, "Limites"). No
+ferramentas, que a AURORA roda num grupo de processos próprio, continuariam
+rodando depois que o Studio saísse (API.md da AURORA, seção 9, "Limites"). No
 Windows, o servidor roda num Job Object do Studio, e cada passo num do
-Lace, dentro dele: tudo termina junto com o Studio mesmo se ele for
+AURORA, dentro dele: tudo termina junto com o Studio mesmo se ele for
 derrubado, e nenhuma ferramenta abre janela de console.
 
 ## 4. Interface
@@ -302,7 +302,7 @@ vista, voltam para a barra de menus. As permissões são as de
 **Abertura.** A janela nasce escondida e com fundo escuro (`visible: false`
 e `backgroundColor` em `tauri.conf.json`). A interface a mostra
 (`reveal`, em `App.tsx`) depois de aplicar o tema e o zoom das preferências,
-de achar o Lace e de reabrir o último projeto, com um limite de 8 s
+de achar a AURORA e de reabrir o último projeto, com um limite de 8 s
 (`REVEAL_WAIT_MS`) para um projeto grande não segurar a abertura.
 Enquanto isso, o splash (a janela `splash` do `tauri.conf.json`,
 `public/splash.html`) fica na frente com o logo animado, pelo menos 3,2 s
@@ -353,6 +353,16 @@ cuidados com o `react-resizable-panels`:
 Numa janela estreita (`fitWorkbench`), primeiro os mínimos diminuem; se
 ainda não couber, a barra lateral direita não é desenhada e depois o painel
 vai para baixo. Isso só muda o desenho, não o layout.
+
+**Movimento.** Menus, diálogos, avisos e a vista que troca numa região aberta
+entram com um esmaecer curto (o fim do `app.css`). Abrir, fechar e mover
+regiões é na hora, de propósito: uma versão com transição de vista
+(`document.startViewTransition`, nos commits 36581f0 e da22688) foi medida e
+tirada em outubro de 2026. No Windows, numa placa de vídeo integrada antiga,
+ela perdia quadros e atrasava uns 85 ms o começo da troca, o tempo de
+fotografar as regiões; no Linux, o WebKitGTK fazia o editor e o painel
+piscarem durante a animação. Com o sistema pedindo menos movimento, nada
+anima.
 
 **Regiões** (`components/layout/Region.tsx`). O cabeçalho é o título da
 vista na barra lateral do lado da barra de atividades, que escolhe a vista;
@@ -407,7 +417,7 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useProject` | `state/project.ts` | o retrato do projeto, o alvo (projeto ou processador), a versão da árvore |
 | `useEditor` | `state/editor.ts` | as abas, os grupos do editor dividido e as abas de cada um, os documentos abertos, a aba e o grupo ativos, o cursor, a sessão |
 | `useJobs` | `state/jobs.ts` | a operação rodando, o último resultado de cada fluxo, problemas, última síntese |
-| `useSchematic` | `state/schematic.ts` | o RTLViewer: o estado do pacote `@lace/rtl-viewer` (o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista, no `localStorage`) |
+| `useSchematic` | `state/schematic.ts` | o RTLViewer: o estado do pacote `@aurora/rtl-viewer` (o netlist carregado, o caminho na hierarquia, voltar e avançar, as opções da vista, no `localStorage`) |
 | `useLayout` | `state/layout.ts` | a janela agora (`live`: regiões, vistas, barras, tamanhos), a maximização do painel, as marcas de não lido, o modo do explorador, o zoom e o zen; guardado no `localStorage` por conveniência (o zen não) |
 | (sem store) | `state/savedLayouts.ts` | os layouts com nome: os prontos e os gravados no `settings.json`; aplicar, salvar, restaurar, renomear, excluir; `useLayoutStatus` (o em uso e se a janela está diferente dele) |
 | `useSettingsPage` | `state/settingsPage.ts` | a página aberta das Preferências (no `localStorage`); "Personalizar layout..." a troca para a do layout antes de abrir a aba |
@@ -419,8 +429,8 @@ O estado da interface fica em stores do `zustand`, um por assunto:
 | `useDrag` | `components/sidebar/dnd.ts` | o arrasto em curso: o que, sobre qual destino, se pode soltar |
 | `useAssistant` | `state/assistant.ts` | o assistente, experimental: a sessão aberta, a transcrição, o estado do turno, o rascunho e o custo da conversa |
 | `useExperimental` | `state/experimental.ts` | os recursos experimentais ligados, lidos do `experimental.json` do Core e relidos quando a janela ganha o foco |
-| `useLearn` | `state/learn.ts` | os exercícios do `lace learn`: a pasta aberta, a última correção de cada exercício e as dicas à mostra |
-| `useUpdates` | `state/updates.ts` | o último `lace update --check`, a busca em andamento e a saída que ficou para depois de atualizar |
+| `useLearn` | `state/learn.ts` | os exercícios do `aurora learn`: a pasta aberta, a última correção de cada exercício e as dicas à mostra |
+| `useUpdates` | `state/updates.ts` | o último `aurora update --check`, a busca em andamento e a saída que ficou para depois de atualizar |
 | `useTour` | `state/tour.ts` | o tour pela interface: se está aberto e em que passo |
 | `useWaveReloads` | `state/waves.ts` | um contador por onda, que faz a aba aberta dela ler a onda de novo depois de uma simulação |
 
@@ -487,7 +497,7 @@ AURORA e conferidas contra os léxicos do YANC (os pontos em que as duas
 divergiam estão comentados em `editor/languages/`); Verilog e SystemVerilog
 do próprio Monaco; JSON para o `.spf`.
 
-Diagnósticos do Lace com arquivo e linha viram marcadores no editor
+Diagnósticos da AURORA com arquivo e linha viram marcadores no editor
 (`setDiagnostics`); os de um arquivo que ainda não está aberto ficam
 guardados e entram quando ele abrir.
 
@@ -506,14 +516,14 @@ Um xterm.js somente leitura para o INFO, que recebe tudo o que as operações
 escrevem, e um por etapa, que correspondem aos terminais da AURORA. Os de etapa
 começam fechados (`DEFAULT_BODY.hidden`) e abrem pelo seletor de terminal:
 
-| Etapa | Na AURORA | Passos do Lace |
+| Etapa | Na AURORA | Passos da AURORA |
 |---|---|---|
 | C± | TCMM | `preprocess`, `compile` |
 | ASM | TASM | `pre_assemble`, `assemble` |
 | Verilog | TVERI | `check_syntax`, `lint` |
 | Wave | TWAVE | `elaborate`, `verilate`, `simulate` |
 | RTLViewer | TRTLViewer | `synthesize` (`graph` e `render` só no fluxo `schematic`, que o Studio não usa mais) |
-| Placa | | os passos do Quartus (`lace fpga build` e `program`) |
+| Placa | | os passos do Quartus (`aurora fpga build` e `program`) |
 
 Cada operação é uma rodada no INFO (`beginRun` e `endRun` em
 `console/consoles.ts`): cabeçalho com a operação e a hora, as fases, e o fim
@@ -529,8 +539,8 @@ guardadas em `consoles.ts` (as últimas 20.000), com o cabeçalho de cada
 rodada em que ela escreveu. O que está aberto e na frente fica no layout da
 janela, e um layout gravado antes do INFO o ganha no lugar do primeiro
 console, com os de etapa fechados (`withInfoConsole` em
-`state/layoutModel.ts`). A saída do `lace install` e do
-`lace update` fica na tela do bundle (`cliLog`, em `views/ToolchainView.tsx`). Links `arquivo:linha[:coluna]` abrem o arquivo no editor.
+`state/layoutModel.ts`). A saída do `aurora install` e do
+`aurora update` fica na tela do bundle (`cliLog`, em `views/ToolchainView.tsx`). Links `arquivo:linha[:coluna]` abrem o arquivo no editor.
 O terminal de shell (o TCMD) é outro xterm.js, ligado a um pseudoterminal
 do backend: no Windows, o PowerShell ou o `cmd.exe`, pela preferência
 `terminal_shell`; nos outros sistemas, o `$SHELL` do usuário.
@@ -547,23 +557,37 @@ e as dos terminais, e dele saem:
 
 | O quê | Onde | Como |
 |---|---|---|
-| variáveis CSS (`--bg-0`, `--text-1`, `--brand`...) | `themes/index.ts`, `applyThemeCss` | um `<style id="lace-theme">` com `:root { ... }`, e `data-theme` (`dark` ou `light`) no `<html>` |
+| variáveis CSS (`--bg-0`, `--text-1`, `--brand`...) | `themes/index.ts`, `applyThemeCss` | um `<style id="aurora-theme">` com `:root { ... }`, e `data-theme` (`dark` ou `light`) no `<html>` |
 | tema do Monaco | `editor/monaco.ts`, `setMonacoTheme` | regras de token pelos papéis da sintaxe, mais as das gramáticas C± e asm (`cmmTokenRules(syntax)`) |
 | tema do xterm.js | `console/consoles.ts`, `terminalTheme` | as 16 cores ANSI; o shell troca o cursor (`shell.ts`) |
 
-`useApp.theme` é o tema resolvido (o "Do sistema" vira o Atlas ou o Atlas
-Branco). `App.tsx` repassa a troca aos consoles e ao shell; o `MonacoHost`,
+`useApp.theme` é o tema resolvido: a paleta (`settings.theme`, o id do tema
+escuro dela) no esquema do modo (`settings.theme_mode`), com o "Do sistema"
+seguindo o sistema. `App.tsx` repassa a troca aos consoles e ao shell; o `MonacoHost`,
 ao Monaco. As medidas (fontes, espaços, raios, alturas) ficam em
 `styles/tokens.css`.
+
+A aparência (`settings.look`) é à parte do tema: `applyLook` põe
+`data-look` (`classic` ou `islands`) no `<html>`, e as ilhas são uma camada
+de regras sob `:root[data-look='islands']`, na seção Ilhas do `app.css`, que
+muda raios, fundos, bordas e vãos sem mexer nos componentes. Um componente
+novo nas regiões, nas abas ou na barra de atividades precisa ser conferido
+nas duas aparências.
+
+Os ícones da interface são os do Lucide. Os arquivos do fluxo da AURORA têm
+desenhos próprios (`components/editor/fileIcons.tsx`, escolhidos por
+`fileKind` em `tabIcons.ts`), na cor de `--file-*`, que sai da paleta dos
+terminais do tema, como as famílias do RTLViewer: as cores da sintaxe repetem
+tons entre papéis.
 
 ### 4.7 RTLViewer
 
 O esquemático sai do netlist da síntese (`hierarchy.json`, o `write_json`
 do Yosys), sem Graphviz. A síntese do Studio pede `schematic: false`; o
-`show` + `dot` do Core fica para a CLI (`lace synth --svg`).
+`show` + `dot` do Core fica para a CLI (`aurora synth --svg`).
 
-O viewer em si é o pacote `@lace/rtl-viewer`, em `packages/rtl-viewer/` do
-repositório, que a extensão do VS Code e o `lace synth --open` também usam.
+O viewer em si é o pacote `@aurora/rtl-viewer`, em `packages/rtl-viewer/` do
+repositório, que a extensão do VS Code e o `aurora synth --open` também usam.
 O Studio compila o fonte dele direto (o alias e o `dedupe` em
 `vite.config.ts`, o `paths` em `tsconfig.json`), e o CSS dele vem em
 `main.tsx`. Do lado do Studio ficam o estado (`state/schematic.ts`, o do
@@ -602,20 +626,20 @@ Exemplo: F8 (Wave) com o alvo no projeto.
 2. `useJobs.run` grava os arquivos abertos (compilar o que está na tela),
    marca a operação como rodando e chama `api.flow.start` com um `Channel`.
 3. `jobs::flow_start` pede ao servidor o comando do fluxo (`flow.command`:
-   `lace-studio sim --open`), decide se a onda abre em janela ou numa aba
+   `aurora-ide sim --open`), decide se a onda abre em janela ou numa aba
    (preferência `wave_viewer` e o cliente web no bundle), reserva a vaga
    (`busy` se já houver uma), manda `started` e, numa thread de trabalho,
    pede o `flow.run` ao servidor. Devolve o identificador.
-4. No servidor, o `flow.run` chama `lace_core::flows::run`, a mesma
-   composição do `lace sim`: compila os processadores que têm fonte
+4. No servidor, o `flow.run` chama `aurora_core::flows::run`, a mesma
+   composição do `aurora sim`: compila os processadores que têm fonte
    (`build_processors`, parando no primeiro que falhar), simula o projeto
    (`simulate_project`), grava o relatório (`history::record`) e, com
    `wave_viewer` em `window`, abre a onda em janela (`open_wave`); com
    `tab`, o padrão, e o cliente web no bundle, o servidor não abre, e o
    Studio acrescenta ao resultado a onda em `wave_tab` para a interface
    abrir a aba.
-5. O Lace avisa cada linha que as ferramentas escrevem, e o servidor junta
-   os eventos em lotes de até 500 ou 30 ms (`lace_core::delivery`) e os
+5. A AURORA avisa cada linha que as ferramentas escrevem, e o servidor junta
+   os eventos em lotes de até 500 ou 30 ms (`aurora_core::delivery`) e os
    manda como notificações do pedido. Fases (`phase`) e resultados de build
    (`build`) vão na ordem, entre os lotes. O Studio repassa cada notificação
    à interface pelo `Channel`, com o `type` que ela lê.
@@ -629,25 +653,25 @@ Exemplo: F8 (Wave) com o alvo no projeto.
    RTLViewer (seção 4.7).
 
 Parar (Shift+F5) chama `flow_cancel`, que manda o `$/cancel` do pedido ao
-servidor (ou assim que ele sair, se o cancelamento vier antes). O Lace
+servidor (ou assim que ele sair, se o cancelamento vier antes). A AURORA
 encerra o processo do passo com tudo o que ele iniciou e devolve o
 resultado com `status: cancelled`, que chega pelo mesmo caminho.
 
 ## 6. Contrato entre backend e interface
 
-- **Tipos do protocolo:** `src/ipc/lace-types.ts` é gerado por
+- **Tipos do protocolo:** `src/ipc/aurora-types.ts` é gerado por
   `npm run gen:types` a partir de `docs/schema/*.json` da raiz, que o
-  próprio Lace gera dos tipos Rust e confere por teste. Mudou um tipo
-  público ou um método no Lace: rode de novo e confira o diff. O schema dos
+  próprio AURORA gera dos tipos Rust e confere por teste. Mudou um tipo
+  público ou um método na AURORA: rode de novo e confira o diff. O schema dos
   pedidos também vai embutido no backend, que sabe por ele quais métodos
   têm `project`.
 - **Versão do protocolo:** o backend fala a versão 1
-  (`server::PROTOCOL_VERSION`) e recusa um `lace` de outra; um teste confere
-  a constante contra a do Lace.
+  (`server::PROTOCOL_VERSION`) e recusa um `aurora` de outra; um teste confere
+  a constante contra a da AURORA.
 - **Tipos do Studio:** os structs de `src-tauri/src` e as interfaces de
   `src/ipc/types.ts` são mantidos à mão, lado a lado, com o arquivo Rust
   citado no comentário de cada interface. Vários tipos que a interface
-  recebe são do protocolo e já vêm gerados em `lace-types.ts`
+  recebe são do protocolo e já vêm gerados em `aurora-types.ts`
   (`ProjectStatus`, que é o `ProjectSnapshot`, `ToolchainInfo`,
   `FlowOutcome`, `Phase`, `WaveOpened`, `LayoutConversion`), mas
   `types.ts` ainda os copia à mão. Mudou um, mude o outro e o
@@ -668,36 +692,36 @@ resultado com `status: cancelled`, que chega pelo mesmo caminho.
   no sistema, título, zoom, mostrar a janela, tela cheia, os botões e o arraste da barra de título integrada (minimizar, maximizar, tirar a moldura, arrastar) e fechar a janela.
 - Criar, renomear e apagar só dentro da pasta do projeto; apagar vai para a
   lixeira.
-- O processo das ferramentas recebe o ambiente que o Lace monta (vazio
+- O processo das ferramentas recebe o ambiente que a AURORA monta (vazio
   mais o mínimo), no servidor; o Studio não passa o próprio ambiente para
   elas.
-- O servidor do Lace fala só pelo stdin e pelo stdout do processo filho:
+- O servidor da AURORA fala só pelo stdin e pelo stdout do processo filho:
   não abre porta nenhuma.
 
-## 8. Pendências no Lace
+## 8. Pendências na AURORA
 
-Coisas que o Studio faz por conta própria e que deveriam ir para o Lace,
+Coisas que o Studio faz por conta própria e que deveriam ir para a AURORA,
 onde mora a regra de negócio. Hoje não há nenhuma. Em 2026-10-26 o Studio
-virou cliente do servidor do Lace e deixou de linkar o `lace-core`, o
-`lace-learn` e o instalador; o que ele fazia com eles virou método do
+virou cliente do servidor da AURORA e deixou de linkar o `aurora-core`, o
+`aurora-learn` e o instalador; o que ele fazia com eles virou método do
 protocolo:
 
 | Era do Studio | Foi para |
 |---|---|
-| Os comandos que repetiam um método (retrato, ordem, conversão, nomes, configurar e remover processador, saídas, histórico, recursos experimentais, placa FPGA, conferência do bundle, sinais e layout salvo da onda) | os métodos do protocolo, pelo `lace_call` |
+| Os comandos que repetiam um método (retrato, ordem, conversão, nomes, configurar e remover processador, saídas, histórico, recursos experimentais, placa FPGA, conferência do bundle, sinais e layout salvo da onda) | os métodos do protocolo, pelo `aurora_call` |
 | Arquivos, topo, testbench, processador novo, mover com substituir, escolher sinais, abrir a onda | `project.add`, `project.remove`, `project.top`, `project.testbench`, `processor.add`, `project.move` com `overwrite`, `wave.choose` com `set`, `wave.open` (com o layout do exercício) |
 | Os fluxos, a correção de um exercício, a entrega em lotes e o corte da saída | `flow.run` (com o fluxo `learn` e `step_output_limit`) e `flow.command` |
-| Instalar, atualizar, as linhas do console do instalador | `install.add`, `update.apply` (com `reopen_studio`), `update.check` e o `line` da notificação `install` |
-| Os padrões de processador, os módulos de um texto, os nomes de testbench, o topo da placa, o layout da aba de onda, os exercícios do `lace learn` | `processor.defaults`, `verilog.modules`, `verilog.testbench_names`, `fpga.top`, `wave.layout`, `learn.tracks`, `learn.status`, `learn.init`, `learn.set_current`, `learn.reset` |
+| Instalar, atualizar, as linhas do console do instalador | `install.add`, `update.apply` (com `reopen_ide`), `update.check` e o `line` da notificação `install` |
+| Os padrões de processador, os módulos de um texto, os nomes de testbench, o topo da placa, o layout da aba de onda, os exercícios do `aurora learn` | `processor.defaults`, `verilog.modules`, `verilog.testbench_names`, `fpga.top`, `wave.layout`, `learn.tracks`, `learn.status`, `learn.init`, `learn.set_current`, `learn.reset` |
 
-O que ficou no Studio é dele: achar o `lace` que serve (como a extensão do
+O que ficou no Studio é dele: achar o `aurora` que serve (como a extensão do
 VS Code), esconder o console e o Job Object do servidor no Windows, os
 arquivos, o terminal, a vigia, as preferências e a onda numa aba. O
-assistente ainda linka o `lace-agent`, que traz o core; ele vai para o
+assistente ainda linka o `aurora-agent`, que traz o core; ele vai para o
 protocolo na 1.0.
 
 Antes disso, em 2026-10-19, a composição dos fluxos, a busca da instalação,
 a leitura das portas de saída e instalar e atualizar tinham saído do Studio
-para o Lace, que o Studio chamava em processo; e em 2026-10-04, a
+para a AURORA, que o Studio chamava em processo; e em 2026-10-04, a
 hierarquia elaborada, mover e renomear com o `.spf` em dia e a regra de
 nome de projeto.

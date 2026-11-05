@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ExperimentalReport",
-  "description": "`lace experimental`: os recursos experimentais e se cada um está ligado,\njá com a mudança de `enable` ou `disable`.",
+  "description": "`aurora experimental`: os recursos experimentais e se cada um está ligado,\njá com a mudança de `enable` ou `disable`.",
   "type": "object",
   "properties": {
     "path": {
-      "description": "O arquivo do que está ligado (`experimental.json`, na pasta de\nconfiguração do Lace); `null` se o sistema não diz onde fica essa\npasta.",
+      "description": "O arquivo do que está ligado (`experimental.json`, na pasta de\nconfiguração da AURORA); `null` se o sistema não diz onde fica essa\npasta.",
       "type": [
         "string",
         "null"
@@ -51,12 +51,12 @@
       "description": "Um recurso experimental. Em JSON e na CLI, pelo identificador (`fpga`,\n`assistant`).",
       "oneOf": [
         {
-          "description": "A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus\nPrime e a gravação na placa (`lace fpga`, a aba Placa FPGA do\nStudio).",
+          "description": "A placa FPGA: as ligações do `fpga.json`, a compilação pelo Quartus\nPrime e a gravação na placa (`aurora fpga`, a aba Placa FPGA do\nStudio).",
           "type": "string",
           "const": "fpga"
         },
         {
-          "description": "O assistente de IA: o `lace mcp` (as ferramentas do Lace para um\nagente), o `lace chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `lace-agent`).",
+          "description": "O assistente de IA: o `aurora mcp` (as ferramentas da AURORA para um\nagente), o `aurora chat` e a vista Assistente do Studio, sobre o\nClaude Code instalado na máquina (o crate `aurora-agent`).",
           "type": "string",
           "const": "assistant"
         }

@@ -1,4 +1,4 @@
-// A comparação de dois relatórios (`lace report compare`): estatísticas de
+// A comparação de dois relatórios (`aurora report compare`): estatísticas de
 // síntese e tempos de simulação. Uma mudança é só descrita: tempo maior
 // não é chamado de regressão, como na CLI.
 
@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { useT, type Key } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { MetricComparison, RunComparison } from '../../ipc/lace-types';
+import type { MetricComparison, RunComparison } from '../../ipc/aurora-types';
 import { Empty } from '../common';
 import { errorText } from '../../i18n';
 import type { IpcError } from '../../ipc/types';

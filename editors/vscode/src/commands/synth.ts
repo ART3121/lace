@@ -1,6 +1,6 @@
-// "Lace: Sintetizar": `lace synth` no topo do projeto ou num processador, no
+// "AURORA: Sintetizar": `aurora synth` no topo do projeto ou num processador, no
 // Yosys, e o RTL viewer com o netlist que ela grava (SynthesisResult.netlist).
-// Com lace.synth.schematic, também o esquemático do Graphviz (`--svg`). As
+// Com aurora.synth.schematic, também o esquemático do Graphviz (`--svg`). As
 // estatísticas são as células genéricas do Yosys, sem mapeamento para FPGA.
 
 import { existsSync } from 'node:fs';
@@ -8,9 +8,9 @@ import { join } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../lace/client';
-import type { SynthReport } from '../lace/lace-types';
-import { formatDuration, formatLaceError } from '../messages';
+import type { AuroraRun } from '../aurora/client';
+import type { SynthReport } from '../aurora/aurora-types';
+import { formatDuration, formatAuroraError } from '../messages';
 import type { RunResult } from '../runs';
 import { describeBuild, writeRegistered } from './build';
 import { chooseProject, processorOf } from './common';
@@ -22,8 +22,8 @@ export type SynthTarget = { kind: 'project' } | { kind: 'processor'; name: strin
 const lastNetlist = new Map<string, string>();
 const targetKey = (spf: string, target: SynthTarget) => `${spf}|${target.kind === 'processor' ? target.name : ''}`;
 
-export async function synthesize(deps: RunDeps, target: SynthTarget): Promise<LaceRun<SynthReport> | undefined> {
-  const svg = setting('lace.synth', 'schematic', false);
+export async function synthesize(deps: RunDeps, target: SynthTarget): Promise<AuroraRun<SynthReport> | undefined> {
+  const svg = setting('aurora.synth', 'schematic', false);
   let summary: RunResult | undefined;
   const done = await runOperation(deps, 'synth', 'synth', undefined, (client, project) => ({
     title:
@@ -50,20 +50,20 @@ export async function synthesize(deps: RunDeps, target: SynthTarget): Promise<La
   await deps.status.refresh();
   const { run } = done;
   if (run.status === 'error') {
-    void vscode.window.showErrorMessage(`Lace: ${formatLaceError(run.error)}`);
+    void vscode.window.showErrorMessage(`AURORA: ${formatAuroraError(run.error)}`);
   } else if (run.status === 'cancelled') {
-    vscode.window.setStatusBarMessage('Lace: síntese cancelada', 5000);
+    vscode.window.setStatusBarMessage('AURORA: síntese cancelada', 5000);
   } else if (run.status === 'failed') {
     const output = 'Saída';
     void vscode.window
-      .showErrorMessage(`Lace: a síntese falhou: ${summary?.summary}.`, output)
+      .showErrorMessage(`AURORA: a síntese falhou: ${summary?.summary}.`, output)
       .then((choice) => choice === output && deps.runs.output.show());
   } else {
-    vscode.window.setStatusBarMessage(`$(pass) Lace: ${summary?.summary}`, 8000);
+    vscode.window.setStatusBarMessage(`$(pass) AURORA: ${summary?.summary}`, 8000);
     const netlist = run.result.synthesis?.netlist;
     if (netlist) {
       lastNetlist.set(targetKey(done.project.spf, target), netlist);
-      if (setting('lace.synth', 'openViewer', true)) {
+      if (setting('aurora.synth', 'openViewer', true)) {
         await deps.viewer.show(netlist, target);
       }
     }
@@ -76,9 +76,9 @@ export async function synthesize(deps: RunDeps, target: SynthTarget): Promise<La
 }
 
 /**
- * "Lace: Abrir o RTL viewer": o netlist da última síntese do alvo. Nesta
+ * "AURORA: Abrir o RTL viewer": o netlist da última síntese do alvo. Nesta
  * sessão, o que o JSON do synth disse; de antes, o que ficou no disco, em
- * `.lace/Temp/synth/<alvo>/hierarchy.json` (onde o Lace grava, e onde o
+ * `.aurora8/Temp/synth/<alvo>/hierarchy.json` (onde a AURORA grava, e onde o
  * Studio também procura, em SchematicView); sem nenhum, sintetiza.
  */
 export async function openRtlViewer(deps: RunDeps, target: SynthTarget): Promise<void> {
@@ -87,23 +87,23 @@ export async function openRtlViewer(deps: RunDeps, target: SynthTarget): Promise
     return;
   }
   const name = target.kind === 'processor' ? target.name : deps.status.report?.top_module;
-  const onDisk = name ? join(project.root, '.lace', 'Temp', 'synth', name, 'hierarchy.json') : undefined;
+  const onDisk = name ? join(project.root, '.aurora8', 'Temp', 'synth', name, 'hierarchy.json') : undefined;
   const netlist = lastNetlist.get(targetKey(project.spf, target)) ?? (onDisk && existsSync(onDisk) ? onDisk : undefined);
   if (netlist) {
     await deps.viewer.show(netlist, target);
     return;
   }
   const run = await synthesize(deps, target);
-  if (run?.status === 'succeeded' && !setting('lace.synth', 'openViewer', true) && run.result.synthesis?.netlist) {
+  if (run?.status === 'succeeded' && !setting('aurora.synth', 'openViewer', true) && run.result.synthesis?.netlist) {
     await deps.viewer.show(run.result.synthesis.netlist, target);
   }
 }
 
 /** Escreve as estatísticas na saída e devolve o resumo para o botão. */
-export function summarizeSynth(output: vscode.OutputChannel, run: LaceRun<SynthReport>): RunResult {
+export function summarizeSynth(output: vscode.OutputChannel, run: AuroraRun<SynthReport>): RunResult {
   if (run.status === 'error') {
-    output.appendLine(`Erro: ${formatLaceError(run.error)}`);
-    return { outcome: 'error', summary: formatLaceError(run.error) };
+    output.appendLine(`Erro: ${formatAuroraError(run.error)}`);
+    return { outcome: 'error', summary: formatAuroraError(run.error) };
   }
   if (run.result === null) {
     output.appendLine('Cancelado.');
@@ -146,10 +146,10 @@ export function summarizeSynth(output: vscode.OutputChannel, run: LaceRun<SynthR
   return { outcome: run.status, summary };
 }
 
-export function synthesizeProcessor(deps: RunDeps, target?: unknown): Promise<LaceRun<SynthReport> | undefined> {
+export function synthesizeProcessor(deps: RunDeps, target?: unknown): Promise<AuroraRun<SynthReport> | undefined> {
   const name = processorOf(target);
   if (name === undefined) {
-    void vscode.window.showWarningMessage('Lace: escolha um processador na vista Fontes.');
+    void vscode.window.showWarningMessage('AURORA: escolha um processador na vista Fontes.');
     return Promise.resolve(undefined);
   }
   return synthesize(deps, { kind: 'processor', name });

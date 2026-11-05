@@ -1,7 +1,7 @@
 {
   "waveform": "${ROOT}/contador_tb.fst",
   "pid": 187125,
-  "log": "${ROOT}/.lace/Temp/surfer/contador_tb.fst.log",
+  "log": "${ROOT}/.aurora8/Temp/surfer/contador_tb.fst.log",
   "layout": "${ROOT}/wave/contador_tb.surf.ron",
   "saved_layout": {
     "path": "${ROOT}/wave/contador_tb.surf.ron",

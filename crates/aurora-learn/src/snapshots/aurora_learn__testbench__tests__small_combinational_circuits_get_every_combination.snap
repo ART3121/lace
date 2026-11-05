@@ -1,0 +1,67 @@
+---
+source: crates/aurora-learn/src/testbench.rs
+expression: tb
+---
+// O testbench do exercício mux2.
+// Gerado pelo aurora learn, que grava de novo este arquivo quando a trilha
+// muda: não edite.
+
+`timescale 1ns / 1ps
+`default_nettype wire
+`include "mux2_ref.v"
+
+module tb_mux2;
+    reg a = 0;
+    reg b = 0;
+    reg sel = 0;
+    wire y;
+    wire y_ref;
+    reg mismatch = 0;
+
+    mux2 dut (.a(a), .b(b), .sel(sel), .y(y));
+    mux2_ref reference (.a(a), .b(b), .sel(sel), .y(y_ref));
+
+    integer aurora_samples = 0;
+    integer aurora_mismatched = 0;
+    integer aurora_y_errors = 0;
+    integer aurora_y_first = -1;
+    integer aurora_y_unknown = 0;
+    integer aurora_seed = 1;
+    integer aurora_i;
+
+    task compare;
+        begin
+            aurora_samples = aurora_samples + 1;
+            mismatch = 0;
+            if ((y_ref ^ y ^ y_ref) !== y_ref) begin
+                aurora_y_errors = aurora_y_errors + 1;
+                if (aurora_y_first < 0) aurora_y_first = $time;
+                if ((^y) === 1'bx) aurora_y_unknown = aurora_y_unknown + 1;
+                mismatch = 1;
+            end
+            if (mismatch && aurora_mismatched == 0) begin
+                $display("AURORA-LEARN first %0d %0d", $time, -1);
+                $display("AURORA-LEARN first_in a %b", a);
+                $display("AURORA-LEARN first_in b %b", b);
+                $display("AURORA-LEARN first_in sel %b", sel);
+                $display("AURORA-LEARN first_out y %b %b", y_ref, y);
+            end
+            if (mismatch) aurora_mismatched = aurora_mismatched + 1;
+        end
+    endtask
+
+    initial begin
+        $dumpfile(".aurora-learn/wave.fst");
+        $dumpvars(0, tb_mux2);
+        for (aurora_i = 0; aurora_i < 8; aurora_i = aurora_i + 1) begin
+            {a, b, sel} = aurora_i;
+            #5 compare;
+            #5;
+        end
+        $display("AURORA-LEARN samples %0d", aurora_samples);
+        $display("AURORA-LEARN mismatched %0d", aurora_mismatched);
+        $display("AURORA-LEARN output y %0d %0d %0d", aurora_y_errors, aurora_y_first, aurora_y_unknown);
+        $display("AURORA-LEARN end");
+        $finish;
+    end
+endmodule

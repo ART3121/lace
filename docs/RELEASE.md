@@ -1,32 +1,33 @@
-# Releases do Lace
+# Releases da AURORA
 
-Este documento define o número de cada release do Lace, quando lançar, o
+Este documento define o número de cada release da AURORA, quando lançar, o
 passo a passo e o que fazer quando uma release sai com defeito. Vale para
 quem lança e para quem revisa uma mudança que vai entrar numa release.
 
-O que conta como mudança compatível no protocolo do `lace serve` está em
+O que conta como mudança compatível no protocolo do `aurora serve` está em
 [METODOLOGIA.md](METODOLOGIA.md), seção 5. A seção 2 daqui usa aquela
-tabela e a estende ao resto do Lace: a linha de comando, os projetos, a
+tabela e a estende ao resto da AURORA: a linha de comando, os projetos, a
 instalação e o bundle.
 
 ## 1. Os números de versão
 
 | Número | Formato | Onde mora | Quando muda |
 |---|---|---|---|
-| Lace | `X.Y.Z`, em [SemVer](https://semver.org/lang/pt-BR/) | os seis lugares da seção 6.1 | a cada release, pela seção 2 |
+| AURORA API | `X.Y.Z`, em [SemVer](https://semver.org/lang/pt-BR/) | o `Cargo.toml` e os pacotes `aurora-learn` e `rtl-viewer` de `bundle/versions.json` (seção 6.1) | a cada release, pela seção 2 |
+| AURORA IDE | `X.Y.Z`, em SemVer, própria | os cinco lugares da IDE na seção 6.1, com o pacote `studio` de `bundle/versions.json` | quando a IDE muda; a primeira com o nome novo é a 8.0.0 |
 | Extensão do VS Code | `X.Y.Z`, em SemVer, própria | `editors/vscode/package.json` | quando o `.vsix` muda (seção 2.7) |
-| `PROTOCOL_VERSION` | inteiro | `crates/lace-protocol/src/lib.rs` | quando um cliente antigo do `lace serve` deixaria de funcionar ([METODOLOGIA.md](METODOLOGIA.md), seção 5) |
+| `PROTOCOL_VERSION` | inteiro | `crates/aurora-protocol/src/lib.rs` | quando um cliente antigo do `aurora serve` deixaria de funcionar ([METODOLOGIA.md](METODOLOGIA.md), seção 5) |
 | Bundle | data, `AAAA.MM.DD` | o campo `bundle` de `bundle/versions.json` | quando qualquer ferramenta do bundle muda ([CONTRIBUTING.md](../CONTRIBUTING.md), "Atualizar a versão de uma ferramenta do bundle") |
 | surfer-aurora pré-compilado | a versão do fork, `vA.B.C-nips.N` | a tag `surfer-aurora-<versão>`, uma pré-release deste repositório | quando o commit do surfer-aurora em `bundle/versions.json` muda (`.github/workflows/surfer-aurora.yml`) |
 | Pacote msys do Windows | `ucrt64-vN` | uma release do repositório `lace-toolchain`, apontada em `bundle/versions.json` | quando o Icarus, o Verilator ou o resto do bloco MSYS2 mudam no Windows ([BUNDLE.md](BUNDLE.md), seção 6) |
 
-O Lace tem um número só. A CLI, o core, o instalador, o `lace learn` com as
+A AURORA tem um número só. A CLI, o core, o instalador, o `aurora learn` com as
 trilhas, o assistente, o Studio e o RTL viewer saem juntos, na mesma
 versão; não há release só do Studio nem só da CLI. A extensão do VS Code é
 a única peça com versão própria, e mesmo ela é publicada dentro da release
-do Lace.
+da AURORA.
 
-As tags que começam com `v` são só das releases do Lace: o `release.yml`
+As tags que começam com `v` são só das releases da AURORA: o `release.yml`
 roda em toda tag `v*`. Os outros artefatos usam prefixo próprio, como o
 `surfer-aurora-`.
 
@@ -42,8 +43,8 @@ sobe depende só do que a release leva.
 quebra de compatibilidade: uma mudança depois da qual algo que funcionava
 na versão anterior para de funcionar sem que a pessoa tenha mudado nada do
 lado dela. Os contratos que contam estão na seção 2.3. Exemplos: renomear
-um comando, como o `lace sim`; tirar ou renomear um campo do `--json`;
-mudar a forma de um método do `lace serve`, o que sobe o
+um comando, como o `aurora sim`; tirar ou renomear um campo do `--json`;
+mudar a forma de um método do `aurora serve`, o que sobe o
 `PROTOCOL_VERSION`; um projeto que só abre depois de convertido, como na
 troca da estrutura do YANC 6.x pela do 7.1; deixar de atender o Ubuntu
 22.04. Zera as outras duas: `1.4.2` vira `2.0.0`. Enquanto a versão
@@ -52,9 +53,9 @@ começar com 0, este número não sobe (seção 2.4).
 **`0.X.0`, a versão menor.** Sobe quando a release não quebra nada e leva
 pelo menos uma novidade: algo que a pessoa pode fazer e antes não podia,
 ou algo que passa a funcionar de outro jeito por padrão. Exemplos: um
-comando, uma flag ou um método novo, como o `lace serve` da 0.9.0; um
+comando, uma flag ou um método novo, como o `aurora serve` da 0.9.0; um
 campo novo no `--json`; uma vista, uma preferência ou um atalho novo no
-Studio; um exercício novo no `lace learn`; uma placa FPGA nova; um bundle
+Studio; um exercício novo no `aurora learn`; uma placa FPGA nova; um bundle
 novo; uma opção que passa a vir ligada. Zera a correção: `0.9.3` vira
 `0.10.0`.
 
@@ -95,7 +96,7 @@ posições, vale a mais alta.
 | Uma dependência atualizada (um crate, um pacote do npm, o Tauri) | `0.0.X` se conserta um defeito ou uma falha de segurança; senão, espera a próxima `0.X.0` |
 | Ficar mais rápido, com o mesmo resultado | `0.X.0`; `0.0.X` se a lentidão era um defeito, como um prazo que estourava |
 | Uma frase errada numa mensagem, na ajuda ou na tela | `0.0.X`; uma língua nova é `0.X.0` |
-| Um recurso experimental (`lace experimental`; hoje `fpga` e `assistant`) novo ou mudado | `0.X.0`; mudar ou tirar um recurso experimental nunca conta como quebra |
+| Um recurso experimental (`aurora experimental`; hoje `fpga` e `assistant`) novo ou mudado | `0.X.0`; mudar ou tirar um recurso experimental nunca conta como quebra |
 | Um recurso que deixa de ser experimental | `0.X.0` |
 | Um comando ou método marcado como obsoleto, com o substituto | `0.X.0` |
 | Tirar o que estava obsoleto | `X.0.0` |
@@ -104,31 +105,43 @@ Antes da 1.0, onde a tabela diz `X.0.0`, sobe o do meio (seção 2.4).
 
 ### 2.3 O que conta como quebra
 
-Os contratos do Lace, e o que quebra cada um:
+Os contratos da AURORA, e o que quebra cada um:
 
 | Contrato | Onde está | Quebra |
 |---|---|---|
-| Linha de comando | `crates/lace-cli/src/main.rs`, [CLI.md](CLI.md) | tirar ou renomear um comando ou uma flag; mudar o significado de um código de saída (0, 1, 2 e 130) |
+| Linha de comando | `crates/aurora-cli/src/main.rs`, [CLI.md](CLI.md) | tirar ou renomear um comando ou uma flag; mudar o significado de um código de saída (0, 1, 2 e 130) |
 | `--json` e `--events` | `docs/schema/` | tirar ou renomear um campo, mudar o tipo ou o significado dele ([CONTRIBUTING.md](../CONTRIBUTING.md), "Contrato do `--json`") |
-| Protocolo do `lace serve` | `crates/lace-protocol/src/lib.rs` | a tabela de [METODOLOGIA.md](METODOLOGIA.md), seção 5 |
-| Códigos de erro | `LaceError::code()`, em `crates/lace-core/src/error.rs` | mudar um código publicado, o que nunca se faz |
-| Projeto | o `.spf` (o mesmo da AURORA), o `fpga.json`, a pasta `wave/`, a pasta `.lace/` | um projeto que abria deixa de abrir, ou passa a precisar de conversão, como a da estrutura do YANC 6.x para a do 7.1 |
-| Instalação e atualização | os nomes dos arquivos da release, o `index.json` e o `files.json` de cada plataforma, o recibo `install.json`, a pasta da instalação | o `lace update` de uma versão publicada deixa de conseguir atualizar |
-| Bundle | `bundle/versions.json`; a versão mínima do YANC, em `crates/lace-core/src/yanc.rs` | tirar uma ferramenta; subir a versão mínima do YANC |
-| Sistemas | Ubuntu 22.04 (glibc 2.35), macOS 13 em Apple Silicon e Windows 10, no `installers.yml` e no `installer/windows/lace.iss` | deixar de atender um deles |
+| Protocolo do `aurora serve` | `crates/aurora-protocol/src/lib.rs` | a tabela de [METODOLOGIA.md](METODOLOGIA.md), seção 5 |
+| Códigos de erro | `AuroraError::code()`, em `crates/aurora-core/src/error.rs` | mudar um código publicado, o que nunca se faz |
+| Projeto | o `.spf` (o mesmo da AURORA), o `fpga.json`, a pasta `wave/`, a pasta `.aurora8/` | um projeto que abria deixa de abrir, ou passa a precisar de conversão, como a da estrutura do YANC 6.x para a do 7.1 |
+| Instalação e atualização | os nomes dos arquivos da release, o `index.json` e o `files.json` de cada plataforma, o recibo `install.json`, a pasta da instalação | o `aurora update` de uma versão publicada deixa de conseguir atualizar |
+| Bundle | `bundle/versions.json`; a versão mínima do YANC, em `crates/aurora-core/src/yanc.rs` | tirar uma ferramenta; subir a versão mínima do YANC |
+| Sistemas | Ubuntu 22.04 (glibc 2.35), macOS 13 em Apple Silicon e Windows 10, no `installers.yml` e no `installer/windows/aurora.iss` | deixar de atender um deles |
 | Preferências | o `settings.json` do Studio, o `experimental.json` | a versão nova perder o que a anterior gravou |
 
-O texto que o Lace mostra para pessoas, como mensagens, ajuda e a cara do
+O texto que a AURORA mostra para pessoas, como mensagens, ajuda e a cara do
 Studio, fica fora dos contratos: mudar uma frase não quebra nada.
 
-O contrato mais frágil é o da atualização. Cada `lace update` já publicado
+O contrato mais frágil é o da atualização. Cada `aurora update` já publicado
 lê a release nova com o código da versão dele. Um arquivo renomeado ou um
 campo a menos no `index.json` quebra a atualização de todo mundo que tem
 aquela versão, e essas pessoas só saem disso reinstalando. Os nomes do
-instalador (`lace-<versão>-<plataforma>.tar.gz` e
-`lace-<versão>-windows-x64-setup.exe`) são a reserva de todas as versões e
+instalador (`aurora-<versão>-<plataforma>.tar.gz` e
+`aurora-<versão>-windows-x64-setup.exe`) são a reserva de todas as versões e
 nunca mudam. Uma mudança no resto mantém o caminho antigo funcionando e é
 conferida atualizando a partir da versão anterior (seção 6.4).
+
+Quem tem o Lace (0.4 a 0.9) chega à AURORA pelo mesmo contrato, com os
+nomes de antes. O `lace update` procura o índice
+`lace-<versão>-<plataforma>-index.json`, não acha, e cai para o instalador
+inteiro, `lace-<versão>-<plataforma>.tar.gz` ou
+`lace-<versão>-windows-x64-setup.exe`. O `release.yml` publica os
+instaladores da AURORA também com esses nomes, em toda release, e o
+`install` e o assistente da AURORA reconhecem o Lace e o trocam pela AURORA
+([crates/aurora-installer/src/lace.rs](../crates/aurora-installer/src/lace.rs)).
+Esses nomes também não mudam, e a release nunca publica um índice com o
+nome antigo, que levaria o `lace update` à atualização por componentes,
+dentro da pasta do Lace.
 
 ### 2.4 Antes da 1.0
 
@@ -149,13 +162,14 @@ substituto no CHANGELOG.
 ### 2.5 Quando o número é escolhido
 
 Na hora de lançar, pela seção "Não publicada" do CHANGELOG. Até lá, os
-seis lugares continuam com a versão da última release. Escolher o número
+lugares da seção 6.1 continuam com a versão da última release. A
+renomeação para AURORA já tem os números: API 1.0.0 e IDE 8.0.0. Escolher o número
 no começo do trabalho obriga a adivinhar o que a release vai levar, e uma
 correção que precise sair antes fica com um número de novidade.
 
 Quem escreve uma novidade já sabe que ela sai na próxima versão menor e usa
 esse número onde precisar dele, como na tabela `FEATURES` da extensão
-(`editors/vscode/src/lace/version.ts`).
+(`editors/vscode/src/aurora/version.ts`).
 
 ### 2.6 A 1.0
 
@@ -188,16 +202,16 @@ gerados) e o RTL viewer de `packages/rtl-viewer/`:
 git diff --stat v0.9.0 -- editors/vscode packages/rtl-viewer
 ```
 
-A release do Lace leva o `.vsix` mesmo quando a extensão não mudou: o
+A release da AURORA leva o `.vsix` mesmo quando a extensão não mudou: o
 README aponta para ele dentro da release de cada versão
-(`releases/download/v<versão>/lace-vscode-<versão da extensão>.vsix`).
+(`releases/download/v<versão>/aurora-vscode-<versão da extensão>.vsix`).
 
 ## 3. Quando lançar
 
 Uma release fica para sempre. Os arquivos dela não se apagam (seção 7); o
-`lace` instalado avisa da versão nova uma vez por dia até a pessoa
-atualizar (`crates/lace-cli/src/update_check.rs`); e cada versão publicada
-é mais uma que o `lace update` das seguintes precisa atender. Por isso cada
+`aurora` instalado avisa da versão nova uma vez por dia até a pessoa
+atualizar (`crates/aurora-cli/src/update_check.rs`); e cada versão publicada
+é mais uma que o `aurora update` das seguintes precisa atender. Por isso cada
 release junta o trabalho de vários assuntos.
 
 **Versão menor.** Sai quando a `main` tem pelo menos um recurso terminado,
@@ -210,9 +224,9 @@ semana; o ritmo normal é uma a cada duas a quatro semanas.
 na `main` e o defeito atrapalha quem usa:
 
 - no mesmo dia ou no seguinte, quando o defeito impede instalar, atualizar
-  ou abrir o Lace ou o Studio; apaga ou sobrescreve arquivo do usuário; dá
+  ou abrir a AURORA ou o Studio; apaga ou sobrescreve arquivo do usuário; dá
   resultado errado sem avisar (build, simulação, síntese, a correção do
-  `lace learn`); ou é uma falha de segurança;
+  `aurora learn`); ou é uma falha de segurança;
 - nos outros casos, junto com outras correções, em até duas semanas. Se a
   próxima versão menor está perto, a correção vai nela.
 
@@ -254,10 +268,10 @@ release/0.10     criada da main para a 0.10.0; só o commit da release e correç
   0.10. O `release.yml` deixa o GitHub escolher sozinho qual é a última
   release, e uma `0.9.x` publicada depois da `0.10.0` não pode correr o
   risco de virar a última que o `install.sh`, o `install.ps1` e o
-  `lace update` procuram. Corrigir uma linha antiga exige antes o
+  `aurora update` procuram. Corrigir uma linha antiga exige antes o
   `--latest=false` no `gh release create` do `release.yml`.
 - **Tags.** `vX.Y.Z`, anotada, no commit da release:
-  `git tag -a v0.10.0 -m "Lace 0.10.0"`. Depois que a release foi
+  `git tag -a v0.10.0 -m "AURORA 0.10.0"`. Depois que a release foi
   publicada, a tag nunca se move nem se apaga.
 - **As branches antigas.** Até a 0.9.0, as releases saíram de branches
   `lace-X.Y.Z`, da `main` e da `feat/core-api`. Elas ficam como estão; da
@@ -265,7 +279,7 @@ release/0.10     criada da main para a 0.10.0; só o commit da release e correç
 
 ## 5. CHANGELOG
 
-- **Dois arquivos.** O `CHANGELOG.md` é do Lace inteiro, e é dele que o
+- **Dois arquivos.** O `CHANGELOG.md` é da AURORA inteira, e é dele que o
   `release.yml` tira as notas da release. O `studio/CHANGELOG.md` tem os
   detalhes do Studio, no formato do Keep a Changelog. A extensão do VS Code
   não tem CHANGELOG próprio: as mudanças dela vão no `CHANGELOG.md`, com a
@@ -313,16 +327,18 @@ O exemplo é a `0.10.0`, depois da `0.9.0`.
    `bundle.py` usa o `prebuilt` que estiver lá, sem conferir o commit: com o
    antigo, a release leva o surfer-aurora antigo. Só sem `prebuilt` ela
    compila o surfer-aurora, uns 14 minutos a mais por plataforma.
-4. **O commit da release**, com a mensagem `Lace 0.10.0` e nenhuma outra
+4. **O commit da release**, com a mensagem `AURORA 1.1.0` e nenhuma outra
    mudança dentro:
-   - a versão nos seis lugares, todos iguais: o `Cargo.toml`
-     (`[workspace.package] version`), o `studio/package.json` e o
-     `studio/package-lock.json` (o `npm version 0.10.0 --no-git-tag-version`
-     em `studio/` troca os dois), o `studio/src-tauri/Cargo.toml`, o
-     `studio/src-tauri/tauri.conf.json` e os pacotes `studio`, `lace-learn`
-     e `rtl-viewer` de `bundle/versions.json`. O `bundle.py` recusa o
-     Studio com versões diferentes, e o `release.yml` recusa a tag se o
-     Studio não tiver a versão do Lace;
+   - a versão da AURORA API (a da tag) no `Cargo.toml`
+     (`[workspace.package] version`) e nos pacotes `aurora-learn` e
+     `rtl-viewer` de `bundle/versions.json`;
+   - a versão da AURORA IDE, própria (8.0.0 na primeira release com o nome
+     novo, em que a API é a 1.0.0), em cinco lugares iguais: o
+     `studio/package.json` e o `studio/package-lock.json` (o
+     `npm version 8.0.0 --no-git-tag-version` em `studio/` troca os dois), o
+     `studio/src-tauri/Cargo.toml`, o `studio/src-tauri/tauri.conf.json` e o
+     pacote `studio` de `bundle/versions.json`. O `bundle.py` recusa a IDE
+     com versões diferentes, e a IDE só sobe de versão quando muda;
    - os dois `Cargo.lock`, com `cargo update --workspace` na raiz e em
      `studio/src-tauri/`;
    - as seções "Não publicada" dos dois CHANGELOGs, com o número e a data
@@ -344,7 +360,7 @@ sozinho no GitHub hoje: o `release.yml` só monta os instaladores, sem teste
 
 - As verificações de "Antes de mandar a mudança", do
   [CONTRIBUTING.md](../CONTRIBUTING.md), com o `cargo test --workspace`
-  rodando com `LACE_TEST_BUNDLE` definido, num bundle com o identificador
+  rodando com `AURORA_TEST_BUNDLE` definido, num bundle com o identificador
   de `bundle/versions.json`.
 - O Studio: `npm run build` em `studio/`; `cargo clippy` e `cargo test` em
   `studio/src-tauri/`, com o bundle; e o roteiro de fumaça
@@ -355,6 +371,11 @@ sozinho no GitHub hoje: o `release.yml` só monta os instaladores, sem teste
 - A extensão: `npm run typecheck`, `npm run lint` e `npm run test:unit` em
   `editors/vscode/`, e o `vscode.yml` verde no último push que a mudou.
 - O RTL viewer: `npm run typecheck` em `packages/rtl-viewer/`.
+- A passagem do Lace (seção 2.3): o `lace-ponte.yml` verde no push da
+  `release/X.Y`, que roda o `lace update` de um Lace 0.9.0 contra um espelho
+  com o `install` do commit, no Linux e no macOS. No Windows, o assistente
+  compilado com `/DAppGuid=` e `/DLaceGuid=` de teste, rodado sobre um Lace
+  de teste com esse AppId: o Lace sai, e os aplicativos dele vêm marcados.
 
 Cada sistema que o responsável tem roda a lista inteira. O que ficou sem
 rodar, como um sistema que ninguém tinha, vai escrito nas notas da release
@@ -364,7 +385,7 @@ rodar, como um sistema que ninguém tinha, vai escrito nas notas da release
 
 ```bash
 git push -u origin release/0.10
-git tag -a v0.10.0 -m "Lace 0.10.0"
+git tag -a v0.10.0 -m "AURORA 0.10.0"
 git push origin v0.10.0
 ```
 
@@ -383,8 +404,8 @@ git push origin v0.10.0
    ```bash
    (cd packages/rtl-viewer && npm ci)
    (cd editors/vscode && npm ci && npm run package)
-   cp editors/vscode/lace-<versão da extensão>.vsix lace-vscode-<versão da extensão>.vsix
-   gh release upload v0.10.0 lace-vscode-<versão da extensão>.vsix
+   cp editors/vscode/aurora-<versão da extensão>.vsix aurora-vscode-<versão da extensão>.vsix
+   gh release upload v0.10.0 aurora-vscode-<versão da extensão>.vsix
    ```
 
 3. A `release/0.10` volta para a `main` por pull request, com merge, sem
@@ -398,14 +419,19 @@ No mesmo dia, o responsável confere:
 - **Os arquivos.** `gh release view v0.10.0` lista, para cada plataforma,
   o instalador (o `.tar.gz` no Linux e no macOS, o `-setup.exe` e o
   `-web-setup.exe` no Windows), o `-index.json`, o `-files.json`, o
-  `-lace.tar.zst` e os pedaços `-cNN.tar.zst`, e mais o `.vsix` e o
-  `SHA256SUMS`.
+  `-aurora.tar.zst` e os pedaços `-cNN.tar.zst`, e mais o `.vsix`, o
+  `SHA256SUMS` e os instaladores com o nome do Lace
+  (`lace-<versão>-linux-x64.tar.gz`, `lace-<versão>-darwin-arm64.tar.gz` e
+  `lace-<versão>-windows-x64-setup.exe`, seção 2.3).
 - **A instalação nova**, pelo comando de um passo do README:
-  `lace --version` diz a versão nova, `lace tools --verify` passa, o Studio
+  `aurora --version` diz a versão nova, `aurora tools --verify` passa, o Studio
   abre, e um exemplo de `examples/` compila e simula.
-- **A atualização**, numa instalação da versão anterior: `lace update` acha
+- **A atualização**, numa instalação da versão anterior: `aurora update` acha
   a versão nova e atualiza; depois, a mesma conferência da instalação nova.
   É ela que protege o contrato da atualização (seção 2.3).
+- **A passagem do Lace**, numa instalação do Lace 0.9.0: `lace update`
+  instala a AURORA com os mesmos aplicativos e tira o Lace; depois, a mesma
+  conferência da instalação nova.
 - **A extensão**: o `.vsix` da release instala com
   `code --install-extension`, e o VS Code mostra a versão nova.
 
@@ -434,8 +460,8 @@ Se sobrou uma release em rascunho, apague-a também
 (`gh release delete v0.10.0`).
 
 **Depois de publicar.** A release fica como está. Os arquivos dela não se
-apagam nem se renomeiam: o `lace install` de cada versão baixa os pedaços
-da própria versão, conferidos pelo `SHA256SUMS` dela, e o `lace update`
+apagam nem se renomeiam: o `aurora install` de cada versão baixa os pedaços
+da própria versão, conferidos pelo `SHA256SUMS` dela, e o `aurora update`
 baixa da versão nova o índice, o manifesto e os pedaços que mudaram e,
 como reserva, o instalador. Sem esses arquivos, quem tem aquela versão
 instalada não consegue mais instalar aplicativos nem atualizar.
@@ -447,10 +473,10 @@ sai:
   (`gh release edit`);
 - se o defeito impede instalar ou atualizar, a release anterior volta a ser
   a última, com `gh release edit v0.9.0 --latest`. O `install.sh`, o
-  `install.ps1` e o `lace update` passam a achar a anterior, e quem já
-  atualizou fica onde está, porque o `lace update` só troca por versão mais
+  `install.ps1` e o `aurora update` passam a achar a anterior, e quem já
+  atualizou fica onde está, porque o `aurora update` só troca por versão mais
   nova. A versão de correção, quando sai, vira a última;
-- se o defeito é no próprio `lace update` da versão nova, quem a instalou
+- se o defeito é no próprio `aurora update` da versão nova, quem a instalou
   só sai dela pelo instalador ou pelo comando de um passo, e as notas da
   correção dizem isso.
 
@@ -461,10 +487,10 @@ Linux ou macOS (o Studio pede o Node.js e, no Linux, o
 
 ```bash
 python3 scripts/bundle.py --out dist/toolchain
-cargo build --release -p lace-cli -p lace-installer
-target/release/lace-pack tui --toolchain dist/toolchain \
-  --lace target/release/lace --installer target/release/lace-installer \
-  --out dist/lace-<versão>-linux-x64 --tar-gz
+cargo build --release -p aurora-cli -p aurora-installer
+target/release/aurora-pack tui --toolchain dist/toolchain \
+  --aurora target/release/aurora --installer target/release/aurora-installer \
+  --out dist/aurora-<versão>-linux-x64 --tar-gz
 ```
 
 Windows: o bundle é montado no shell MINGW64 do MSYS2, que compila o YANC,
@@ -478,24 +504,24 @@ python scripts/bundle.py --out dist/toolchain
 ```
 
 ```powershell
-cargo build --release -p lace-cli -p lace-installer
-target\release\lace-pack.exe tui --toolchain dist\toolchain --lace target\release\lace.exe --installer target\release\lace-installer.exe --out dist\tui --assets dist\apps
-target\release\lace-pack.exe inno --toolchain dist\toolchain --lace target\release\lace.exe --out dist\inno --web dist\tui
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\lace.iss
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DWeb /DStage=$PWD\dist\inno /DLaceVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\lace.iss
+cargo build --release -p aurora-cli -p aurora-installer
+target\release\aurora-pack.exe tui --toolchain dist\toolchain --aurora target\release\aurora.exe --installer target\release\aurora-installer.exe --out dist\tui --assets dist\apps
+target\release\aurora-pack.exe inno --toolchain dist\toolchain --aurora target\release\aurora.exe --out dist\inno --web dist\tui
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DStage=$PWD\dist\inno /DAuroraVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DWeb /DStage=$PWD\dist\inno /DAuroraVersion=<versão> /DBundle=<bundle> /O$PWD\dist installer\windows\aurora.iss
 ```
 
 O segundo `ISCC` (`/DWeb`) monta o assistente web,
-`lace-<versão>-windows-x64-web-setup.exe`: ele leva só o `lace.exe` e baixa
-da release os pedaços que o `lace-pack tui --assets` gravou, conferidos
-pelo SHA-256 que o `lace-pack inno --web` pôs no `web.iss`. Os pedaços
+`aurora-<versão>-windows-x64-web-setup.exe`: ele leva só o `aurora.exe` e baixa
+da release os pedaços que o `aurora-pack tui --assets` gravou, conferidos
+pelo SHA-256 que o `aurora-pack inno --web` pôs no `web.iss`. Os pedaços
 publicados precisam ser exatamente os dessa montagem. Para testar sem
 publicar, sirva a pasta `dist\apps` como `<espelho>/v<versão>/` e rode o
 assistente com `/MIRROR=<espelho>`; com `/DAppGuid=<outro GUID>` no `ISCC`,
-a instalação de teste não mexe na entrada do Lace de verdade na lista de
+a instalação de teste não mexe na entrada da AURORA de verdade na lista de
 programas.
 
-O `lace-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
+O `aurora-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
 (ou do Wine).
 
 ## 9. Como os instaladores são feitos
@@ -504,29 +530,29 @@ O `lace-pack inno` roda em qualquer sistema; só o `ISCC` precisa do Windows
   `<pasta>.contents.json` (`dist/toolchain.contents.json`): que
   arquivo é de que componente (`bundle/components.json` diz o que cada
   componente leva).
-- `lace-pack` (crate `lace-installer`) agrupa os arquivos pelo conjunto
+- `aurora-pack` (crate `aurora-installer`) agrupa os arquivos pelo conjunto
   exato de componentes que os usa. Cada grupo vira um pedaço `.tar.zst` do
   payload da TUI, ou uma entrada `[Files]` do Inno Setup com
   `Components: a or b`.
 - A TUI (`install`) e o assistente só extraem os grupos que a seleção usa.
 - Os perfis de instalação vêm de `profiles` em `bundle/components.json`: o
   `bundle.py` confere cada um (componentes que existem, com o que cada um
-  exige) e os grava no `contents.json`; o `lace-pack` os põe no
+  exige) e os grava no `contents.json`; o `aurora-pack` os põe no
   `index.json` da TUI e gera, no `components.iss`, um `[Types]` por perfil,
   o Custom (`avancada`) e a função `ProfileDetail`, com o texto de cada um.
-- A cara do assistente: o ícone do Lace Studio e as imagens de
+- A cara do assistente: o ícone da AURORA IDE e as imagens de
   `installer/windows/art/`, geradas da marca (`studio/public/brand`) por
   `python scripts/installer_art.py`, só com a biblioteca padrão. Mudou a
-  marca, ou o `WizardSizePercent` do `lace.iss`, gere de novo (a proporção
+  marca, ou o `WizardSizePercent` do `aurora.iss`, gere de novo (a proporção
   da faixa da esquerda segue o `SIZE_PERCENT` do script).
 
 Além dos instaladores, a release publica o bundle em pedaços, para o
-`lace install` baixar só os aplicativos que faltam e o `lace update` só o
+`aurora install` baixar só os aplicativos que faltam e o `aurora update` só o
 que mudou: para cada plataforma, o índice
-(`lace-<versão>-<plataforma>-index.json`), o manifesto de arquivos
-(`lace-<versão>-<plataforma>-files.json`, o SHA-256 de cada arquivo por
-pedaço) e cada pedaço (`lace-<versão>-<plataforma>-c03.tar.zst`), que o
-`lace-pack tui --assets` grava e o `installers.yml` sobe com os
+(`aurora-<versão>-<plataforma>-index.json`), o manifesto de arquivos
+(`aurora-<versão>-<plataforma>-files.json`, o SHA-256 de cada arquivo por
+pedaço) e cada pedaço (`aurora-<versão>-<plataforma>-c03.tar.zst`), que o
+`aurora-pack tui --assets` grava e o `installers.yml` sobe com os
 instaladores. O mesmo manifesto vai dentro do pedaço sempre instalado e no
 estágio do Inno Setup: cada instalação fica com o da versão dela, em
 `toolchain/files.json`.
@@ -539,12 +565,12 @@ estágio do Inno Setup: cada instalação fica com o da versão dela, em
 ## 10. Testar sem Windows
 
 O instalador de Windows compila e instala no Wine. No Wine 11, o `dot.exe`
-do Graphviz 16.1.0 trava quando o ambiente não tem `LANG`, e o Lace roda as
+do Graphviz 16.1.0 trava quando o ambiente não tem `LANG`, e a AURORA roda as
 ferramentas com ambiente limpo: o esquemático não sai no Wine. Num Windows
 de verdade o `LANG` normalmente nem existe. O `installers.yml` não roda
 teste: quem confirma que o esquemático funciona lá é o
 `synthesis_and_schematic_of_processor_and_top_level`
-(`crates/lace-core/tests/tools.rs`), rodado à mão num Windows com o bundle.
+(`crates/aurora-core/tests/tools.rs`), rodado à mão num Windows com o bundle.
 
 ## 11. O que falta
 
@@ -575,7 +601,7 @@ teste: quem confirma que o esquemático funciona lá é o
 - **A data do CHANGELOG conferida.** O `release.yml` aceita qualquer linha
   `## <versão> `, até uma `## 0.10.0 (não publicada)`.
 - **Pré-releases.** Uma tag `v0.10.0-rc.1` não deve ser criada antes de
-  três mudanças: o `is_newer` de `crates/lace-installer/src/release.rs`
+  três mudanças: o `is_newer` de `crates/aurora-installer/src/release.rs`
   compara os grupos de dígitos e põe a `0.10.0-rc.1` depois da `0.10.0`; o
-  `VersionInfoVersion` de `installer/windows/lace.iss` só aceita números; e
+  `VersionInfoVersion` de `installer/windows/aurora.iss` só aceita números; e
   o `release.yml` publica toda tag como release comum, sem `--prerelease`.

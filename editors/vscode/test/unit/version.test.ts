@@ -8,14 +8,14 @@ import {
   supportedFeatures,
   usable,
   type FeatureSet,
-} from '../../src/lace/version';
+} from '../../src/aurora/version';
 
-describe('versão do Lace', () => {
-  it('lê a linha do lace --version', () => {
-    assert.equal(parseVersionLine('lace 0.6.0\n'), '0.6.0');
-    assert.equal(parseVersionLine('lace 1.2.3-dev.4'), '1.2.3');
+describe('versão da AURORA', () => {
+  it('lê a linha do aurora --version', () => {
+    assert.equal(parseVersionLine('aurora 0.6.0\n'), '0.6.0');
+    assert.equal(parseVersionLine('aurora 1.2.3-dev.4'), '1.2.3');
     assert.equal(parseVersionLine('solar 0.1.0'), undefined);
-    assert.equal(parseVersionLine('lace'), undefined);
+    assert.equal(parseVersionLine('aurora'), undefined);
     assert.equal(parseVersionLine('Python 3.12.1'), undefined);
   });
 
@@ -58,7 +58,7 @@ describe('versão do Lace', () => {
     assert.deepEqual(supportedFeatures('0.4.0'), { ...all, moveAfter: false, serve: false });
     // O move --after é da versão depois da 0.6.0.
     assert.deepEqual(supportedFeatures('0.6.0'), { ...all, moveAfter: false, serve: false });
-    // O lace serve é da 0.9.0: com a 0.7.0 e a 0.8.0 a extensão usa a CLI.
+    // O aurora serve é da 0.9.0: com a 0.7.0 e a 0.8.0 a extensão usa a CLI.
     assert.deepEqual(supportedFeatures('0.7.0'), { ...all, serve: false });
     assert.deepEqual(supportedFeatures('0.9.0'), all);
     assert.ok(usable(supportedFeatures('0.7.0')));

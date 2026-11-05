@@ -1,5 +1,5 @@
 // O aviso de quando o .spf do projeto aberto foi apagado (`spfMissing`): sem
-// ele o Lace não faz operação de projeto. O botão abre o "Novo projeto" com a
+// ele a AURORA não faz operação de projeto. O botão abre o "Novo projeto" com a
 // pasta e o nome deste projeto: criar ali grava um .spf novo, e os arquivos
 // da pasta continuam (`Project::create`). Quando a pasta inteira sumiu
 // (`rootMissing`: movida, renomeada ou apagada), criar ali faria um projeto

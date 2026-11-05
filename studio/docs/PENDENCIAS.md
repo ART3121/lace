@@ -1,4 +1,4 @@
-# Pendências do Lace Studio
+# Pendências da AURORA IDE
 
 Do teste de fogo de 2026-10-04. Corrigidos na mesma data (CHANGELOG): a
 janela que deslizava com muitas abas, a aba de onda que recarregava a cada

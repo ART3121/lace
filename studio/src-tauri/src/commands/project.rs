@@ -2,9 +2,9 @@
 //! aberto, os recentes e a vigia da pasta), a pasta padrão e a hierarquia.
 //! O resto (os arquivos Verilog, o topo, o testbench, os processadores,
 //! mover) são métodos do protocolo, que a interface chama pelo servidor do
-//! Lace ([`crate::server`]).
+//! AURORA ([`crate::server`]).
 //!
-//! O retrato ([`ProjectSnapshot`]) é o `lace status --json` com alguns
+//! O retrato ([`ProjectSnapshot`]) é o `aurora status --json` com alguns
 //! campos a mais que a interface usa para habilitar botões.
 
 use camino::Utf8PathBuf;
@@ -16,7 +16,7 @@ use crate::state::{AppState, blocking};
 use crate::watcher;
 
 /// O projeto inteiro, como a interface o mostra: o retrato do protocolo
-/// (`project.status`), que é o `lace status --json` com os campos a mais
+/// (`project.status`), que é o `aurora status --json` com os campos a mais
 /// que a interface usa para habilitar botões.
 pub type ProjectSnapshot = Value;
 
@@ -27,7 +27,7 @@ fn activate(app: &AppHandle, state: &AppState, status: Value) -> IpcResult<Proje
         status[name].as_str().map(Utf8PathBuf::from).ok_or_else(|| {
             IpcError::new(
                 codes::INTERNAL,
-                format!("The project status from the lace server has no {name}"),
+                format!("The project status from the aurora server has no {name}"),
             )
         })
     };
@@ -116,7 +116,7 @@ pub async fn project_hierarchy(app: AppHandle) -> IpcResult<Value> {
             json!({
                 "project": state.spf()?,
                 "request": { "flow": "hierarchy" },
-                "options": { "command": "lace-studio hierarchy" },
+                "options": { "command": "aurora-ide hierarchy" },
                 "output": false,
             }),
         )?;

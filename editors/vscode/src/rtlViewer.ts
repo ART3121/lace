@@ -1,8 +1,8 @@
-// O RTL viewer do Lace numa aba do VS Code: o bundle de packages/rtl-viewer
+// O RTL viewer da AURORA numa aba do VS Code: o bundle de packages/rtl-viewer
 // (media/rtl-viewer, copiado pelo esbuild.mjs) num webview, com as cores do
 // tema do editor (theme-vscode.css). A extensão lê o netlist que o
-// `lace synth` gravou (SynthesisResult.netlist) e o manda ao webview; se ele
-// muda no disco (um `lace synth` no terminal), quem confere (o ChangePoller
+// `aurora synth` gravou (SynthesisResult.netlist) e o manda ao webview; se ele
+// muda no disco (um `aurora synth` no terminal), quem confere (o ChangePoller
 // da extension.ts) chama reload e o desenho acompanha.
 //
 // O webview avisa quando montou (`ready`) e quando o primeiro desenho
@@ -75,7 +75,7 @@ export class RtlViewerPanel implements vscode.Disposable {
 
   private createPanel(): vscode.WebviewPanel {
     const media = vscode.Uri.joinPath(this.extensionUri, 'media', 'rtl-viewer');
-    const panel = vscode.window.createWebviewPanel('lace.rtlViewer', this.title(), vscode.ViewColumn.Active, {
+    const panel = vscode.window.createWebviewPanel('aurora.rtlViewer', this.title(), vscode.ViewColumn.Active, {
       enableScripts: true,
       // O estado do desenho (onde está na hierarquia, o zoom) fica quando a
       // aba vai para trás.
@@ -122,7 +122,7 @@ export class RtlViewerPanel implements vscode.Disposable {
         });
         if (target) {
           await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(message.svg));
-          vscode.window.setStatusBarMessage(`Lace: SVG exportado em ${target.fsPath}`, 6000);
+          vscode.window.setStatusBarMessage(`AURORA: SVG exportado em ${target.fsPath}`, 6000);
         }
         break;
       }
@@ -149,11 +149,11 @@ export class RtlViewerPanel implements vscode.Disposable {
       });
     } catch (error) {
       this.log.error(`RTL viewer: não deu para ler ${path}: ${(error as Error).message}`);
-      void vscode.window.showErrorMessage(`Lace: não deu para ler o netlist ${path}.`);
+      void vscode.window.showErrorMessage(`AURORA: não deu para ler o netlist ${path}.`);
     }
   }
 
-  /** O netlist aberto mudou no disco (um `lace synth` de fora): o desenho acompanha. */
+  /** O netlist aberto mudou no disco (um `aurora synth` de fora): o desenho acompanha. */
   async reload(): Promise<void> {
     if (this.ready) {
       await this.post();
@@ -194,9 +194,9 @@ export class RtlViewerPanel implements vscode.Disposable {
 (() => {
   const vscode = acquireVsCodeApi();
   const root = document.getElementById('root');
-  const viewer = LaceRtlViewer.mount(root, {
+  const viewer = AuroraRtlViewer.mount(root, {
     lang: ${JSON.stringify(lang)},
-    storageKey: 'lace-vscode-rtl-viewer',
+    storageKey: 'aurora-vscode-rtl-viewer',
     onOpenSource: (src) => vscode.postMessage({ type: 'openSource', src }),
     onExport: (fileName, svg) => vscode.postMessage({ type: 'export', fileName, svg }),
     onResynthesize: () => vscode.postMessage({ type: 'resynthesize' }),

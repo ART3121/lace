@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RemoveReport",
-  "description": "`lace remove`.",
+  "description": "`aurora remove`.",
   "type": "object",
   "properties": {
     "project": {

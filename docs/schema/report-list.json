@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ReportListReport",
-  "description": "`lace report list`: os relatórios, do mais novo para o mais antigo.",
+  "description": "`aurora report list`: os relatórios, do mais novo para o mais antigo.",
   "type": "object",
   "properties": {
     "reports": {
@@ -109,7 +109,7 @@
           "const": "cancelled"
         },
         {
-          "description": "Um passo passou do prazo e o Lace o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
+          "description": "Um passo passou do prazo e a AURORA o encerrou. Numa simulação, é o\ntestbench que não chega ao `$finish`.",
           "type": "string",
           "const": "timed_out"
         }

@@ -5,7 +5,7 @@
 //! Prompt de Comando); nos outros sistemas, o do usuário (`$SHELL`).
 //!
 //! O shell abre na pasta do projeto, com a pasta `bin/` da instalação do
-//! Lace no começo do `PATH`, para o usuário poder rodar `lace` direto. Ao
+//! AURORA no começo do `PATH`, para o usuário poder rodar `aurora` direto. Ao
 //! trocar de projeto, a interface pede [`terminal_cd`], que digita no shell
 //! o `cd` para a pasta nova, como o "abrir o terminal aqui" da AURORA: o
 //! histórico e o que estava na tela ficam.
@@ -313,7 +313,7 @@ pub async fn terminal_spawn(
     }
     command.env("TERM", "xterm-256color");
     command.env("COLORTERM", "truecolor");
-    command.env("LACE_STUDIO", "1");
+    command.env("AURORA_IDE", "1");
     if let Some(bin) = toolchain::install_bin_dir(&state.settings.get()) {
         let mut paths = vec![bin.into_std_path_buf()];
         if let Some(current) = std::env::var_os("PATH") {

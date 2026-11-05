@@ -1,4 +1,4 @@
-# No Windows, o runtime do Visual C++ vai dentro dos executáveis (o lace, o
+# No Windows, o runtime do Visual C++ vai dentro dos executáveis (o aurora, o
 # instalador e o Studio): sem isso, eles pedem o VCRUNTIME140.dll, que um
 # Windows sem o Visual C++ Redistributable não tem. O surfer-aurora, que o
 # bundle.py compila fora daqui, recebe o mesmo pela variável de ambiente.

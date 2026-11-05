@@ -1,15 +1,15 @@
-// Os processadores SAPHO do projeto: "Novo processador" (`lace proc add`,
+// Os processadores SAPHO do projeto: "Novo processador" (`aurora proc add`,
 // que cria a pasta, o fonte-modelo e registra no .spf) e "Configurar
-// processador" (`lace proc set`: frequência, clocks e exportação de arrays,
+// processador" (`aurora proc set`: frequência, clocks e exportação de arrays,
 // que valem a partir do próximo build).
 
 import * as vscode from 'vscode';
 
-import type { LaceRun, ProcessorChanges } from '../lace/client';
-import type { Processor, ProcessorStatus } from '../lace/lace-types';
-import { chooseProject, clientFor, processorOf, showLaceError, showProcessError, type CommandDeps } from './common';
+import type { AuroraRun, ProcessorChanges } from '../aurora/client';
+import type { Processor, ProcessorStatus } from '../aurora/aurora-types';
+import { chooseProject, clientFor, processorOf, showAuroraError, showProcessError, type CommandDeps } from './common';
 
-/** A regra do Lace (`lace proc add`): letras, dígitos e _, começando por letra ou _. */
+/** A regra da AURORA (`aurora proc add`): letras, dígitos e _, começando por letra ou _. */
 export const PROCESSOR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 type Language = 'cmm' | 'cpp';
@@ -20,7 +20,7 @@ export interface NewProcessorArgs {
   language: Language;
 }
 
-export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<LaceRun<Processor> | undefined> {
+export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<AuroraRun<Processor> | undefined> {
   const client = clientFor(deps, 'processors');
   const project = client && (await chooseProject(deps.projects));
   if (!client || !project) {
@@ -43,7 +43,7 @@ export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<L
   if (language === undefined) {
     return undefined;
   }
-  let run: LaceRun<Processor>;
+  let run: AuroraRun<Processor>;
   try {
     run = await client.addProcessor(project.spf, name, language);
   } catch (error) {
@@ -51,13 +51,13 @@ export async function newProcessor(deps: CommandDeps, args?: unknown): Promise<L
     return undefined;
   }
   if (run.status === 'error') {
-    showLaceError(run.error);
+    showAuroraError(run.error);
     return run;
   }
   await deps.status.refresh();
   if (run.result) {
     await vscode.window.showTextDocument(vscode.Uri.file(run.result.source));
-    vscode.window.setStatusBarMessage(`$(pass) Lace: processador ${run.result.name} criado`, 6000);
+    vscode.window.setStatusBarMessage(`$(pass) AURORA: processador ${run.result.name} criado`, 6000);
   }
   return run;
 }
@@ -98,7 +98,7 @@ export async function configureProcessor(
   deps: CommandDeps,
   target?: unknown,
   args?: unknown,
-): Promise<LaceRun<Processor> | undefined> {
+): Promise<AuroraRun<Processor> | undefined> {
   const client = clientFor(deps, 'processors');
   const project = client && (await chooseProject(deps.projects));
   if (!client || !project) {
@@ -109,7 +109,7 @@ export async function configureProcessor(
   const processor = processors.find((p) => p.name === name);
   if (name === undefined || processor === undefined) {
     if (name !== undefined) {
-      void vscode.window.showWarningMessage(`Lace: o projeto não tem o processador ${name}.`);
+      void vscode.window.showWarningMessage(`AURORA: o projeto não tem o processador ${name}.`);
     }
     return undefined;
   }
@@ -117,7 +117,7 @@ export async function configureProcessor(
   if (changes === undefined) {
     return undefined;
   }
-  let run: LaceRun<Processor>;
+  let run: AuroraRun<Processor>;
   try {
     run = await client.configureProcessor(project.spf, name, changes);
   } catch (error) {
@@ -125,13 +125,13 @@ export async function configureProcessor(
     return undefined;
   }
   if (run.status === 'error') {
-    showLaceError(run.error);
+    showAuroraError(run.error);
     return run;
   }
   await deps.status.refresh();
   if (run.result) {
     vscode.window.setStatusBarMessage(
-      `$(pass) Lace: ${run.result.name} com ${describeSettings(run.result)}; vale a partir do próximo build`,
+      `$(pass) AURORA: ${run.result.name} com ${describeSettings(run.result)}; vale a partir do próximo build`,
       8000,
     );
   }
@@ -140,7 +140,7 @@ export async function configureProcessor(
 
 async function pickProcessor(processors: readonly ProcessorStatus[]): Promise<string | undefined> {
   if (processors.length === 0) {
-    void vscode.window.showWarningMessage('Lace: o projeto não tem processador. Crie um com Novo processador.');
+    void vscode.window.showWarningMessage('AURORA: o projeto não tem processador. Crie um com Novo processador.');
     return undefined;
   }
   if (processors.length === 1) {
@@ -196,7 +196,7 @@ async function askChanges(processor: ProcessorStatus): Promise<ProcessorChanges 
   return frequency ? { frequencyMhz: Number(value) } : { clocks: Number(value) };
 }
 
-/** Os dois são u32 no Lace, e zero não faz sentido em nenhum. */
+/** Os dois são u32 na AURORA, e zero não faz sentido em nenhum. */
 export function validatePositive(value: string): string | undefined {
   const n = Number(value);
   return /^\d+$/.test(value.trim()) && n > 0 && n <= 0xffffffff ? undefined : 'Um número inteiro maior que zero.';

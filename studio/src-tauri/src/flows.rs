@@ -1,13 +1,13 @@
 //! Os fluxos do Studio: o pedido da interface (o `FlowRequest` do
-//! protocolo, em JSON, com `flow`) vai ao servidor do Lace
+//! protocolo, em JSON, com `flow`) vai ao servidor da AURORA
 //! ([`crate::server`]) pelo `flow.run`, e o resultado volta com o que só o
 //! Studio acrescenta: a onda numa aba.
 //!
 //! A composição em si (compilar antes, parar no primeiro build que falhar,
 //! registrar o Verilog gerado, simular, ler as portas, gravar o relatório,
-//! abrir a onda, corrigir um exercício) é a do Lace, a mesma da CLI, e roda
+//! abrir a onda, corrigir um exercício) é a da AURORA, a mesma da CLI, e roda
 //! no servidor. Aqui ficam só as decisões da interface: o programa
-//! `lace-studio` do comando que vai para o histórico, e se a onda abre em
+//! `aurora-ide` do comando que vai para o histórico, e se a onda abre em
 //! janela ou numa aba (preferência `wave_viewer`).
 
 use camino::Utf8Path;
@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 
 use crate::error::{IpcError, IpcResult, codes};
 use crate::jobs::{JobMessage, Operation};
-use crate::server::LaceServer;
+use crate::server::AuroraServer;
 use crate::settings::Settings;
 use crate::toolchain;
 
@@ -25,8 +25,8 @@ use crate::toolchain;
 const STEP_OUTPUT_LIMIT: usize = 256 * 1024;
 
 /// O programa do comando de um fluxo do Studio: quem rodou foi o Studio, não
-/// a CLI (`lace-studio sim -p soma`).
-const PROGRAM: &str = "lace-studio";
+/// a CLI (`aurora-ide sim -p soma`).
+const PROGRAM: &str = "aurora-ide";
 
 /// O que fazer com a resposta do servidor no fim de um fluxo.
 pub struct Finisher {
@@ -38,7 +38,7 @@ pub struct Finisher {
 /// O pedido ao servidor para o fluxo `request`, com as decisões da
 /// interface, e o que fazer com a resposta.
 pub fn plan(
-    server: &LaceServer,
+    server: &AuroraServer,
     settings: &Settings,
     spf: &Utf8Path,
     request: Value,
@@ -84,7 +84,7 @@ pub fn plan(
 impl Finisher {
     /// A mensagem final da interface: o `FlowOutcome` do servidor, com
     /// `wave_tab` (a onda que a interface abre numa aba, no lugar da
-    /// janela). `failed` é o Lace não conseguir rodar; um fluxo que rodou e
+    /// janela). `failed` é a AURORA não conseguir rodar; um fluxo que rodou e
     /// falhou é `finished` com `succeeded: false`, e um cancelado antes de
     /// começar também.
     pub fn finish(self, reply: IpcResult<Value>) -> JobMessage {
@@ -131,7 +131,7 @@ mod tests {
     fn finisher(wave_tab: bool) -> Finisher {
         Finisher {
             flow: "simulate".to_owned(),
-            command: "lace-studio sim".to_owned(),
+            command: "aurora-ide sim".to_owned(),
             wave_tab,
         }
     }

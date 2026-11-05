@@ -1,11 +1,11 @@
-// Os exercícios do `lace learn`: a pasta de exercícios aberta (lembrada
+// Os exercícios do `aurora learn`: a pasta de exercícios aberta (lembrada
 // entre as sessões), a última correção de cada exercício e as dicas à
 // mostra.
 //
-// Cada exercício é um projeto Lace. Escolher um torna-o o atual e abre o
+// Cada exercício é um projeto AURORA. Escolher um torna-o o atual e abre o
 // projeto dele, o arquivo do aluno à esquerda e o enunciado à direita, sem
 // corrigir. Cada gravação do arquivo (no Studio ou fora dele, pelo vigia de
-// arquivos) corrige, como o modo watch do `lace learn`. A correção é a
+// arquivos) corrige, como o modo watch do `aurora learn`. A correção é a
 // operação `learn` (flows.rs): grava antes os arquivos abertos e põe os
 // erros no editor e na aba do enunciado.
 //
@@ -23,7 +23,7 @@ import { create } from 'zustand';
 
 import { t, useLang } from '../i18n';
 import { api } from '../ipc/api';
-import type { Grade } from '../ipc/lace-types';
+import type { Grade } from '../ipc/aurora-types';
 import type { IpcError, LearnExercise, LearnSnapshot } from '../ipc/types';
 import { samePath } from '../util/paths';
 import { confirm } from './dialogs';
@@ -36,11 +36,11 @@ import { useProject } from './project';
 import { guarded, showError, useToasts } from './toasts';
 import { openWaveTab, useWaveReloads, waveInTab } from './waves';
 
-const ROOT_KEY = 'lace-studio:learn-root';
-const AUTO_KEY = 'lace-studio:learn-auto';
+const ROOT_KEY = 'aurora-ide:learn-root';
+const AUTO_KEY = 'aurora-ide:learn-auto';
 /** Se o painel estava à mostra antes da sessão de exercícios, para voltar
  * a ele ao sair (também depois de fechar e abrir o Studio no meio dela). */
-const PANEL_KEY = 'lace-studio:learn-panel';
+const PANEL_KEY = 'aurora-ide:learn-panel';
 
 function stored(key: string): string | null {
   try {

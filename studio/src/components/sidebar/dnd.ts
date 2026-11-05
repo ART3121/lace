@@ -105,12 +105,12 @@ export function sameTarget(a: DropTarget | null, b: DropTarget | null): boolean 
 /** O que entra nas listas do projeto: Verilog e testbench cocotb (.py). */
 const isVerilog = (path: string) => ['v', 'sv', 'py'].includes(extension(path));
 
-/** Pastas e arquivos que não se movem: o `.spf`, `.lace/` e as pastas dos
+/** Pastas e arquivos que não se movem: o `.spf`, `.aurora8/` e as pastas dos
  * processadores (o backend recusa também). */
 function isProtected(path: string): boolean {
   const snapshot = useProject.getState().snapshot;
   if (!snapshot) return true;
-  if (samePath(path, snapshot.spf) || isInside(path, `${snapshot.root}/.lace`)) return true;
+  if (samePath(path, snapshot.spf) || isInside(path, `${snapshot.root}/.aurora8`)) return true;
   return snapshot.processors.some((p) => isInside(path, p.dir));
 }
 
@@ -120,7 +120,7 @@ function accepts(source: DragSource, target: DropTarget): boolean {
   if (target.kind === 'order') return source.verilog && !samePath(source.path, target.path);
   if (!source.movable || isProtected(source.path)) return false;
   const snapshot = useProject.getState().snapshot;
-  if (snapshot && isInside(target.path, `${snapshot.root}/.lace`)) return false;
+  if (snapshot && isInside(target.path, `${snapshot.root}/.aurora8`)) return false;
   if (samePath(dirName(source.path), target.path)) return false;
   if (source.isDir && isInside(target.path, source.path)) return false;
   return true;

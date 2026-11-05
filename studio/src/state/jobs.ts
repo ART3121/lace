@@ -25,7 +25,7 @@ import type {
   Step,
   SynthesisResult,
   UpdateReport,
-} from '../ipc/lace-types';
+} from '../ipc/aurora-types';
 import type {
   CliFlow,
   CliOutcome,
@@ -69,7 +69,7 @@ export interface LastRun {
   finishedAt: number;
 }
 
-/** Uma linha da saída do `lace install` ou do `lace update`. */
+/** Uma linha da saída do `aurora install` ou do `aurora update`. */
 export interface CliLine {
   text: string;
   style: LineStyle;
@@ -83,7 +83,7 @@ export interface CliLog {
   lines: CliLine[];
 }
 
-/** Quantas linhas do `lace install` e do `lace update` guardar. */
+/** Quantas linhas do `aurora install` e do `aurora update` guardar. */
 const CLI_LOG_LINES = 2000;
 
 interface JobsState {
@@ -100,7 +100,7 @@ interface JobsState {
   run: (request: FlowRequest, statusKey?: string) => Promise<FlowOutcome | null>;
   cancel: () => Promise<void>;
   install: (components: string[]) => Promise<boolean>;
-  /** `lace update --yes`, depois de a interface confirmar. Devolve o
+  /** `aurora update --yes`, depois de a interface confirmar. Devolve o
    * relatório da CLI, ou null se falhou. */
   update: () => Promise<UpdateReport | null>;
 }
@@ -119,7 +119,7 @@ const STEP_CHANNEL: Record<Step, ConsoleChannel> = {
   synthesize: 'rtlViewer',
   graph: 'rtlViewer',
   render: 'rtlViewer',
-  // Os passos do Quartus (`lace fpga build` e `program`). O `synthesize`
+  // Os passos do Quartus (`aurora fpga build` e `program`). O `synthesize`
   // dele vai para o mesmo console pela ferramenta (`channelOf`).
   fit: 'fpga',
   bitstream: 'fpga',
@@ -327,7 +327,7 @@ function handleEvent(event: Event): void {
 
 /** O resumo de um build, como a linha de título da CLI. Os diagnósticos vão
  * junto porque a mensagem do YANC não traz o arquivo (`Error on line 16`); o
- * Lace o preenche, e a linha com `arquivo:linha` vira link. Nas outras fases a
+ * AURORA o preenche, e a linha com `arquivo:linha` vira link. Nas outras fases a
  * ferramenta já escreveu o arquivo e a linha ao vivo, e o resumo não repete. */
 function writeBuild(result: BuildResult): void {
   const failedStep = result.failed_step as Step | null;
@@ -536,7 +536,7 @@ interface CliFailure {
   error?: { code?: string; message?: string; hint?: string | null };
 }
 
-/** Roda uma operação da CLI (`lace install`, `lace update`): a tela do
+/** Roda uma operação da CLI (`aurora install`, `aurora update`): a tela do
  * bundle abre e mostra cada linha (`cliLog`), o fim vai para `last`, e o
  * bundle é relido, porque a operação mexe nele. O erro que a CLI descreve no
  * JSON vira o aviso. Devolve o resultado, ou null se a operação não chegou ao
@@ -549,7 +549,7 @@ function runCli(flow: CliFlow, start: (onMessage: (m: JobMessage) => void) => Pr
   const startedAt = Date.now();
   useJobs.setState({
     running: { id: null, flow, phase: null, startedAt, command: '', statusKey: flow },
-    cliLog: { flow, command: `lace ${flow}`, lines: [] },
+    cliLog: { flow, command: `aurora ${flow}`, lines: [] },
   });
   useEditor.getState().openView('toolchain');
   return new Promise((resolve) => {
@@ -781,7 +781,7 @@ export const useJobs = create<JobsState>((set, get) => ({
       return null;
     }
     const report = outcome.result as UpdateReport;
-    const version = report.lace.latest;
+    const version = report.aurora.latest;
     if (report.action === 'updated') {
       const changes = report.method === 'components' ? report.changes : null;
       const text = changes

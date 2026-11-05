@@ -1,6 +1,6 @@
 # O bundle de ferramentas
 
-O Lace só executa ferramentas de um bundle instalado junto com ele. Nunca do
+A AURORA só executa ferramentas de um bundle instalado junto com ele. Nunca do
 `PATH`, nunca de um caminho configurado pelo usuário. As exceções, decididas
 pelo autor, são o compilador C++ do Verilator no Linux e no macOS (no
 Windows ele vem no bundle) e o Quartus Prime, para as placas Intel; e o
@@ -33,9 +33,9 @@ Bundle `2026.10.22`. Os pacotes, com as versões fixadas em
 | OSS CAD Suite | release 2026-10-22 | Linux e macOS: Icarus Verilog, Verilator, o cocotb com o Python que o roda, Yosys, o `dot` do Graphviz e o openFPGALoader. Windows: o Yosys e o openFPGALoader | pacote oficial, conferido pelo SHA-256 publicado |
 | msys | `ucrt64-v2` | Icarus Verilog, Verilator, o g++, o `make` e o Perl que ele usa, Python com cocotb | só no Windows: release do lace-toolchain, o zip e o manifesto conferidos pelo SHA-256 fixado |
 | Graphviz | 16.1.0 | `dot` | só no Windows (o OSS CAD Suite de Windows não traz), zip oficial conferido pelo SHA-256 publicado |
-| studio | a versão do Lace | o Lace Studio: o executável `lace-studio` (Linux, Windows) ou o `Lace Studio.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
-| lace-learn | a versão do Lace | as trilhas de exercícios do `lace learn` ([LEARN.md](LEARN.md)): textos, `.v` e `.json` | copiadas de `lace-learn/` deste repositório |
-| rtl-viewer | a versão do Lace | o modelo do HTML do RTL viewer (`rtl-viewer.html`), que o `lace synth --open` preenche com o netlist: o viewer, o React e o worker do layout num arquivo só | gerado de `packages/rtl-viewer/` deste repositório pelo empacotamento (`npm ci`, `npm run build`) |
+| studio | a versão da AURORA | a AURORA IDE: o executável `aurora-ide` (Linux, Windows) ou o `AURORA IDE.app` (macOS) | compilado de `studio/` deste repositório pelo empacotamento (`npm ci`, `tauri build`) |
+| aurora-learn | a versão da AURORA | as trilhas de exercícios do `aurora learn` ([LEARN.md](LEARN.md)): textos, `.v` e `.json` | copiadas de `aurora-learn/` deste repositório |
+| rtl-viewer | a versão da AURORA | o modelo do HTML do RTL viewer (`rtl-viewer.html`), que o `aurora synth --open` preenche com o netlist: o viewer, o React e o worker do layout num arquivo só | gerado de `packages/rtl-viewer/` deste repositório pelo empacotamento (`npm ci`, `npm run build`) |
 
 Os componentes, que o instalador deixa escolher, estão em
 `bundle/components.json`, junto dos perfis de instalação (`profiles`), que
@@ -53,11 +53,11 @@ juntam componentes por tipo de trabalho
 | `surfer-aurora` | surfer-aurora | `surfer-aurora/` |
 | `openfpgaloader` | OSS CAD Suite | `oss-cad-suite/` |
 | `studio` | studio | `studio/` |
-| `lace-learn` | lace-learn | `lace-learn/` |
+| `aurora-learn` | aurora-learn | `aurora-learn/` |
 | `rtl-viewer` | rtl-viewer | `rtl-viewer/` |
 
-O Lace não roda o Studio: ele está no bundle para o instalador e o
-`lace install` o oferecerem como os outros, e o Studio instalado usa o
+A AURORA não roda o Studio: ele está no bundle para o instalador e o
+`aurora install` o oferecerem como os outros, e o Studio instalado usa o
 bundle em que está.
 Liga só às bibliotecas do sistema (`closure: false`): no Linux, ao
 webkit2gtk 4.1 e ao GTK 3; no Windows, ao WebView2.
@@ -67,7 +67,7 @@ O componente `openfpgaloader` grava as placas FPGA pelo cabo USB delas
 do pacote, nas três plataformas (13 MiB no Linux, 5 MiB no macOS; no
 Windows, a maior parte é a `libstdc++` que ele divide com o Yosys). Os
 bitstreams auxiliares de gravar flash (`share/openFPGALoader`) ficam de
-fora: nenhum serve às placas que o Lace conhece. O pacote não traz a regra
+fora: nenhum serve às placas que a AURORA conhece. O pacote não traz a regra
 do udev do openFPGALoader, que o Linux exige para acessar o cabo sem root.
 
 O OSS CAD Suite inteiro tem 2,5 GB no Linux: traz também nextpnr, GHDL,
@@ -130,16 +130,16 @@ identificam assim:
 | Plataforma | Nome no bundle | Observação |
 |---|---|---|
 | Linux x64 | `linux-x64` | |
-| macOS Apple Silicon | `darwin-arm64` | O OSS CAD Suite avisou que vai parar de publicar o macOS Intel, que o Lace não suporta. |
+| macOS Apple Silicon | `darwin-arm64` | O OSS CAD Suite avisou que vai parar de publicar o macOS Intel, que a AURORA não suporta. |
 | Windows 10 e 11 x64 | `windows-x64` | |
 
 Um bundle só abre na plataforma para a qual foi montado.
 
-## 3. Onde fica e como o Lace o usa
+## 3. Onde fica e como a AURORA o usa
 
 ```
 <instalação>/
-  bin/lace[.exe]
+  bin/aurora[.exe]
   toolchain/
     bundle.json               formato, versão do bundle, plataforma
     components/<nome>.json    um por componente instalado
@@ -148,18 +148,18 @@ Um bundle só abre na plataforma para a qual foi montado.
     msys/                     só no Windows: ucrt64/ e usr/bin/ do bloco MSYS2
     surfer-aurora/            surfer-aurora[.exe], web/ (o cliente web: index.html, surfer.js, surfer_bg.wasm)
     graphviz/                 só no Windows
-    studio/                   o Lace Studio: lace-studio[.exe], ou Lace Studio.app no macOS
-    lace-learn/               as trilhas do lace learn
-    rtl-viewer/               rtl-viewer.html, o modelo do HTML do lace synth --open
+    studio/                   a AURORA IDE: aurora-ide[.exe], ou AURORA IDE.app no macOS
+    aurora-learn/               as trilhas do aurora learn
+    rtl-viewer/               rtl-viewer.html, o modelo do HTML do aurora synth --open
 ```
 
-O Lace procura `toolchain/` ao lado de `bin/` (ou ao lado do executável,
+A AURORA procura `toolchain/` ao lado de `bin/` (ou ao lado do executável,
 com os symlinks resolvidos).
-`lace --toolchain <DIR>` usa outro bundle, para desenvolvimento; ele também
+`aurora --toolchain <DIR>` usa outro bundle, para desenvolvimento; ele também
 precisa ter `bundle.json`.
 
 Cada `components/<nome>.json` tem a versão, a origem e o SHA-256 de cada
-executável do componente que o Lace roda. `lace tools --verify` confere
+executável do componente que a AURORA roda. `aurora tools --verify` confere
 esses hashes. Um componente sem arquivo em `components/` não está instalado.
 
 Como cada ferramenta é executada:
@@ -178,10 +178,10 @@ Windows, o `PATH` das ferramentas do pacote termina em
 `%SystemRoot%\System32`, e o `ComSpec` é repassado: o `iverilog` roda o
 `ivlpp` e o `ivl` pelo `system()` da biblioteca C, que usa o `cmd.exe`.
 
-O Lace roda o cocotb com o Icarus e com o Verilator ([API.md, seção
+A AURORA roda o cocotb com o Icarus e com o Verilator ([API.md, seção
 5.3.2](API.md#532-testbench-cocotb)): o Python do componente
 (`oss-cad-suite/bin/tabbypy3` no Linux e no macOS,
-`msys/ucrt64/bin/python.exe` no Windows) roda uma sonda que diz ao Lace
+`msys/ucrt64/bin/python.exe` no Windows) roda uma sonda que diz à AURORA
 onde estão as VPIs, o `verilator.cpp` do cocotb e a biblioteca do Python.
 O `vvp` carrega a VPI com o ambiente que ela descreve; no Verilator, a VPI
 entra na ligação do modelo, que roda com o mesmo ambiente. No Windows o
@@ -192,35 +192,35 @@ Quem rodar à mão com o Verilator tem de passar ao `make` o Python do pacote
 isso, o `verilated.mk` chama o `python3` do sistema com o `PYTHONHOME` do
 pacote, herdado do lançador, e ele falha ao carregar a biblioteca padrão.
 
-O Lace recusa um bundle em que um componente, ou um executável, seja um
+A AURORA recusa um bundle em que um componente, ou um executável, seja um
 symlink para fora dele. E recusa rodar o Verilator se faltar o
 `verilator_bin` do pacote: sem ele, o script Perl procuraria um
 `verilator_bin` no `PATH`, que no Linux e no macOS inclui `/usr/bin`.
 
-O `dot` do Linux recebe um `fonts.conf` gravado pelo Lace na pasta da
+O `dot` do Linux recebe um `fonts.conf` gravado pela AURORA na pasta da
 síntese, a partir do modelo que o pacote traz (como fazem os lançadores do
 `xdot` e do `gtkwave`), e usa as fontes do pacote.
 
 ## 4. O que vem do sistema
 
-| O quê | Por quê | Onde o Lace procura |
+| O quê | Por quê | Onde a AURORA procura |
 |---|---|---|
 | `/bin/bash`, `dirname`, `readlink` (Linux e macOS) | os lançadores do OSS CAD Suite são scripts bash; é o jeito oficial de rodar o pacote | fazem parte do sistema base |
-| `libc` (Linux e macOS) | o `lace` e o YANC são binários nativos ligados à `libc` do sistema; as ferramentas do OSS CAD Suite não, carregam as bibliotecas do pacote | sistema base |
+| `libc` (Linux e macOS) | o `aurora` e o YANC são binários nativos ligados à `libc` do sistema; as ferramentas do OSS CAD Suite não, carregam as bibliotecas do pacote | sistema base |
 | fontes (macOS e Windows) | os pacotes dessas plataformas não trazem fontes; o `dot` usa as do sistema | as do sistema |
 | compilador C++, `make`, Perl (Linux e macOS) | exceção decidida pelo autor: o Verilator compila o modelo em C++, e o OSS CAD Suite não traz compilador. No Windows os três vêm no bundle, com o Verilator | locais fixos: `/usr/bin` (Linux); `/usr/bin` com as Command Line Tools do Xcode (macOS) |
-| Quartus Prime (Windows e Linux) | segunda exceção decidida pelo autor: o bitstream das placas Intel sai dele, que é proprietário, tem dezenas de GB e não pode ir no bundle. Só as placas FPGA o usam, um recurso experimental desligado por padrão (`lace experimental enable fpga`) | `--quartus` ou `LACE_QUARTUS`; senão `QUARTUS_ROOTDIR`; senão `C:\intelFPGA_lite`, `C:\intelFPGA`, `C:\altera_lite`, `C:\altera` (Windows) e as mesmas na pasta do usuário e em `/opt` (Linux), a versão mais nova ([FPGA.md](FPGA.md)) |
-| `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho; no Linux e no macOS, o Lace sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
+| Quartus Prime (Windows e Linux) | segunda exceção decidida pelo autor: o bitstream das placas Intel sai dele, que é proprietário, tem dezenas de GB e não pode ir no bundle. Só as placas FPGA o usam, um recurso experimental desligado por padrão (`aurora experimental enable fpga`) | `--quartus` ou `AURORA_QUARTUS`; senão `QUARTUS_ROOTDIR`; senão `C:\intelFPGA_lite`, `C:\intelFPGA`, `C:\altera_lite`, `C:\altera` (Windows) e as mesmas na pasta do usuário e em `/opt` (Linux), a versão mais nova ([FPGA.md](FPGA.md)) |
+| `taskkill.exe` (Windows) | encerrar a árvore de processos de um passo cancelado ou que passou do prazo (`taskkill /T /F`), só quando o sistema recusa o Job Object do passo, que é o que normalmente a encerra. Só encerra, não executa trabalho; no Linux e no macOS, a AURORA sinaliza o grupo de processos do passo e não roda programa nenhum | `%SystemRoot%\System32` (`C:\Windows\System32` sem `SystemRoot`) |
 
 Sem o compilador, tudo funciona menos a simulação com Verilator, e
-`lace tools` avisa. Para um compilador fora do local padrão, a opção global
-`--compiler` ou a variável `LACE_COMPILER`, que vale para toda chamada. No
+`aurora tools` avisa. Para um compilador fora do local padrão, a opção global
+`--compiler` ou a variável `AURORA_COMPILER`, que vale para toda chamada. No
 Windows ela troca o compilador do bundle pelo de um MSYS2 instalado, só
 para desenvolvimento:
 
 ```
-LACE_COMPILER=/opt/gcc/bin lace tools        # Linux, macOS: diretório com perl, make e g++/clang++
-lace tools --compiler D:\msys64              # Windows: raiz de um MSYS2, no lugar do bundle
+AURORA_COMPILER=/opt/gcc/bin aurora tools        # Linux, macOS: diretório com perl, make e g++/clang++
+aurora tools --compiler D:\msys64              # Windows: raiz de um MSYS2, no lugar do bundle
 ```
 
 Como deixar a variável definida em cada shell: [CLI.md](CLI.md#de-onde-vêm-as-ferramentas).
@@ -240,7 +240,7 @@ Instalar o compilador:
 - **Verilator grava VCD, não FST.** No Linux e no macOS, o FST do Verilator
   compila contra lz4 e zlib, que não vêm no pacote nem fazem parte da
   exceção do compilador. O Windows segue o mesmo formato. O Icarus grava
-  FST, e o Lace troca a extensão do `$dumpfile` numa cópia do testbench
+  FST, e a AURORA troca a extensão do `$dumpfile` numa cópia do testbench
   quando ele pede outra.
 - **As versões de Icarus e Verilator diferem entre as plataformas.** No
   Linux e no macOS são os builds de desenvolvimento do OSS CAD Suite
@@ -251,7 +251,7 @@ Instalar o compilador:
 - **O esquemático depende das fontes no macOS e no Windows.** Lá o `dot`
   mede o texto com as fontes do sistema, e o SVG pode variar de máquina para
   máquina. No Linux usa as do bundle.
-- **Esquemático diferente da AURORA.** O Lace desenha com o `show` do Yosys e
+- **Esquemático diferente da AURORA.** A AURORA desenha com o `show` do Yosys e
   o `dot`; a AURORA, com o netlistsvg e skins próprios.
 - **O YANC é compilado pelo empacotamento, e o surfer-aurora, uma vez por
   commit.** O YANC não publica build de macOS, e o surfer-aurora publica só
@@ -261,7 +261,7 @@ Instalar o compilador:
   `surfer-aurora-<versão>` deste repositório; o `bundle.py` baixa e
   confere pelo SHA-256 do `prebuilt` em `bundle/versions.json`, em vez de
   compilar em cada release (uns 14 minutos por plataforma). O cliente web, igual nas três plataformas, vem
-  do zip publicado: é ele que o Lace Studio mostra numa aba, ligado a um
+  do zip publicado: é ele que a AURORA IDE mostra numa aba, ligado a um
   `surfer-aurora server` da mesma versão (o cliente recusa um servidor com
   outra versão do leitor de ondas).
 
@@ -274,14 +274,14 @@ python3 scripts/bundle.py --out dist/toolchain --only yanc     # parcial, para t
 
 O script baixa (uma vez, para `.bundle-cache/`) e confere o SHA-256 de cada
 pacote, compila o YANC do commit fixado (e o surfer-aurora, quando não há o
-pré-compilado da plataforma em `prebuilt`, ou com `LACE_BUILD_SURFER`),
+pré-compilado da plataforma em `prebuilt`, ou com `AURORA_BUILD_SURFER`),
 separa a parte de
 cada componente e grava o `bundle.json`, os `components/<nome>.json` com o
 hash de cada executável, e `dist/toolchain.contents.json`, o índice de que
 arquivo é de que componente, que os instaladores usam
 ([RELEASE.md](RELEASE.md)). É o único lugar que baixa um pacote de
-ferramenta: em uso, o Lace só lê o bundle, e o `lace install` e o
-`lace update` baixam da release do Lace os pedaços do bundle já montado.
+ferramenta: em uso, a AURORA só lê o bundle, e o `aurora install` e o
+`aurora update` baixam da release da AURORA os pedaços do bundle já montado.
 
 `--platform` monta a divisão de outra plataforma: os pacotes prontos se
 dividem em qualquer sistema; o YANC, o Studio e o surfer-aurora sem
@@ -297,7 +297,7 @@ do `prebuilt` pelos do resumo da execução.
 No Windows, o pacote msys precisa do SHA-256 da release do lace-toolchain em
 `bundle/versions.json` (o zip em `sha256`, o manifesto em
 `manifest_sha256`); sem ele, o `bundle.py` para e diz o que falta. Para
-testar um bloco que ainda não foi publicado, `LACE_MSYS_DIST` aponta para o
+testar um bloco que ainda não foi publicado, `AURORA_MSYS_DIST` aponta para o
 `dist/` de um build local do lace-toolchain (com o `lace-msys-<tag>.zip` e o
 `.json`), e o `bundle.py` usa ele no lugar da release.
 
@@ -315,7 +315,7 @@ sem ele, `--only` com os outros componentes.
 
 O workflow `.github/workflows/installers.yml`, que o `release.yml` chama
 numa tag, monta o bundle e os instaladores nas três plataformas e confere o
-bundle com `lace tools --verify`, sem rodar os testes: os instaladores
+bundle com `aurora tools --verify`, sem rodar os testes: os instaladores
 publicados se testam à mão.
 
 ### Atualizar uma versão
@@ -330,15 +330,15 @@ publicados se testam à mão.
    que estão no `SHA256SUMS` da release.
 2. Mudar `bundle`, o identificador do bundle.
 3. No YANC, pôr o `vendor/yanc` no mesmo `commit` de
-   `bundle/versions.json` (ou apontar `LACE_TEST_YANC_SRC` para um fonte
-   nesse commit): é dele que `crates/lace-core/tests/yanc_regression.rs` lê
+   `bundle/versions.json` (ou apontar `AURORA_TEST_YANC_SRC` para um fonte
+   nesse commit): é dele que `crates/aurora-core/tests/yanc_regression.rs` lê
    os casos de teste do próprio YANC, e com outro commit os testes comparam
    o compilador novo com os casos de teste antigos. A release não roda
    testes: esses rodam à mão.
 4. Montar o bundle e rodar os testes
-   (`LACE_TEST_BUNDLE="$PWD/dist/toolchain" cargo test`; ver a seção 7).
+   (`AURORA_TEST_BUNDLE="$PWD/dist/toolchain" cargo test`; ver a seção 7).
 
-Nada no código do Lace muda com a versão, a menos que um pacote mude de
+Nada no código da AURORA muda com a versão, a menos que um pacote mude de
 estrutura (nome de diretório, forma dos lançadores). Se um caminho de
 `bundle/components.json` sumir do pacote, ou um binário pedir uma biblioteca
 que o pacote não tem, o `bundle.py` falha dizendo qual.
@@ -346,18 +346,18 @@ que o pacote não tem, o `bundle.py` falha dizendo qual.
 ## 7. Testes
 
 ```
-export LACE_TEST_BUNDLE="$PWD/dist/toolchain"
+export AURORA_TEST_BUNDLE="$PWD/dist/toolchain"
 cargo test
-LACE_TEST_GUI=1 cargo test --test tools surfer     # abre uma janela do surfer-aurora
+AURORA_TEST_GUI=1 cargo test --test tools surfer     # abre uma janela do surfer-aurora
 ```
 
-`LACE_TEST_BUNDLE` precisa ser um caminho absoluto. O `cargo test` roda
-cada teste no diretório do crate (`crates/lace-core`, `crates/lace-cli`),
+`AURORA_TEST_BUNDLE` precisa ser um caminho absoluto. O `cargo test` roda
+cada teste no diretório do crate (`crates/aurora-core`, `crates/aurora-cli`),
 e um caminho relativo como `dist/toolchain` é procurado lá: os testes do
-`lace-core` falham com "LACE_TEST_BUNDLE não é um bundle válido", mesmo
+`aurora-core` falham com "AURORA_TEST_BUNDLE não é um bundle válido", mesmo
 com o bundle no lugar certo a partir da raiz do repositório. O fonte do YANC
 para `yanc_regression` vem de `vendor/yanc`, no commit de
-`bundle/versions.json`, ou de `LACE_TEST_YANC_SRC`.
+`bundle/versions.json`, ou de `AURORA_TEST_YANC_SRC`.
 
-Sem `LACE_TEST_BUNDLE`, os testes que dependem de ferramenta avisam e passam.
+Sem `AURORA_TEST_BUNDLE`, os testes que dependem de ferramenta avisam e passam.
 Com `CI` definido, a ausência é falha.

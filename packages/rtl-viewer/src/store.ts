@@ -4,9 +4,9 @@
 // deve voltar ao mesmo lugar.
 //
 // O netlist é o `hierarchy.json` que o Yosys grava na síntese
-// (SynthesisResult.netlist, no JSON do `lace synth`). Quem o lê é quem
+// (SynthesisResult.netlist, no JSON do `aurora synth`). Quem o lê é quem
 // abriga o viewer: o Studio pelo backend, o VS Code pela extensão, o HTML do
-// `lace synth --open` de dentro dele mesmo.
+// `aurora synth --open` de dentro dele mesmo.
 
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 
@@ -66,7 +66,7 @@ const DEFAULTS: ViewerOptions = { netNames: true, flags: true, busWidths: true, 
 
 /**
  * Um estado novo. `storageKey` guarda as preferências no `localStorage`
- * (o Studio usa `lace-studio:rtlViewer`); sem ela, valem até fechar.
+ * (o Studio usa `aurora-ide:rtlViewer`); sem ela, valem até fechar.
  */
 export function createRtlViewerStore(options: { storageKey?: string } = {}): RtlViewerStore {
   const { storageKey } = options;

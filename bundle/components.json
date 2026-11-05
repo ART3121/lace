@@ -6,8 +6,8 @@
     "data: caminhos que entram sem fecho (os módulos do Python, por exemplo).",
     "exclude: caminhos que não entram, mesmo que casem com select ou data.",
     "keep: exceções ao exclude: entram mesmo casando com ele (alguns pacotes do site-packages do Python, sem os outros).",
-    "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora, Lace Studio).",
-    "run: os executáveis que o Lace roda; o SHA-256 de cada um vai para o manifesto.",
+    "closure: false para binários nativos ligados só às bibliotecas do sistema (YANC, surfer-aurora, AURORA IDE).",
+    "run: os executáveis que a AURORA roda; o SHA-256 de cada um vai para o manifesto.",
     "Padrões: caminho exato, 'dir/**' para tudo abaixo de dir, ou glob de fnmatch.",
     "Chaves de plataforma: linux-x64, darwin-arm64, windows-x64; 'unix' vale para as duas primeiras.",
     "common: arquivos de um pacote que vão com qualquer componente dele (no macOS, o realpath que os lançadores usam).",
@@ -23,16 +23,16 @@
     {
       "name": "sapho",
       "label": "SAPHO",
-      "description": "Every Lace app",
+      "description": "Every AURORA app",
       "audience": "People who build SAPHO processors and program them in C±, with the Verilog tools around them: simulation, synthesis, waves, FPGA boards and the exercises",
-      "components": ["yanc", "icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "lace-learn", "rtl-viewer"]
+      "components": ["yanc", "icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "aurora-learn", "rtl-viewer"]
     },
     {
       "name": "verilog",
       "label": "Verilog",
       "description": "Every app except YANC",
       "audience": "People who design in Verilog without SAPHO processors: modules, testbenches in Verilog or cocotb, simulation in Icarus or Verilator, synthesis and FPGA boards",
-      "components": ["icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "lace-learn", "rtl-viewer"]
+      "components": ["icarus", "verilator", "cocotb", "yosys", "graphviz", "surfer-aurora", "openfpgaloader", "studio", "aurora-learn", "rtl-viewer"]
     }
   ],
   "translations": {
@@ -54,13 +54,13 @@
           "windows-x64": "O ambiente gráfico (editor, compilação, simulação, ondas); precisa do WebView2, que vem com o Windows 10 e 11",
           "*": "O ambiente gráfico (editor, compilação, simulação, ondas)"
         },
-        "lace-learn": "Exercícios de Verilog no estilo do rustlings: o lace learn e a vista Exercícios do Studio",
-        "rtl-viewer": "O esquemático interativo do netlist da síntese, no navegador: lace synth --open"
+        "aurora-learn": "Exercícios de Verilog no estilo do rustlings: o aurora learn e a vista Exercícios do Studio",
+        "rtl-viewer": "O esquemático interativo do netlist da síntese, no navegador: aurora synth --open"
       },
       "profiles": {
         "sapho": {
           "label": "SAPHO",
-          "description": "Todos os aplicativos do Lace",
+          "description": "Todos os aplicativos da AURORA",
           "audience": "Quem constrói processadores SAPHO e os programa em C±, com as ferramentas de Verilog em volta: simulação, síntese, ondas, placas FPGA e os exercícios"
         },
         "verilog": {
@@ -238,7 +238,7 @@
     },
     {
       "name": "studio",
-      "label": "Lace Studio",
+      "label": "AURORA IDE",
       "description": {
         "linux-x64": "The graphical environment (editor, build, simulation, waves); needs the system webkit2gtk 4.1",
         "windows-x64": "The graphical environment (editor, build, simulation, waves); needs the WebView2 runtime that comes with Windows 10 and 11",
@@ -248,17 +248,17 @@
       "closure": false,
       "select": { "*": ["**"] },
       "run": {
-        "linux-x64": ["lace-studio"],
-        "darwin-arm64": ["Lace Studio.app/Contents/MacOS/lace-studio"],
-        "windows-x64": ["lace-studio.exe"]
+        "linux-x64": ["aurora-ide"],
+        "darwin-arm64": ["AURORA IDE.app/Contents/MacOS/aurora-ide"],
+        "windows-x64": ["aurora-ide.exe"]
       }
     },
     {
-      "name": "lace-learn",
-      "label": "Lace Learn",
-      "description": "Verilog exercises in the style of rustlings: lace learn and the Exercises view of the Studio",
+      "name": "aurora-learn",
+      "label": "AURORA Learn",
+      "description": "Verilog exercises in the style of rustlings: aurora learn and the Exercises view of the Studio",
       "requires": ["icarus"],
-      "package": "lace-learn",
+      "package": "aurora-learn",
       "closure": false,
       "select": { "*": ["**"] },
       "run": {}
@@ -266,7 +266,7 @@
     {
       "name": "rtl-viewer",
       "label": "RTL viewer",
-      "description": "The interactive schematic of the synthesis netlist, in the browser: lace synth --open",
+      "description": "The interactive schematic of the synthesis netlist, in the browser: aurora synth --open",
       "requires": ["yosys"],
       "package": "rtl-viewer",
       "closure": false,

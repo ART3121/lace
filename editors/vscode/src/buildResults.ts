@@ -1,4 +1,4 @@
-// Os erros e avisos do YANC no painel Problemas: os do `lace build` e os do
+// Os erros e avisos do YANC no painel Problemas: os do `aurora build` e os do
 // build que o sim e o synth fazem antes. Uma coleção própria, separada da do
 // check: um check não apaga os erros do último build, e o contrário também.
 // Cada processador troca só os dele.
@@ -7,9 +7,9 @@ import { sep } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { BuildResult, Severity } from './lace/lace-types';
+import type { BuildResult, Severity } from './aurora/aurora-types';
 import { countProblems, groupProblems, type Problem, type ProblemCount } from './problems';
-import type { LaceProject } from './projects';
+import type { AuroraProject } from './projects';
 
 const SEVERITIES: Record<Severity, vscode.DiagnosticSeverity> = {
   error: vscode.DiagnosticSeverity.Error,
@@ -19,7 +19,7 @@ const SEVERITIES: Record<Severity, vscode.DiagnosticSeverity> = {
 };
 
 export class BuildResults implements vscode.Disposable {
-  private readonly collection = vscode.languages.createDiagnosticCollection('lace-build');
+  private readonly collection = vscode.languages.createDiagnosticCollection('aurora-build');
   /** Os arquivos com problema de cada processador, para trocar só os dele. */
   private readonly files = new Map<string, Set<string>>();
   private readonly counts = new Map<string, ProblemCount>();
@@ -38,7 +38,7 @@ export class BuildResults implements vscode.Disposable {
   }
 
   /** Troca os problemas dos processadores destes builds pelos novos. */
-  apply(builds: readonly BuildResult[], project: LaceProject): void {
+  apply(builds: readonly BuildResult[], project: AuroraProject): void {
     if (builds.length === 0) {
       return;
     }

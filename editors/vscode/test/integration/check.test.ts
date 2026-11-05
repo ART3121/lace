@@ -1,30 +1,30 @@
-// "Lace: Verificar" dentro do VS Code, com o lace falso: o comando roda
-// `lace check` pelo --events e põe os diagnósticos no painel Problemas.
+// "AURORA: Verificar" dentro do VS Code, com o aurora falso: o comando roda
+// `aurora check` pelo --events e põe os diagnósticos no painel Problemas.
 
 import * as assert from 'node:assert/strict';
 import { join, sep } from 'node:path';
 
 import * as vscode from 'vscode';
 
-import type { LaceRun } from '../../src/lace/client';
-import type { CheckReport } from '../../src/lace/lace-types';
+import type { AuroraRun } from '../../src/aurora/client';
+import type { CheckReport } from '../../src/aurora/aurora-types';
 import type { SourceNode } from '../../src/sources/provider';
 import { activate, lastCall, resetFake, run, spf, workspace } from './helpers';
 
-/** Os diagnósticos da extensão (as fontes são as ferramentas do Lace). */
-function laceDiagnostics(): [vscode.Uri, vscode.Diagnostic[]][] {
+/** Os diagnósticos da extensão (as fontes são as ferramentas da AURORA). */
+function auroraDiagnostics(): [vscode.Uri, vscode.Diagnostic[]][] {
   return vscode.languages
     .getDiagnostics()
     .filter(([, list]) => list.some((d) => d.source === 'iverilog' || d.source === 'verilator'));
 }
 
-describe('Lace: Verificar', () => {
+describe('AURORA: Verificar', () => {
   before(async () => {
     await resetFake(await activate());
   });
 
-  it('o projeto: lace check pelo --events, e os avisos no painel Problemas', async () => {
-    const result = await run<LaceRun<CheckReport>>('lace.check');
+  it('o projeto: aurora check pelo --events, e os avisos no painel Problemas', async () => {
+    const result = await run<AuroraRun<CheckReport>>('aurora.check');
     assert.equal(result?.status, 'succeeded');
     assert.deepEqual(lastCall('check'), ['-C', spf, '--events', 'check']);
     const soma = vscode.languages.getDiagnostics(vscode.Uri.file(join(workspace, 'soma', 'soma', 'soma.v')));
@@ -33,8 +33,8 @@ describe('Lace: Verificar', () => {
   });
 
   it('a biblioteca SAPHO do bundle fica fora do painel', async () => {
-    await run('lace.check');
-    const files = laceDiagnostics().map(([uri]) => uri.fsPath);
+    await run('aurora.check');
+    const files = auroraDiagnostics().map(([uri]) => uri.fsPath);
     assert.ok(files.length > 0);
     assert.deepEqual(
       files.filter((file) => !file.startsWith(workspace + sep)),
@@ -43,9 +43,9 @@ describe('Lace: Verificar', () => {
   });
 
   it('com lint: passa --lint, e o Verilator dá a coluna', async () => {
-    await run('lace.checkLint');
+    await run('aurora.checkLint');
     assert.deepEqual(lastCall('check'), ['-C', spf, '--events', 'check', '--lint']);
-    const columns = laceDiagnostics()
+    const columns = auroraDiagnostics()
       .flatMap(([, list]) => list)
       .filter((d) => d.source === 'verilator' && d.range.start.character > 0);
     assert.ok(columns.length > 0);
@@ -53,10 +53,10 @@ describe('Lace: Verificar', () => {
 
   it('um arquivo e um processador', async () => {
     const file = join(workspace, 'rtl', 'somador.v');
-    await run('lace.checkFile', vscode.Uri.file(file));
+    await run('aurora.checkFile', vscode.Uri.file(file));
     assert.deepEqual(lastCall('check'), ['-C', spf, '--events', 'check', file]);
     const processor = { kind: 'entry', entry: { role: 'processor', label: 'soma', path: null } } as unknown as SourceNode;
-    await run('lace.checkProcessor', processor);
+    await run('aurora.checkProcessor', processor);
     assert.deepEqual(lastCall('check'), ['-C', spf, '--events', 'check', '-p', 'soma']);
   });
 });

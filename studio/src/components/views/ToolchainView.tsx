@@ -1,7 +1,7 @@
-// O bundle do Lace: o equivalente gráfico do `lace tools`, com a conferência
-// dos hashes, a busca de atualização (`lace update --check`), a atualização
-// (`lace update --yes`, depois de confirmar, e o reinício do Studio, em
-// state/updates.ts) e a instalação de componentes (`lace install`). A saída
+// O bundle da AURORA: o equivalente gráfico do `aurora tools`, com a conferência
+// dos hashes, a busca de atualização (`aurora update --check`), a atualização
+// (`aurora update --yes`, depois de confirmar, e o reinício do Studio, em
+// state/updates.ts) e a instalação de componentes (`aurora install`). A saída
 // da última instalação ou atualização aparece aqui.
 
 import { CircleArrowUp, CircleCheck, CircleX, Download, RefreshCw, ShieldCheck } from 'lucide-react';
@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../i18n';
 import { api } from '../../ipc/api';
-import type { FileMismatch } from '../../ipc/lace-types';
+import type { FileMismatch } from '../../ipc/aurora-types';
 import { useApp } from '../../state/app';
 import { openDialog } from '../../state/dialogs';
 import { useEditor } from '../../state/editor';
@@ -82,7 +82,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
           <Button icon={verifying ? <Spinner /> : <ShieldCheck size={14} />} disabled={verifying} onClick={() => void verify()}>
             {t('toolchain.verify')}
           </Button>
-          <Button icon={checking ? <Spinner /> : <Download size={14} />} disabled={checking || !info.lace_cli} onClick={checkUpdates}>
+          <Button icon={checking ? <Spinner /> : <Download size={14} />} disabled={checking || !info.aurora_cli} onClick={checkUpdates}>
             {t('toolchain.checkUpdates')}
           </Button>
         </div>
@@ -97,8 +97,8 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
         <dd className="mono">{info.root}</dd>
         <dt>{t('toolchain.origin')}</dt>
         <dd>{info.origin ? t(`toolchain.origin.${info.origin}`) : '-'}</dd>
-        <dt>{t('toolchain.laceCli')}</dt>
-        <dd className="mono">{info.lace_cli ?? '-'}</dd>
+        <dt>{t('toolchain.auroraCli')}</dt>
+        <dd className="mono">{info.aurora_cli ?? '-'}</dd>
       </dl>
 
       {cliLog && (
@@ -137,9 +137,9 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
       {updates && (
         <>
           <h2>{t('toolchain.updates')}</h2>
-          {updates.lace.newer ? (
+          {updates.aurora.newer ? (
             <div className="notice update-offer">
-              <p>{t('toolchain.updateAvailable', { latest: updates.lace.latest, installed: updates.lace.installed })}</p>
+              <p>{t('toolchain.updateAvailable', { latest: updates.aurora.latest, installed: updates.aurora.installed })}</p>
               {updates.prefix ? (
                 <Button
                   variant="primary"
@@ -147,14 +147,14 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
                   disabled={!!running}
                   onClick={() => void offerUpdate()}
                 >
-                  {t('toolchain.update', { version: updates.lace.latest })}
+                  {t('toolchain.update', { version: updates.aurora.latest })}
                 </Button>
               ) : (
                 <p className="muted">{t('toolchain.updateNoInstaller')}</p>
               )}
             </div>
           ) : (
-            <p className="muted">{t('toolchain.upToDate', { latest: updates.lace.latest })}</p>
+            <p className="muted">{t('toolchain.upToDate', { latest: updates.aurora.latest })}</p>
           )}
           <table className="table">
             <thead>
@@ -167,10 +167,10 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
             </thead>
             <tbody>
               <tr>
-                <td>Lace</td>
-                <td className="mono">{updates.lace.installed}</td>
+                <td>AURORA</td>
+                <td className="mono">{updates.aurora.installed}</td>
                 <td className="mono">
-                  {updates.lace.latest} {updates.lace.newer && <Badge tone="warn">new</Badge>}
+                  {updates.aurora.latest} {updates.aurora.newer && <Badge tone="warn">new</Badge>}
                 </td>
                 <td />
               </tr>
@@ -232,7 +232,7 @@ export function ToolchainView({ checkToken }: { checkToken: string | null }) {
                 <button
                   type="button"
                   className="link"
-                  disabled={!!running || !info.lace_cli}
+                  disabled={!!running || !info.aurora_cli}
                   onClick={() => openDialog({ kind: 'install', components: [name] })}
                 >
                   {t('toolchain.install')}

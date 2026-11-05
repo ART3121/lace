@@ -46,7 +46,7 @@ import { activeEditor } from './editor/host';
 import { vimActive } from './editor/vim';
 import { t, type Key } from './i18n';
 import { api } from './ipc/api';
-import type { Feature, Simulator } from './ipc/lace-types';
+import type { Feature, Simulator } from './ipc/aurora-types';
 import { useApp } from './state/app';
 import { confirm, openDialog, prompt } from './state/dialogs';
 import { MAX_GROUPS, saveActive, useEditor } from './state/editor';
@@ -62,7 +62,7 @@ import { useSettingsPage } from './state/settingsPage';
 import { guarded, showError, useToasts } from './state/toasts';
 import { useTour } from './state/tour';
 import { openWaveTab, waveInTab } from './state/waves';
-import { toggledTheme } from './themes';
+import { toggledMode } from './themes';
 import { baseName, extension, isInside, joinPath, relativeTo, resolveFrom } from './util/paths';
 
 export type ActionCategory = 'file' | 'edit' | 'view' | 'project' | 'flow' | 'tools' | 'help';
@@ -179,7 +179,7 @@ export function runBuild(processor?: string | null) {
 }
 
 /** Verifica o projeto ou, com um processador no alvo, só ele e o testbench
- * que o YANC gerou (`lace check -p`). Um arquivo pedido vale para o projeto. */
+ * que o YANC gerou (`aurora check -p`). Um arquivo pedido vale para o projeto. */
 export function runCheck(lint = false, file?: string) {
   const name = file ? null : target();
   const key = file ? `check:${file}` : `${lint ? 'lint' : 'check'}${name ? `:${name}` : ''}`;
@@ -242,12 +242,12 @@ export function runSynthesis(processor?: string | null) {
   );
 }
 
-/** A compilação para a placa do `fpga.json`, pelo Quartus (`lace fpga build`). */
+/** A compilação para a placa do `fpga.json`, pelo Quartus (`aurora fpga build`). */
 export function runFpgaBuild() {
   return useJobs.getState().run({ flow: 'fpga_build' }, 'fpgaBuild');
 }
 
-/** A gravação na placa do `.sof` da última compilação (`lace fpga program`). */
+/** A gravação na placa do `.sof` da última compilação (`aurora fpga program`). */
 export function runFpgaProgram() {
   return useJobs.getState().run({ flow: 'fpga_program' }, 'fpgaProgram');
 }
@@ -316,7 +316,7 @@ async function fullFlow() {
  * (`Projetos` na pasta do usuário, que o backend cria). A padrão não fica
  * guardada, para que mudá-la valha também para quem já usou o Studio. */
 export async function projectsFolder() {
-  const saved = localStorage.getItem('lace-studio:projectsParent');
+  const saved = localStorage.getItem('aurora-ide:projectsParent');
   if (saved) return saved;
   return isTauri() ? api.project.defaultParent() : 'Projetos';
 }
@@ -328,7 +328,7 @@ export async function openProjectDialog() {
     multiple: false,
     directory: false,
     defaultPath,
-    filters: [{ name: 'Lace (.spf)', extensions: ['spf'] }],
+    filters: [{ name: 'AURORA (.spf)', extensions: ['spf'] }],
   });
   if (typeof chosen === 'string') await useProject.getState().open(chosen);
 }
@@ -362,7 +362,7 @@ export async function newFolderIn(dir?: string) {
 }
 
 /** Escolhe arquivos .v e .sv, e testbenches cocotb (.py), no disco e os
- * registra (`lace add`). */
+ * registra (`aurora add`). */
 export async function addVerilogFiles(paths?: string[]) {
   const snapshot = useProject.getState().snapshot;
   if (!snapshot || (!paths && !isTauri())) return;
@@ -410,7 +410,7 @@ export async function addVerilogFiles(paths?: string[]) {
   await useProject.getState().refresh();
 }
 
-/** Tira um processador do projeto (`lace proc remove`), depois de perguntar
+/** Tira um processador do projeto (`aurora proc remove`), depois de perguntar
  * o que fazer com a pasta dele: ficar no disco ou ir para a lixeira. A aba
  * do processador fecha; com a pasta na lixeira, fecham também as abas dos
  * arquivos de dentro dela, como no apagar do Explorador. */
@@ -467,7 +467,7 @@ function editorCommand(id: string) {
 }
 
 // Links de ajuda: só os endereços que existem.
-export const LACE_CLI_DOCS = 'https://github.com/ART3121/lace/blob/main/docs/CLI.md';
+export const AURORA_CLI_DOCS = 'https://github.com/ART3121/lace/blob/main/docs/CLI.md';
 export const SAPHO_MANUAL = 'https://nipscern.com/library/sapho';
 export const NIPSCERN_SITE = 'https://nipscern.com';
 export const NIPSCERN_GITHUB = 'https://github.com/nipscernlab';
@@ -717,7 +717,7 @@ export const ACTIONS: Action[] = [
     label: 'action.toggleTheme',
     category: 'view',
     run: () =>
-      useApp.getState().updateSettings((s) => ({ ...s, theme: toggledTheme(useApp.getState().theme) })),
+      useApp.getState().updateSettings((s) => ({ ...s, theme_mode: toggledMode(useApp.getState().theme) })),
   },
   { id: 'selectTheme', label: 'action.selectTheme', category: 'view', keys: 'Ctrl+K T', run: () => openDialog({ kind: 'theme' }) },
 
@@ -771,7 +771,7 @@ export const ACTIONS: Action[] = [
     category: 'flow',
     keys: 'Shift+F5',
     icon: CircleStop,
-    // A atualização do Lace não para no meio (commands/toolchain.rs).
+    // A atualização da AURORA não para no meio (commands/toolchain.rs).
     enabled: () => !idle() && useJobs.getState().running?.flow !== 'update',
     run: () => useJobs.getState().cancel(),
   },
@@ -841,7 +841,7 @@ export const ACTIONS: Action[] = [
   },
   { id: 'cleanReports', label: 'action.cleanReports', category: 'tools', enabled: canRun, run: () => openDialog({ kind: 'cleanReports' }) },
 
-  // Exercícios (lace learn)
+  // Exercícios (aurora learn)
   { id: 'learnCheck', label: 'action.learnCheck', category: 'tools', keys: 'Ctrl+Alt+L', enabled: () => idle() && hasLearnExercise(), run: () => useLearn.getState().check() },
   {
     id: 'learnHint',
@@ -859,7 +859,7 @@ export const ACTIONS: Action[] = [
   { id: 'learnNext', label: 'action.learnNext', category: 'tools', enabled: () => idle() && !!currentExercise(useLearn.getState().snapshot)?.solved, run: () => useLearn.getState().next() },
 
   // Ajuda
-  { id: 'laceDocs', label: 'action.laceDocs', category: 'help', run: () => openUrl(LACE_CLI_DOCS).catch(showError) },
+  { id: 'auroraDocs', label: 'action.auroraDocs', category: 'help', run: () => openUrl(AURORA_CLI_DOCS).catch(showError) },
   { id: 'saphoManual', label: 'action.saphoManual', category: 'help', run: () => openUrl(SAPHO_MANUAL).catch(showError) },
   { id: 'startTour', label: 'action.startTour', category: 'help', run: () => useTour.getState().start() },
   { id: 'shortcuts', label: 'action.shortcuts', category: 'help', run: () => openDialog({ kind: 'shortcuts' }) },

@@ -1,5 +1,5 @@
 // O assistente: a conversa com o Claude Code dentro do Studio, com as
-// ferramentas do lace mcp (src-tauri/src/assistant.rs, crates/lace-agent).
+// ferramentas do aurora mcp (src-tauri/src/assistant.rs, crates/aurora-agent).
 // A sessão é um processo filho do backend; aqui ficam a transcrição, o
 // estado do turno e o que a vista mostra. A sessão abre na primeira
 // mensagem e fecha quando a pessoa pede uma conversa nova, quando o projeto
@@ -32,7 +32,7 @@ export type ChatEntry =
 export type AssistantStatus = 'idle' | 'starting' | 'ready' | 'busy';
 
 interface AssistantState {
-  /** Onde estão o Claude Code e o lace, da última consulta. */
+  /** Onde estão o Claude Code e o aurora, da última consulta. */
   info: AssistantInfo | null;
   checking: boolean;
   /** O identificador da sessão no backend; `null` sem sessão aberta. */
@@ -60,9 +60,9 @@ function entryId(): number {
   return nextEntry++;
 }
 
-/** O nome de uma ferramenta para mostrar: `mcp__lace__build` vira `build`. */
+/** O nome de uma ferramenta para mostrar: `mcp__aurora__build` vira `build`. */
 export function toolLabel(name: string): string {
-  return name.startsWith('mcp__lace__') ? name.slice('mcp__lace__'.length) : name;
+  return name.startsWith('mcp__aurora__') ? name.slice('mcp__aurora__'.length) : name;
 }
 
 function errorText(error: unknown): string {
@@ -103,7 +103,7 @@ export const useAssistant = create<AssistantState>((set, get) => {
         // O `ready` vem em resposta à primeira mensagem: o turno dela já
         // está em andamento.
         set({ status: 'busy', sessionId: event.session_id, model: event.model });
-        if (event.lace_connected === false) note(t('assistant.noLace'), 'warning');
+        if (event.aurora_connected === false) note(t('assistant.noAurora'), 'warning');
         break;
       case 'text':
         set({ status: 'busy' });

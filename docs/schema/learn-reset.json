@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "LearnResetReport",
-  "description": "`lace learn reset`: o arquivo que voltou ao começo.",
+  "description": "`aurora learn reset`: o arquivo que voltou ao começo.",
   "type": "object",
   "properties": {
     "exercise": {

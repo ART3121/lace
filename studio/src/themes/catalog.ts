@@ -1,245 +1,348 @@
 // O catálogo de temas, na ordem em que aparecem nas Preferências.
 //
-// Os do Lace são o Atlas, no azul da identidade visual do ATLAS, e o Atlas
-// Branco, no azul do CERN.
-// O Aurora Legacy traz a paleta da AURORA. Os outros seguem a paleta oficial
-// de cada tema, conferida na fonte em 2026-10-04:
+// Os da AURORA IDE são o Boreal, o Austral, o Nebulosa, o Alvorada e o
+// Lunar, cada um com o seu claro: os mesmos cinzas e uma cor de destaque por
+// paleta, o azul da aurora boreal, o verde da austral, o violeta das
+// nebulosas, o âmbar do amanhecer e o prata da lua. O verde e o violeta são
+// os da Aurora antiga, separados. O Aurora Legacy traz a paleta inteira da
+// AURORA Electron. O VS Code (o Dark e o Light Modern) e o Dracula seguem a
+// paleta oficial, conferida na fonte em 2026-10-04:
 //
 // | Tema                 | Fonte                                                        |
 // |----------------------|--------------------------------------------------------------|
 // | Aurora Legacy        | ../Zelda-main: css/base/brand_tokens.css, theme_variables.css, js/editor/monaco_editor.js, js/terminal/shell_terminal.js |
 // | Dark/Light Modern    | microsoft/vscode, extensions/theme-defaults (dark_modern, light_modern, dark_plus, light_plus) e terminalColorRegistry.ts |
-// | Monokai              | microsoft/vscode, extensions/theme-monokai                   |
-// | Solarized Dark/Light | microsoft/vscode, extensions/theme-solarized-*              |
 // | Dracula              | dracula/visual-studio-code, src/dracula.yml                  |
-// | Gruvbox Dark/Light   | morhetz/gruvbox, colors/gruvbox.vim                          |
-// | Nord                 | nordtheme/visual-studio-code, themes/nord-color-theme.json   |
-// | One Dark Pro         | Binaryify/OneDark-Pro, themes/OneDark-Pro.json               |
-// | Catppuccin Mocha     | catppuccin/palette, palette.json                             |
-// | Tokyo Night          | enkia/tokyo-night-vscode-theme                               |
 //
 // A sintaxe e os terminais usam as cores do tema como vieram; o contraste
-// baixo que alguns têm de propósito (o comentário do Nord, os tons do
-// Solarized) fica. A exceção é o apagado dos consoles, que terminalTheme
+// baixo que um tema tem de propósito (o comentário do Dracula) fica. A exceção é o apagado dos consoles, que terminalTheme
 // (console/consoles.ts) clareia até 3:1. A interface do Studio tem menos
 // camadas que a do VS Code, então os fundos foram escolhidos entre as cores
 // do próprio tema, e onde faltava um tom (texto secundário, borda forte) ele
 // sai de `mix` entre duas cores do tema.
 
-import { alpha, mix, tokenRule, type Theme } from './model';
+import { alpha, mix, type Scheme, type Theme } from './model';
+
+// AURORA IDE ---------------------------------------------------------------
 
 /**
- * O azul do CERN: Pantone 286 C, #0033A0 (R0 G51 B160), com os quatro tons
- * da paleta oficial, conforme design-guidelines.web.cern.ch/guidelines/colours.
- * É o destaque do Atlas Branco, onde serve para linhas, texto e
- * preenchimento.
+ * Os cinzas dos temas da AURORA IDE, comuns às três paletas: quase neutros,
+ * com um nada de azul (matiz 260 e croma 0,006 no OKLCH). As barras e a barra
+ * lateral ficam num tom só e o editor um tom acima; no claro, editor e menus
+ * em branco sobre barras quase brancas. Todo texto tem pelo menos 4,5:1 com o
+ * fundo do editor, o das barras e o dos menus. Os terminais têm os seis
+ * matizes com a mesma luminosidade, com o vermelho e o verde iguais ao erro e
+ * ao ok da interface.
  */
-const CERN_BLUE = {
-  base: '#0033A0',
-  t80: '#385CB4',
-  t60: '#6B84C5',
-  t40: '#9BAEDB',
-  t20: '#CDD6ED',
+const AURORA_DARK = {
+  bars: '#101214',
+  editor: '#141619',
+  raised: '#1C1E21',
+  control: '#252729',
+  controlHover: '#2F3033',
+  border: '#232528',
+  borderStrong: '#36383B',
+  text0: '#EAEDF1',
+  text1: '#BBBEC2',
+  text2: '#909296',
+  text3: '#595B5E',
+  code: '#CFD1D5',
+  lineHighlight: '#181A1C',
+  lineNumber: '#6D6F72',
+  indentGuide: '#1C1E21',
+  ok: '#6DC88F',
+  warn: '#F2985F',
+  error: '#F2716A',
+  info: '#79B8ED',
+  ansi: {
+    black: '#101214',
+    red: '#F2716A',
+    green: '#6DC88F',
+    yellow: '#E2C162',
+    blue: '#75AEF5',
+    magenta: '#D58ECF',
+    cyan: '#26C0CF',
+    white: '#CFD1D5',
+    brightBlack: '#909296',
+    brightRed: '#FFB4AD',
+    brightGreen: '#A0DCAC',
+    brightYellow: '#F4D88C',
+    brightBlue: '#A3CEFF',
+    brightMagenta: '#EDB6E7',
+    brightCyan: '#7FDCE6',
+    brightWhite: '#F4F5F7',
+  },
 };
+
+const AURORA_LIGHT: typeof AURORA_DARK = {
+  bars: '#F5F7F9',
+  editor: '#FFFFFF',
+  raised: '#FFFFFF',
+  control: '#EDEEF1',
+  controlHover: '#E4E6EA',
+  border: '#DEE0E3',
+  borderStrong: '#C2C4C8',
+  text0: '#191B1D',
+  text1: '#46484B',
+  text2: '#67696C',
+  text3: '#9C9EA2',
+  code: '#2C2E31',
+  lineHighlight: '#F5F7F9',
+  lineNumber: '#8A8C90',
+  indentGuide: '#EDEEF1',
+  ok: '#1E7546',
+  warn: '#B05315',
+  error: '#BE2F2C',
+  info: '#2266A4',
+  ansi: {
+    black: '#191B1D',
+    red: '#BE2F2C',
+    green: '#1E7546',
+    yellow: '#816500',
+    blue: '#2863AB',
+    magenta: '#8B4486',
+    cyan: '#007686',
+    white: '#46484B',
+    brightBlack: '#67696C',
+    brightRed: '#BB5752',
+    brightGreen: '#348F4F',
+    brightYellow: '#9A7D22',
+    brightBlue: '#407BC5',
+    brightMagenta: '#A45B9F',
+    brightCyan: '#008F9F',
+    brightWhite: '#191B1D',
+  },
+};
+
+/** A cor de uma paleta da AURORA IDE num esquema. */
+interface AuroraAccent {
+  /** Linhas e indicadores (foco, aba ativa): 3:1 com as barras e o editor. */
+  line: string;
+  /** O destaque em texto, nas palavras reservadas e no cursor. */
+  text: string;
+  /** O preenchimento do botão principal, que é também a cor do logo. */
+  fill: string;
+  fillHover: string;
+  /** O texto sobre `fill`. */
+  onFill: string;
+  /** Números, textos e constantes: a segunda cor do código. */
+  literal: string;
+  /** A opacidade de `fill` na seleção. */
+  selection: number;
+  /** As palavras reservadas e os tipos no código, quando não vão no `text`:
+   * o Lunar tem a interface no prata do texto, e o código ganha cor própria. */
+  keyword?: string;
+  type?: string;
+}
 
 /**
- * O azul do ATLAS: #0B80C3 (R11 G128 B195), a única cor da identidade visual
- * do experimento, conforme atlas.cern/design (conferido em 2026-10-07). Os
- * tons seguem a regra dos do CERN: `t70` e `t50` são o azul com 70% e 50%
- * de cor, o resto branco. O branco sobre o #0B80C3 fica em 4,3:1, abaixo dos
- * 4,5:1 de texto; o preenchimento dos botões é o mesmo azul 3% mais escuro,
- * o tom mais claro que segura o texto branco, e o sob o mouse, 12%. `vivid`
- * é o mesmo matiz (202°) com 90% de saturação, para o que precisa saltar.
+ * Um tema da AURORA IDE. A sintaxe tem duas cores além dos cinzas: o
+ * destaque nas palavras reservadas e nos tipos, e `literal` em números,
+ * textos e constantes. Funções em `text0`, o resto do código em `code`,
+ * operadores e comentários em `text2`. A busca usa `literal`, para não se
+ * confundir com a seleção, que usa o destaque. `bold` põe as palavras
+ * reservadas em negrito, para o Lunar, cuja interface não tem cor de
+ * destaque.
  */
-const ATLAS_BLUE = {
-  base: '#0B80C3',
-  fill: '#0B7CBD',
-  fillHover: '#0A71AC',
-  t70: '#54A6D5',
-  t50: '#85C0E1',
-  vivid: '#2AAAF4',
-};
+function aurora(id: string, name: string, scheme: Scheme, pair: string, accent: AuroraAccent, bold = false): Theme {
+  const dark = scheme === 'dark';
+  const base = dark ? AURORA_DARK : AURORA_LIGHT;
+  const selection = alpha(accent.fill, accent.selection);
+  return {
+    id,
+    name,
+    scheme,
+    pair,
+    ui: {
+      bg0: base.bars,
+      bg1: base.bars,
+      bg2: base.raised,
+      bg3: base.control,
+      bg4: base.controlHover,
+      bgEditor: base.editor,
+      border: base.border,
+      borderStrong: base.borderStrong,
+      text0: base.text0,
+      text1: base.text1,
+      text2: base.text2,
+      text3: base.text3,
+      brand: accent.line,
+      brandText: accent.text,
+      brandFill: accent.fill,
+      brandFillHover: accent.fillHover,
+      brandContrast: accent.onFill,
+      ok: base.ok,
+      warn: base.warn,
+      error: base.error,
+      info: base.info,
+    },
+    syntax: {
+      fg: base.code,
+      comment: base.text2,
+      keyword: accent.keyword ?? accent.text,
+      control: accent.keyword ?? accent.text,
+      type: accent.type ?? accent.text,
+      func: base.text0,
+      number: accent.literal,
+      string: accent.literal,
+      constant: accent.literal,
+      variable: base.code,
+      tag: accent.type ?? accent.text,
+      operator: base.text2,
+      delimiter: base.text2,
+      directive: base.text1,
+      style: bold ? { keyword: 'bold', type: 'bold', directive: '' } : { directive: '' },
+    },
+    editor: {
+      selection,
+      lineHighlight: base.lineHighlight,
+      lineNumber: base.lineNumber,
+      lineNumberActive: base.text0,
+      cursor: accent.text,
+      findMatch: alpha(accent.literal, dark ? 0.38 : 0.3),
+      findMatchHighlight: alpha(accent.literal, dark ? 0.18 : 0.14),
+      indentGuide: base.indentGuide,
+      indentGuideActive: base.borderStrong,
+    },
+    terminal: { foreground: base.code, selection, ...base.ansi },
+  };
+}
 
-// Lace -------------------------------------------------------------------
+/** O padrão: o azul de destaque, com areia nos números e textos. O botão
+ * principal leva texto escuro, que tem 6,8:1 sobre o azul. */
+const boreal = aurora('boreal', 'Boreal', 'dark', 'boreal-claro', {
+  line: '#59A0F9',
+  text: '#73AEF8',
+  fill: '#59A0F9',
+  fillHover: '#70ADFA',
+  onFill: '#141619',
+  literal: '#E2BD93',
+  selection: 0.3,
+});
 
-/** O padrão: o azul do ATLAS de destaque sobre fundos de ardósia, um cinza
- * puxado para o mesmo azul, com o editor um tom abaixo da barra lateral e
- * das barras. A sintaxe tem um tom por papel, com a palavra reservada no
- * azul do ATLAS; todo texto tem pelo menos 4,5:1 com o fundo do editor,
- * menos o comentário (4,1:1). */
-const atlas: Theme = {
-  id: 'atlas',
-  name: 'Atlas',
-  scheme: 'dark',
-  pair: 'atlas-light',
-  ui: {
-    bg0: '#12171D',
-    bg1: '#171D24',
-    bg2: '#1C232B',
-    bg3: '#232B35',
-    bg4: '#2B3540',
-    bgEditor: '#0F1419',
-    border: '#252E38',
-    borderStrong: '#36424F',
-    text0: '#E6EDF3',
-    text1: '#B6C2CD',
-    text2: '#8693A0',
-    text3: '#5A6673',
-    brand: ATLAS_BLUE.base,
-    brandText: ATLAS_BLUE.t70,
-    brandFill: ATLAS_BLUE.fill,
-    brandFillHover: ATLAS_BLUE.fillHover,
-    brandContrast: '#FFFFFF',
-    ok: '#4FBF7F',
-    warn: '#E3A548',
-    error: '#EF6461',
-    info: ATLAS_BLUE.t70,
-  },
-  syntax: {
-    fg: '#D7DFE7',
-    comment: '#6B7886',
-    keyword: ATLAS_BLUE.t70,
-    control: '#E8737A',
-    type: '#3FC1A5',
-    func: '#E6C26E',
-    number: '#F29E5C',
-    string: '#97CF78',
-    constant: '#F29E5C',
-    variable: '#A9BED3',
-    tag: ATLAS_BLUE.t70,
-    operator: '#9FB0C0',
-    delimiter: '#8794A1',
-    directive: '#C49AF0',
-  },
-  editor: {
-    selection: alpha(ATLAS_BLUE.base, 0.4),
-    selectionInactive: alpha(ATLAS_BLUE.base, 0.22),
-    lineHighlight: '#151B22',
-    lineNumber: '#4E5A66',
-    lineNumberActive: '#B6C2CD',
-    cursor: ATLAS_BLUE.t70,
-    findMatch: '#7A5A14',
-    findMatchHighlight: '#4A3B16',
-    indentGuide: '#1C232B',
-    indentGuideActive: '#33404D',
-  },
-  terminal: {
-    foreground: '#CBD5DF',
-    selection: alpha(ATLAS_BLUE.base, 0.4),
-    black: '#12171D',
-    red: '#EF6461',
-    green: '#4FBF7F',
-    yellow: '#E6C26E',
-    blue: ATLAS_BLUE.t70,
-    magenta: '#C49AF0',
-    cyan: '#45C3D1',
-    white: '#D7DFE7',
-    brightBlack: '#6B7886',
-    brightRed: '#FF8580',
-    brightGreen: '#74D69B',
-    brightYellow: '#F0D592',
-    brightBlue: ATLAS_BLUE.t50,
-    brightMagenta: '#D7B8F6',
-    brightCyan: '#77D7E2',
-    brightWhite: '#F2F6FA',
-  },
-  // O começo e o fim de cada unidade do Verilog (module e endmodule, e os
-  // pares de primitive, interface, package e program) em negrito, no azul
-  // vivo: a moldura do arquivo salta das outras palavras reservadas. A
-  // gramática do Monaco dá `keyword.<palavra>.sv` ao .v e ao .sv.
-  rules: [
-    'module',
-    'macromodule',
-    'endmodule',
-    'primitive',
-    'endprimitive',
-    'interface',
-    'endinterface',
-    'package',
-    'endpackage',
-    'program',
-    'endprogram',
-  ].map((word) => tokenRule(`keyword.${word}.sv`, ATLAS_BLUE.vivid, 'bold')),
-};
+const borealClaro = aurora('boreal-claro', 'Boreal Claro', 'light', 'boreal', {
+  line: '#236ADE',
+  text: '#2062CE',
+  fill: '#236ADE',
+  fillHover: '#205FC8',
+  onFill: '#FFFFFF',
+  literal: '#86572D',
+  selection: 0.18,
+});
 
-/** O Atlas claro. O #0033A0 serve para linhas, texto e preenchimento. */
-const atlasLight: Theme = {
-  id: 'atlas-light',
-  name: 'Atlas Branco',
-  scheme: 'light',
-  pair: 'atlas',
-  ui: {
-    bg0: '#ECECEC',
-    bg1: '#F4F4F4',
-    bg2: '#FAFAFA',
-    bg3: '#ECECEC',
-    bg4: '#E2E2E2',
-    bgEditor: '#FFFFFF',
-    border: '#DEDEDE',
-    borderStrong: '#C8C8C8',
-    text0: '#1C1C1C',
-    text1: '#3E3E3E',
-    text2: '#6B6B6B',
-    text3: '#9E9E9E',
-    brand: CERN_BLUE.base,
-    brandText: CERN_BLUE.base,
-    brandFill: CERN_BLUE.base,
-    brandFillHover: CERN_BLUE.t80,
-    brandContrast: '#FFFFFF',
-    ok: '#3F7D3F',
-    warn: '#946414',
-    error: '#B5443C',
-    info: '#4B6386',
+/** O verde da aurora austral, o do "ok" da Aurora antiga, com o lilás dela
+ * nos números e textos. O botão leva texto escuro, que tem 9,9:1. */
+const austral = aurora('austral', 'Austral', 'dark', 'austral-claro', {
+  line: '#5DD4A8',
+  text: '#68DEB1',
+  fill: '#5DD4A8',
+  fillHover: '#69E0B3',
+  onFill: '#141619',
+  literal: '#AEA7ED',
+  selection: 0.24,
+});
+
+/** No claro, o verde do botão (#2AA578, com texto escuro) não chega a 3:1
+ * com as barras: as linhas usam um verde mais escuro, e o texto, um
+ * verde-garrafa. Os números e textos vão no violeta do Nebulosa Clara. */
+const australClaro = aurora('austral-claro', 'Austral Claro', 'light', 'austral', {
+  line: '#1F8A63',
+  text: '#17704F',
+  fill: '#2AA578',
+  fillHover: '#13986C',
+  onFill: '#191B1D',
+  literal: '#5B50B8',
+  selection: 0.18,
+});
+
+/** O violeta da Aurora antiga (#8E83E8, o destaque dela), com a menta dela
+ * nos números e textos. O botão leva texto escuro, que tem 5,7:1. */
+const nebulosa = aurora('nebulosa', 'Nebulosa', 'dark', 'nebulosa-clara', {
+  line: '#8E83E8',
+  text: '#A89EF0',
+  fill: '#8E83E8',
+  fillHover: '#988EF4',
+  onFill: '#141619',
+  literal: '#75D4AE',
+  selection: 0.3,
+});
+
+/** No claro, o violeta do botão da Aurora antiga (#6E63C8), que segura o
+ * texto branco (4,9:1) e as linhas (4,6:1 com as barras). */
+const nebulosaClara = aurora('nebulosa-clara', 'Nebulosa Clara', 'light', 'nebulosa', {
+  line: '#6E63C8',
+  text: '#5B50B8',
+  fill: '#6E63C8',
+  fillHover: '#6458BC',
+  onFill: '#FFFFFF',
+  literal: '#1E7A5A',
+  selection: 0.16,
+});
+
+/** O âmbar, a cor do amanhecer, com azul-claro nos números e textos. */
+const alvorada = aurora('alvorada', 'Alvorada', 'dark', 'alvorada-clara', {
+  line: '#F5B33B',
+  text: '#F5BD56',
+  fill: '#F5B33B',
+  fillHover: '#F6BE56',
+  onFill: '#141619',
+  literal: '#8EC6E7',
+  selection: 0.26,
+});
+
+/** No claro, o âmbar do botão e do logo (#E38F00) fica em 2,4:1 com as
+ * barras: as linhas usam um âmbar mais escuro, e o texto, um castanho. */
+const alvoradaClara = aurora('alvorada-clara', 'Alvorada Clara', 'light', 'alvorada', {
+  line: '#CB7400',
+  text: '#97570D',
+  fill: '#E38F00',
+  fillHover: '#CC8100',
+  onFill: '#191B1D',
+  literal: '#1F6A96',
+  selection: 0.22,
+});
+
+/** A interface sem cor de destaque, no prata do próprio texto. O código tem
+ * cores de luar: as palavras reservadas em negrito num azul (#99C2ED,
+ * 9,8:1), os tipos num lilás prateado (10,2:1) e os números e textos num
+ * dourado (11:1). */
+const lunar = aurora(
+  'lunar',
+  'Lunar',
+  'dark',
+  'lunar-claro',
+  {
+    line: '#EAEDF1',
+    text: '#EAEDF1',
+    fill: '#EAEDF1',
+    fillHover: '#D3D6DA',
+    onFill: '#141619',
+    literal: '#EFC37E',
+    selection: 0.18,
+    keyword: '#99C2ED',
+    type: '#C6BDE8',
   },
-  syntax: {
-    fg: '#1C1C1C',
-    comment: '#8C8C8C',
-    keyword: '#3E5A80',
-    control: '#98482F',
-    type: '#4E6B36',
-    func: '#4E6B36',
-    number: '#85601E',
-    string: '#98482F',
-    constant: '#85601E',
-    variable: '#4E6C96',
-    tag: '#3E5A80',
-    operator: '#555555',
-    delimiter: '#555555',
-    directive: '#333333',
+  true,
+);
+
+const lunarClaro = aurora(
+  'lunar-claro',
+  'Lunar Claro',
+  'light',
+  'lunar',
+  {
+    line: '#191B1D',
+    text: '#191B1D',
+    fill: '#191B1D',
+    fillHover: '#36383B',
+    onFill: '#FFFFFF',
+    literal: '#935A11',
+    selection: 0.12,
+    keyword: '#285994',
+    type: '#5F4E8D',
   },
-  editor: {
-    selection: CERN_BLUE.t20,
-    selectionInactive: alpha(CERN_BLUE.t20, 0.6),
-    lineHighlight: '#F4F4F4',
-    lineNumber: '#B0B0B0',
-    lineNumberActive: '#3E3E3E',
-    cursor: '#1C1C1C',
-    findMatch: '#D0D0D0',
-    findMatchHighlight: '#E6E6E6',
-    indentGuide: '#ECECEC',
-    indentGuideActive: '#C8C8C8',
-  },
-  terminal: {
-    foreground: '#2B2B2B',
-    selection: CERN_BLUE.t20,
-    black: '#1C1C1C',
-    red: '#B5443C',
-    green: '#3F7D3F',
-    yellow: '#946414',
-    blue: '#3E5A80',
-    magenta: '#5E5670',
-    cyan: '#4B6386',
-    white: '#3E3E3E',
-    brightBlack: '#8C8C8C',
-    brightRed: '#C65A52',
-    brightGreen: '#4F914F',
-    brightYellow: '#A8761E',
-    brightBlue: '#4E6C96',
-    brightMagenta: '#70688A',
-    brightCyan: '#5B7499',
-    brightWhite: '#1C1C1C',
-  },
-};
+  true,
+);
 
 /**
  * A paleta da AURORA: céu noturno (#0A0D14), violeta #8E83E8 de destaque e
@@ -364,6 +467,7 @@ const VSCODE_DARK_ANSI = {
 const darkModern: Theme = {
   id: 'dark-modern',
   name: 'Dark Modern',
+  family: 'VS Code',
   scheme: 'dark',
   pair: 'light-modern',
   ui: {
@@ -509,7 +613,7 @@ const lightModern: Theme = {
   },
 };
 
-// Populares ---------------------------------------------------------------
+// Dracula -----------------------------------------------------------------
 
 const DRACULA = {
   bg: '#282A36',
@@ -609,821 +713,19 @@ const dracula: Theme = {
   },
 };
 
-/** As cores do Gruvbox (morhetz). No escuro a sintaxe usa as `bright_*`; no
- * claro, as `faded_*`; os terminais, as `neutral_*` e as do esquema. */
-const GRUVBOX = {
-  dark0Hard: '#1D2021',
-  dark0: '#282828',
-  dark0Soft: '#32302F',
-  dark1: '#3C3836',
-  dark2: '#504945',
-  dark3: '#665C54',
-  dark4: '#7C6F64',
-  gray: '#928374',
-  light0Hard: '#F9F5D7',
-  light0: '#FBF1C7',
-  light0Soft: '#F2E5BC',
-  light1: '#EBDBB2',
-  light2: '#D5C4A1',
-  light3: '#BDAE93',
-  light4: '#A89984',
-  brightRed: '#FB4934',
-  brightGreen: '#B8BB26',
-  brightYellow: '#FABD2F',
-  brightBlue: '#83A598',
-  brightPurple: '#D3869B',
-  brightAqua: '#8EC07C',
-  brightOrange: '#FE8019',
-  neutralRed: '#CC241D',
-  neutralGreen: '#98971A',
-  neutralYellow: '#D79921',
-  neutralBlue: '#458588',
-  neutralPurple: '#B16286',
-  neutralAqua: '#689D6A',
-  neutralOrange: '#D65D0E',
-  fadedRed: '#9D0006',
-  fadedGreen: '#79740E',
-  fadedYellow: '#B57614',
-  fadedBlue: '#076678',
-  fadedPurple: '#8F3F71',
-  fadedAqua: '#427B58',
-  fadedOrange: '#AF3A03',
-};
-
-const GRUVBOX_BRACKETS = [
-  GRUVBOX.neutralPurple,
-  GRUVBOX.neutralBlue,
-  GRUVBOX.neutralAqua,
-  GRUVBOX.neutralGreen,
-  GRUVBOX.neutralYellow,
-  GRUVBOX.neutralOrange,
-];
-
-const gruvboxDark: Theme = {
-  id: 'gruvbox-dark',
-  name: 'Gruvbox Dark',
-  scheme: 'dark',
-  pair: 'gruvbox-light',
-  ui: {
-    bg0: GRUVBOX.dark0Hard,
-    bg1: GRUVBOX.dark0,
-    bg2: GRUVBOX.dark0Soft,
-    bg3: GRUVBOX.dark1,
-    bg4: GRUVBOX.dark2,
-    bgEditor: GRUVBOX.dark0,
-    border: GRUVBOX.dark1,
-    borderStrong: GRUVBOX.dark2,
-    text0: GRUVBOX.light0,
-    text1: GRUVBOX.light1,
-    text2: GRUVBOX.light4,
-    text3: GRUVBOX.dark4,
-    brand: GRUVBOX.brightBlue,
-    brandText: GRUVBOX.brightBlue,
-    brandFill: GRUVBOX.neutralBlue,
-    brandFillHover: mix(GRUVBOX.neutralBlue, GRUVBOX.brightBlue, 0.2),
-    brandContrast: GRUVBOX.light0,
-    ok: GRUVBOX.brightGreen,
-    warn: GRUVBOX.brightYellow,
-    error: GRUVBOX.brightRed,
-    info: GRUVBOX.brightBlue,
-  },
-  syntax: {
-    fg: GRUVBOX.light1,
-    comment: GRUVBOX.gray,
-    keyword: GRUVBOX.brightRed,
-    control: GRUVBOX.brightRed,
-    type: GRUVBOX.brightYellow,
-    func: GRUVBOX.brightOrange,
-    number: GRUVBOX.brightPurple,
-    string: GRUVBOX.brightGreen,
-    constant: GRUVBOX.brightPurple,
-    variable: GRUVBOX.brightBlue,
-    tag: GRUVBOX.brightBlue,
-    operator: GRUVBOX.light1,
-    delimiter: GRUVBOX.light4,
-    directive: GRUVBOX.brightAqua,
-    style: { directive: '' },
-  },
-  editor: {
-    selection: GRUVBOX.dark2,
-    lineHighlight: GRUVBOX.dark1,
-    lineNumber: GRUVBOX.dark4,
-    lineNumberActive: GRUVBOX.brightYellow,
-    cursor: GRUVBOX.light1,
-    findMatch: '#FABD2F66',
-    findMatchHighlight: '#FABD2F2E',
-    indentGuide: GRUVBOX.dark1,
-    indentGuideActive: GRUVBOX.dark3,
-    brackets: GRUVBOX_BRACKETS,
-  },
-  terminal: {
-    foreground: GRUVBOX.light1,
-    selection: GRUVBOX.dark2,
-    black: GRUVBOX.dark0,
-    red: GRUVBOX.neutralRed,
-    green: GRUVBOX.neutralGreen,
-    yellow: GRUVBOX.neutralYellow,
-    blue: GRUVBOX.neutralBlue,
-    magenta: GRUVBOX.neutralPurple,
-    cyan: GRUVBOX.neutralAqua,
-    white: GRUVBOX.light4,
-    brightBlack: GRUVBOX.gray,
-    brightRed: GRUVBOX.brightRed,
-    brightGreen: GRUVBOX.brightGreen,
-    brightYellow: GRUVBOX.brightYellow,
-    brightBlue: GRUVBOX.brightBlue,
-    brightMagenta: GRUVBOX.brightPurple,
-    brightCyan: GRUVBOX.brightAqua,
-    brightWhite: GRUVBOX.light1,
-  },
-};
-
-const gruvboxLight: Theme = {
-  id: 'gruvbox-light',
-  name: 'Gruvbox Light',
-  scheme: 'light',
-  pair: 'gruvbox-dark',
-  ui: {
-    bg0: GRUVBOX.light1,
-    bg1: GRUVBOX.light0Soft,
-    bg2: GRUVBOX.light0Hard,
-    bg3: GRUVBOX.light1,
-    bg4: GRUVBOX.light2,
-    bgEditor: GRUVBOX.light0,
-    border: GRUVBOX.light2,
-    borderStrong: GRUVBOX.light3,
-    text0: GRUVBOX.dark0,
-    text1: GRUVBOX.dark1,
-    text2: GRUVBOX.dark4,
-    text3: GRUVBOX.light4,
-    brand: GRUVBOX.fadedBlue,
-    brandText: GRUVBOX.fadedBlue,
-    brandFill: GRUVBOX.fadedBlue,
-    brandFillHover: GRUVBOX.neutralBlue,
-    brandContrast: GRUVBOX.light0,
-    ok: GRUVBOX.fadedGreen,
-    warn: GRUVBOX.fadedYellow,
-    error: GRUVBOX.fadedRed,
-    info: GRUVBOX.fadedBlue,
-  },
-  syntax: {
-    fg: GRUVBOX.dark1,
-    comment: GRUVBOX.gray,
-    keyword: GRUVBOX.fadedRed,
-    control: GRUVBOX.fadedRed,
-    type: GRUVBOX.fadedYellow,
-    func: GRUVBOX.fadedOrange,
-    number: GRUVBOX.fadedPurple,
-    string: GRUVBOX.fadedGreen,
-    constant: GRUVBOX.fadedPurple,
-    variable: GRUVBOX.fadedBlue,
-    tag: GRUVBOX.fadedBlue,
-    operator: GRUVBOX.dark1,
-    delimiter: GRUVBOX.dark4,
-    directive: GRUVBOX.fadedAqua,
-    style: { directive: '' },
-  },
-  editor: {
-    selection: GRUVBOX.light2,
-    lineHighlight: GRUVBOX.light0Soft,
-    lineNumber: GRUVBOX.light4,
-    lineNumberActive: GRUVBOX.fadedYellow,
-    cursor: GRUVBOX.dark1,
-    findMatch: '#B5761466',
-    findMatchHighlight: '#B576142E',
-    indentGuide: GRUVBOX.light1,
-    indentGuideActive: GRUVBOX.light3,
-    brackets: GRUVBOX_BRACKETS,
-  },
-  terminal: {
-    foreground: GRUVBOX.dark1,
-    selection: GRUVBOX.light2,
-    black: GRUVBOX.light0,
-    red: GRUVBOX.neutralRed,
-    green: GRUVBOX.neutralGreen,
-    yellow: GRUVBOX.neutralYellow,
-    blue: GRUVBOX.neutralBlue,
-    magenta: GRUVBOX.neutralPurple,
-    cyan: GRUVBOX.neutralAqua,
-    white: GRUVBOX.dark4,
-    brightBlack: GRUVBOX.gray,
-    brightRed: GRUVBOX.fadedRed,
-    brightGreen: GRUVBOX.fadedGreen,
-    brightYellow: GRUVBOX.fadedYellow,
-    brightBlue: GRUVBOX.fadedBlue,
-    brightMagenta: GRUVBOX.fadedPurple,
-    brightCyan: GRUVBOX.fadedAqua,
-    brightWhite: GRUVBOX.dark1,
-  },
-};
-
-/** O Monokai do VS Code. O destaque é o amarelo das strings, como no Monokai Pro. */
-const monokai: Theme = {
-  id: 'monokai',
-  name: 'Monokai',
-  scheme: 'dark',
-  ui: {
-    bg0: '#1E1F1C',
-    bg1: '#1E1F1C',
-    bg2: '#272822',
-    bg3: '#414339',
-    bg4: '#75715E',
-    bgEditor: '#272822',
-    border: '#34352F',
-    borderStrong: '#414339',
-    text0: '#F8F8F2',
-    text1: '#CFCFC2',
-    text2: '#90908A',
-    text3: '#75715E',
-    brand: '#E6DB74',
-    brandText: '#E6DB74',
-    brandFill: '#E6DB74',
-    brandFillHover: mix('#E6DB74', '#F8F8F2', 0.3),
-    brandContrast: '#272822',
-    brandSoft: '#E6DB7426',
-    ok: '#A6E22E',
-    warn: '#FD971F',
-    error: '#F92672',
-    info: '#66D9EF',
-  },
-  syntax: {
-    fg: '#F8F8F2',
-    comment: '#88846F',
-    keyword: '#F92672',
-    control: '#F92672',
-    type: '#66D9EF',
-    func: '#66D9EF',
-    number: '#AE81FF',
-    string: '#E6DB74',
-    constant: '#AE81FF',
-    variable: '#FD971F',
-    tag: '#F92672',
-    operator: '#F92672',
-    delimiter: '#F8F8F2',
-    directive: '#F92672',
-    style: { comment: '', type: 'italic', directive: '' },
-  },
-  editor: {
-    selection: '#878B9180',
-    lineHighlight: '#3E3D32',
-    lineNumber: '#90908A',
-    lineNumberActive: '#C2C2BF',
-    cursor: '#F8F8F0',
-    findMatch: '#E6DB7466',
-    findMatchHighlight: '#E6DB7428',
-    indentGuide: '#464741',
-    indentGuideActive: '#767771',
-  },
-  terminal: {
-    foreground: '#F8F8F2',
-    selection: '#878B9180',
-    black: '#333333',
-    red: '#C4265E',
-    green: '#86B42B',
-    yellow: '#B3B42B',
-    blue: '#6A7EC8',
-    magenta: '#8C6BC8',
-    cyan: '#56ADBC',
-    white: '#E3E3DD',
-    brightBlack: '#666666',
-    brightRed: '#F92672',
-    brightGreen: '#A6E22E',
-    brightYellow: '#E2E22E',
-    brightBlue: '#819AFF',
-    brightMagenta: '#AE81FF',
-    brightCyan: '#66D9EF',
-    brightWhite: '#F8F8F2',
-  },
-};
-
-const NORD = {
-  n0: '#2E3440',
-  n1: '#3B4252',
-  n2: '#434C5E',
-  n3: '#4C566A',
-  n4: '#D8DEE9',
-  n5: '#E5E9F0',
-  n6: '#ECEFF4',
-  n7: '#8FBCBB',
-  n8: '#88C0D0',
-  n9: '#81A1C1',
-  n10: '#5E81AC',
-  n11: '#BF616A',
-  n12: '#D08770',
-  n13: '#EBCB8B',
-  n14: '#A3BE8C',
-  n15: '#B48EAD',
-  comment: '#616E88',
-};
-
-const nord: Theme = {
-  id: 'nord',
-  name: 'Nord',
-  scheme: 'dark',
-  ui: {
-    bg0: mix(NORD.n0, '#000000', 0.12),
-    bg1: NORD.n0,
-    bg2: NORD.n1,
-    bg3: NORD.n1,
-    bg4: NORD.n2,
-    bgEditor: NORD.n0,
-    border: NORD.n1,
-    borderStrong: NORD.n3,
-    text0: NORD.n6,
-    text1: NORD.n4,
-    text2: mix(NORD.n4, NORD.n0, 0.35),
-    text3: NORD.comment,
-    brand: NORD.n8,
-    brandText: NORD.n8,
-    brandFill: NORD.n8,
-    brandFillHover: NORD.n7,
-    brandContrast: NORD.n0,
-    brandSoft: '#88C0D033',
-    ok: NORD.n14,
-    warn: NORD.n13,
-    error: NORD.n11,
-    info: NORD.n9,
-  },
-  syntax: {
-    fg: NORD.n4,
-    comment: NORD.comment,
-    keyword: NORD.n9,
-    control: NORD.n9,
-    type: NORD.n7,
-    func: NORD.n8,
-    number: NORD.n15,
-    string: NORD.n14,
-    constant: NORD.n12,
-    variable: NORD.n7,
-    tag: NORD.n9,
-    operator: NORD.n9,
-    delimiter: NORD.n6,
-    directive: NORD.n10,
-    style: { comment: '', directive: '' },
-  },
-  editor: {
-    selection: '#434C5ECC',
-    selectionInactive: '#434C5ECC',
-    lineHighlight: NORD.n1,
-    lineNumber: NORD.n3,
-    lineNumberActive: NORD.n4,
-    cursor: NORD.n4,
-    findMatch: '#88C0D066',
-    findMatchHighlight: '#88C0D033',
-    indentGuide: '#434C5EB3',
-    indentGuideActive: NORD.n3,
-    bracketMatch: '#2E344000',
-    bracketMatchBorder: NORD.n8,
-    brackets: [NORD.n7, NORD.n8, NORD.n9, NORD.n10],
-  },
-  terminal: {
-    foreground: NORD.n4,
-    selection: '#434C5ECC',
-    black: NORD.n1,
-    red: NORD.n11,
-    green: NORD.n14,
-    yellow: NORD.n13,
-    blue: NORD.n9,
-    magenta: NORD.n15,
-    cyan: NORD.n8,
-    white: NORD.n5,
-    brightBlack: NORD.n3,
-    brightRed: NORD.n11,
-    brightGreen: NORD.n14,
-    brightYellow: NORD.n13,
-    brightBlue: NORD.n9,
-    brightMagenta: NORD.n15,
-    brightCyan: NORD.n7,
-    brightWhite: NORD.n6,
-  },
-};
-
-const oneDark: Theme = {
-  id: 'one-dark',
-  name: 'One Dark Pro',
-  scheme: 'dark',
-  ui: {
-    bg0: '#21252B',
-    bg1: '#21252B',
-    bg2: '#21252B',
-    bg3: '#30333D',
-    bg4: '#404754',
-    bgEditor: '#282C34',
-    border: '#181A1F',
-    borderStrong: '#3E4452',
-    text0: '#D7DAE0',
-    text1: '#ABB2BF',
-    text2: '#7F848E',
-    text3: '#5C6370',
-    brand: '#61AFEF',
-    brandText: '#61AFEF',
-    brandFill: '#4D78CC',
-    brandFillHover: '#528BFF',
-    brandContrast: '#FFFFFF',
-    ok: '#98C379',
-    warn: '#E5C07B',
-    error: '#E06C75',
-    info: '#61AFEF',
-  },
-  syntax: {
-    fg: '#ABB2BF',
-    comment: '#7F848E',
-    keyword: '#C678DD',
-    control: '#C678DD',
-    type: '#E5C07B',
-    func: '#56B6C2',
-    number: '#D19A66',
-    string: '#98C379',
-    constant: '#D19A66',
-    variable: '#E06C75',
-    tag: '#E06C75',
-    operator: '#ABB2BF',
-    delimiter: '#ABB2BF',
-    directive: '#C678DD',
-    style: { directive: '' },
-  },
-  editor: {
-    selection: '#67769660',
-    selectionInactive: '#3A3F4B',
-    lineHighlight: '#2C313C',
-    lineNumber: '#495162',
-    lineNumberActive: '#ABB2BF',
-    cursor: '#528BFF',
-    findMatch: '#D19A6644',
-    findMatchHighlight: '#FFFFFF22',
-    indentGuide: '#3B4048',
-    indentGuideActive: '#C8C8C859',
-    bracketMatch: '#515A6B',
-    bracketMatchBorder: '#515A6B',
-    brackets: ['#D19A66', '#C678DD', '#56B6C2'],
-  },
-  terminal: {
-    foreground: '#ABB2BF',
-    selection: '#ABB2BF30',
-    black: '#3F4451',
-    red: '#E05561',
-    green: '#8CC265',
-    yellow: '#D18F52',
-    blue: '#4AA5F0',
-    magenta: '#C162DE',
-    cyan: '#42B3C2',
-    white: '#D7DAE0',
-    brightBlack: '#4F5666',
-    brightRed: '#FF616E',
-    brightGreen: '#A5E075',
-    brightYellow: '#F0A45D',
-    brightBlue: '#4DC4FF',
-    brightMagenta: '#DE73FF',
-    brightCyan: '#4CD1E0',
-    brightWhite: '#E6E6E6',
-  },
-};
-
-/** As cores do Solarized (Ethan Schoonover). */
-const SOLARIZED = {
-  base03: '#002B36',
-  base02: '#073642',
-  base01: '#586E75',
-  base00: '#657B83',
-  base0: '#839496',
-  base1: '#93A1A1',
-  base2: '#EEE8D5',
-  base3: '#FDF6E3',
-  yellow: '#B58900',
-  orange: '#CB4B16',
-  red: '#DC322F',
-  magenta: '#D33682',
-  violet: '#6C71C4',
-  blue: '#268BD2',
-  cyan: '#2AA198',
-  green: '#859900',
-};
-
-const SOLARIZED_ANSI = {
-  black: SOLARIZED.base02,
-  red: SOLARIZED.red,
-  green: SOLARIZED.green,
-  yellow: SOLARIZED.yellow,
-  blue: SOLARIZED.blue,
-  magenta: SOLARIZED.magenta,
-  cyan: SOLARIZED.cyan,
-  white: SOLARIZED.base2,
-  brightBlack: SOLARIZED.base03,
-  brightRed: SOLARIZED.orange,
-  brightGreen: SOLARIZED.base01,
-  brightYellow: SOLARIZED.base00,
-  brightBlue: SOLARIZED.base0,
-  brightMagenta: SOLARIZED.violet,
-  brightCyan: SOLARIZED.base1,
-  brightWhite: SOLARIZED.base3,
-};
-
-const SOLARIZED_SYNTAX = {
-  keyword: SOLARIZED.green,
-  control: SOLARIZED.green,
-  type: SOLARIZED.yellow,
-  func: SOLARIZED.blue,
-  number: SOLARIZED.magenta,
-  string: SOLARIZED.cyan,
-  constant: SOLARIZED.orange,
-  variable: SOLARIZED.blue,
-  tag: SOLARIZED.blue,
-  operator: SOLARIZED.green,
-  directive: SOLARIZED.orange,
-  style: { directive: '' },
-};
-
-const solarizedDark: Theme = {
-  id: 'solarized-dark',
-  name: 'Solarized Dark',
-  scheme: 'dark',
-  pair: 'solarized-light',
-  ui: {
-    bg0: '#00212B',
-    bg1: '#00212B',
-    bg2: SOLARIZED.base02,
-    bg3: '#003847',
-    bg4: '#005A6F',
-    bgEditor: SOLARIZED.base03,
-    border: SOLARIZED.base02,
-    borderStrong: mix(SOLARIZED.base01, SOLARIZED.base03, 0.4),
-    text0: SOLARIZED.base1,
-    text1: SOLARIZED.base0,
-    text2: SOLARIZED.base00,
-    text3: SOLARIZED.base01,
-    brand: SOLARIZED.blue,
-    brandText: SOLARIZED.blue,
-    brandFill: SOLARIZED.blue,
-    brandFillHover: mix(SOLARIZED.blue, SOLARIZED.base1, 0.25),
-    brandContrast: SOLARIZED.base3,
-    ok: SOLARIZED.green,
-    warn: SOLARIZED.yellow,
-    error: SOLARIZED.red,
-    info: SOLARIZED.blue,
-  },
-  syntax: { fg: SOLARIZED.base0, comment: SOLARIZED.base01, delimiter: SOLARIZED.base0, ...SOLARIZED_SYNTAX },
-  editor: {
-    selection: '#274642',
-    lineHighlight: SOLARIZED.base02,
-    lineNumber: SOLARIZED.base01,
-    lineNumberActive: SOLARIZED.base1,
-    cursor: '#D30102',
-    findMatch: '#B5890066',
-    findMatchHighlight: '#B5890030',
-    indentGuide: '#93A1A126',
-    indentGuideActive: '#93A1A160',
-    brackets: ['#CDCDCD', SOLARIZED.yellow, SOLARIZED.magenta],
-  },
-  terminal: { foreground: SOLARIZED.base0, selection: '#274642', ...SOLARIZED_ANSI },
-};
-
-const solarizedLight: Theme = {
-  id: 'solarized-light',
-  name: 'Solarized Light',
-  scheme: 'light',
-  pair: 'solarized-dark',
-  ui: {
-    bg0: SOLARIZED.base2,
-    bg1: SOLARIZED.base2,
-    bg2: SOLARIZED.base3,
-    bg3: '#DDD6C1',
-    bg4: '#D3CBB7',
-    bgEditor: SOLARIZED.base3,
-    border: '#DDD6C1',
-    borderStrong: mix('#DDD6C1', SOLARIZED.base01, 0.25),
-    text0: SOLARIZED.base02,
-    text1: SOLARIZED.base01,
-    text2: SOLARIZED.base00,
-    text3: SOLARIZED.base1,
-    brand: SOLARIZED.blue,
-    brandText: SOLARIZED.blue,
-    brandFill: SOLARIZED.blue,
-    brandFillHover: mix(SOLARIZED.blue, SOLARIZED.base02, 0.2),
-    brandContrast: SOLARIZED.base3,
-    ok: SOLARIZED.green,
-    warn: SOLARIZED.yellow,
-    error: SOLARIZED.red,
-    info: SOLARIZED.blue,
-  },
-  syntax: { fg: SOLARIZED.base00, comment: SOLARIZED.base1, delimiter: SOLARIZED.base00, ...SOLARIZED_SYNTAX },
-  editor: {
-    selection: '#DDD6C1',
-    lineHighlight: SOLARIZED.base2,
-    lineNumber: SOLARIZED.base1,
-    lineNumberActive: '#567983',
-    cursor: SOLARIZED.base00,
-    findMatch: '#B5890055',
-    findMatchHighlight: '#B5890028',
-    indentGuide: '#586E7533',
-    indentGuideActive: '#081E2566',
-    brackets: [SOLARIZED.base01, SOLARIZED.yellow, SOLARIZED.magenta],
-  },
-  terminal: { foreground: SOLARIZED.base00, selection: '#DDD6C1', ...SOLARIZED_ANSI },
-};
-
-const MOCHA = {
-  rosewater: '#F5E0DC',
-  pink: '#F5C2E7',
-  mauve: '#CBA6F7',
-  red: '#F38BA8',
-  maroon: '#EBA0AC',
-  peach: '#FAB387',
-  yellow: '#F9E2AF',
-  green: '#A6E3A1',
-  teal: '#94E2D5',
-  sky: '#89DCEB',
-  sapphire: '#74C7EC',
-  blue: '#89B4FA',
-  lavender: '#B4BEFE',
-  text: '#CDD6F4',
-  subtext1: '#BAC2DE',
-  subtext0: '#A6ADC8',
-  overlay2: '#9399B2',
-  overlay1: '#7F849C',
-  overlay0: '#6C7086',
-  surface2: '#585B70',
-  surface1: '#45475A',
-  surface0: '#313244',
-  base: '#1E1E2E',
-  mantle: '#181825',
-  crust: '#11111B',
-};
-
-const catppuccinMocha: Theme = {
-  id: 'catppuccin-mocha',
-  name: 'Catppuccin Mocha',
-  scheme: 'dark',
-  ui: {
-    bg0: MOCHA.crust,
-    bg1: MOCHA.mantle,
-    bg2: MOCHA.mantle,
-    bg3: MOCHA.surface0,
-    bg4: MOCHA.surface1,
-    bgEditor: MOCHA.base,
-    border: MOCHA.surface0,
-    borderStrong: MOCHA.surface1,
-    text0: MOCHA.text,
-    text1: MOCHA.subtext1,
-    text2: MOCHA.subtext0,
-    text3: MOCHA.overlay0,
-    brand: MOCHA.mauve,
-    brandText: MOCHA.mauve,
-    brandFill: MOCHA.mauve,
-    brandFillHover: MOCHA.lavender,
-    brandContrast: MOCHA.crust,
-    brandSoft: '#CBA6F733',
-    ok: MOCHA.green,
-    warn: MOCHA.yellow,
-    error: MOCHA.red,
-    info: MOCHA.blue,
-  },
-  syntax: {
-    fg: MOCHA.text,
-    comment: MOCHA.overlay2,
-    keyword: MOCHA.mauve,
-    control: MOCHA.mauve,
-    type: MOCHA.yellow,
-    func: MOCHA.blue,
-    number: MOCHA.peach,
-    string: MOCHA.green,
-    constant: MOCHA.peach,
-    variable: MOCHA.lavender,
-    tag: MOCHA.blue,
-    operator: MOCHA.sky,
-    delimiter: MOCHA.overlay2,
-    directive: MOCHA.pink,
-    style: { directive: '' },
-  },
-  editor: {
-    selection: '#9399B240',
-    selectionInactive: '#9399B226',
-    lineHighlight: '#CDD6F412',
-    lineNumber: MOCHA.overlay1,
-    lineNumberActive: MOCHA.lavender,
-    cursor: MOCHA.rosewater,
-    findMatch: '#FAB38766',
-    findMatchHighlight: '#FAB38733',
-    indentGuide: MOCHA.surface0,
-    indentGuideActive: MOCHA.surface1,
-    brackets: [MOCHA.red, MOCHA.peach, MOCHA.yellow, MOCHA.green, MOCHA.sapphire, MOCHA.mauve],
-  },
-  terminal: {
-    foreground: MOCHA.text,
-    selection: '#585B7080',
-    black: MOCHA.surface1,
-    red: MOCHA.red,
-    green: MOCHA.green,
-    yellow: MOCHA.yellow,
-    blue: MOCHA.blue,
-    magenta: MOCHA.pink,
-    cyan: MOCHA.teal,
-    white: MOCHA.subtext1,
-    brightBlack: MOCHA.surface2,
-    brightRed: MOCHA.red,
-    brightGreen: MOCHA.green,
-    brightYellow: MOCHA.yellow,
-    brightBlue: MOCHA.blue,
-    brightMagenta: MOCHA.pink,
-    brightCyan: MOCHA.teal,
-    brightWhite: MOCHA.subtext0,
-  },
-};
-
-const tokyoNight: Theme = {
-  id: 'tokyo-night',
-  name: 'Tokyo Night',
-  scheme: 'dark',
-  ui: {
-    bg0: '#16161E',
-    bg1: '#16161E',
-    bg2: '#16161E',
-    bg3: '#202330',
-    bg4: '#292E42',
-    bgEditor: '#1A1B26',
-    border: '#101014',
-    borderStrong: '#292E42',
-    text0: '#C0CAF5',
-    text1: '#A9B1D6',
-    text2: '#787C99',
-    text3: '#565F89',
-    brand: '#7AA2F7',
-    brandText: '#7AA2F7',
-    brandFill: '#3D59A1',
-    brandFillHover: mix('#3D59A1', '#7AA2F7', 0.3),
-    brandContrast: '#FFFFFF',
-    ok: '#9ECE6A',
-    warn: '#E0AF68',
-    error: '#F7768E',
-    info: '#7DCFFF',
-  },
-  syntax: {
-    fg: '#A9B1D6',
-    comment: '#565F89',
-    keyword: '#BB9AF7',
-    control: '#BB9AF7',
-    type: '#0DB9D7',
-    func: '#7AA2F7',
-    number: '#FF9E64',
-    string: '#9ECE6A',
-    constant: '#FF9E64',
-    variable: '#73DACA',
-    tag: '#F7768E',
-    operator: '#89DDFF',
-    delimiter: '#89DDFF',
-    directive: '#73DACA',
-    style: { directive: '' },
-  },
-  editor: {
-    selection: '#515C7E4D',
-    selectionInactive: '#515C7E25',
-    lineHighlight: '#1E202E',
-    lineNumber: '#363B54',
-    lineNumberActive: '#787C99',
-    cursor: '#C0CAF5',
-    findMatch: '#3D59A166',
-    findMatchHighlight: '#3D59A133',
-    indentGuide: '#232433',
-    indentGuideActive: '#363B54',
-    bracketMatch: '#16161E',
-    bracketMatchBorder: '#42465D',
-    brackets: ['#698CD6', '#68B3DE', '#9A7ECC', '#25AAC2', '#80A856', '#C49A5A'],
-  },
-  terminal: {
-    foreground: '#A9B1D6',
-    selection: '#515C7E4D',
-    black: '#363B54',
-    red: '#F7768E',
-    green: '#73DACA',
-    yellow: '#E0AF68',
-    blue: '#7AA2F7',
-    magenta: '#BB9AF7',
-    cyan: '#7DCFFF',
-    white: '#787C99',
-    brightBlack: '#363B54',
-    brightRed: '#F7768E',
-    brightGreen: '#73DACA',
-    brightYellow: '#E0AF68',
-    brightBlue: '#7AA2F7',
-    brightMagenta: '#BB9AF7',
-    brightCyan: '#7DCFFF',
-    brightWhite: '#ACB0D0',
-  },
-};
-
 export const THEMES: Theme[] = [
-  atlas,
-  atlasLight,
+  boreal,
+  borealClaro,
+  austral,
+  australClaro,
+  nebulosa,
+  nebulosaClara,
+  alvorada,
+  alvoradaClara,
+  lunar,
+  lunarClaro,
   auroraLegacy,
   darkModern,
   lightModern,
   dracula,
-  gruvboxDark,
-  gruvboxLight,
-  monokai,
-  nord,
-  oneDark,
-  solarizedDark,
-  solarizedLight,
-  catppuccinMocha,
-  tokyoNight,
 ];

@@ -1,5 +1,5 @@
-// O CliLaceClient contra o lace falso: os códigos de saída, o erro do código
-// 2, o --events e o cancelamento. O lace falso devolve o que o lace de
+// O CliAuroraClient contra o aurora falso: os códigos de saída, o erro do código
+// 2, o --events e o cancelamento. O aurora falso devolve o que o aurora de
 // verdade respondeu (test/fixtures/responses/).
 
 import * as assert from 'node:assert/strict';
@@ -7,8 +7,8 @@ import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 
-import { LaceProcessError } from '../../src/lace/client';
-import { CliLaceClient } from '../../src/lace/cliClient';
+import { AuroraProcessError } from '../../src/aurora/client';
+import { CliAuroraClient } from '../../src/aurora/cliClient';
 import type {
   BuildReport,
   CheckReport,
@@ -20,45 +20,45 @@ import type {
   StatusReport,
   SynthReport,
   WaveReport,
-} from '../../src/lace/lace-types';
-import { FAKE_LACE, fakeLaceDir, laceCalls, laceWaiting, recordedCases, until } from '../support/fixtures';
+} from '../../src/aurora/aurora-types';
+import { FAKE_AURORA, fakeAuroraDir, auroraCalls, auroraWaiting, recordedCases, until } from '../support/fixtures';
 
-// As pastas não precisam existir: o lace falso só usa o caminho. Os nomes
-// são os das gravações, que o lace falso confere.
-const base = join(tmpdir(), 'lace teste com espaço');
+// As pastas não precisam existir: o aurora falso só usa o caminho. Os nomes
+// são os das gravações, que o aurora falso confere.
+const base = join(tmpdir(), 'aurora teste com espaço');
 const demo = join(base, 'projeto demo');
 const spf = join(demo, 'demo.spf');
 const broken = join(base, 'erro', 'erro.spf');
 const endless = join(base, 'infinito', 'infinito.spf');
 
-describe('CliLaceClient', () => {
+describe('CliAuroraClient', () => {
   let log: string;
-  let client: CliLaceClient;
+  let client: CliAuroraClient;
 
   beforeEach(() => {
-    const dir = fakeLaceDir();
+    const dir = fakeAuroraDir();
     log = dir.log;
-    process.env.FAKE_LACE_LOG = dir.log;
-    process.env.FAKE_LACE_STATE = dir.state;
-    // O lace falso é um script: roda pelo Node deste processo, em qualquer
+    process.env.FAKE_AURORA_LOG = dir.log;
+    process.env.FAKE_AURORA_STATE = dir.state;
+    // O aurora falso é um script: roda pelo Node deste processo, em qualquer
     // sistema (no Windows, um .mjs não executa sozinho).
-    client = new CliLaceClient({ file: process.execPath, args: [FAKE_LACE] });
+    client = new CliAuroraClient({ file: process.execPath, args: [FAKE_AURORA] });
   });
 
   afterEach(() => {
-    delete process.env.FAKE_LACE_LOG;
-    delete process.env.FAKE_LACE_STATE;
+    delete process.env.FAKE_AURORA_LOG;
+    delete process.env.FAKE_AURORA_STATE;
   });
 
-  it('lê a versão da linha do lace --version', async () => {
-    const recorded = recordedCases().recordedWith.replace(/^lace /, '');
+  it('lê a versão da linha do aurora --version', async () => {
+    const recorded = recordedCases().recordedWith.replace(/^aurora /, '');
     assert.equal(await client.version(), recorded);
   });
 
   it('passa -C com o .spf e --json antes do comando, cada caminho num argumento só', async () => {
     const file = join(demo, 'rtl', 'somador.v');
     await client.setTop(spf, file);
-    assert.deepEqual(laceCalls(log), [['-C', spf, '--json', 'top', file]]);
+    assert.deepEqual(auroraCalls(log), [['-C', spf, '--json', 'top', file]]);
   });
 
   it('código 0: devolve o objeto do --json', async () => {
@@ -67,7 +67,7 @@ describe('CliLaceClient', () => {
     const report = (run as { result: StatusReport }).result;
     assert.equal(report.root, demo);
     assert.equal(report.top_module, 'contador');
-    // O lace falso troca só o ${ROOT}; o resto do caminho é o gravado.
+    // O aurora falso troca só o ${ROOT}; o resto do caminho é o gravado.
     assert.equal(report.top_level, `${demo}/rtl/contador.v`);
   });
 
@@ -82,8 +82,8 @@ describe('CliLaceClient', () => {
     assert.equal(run.status, 'error');
     if (run.status === 'error') {
       assert.equal(run.error.code, 'project_not_found');
-      assert.match(run.error.message, /No Lace project here/);
-      assert.match(run.error.hint ?? '', /^Create one with: lace new/);
+      assert.match(run.error.message, /Na AURORA project here/);
+      assert.match(run.error.hint ?? '', /^Create one with: aurora new/);
     }
   });
 
@@ -105,33 +105,33 @@ describe('CliLaceClient', () => {
     });
   });
 
-  it('um código fora do contrato vira LaceProcessError, com o stderr', async () => {
+  it('um código fora do contrato vira AuroraProcessError, com o stderr', async () => {
     await assert.rejects(client.runJson(['panico']), (error: unknown) => {
-      assert.ok(error instanceof LaceProcessError);
+      assert.ok(error instanceof AuroraProcessError);
       assert.equal(error.exitCode, 101);
       assert.match(error.stderr, /panicked/);
       return true;
     });
   });
 
-  it('stdout que não é JSON, ou código 0 sem JSON, vira LaceProcessError', async () => {
-    await assert.rejects(client.runJson(['texto']), LaceProcessError);
-    await assert.rejects(client.runJson(['mudo']), LaceProcessError);
+  it('stdout que não é JSON, ou código 0 sem JSON, vira AuroraProcessError', async () => {
+    await assert.rejects(client.runJson(['texto']), AuroraProcessError);
+    await assert.rejects(client.runJson(['mudo']), AuroraProcessError);
   });
 
-  it('um executável que não existe vira LaceProcessError', async () => {
-    const missing = new CliLaceClient({ file: join(base, 'nao-existe', 'lace'), args: [] });
-    await assert.rejects(missing.version(), LaceProcessError);
+  it('um executável que não existe vira AuroraProcessError', async () => {
+    const missing = new CliAuroraClient({ file: join(base, 'nao-existe', 'aurora'), args: [] });
+    await assert.rejects(missing.version(), AuroraProcessError);
   });
 
-  it('cancelado antes de começar não roda o lace', async () => {
+  it('cancelado antes de começar não roda o aurora', async () => {
     const controller = new AbortController();
     controller.abort();
     assert.deepEqual(await client.status(spf, { signal: controller.signal }), {
       status: 'cancelled',
       result: null,
     });
-    assert.deepEqual(laceCalls(log), []);
+    assert.deepEqual(auroraCalls(log), []);
   });
 
   describe('--events', () => {
@@ -139,7 +139,7 @@ describe('CliLaceClient', () => {
       const events: Event[] = [];
       const run = await client.runEvents<CheckReport>(['check'], { project: spf, onEvent: (e) => events.push(e) });
       assert.equal(run.status, 'succeeded');
-      assert.deepEqual(laceCalls(log), [['-C', spf, '--events', 'check']]);
+      assert.deepEqual(auroraCalls(log), [['-C', spf, '--events', 'check']]);
       assert.equal(events[0].event, 'step_started');
       assert.equal(events.at(-1)?.event, 'step_finished');
       const kinds = new Set(events.map((e) => e.event));
@@ -154,8 +154,8 @@ describe('CliLaceClient', () => {
       assert.equal(run.status === 'succeeded' && run.result.name, 'demo');
     });
 
-    it('uma linha que não é JSON vira LaceProcessError', async () => {
-      await assert.rejects(client.runEvents(['texto']), LaceProcessError);
+    it('uma linha que não é JSON vira AuroraProcessError', async () => {
+      await assert.rejects(client.runEvents(['texto']), AuroraProcessError);
     });
   });
 
@@ -168,7 +168,7 @@ describe('CliLaceClient', () => {
         await client.check(spf, { lint: true }),
         await client.check(spf, { processor: 'soma' }),
       ];
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'check'],
         ['-C', spf, '--events', 'check', file],
         ['-C', spf, '--events', 'check', '--lint'],
@@ -197,7 +197,7 @@ describe('CliLaceClient', () => {
         await client.wave(spf, { kind: 'processor', name: 'soma' }),
         await client.wave(spf, { kind: 'file', path: fst }),
       ];
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'wave'],
         ['-C', spf, '--json', 'wave', '-p', 'soma'],
         ['-C', spf, '--json', 'wave', fst],
@@ -209,13 +209,13 @@ describe('CliLaceClient', () => {
 
     it('wave de um arquivo sem projeto não passa -C', async () => {
       await client.wave(undefined, { kind: 'file', path: join(base, 'onda.vcd') });
-      assert.deepEqual(laceCalls(log), [['--json', 'wave', join(base, 'onda.vcd')]]);
+      assert.deepEqual(auroraCalls(log), [['--json', 'wave', join(base, 'onda.vcd')]]);
     });
 
     it('wave sem testbench: o erro com a dica', async () => {
       const run = await client.wave(broken, { kind: 'project' });
       assert.equal(run.status === 'error' && run.error.code, 'no_testbench');
-      assert.match(run.status === 'error' ? (run.error.hint ?? '') : '', /lace add/);
+      assert.match(run.status === 'error' ? (run.error.hint ?? '') : '', /aurora add/);
     });
 
     it('add: os arquivos e, com testbench, o --tb', async () => {
@@ -223,7 +223,7 @@ describe('CliLaceClient', () => {
       const velho = join(demo, 'rtl', 'velho_tb.v');
       const added = await client.add(spf, [sobra]);
       const bench = await client.add(spf, [velho], { testbench: true });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'add', sobra],
         ['-C', spf, '--json', 'add', velho, '--tb'],
       ]);
@@ -239,7 +239,7 @@ describe('CliLaceClient', () => {
       await client.sim(spf, { fast: true });
       const soma = await client.sim(spf, { processor: 'soma' });
       await client.sim(spf, { testbench: tb });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'sim'],
         ['-C', spf, '--events', 'sim', '--fast'],
         ['-C', spf, '--events', 'sim', '-p', 'soma'],
@@ -253,7 +253,7 @@ describe('CliLaceClient', () => {
 
     it('sim que passa do --timeout: código 1, timed_out', async () => {
       const run = await client.sim(endless, { timeoutSeconds: 1 });
-      assert.deepEqual(laceCalls(log), [['-C', endless, '--events', 'sim', '--timeout', '1']]);
+      assert.deepEqual(auroraCalls(log), [['-C', endless, '--events', 'sim', '--timeout', '1']]);
       assert.equal(run.status, 'failed');
       assert.equal((run as { result: SimReport }).result.simulation?.status, 'timed_out');
     });
@@ -262,7 +262,7 @@ describe('CliLaceClient', () => {
       const svg = await client.synth(spf, { svg: true });
       await client.synth(spf);
       const soma = await client.synth(spf, { processor: 'soma' });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'synth', '--svg'],
         ['-C', spf, '--events', 'synth'],
         ['-C', spf, '--events', 'synth', '-p', 'soma'],
@@ -276,7 +276,7 @@ describe('CliLaceClient', () => {
     it('build: todos, ou cada -p, pelo --events', async () => {
       const all = await client.build(spf);
       await client.build(spf, { processors: ['soma'] });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--events', 'build'],
         ['-C', spf, '--events', 'build', '-p', 'soma'],
       ]);
@@ -288,12 +288,12 @@ describe('CliLaceClient', () => {
     });
 
     it('build que falha: código 1, com o erro do YANC no fonte', async () => {
-      writeFileSync(process.env.FAKE_LACE_STATE ?? '', 'soma-quebrado');
+      writeFileSync(process.env.FAKE_AURORA_STATE ?? '', 'soma-quebrado');
       const run = await client.build(spf, { processors: ['soma'] });
       assert.equal(run.status, 'failed');
       const [soma] = (run as { result: BuildReport }).result.results;
       assert.equal(soma.failed_step, 'compile');
-      // O lace falso troca só o ${ROOT}; o resto do caminho é o gravado.
+      // O aurora falso troca só o ${ROOT}; o resto do caminho é o gravado.
       assert.equal(soma.diagnostics[0].file, `${demo}/soma/soma.cmm`);
       assert.equal(soma.diagnostics[0].line, 14);
     });
@@ -303,7 +303,7 @@ describe('CliLaceClient', () => {
       await client.configureProcessor(spf, 'soma', { frequencyMhz: 50 });
       await client.configureProcessor(spf, 'soma', { clocks: 5000 });
       await client.configureProcessor(spf, 'soma', { showArrays: true });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'proc', 'add', 'soma', '--lang', 'cmm'],
         ['-C', spf, '--json', 'proc', 'set', 'soma', '--freq', '50'],
         ['-C', spf, '--json', 'proc', 'set', 'soma', '--clocks', '5000'],
@@ -319,7 +319,7 @@ describe('CliLaceClient', () => {
     it('remove: os arquivos; um que não está no projeto é erro', async () => {
       const two = await client.remove(spf, [rtl('somador.v'), rtl('mux.sv')]);
       const outside = await client.remove(spf, [rtl('sobra.v')]);
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'remove', rtl('somador.v'), rtl('mux.sv')],
         ['-C', spf, '--json', 'remove', rtl('sobra.v')],
       ]);
@@ -329,11 +329,11 @@ describe('CliLaceClient', () => {
 
     it('order: antes, depois, primeiro e último', async () => {
       const up = await client.order(spf, rtl('somador.v'), { kind: 'before', other: rtl('contador.v') });
-      writeFileSync(process.env.FAKE_LACE_STATE ?? '', 'initial');
+      writeFileSync(process.env.FAKE_AURORA_STATE ?? '', 'initial');
       await client.order(spf, rtl('somador.v'), { kind: 'after', other: rtl('mux.sv') });
       await client.order(spf, rtl('mux.sv'), { kind: 'first' });
       await client.order(spf, rtl('contador.v'), { kind: 'last' });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'order', rtl('somador.v'), '--before', rtl('contador.v')],
         ['-C', spf, '--json', 'order', rtl('somador.v'), '--after', rtl('mux.sv')],
         ['-C', spf, '--json', 'order', rtl('mux.sv'), '--first'],
@@ -343,10 +343,10 @@ describe('CliLaceClient', () => {
       assert.deepEqual(order, ['somador.v', 'contador.v', 'mux.sv', 'soma.v']);
     });
 
-    it('move --after: só o .spf; com o arquivo ainda no lugar, o Lace recusa', async () => {
+    it('move --after: só o .spf; com o arquivo ainda no lugar, a AURORA recusa', async () => {
       const moved = await client.move(spf, rtl('somador.v'), rtl('adder.v'), { after: true });
       const refused = await client.move(spf, rtl('mux.sv'), rtl('adder.v'), { after: true });
-      assert.deepEqual(laceCalls(log), [
+      assert.deepEqual(auroraCalls(log), [
         ['-C', spf, '--json', 'move', '--after', rtl('somador.v'), rtl('adder.v')],
         ['-C', spf, '--json', 'move', '--after', rtl('mux.sv'), rtl('adder.v')],
       ]);
@@ -356,7 +356,7 @@ describe('CliLaceClient', () => {
   });
 
   describe('cancelamento', () => {
-    it('--events: o lace recebe SIGTERM e sai com 130 e o resultado cancelado', async () => {
+    it('--events: o aurora recebe SIGTERM e sai com 130 e o resultado cancelado', async () => {
       const controller = new AbortController();
       const events: Event[] = [];
       const run = await client.runEvents<SimReport>(['sim'], {
@@ -372,10 +372,10 @@ describe('CliLaceClient', () => {
       assert.equal(run.status, 'cancelled');
       assert.ok(events.some((e) => e.event === 'output' && e.line === 'comecou'));
       if (process.platform === 'win32') {
-        // O kill do Windows encerra o lace antes de ele escrever o resultado.
+        // O kill do Windows encerra o aurora antes de ele escrever o resultado.
         assert.equal(run.status === 'cancelled' && run.result, null);
       } else {
-        // O resultado só sai se o lace tratou o sinal: um SIGKILL não deixaria.
+        // O resultado só sai se o aurora tratou o sinal: um SIGKILL não deixaria.
         assert.equal(run.status === 'cancelled' && run.result?.simulation?.status, 'cancelled');
       }
     });
@@ -383,7 +383,7 @@ describe('CliLaceClient', () => {
     it('--json: o mesmo, com o objeto no fim', async () => {
       const controller = new AbortController();
       const running = client.runJson<SimReport>(['sim'], { project: endless, signal: controller.signal });
-      await until(() => laceWaiting(log), 'o lace falso esperar o sinal');
+      await until(() => auroraWaiting(log), 'o aurora falso esperar o sinal');
       controller.abort();
       const run = await running;
       assert.equal(run.status, 'cancelled');

@@ -4,7 +4,7 @@
 
 import { runSynthesis } from '../../actions';
 import { useT, type Key } from '../../i18n';
-import type { SynthesisStatistics } from '../../ipc/lace-types';
+import type { SynthesisStatistics } from '../../ipc/aurora-types';
 import { useEditor } from '../../state/editor';
 import { useJobs } from '../../state/jobs';
 import { Button, Empty } from '../common';

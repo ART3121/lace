@@ -1,4 +1,4 @@
-// O projeto aberto: o retrato que o backend devolve (o `lace status`) e o
+// O projeto aberto: o retrato que o backend devolve (o `aurora status`) e o
 // alvo escolhido na barra (o projeto inteiro ou um processador).
 //
 // O retrato é relido do disco sempre que algo muda: depois de cada
@@ -50,7 +50,7 @@ interface ProjectState {
 /** O título da janela, o do sistema (barra de tarefas, Alt+Tab) e o da barra
  * de título integrada (TitleBar.tsx). */
 export function windowTitle(name: string | null): string {
-  return name ? `${name} - Lace Studio` : 'Lace Studio';
+  return name ? `${name} - AURORA IDE` : 'AURORA IDE';
 }
 
 async function setTitle(name: string | null): Promise<void> {
@@ -63,7 +63,7 @@ async function setTitle(name: string | null): Promise<void> {
 
 function loadTarget(spf: string): string | null {
   try {
-    return localStorage.getItem(`lace-studio:target:${spf}`);
+    return localStorage.getItem(`aurora-ide:target:${spf}`);
   } catch {
     return null;
   }
@@ -97,7 +97,7 @@ function legacyProcessors(snapshot: ProjectSnapshot): string[] {
 }
 
 /** Converte o projeto da estrutura de pastas do YANC 6.x para a do 7.1
- * (`lace convert`), perguntando antes, e mostra o que mudou de lugar. */
+ * (`aurora convert`), perguntando antes, e mostra o que mudou de lugar. */
 export async function convertLayout(): Promise<void> {
   const snapshot = useProject.getState().snapshot;
   if (!snapshot) return;
@@ -256,8 +256,8 @@ export const useProject = create<ProjectState>((set, get) => ({
     const spf = get().snapshot?.spf;
     if (!spf) return;
     try {
-      if (name) localStorage.setItem(`lace-studio:target:${spf}`, name);
-      else localStorage.removeItem(`lace-studio:target:${spf}`);
+      if (name) localStorage.setItem(`aurora-ide:target:${spf}`, name);
+      else localStorage.removeItem(`aurora-ide:target:${spf}`);
     } catch {
       // Sem armazenamento, o alvo só não é lembrado.
     }

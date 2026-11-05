@@ -3,7 +3,7 @@
 //!
 //! O Studio guarda pouco: o caminho do `.spf` aberto, as preferências, a
 //! operação que está rodando, os terminais, o vigia de arquivos e o servidor
-//! do Lace. O projeto em si é do servidor, que o reabre do disco a cada
+//! da AURORA. O projeto em si é do servidor, que o reabre do disco a cada
 //! pedido, como a CLI faz a cada execução: o `.spf` pode mudar por fora (a
 //! CLI no terminal, um editor de texto).
 
@@ -26,7 +26,7 @@ pub struct AppState {
     /// O `.spf` do projeto aberto.
     pub project: Mutex<Option<Utf8PathBuf>>,
     /// A operação rodando, se houver. Só uma por vez: duas operações no
-    /// mesmo projeto dividiriam o `.lace/Temp`.
+    /// mesmo projeto dividiriam o `.aurora8/Temp`.
     pub job: Mutex<Option<ActiveJob>>,
     /// Os terminais de shell abertos, por identificador.
     pub terminals: Mutex<HashMap<u32, Terminal>>,
@@ -34,8 +34,8 @@ pub struct AppState {
     pub watcher: Mutex<Option<RecommendedWatcher>>,
     /// As sessões do assistente abertas.
     assistants: crate::assistant::Assistants,
-    /// O servidor do Lace (`lace serve`) que atende os métodos do protocolo.
-    pub server: crate::server::LaceServer,
+    /// O servidor da AURORA (`aurora serve`) que atende os métodos do protocolo.
+    pub server: crate::server::AuroraServer,
     next_id: AtomicU32,
 }
 
@@ -43,7 +43,7 @@ pub struct AppState {
 pub struct ActiveJob {
     /// O identificador que a interface usa para cancelar.
     pub id: u32,
-    /// O pedido ao servidor do Lace que a operação fez, depois que ele sai:
+    /// O pedido ao servidor da AURORA que a operação fez, depois que ele sai:
     /// é para ele que vai o `$/cancel`.
     pub request: Option<u64>,
     /// Cancelar foi pedido. Se o pedido ainda não saiu, ele é cancelado
@@ -61,7 +61,7 @@ impl AppState {
             terminals: Mutex::new(HashMap::new()),
             watcher: Mutex::new(None),
             assistants: crate::assistant::Assistants::default(),
-            server: crate::server::LaceServer::default(),
+            server: crate::server::AuroraServer::default(),
             next_id: AtomicU32::new(1),
         }
     }
