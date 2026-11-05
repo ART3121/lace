@@ -721,12 +721,25 @@ pub fn inno(
     }
 
     // Os aplicativos que a pasta escolhida já tem (do assistente ou do
-    // `aurora install`) ficam marcados numa reinstalação.
+    // `aurora install`) ficam marcados numa reinstalação. A pasta de um Lace,
+    // que o assistente substitui, tem os componentes que mudaram de nome com
+    // o nome de antes (crate::lace).
     iss.push_str("\n[Code]\nprocedure SelectInstalledComponents(const Dir: String);\nbegin\n");
     for c in &ordered {
+        let mut condition = format!(
+            "FileExists(Dir + '\\toolchain\\components\\{}.json')",
+            c.name
+        );
+        for (former, _) in crate::lace::RENAMED_COMPONENTS
+            .iter()
+            .filter(|(_, aurora)| *aurora == c.name)
+        {
+            condition.push_str(&format!(
+                " or FileExists(Dir + '\\toolchain\\components\\{former}.json')"
+            ));
+        }
         iss.push_str(&format!(
-            "  if FileExists(Dir + '\\toolchain\\components\\{}.json') then\n    WizardSelectComponents('{}');\n",
-            c.name,
+            "  if {condition} then\n    WizardSelectComponents('{}');\n",
             full(&c.name)
         ));
     }
@@ -1053,6 +1066,51 @@ mod tests {
             "bundle.json"
         );
         assert!(out.join("chunks/01/toolchain/oss/lib/libc").is_file());
+    }
+
+    /// A pasta de um Lace tem `lace-learn.json`: o assistente que o
+    /// substitui marca o AURORA Learn por ele.
+    #[test]
+    fn inno_selects_components_by_their_lace_names_too() {
+        let dir = tempfile::tempdir().unwrap();
+        let toolchain = dir.path().join("toolchain");
+        let mut c = contents();
+        let mut learn = c.components[0].clone();
+        learn.name = "aurora-learn".into();
+        learn.requires = vec!["icarus".into()];
+        learn.files = vec!["aurora-learn/verilog/track.json".into()];
+        c.components.push(learn);
+        for f in c
+            .common
+            .iter()
+            .chain(c.components.iter().flat_map(|c| &c.files))
+        {
+            let p = toolchain.join(f);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(p, f).unwrap();
+        }
+        let aurora = dir.path().join("aurora.exe");
+        fs::write(&aurora, "exe").unwrap();
+        let out = dir.path().join("stage");
+        inno(&toolchain, &c, &aurora, &out, None).unwrap();
+        let iss = fs::read_to_string(out.join("components.iss"))
+            .unwrap()
+            .replace("\r\n", "\n");
+        assert!(
+            iss.contains(
+                "  if FileExists(Dir + '\\toolchain\\components\\aurora-learn.json') or \
+                 FileExists(Dir + '\\toolchain\\components\\lace-learn.json') then\n    \
+                 WizardSelectComponents('icarus\\aurora_learn');\n"
+            ),
+            "{iss}"
+        );
+        assert!(
+            iss.contains(
+                "  if FileExists(Dir + '\\toolchain\\components\\yosys.json') then\n    \
+                 WizardSelectComponents('yosys');\n"
+            ),
+            "{iss}"
+        );
     }
 
     #[test]

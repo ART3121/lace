@@ -131,6 +131,18 @@ instalador (`aurora-<versão>-<plataforma>.tar.gz` e
 nunca mudam. Uma mudança no resto mantém o caminho antigo funcionando e é
 conferida atualizando a partir da versão anterior (seção 6.4).
 
+Quem tem o Lace (0.4 a 0.9) chega à AURORA pelo mesmo contrato, com os
+nomes de antes. O `lace update` procura o índice
+`lace-<versão>-<plataforma>-index.json`, não acha, e cai para o instalador
+inteiro, `lace-<versão>-<plataforma>.tar.gz` ou
+`lace-<versão>-windows-x64-setup.exe`. O `release.yml` publica os
+instaladores da AURORA também com esses nomes, em toda release, e o
+`install` e o assistente da AURORA reconhecem o Lace e o trocam pela AURORA
+([crates/aurora-installer/src/lace.rs](../crates/aurora-installer/src/lace.rs)).
+Esses nomes também não mudam, e a release nunca publica um índice com o
+nome antigo, que levaria o `lace update` à atualização por componentes,
+dentro da pasta do Lace.
+
 ### 2.4 Antes da 1.0
 
 Enquanto a versão começar com 0, o primeiro número não sobe. O que pediria
@@ -359,6 +371,11 @@ sozinho no GitHub hoje: o `release.yml` só monta os instaladores, sem teste
 - A extensão: `npm run typecheck`, `npm run lint` e `npm run test:unit` em
   `editors/vscode/`, e o `vscode.yml` verde no último push que a mudou.
 - O RTL viewer: `npm run typecheck` em `packages/rtl-viewer/`.
+- A passagem do Lace (seção 2.3): o `lace-ponte.yml` verde no push da
+  `release/X.Y`, que roda o `lace update` de um Lace 0.9.0 contra um espelho
+  com o `install` do commit, no Linux e no macOS. No Windows, o assistente
+  compilado com `/DAppGuid=` e `/DLaceGuid=` de teste, rodado sobre um Lace
+  de teste com esse AppId: o Lace sai, e os aplicativos dele vêm marcados.
 
 Cada sistema que o responsável tem roda a lista inteira. O que ficou sem
 rodar, como um sistema que ninguém tinha, vai escrito nas notas da release
@@ -402,14 +419,19 @@ No mesmo dia, o responsável confere:
 - **Os arquivos.** `gh release view v0.10.0` lista, para cada plataforma,
   o instalador (o `.tar.gz` no Linux e no macOS, o `-setup.exe` e o
   `-web-setup.exe` no Windows), o `-index.json`, o `-files.json`, o
-  `-aurora.tar.zst` e os pedaços `-cNN.tar.zst`, e mais o `.vsix` e o
-  `SHA256SUMS`.
+  `-aurora.tar.zst` e os pedaços `-cNN.tar.zst`, e mais o `.vsix`, o
+  `SHA256SUMS` e os instaladores com o nome do Lace
+  (`lace-<versão>-linux-x64.tar.gz`, `lace-<versão>-darwin-arm64.tar.gz` e
+  `lace-<versão>-windows-x64-setup.exe`, seção 2.3).
 - **A instalação nova**, pelo comando de um passo do README:
   `aurora --version` diz a versão nova, `aurora tools --verify` passa, o Studio
   abre, e um exemplo de `examples/` compila e simula.
 - **A atualização**, numa instalação da versão anterior: `aurora update` acha
   a versão nova e atualiza; depois, a mesma conferência da instalação nova.
   É ela que protege o contrato da atualização (seção 2.3).
+- **A passagem do Lace**, numa instalação do Lace 0.9.0: `lace update`
+  instala a AURORA com os mesmos aplicativos e tira o Lace; depois, a mesma
+  conferência da instalação nova.
 - **A extensão**: o `.vsix` da release instala com
   `code --install-extension`, e o VS Code mostra a versão nova.
 

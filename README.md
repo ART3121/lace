@@ -130,8 +130,8 @@ Para instalar um aplicativo do bundle depois, sem reinstalar a AURORA:
 Para ver se há versão nova da AURORA e das ferramentas: `aurora update --check`.
 
 Detalhes, remoção e problemas conhecidos: [docs/INSTALL.md](docs/INSTALL.md).
-Quem tem o Lace instala a AURORA e depois desinstala o Lace, porque o
-`lace update` não chega na AURORA:
+Quem tem o Lace passa para a AURORA pelo `lace update`, que instala a AURORA
+com os mesmos aplicativos e tira o Lace:
 [docs/INSTALL.md, Quem tem o Lace](docs/INSTALL.md#quem-tem-o-lace). Quem
 ainda tem o Solar 0.1.0, o nome do Lace antes da 0.2.0, desinstala o Solar:
 [docs/INSTALL.md, Quem tem o Solar 0.1.0](docs/INSTALL.md#quem-tem-o-solar-010).

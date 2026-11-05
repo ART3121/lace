@@ -59,15 +59,23 @@ WebView do Studio falta, sem deixar de instalar.
 ## Quem tem o Lace
 
 A AURORA 1.0.0 é a versão seguinte ao Lace 0.9.0, com outro nome, outra
-pasta e outro executável. Ela não troca o Lace sozinha: o `lace update`
-procura na release os arquivos com o nome antigo e não os acha, embora o
-aviso diário do `lace` anuncie a versão nova. Os dois ficam instalados lado
-a lado até o Lace sair.
+pasta e outro executável. Para passar, basta o `lace update`, ou a
+atualização do Lace Studio: a release da AURORA publica os instaladores
+dela também com os nomes que o Lace procura, e eles trocam o Lace pela
+AURORA, com os mesmos aplicativos.
 
-1. Instale a AURORA pelo [comando de um passo](#em-um-comando) ou pelo
-   instalador da release.
-2. Tire o Lace com `lace uninstall` (no Windows, também em Configurações >
-   Aplicativos > Lace > Desinstalar), que apaga o Lace e o bundle dele.
+- **Linux e macOS:** a AURORA vai para a pasta dela (`~/.local/share/aurora`,
+  ou `/opt/aurora` como root), com o atalho `aurora` onde estava o `lace`,
+  e o Lace sai pelo desinstalador dele. Um Lace numa pasta com outro nome
+  dá lugar a uma AURORA na pasta padrão.
+- **Windows:** abre o assistente da AURORA, com os aplicativos do Lace
+  marcados e a tarefa **Uninstall Lace** (Desinstalar o Lace), que o
+  desinstala no fim. Se a atualização veio do Lace Studio, a AURORA IDE abre
+  quando o assistente termina.
+
+Instalando a AURORA à parte, pelo [comando de um passo](#em-um-comando) ou
+pelo instalador, o assistente do Windows também acha o Lace e oferece a
+mesma tarefa; no Linux e no macOS, tire o Lace depois com `lace uninstall`.
 
 A AURORA aproveita sozinha os projetos, cuja pasta `.lace/` vira `.aurora8/`
 na primeira abertura, com o que tinha dentro, e as preferências do Lace
@@ -220,6 +228,10 @@ plataforma, e a página de componentes do assistente, o da seleção.
 5. Deixe marcada a tarefa **Add AURORA to PATH** para usar `aurora` em
    qualquer terminal novo. Com o Studio, o assistente põe o atalho no menu
    Iniciar e oferece um na área de trabalho.
+6. Com o Lace instalado, o assistente avisa na primeira página, marca os
+   aplicativos dele e deixa marcada a tarefa **Uninstall Lace**
+   (Desinstalar o Lace), que o desinstala no fim, antes de pôr a AURORA no
+   PATH ([Quem tem o Lace](#quem-tem-o-lace)).
 
 A pasta padrão não tem espaço no caminho de propósito: o `make` usado pelo
 Verilator não aceita espaços, e `C:\Program Files` tem um. O assistente avisa
@@ -310,8 +322,9 @@ perfis. O `/TYPE=recomendada` de antes cai no perfil padrão.
 Nos parâmetros do Inno Setup, os nomes dos componentes são `aurora`, `yanc`, `icarus`,
 `icarus\cocotb`, `icarus\aurora_learn`, `verilator`, `yosys`,
 `yosys\graphviz`, `yosys\rtl_viewer`, `surfer_aurora`, `openfpgaloader` e `studio`; as
-tarefas, `path` e
-`studioicon` (o atalho do Studio na área de trabalho).
+tarefas, `path`, `studioicon` (o atalho do Studio na área de trabalho) e
+`removelace` (desinstalar o Lace, quando ele está instalado). Um `/TASKS=`
+marca só as tarefas da lista.
 
 O instalador não é assinado: o SmartScreen pode avisar "Editor
 desconhecido" na primeira vez (Mais informações > Executar assim mesmo).

@@ -423,3 +423,94 @@ fn install_events_have_the_console_line_with_the_labels() {
         "AURORA"
     );
 }
+
+/// O `install` que o `lace update` de um Lace roda (aurora_installer::lace):
+/// a AURORA vai para a pasta `aurora` ao lado da do Lace, com os aplicativos
+/// dele nos nomes da AURORA e o atalho `aurora` ao lado do `lace`, e o Lace
+/// sai pelo `uninstall.sh` dele (no Linux e no macOS; no Windows, quem tira o
+/// Lace é o assistente, e aqui a remoção é só apagar a pasta).
+#[test]
+fn replaces_a_lace_installation_with_aurora() {
+    use aurora_installer::lace;
+
+    let f = fixture();
+    let (payload, index) = payload(&f);
+    let share = f.root.join("share");
+    let lace_prefix = share.join("lace");
+    let bin = f.root.join("bin");
+    fs::create_dir_all(lace_prefix.join("bin")).unwrap();
+    fs::create_dir_all(lace_prefix.join("toolchain")).unwrap();
+    fs::create_dir_all(&bin).unwrap();
+    fs::write(lace_prefix.join("bin").join("lace"), "lace").unwrap();
+    let link = bin.join("lace");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(lace_prefix.join("bin/lace"), &link).unwrap();
+    let receipt = serde_json::json!({
+        "lace_version": "0.9.0", "bundle": "teste", "platform": platform(),
+        "components": ["icarus", "lace-learn"], "link": link,
+    });
+    fs::write(lace_prefix.join("install.json"), receipt.to_string()).unwrap();
+    // O uninstall.sh do instalador do Lace 0.9.0, sem as linhas do atalho
+    // no menu de aplicativos (que mexeriam no HOME de verdade).
+    let script = format!(
+        "#!/bin/sh\nset -e\nprefix='{prefix}'\nlink='{link}'\n\
+         if [ -L \"$link\" ] && [ \"$(readlink \"$link\")\" = \"$prefix/bin/lace\" ]; then\n  rm -f \"$link\"\nfi\n\
+         rm -rf \"$prefix/toolchain\" \"$prefix/bin/lace\" \"$prefix/install.json\"\n\
+         rmdir \"$prefix/bin\" 2>/dev/null || true\n\
+         rm -f \"$prefix/uninstall.sh\"\n\
+         rmdir \"$prefix\" 2>/dev/null || true\n",
+        prefix = lace_prefix.display(),
+        link = link.display(),
+    );
+    fs::write(lace_prefix.join("uninstall.sh"), script).unwrap();
+
+    let found = lace::detect(&lace_prefix).expect("a pasta do Lace");
+    assert_eq!(found.version, "0.9.0");
+    let default = Target {
+        prefix: f.root.join("padrao"),
+        link: None,
+    };
+    // O --components do lace update: o graphviz pede o yosys, e o lace-learn
+    // vira aurora-learn, que este bundle de teste não tem.
+    let names = vec![
+        "icarus".to_owned(),
+        "lace-learn".to_owned(),
+        "graphviz".to_owned(),
+    ];
+    let replaced = lace::replace(
+        &found,
+        &lace::Replacement {
+            payload: &payload,
+            index: &index,
+            names: Some(&names),
+            link: Some(&link),
+            default: &default,
+        },
+        |found| {
+            if cfg!(unix) {
+                lace::uninstall(found)
+            } else {
+                fs::remove_dir_all(&found.prefix).map_err(anyhow::Error::from)
+            }
+        },
+        |_| {},
+    )
+    .unwrap();
+
+    assert_eq!(replaced.target.prefix, share.join("aurora"));
+    assert_eq!(replaced.target.link, Some(bin.join("aurora")));
+    let installed = Receipt::load(&share.join("aurora")).expect("a AURORA instalada");
+    assert_eq!(installed.components, ["graphviz", "icarus", "yosys"]);
+    assert_eq!(replaced.added, ["yosys"]);
+    assert_eq!(replaced.missing, ["aurora-learn"]);
+    assert!(replaced.removed.is_ok(), "{:?}", replaced.removed);
+    assert!(!lace_prefix.exists(), "o Lace saiu");
+    #[cfg(unix)]
+    {
+        assert!(fs::symlink_metadata(&link).is_err(), "o atalho lace saiu");
+        assert_eq!(
+            fs::read_link(bin.join("aurora")).unwrap(),
+            share.join("aurora/bin/aurora")
+        );
+    }
+}

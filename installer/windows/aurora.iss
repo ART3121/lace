@@ -31,6 +31,13 @@
 ;
 ; A cara da AURORA: o ícone da AURORA IDE, as imagens de art\ (geradas da
 ; marca por scripts/installer_art.py) e o modo claro ou escuro do Windows.
+;
+; A AURORA substitui o Lace. O `lace update` do Lace (0.4 a 0.9) abre este
+; assistente, que o release.yml publica também com o nome que ele procura
+; (lace-<versão>-windows-x64-setup.exe; crates/aurora-installer/src/lace.rs).
+; Com o Lace instalado, o assistente avisa na página de boas-vindas, marca
+; os aplicativos da pasta dele e, no fim, roda o desinstalador dele (a
+; tarefa removelace), antes de pôr a AURORA no PATH.
 
 #ifndef Stage
   #error Pass /DStage=<aurora-pack inno stage>
@@ -45,6 +52,12 @@
 ; assistente sem mexer na instalação de verdade.
 #ifndef AppGuid
   #define AppGuid "B3198760-F391-4D95-BD56-AE9ED09C028E"
+#endif
+; O AppId do Lace (o installer/windows/lace.iss até a 0.9.0), pelo qual o
+; assistente acha o Lace instalado. Um outro, só para testar sem mexer no
+; Lace de verdade.
+#ifndef LaceGuid
+  #define LaceGuid "E34F1510-EC32-4839-8048-14CA03F9EFBB"
 #endif
 #ifndef ReleaseBase
   #define ReleaseBase "https://github.com/ART3121/lace/releases/download/v" + AuroraVersion + "/"
@@ -168,10 +181,15 @@ en.InstallNowAnyway=Install AURORA now anyway?
 pt.InstallNowAnyway=Instalar a AURORA agora mesmo assim?
 en.ForeignToolchain=The folder %1 already exists and is not from an AURORA installation, and installing would replace it. Choose another folder, or move it away first.
 pt.ForeignToolchain=A pasta %1 já existe e não é de uma instalação da AURORA, e instalar a substituiria. Escolha outra pasta, ou tire-a de lá antes.
+en.LaceInstalled=Lace %1 is installed in %2. AURORA replaces it: the apps it has come selected, and at the end this wizard uninstalls it. Projects and settings stay.
+pt.LaceInstalled=O Lace %1 está instalado em %2. A AURORA o substitui: os aplicativos dele vêm marcados, e no fim este assistente o desinstala. Os projetos e as preferências ficam.
+en.TaskRemoveLace=Uninstall Lace, which AURORA replaces
+pt.TaskRemoveLace=Desinstalar o Lace, que a AURORA substitui
 
 [Tasks]
 Name: "path"; Description: "{cm:TaskPath}"
 Name: "studioicon"; Description: "{cm:TaskStudioIcon}"; Components: studio; Flags: unchecked
+Name: "removelace"; Description: "{cm:TaskRemoveLace}"; Check: LaceInstalled
 
 ; A AURORA IDE fica no bundle (toolchain\studio, o componente studio) e acha
 ; o bundle por estar dentro dele.
@@ -181,7 +199,9 @@ Name: "{autodesktop}\AURORA IDE"; Filename: "{app}\toolchain\studio\aurora-ide.e
 
 ; A AURORA IDE que pediu a atualização (`aurora update --reopen-ide`, que
 ; passa /REOPENIDE=1) fechou para o assistente trocar os arquivos dele: ele
-; abre de novo sozinho, sem a caixa da página final.
+; abre de novo sozinho, sem a caixa da página final. O Lace Studio, que
+; atualiza pelo `lace update` e passa /REOPENSTUDIO=1, também fechou: no
+; lugar dele abre a AURORA IDE.
 [Run]
 Filename: "{app}\toolchain\studio\aurora-ide.exe"; Components: studio; Flags: nowait runasoriginaluser; Check: ReopenIde
 Filename: "{app}\toolchain\studio\aurora-ide.exe"; Description: "{cm:RunStudio}"; Components: studio; Flags: postinstall nowait skipifsilent unchecked; Check: not ReopenIde
@@ -222,6 +242,10 @@ const
   WebView2Client = '\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}';
   { A entrada da AURORA na lista de programas instalados. }
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#AppGuid}}_is1';
+  { A do Lace, que a AURORA substitui. }
+  LaceUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#LaceGuid}}_is1';
+  { Quanto esperar o desinstalador do Lace terminar, em milissegundos. }
+  LaceUninstallWait = 120000;
 
 var
   Preselected: Boolean;
@@ -355,22 +379,89 @@ begin
     (RegQueryStringValue(HKCU, 'Software' + WebView2Client, 'pv', Version) and (Version <> '') and (Version <> '0.0.0.0'));
 end;
 
-{ Os componentes que a pasta escolhida já tem vêm marcados, uma vez: na
-  página de componentes, ou antes de instalar numa instalação silenciosa
-  sem /COMPONENTS. Uma seleção que não é a de nenhum perfil põe o tipo em
-  Custom, com a lista. }
-{ /REOPENIDE=1: o `aurora update` da AURORA IDE abriu este assistente, e o
-  Studio fechou para ele (ver [Run]). }
-function ReopenIde: Boolean;
+{ O Lace instalado pelo assistente dele: a entrada na lista de programas,
+  do usuário ou de todos, com a pasta e a versão. }
+function FindLace(var Root: Integer; var Dir, Version: String): Boolean;
 begin
-  Result := ExpandConstant('{param:REOPENIDE|0}') = '1';
+  Result := False;
+  if RegQueryStringValue(HKCU, LaceUninstallKey, 'InstallLocation', Dir) then
+    Root := HKCU
+  else if RegQueryStringValue(HKLM, LaceUninstallKey, 'InstallLocation', Dir) then
+    Root := HKLM
+  else
+    exit;
+  if not RegQueryStringValue(Root, LaceUninstallKey, 'DisplayVersion', Version) then
+    Version := '';
+  Dir := RemoveBackslashUnlessRoot(Dir);
+  Result := Dir <> '';
 end;
 
+function LaceInstalled: Boolean;
+var
+  Root: Integer;
+  Dir, Version: String;
+begin
+  Result := FindLace(Root, Dir, Version);
+end;
+
+{ Tira o Lace pelo desinstalador dele, sem perguntas, e espera ele terminar:
+  o desinstalador do Inno Setup roda uma cópia de si na pasta temporária, e
+  a entrada do Lace sai da lista de programas no fim. Roda antes de pôr a
+  AURORA no PATH, porque ele tira a pasta do Lace do mesmo valor. Pelo
+  ShellExec, que pede o administrador quando o Lace foi instalado para
+  todos. Se não der, o Lace fica, e o log diz por quê. }
+procedure RemoveLace;
+var
+  Root, ResultCode, Waited: Integer;
+  Dir, Version, Uninstaller: String;
+begin
+  if not FindLace(Root, Dir, Version) then
+    exit;
+  if not RegQueryStringValue(Root, LaceUninstallKey, 'UninstallString', Uninstaller) then begin
+    Log('Lace ' + Version + ' in ' + Dir + ' has no UninstallString; it stays');
+    exit;
+  end;
+  Uninstaller := RemoveQuotes(Uninstaller);
+  Log('Uninstalling Lace ' + Version + ' from ' + Dir + ' with ' + Uninstaller);
+  if not ShellExec('', Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then begin
+    Log('Could not run the Lace uninstaller: ' + SysErrorMessage(ResultCode));
+    exit;
+  end;
+  Waited := 0;
+  while RegKeyExists(Root, LaceUninstallKey) and (Waited < LaceUninstallWait) do begin
+    Sleep(250);
+    Waited := Waited + 250;
+  end;
+  if RegKeyExists(Root, LaceUninstallKey) then
+    Log('Lace is still installed after its uninstaller (exit code ' + IntToStr(ResultCode) + ')')
+  else
+    Log('Lace was uninstalled');
+end;
+
+{ /REOPENIDE=1: o `aurora update` da AURORA IDE abriu este assistente, e ela
+  fechou para ele (ver [Run]). /REOPENSTUDIO=1 é o mesmo pedido do Lace
+  Studio, pelo `lace update`. }
+function ReopenIde: Boolean;
+begin
+  Result := (ExpandConstant('{param:REOPENIDE|0}') = '1') or (ExpandConstant('{param:REOPENSTUDIO|0}') = '1');
+end;
+
+{ Os componentes que a pasta escolhida já tem vêm marcados, uma vez: na
+  página de componentes, ou antes de instalar numa instalação silenciosa
+  sem /COMPONENTS. Numa pasta sem a AURORA, com o Lace instalado, os que a
+  pasta do Lace tem. Uma seleção que não é a de nenhum perfil põe o tipo em
+  Custom, com a lista. }
 procedure PreselectOnce;
+var
+  Root: Integer;
+  Dir, Version: String;
 begin
   if not Preselected then begin
     Preselected := True;
-    SelectInstalledComponents(WizardDirValue);
+    if not IsAuroraFolder(WizardDirValue) and FindLace(Root, Dir, Version) then
+      SelectInstalledComponents(Dir)
+    else
+      SelectInstalledComponents(WizardDirValue);
   end;
 end;
 
@@ -496,8 +587,8 @@ end;
 
 procedure InitializeWizard;
 var
-  Previous: String;
-  Shift: Integer;
+  Previous, LaceDir, LaceVersion: String;
+  Shift, LaceRoot: Integer;
 begin
   { A linha do perfil entra embaixo da caixa, e a lista desce para dar lugar. }
   ProfileText := TNewStaticText.Create(WizardForm);
@@ -521,6 +612,9 @@ begin
   if RegQueryStringValue(HKA, UninstallKey, 'DisplayVersion', Previous) and (Previous <> '') then
     WizardForm.WelcomeLabel2.Caption := WizardForm.WelcomeLabel2.Caption + #13#10#13#10 +
       FmtMessage(CustomMessage('PreviousInstall'), [Previous, '{#AuroraVersion}']);
+  if FindLace(LaceRoot, LaceDir, LaceVersion) then
+    WizardForm.WelcomeLabel2.Caption := WizardForm.WelcomeLabel2.Caption + #13#10#13#10 +
+      FmtMessage(CustomMessage('LaceInstalled'), [LaceVersion, LaceDir]);
 #ifdef Web
   DownloadPage := CreateDownloadPage(CustomMessage('DownloadTitle'), FmtMessage(CustomMessage('DownloadDesc'), ['{#AuroraVersion}']), nil);
   DownloadPage.ShowBaseNameInsteadOfUrl := True;
@@ -579,8 +673,13 @@ begin
   { Antes de copiar os arquivos, que herdam as permissões da pasta. }
   if CurStep = ssInstall then
     SecureAdminFolder;
-  if (CurStep = ssPostInstall) and WizardIsTaskSelected('path') then
-    AddToPath(ExpandConstant('{app}\bin'));
+  if CurStep = ssPostInstall then begin
+    { O Lace primeiro: o desinstalador dele também mexe no PATH. }
+    if WizardIsTaskSelected('removelace') then
+      RemoveLace;
+    if WizardIsTaskSelected('path') then
+      AddToPath(ExpandConstant('{app}\bin'));
+  end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

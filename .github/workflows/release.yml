@@ -48,6 +48,14 @@ jobs:
           # em apps/ em cada artefato e vão para a raiz da release, como o
           # aurora install os procura. Os nomes levam a plataforma.
           if [ -d dist/apps ]; then mv dist/apps/* dist/ && rmdir dist/apps; fi
+          # A ponte do Lace (crates/aurora-installer/src/lace.rs): o `lace
+          # update` do Lace 0.4 a 0.9 procura o instalador inteiro da versão
+          # nova com o nome antigo, e os da AURORA o substituem pela AURORA.
+          # No Windows vai o assistente que baixa os aplicativos, que é
+          # pequeno. Sem o índice com o nome antigo, o `lace update` vai
+          # sempre por esse instalador.
+          for f in dist/aurora-"$version"-*.tar.gz; do cp -- "$f" "dist/lace-${f#dist/aurora-}"; done
+          cp -- "dist/aurora-$version-windows-x64-web-setup.exe" "dist/lace-$version-windows-x64-setup.exe"
           (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
           {
             awk -v v="$version" '/^## / { p = ($2 == v) } p' CHANGELOG.md
