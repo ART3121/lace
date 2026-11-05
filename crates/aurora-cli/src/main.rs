@@ -2,6 +2,11 @@
 //! parseia argumentos, chama o Core e formata a saída. Nenhuma regra de
 //! negócio mora aqui.
 
+// Os comentários de documentação das flags são o texto do `--help` (clap),
+// em que `<DIR>` e `<testbench>` são marcadores, e não HTML: escapá-los
+// mudaria a ajuda.
+#![allow(rustdoc::invalid_html_tags)]
+
 mod cancel;
 mod chat;
 mod commands;

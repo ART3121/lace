@@ -635,8 +635,8 @@ impl Project {
     /// (`<dir>/<nome-do-dir>.spf`, ou o único `.spf` do diretório).
     ///
     /// Não regrava o `.spf`, ao contrário da AURORA 7. A única escrita é a
-    /// da pasta `.lace` de um projeto do Lace, que vira a [`PROJECT_DIR`]
-    /// ([`migrate_project_dir`]). Os diretórios dos processadores não
+    /// da pasta `.lace` de um projeto do Lace, que vira a `.aurora8`, com o
+    /// que tinha dentro. Os diretórios dos processadores não
     /// precisam existir para abrir; eles são criados no primeiro
     /// [`build`](crate::build).
     ///

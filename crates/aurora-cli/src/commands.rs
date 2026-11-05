@@ -1,6 +1,6 @@
 //! Um comando por função. Cada uma resolve o que a linha de comando diz (os
-//! caminhos relativos ao shell, o processador da pasta atual), pede ao
-//! despacho do `aurora serve` no mesmo processo ([`Local`]) e passa a resposta
+//! caminhos relativos ao shell, o processador da pasta atual), chama a função
+//! do Core que o despacho do `aurora serve` também chama e passa o resultado
 //! para `Output`, que escreve o texto ou o relatório do `--json`. Devolvem
 //! `Ok(true)` se deu certo, `Ok(false)` se a operação rodou e falhou, e
 //! `Err` se nem conseguiu rodar.
