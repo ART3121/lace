@@ -230,8 +230,9 @@ plataforma, e a página de componentes do assistente, o da seleção.
    Iniciar e oferece um na área de trabalho.
 6. Com o Lace instalado, o assistente avisa na primeira página, marca os
    aplicativos dele e deixa marcada a tarefa **Uninstall Lace**
-   (Desinstalar o Lace), que o desinstala no fim, antes de pôr a AURORA no
-   PATH ([Quem tem o Lace](#quem-tem-o-lace)).
+   (Desinstalar o Lace), que o desinstala no fim, depois de pôr a AURORA no
+   PATH. Apagar o bundle do Lace pode levar alguns minutos, e o assistente
+   mostra o andamento até ele sair ([Quem tem o Lace](#quem-tem-o-lace)).
 
 A pasta padrão não tem espaço no caminho de propósito: o `make` usado pelo
 Verilator não aceita espaços, e `C:\Program Files` tem um. O assistente avisa

@@ -1,5 +1,15 @@
 # Mudanças
 
+## Não publicada
+
+- Windows: o assistente que substitui o Lace põe a AURORA no PATH antes de
+  rodar o desinstalador do Lace, e não depois, e mostra o andamento enquanto
+  ele apaga o bundle do Lace, o que leva minutos. Na 1.0.0, se o assistente
+  fosse fechado nessa espera, sem sinal de andamento na tela, a AURORA ficava
+  instalada e o Lace saía, mas a pasta da AURORA ficava fora do PATH, e o
+  `aurora` não abria num terminal novo. Quem passou por isso volta a ter o
+  `aurora` no PATH rodando o instalador da AURORA de novo.
+
 ## 1.0.0 (2026-11-05)
 
 A primeira release com o nome AURORA: o Lace vira a AURORA API 1.0.0, e o

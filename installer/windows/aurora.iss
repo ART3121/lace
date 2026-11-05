@@ -36,8 +36,8 @@
 ; assistente, que o release.yml publica também com o nome que ele procura
 ; (lace-<versão>-windows-x64-setup.exe; crates/aurora-installer/src/lace.rs).
 ; Com o Lace instalado, o assistente avisa na página de boas-vindas, marca
-; os aplicativos da pasta dele e, no fim, roda o desinstalador dele (a
-; tarefa removelace), antes de pôr a AURORA no PATH.
+; os aplicativos da pasta dele e, no fim, depois de pôr a AURORA no PATH,
+; roda o desinstalador dele (a tarefa removelace) e espera ele terminar.
 
 #ifndef Stage
   #error Pass /DStage=<aurora-pack inno stage>
@@ -185,6 +185,10 @@ en.LaceInstalled=Lace %1 is installed in %2. AURORA replaces it: the apps it has
 pt.LaceInstalled=O Lace %1 está instalado em %2. A AURORA o substitui: os aplicativos dele vêm marcados, e no fim este assistente o desinstala. Os projetos e as preferências ficam.
 en.TaskRemoveLace=Uninstall Lace, which AURORA replaces
 pt.TaskRemoveLace=Desinstalar o Lace, que a AURORA substitui
+en.RemoveLaceTitle=Uninstalling Lace
+pt.RemoveLaceTitle=Desinstalando o Lace
+en.RemoveLaceDesc=AURORA is installed. The Lace %1 uninstaller is removing %2, which can take a few minutes.
+pt.RemoveLaceDesc=A AURORA já está instalada. O desinstalador do Lace %1 está apagando %2, o que pode levar alguns minutos.
 
 [Tasks]
 Name: "path"; Description: "{cm:TaskPath}"
@@ -244,8 +248,9 @@ const
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#AppGuid}}_is1';
   { A do Lace, que a AURORA substitui. }
   LaceUninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#LaceGuid}}_is1';
-  { Quanto esperar o desinstalador do Lace terminar, em milissegundos. }
-  LaceUninstallWait = 120000;
+  { Quanto esperar o desinstalador do Lace terminar, em milissegundos: apagar
+    o bundle dele leva minutos. }
+  LaceUninstallWait = 600000;
 
 var
   Preselected: Boolean;
@@ -254,6 +259,8 @@ var
   ProfileText: TNewStaticText;
   PreviousTypesChange: TNotifyEvent;
   PreviousClickCheck: TNotifyEvent;
+  { Enquanto o desinstalador do Lace roda (RemoveLace). }
+  RemoveLacePage: TOutputProgressWizardPage;
 #ifdef Web
   DownloadPage: TDownloadWizardPage;
   ExtractPage: TOutputProgressWizardPage;
@@ -404,10 +411,11 @@ begin
   Result := FindLace(Root, Dir, Version);
 end;
 
-{ Tira o Lace pelo desinstalador dele, sem perguntas, e espera ele terminar:
-  o desinstalador do Inno Setup roda uma cópia de si na pasta temporária, e
-  a entrada do Lace sai da lista de programas no fim. Roda antes de pôr a
-  AURORA no PATH, porque ele tira a pasta do Lace do mesmo valor. Pelo
+{ Tira o Lace pelo desinstalador dele, sem perguntas, e espera ele terminar.
+  O desinstalador do Inno Setup roda uma cópia de si na pasta temporária, e
+  o ShellExec volta quando ela termina, já sem a entrada do Lace na lista de
+  programas; esperar a entrada sair é uma segurança. Apagar o bundle do Lace
+  leva minutos, e a página de progresso mostra o que está acontecendo. Pelo
   ShellExec, que pede o administrador quando o Lace foi instalado para
   todos. Se não der, o Lace fica, e o log diz por quê. }
 procedure RemoveLace;
@@ -423,19 +431,28 @@ begin
   end;
   Uninstaller := RemoveQuotes(Uninstaller);
   Log('Uninstalling Lace ' + Version + ' from ' + Dir + ' with ' + Uninstaller);
-  if not ShellExec('', Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then begin
-    Log('Could not run the Lace uninstaller: ' + SysErrorMessage(ResultCode));
-    exit;
-  end;
-  Waited := 0;
-  while RegKeyExists(Root, LaceUninstallKey) and (Waited < LaceUninstallWait) do begin
-    Sleep(250);
-    Waited := Waited + 250;
+  RemoveLacePage.SetText(FmtMessage(CustomMessage('RemoveLaceDesc'), [Version, Dir]), '');
+  RemoveLacePage.ProgressBar.Style := npbstMarquee;
+  RemoveLacePage.Show;
+  try
+    if not ShellExec('', Uninstaller, '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then begin
+      Log('Could not run the Lace uninstaller: ' + SysErrorMessage(ResultCode));
+      exit;
+    end;
+    Waited := 0;
+    while RegKeyExists(Root, LaceUninstallKey) and (Waited < LaceUninstallWait) do begin
+      { O SetProgress também processa as mensagens da janela. }
+      RemoveLacePage.SetProgress(0, 1);
+      Sleep(250);
+      Waited := Waited + 250;
+    end;
+  finally
+    RemoveLacePage.Hide;
   end;
   if RegKeyExists(Root, LaceUninstallKey) then
-    Log('Lace is still installed after its uninstaller (exit code ' + IntToStr(ResultCode) + ')')
+    Log('Lace is still installed after waiting ' + IntToStr(Waited div 1000) + ' s for its uninstaller (exit code ' + IntToStr(ResultCode) + ')')
   else
-    Log('Lace was uninstalled');
+    Log('Lace was uninstalled after ' + IntToStr(Waited div 1000) + ' s');
 end;
 
 { /REOPENIDE=1: o `aurora update` da AURORA IDE abriu este assistente, e ela
@@ -615,6 +632,7 @@ begin
   if FindLace(LaceRoot, LaceDir, LaceVersion) then
     WizardForm.WelcomeLabel2.Caption := WizardForm.WelcomeLabel2.Caption + #13#10#13#10 +
       FmtMessage(CustomMessage('LaceInstalled'), [LaceVersion, LaceDir]);
+  RemoveLacePage := CreateOutputProgressPage(CustomMessage('RemoveLaceTitle'), '');
 #ifdef Web
   DownloadPage := CreateDownloadPage(CustomMessage('DownloadTitle'), FmtMessage(CustomMessage('DownloadDesc'), ['{#AuroraVersion}']), nil);
   DownloadPage.ShowBaseNameInsteadOfUrl := True;
@@ -674,11 +692,14 @@ begin
   if CurStep = ssInstall then
     SecureAdminFolder;
   if CurStep = ssPostInstall then begin
-    { O Lace primeiro: o desinstalador dele também mexe no PATH. }
-    if WizardIsTaskSelected('removelace') then
-      RemoveLace;
+    { A AURORA no PATH antes de o Lace sair. O desinstalador do Lace tira a
+      pasta dele do mesmo valor, e só começa depois desta escrita: ele lê o
+      PATH já com a AURORA. E, se o assistente for fechado durante a espera
+      pelo Lace, a AURORA já está no PATH. }
     if WizardIsTaskSelected('path') then
       AddToPath(ExpandConstant('{app}\bin'));
+    if WizardIsTaskSelected('removelace') then
+      RemoveLace;
   end;
 end;
 
