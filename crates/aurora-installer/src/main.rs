@@ -11,11 +11,11 @@ use std::io::IsTerminal;
 use std::path::PathBuf;
 
 use anyhow::{Context, bail};
-use aurora_installer::desktop;
 use aurora_installer::install::{self, Event, Target};
 use aurora_installer::payload::{Index, PAYLOAD_DIR};
 use aurora_installer::plan::{self, Selection};
 use aurora_installer::tui::{self, App};
+use aurora_installer::{desktop, lace};
 use clap::Parser;
 
 /// Installer for AURORA and its tool bundle.
@@ -91,6 +91,15 @@ fn run(args: Args) -> anyhow::Result<()> {
     if args.list {
         list(&index);
         return Ok(());
+    }
+
+    // O `lace update` de um Lace roda este `install` com a pasta do Lace no
+    // --prefix (aurora_installer::lace): a AURORA vai para a pasta dela, e o
+    // Lace sai.
+    if let Some(prefix) = &args.prefix
+        && let Some(lace) = lace::detect(&std::path::absolute(prefix)?)
+    {
+        return from_lace(&args, &payload, &index, &lace);
     }
 
     let mut target = Target::default_for_user();
@@ -245,7 +254,14 @@ fn unattended(
             selection.iter().cloned().collect::<Vec<_>>().join(", ")
         }
     );
-    let report = install::install(payload, index, selection, target, |e| match e {
+    let report = install::install(payload, index, selection, target, progress)?;
+    println!("{}", tui::plain(&tui::report_lines(&report, index)));
+    Ok(())
+}
+
+/// Uma linha por pedaço extraído, e a conferência dos executáveis.
+fn progress(event: Event) {
+    match event {
         Event::Chunk {
             index,
             count,
@@ -261,7 +277,78 @@ fn unattended(
         }
         Event::Verifying => println!("  Verifying the executables"),
         _ => {}
-    })?;
-    println!("{}", tui::plain(&tui::report_lines(&report, index)));
+    }
+}
+
+/// O `install` que o `lace update` roda (aurora_installer::lace): a AURORA
+/// vai para a pasta dela, com os aplicativos do Lace e o atalho `aurora` no
+/// lugar do `lace`, e o Lace sai pelo `uninstall.sh` dele. Se só a remoção do
+/// Lace falha, a AURORA fica instalada e o aviso diz como tirá-lo.
+fn from_lace(
+    args: &Args,
+    payload: &std::path::Path,
+    index: &Index,
+    lace: &lace::Lace,
+) -> anyhow::Result<()> {
+    if !args.yes {
+        bail!(
+            "{} has Lace {}: to replace it with AURORA, add --yes",
+            lace.prefix.display(),
+            lace.version
+        );
+    }
+    let link = if args.no_link {
+        None
+    } else {
+        match &args.link {
+            Some(link) => Some(std::path::absolute(link)?),
+            None => lace.link.clone(),
+        }
+    };
+    let default = Target::default_for_user();
+    let target = lace::target(&lace.prefix, link.as_deref(), &default);
+    println!(
+        "Lace {} is installed in {}: AURORA {} replaces it, in {}",
+        lace.version,
+        lace.prefix.display(),
+        index.aurora_version,
+        target.prefix.display()
+    );
+    let replaced = lace::replace(
+        lace,
+        &lace::Replacement {
+            payload,
+            index,
+            names: args.components.as_deref(),
+            link: link.as_deref(),
+            default: &default,
+        },
+        lace::uninstall,
+        progress,
+    )?;
+    if !replaced.added.is_empty() {
+        println!("Included as dependencies: {}", replaced.added.join(", "));
+    }
+    if !replaced.missing.is_empty() {
+        println!(
+            "Not in AURORA {}, left out: {}",
+            index.aurora_version,
+            replaced.missing.join(", ")
+        );
+    }
+    println!(
+        "{}",
+        tui::plain(&tui::report_lines(&replaced.report, index))
+    );
+    match &replaced.removed {
+        Ok(()) => println!(
+            "Removed Lace from {}. From now on, the command is aurora.",
+            lace.prefix.display()
+        ),
+        Err(reason) => eprintln!(
+            "Warning: AURORA is installed, but Lace was not removed ({reason}). To remove it: sh {}",
+            lace.prefix.join("uninstall.sh").display()
+        ),
+    }
     Ok(())
 }

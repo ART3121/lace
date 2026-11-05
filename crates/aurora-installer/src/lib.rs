@@ -34,6 +34,8 @@
 //!   pelo `SHA256SUMS`);
 //! - [`installation`]: a pasta de uma instalação feita pelo instalador;
 //! - [`uninstall`]: remover uma instalação;
+//! - [`lace`]: o `install` que o `lace update` de um Lace roda, que troca o
+//!   Lace pela AURORA;
 //! - [`error`]: os erros com código que atravessam a fronteira;
 //! - [`desktop`]: o atalho da AURORA IDE no menu de aplicativos;
 //! - [`pack`]: montar o payload e o estágio do Inno Setup a partir do bundle;
@@ -55,6 +57,7 @@ pub mod error;
 pub mod files;
 pub mod install;
 pub mod installation;
+pub mod lace;
 pub mod pack;
 pub mod payload;
 pub mod plan;

@@ -18,8 +18,18 @@
   recebe o executável em `--aurora`. O instalador do Windows passa a ser
   `installer/windows/aurora.iss`: outro programa para o Windows, AURORA,
   com identificação própria e a pasta `Programs\AURORA` (`C:\AURORA` como
-  administrador). Um Lace instalado fica onde está, até sair pelo
-  desinstalador dele.
+  administrador).
+- Quem tem o Lace (0.4 a 0.9) passa para a AURORA pelo `lace update`, ou
+  pela atualização do Lace Studio. A release publica os instaladores da
+  AURORA também com os nomes que o Lace procura
+  (`lace-<versão>-<plataforma>.tar.gz` e
+  `lace-<versão>-windows-x64-setup.exe`), e eles trocam o Lace pela AURORA,
+  com os mesmos aplicativos. No Linux e no macOS, o `install` põe a AURORA
+  na pasta dela, com o atalho `aurora` onde estava o `lace`, e tira o Lace
+  pelo `uninstall.sh` dele. No Windows, o assistente marca os aplicativos
+  do Lace e, no fim, o desinstala (a tarefa Desinstalar o Lace, que vem
+  marcada também quando a AURORA é instalada à parte); se a atualização
+  veio do Lace Studio, a AURORA IDE abre no fim.
 - Os instaladores trocam a marca do Lace pela da AURORA. No assistente do
   Windows, a faixa da esquerda tem o camaleão azul e o nome AURORA no fundo
   grafite do tema Boreal, e o canto das outras páginas, o ícone da AURORA
