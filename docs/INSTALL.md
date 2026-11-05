@@ -127,7 +127,7 @@ execução) e apaga o que baixou no fim.
 
 | O quê | Linux, macOS | Windows |
 |---|---|---|
-| versão fixa | `... \| AURORA_VERSION=0.9.0 sh` | `$env:AURORA_VERSION = "0.9.0"` antes do `irm` |
+| versão fixa | `... \| AURORA_VERSION=1.0.0 sh` | `$env:AURORA_VERSION = "1.0.0"` antes do `irm` |
 | sem perguntas | `... \| sh -s -- --yes` | `$env:AURORA_SETUP_ARGS = "/VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path"` antes do `irm` |
 | outras opções do instalador | `... \| sh -s -- --yes --profile verilog --prefix /opt/aurora` | os parâmetros do Inno Setup em `AURORA_SETUP_ARGS` |
 | para todos os usuários | `... \| sudo sh` (vai para `/opt/aurora`) | o assistente pergunta |
@@ -310,9 +310,9 @@ perguntar.
 **Sem interação** (scripts, laboratórios):
 
 ```
-aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
-aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
-aurora-0.9.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="aurora,yanc,icarus,verilator,studio" /DIR=D:\AURORA
+aurora-1.0.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=sapho /TASKS=path
+aurora-1.0.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /LANG=pt /TYPE=verilog /TASKS=path
+aurora-1.0.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER /TYPE=avancada /COMPONENTS="aurora,yanc,icarus,verilator,studio" /DIR=D:\AURORA
 ```
 
 O idioma (`/LANG=`) é `en` ou `pt`; sem ele, o do Windows. Os tipos
@@ -334,8 +334,8 @@ desconhecido" na primeira vez (Mais informações > Executar assim mesmo).
 Pelo `install.sh` (acima), ou à mão, com o arquivo da release:
 
 ```
-curl -fLO https://github.com/ART3121/lace/releases/download/v0.9.0/aurora-0.9.0-linux-x64.tar.gz
-tar xzf aurora-0.9.0-linux-x64.tar.gz && ./aurora-0.9.0-linux-x64/install
+curl -fLO https://github.com/ART3121/lace/releases/download/v1.0.0/aurora-1.0.0-linux-x64.tar.gz
+tar xzf aurora-1.0.0-linux-x64.tar.gz && ./aurora-1.0.0-linux-x64/install
 ```
 
 A instalação guiada no terminal tem estas telas:
@@ -448,7 +448,7 @@ recusa abrir o `install` ("desenvolvedor não pode ser verificado"). O
 foi baixado pelo navegador:
 
 ```
-xattr -dr com.apple.quarantine aurora-0.9.0-darwin-arm64
+xattr -dr com.apple.quarantine aurora-1.0.0-darwin-arm64
 ```
 
 Isto não foi verificado num Mac: é o comportamento documentado do
