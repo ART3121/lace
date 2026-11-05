@@ -56,10 +56,36 @@ O mínimo de Linux é o da distribuição em que o CI compila (`ubuntu-22.04`);
 o de macOS, o dos binários do OSS CAD Suite. O instalador avisa quando o
 WebView do Studio falta, sem deixar de instalar.
 
+## Quem tem o Lace
+
+A AURORA 1.0.0 é a versão seguinte ao Lace 0.9.0, com outro nome, outra
+pasta e outro executável. Ela não troca o Lace sozinha: o `lace update`
+procura na release os arquivos com o nome antigo e não os acha, embora o
+aviso diário do `lace` anuncie a versão nova. Os dois ficam instalados lado
+a lado até o Lace sair.
+
+1. Instale a AURORA pelo [comando de um passo](#em-um-comando) ou pelo
+   instalador da release.
+2. Tire o Lace com `lace uninstall` (no Windows, também em Configurações >
+   Aplicativos > Lace > Desinstalar), que apaga o Lace e o bundle dele.
+
+A AURORA aproveita sozinha os projetos, cuja pasta `.lace/` vira `.aurora8/`
+na primeira abertura, com o que tinha dentro, e as preferências do Lace
+Studio, que a AURORA IDE copia na primeira vez que abre. Começam de novo:
+
+- a pasta de exercícios do `lace learn`, que a AURORA não reconhece: comece
+  outra com `aurora learn init`;
+- as variáveis `LACE_*`, que passam a ser `AURORA_*`, e os recursos
+  experimentais, que se ligam de novo com `aurora experimental`;
+- a extensão do VS Code, que é outra (AURORA), com as configurações
+  `aurora.*` no lugar de `lace.*`; a do Lace sai pelo próprio VS Code;
+- uma placa compilada pelo Lace, que precisa ser compilada de novo antes de
+  gravar.
+
 ## Quem tem o Solar 0.1.0
 
-A 0.1.0 saiu com o nome Solar. A AURORA 0.2.0 é a versão seguinte, com outro
-nome, outra pasta e outro executável, e não troca o Solar sozinho: os dois
+A 0.1.0 saiu com o nome Solar. O Lace 0.2.0 foi a versão seguinte, com outro
+nome, outra pasta e outro executável, e não trocava o Solar sozinho: os dois
 ficam instalados lado a lado até o Solar sair.
 
 - **Linux e macOS:** `~/.local/share/solar/uninstall.sh` (ou
@@ -67,8 +93,8 @@ ficam instalados lado a lado até o Solar sair.
 - **Windows:** Configurações > Aplicativos > Solar > Desinstalar, que tira
   também a entrada do Solar no PATH, e instalar a AURORA.
 
-A configuração do Solar (`~/.config/solar/config.json`) nenhuma versão do
-AURORA lê; ela pode ser apagada à mão. Os projetos (`.spf`) não mudam.
+A configuração do Solar (`~/.config/solar/config.json`) nem o Lace nem a
+AURORA leem; ela pode ser apagada à mão. Os projetos (`.spf`) não mudam.
 
 ## Em um comando
 
