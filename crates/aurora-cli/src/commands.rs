@@ -103,6 +103,7 @@ pub fn run(cli: &Cli, out: &Output, control: &Control) -> anyhow::Result<bool> {
         Command::Report(args) => report(cli, args, out)?,
         Command::Learn(args) => return crate::learn::run(cli, args, out, control),
         Command::Fpga(command) => return crate::fpga::run(cli, command, out, control),
+        Command::Vboard(command) => return crate::vboard::run(cli, command, out, control),
         Command::Experimental(args) => crate::experimental::run(args, out)?,
         Command::Tools { verify } => return tools(cli, *verify, out),
         Command::Serve(args) => {

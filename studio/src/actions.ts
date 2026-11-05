@@ -19,6 +19,7 @@ import {
   Boxes,
   CircuitBoard,
   Microchip,
+  MonitorPlay,
   Upload,
   CircleStop,
   Columns2,
@@ -764,6 +765,7 @@ export const ACTIONS: Action[] = [
   { id: 'fpgaBuild', label: 'action.fpgaBuild', category: 'flow', icon: Hammer, feature: 'fpga', enabled: canRun, run: () => runFpgaBuild() },
   { id: 'fpgaProgram', label: 'action.fpgaProgram', category: 'flow', icon: Upload, feature: 'fpga', enabled: canRun, run: () => runFpgaProgram() },
   { id: 'showBoard', label: 'action.showBoard', category: 'flow', icon: Microchip, feature: 'fpga', enabled: hasSpf, run: () => useEditor.getState().openView('board') },
+  { id: 'showVirtualBoard', label: 'action.showVirtualBoard', category: 'flow', icon: MonitorPlay, feature: 'fpga', enabled: hasSpf, run: () => useEditor.getState().openView('vboard') },
   { id: 'fullFlow', label: 'action.fullFlow', category: 'flow', keys: 'F5', enabled: canRun, run: fullFlow },
   {
     id: 'cancel',
@@ -952,7 +954,7 @@ let lastEscape = 0;
  */
 function zenEscape(target: Element | null): void {
   if (!useLayout.getState().zen) return;
-  if (target?.closest('.shell-terminal, .dialog') || (target?.closest('.monaco-editor') && vimActive())) {
+  if (target?.closest('.shell-terminal, .vboard-keys, .dialog') || (target?.closest('.monaco-editor') && vimActive())) {
     lastEscape = 0;
     return;
   }
@@ -984,7 +986,7 @@ const NOT_TEXT_INPUTS = new Set(['button', 'checkbox', 'color', 'file', 'image',
 /** O foco está num campo de texto da interface (fora do editor e do
  * terminal, que têm as regras deles). */
 function inTextField(target: Element | null): boolean {
-  if (!target || target.closest('.monaco-editor, .shell-terminal')) return false;
+  if (!target || target.closest('.monaco-editor, .shell-terminal, .vboard-keys')) return false;
   if (target instanceof HTMLTextAreaElement) return true;
   if (target instanceof HTMLInputElement) return !NOT_TEXT_INPUTS.has(target.type);
   return target instanceof HTMLElement && target.isContentEditable;
@@ -1010,7 +1012,9 @@ export function handleShortcut(event: KeyboardEvent): void {
   const combo = comboOf(event);
   const target = event.target instanceof Element ? event.target : null;
   const inEditor = !!target?.closest('.monaco-editor');
-  const inShell = !!target?.closest('.shell-terminal');
+  // O teclado da placa virtual fica com as teclas, como o terminal: só as
+  // de função e as com Ctrl+Shift saem dele.
+  const inShell = !!target?.closest('.shell-terminal, .vboard-keys');
   const inDialog = !!target?.closest('.dialog');
 
   const pending = useChord.getState().pending;

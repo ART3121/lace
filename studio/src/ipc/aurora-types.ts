@@ -370,6 +370,104 @@ export type ResultTag = 'result';
  */
 export type Feature = 'fpga' | 'assistant';
 /**
+ * Um periférico da placa: o tipo e os sinais dele. A placa virtual simula
+ * cada um nos pinos, como a placa de verdade os liga ao FPGA.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "Peripheral".
+ */
+export type Peripheral =
+  | {
+      /**
+       * O sinal de entrada.
+       */
+      signal: string;
+      kind: 'switches';
+    }
+  | {
+      /**
+       * O sinal de entrada.
+       */
+      signal: string;
+      kind: 'buttons';
+    }
+  | {
+      /**
+       * O sinal de saída.
+       */
+      signal: string;
+      /**
+       * A cor dos LEDs.
+       */
+      color: 'red' | 'green' | 'blue' | 'yellow';
+      kind: 'leds';
+    }
+  | {
+      /**
+       * Os dígitos, da esquerda para a direita.
+       */
+      digits: string[];
+      kind: 'seven_segment';
+    }
+  | {
+      /**
+       * O canal vermelho.
+       */
+      red: string;
+      /**
+       * O canal verde.
+       */
+      green: string;
+      /**
+       * O canal azul.
+       */
+      blue: string;
+      /**
+       * O sincronismo horizontal.
+       */
+      hsync: string;
+      /**
+       * O sincronismo vertical.
+       */
+      vsync: string;
+      /**
+       * O vídeo ativo (`VGA_BLANK_N`, `DE`), se a placa tem.
+       */
+      blank?: string | null;
+      /**
+       * O relógio de pixel que o projeto entrega ao conversor
+       * (`VGA_CLK`), se a placa tem.
+       */
+      clock?: string | null;
+      kind: 'vga';
+    }
+  | {
+      /**
+       * O relógio do teclado (entrada do FPGA).
+       */
+      clock: string;
+      /**
+       * O dado do teclado (entrada do FPGA).
+       */
+      data: string;
+      kind: 'ps2';
+    }
+  | {
+      /**
+       * O que o projeto transmite (saída do FPGA).
+       */
+      tx: string;
+      /**
+       * O que o projeto recebe (entrada do FPGA), se a placa liga.
+       */
+      rx?: string | null;
+      /**
+       * A velocidade padrão, em bits por segundo.
+       */
+      baud: number;
+      kind: 'uart';
+    };
+/**
  * O cabo de gravação embutido na placa.
  *
  * This interface was referenced by `AuroraSchemas`'s JSON-Schema
@@ -390,6 +488,13 @@ export type SignalDirection = 'input' | 'output';
  * via the `definition` "IoStandard".
  */
 export type IoStandard = string | string[];
+/**
+ * A cor de um LED.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "LedColor".
+ */
+export type LedColor = 'red' | 'green' | 'blue' | 'yellow';
 /**
  * De onde vem um bit de entrada.
  *
@@ -708,6 +813,89 @@ export type Cleanup =
       value: string[];
     };
 /**
+ * O id de um pedido JSON-RPC, como o cliente o mandou: número ou texto.
+ * Só para o schema de `vboard.input`.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "RequestId".
+ */
+export type RequestId = number | string;
+/**
+ * Uma entrada para a placa virtual em execução.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "BoardInput".
+ */
+export type BoardInput =
+  | {
+      /**
+       * O periférico (`SW`, `KEY`).
+       */
+      device: string;
+      /**
+       * Os bits, do bit 0 em diante.
+       */
+      value: number;
+      kind: 'set';
+    }
+  | {
+      /**
+       * O periférico PS/2.
+       */
+      device: string;
+      /**
+       * O código da tecla.
+       */
+      code: string;
+      /**
+       * Apertada (`true`) ou solta (`false`).
+       */
+      pressed: boolean;
+      kind: 'key';
+    }
+  | {
+      /**
+       * O teclado PS/2 ou a UART.
+       */
+      device: string;
+      /**
+       * O texto.
+       */
+      text: string;
+      kind: 'text';
+    }
+  | {
+      /**
+       * O teclado PS/2 ou a UART.
+       */
+      device: string;
+      /**
+       * Os bytes.
+       */
+      bytes: number[];
+      kind: 'bytes';
+    }
+  | {
+      kind: 'pause';
+    }
+  | {
+      kind: 'resume';
+    }
+  | {
+      /**
+       * Quantos flancos (dois por ciclo de um relógio).
+       */
+      edges: number;
+      kind: 'step';
+    }
+  | {
+      /**
+       * Segundos simulados por segundo de relógio; 0 sem limite.
+       */
+      limit: number;
+      kind: 'speed';
+    };
+/**
  * O que volta de um pedido que deu certo. Serializa como o valor em si (o
  * `result` do JSON-RPC), sem etiqueta: cada método diz qual é o dele.
  *
@@ -732,6 +920,8 @@ export type Response =
   | WaveLayoutInfo
   | boolean[]
   | ModuleInterface
+  | BoardLayout
+  | BoardRun
   | FlowOutcome
   | WaveOpened1
   | WaveSignals
@@ -790,6 +980,13 @@ export type IssueKind =
   | 'duplicate_file'
   | 'nested_project'
   | 'legacy_layout';
+/**
+ * Por que a placa virtual terminou.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "EndReason".
+ */
+export type EndReason = 'stopped' | 'finished' | 'crashed';
 /**
  * O formato do conteúdo de uma onda: FST no Icarus, VCD no Verilator. A
  * extensão é a do formato, menos quando o testbench nomeia a onda com uma
@@ -940,6 +1137,25 @@ export type Notification =
   | {
       result: BuildResult1;
       type: 'build';
+    }
+  | {
+      layout: BoardLayout3;
+      type: 'vboard_ready';
+    }
+  | {
+      state: BoardState;
+      type: 'vboard_state';
+    }
+  | {
+      frame: Frame;
+      type: 'vboard_frame';
+    }
+  | {
+      /**
+       * A linha.
+       */
+      line: string;
+      type: 'vboard_output';
     }
   | {
       /**
@@ -1783,6 +1999,123 @@ export type Request =
       };
     }
   | {
+      method: 'vboard.layout';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * A placa, num projeto sem `fpga.json`: as portas com o nome de um
+         * sinal dela ligam a ele.
+         */
+        board?: string | null;
+      };
+    }
+  | {
+      method: 'vboard.run';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * A placa, num projeto sem `fpga.json` (como em `vboard.layout`).
+         */
+        board?: string | null;
+        /**
+         * Segundos simulados por segundo de relógio, no máximo: 1 é o
+         * tempo real (o padrão), 0 é o mais rápido possível.
+         */
+        limit?: number | null;
+        /**
+         * Quadros de vídeo por segundo, no máximo (padrão 30).
+         */
+        fps?: number | null;
+      };
+    }
+  | {
+      method: 'vboard.input';
+      params: {
+        /**
+         * O id do pedido `vboard.run`, como o cliente o mandou.
+         */
+        run: number | string;
+        /**
+         * A entrada.
+         */
+        input:
+          | {
+              /**
+               * O periférico (`SW`, `KEY`).
+               */
+              device: string;
+              /**
+               * Os bits, do bit 0 em diante.
+               */
+              value: number;
+              kind: 'set';
+            }
+          | {
+              /**
+               * O periférico PS/2.
+               */
+              device: string;
+              /**
+               * O código da tecla.
+               */
+              code: string;
+              /**
+               * Apertada (`true`) ou solta (`false`).
+               */
+              pressed: boolean;
+              kind: 'key';
+            }
+          | {
+              /**
+               * O teclado PS/2 ou a UART.
+               */
+              device: string;
+              /**
+               * O texto.
+               */
+              text: string;
+              kind: 'text';
+            }
+          | {
+              /**
+               * O teclado PS/2 ou a UART.
+               */
+              device: string;
+              /**
+               * Os bytes.
+               */
+              bytes: number[];
+              kind: 'bytes';
+            }
+          | {
+              kind: 'pause';
+            }
+          | {
+              kind: 'resume';
+            }
+          | {
+              /**
+               * Quantos flancos (dois por ciclo de um relógio).
+               */
+              edges: number;
+              kind: 'step';
+            }
+          | {
+              /**
+               * Segundos simulados por segundo de relógio; 0 sem limite.
+               */
+              limit: number;
+              kind: 'speed';
+            };
+      };
+    }
+  | {
       method: 'update.check';
     }
   | {
@@ -2528,6 +2861,12 @@ export interface Board {
    * Os sinais da placa ligados ao FPGA.
    */
   signals: BoardSignal[];
+  /**
+   * O que cada sinal é na placa (chaves, LEDs, displays, tela), para a
+   * placa virtual desenhá-los e simulá-los. Um sinal fora daqui também
+   * vai para a placa; só não aparece na placa virtual.
+   */
+  peripherals?: Peripheral[];
 }
 /**
  * O FPGA.
@@ -2877,6 +3216,12 @@ export interface Board1 {
    * Os sinais da placa ligados ao FPGA.
    */
   signals: BoardSignal[];
+  /**
+   * O que cada sinal é na placa (chaves, LEDs, displays, tela), para a
+   * placa virtual desenhá-los e simulá-los. Um sinal fora daqui também
+   * vai para a placa; só não aparece na placa virtual.
+   */
+  peripherals?: Peripheral[];
 }
 /**
  * Uma porta do topo.
@@ -4178,6 +4523,313 @@ export interface Port {
    * `signed`.
    */
   signed: boolean;
+}
+/**
+ * `vboard.layout`.
+ */
+export interface BoardLayout {
+  /**
+   * A placa (`de2-115`).
+   */
+  board: string;
+  /**
+   * O nome da placa (`Terasic DE2-115`).
+   */
+  board_name: string;
+  /**
+   * O módulo do projeto que vai na placa.
+   */
+  top: string;
+  /**
+   * Os periféricos, na ordem do JSON da placa.
+   */
+  peripherals: LayoutPeripheral[];
+  /**
+   * Os relógios da placa que chegam ao projeto.
+   */
+  clocks: LayoutClock[];
+  /**
+   * Os ajustes das ligações (larguras completadas ou cortadas, entradas
+   * soltas), como no fluxo da placa.
+   */
+  notes: string[];
+}
+/**
+ * Um periférico na placa virtual.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "LayoutPeripheral".
+ */
+export interface LayoutPeripheral {
+  /**
+   * O identificador nas entradas e no estado: o nome do primeiro sinal do
+   * periférico (`SW`, `HEX7`, `VGA_R`).
+   */
+  id: string;
+  /**
+   * Um periférico da placa: o tipo e os sinais dele. A placa virtual simula
+   * cada um nos pinos, como a placa de verdade os liga ao FPGA.
+   */
+  peripheral:
+    | {
+        /**
+         * O sinal de entrada.
+         */
+        signal: string;
+        kind: 'switches';
+      }
+    | {
+        /**
+         * O sinal de entrada.
+         */
+        signal: string;
+        kind: 'buttons';
+      }
+    | {
+        /**
+         * O sinal de saída.
+         */
+        signal: string;
+        /**
+         * A cor dos LEDs.
+         */
+        color: 'red' | 'green' | 'blue' | 'yellow';
+        kind: 'leds';
+      }
+    | {
+        /**
+         * Os dígitos, da esquerda para a direita.
+         */
+        digits: string[];
+        kind: 'seven_segment';
+      }
+    | {
+        /**
+         * O canal vermelho.
+         */
+        red: string;
+        /**
+         * O canal verde.
+         */
+        green: string;
+        /**
+         * O canal azul.
+         */
+        blue: string;
+        /**
+         * O sincronismo horizontal.
+         */
+        hsync: string;
+        /**
+         * O sincronismo vertical.
+         */
+        vsync: string;
+        /**
+         * O vídeo ativo (`VGA_BLANK_N`, `DE`), se a placa tem.
+         */
+        blank?: string | null;
+        /**
+         * O relógio de pixel que o projeto entrega ao conversor
+         * (`VGA_CLK`), se a placa tem.
+         */
+        clock?: string | null;
+        kind: 'vga';
+      }
+    | {
+        /**
+         * O relógio do teclado (entrada do FPGA).
+         */
+        clock: string;
+        /**
+         * O dado do teclado (entrada do FPGA).
+         */
+        data: string;
+        kind: 'ps2';
+      }
+    | {
+        /**
+         * O que o projeto transmite (saída do FPGA).
+         */
+        tx: string;
+        /**
+         * O que o projeto recebe (entrada do FPGA), se a placa liga.
+         */
+        rx?: string | null;
+        /**
+         * A velocidade padrão, em bits por segundo.
+         */
+        baud: number;
+        kind: 'uart';
+      };
+  /**
+   * Algum sinal do periférico chega ao projeto. Um periférico solto
+   * aparece apagado: o projeto não o usa.
+   */
+  connected: boolean;
+  /**
+   * Os sinais, com largura e polaridade.
+   */
+  signals: LayoutSignal[];
+}
+/**
+ * Um sinal de um periférico.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "LayoutSignal".
+ */
+export interface LayoutSignal {
+  /**
+   * O nome (`LEDR`).
+   */
+  name: string;
+  /**
+   * A largura em bits.
+   */
+  width: number;
+  /**
+   * Ativo em nível baixo na placa (os segmentos e os botões da Terasic):
+   * o estado da placa virtual já vem convertido para aceso e apertado.
+   */
+  active_low: boolean;
+  /**
+   * O sinal chega ao projeto.
+   */
+  connected: boolean;
+}
+/**
+ * Um relógio da placa que chega ao projeto.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "LayoutClock".
+ */
+export interface LayoutClock {
+  /**
+   * O sinal (`CLOCK_50`).
+   */
+  signal: string;
+  /**
+   * A frequência, em MHz.
+   */
+  mhz: number;
+}
+/**
+ * `vboard.run`.
+ */
+export interface BoardRun {
+  build: BoardBuild;
+  /**
+   * Como a execução terminou; `None` se a compilação falhou.
+   */
+  outcome: SessionOutcome | null;
+}
+/**
+ * A compilação.
+ */
+export interface BoardBuild {
+  /**
+   * Como terminou. `failed` é Verilog (ou ligação) que não compila.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * O passo que falhou, quando for o caso (`verilate`).
+   */
+  failed_step: Step | null;
+  /**
+   * Os passos rodados, com o comando e a saída.
+   */
+  steps: StepReport[];
+  /**
+   * As mensagens do Verilator e do compilador.
+   */
+  diagnostics: Diagnostic[];
+  layout: BoardLayout1;
+  /**
+   * O executável, se a compilação deu certo.
+   */
+  executable: string | null;
+  /**
+   * Quanto levou, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
+ * A placa virtual do projeto.
+ */
+export interface BoardLayout1 {
+  /**
+   * A placa (`de2-115`).
+   */
+  board: string;
+  /**
+   * O nome da placa (`Terasic DE2-115`).
+   */
+  board_name: string;
+  /**
+   * O módulo do projeto que vai na placa.
+   */
+  top: string;
+  /**
+   * Os periféricos, na ordem do JSON da placa.
+   */
+  peripherals: LayoutPeripheral[];
+  /**
+   * Os relógios da placa que chegam ao projeto.
+   */
+  clocks: LayoutClock[];
+  /**
+   * Os ajustes das ligações (larguras completadas ou cortadas, entradas
+   * soltas), como no fluxo da placa.
+   */
+  notes: string[];
+}
+/**
+ * Como a placa virtual terminou.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "SessionOutcome".
+ */
+export interface SessionOutcome {
+  /**
+   * Por que terminou.
+   */
+  reason: 'stopped' | 'finished' | 'crashed';
+  /**
+   * O tempo simulado no fim, em picossegundos.
+   */
+  time_ps: number;
+  /**
+   * Como o processo terminou.
+   */
+  termination:
+    | {
+        kind: 'exited';
+        value: number;
+      }
+    | {
+        kind: 'signaled';
+        value: number;
+      }
+    | {
+        kind: 'exception';
+        value: number;
+      }
+    | {
+        kind: 'cancelled';
+      }
+    | {
+        kind: 'timed_out';
+      }
+    | {
+        kind: 'unknown';
+      };
+  /**
+   * Quanto rodou, em milissegundos.
+   */
+  duration_ms: number;
+  /**
+   * As últimas linhas do stderr, quando o processo quebrou.
+   */
+  tail: string[];
 }
 /**
  * `flow.run`.
@@ -6601,6 +7253,88 @@ export interface ModuleInterface1 {
   ports: Port[];
 }
 /**
+ * A placa virtual de um projeto: a placa, o topo e cada periférico, ligado
+ * ao projeto ou não, com as larguras. É o que uma interface desenha.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "BoardLayout".
+ */
+export interface BoardLayout2 {
+  /**
+   * A placa (`de2-115`).
+   */
+  board: string;
+  /**
+   * O nome da placa (`Terasic DE2-115`).
+   */
+  board_name: string;
+  /**
+   * O módulo do projeto que vai na placa.
+   */
+  top: string;
+  /**
+   * Os periféricos, na ordem do JSON da placa.
+   */
+  peripherals: LayoutPeripheral[];
+  /**
+   * Os relógios da placa que chegam ao projeto.
+   */
+  clocks: LayoutClock[];
+  /**
+   * Os ajustes das ligações (larguras completadas ou cortadas, entradas
+   * soltas), como no fluxo da placa.
+   */
+  notes: string[];
+}
+/**
+ * A placa virtual compilada e rodada: a compilação e, se ela deu certo,
+ * como a execução terminou.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "BoardRun".
+ */
+export interface BoardRun1 {
+  build: BoardBuild;
+  /**
+   * Como a execução terminou; `None` se a compilação falhou.
+   */
+  outcome: SessionOutcome | null;
+}
+/**
+ * O resultado de [`build`]: a placa e o executável, ou os erros do
+ * Verilator e do compilador C++.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "BoardBuild".
+ */
+export interface BoardBuild1 {
+  /**
+   * Como terminou. `failed` é Verilog (ou ligação) que não compila.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * O passo que falhou, quando for o caso (`verilate`).
+   */
+  failed_step: Step | null;
+  /**
+   * Os passos rodados, com o comando e a saída.
+   */
+  steps: StepReport[];
+  /**
+   * As mensagens do Verilator e do compilador.
+   */
+  diagnostics: Diagnostic[];
+  layout: BoardLayout1;
+  /**
+   * O executável, se a compilação deu certo.
+   */
+  executable: string | null;
+  /**
+   * Quanto levou, em milissegundos.
+   */
+  duration_ms: number;
+}
+/**
  * O resultado de um fluxo. Os campos de uma fase que não rodou ficam `None`
  * ou vazios.
  *
@@ -7397,6 +8131,151 @@ export interface BuildResult1 {
    * Quanto o build levou, do começo ao fim, em milissegundos.
    */
   duration_ms: number;
+}
+/**
+ * A placa virtual.
+ */
+export interface BoardLayout3 {
+  /**
+   * A placa (`de2-115`).
+   */
+  board: string;
+  /**
+   * O nome da placa (`Terasic DE2-115`).
+   */
+  board_name: string;
+  /**
+   * O módulo do projeto que vai na placa.
+   */
+  top: string;
+  /**
+   * Os periféricos, na ordem do JSON da placa.
+   */
+  peripherals: LayoutPeripheral[];
+  /**
+   * Os relógios da placa que chegam ao projeto.
+   */
+  clocks: LayoutClock[];
+  /**
+   * Os ajustes das ligações (larguras completadas ou cortadas, entradas
+   * soltas), como no fluxo da placa.
+   */
+  notes: string[];
+}
+/**
+ * O estado.
+ */
+export interface BoardState {
+  /**
+   * O tempo simulado, em picossegundos.
+   */
+  time_ps: number;
+  /**
+   * Segundos simulados por segundo de relógio desde o estado anterior: 1
+   * é o tempo real.
+   */
+  speed: number;
+  /**
+   * A simulação está parada ([`BoardInput::Pause`]).
+   */
+  paused: boolean;
+  /**
+   * Quanto cada LED e cada segmento ficou aceso desde o estado anterior,
+   * de 0 a 255, por sinal, do bit 0 em diante: o PWM aparece como brilho,
+   * e o display multiplexado como persistência.
+   */
+  lights: {
+    [k: string]: number[] | undefined;
+  };
+  /**
+   * Os bytes que o projeto transmitiu em cada UART desde o estado
+   * anterior.
+   */
+  uart: {
+    [k: string]: number[] | undefined;
+  };
+}
+/**
+ * O quadro, em PNG.
+ */
+export interface Frame {
+  /**
+   * O periférico de vídeo.
+   */
+  device: string;
+  /**
+   * A largura visível, em pixels.
+   */
+  width: number;
+  /**
+   * A altura visível, em linhas.
+   */
+  height: number;
+  /**
+   * A imagem em PNG, em base64.
+   */
+  png: string;
+}
+/**
+ * O estado da placa virtual, cerca de 30 vezes por segundo.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "BoardState".
+ */
+export interface BoardState1 {
+  /**
+   * O tempo simulado, em picossegundos.
+   */
+  time_ps: number;
+  /**
+   * Segundos simulados por segundo de relógio desde o estado anterior: 1
+   * é o tempo real.
+   */
+  speed: number;
+  /**
+   * A simulação está parada ([`BoardInput::Pause`]).
+   */
+  paused: boolean;
+  /**
+   * Quanto cada LED e cada segmento ficou aceso desde o estado anterior,
+   * de 0 a 255, por sinal, do bit 0 em diante: o PWM aparece como brilho,
+   * e o display multiplexado como persistência.
+   */
+  lights: {
+    [k: string]: number[] | undefined;
+  };
+  /**
+   * Os bytes que o projeto transmitiu em cada UART desde o estado
+   * anterior.
+   */
+  uart: {
+    [k: string]: number[] | undefined;
+  };
+}
+/**
+ * Um quadro de vídeo remontado pela placa virtual. Só sai quando a imagem
+ * muda.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "Frame".
+ */
+export interface Frame1 {
+  /**
+   * O periférico de vídeo.
+   */
+  device: string;
+  /**
+   * A largura visível, em pixels.
+   */
+  width: number;
+  /**
+   * A altura visível, em linhas.
+   */
+  height: number;
+  /**
+   * A imagem em PNG, em base64.
+   */
+  png: string;
 }
 /**
  * O que a simulação de um processador escreveu numa porta de saída.
@@ -8497,6 +9376,63 @@ export interface UninstallReport {
    * sai.
    */
   removed: boolean;
+}
+/**
+ * `aurora vboard run`: a placa virtual compilada e rodada sem janela.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "VboardRunReport".
+ */
+export interface VboardRunReport {
+  build: BoardBuild2;
+  /**
+   * Como a execução terminou.
+   */
+  outcome: SessionOutcome | null;
+  /**
+   * O último estado: LEDs e segmentos acesos (0 a 255) e os bytes da UART
+   * do último intervalo.
+   */
+  state: BoardState1 | null;
+  /**
+   * O PNG do último quadro de vídeo, se pedido e se houve vídeo.
+   */
+  png: string | null;
+  /**
+   * O que o projeto escreveu (`$display`).
+   */
+  output: string[];
+}
+/**
+ * A compilação da placa virtual. Se falha, os outros campos são
+ * `null`.
+ */
+export interface BoardBuild2 {
+  /**
+   * Como terminou. `failed` é Verilog (ou ligação) que não compila.
+   */
+  status: 'succeeded' | 'failed' | 'crashed' | 'incomplete' | 'cancelled' | 'timed_out';
+  /**
+   * O passo que falhou, quando for o caso (`verilate`).
+   */
+  failed_step: Step | null;
+  /**
+   * Os passos rodados, com o comando e a saída.
+   */
+  steps: StepReport[];
+  /**
+   * As mensagens do Verilator e do compilador.
+   */
+  diagnostics: Diagnostic[];
+  layout: BoardLayout1;
+  /**
+   * O executável, se a compilação deu certo.
+   */
+  executable: string | null;
+  /**
+   * Quanto levou, em milissegundos.
+   */
+  duration_ms: number;
 }
 /**
  * `aurora wave select` e `aurora wave unselect`: a escolha de sinais depois da

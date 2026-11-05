@@ -1,0 +1,560 @@
+//! A placa virtual: o projeto simulado com os periféricos da placa, como se
+//! estivesse gravado nela.
+//!
+//! A placa e as ligações são as do fluxo da placa FPGA ([`crate::fpga`]): o
+//! `fpga.json` diz a placa e liga as portas do topo aos sinais dela, e o
+//! topo da placa gerado ([`crate::fpga::wrapper`]) é o mesmo que vai para o
+//! Quartus. Num projeto sem `fpga.json`, as portas com o nome de um sinal da
+//! placa ligam a ele ([`FpgaConfig::by_name`]).
+//!
+//! [`build`] verila esse topo com um laço de simulação em C++ que simula os
+//! periféricos nos pinos ([`crate::fpga::Peripheral`]): chaves, botões,
+//! LEDs, displays de 7 segmentos, teclado PS/2, tela VGA e UART. [`run`]
+//! roda o executável e conversa com ele: as entradas ([`BoardInput`]) vão
+//! enquanto ele roda, e o estado dos LEDs, os quadros de vídeo e os bytes da
+//! UART voltam como [`SessionEvent`].
+
+mod harness;
+mod keys;
+mod session;
+
+pub use session::{EndReason, RunOptions, SessionOutcome, run};
+
+use std::time::Instant;
+
+use camino::{Utf8Path, Utf8PathBuf};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+use crate::control::Control;
+use crate::diagnostics::Diagnostic;
+use crate::error::{AuroraError, Result};
+use crate::fpga::{FpgaConfig, Peripheral, Prepared};
+use crate::pipeline::{PlannedStep, Runner, Status, Step, StepReport};
+use crate::project::Project;
+use crate::toolchain::{Tool, Toolchain};
+
+/// A pasta da placa virtual, dentro da pasta temporária do projeto.
+const WORK_DIR: &str = "vboard";
+/// O executável gerado (sem a extensão do sistema).
+const EXECUTABLE: &str = "aurora-vboard";
+/// A pasta do modelo, dentro de [`WORK_DIR`].
+const OBJ_DIR: &str = "obj_dir";
+/// O runtime em C++ dos periféricos, gravado ao lado do `main` gerado.
+const RUNTIME: &str = include_str!("runtime/aurora_board.hpp");
+
+/// A pasta onde a placa virtual do projeto é compilada e roda.
+pub fn work_dir(project: &Project) -> Utf8PathBuf {
+    project.temp_dir().join(WORK_DIR)
+}
+
+/// O executável da placa virtual do projeto (existindo ou não).
+pub fn executable_path(project: &Project) -> Utf8PathBuf {
+    work_dir(project)
+        .join(OBJ_DIR)
+        .join(format!("{EXECUTABLE}{}", std::env::consts::EXE_SUFFIX))
+}
+
+// ------------------------------------------------------------ o que a interface vê
+
+/// A placa virtual de um projeto: a placa, o topo e cada periférico, ligado
+/// ao projeto ou não, com as larguras. É o que uma interface desenha.
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct BoardLayout {
+    /// A placa (`de2-115`).
+    pub board: String,
+    /// O nome da placa (`Terasic DE2-115`).
+    pub board_name: String,
+    /// O módulo do projeto que vai na placa.
+    pub top: String,
+    /// Os periféricos, na ordem do JSON da placa.
+    pub peripherals: Vec<LayoutPeripheral>,
+    /// Os relógios da placa que chegam ao projeto.
+    pub clocks: Vec<LayoutClock>,
+    /// Os ajustes das ligações (larguras completadas ou cortadas, entradas
+    /// soltas), como no fluxo da placa.
+    pub notes: Vec<String>,
+}
+
+/// Um periférico na placa virtual.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct LayoutPeripheral {
+    /// O identificador nas entradas e no estado: o nome do primeiro sinal do
+    /// periférico (`SW`, `HEX7`, `VGA_R`).
+    pub id: String,
+    /// O tipo e os sinais, como no JSON da placa.
+    pub peripheral: Peripheral,
+    /// Algum sinal do periférico chega ao projeto. Um periférico solto
+    /// aparece apagado: o projeto não o usa.
+    pub connected: bool,
+    /// Os sinais, com largura e polaridade.
+    pub signals: Vec<LayoutSignal>,
+}
+
+/// Um sinal de um periférico.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct LayoutSignal {
+    /// O nome (`LEDR`).
+    pub name: String,
+    /// A largura em bits.
+    pub width: u32,
+    /// Ativo em nível baixo na placa (os segmentos e os botões da Terasic):
+    /// o estado da placa virtual já vem convertido para aceso e apertado.
+    pub active_low: bool,
+    /// O sinal chega ao projeto.
+    pub connected: bool,
+}
+
+/// Um relógio da placa que chega ao projeto.
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct LayoutClock {
+    /// O sinal (`CLOCK_50`).
+    pub signal: String,
+    /// A frequência, em MHz.
+    pub mhz: f64,
+}
+
+/// Uma entrada para a placa virtual em execução.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[non_exhaustive]
+pub enum BoardInput {
+    /// O valor de chaves (bit 1 = chave para cima) ou dos botões apertados
+    /// (bit 1 = apertado; a polaridade da placa é aplicada no pino).
+    Set {
+        /// O periférico (`SW`, `KEY`).
+        device: String,
+        /// Os bits, do bit 0 em diante.
+        value: u64,
+    },
+    /// Uma tecla do teclado do computador, apertada ou solta, para o teclado
+    /// PS/2. O código é o `KeyboardEvent.code` dos navegadores (`KeyA`,
+    /// `Enter`, `ArrowUp`, `IntlRo`).
+    Key {
+        /// O periférico PS/2.
+        device: String,
+        /// O código da tecla.
+        code: String,
+        /// Apertada (`true`) ou solta (`false`).
+        pressed: bool,
+    },
+    /// Texto: no teclado PS/2, cada caractere vira as teclas que o digitam
+    /// num teclado americano (letras, números, espaço, Enter e a pontuação
+    /// comum); na UART, os bytes em UTF-8.
+    Text {
+        /// O teclado PS/2 ou a UART.
+        device: String,
+        /// O texto.
+        text: String,
+    },
+    /// Bytes crus: códigos de tecla do PS/2 ou bytes para o RX da UART.
+    Bytes {
+        /// O teclado PS/2 ou a UART.
+        device: String,
+        /// Os bytes.
+        bytes: Vec<u8>,
+    },
+    /// Para a simulação, com o estado atual na tela.
+    Pause,
+    /// Continua depois de [`BoardInput::Pause`] ou [`BoardInput::Step`].
+    Resume,
+    /// Roda esse número de flancos de relógio e para.
+    Step {
+        /// Quantos flancos (dois por ciclo de um relógio).
+        edges: u64,
+    },
+    /// Limita a velocidade: 1 é o tempo real, 0 é o mais rápido possível.
+    Speed {
+        /// Segundos simulados por segundo de relógio; 0 sem limite.
+        limit: f64,
+    },
+}
+
+/// O estado da placa virtual, cerca de 30 vezes por segundo.
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct BoardState {
+    /// O tempo simulado, em picossegundos.
+    pub time_ps: u64,
+    /// Segundos simulados por segundo de relógio desde o estado anterior: 1
+    /// é o tempo real.
+    pub speed: f64,
+    /// A simulação está parada ([`BoardInput::Pause`]).
+    pub paused: bool,
+    /// Quanto cada LED e cada segmento ficou aceso desde o estado anterior,
+    /// de 0 a 255, por sinal, do bit 0 em diante: o PWM aparece como brilho,
+    /// e o display multiplexado como persistência.
+    pub lights: std::collections::BTreeMap<String, Vec<u8>>,
+    /// Os bytes que o projeto transmitiu em cada UART desde o estado
+    /// anterior.
+    pub uart: std::collections::BTreeMap<String, Vec<u8>>,
+}
+
+/// Um quadro de vídeo remontado pela placa virtual. Só sai quando a imagem
+/// muda.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct Frame {
+    /// O periférico de vídeo.
+    pub device: String,
+    /// A largura visível, em pixels.
+    pub width: u32,
+    /// A altura visível, em linhas.
+    pub height: u32,
+    /// A imagem em PNG, em base64.
+    #[serde(serialize_with = "base64_bytes")]
+    #[schemars(with = "String")]
+    pub png: Vec<u8>,
+}
+
+fn base64_bytes<S: serde::Serializer>(
+    bytes: &[u8],
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+    use base64::Engine;
+    serializer.serialize_str(&base64::engine::general_purpose::STANDARD.encode(bytes))
+}
+
+/// O que a placa virtual conta enquanto roda.
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
+#[serde(tag = "event", rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum SessionEvent {
+    /// Pronta: o executável subiu e os periféricos estão ligados.
+    Ready,
+    /// O estado dos LEDs, dos displays e da UART.
+    State(BoardState),
+    /// Um quadro de vídeo novo.
+    Frame(Frame),
+    /// Uma linha que o projeto escreveu (`$display`).
+    Output {
+        /// A linha, sem o fim de linha.
+        line: String,
+    },
+}
+
+// ------------------------------------------------------------ compilação
+
+/// O que [`build`] usa além do projeto.
+#[derive(Debug, Clone, Default)]
+#[non_exhaustive]
+pub struct BuildOptions {
+    /// A placa, num projeto sem `fpga.json`: as portas com o nome de um sinal
+    /// dela ligam a ele. Com `fpga.json`, valem a placa e as ligações dele.
+    pub board: Option<String>,
+}
+
+/// O resultado de [`build`]: a placa e o executável, ou os erros do
+/// Verilator e do compilador C++.
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct BoardBuild {
+    /// Como terminou. `failed` é Verilog (ou ligação) que não compila.
+    pub status: Status,
+    /// O passo que falhou, quando for o caso (`verilate`).
+    pub failed_step: Option<Step>,
+    /// Os passos rodados, com o comando e a saída.
+    pub steps: Vec<StepReport>,
+    /// As mensagens do Verilator e do compilador.
+    pub diagnostics: Vec<Diagnostic>,
+    /// A placa virtual do projeto.
+    pub layout: BoardLayout,
+    /// O executável, se a compilação deu certo.
+    #[schemars(with = "Option<String>")]
+    pub executable: Option<Utf8PathBuf>,
+    /// Quanto levou, em milissegundos.
+    pub duration_ms: u64,
+}
+
+/// A placa virtual compilada e rodada: a compilação e, se ela deu certo,
+/// como a execução terminou.
+#[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct BoardRun {
+    /// A compilação.
+    pub build: BoardBuild,
+    /// Como a execução terminou; `None` se a compilação falhou.
+    pub outcome: Option<SessionOutcome>,
+}
+
+impl BoardRun {
+    /// A compilação e o fim da execução.
+    pub fn new(build: BoardBuild, outcome: Option<SessionOutcome>) -> BoardRun {
+        BoardRun { build, outcome }
+    }
+}
+
+impl BoardBuild {
+    /// `status == Succeeded`.
+    pub fn succeeded(&self) -> bool {
+        self.status == Status::Succeeded
+    }
+}
+
+/// A placa virtual do projeto sem compilar: a placa, as ligações e os
+/// periféricos. Serve para a interface desenhar a placa antes do build.
+///
+/// # Erros
+///
+/// Os de [`crate::fpga::prepare`]: [`AuroraError::NoFpgaConfig`] num
+/// projeto sem `fpga.json` e sem `options.board`, ligações inválidas, topo
+/// ausente.
+pub fn layout(
+    toolchain: Option<&Toolchain>,
+    project: &Project,
+    options: &BuildOptions,
+) -> Result<BoardLayout> {
+    let prepared = prepare(toolchain, project, options)?;
+    Ok(layout_of(&prepared))
+}
+
+fn prepare(
+    toolchain: Option<&Toolchain>,
+    project: &Project,
+    options: &BuildOptions,
+) -> Result<Prepared> {
+    match FpgaConfig::read(project.root()) {
+        Ok(config) => crate::fpga::prepare_with(toolchain, project, config),
+        Err(AuroraError::NoFpgaConfig(path)) => {
+            let Some(board) = &options.board else {
+                return Err(AuroraError::NoFpgaConfig(path));
+            };
+            let board = crate::fpga::board(board)?;
+            let top = crate::fpga::top_interface(toolchain, project, None)?;
+            let config = FpgaConfig::by_name(&board, &top);
+            crate::fpga::prepare_with(toolchain, project, config)
+        }
+        Err(other) => Err(other),
+    }
+}
+
+fn layout_of(prepared: &Prepared) -> BoardLayout {
+    let resolved = &prepared.resolved;
+    let board = &resolved.board;
+    let used = |name: &str| {
+        resolved.board_inputs.iter().any(|s| s == name)
+            || resolved.board_outputs.iter().any(|d| d.signal == name)
+    };
+    let peripherals = board
+        .peripherals
+        .iter()
+        .map(|peripheral| {
+            let signals: Vec<LayoutSignal> = peripheral
+                .signals()
+                .into_iter()
+                .filter_map(|(name, _, _)| board.signal(name))
+                .map(|signal| LayoutSignal {
+                    name: signal.name.clone(),
+                    width: signal.width(),
+                    active_low: signal.active_low,
+                    connected: used(&signal.name),
+                })
+                .collect();
+            LayoutPeripheral {
+                id: signals.first().map(|s| s.name.clone()).unwrap_or_default(),
+                peripheral: peripheral.clone(),
+                connected: signals.iter().any(|s| s.connected),
+                signals,
+            }
+        })
+        .collect();
+    BoardLayout {
+        board: board.id.clone(),
+        board_name: board.name.clone(),
+        top: resolved.top.clone(),
+        peripherals,
+        clocks: resolved
+            .clocks
+            .iter()
+            .map(|c| LayoutClock {
+                signal: c.signal.clone(),
+                mhz: c.mhz,
+            })
+            .collect(),
+        notes: resolved.notes.clone(),
+    }
+}
+
+/// Compila a placa virtual do projeto: o topo da placa (o mesmo do fluxo da
+/// placa FPGA), os fontes do projeto e o laço de simulação dos periféricos,
+/// pelo Verilator do bundle, em `.aurora8/Temp/vboard`.
+///
+/// Um processador SAPHO entra compilado (o Verilog e as memórias que o build
+/// dele gerou), como na simulação do projeto.
+///
+/// # Erros
+///
+/// Os de [`layout`], [`AuroraError::SystemCompilerMissing`] e os de
+/// ferramenta e I/O. Verilog que não compila é `Ok` com `status: failed` e
+/// os diagnósticos.
+pub fn build(
+    toolchain: &Toolchain,
+    project: &Project,
+    options: &BuildOptions,
+    control: &Control,
+) -> Result<BoardBuild> {
+    let started = Instant::now();
+    let prepared = prepare(Some(toolchain), project, options)?;
+    let layout = layout_of(&prepared);
+    let work = work_dir(project);
+    let _span = tracing::info_span!("virtual_board_build", top = %layout.top).entered();
+    // Copia as memórias dos processadores para a pasta da placa: não corre
+    // com o build de um processador.
+    let _locks = crate::simulate::staging_locks(project, &work.join(".vboard"), project.name())?;
+    std::fs::create_dir_all(&work).map_err(AuroraError::io("Creating directory", &work))?;
+    write(
+        &work.join(format!("{}.v", crate::fpga::wrapper::TOP_MODULE)),
+        &prepared.board_top,
+    )?;
+    write(
+        &work.join("board_main.cpp"),
+        &harness::generate(&prepared.resolved),
+    )?;
+    write(&work.join("aurora_board.hpp"), RUNTIME)?;
+    // O `.v` de cada processador lê as memórias pelo nome, relativo ao CWD,
+    // que é esta pasta.
+    crate::simulate::stage_processor_files(project, &work)?;
+
+    let mut files = vec![work.join(format!("{}.v", crate::fpga::wrapper::TOP_MODULE))];
+    files.extend(crate::synth::project_sources(project)?);
+    let hdl = toolchain.sapho_library(!project.processors().is_empty())?;
+
+    let mut runner = Runner::new(control);
+    let invocation = crate::simulate::board_verilator(toolchain, &work, OBJ_DIR, EXECUTABLE)?;
+    let mut invocation = invocation
+        .arg("--top-module")
+        .arg(crate::fpga::wrapper::TOP_MODULE)
+        .arg("-Mdir")
+        .arg(OBJ_DIR);
+    if let Some(hdl) = &hdl {
+        invocation = invocation.arg("-y").tool_path_arg(hdl);
+    }
+    invocation = invocation.arg("board_main.cpp");
+    for file in &files {
+        invocation = invocation.tool_path_arg(file);
+    }
+    let built = runner.run(PlannedStep::new(
+        Step::Verilate,
+        Tool::Verilator,
+        invocation,
+    ))?;
+    crate::simulate::quiet_runtime_warnings(&mut runner.diagnostics, toolchain.root());
+    let executable = executable_path(project);
+    let executable = (built && executable.is_file()).then_some(executable);
+    let status = if built && executable.is_none() {
+        Status::Incomplete
+    } else {
+        runner.status
+    };
+    Ok(BoardBuild {
+        status,
+        failed_step: runner.failed_step,
+        steps: runner.steps,
+        diagnostics: runner.diagnostics,
+        layout,
+        executable,
+        duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::verilog::{ModuleInterface, Port, PortDirection};
+
+    fn port(name: &str, direction: PortDirection, width: u32) -> Port {
+        Port {
+            name: name.into(),
+            direction,
+            width,
+            signed: false,
+        }
+    }
+
+    fn layout() -> BoardLayout {
+        let board = crate::fpga::board("de2-115").unwrap();
+        let top = ModuleInterface {
+            name: "placa".into(),
+            file: "placa.v".into(),
+            ports: vec![
+                port("CLOCK_50", PortDirection::Input, 1),
+                port("SW", PortDirection::Input, 4),
+                port("KEY", PortDirection::Input, 1),
+                port("LEDR", PortDirection::Output, 4),
+                port("HEX0", PortDirection::Output, 7),
+            ],
+        };
+        let config = FpgaConfig::by_name(&board, &top);
+        let resolved = config.resolve(&board, &top).unwrap();
+        layout_of(&Prepared {
+            config: "fpga.json".into(),
+            board_top: crate::fpga::wrapper::generate(&resolved),
+            connections: Vec::new(),
+            resolved,
+        })
+    }
+
+    #[test]
+    fn the_layout_marks_what_the_project_uses() {
+        let layout = layout();
+        let connected: Vec<&str> = layout
+            .peripherals
+            .iter()
+            .filter(|p| p.connected)
+            .map(|p| p.id.as_str())
+            .collect();
+        // Os displays são um periférico só, com o id do primeiro dígito, e
+        // aparecem ligados porque o HEX0 está.
+        assert_eq!(connected, ["SW", "KEY", "LEDR", "HEX7"]);
+        let sw = &layout.peripherals[0].signals[0];
+        assert_eq!(
+            (sw.name.as_str(), sw.width, sw.active_low),
+            ("SW", 18, false)
+        );
+        let key = &layout.peripherals[1].signals[0];
+        assert!(key.active_low);
+    }
+
+    #[test]
+    fn inputs_go_only_to_peripherals_that_take_them() {
+        let layout = layout();
+        let set = BoardInput::Set {
+            device: "SW".into(),
+            value: 0x2A,
+        };
+        assert_eq!(layout.command(&set).as_deref(), Some("set SW 2a"));
+        // Um LED não recebe valor; a placa não tem teclado ligado.
+        let led = BoardInput::Set {
+            device: "LEDR".into(),
+            value: 1,
+        };
+        let error = layout.check(&led).unwrap_err();
+        assert_eq!(error.code(), "virtual_board_device");
+        assert!(error.to_string().contains("SW, KEY"), "{error}");
+        assert_eq!(layout.command(&led), None);
+        let key = BoardInput::Key {
+            device: "PS2_CLK".into(),
+            code: "KeyA".into(),
+            pressed: true,
+        };
+        assert!(layout.check(&key).is_err());
+        assert_eq!(layout.command(&BoardInput::Pause).as_deref(), Some("pause"));
+        assert_eq!(
+            layout.command(&BoardInput::Step { edges: 0 }).as_deref(),
+            Some("step 1")
+        );
+    }
+}
+
+fn write(path: &Utf8Path, text: &str) -> Result<()> {
+    // Só regrava o que mudou: o `make` do Verilator não refaz o que não
+    // mudou de data.
+    if std::fs::read_to_string(path).is_ok_and(|old| old == text) {
+        return Ok(());
+    }
+    std::fs::write(path, text).map_err(AuroraError::io("Writing", path))
+}

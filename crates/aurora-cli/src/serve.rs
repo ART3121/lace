@@ -60,6 +60,7 @@ use aurora_core::flows::{self, FlowOptions, FlowRequest};
 use aurora_core::fpga::{self, FpgaConfig};
 use aurora_core::history;
 use aurora_core::locate;
+use aurora_core::virtual_board::{self, BoardInput, BoardLayout};
 use aurora_core::{AuroraError, CancelToken, Control, ErrorInfo, NewProcessor, Project, Toolchain};
 use aurora_installer::add::{self as installer_add, Payload};
 use aurora_installer::install::Event as InstallEvent;
@@ -466,6 +467,9 @@ pub(crate) struct Server {
     exit_when_done: AtomicBool,
     pending: Mutex<HashMap<String, Pending>>,
     workers: Mutex<HashMap<String, Sender<Job>>>,
+    /// As placas virtuais rodando (`vboard.run`), pelo id do pedido: por onde
+    /// vão as entradas de `vboard.input` e a placa, para conferi-las.
+    boards: Mutex<HashMap<String, (Sender<BoardInput>, BoardLayout)>>,
     /// Se um recurso experimental está ligado: o `experimental.json` do
     /// usuário, ou o que o teste disser.
     features: fn(Feature) -> bool,
@@ -482,6 +486,7 @@ impl Server {
             exit_when_done: AtomicBool::new(false),
             pending: Mutex::new(HashMap::new()),
             workers: Mutex::new(HashMap::new()),
+            boards: Mutex::new(HashMap::new()),
             features: aurora_core::experimental::is_enabled,
         }
     }
@@ -1192,6 +1197,106 @@ impl Server {
                     top.as_deref(),
                 )?))
             }
+            Request::VboardLayout { project, board } => {
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
+                let toolchain = self.toolchain().ok();
+                let mut options = virtual_board::BuildOptions::default();
+                options.board = board;
+                Response::VboardLayout(Box::new(virtual_board::layout(
+                    toolchain.as_ref(),
+                    &project,
+                    &options,
+                )?))
+            }
+            Request::VboardRun {
+                project,
+                board,
+                limit,
+                fps,
+            } => {
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
+                let toolchain = self.toolchain()?;
+                let deliver = Arc::clone(&emit);
+                let dispatcher =
+                    Dispatcher::start(Limits::default(), move |notification| deliver(notification));
+                let mut options = virtual_board::BuildOptions::default();
+                options.board = board;
+                let built = virtual_board::build(
+                    &toolchain,
+                    &project,
+                    &options,
+                    &dispatcher.control(cancel.clone()),
+                )?;
+                if !built.succeeded() {
+                    dispatcher.finish();
+                    return Ok(Response::Vboard(Box::new(virtual_board::BoardRun::new(
+                        built, None,
+                    ))));
+                }
+                let (inputs, received) = std::sync::mpsc::channel();
+                let key = id.to_string();
+                self.boards
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .insert(key.clone(), (inputs, built.layout.clone()));
+                let mut on_event = |event: virtual_board::SessionEvent| {
+                    let notification = match event {
+                        virtual_board::SessionEvent::Ready => Notification::VboardReady {
+                            layout: built.layout.clone(),
+                        },
+                        virtual_board::SessionEvent::State(state) => {
+                            Notification::VboardState { state }
+                        }
+                        virtual_board::SessionEvent::Frame(frame) => {
+                            Notification::VboardFrame { frame }
+                        }
+                        virtual_board::SessionEvent::Output { line } => {
+                            Notification::VboardOutput { line }
+                        }
+                        _ => return,
+                    };
+                    dispatcher.notify(notification);
+                };
+                let options =
+                    virtual_board::RunOptions::new(limit.unwrap_or(1.0), fps.unwrap_or(30.0));
+                let outcome = virtual_board::run(
+                    &toolchain,
+                    &project,
+                    &built,
+                    &options,
+                    &received,
+                    &mut on_event,
+                    &Control::new().with_cancel(cancel),
+                );
+                self.boards
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .remove(&key);
+                dispatcher.finish();
+                Response::Vboard(Box::new(virtual_board::BoardRun::new(
+                    built,
+                    Some(outcome?),
+                )))
+            }
+            Request::VboardInput { run, input } => {
+                self.require(Feature::Fpga)?;
+                let boards = self
+                    .boards
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                let Some((inputs, layout)) = boards.get(&run.to_string()) else {
+                    return Err(ErrorInfo::new(
+                        "vboard_not_running",
+                        format!("No virtual board is running with request id {run}"),
+                    )
+                    .into());
+                };
+                layout.check(&input)?;
+                let _ = inputs.send(input);
+                Response::Nothing(())
+            }
             Request::UpdateCheck => Response::Update(Box::new(
                 self.update(id, &emit, false, None, None, &cancel)?,
             )),
@@ -1497,6 +1602,15 @@ enum Lane {
 
 fn lane_of(request: &Request) -> Lane {
     if request.is_read_only() {
+        return Lane::Thread;
+    }
+    // A placa virtual roda até ser cancelada, e as entradas dela chegam
+    // enquanto isso: nenhuma das duas espera na fila do projeto, nem a
+    // segura.
+    if matches!(
+        request,
+        Request::VboardRun { .. } | Request::VboardInput { .. }
+    ) {
         return Lane::Thread;
     }
     if request.is_installation() {
@@ -1873,6 +1987,67 @@ mod tests {
     /// declara, que é o que o docs/PROTOCOL.md mostra. Roda, num projeto
     /// temporário, os métodos que não precisam de simulação, de síntese, de
     /// relatório guardado, do Quartus nem da rede.
+    #[test]
+    fn the_virtual_board_draws_the_board_and_refuses_input_without_a_run() {
+        let schema = serde_json::to_value(aurora_protocol::result_schema()).unwrap();
+        let (server, rx) = server();
+        let dir = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dunce::canonicalize(dir.path()).unwrap()).unwrap();
+        let mut project = Project::create(&root, "placa").unwrap();
+        let top = project.root().join("placa.v");
+        std::fs::write(
+            &top,
+            "module placa (input CLOCK_50, input [3:0] SW, output [3:0] LEDR);\n\
+             assign LEDR = SW;\nendmodule\n",
+        )
+        .unwrap();
+        // O primeiro módulo do projeto vira o topo.
+        project.add_verilog(None, &top, false).unwrap();
+        let spf = project.spf_path().to_owned();
+        call_conforming(
+            &server,
+            &rx,
+            &schema,
+            "initialize",
+            json!({"client": "test"}),
+        );
+
+        // Sem fpga.json: a placa pedida, com as portas ligadas pelo nome.
+        let layout = call_conforming(
+            &server,
+            &rx,
+            &schema,
+            "vboard.layout",
+            json!({"project": spf, "board": "de2-115"}),
+        );
+        let connected: Vec<&str> = layout["peripherals"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|p| p["connected"] == true)
+            .map(|p| p["id"].as_str().unwrap())
+            .collect();
+        assert_eq!(connected, ["SW", "LEDR"], "{layout}");
+        assert_eq!(layout["clocks"][0]["signal"], "CLOCK_50");
+
+        // Uma entrada sem placa rodando com esse id.
+        server.handle_line(
+            &json!({"jsonrpc": "2.0", "id": 7, "method": "vboard.input",
+                "params": {"run": 99, "input": {"kind": "set", "device": "SW", "value": 1}}})
+            .to_string(),
+        );
+        let reply = loop {
+            let line = next(&rx);
+            if line["id"] == 7 {
+                break line;
+            }
+        };
+        assert_eq!(
+            reply["error"]["data"]["code"], "vboard_not_running",
+            "{reply}"
+        );
+    }
+
     #[test]
     fn results_conform_to_the_declared_schema() {
         let schema = serde_json::to_value(aurora_protocol::result_schema()).unwrap();

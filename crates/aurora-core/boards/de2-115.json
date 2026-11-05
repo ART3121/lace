@@ -277,5 +277,38 @@
       "active_low": true,
       "description": "Seven-segment digit 7, common anode: 0 lights a segment"
     }
+  ],
+  "peripherals": [
+    {
+      "kind": "switches",
+      "signal": "SW"
+    },
+    {
+      "kind": "buttons",
+      "signal": "KEY"
+    },
+    {
+      "kind": "leds",
+      "signal": "LEDR",
+      "color": "red"
+    },
+    {
+      "kind": "leds",
+      "signal": "LEDG",
+      "color": "green"
+    },
+    {
+      "kind": "seven_segment",
+      "digits": [
+        "HEX7",
+        "HEX6",
+        "HEX5",
+        "HEX4",
+        "HEX3",
+        "HEX2",
+        "HEX1",
+        "HEX0"
+      ]
+    }
   ]
 }

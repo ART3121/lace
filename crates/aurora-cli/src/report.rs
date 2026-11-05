@@ -100,6 +100,7 @@ reports! {
     "fpga-build" => FpgaBuildReport,
     "fpga-program" => FpgaProgramResult,
     "fpga-cables" => FpgaCablesReport,
+    "vboard-run" => VboardRunReport,
     "experimental" => ExperimentalReport,
     "error" => ErrorReport,
 }
@@ -632,6 +633,43 @@ mod tests {
 pub struct FpgaBoardsReport {
     /// As placas, com o FPGA, o cabo e os sinais com os pinos.
     pub boards: Vec<Board>,
+}
+
+/// `aurora vboard run`: a placa virtual compilada e rodada sem janela.
+#[derive(Serialize, JsonSchema)]
+pub struct VboardRunReport {
+    /// A compilação da placa virtual. Se falha, os outros campos são
+    /// `null`.
+    pub build: aurora_core::virtual_board::BoardBuild,
+    /// Como a execução terminou.
+    pub outcome: Option<aurora_core::virtual_board::SessionOutcome>,
+    /// O último estado: LEDs e segmentos acesos (0 a 255) e os bytes da UART
+    /// do último intervalo.
+    pub state: Option<aurora_core::virtual_board::BoardState>,
+    /// O PNG do último quadro de vídeo, se pedido e se houve vídeo.
+    #[schemars(with = "Option<String>")]
+    pub png: Option<Utf8PathBuf>,
+    /// O que o projeto escreveu (`$display`).
+    pub output: Vec<String>,
+}
+
+impl VboardRunReport {
+    /// O relatório.
+    pub fn new(
+        build: aurora_core::virtual_board::BoardBuild,
+        outcome: Option<aurora_core::virtual_board::SessionOutcome>,
+        state: Option<aurora_core::virtual_board::BoardState>,
+        png: Option<Utf8PathBuf>,
+        output: Vec<String>,
+    ) -> VboardRunReport {
+        VboardRunReport {
+            build,
+            outcome,
+            state,
+            png,
+            output,
+        }
+    }
 }
 
 /// `aurora fpga check`: o `fpga.json` conferido.

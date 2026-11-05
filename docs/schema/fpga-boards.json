@@ -46,6 +46,13 @@
           "items": {
             "$ref": "#/$defs/BoardSignal"
           }
+        },
+        "peripherals": {
+          "description": "O que cada sinal é na placa (chaves, LEDs, displays, tela), para a\nplaca virtual desenhá-los e simulá-los. Um sinal fora daqui também\nvai para a placa; só não aparece na placa virtual.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Peripheral"
+          }
         }
       },
       "additionalProperties": false,
@@ -199,6 +206,230 @@
           "items": {
             "type": "string"
           }
+        }
+      ]
+    },
+    "Peripheral": {
+      "description": "Um periférico da placa: o tipo e os sinais dele. A placa virtual simula\ncada um nos pinos, como a placa de verdade os liga ao FPGA.",
+      "oneOf": [
+        {
+          "description": "Chaves deslizantes: o bit fica no valor da chave.",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal de entrada.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "switches"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "signal"
+          ]
+        },
+        {
+          "description": "Botões: o bit muda enquanto o botão está apertado (vai a 0 num sinal\nativo em baixo, como os KEY das placas da Terasic).",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal de entrada.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "buttons"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "signal"
+          ]
+        },
+        {
+          "description": "LEDs, um por bit.",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal de saída.",
+              "type": "string"
+            },
+            "color": {
+              "description": "A cor dos LEDs.",
+              "$ref": "#/$defs/LedColor"
+            },
+            "kind": {
+              "type": "string",
+              "const": "leds"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "signal",
+            "color"
+          ]
+        },
+        {
+          "description": "Displays de 7 segmentos, um sinal por dígito, da esquerda para a\ndireita. Bit 0 é o segmento a, bit 6 o segmento g; um oitavo bit é o\nponto decimal.",
+          "type": "object",
+          "properties": {
+            "digits": {
+              "description": "Os dígitos, da esquerda para a direita.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "seven_segment"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "digits"
+          ]
+        },
+        {
+          "description": "Saída de vídeo VGA (ou o vídeo paralelo de um transmissor HDMI): a\nplaca virtual remonta a imagem pelos sinais de sincronismo.",
+          "type": "object",
+          "properties": {
+            "red": {
+              "description": "O canal vermelho.",
+              "type": "string"
+            },
+            "green": {
+              "description": "O canal verde.",
+              "type": "string"
+            },
+            "blue": {
+              "description": "O canal azul.",
+              "type": "string"
+            },
+            "hsync": {
+              "description": "O sincronismo horizontal.",
+              "type": "string"
+            },
+            "vsync": {
+              "description": "O sincronismo vertical.",
+              "type": "string"
+            },
+            "blank": {
+              "description": "O vídeo ativo (`VGA_BLANK_N`, `DE`), se a placa tem.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "clock": {
+              "description": "O relógio de pixel que o projeto entrega ao conversor\n(`VGA_CLK`), se a placa tem.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "vga"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "red",
+            "green",
+            "blue",
+            "hsync",
+            "vsync"
+          ]
+        },
+        {
+          "description": "Teclado PS/2: o projeto recebe os quadros do teclado nos dois fios.",
+          "type": "object",
+          "properties": {
+            "clock": {
+              "description": "O relógio do teclado (entrada do FPGA).",
+              "type": "string"
+            },
+            "data": {
+              "description": "O dado do teclado (entrada do FPGA).",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "ps2"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clock",
+            "data"
+          ]
+        },
+        {
+          "description": "Porta serial (UART).",
+          "type": "object",
+          "properties": {
+            "tx": {
+              "description": "O que o projeto transmite (saída do FPGA).",
+              "type": "string"
+            },
+            "rx": {
+              "description": "O que o projeto recebe (entrada do FPGA), se a placa liga.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "baud": {
+              "description": "A velocidade padrão, em bits por segundo.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "uart"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tx",
+            "baud"
+          ]
+        }
+      ]
+    },
+    "LedColor": {
+      "description": "A cor de um LED.",
+      "oneOf": [
+        {
+          "description": "Vermelho.",
+          "type": "string",
+          "const": "red"
+        },
+        {
+          "description": "Verde.",
+          "type": "string",
+          "const": "green"
+        },
+        {
+          "description": "Azul.",
+          "type": "string",
+          "const": "blue"
+        },
+        {
+          "description": "Amarelo.",
+          "type": "string",
+          "const": "yellow"
         }
       ]
     }

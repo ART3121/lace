@@ -1343,7 +1343,7 @@ fn cocotb_link_flags(cocotb: &crate::cocotb::CocotbRun) -> Vec<String> {
 /// precedem. No Windows o g++ avisa de `STDOUT_FILENO` redefinido e, no
 /// modelo do cocotb, de cada função da VPI sem `dllimport`: nada disso é do
 /// projeto, nem tem como ser corrigido por quem simula.
-fn quiet_runtime_warnings(diagnostics: &mut [Diagnostic], bundle: &Utf8Path) {
+pub(crate) fn quiet_runtime_warnings(diagnostics: &mut [Diagnostic], bundle: &Utf8Path) {
     use crate::diagnostics::Severity;
     // Um bundle numa pasta com espaço ou acento chega ao `make` pelo nome
     // curto ([`make_path`]), e o g++ cita os arquivos dele assim.
@@ -1375,6 +1375,57 @@ fn quiet_runtime_warnings(diagnostics: &mut [Diagnostic], bundle: &Utf8Path) {
             d.severity = Severity::Info;
         }
     }
+}
+
+/// O Verilator da placa virtual ([`crate::virtual_board`]), rodando em `work`:
+/// um modelo C++ com o `main` gerado (`--cc --exe --build`), o executável
+/// `executable` em `work/obj_dir`. As mesmas flags da simulação rápida, sem
+/// `--timing`: o topo da placa não tem atraso a esperar, e o laço do `main`
+/// dirige o relógio. Falta quem chama acrescentar o topo, a pasta do
+/// modelo, o `main` e os fontes.
+pub(crate) fn board_verilator(
+    toolchain: &Toolchain,
+    work: &Utf8Path,
+    obj_dir: &str,
+    executable: &str,
+) -> Result<crate::process::Invocation> {
+    let mut verilate = toolchain
+        .invocation(Tool::Verilator, work)?
+        .arg("--cc")
+        .arg("--exe")
+        .arg("--build")
+        .arg("-o")
+        .arg(executable)
+        .arg("-j")
+        .arg("0")
+        .arg("-MAKEFLAGS")
+        .arg("OBJCACHE=")
+        .arg("-MAKEFLAGS")
+        .arg(format!(
+            "PYTHON3={}",
+            make_path(&toolchain.bundled_python()?)
+        ));
+    // A pasta com espaço, como na simulação ([`execute`]).
+    if cfg!(windows)
+        && !crate::process::make_safe(work.as_str())
+        && let Some(short) = crate::process::short_path(work)
+    {
+        verilate = verilate
+            .arg("-MAKEFLAGS")
+            .arg(format!("CURDIR={}", make_path(&short.join(obj_dir))));
+    }
+    let mut verilate = verilate
+        .arg("-Wno-fatal")
+        .arg("-Wno-TIMESCALEMOD")
+        .arg("-Wno-DECLFILENAME")
+        .arg("-Wno-STMTDLY")
+        .arg("--no-timing")
+        .arg("--x-assign")
+        .arg("fast");
+    for &flag in verilator_cflags() {
+        verilate = verilate.arg("-CFLAGS").arg(flag);
+    }
+    Ok(verilate)
 }
 
 /// Flags do compilador C++ do modelo, as da AURORA. No macOS sai o

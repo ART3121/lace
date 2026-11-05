@@ -66,6 +66,7 @@ const NOT_THROUGH_CALL: &[&str] = &[
     "update.apply",
     "install.add",
     "learn.check",
+    "vboard.run",
 ];
 
 /// O que volta de um pedido.
@@ -628,7 +629,11 @@ fn project_field(method: &str) -> ProjectField {
 /// caminhos de `.spf`, como antes. Sem projeto aberto, um método que o exige
 /// é `no_project`; um que o tem opcional vai sem ele. Quem não quer o
 /// projeto num campo opcional manda `project: null`.
-fn with_project(state: &AppState, method: &str, params: Option<Value>) -> IpcResult<Value> {
+pub(crate) fn with_project(
+    state: &AppState,
+    method: &str,
+    params: Option<Value>,
+) -> IpcResult<Value> {
     let mut params = params.unwrap_or(Value::Null);
     let field = project_field(method);
     if field == ProjectField::None {

@@ -79,7 +79,7 @@ const MENUS: { label: Key; entries: Entry[] }[] = [
   },
   {
     label: 'menu.flow',
-    entries: ['build', 'check', 'lint', '-', 'simulate', 'fastSim', 'openWave', 'waveSignals', '-', 'synthesize', 'showSchematic', 'showStatistics', 'viewHierarchy', '-', 'showBoard', 'fpgaBuildProgram', 'fpgaBuild', 'fpgaProgram', '-', 'fullFlow', 'cancel', '-', 'useIcarus', 'useVerilator'],
+    entries: ['build', 'check', 'lint', '-', 'simulate', 'fastSim', 'openWave', 'waveSignals', '-', 'synthesize', 'showSchematic', 'showStatistics', 'viewHierarchy', '-', 'showBoard', 'showVirtualBoard', 'fpgaBuildProgram', 'fpgaBuild', 'fpgaProgram', '-', 'fullFlow', 'cancel', '-', 'useIcarus', 'useVerilator'],
   },
   {
     label: 'menu.tools',

@@ -992,6 +992,33 @@ impl Output {
     }
 
     /// A gravação na placa.
+    pub fn vboard_build(&self, result: &aurora_core::virtual_board::BoardBuild, root: &Utf8Path) {
+        if self.json {
+            return;
+        }
+        let title = format!(
+            "Virtual board: {} on {}",
+            result.layout.top, result.layout.board_name
+        );
+        self.summary(Summary {
+            title: &title,
+            detail: "verilator --cc --exe --build",
+            status: result.status,
+            failed_step: result.failed_step,
+            steps: &result.steps,
+            planned: &[(Step::Verilate, Tool::Verilator)],
+            diagnostics: &result.diagnostics,
+            artifacts: &[],
+            duration_ms: result.duration_ms,
+            root,
+            independent_steps: false,
+            limit_ms: None,
+        });
+        for note in &result.layout.notes {
+            println!("  {}", paint(DIM, note));
+        }
+    }
+
     pub fn fpga_program(&self, result: &FpgaProgramResult, root: &Utf8Path) {
         if self.json {
             return;

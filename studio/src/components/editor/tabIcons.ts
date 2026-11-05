@@ -15,6 +15,7 @@ import {
   GraduationCap,
   Info,
   Microchip,
+  MonitorPlay,
   ScrollText,
   Settings,
   Wrench,
@@ -93,6 +94,8 @@ export function tabIcon(tab: Tab): LucideIcon {
       return ChartColumn;
     case 'board':
       return Microchip;
+    case 'vboard':
+      return MonitorPlay;
     case 'report':
       return ScrollText;
     case 'compare':

@@ -105,6 +105,27 @@ pub enum Notification {
         /// O resultado.
         result: BuildResult,
     },
+    /// A placa virtual subiu ([`crate::virtual_board::run`]): a placa, o topo
+    /// e os periféricos.
+    VboardReady {
+        /// A placa virtual.
+        layout: crate::virtual_board::BoardLayout,
+    },
+    /// O estado da placa virtual: LEDs, segmentos e UART.
+    VboardState {
+        /// O estado.
+        state: crate::virtual_board::BoardState,
+    },
+    /// Um quadro de vídeo novo da placa virtual.
+    VboardFrame {
+        /// O quadro, em PNG.
+        frame: crate::virtual_board::Frame,
+    },
+    /// Uma linha que o projeto escreveu na placa virtual (`$display`).
+    VboardOutput {
+        /// A linha.
+        line: String,
+    },
     /// Progresso de uma instalação ou atualização da AURORA (o evento do
     /// instalador, serializado por ele; o core não conhece o tipo).
     Install {

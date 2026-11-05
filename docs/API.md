@@ -1846,6 +1846,37 @@ DE2-115 (compilar e gravar). As mensagens e os relatórios também foram
 conferidos em relatórios publicados do Quartus II 13.1 e 14.0 e do Quartus
 Prime 17.1, 18.0 e 18.1.
 
+### 5.10.2 A placa virtual: o módulo `virtual_board`
+
+O projeto simulado com os periféricos da placa, como se estivesse gravado
+nela ([FPGA.md](FPGA.md#placa-virtual-aurora-vboard)). A placa e as ligações
+são as de 5.10: `fpga::prepare_with(toolchain, project, config)` é o
+`prepare` com uma configuração dada, e `FpgaConfig::by_name(board, top)`
+liga as portas do topo com o nome e a direção de um sinal da placa. Cada
+placa diz o que é cada sinal em `Board::peripherals` (`fpga::Peripheral`:
+`switches`, `buttons`, `leds`, `seven_segment`, `vga`, `ps2`, `uart`),
+conferido junto com o resto do JSON dela.
+
+| Função | Faz |
+|---|---|
+| `virtual_board::layout(Option<&Toolchain>, &Project, &BuildOptions) -> Result<BoardLayout>` | a placa sem compilar: cada periférico, ligado ao projeto ou não, com as larguras e a polaridade dos sinais, os relógios e os ajustes das ligações |
+| `virtual_board::build(&Toolchain, &Project, &BuildOptions, &Control) -> Result<BoardBuild>` | grava o topo da placa, o `main` em C++ e o runtime dos periféricos em `.aurora8/Temp/vboard` e compila pelo Verilator (passo `verilate`). Verilog que não compila é `Ok` com `status: failed` e os diagnósticos |
+| `virtual_board::run(&Toolchain, &Project, &BoardBuild, &RunOptions, &Receiver<BoardInput>, &mut dyn FnMut(SessionEvent), &Control) -> Result<SessionOutcome>` | roda o executável até o cancelamento ou o `$finish`. As entradas (`BoardInput`: `set`, `key`, `text`, `bytes`, `pause`, `resume`, `step`, `speed`) chegam pelo canal; os `SessionEvent` (`ready`, `state`, `frame`, `output`) vão para quem chama, na thread dele |
+| `BoardLayout::check(&BoardInput) -> Result<()>` | confere que a entrada vai para um periférico ligado que a recebe (`virtual_board_device`, com os que recebem) |
+
+`BuildOptions::board` vale num projeto sem `fpga.json`. `RunOptions::new(limit,
+fps)`: `limit` 1 é o tempo real, 0 o mais rápido possível; `fps` limita os
+quadros de vídeo. O estado (`BoardState`) sai cerca de 30 vezes por segundo,
+com o tempo simulado, a velocidade, o brilho de cada LED e segmento (0 a
+255) e os bytes que cada UART transmitiu; o quadro (`Frame`) sai em PNG, só
+quando a imagem muda. No protocolo são os métodos `vboard.layout`,
+`vboard.run` e `vboard.input` e as notificações `vboard_ready`,
+`vboard_state`, `vboard_frame` e `vboard_output`
+([PROTOCOL.md](PROTOCOL.md)).
+
+Erros novos: `virtual_board_not_built` (`run` sem o executável) e
+`virtual_board_device`.
+
 ### 5.10.1 Recursos experimentais: o módulo `experimental`
 
 Partes da AURORA que ainda mudam muito ficam desligadas até o usuário ligar.

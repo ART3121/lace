@@ -81,5 +81,20 @@
       "io_standard": "3.3-V LVTTL",
       "description": "Green LEDs: 1 turns one on"
     }
+  ],
+  "peripherals": [
+    {
+      "kind": "switches",
+      "signal": "SW"
+    },
+    {
+      "kind": "buttons",
+      "signal": "KEY"
+    },
+    {
+      "kind": "leds",
+      "signal": "LED",
+      "color": "green"
+    }
   ]
 }

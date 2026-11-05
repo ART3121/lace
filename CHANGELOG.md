@@ -2,6 +2,18 @@
 
 ## Não publicada
 
+- A placa virtual, no recurso experimental `fpga`: o projeto roda no
+  computador com os periféricos da placa simulados nos pinos (chaves,
+  botões, LEDs com brilho de PWM, displays de 7 segmentos, teclado PS/2,
+  tela VGA e serial), pelo Verilator do bundle, com o mesmo topo da placa do
+  `aurora fpga`. O JSON das placas ganhou a lista `peripherals`; as três
+  placas têm chaves, botões, LEDs e displays, e VGA, PS/2 e serial esperam
+  os pinos conferidos no manual. Novos: `aurora vboard run`, os métodos
+  `vboard.layout`, `vboard.run` e `vboard.input` com as notificações
+  `vboard_*`, e no core o módulo `virtual_board`,
+  `fpga::prepare_with`, `FpgaConfig::by_name` e os erros
+  `virtual_board_not_built` e `virtual_board_device`.
+
 - Windows: o assistente que substitui o Lace põe a AURORA no PATH antes de
   rodar o desinstalador do Lace, e não depois, e mostra o andamento enquanto
   ele apaga o bundle do Lace, o que leva minutos. Na 1.0.0, se o assistente

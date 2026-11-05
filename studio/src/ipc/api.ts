@@ -9,6 +9,8 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   AddedFile,
   Board,
+  BoardInput,
+  BoardLayout,
   Cleanup,
   ExperimentalReport,
   Feature,
@@ -56,6 +58,7 @@ import type {
   TerminalMessage,
   TextFile,
   ToolchainInfo,
+  VboardMessage,
   WaveOpened,
   WaveTab,
 } from './types';
@@ -288,6 +291,33 @@ export const api = {
     status: () => aurora<BitstreamState>('fpga.status'),
     /** Os cabos de gravação ligados (`quartus_pgm -l`, cerca de 1 s). */
     cables: () => aurora<string[]>('fpga.cables'),
+  },
+
+  /** A placa virtual (da placa FPGA, experimental): o projeto com os
+   * periféricos da placa simulados. A sessão é o `vboard.run` do servidor,
+   * por um canal próprio (`vboard.rs`), fora das operações. */
+  vboard: {
+    /** A placa e os periféricos, ligados ou não, sem compilar. `board` vale
+     * num projeto sem `fpga.json`: as portas com o nome de um sinal dela
+     * ligam a ele. */
+    layout: (board?: string | null) => aurora<BoardLayout>('vboard.layout', { board: board ?? null }),
+    /** Compila e liga a placa; as mensagens chegam em `onMessage`, começando
+     * por `started` (com o `run` que as entradas citam). */
+    start: (
+      options: { board?: string | null; limit?: number | null; fps?: number | null },
+      onMessage: (m: VboardMessage) => void,
+    ) => {
+      const channel = new Channel<VboardMessage>();
+      channel.onmessage = onMessage;
+      return call<void>('vboard_start', {
+        board: options.board ?? null,
+        limit: options.limit ?? null,
+        fps: options.fps ?? null,
+        channel,
+      });
+    },
+    input: (run: number, input: BoardInput) => aurora<void>('vboard.input', { run, input }),
+    stop: (run: number) => call<void>('vboard_stop', { run }),
   },
 
   toolchain: {

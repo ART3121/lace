@@ -40,7 +40,7 @@ const STEPS: Record<string, Key> = {
 };
 
 /** O menu da seta, em blocos: compilar, simular, ver a onda, hardware. */
-const MENU = ['build', 'check', '-', 'simulate', 'fastSim', 'fullFlow', '-', 'openWave', 'waveSignals', '-', 'synthesize', 'showBoard'];
+const MENU = ['build', 'check', '-', 'simulate', 'fastSim', 'fullFlow', '-', 'openWave', 'waveSignals', '-', 'synthesize', 'showBoard', 'showVirtualBoard'];
 
 const STEP_KEY = 'aurora-ide:runStep';
 

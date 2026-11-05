@@ -161,6 +161,7 @@ mod status;
 mod synth;
 mod toolchain;
 pub mod verilog;
+pub mod virtual_board;
 mod wave;
 mod wave_layout;
 mod wave_signals;

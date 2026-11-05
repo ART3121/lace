@@ -1205,6 +1205,118 @@ pub(crate) fn spawn(invocation: &Invocation, log: &Utf8Path) -> Result<RunningPr
     })
 }
 
+/// Um processo com stdin, stdout e stderr ligados à AURORA, que roda enquanto
+/// ela conversa com ele (a placa virtual): quem o inicia pega os três pipes,
+/// escreve no stdin e lê os outros dois em threads próprias.
+///
+/// Num grupo de processos próprio (Unix) ou num job (Windows), como em
+/// [`run`]: [`Interactive::stop`] encerra a árvore inteira. Soltar o valor
+/// também encerra.
+pub(crate) struct Interactive {
+    child: Child,
+    job: ProcessJob,
+    program: Utf8PathBuf,
+    /// A entrada do processo; `None` depois de [`Interactive::take_stdin`].
+    pub stdin: Option<std::process::ChildStdin>,
+    /// A saída do processo; `None` depois que alguém a pegou.
+    pub stdout: Option<std::process::ChildStdout>,
+    /// O stderr do processo; `None` depois que alguém o pegou.
+    pub stderr: Option<std::process::ChildStderr>,
+    finished: Option<Termination>,
+}
+
+impl Interactive {
+    /// `Some` se já terminou, sem bloquear.
+    pub(crate) fn try_wait(&mut self) -> Option<Termination> {
+        if self.finished.is_none() {
+            match self.child.try_wait() {
+                Ok(Some(status)) => self.finished = Some(termination(status)),
+                Ok(None) => {}
+                Err(error) => {
+                    tracing::debug!(%error, program = %self.program, "Querying process");
+                    self.finished = Some(Termination::Unknown);
+                }
+            }
+        }
+        self.finished
+    }
+
+    /// Espera até `timeout` pelo fim do processo; `None` se ele continua.
+    pub(crate) fn wait_timeout(&mut self, timeout: Duration) -> Option<Termination> {
+        let started = Instant::now();
+        loop {
+            if let Some(t) = self.try_wait() {
+                return Some(t);
+            }
+            if started.elapsed() >= timeout {
+                return None;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    /// Encerra: fecha o stdin (o processo que lê até o fim da entrada sai
+    /// sozinho), espera `grace` e, se ele continua, encerra a árvore.
+    pub(crate) fn stop(&mut self, grace: Duration) -> Termination {
+        drop(self.stdin.take());
+        if let Some(t) = self.wait_timeout(grace) {
+            return t;
+        }
+        // O processo que a AURORA encerrou sai como cancelado, qualquer que
+        // seja o código que o sistema deu.
+        terminate(&mut self.child, &mut self.job);
+        if self.wait_timeout(Duration::from_secs(1)).is_none() {
+            kill(&mut self.child, &mut self.job);
+            self.wait_timeout(Duration::from_secs(1));
+        }
+        self.finished = Some(Termination::Cancelled);
+        Termination::Cancelled
+    }
+}
+
+impl Drop for Interactive {
+    fn drop(&mut self) {
+        if self.try_wait().is_none() {
+            self.stop(Duration::from_millis(200));
+        }
+    }
+}
+
+impl std::fmt::Debug for Interactive {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Interactive")
+            .field("program", &self.program)
+            .field("id", &self.child.id())
+            .finish()
+    }
+}
+
+/// Inicia `invocation` com os três pipes, sem esperar ([`Interactive`]).
+pub(crate) fn spawn_interactive(invocation: &Invocation) -> Result<Interactive> {
+    let mut command = command(invocation);
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    own_process_group(&mut command);
+    tracing::debug!(command = %invocation.display_command(), cwd = %invocation.cwd, "Starting interactive");
+    let mut job = ProcessJob::new(false);
+    let mut child = command.spawn().map_err(|source| AuroraError::Spawn {
+        program: invocation.program.clone(),
+        source,
+    })?;
+    job.adopt(&child);
+    Ok(Interactive {
+        stdin: child.stdin.take(),
+        stdout: child.stdout.take(),
+        stderr: child.stderr.take(),
+        child,
+        job,
+        program: invocation.program.clone(),
+        finished: None,
+    })
+}
+
 fn termination(status: std::process::ExitStatus) -> Termination {
     if let Some(code) = status.code() {
         // No Windows um processo que quebra "sai" com o NTSTATUS da exceção.

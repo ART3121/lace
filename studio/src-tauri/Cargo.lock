@@ -282,9 +282,11 @@ dependencies = [
 name = "aurora-core"
 version = "1.0.0"
 dependencies = [
+ "base64 0.22.1",
  "camino",
  "dunce",
  "fst-reader",
+ "png 0.18.1",
  "roxmltree",
  "rustix",
  "schemars 1.2.2",

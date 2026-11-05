@@ -168,6 +168,7 @@ export function FlowNavigator() {
       {fpga && (
         <Section title={t('flow.fpga')}>
           <Item label={t('action.showBoard')} onClick={() => useEditor.getState().openView('board')} />
+          <Item label={t('action.showVirtualBoard')} onClick={() => useEditor.getState().openView('vboard')} />
           <ActionItem id="fpgaBuildProgram" statusKey="fpgaProgram" />
           <ActionItem id="fpgaBuild" />
           <ActionItem id="fpgaProgram" />

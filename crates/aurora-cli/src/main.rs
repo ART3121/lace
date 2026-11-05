@@ -28,6 +28,7 @@ mod settings;
 mod uninstall;
 mod update;
 mod update_check;
+mod vboard;
 mod wave_choice;
 
 use std::process::ExitCode;
@@ -191,6 +192,9 @@ enum Command {
     /// Experimental, off by default: put the design on an FPGA board with Quartus Prime (aurora experimental enable fpga)
     #[command(subcommand)]
     Fpga(FpgaCommand),
+    /// Experimental, off by default: the virtual board, the project with the board peripherals simulated, without a window (aurora experimental enable fpga)
+    #[command(subcommand)]
+    Vboard(VboardCommand),
     /// Turn experimental components on and off (no subcommand: list them)
     Experimental(ExperimentalArgs),
     /// Serve the AURORA API to another program over stdin and stdout: the AURORA protocol (JSON-RPC 2.0, one message per line), or MCP when the client is an AI agent
@@ -408,6 +412,40 @@ enum FpgaCommand {
         #[arg(long, conflicts_with = "cable")]
         list: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum VboardCommand {
+    /// Build the project with the board peripherals, run it for a while and show the LEDs, displays, UART and video
+    Run(VboardRunArgs),
+}
+
+#[derive(clap::Args)]
+struct VboardRunArgs {
+    /// Board, for a project without fpga.json: ports named like the board signals connect to them (e.g. de2-115)
+    #[arg(long, value_name = "ID")]
+    board: Option<String>,
+    /// Simulated time to run, in milliseconds
+    #[arg(long, value_name = "MS", default_value_t = 50.0)]
+    time: f64,
+    /// Switches up: NAME=VALUE, the value in decimal, 0x or 0b (SW=0x3); repeatable
+    #[arg(long, value_name = "NAME=VALUE")]
+    set: Vec<String>,
+    /// Buttons held down: NAME=MASK (KEY=0b1); repeatable
+    #[arg(long, value_name = "NAME=MASK")]
+    press: Vec<String>,
+    /// Text typed on the PS/2 keyboard (US layout keys)
+    #[arg(long, value_name = "TEXT")]
+    keys: Option<String>,
+    /// Text sent to the UART
+    #[arg(long, value_name = "TEXT")]
+    uart: Option<String>,
+    /// Write the last video frame to this PNG file
+    #[arg(long, value_name = "FILE")]
+    png: Option<camino::Utf8PathBuf>,
+    /// Speed limit: 1 is real time, 0 is as fast as possible
+    #[arg(long, value_name = "FACTOR", default_value_t = 0.0)]
+    speed: f64,
 }
 
 #[derive(Subcommand)]

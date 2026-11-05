@@ -190,5 +190,38 @@
       "active_low": true,
       "description": "Seven-segment digit 3, common anode: 0 lights a segment. Shares GPIO29 to GPIO35 of the 40-pin header, and lights only with the DIP switches S1 and S2 on the back of the board set to ON"
     }
+  ],
+  "peripherals": [
+    {
+      "kind": "switches",
+      "signal": "SW"
+    },
+    {
+      "kind": "buttons",
+      "signal": "KEY"
+    },
+    {
+      "kind": "buttons",
+      "signal": "CPU_RESET_n"
+    },
+    {
+      "kind": "leds",
+      "signal": "LEDR",
+      "color": "red"
+    },
+    {
+      "kind": "leds",
+      "signal": "LEDG",
+      "color": "green"
+    },
+    {
+      "kind": "seven_segment",
+      "digits": [
+        "HEX3",
+        "HEX2",
+        "HEX1",
+        "HEX0"
+      ]
+    }
   ]
 }

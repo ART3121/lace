@@ -508,6 +508,21 @@ pub enum AuroraError {
         reason: String,
     },
 
+    /// A placa virtual ainda não foi compilada para o projeto
+    /// ([`crate::virtual_board::build`]): falta o executável dela.
+    #[error("The virtual board has not been built: {0} is missing")]
+    VirtualBoardNotBuilt(Utf8PathBuf),
+
+    /// Uma entrada para a placa virtual cita um periférico que ela não tem
+    /// ligado (ou que não recebe esse tipo de entrada).
+    #[error("The virtual board has no {device} that takes this input{}", if available.is_empty() { String::new() } else { format!(" (available: {})", available.join(", ")) })]
+    VirtualBoardDevice {
+        /// O periférico pedido.
+        device: String,
+        /// Os periféricos ligados que recebem esse tipo de entrada.
+        available: Vec<String>,
+    },
+
     /// Um caminho não é UTF-8. A API serializa caminhos para JSON e usa
     /// [`camino`](https://docs.rs/camino) em toda a superfície, então recusa
     /// esses caminhos na entrada. O texto é a representação com perdas.
@@ -651,6 +666,8 @@ impl AuroraError {
             AuroraError::InvalidBoard { .. } => "invalid_board",
             AuroraError::NoFpgaConfig(_) => "no_fpga_config",
             AuroraError::InvalidFpgaConfig { .. } => "invalid_fpga_config",
+            AuroraError::VirtualBoardNotBuilt(_) => "virtual_board_not_built",
+            AuroraError::VirtualBoardDevice { .. } => "virtual_board_device",
             AuroraError::ExperimentalDisabled { .. } => "experimental_disabled",
             AuroraError::Unsupported(_) => "unsupported",
         }
@@ -772,6 +789,10 @@ impl AuroraError {
                 tail,
             } => {
                 json!({ "program": program, "termination": termination, "log": log, "tail": tail })
+            }
+            AuroraError::VirtualBoardNotBuilt(path) => json!({ "path": path }),
+            AuroraError::VirtualBoardDevice { device, available } => {
+                json!({ "device": device, "available": available })
             }
             AuroraError::ExperimentalDisabled { feature } => json!({ "feature": feature }),
             AuroraError::Io { context, path, .. } => json!({ "context": context, "path": path }),

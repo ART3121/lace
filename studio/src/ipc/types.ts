@@ -8,6 +8,9 @@
 
 import type {
   AddedFile,
+  BoardLayout,
+  BoardRun,
+  BoardState,
   BuildResult,
   BundleComponent,
   ChapterSnapshot,
@@ -455,6 +458,20 @@ export type JobMessage =
   | { type: 'install'; event: unknown }
   | { type: 'cli_output'; stream: 'stdout' | 'stderr'; line: string }
   | { type: 'finished'; outcome: FlowOutcome | CliOutcome }
+  | { type: 'failed'; error: IpcError };
+
+/** `vboard.rs`: o que a placa virtual manda pelo canal do `vboard_start`,
+ * com o `type` igual ao método da notificação do `vboard.run`. */
+export type VboardMessage =
+  | { type: 'started'; run: number }
+  | { type: 'phase'; phase: Phase }
+  | { type: 'events'; events: Event[] }
+  | { type: 'output_omitted'; step: Step; tool: string; lines: number }
+  | { type: 'vboard_ready'; layout: BoardLayout }
+  | { type: 'vboard_state'; state: BoardState }
+  | { type: 'vboard_frame'; frame: { device: string; width: number; height: number; png: string } }
+  | { type: 'vboard_output'; line: string }
+  | { type: 'finished'; result: BoardRun }
   | { type: 'failed'; error: IpcError };
 
 /** `toolchain.rs`. */

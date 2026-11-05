@@ -3,6 +3,16 @@
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+### Acrescentado
+
+- A aba **Placa virtual** (Fluxo > Mostrar a placa virtual), com a placa
+  FPGA ligada nas Preferências: a placa do projeto desenhada a partir do
+  JSON dela, com chaves e botões clicáveis, LEDs, displays de 7 segmentos,
+  tela, teclado e serial, ligada ao `vboard.run` do servidor por um canal
+  próprio, fora da fila de operações.
+
 ## [8.0.0] - 2026-11-05
 
 ### Alterado

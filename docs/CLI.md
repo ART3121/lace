@@ -721,6 +721,12 @@ A placa e a ligação das portas do topo aos sinais dela ficam no
 A compilação e a gravação para a placa não entram no histórico
 (`aurora report`).
 
+A placa virtual também é do recurso `fpga` ([FPGA.md](FPGA.md#placa-virtual-aurora-vboard)):
+
+| Comando | Faz | Core |
+|---|---|---|
+| `aurora vboard run [--board PLACA] [--time MS] [--set NOME=VALOR]... [--press NOME=MÁSCARA]... [--keys TEXTO] [--uart TEXTO] [--png ARQUIVO] [--speed FATOR]` | compila o projeto com os periféricos da placa simulados (o topo da placa do `fpga.json`; sem ele, as portas com o nome de um sinal da `--board`), roda `--time` milissegundos simulados (padrão 50) com as chaves de `--set` e os botões de `--press` (valor em decimal, `0x` ou `0b`), o texto de `--keys` digitado no teclado PS/2 e o de `--uart` na serial, e mostra os LEDs, os dígitos dos displays e o que a serial recebeu; `--png` grava o último quadro de vídeo; `--speed 1` limita ao tempo real (padrão 0, o mais rápido possível) | `virtual_board::build`, `virtual_board::run` |
+
 ### Componentes experimentais: `aurora experimental`
 
 Partes da AURORA que ainda mudam muito ficam desligadas até o usuário ligar.
@@ -843,7 +849,7 @@ Uma sessão do `serve`:
   `layout`), `verilog.*` (`modules`, `testbench_names`), `history.*`
   (`list`, `show`, `compare`, `plan_cleanup`, `clean`), `toolchain.*`
   (`info`, `verify`), `experimental.*` (`list`, `set`), `fpga.*` (com
-  `top`), `update.check`, `update.apply`, `install.add`, `learn.*`
+  `top`), `vboard.*` (`layout`, `run`, `input`), `update.check`, `update.apply`, `install.add`, `learn.*`
   (`check`, `tracks`, `status`, `init`, `set_current`, `reset`),
   `initialize` e `shutdown`. O `initialize` lista os que o servidor atende.
   Cada um, com os parâmetros, o resultado e os tipos:

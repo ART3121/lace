@@ -40,6 +40,7 @@ pub mod settings;
 pub mod state;
 pub mod terminal;
 pub mod toolchain;
+pub mod vboard;
 pub mod watcher;
 pub mod wave_tab;
 
@@ -168,6 +169,8 @@ pub fn run() {
             assistant::assistant_send,
             assistant::assistant_interrupt,
             assistant::assistant_stop,
+            vboard::vboard_start,
+            vboard::vboard_stop,
             wave_tab::wave_tab_open,
             wave_tab::wave_tab_close,
         ])

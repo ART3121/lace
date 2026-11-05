@@ -791,6 +791,38 @@ folgas. Sem o Quartus, os botões ficam desligados (Preferências > Bundle do
 AURORA > Quartus Prime). Se o topo é um processador ainda não compilado, as
 portas aparecem depois de **Compilar os processadores**.
 
+## 7.3 Placa virtual
+
+A placa virtual roda o projeto no computador com os periféricos da placa
+simulados: dá para clicar nas chaves e nos botões, ver os LEDs e os displays,
+digitar no teclado PS/2 e ver a tela VGA, antes de gravar a placa de verdade.
+Ela vem com a placa FPGA (Preferências > Experimental > **Placa FPGA**) e
+abre em Fluxo > Mostrar a placa virtual, ou pela paleta.
+
+A aba desenha a placa do `fpga.json` do projeto. Sem `fpga.json`, ela pede a
+placa e liga cada porta do topo que tem o nome de um sinal dela (`SW`, `KEY`,
+`LEDR`, `HEX0`), sem gravar nada; para outras ligações, use a aba Placa FPGA.
+O periférico que o projeto não usa aparece apagado.
+
+**Ligar a placa** compila o projeto pelo Verilator (a primeira vez leva de
+15 a 30 segundos) e começa a simulação. Enquanto ela roda:
+
+- as chaves mudam com um clique, e o botão fica apertado enquanto o mouse
+  está em cima dele apertado;
+- o brilho de cada LED é o tempo que ele ficou aceso, então um LED em PWM
+  aparece mais fraco;
+- com o teclado PS/2 ligado, clique na tela ou na área do teclado e digite:
+  as teclas vão para o projeto, e só F1 a F12 e Ctrl+Shift ficam com a IDE;
+- a serial mostra o que o projeto transmite, e o campo abaixo dela envia
+  texto;
+- **Tempo real** limita a velocidade à da placa; desmarcado, a simulação
+  roda o mais rápido que der. O cabeçalho mostra o tempo simulado e a
+  velocidade em relação ao tempo real.
+
+A placa continua ligada quando você troca de aba, compila ou simula, e
+desliga em **Desligar** ou ao abrir outro projeto. Se o projeto não compila
+para a placa virtual, os erros aparecem na aba.
+
 ## 8. Ferramentas da AURORA
 
 A aba **Ferramentas da AURORA** (chave inglesa na barra de atividades) é o

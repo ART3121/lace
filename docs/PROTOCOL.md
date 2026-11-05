@@ -58,6 +58,9 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`fpga.status`](#metodo-fpga-status) | [`BitstreamState`](#tipo-bitstreamstate) | O arquivo de gravação da última compilação e se serve. |
 | [`fpga.cables`](#metodo-fpga-cables) | lista de `string` | Os cabos de gravação ligados. |
 | [`fpga.top`](#metodo-fpga-top) | [`ModuleInterface`](#tipo-moduleinterface) | O módulo que vai para a placa e as portas dele, para montar as ligações antes de estarem certas. |
+| [`vboard.layout`](#metodo-vboard-layout) | [`BoardLayout`](#tipo-boardlayout) | A placa virtual do projeto sem compilar: a placa, o topo e os periféricos, ligados ou não. |
+| [`vboard.run`](#metodo-vboard-run) | [`BoardRun`](#tipo-boardrun) | Compila a placa virtual e a roda até `$/cancel` (ou o `$finish` do projeto). |
+| [`vboard.input`](#metodo-vboard-input) | `null` | Uma entrada para a placa virtual de um `vboard.run` que está rodando: chaves, botões, teclas, texto, pausa, velocidade. |
 | [`update.check`](#metodo-update-check) | [`UpdateReport`](#tipo-updatereport) | As versões: esta AURORA, a última release, o bundle, cada componente. |
 | [`update.apply`](#metodo-update-apply) | [`UpdateReport`](#tipo-updatereport) | Atualiza a instalação. |
 | [`install.add`](#metodo-install-add) | [`InstallReport`](#tipo-installreport) | Instala componentes do bundle. |
@@ -671,6 +674,57 @@ ligações antes de estarem certas. Resposta: o [`ModuleInterface`](#tipo-module
 
 Resultado: [`ModuleInterface`](#tipo-moduleinterface).
 
+### `vboard.*`
+
+<a id="metodo-vboard-layout"></a>
+
+#### `vboard.layout`
+
+A placa virtual do projeto sem compilar: a placa, o topo e os
+periféricos, ligados ou não. Resposta: [`BoardLayout`](#tipo-boardlayout).
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `project` | `string` | sim | O projeto. |
+| `board` | `string` \| `null` | não (padrão: `null`) | A placa, num projeto sem `fpga.json`: as portas com o nome de um sinal dela ligam a ele. |
+
+Resultado: [`BoardLayout`](#tipo-boardlayout).
+
+<a id="metodo-vboard-run"></a>
+
+#### `vboard.run`
+
+Compila a placa virtual e a roda até `$/cancel` (ou o `$finish` do
+projeto). Enquanto compila, `events`; rodando, `vboard_ready` com a
+placa, `vboard_state` cerca de 30 vezes por segundo, `vboard_frame`
+quando a imagem muda e `vboard_output` a cada linha do projeto. As
+entradas vão por `vboard.input` com o id deste pedido. Resposta:
+[`BoardRun`](#tipo-boardrun); com o Verilog que não compila, sem `outcome`.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `project` | `string` | sim | O projeto. |
+| `board` | `string` \| `null` | não (padrão: `null`) | A placa, num projeto sem `fpga.json` (como em `vboard.layout`). |
+| `limit` | `number` \| `null` | não (padrão: `null`) | Segundos simulados por segundo de relógio, no máximo: 1 é o tempo real (o padrão), 0 é o mais rápido possível. |
+| `fps` | `number` \| `null` | não (padrão: `null`) | Quadros de vídeo por segundo, no máximo (padrão 30). |
+
+Resultado: [`BoardRun`](#tipo-boardrun).
+
+<a id="metodo-vboard-input"></a>
+
+#### `vboard.input`
+
+Uma entrada para a placa virtual de um `vboard.run` que está rodando:
+chaves, botões, teclas, texto, pausa, velocidade. Resposta: nada; um
+periférico que a placa não tem é erro.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `run` | [`RequestId`](#tipo-requestid) | sim | O id do pedido `vboard.run`, como o cliente o mandou. |
+| `input` | [`BoardInput`](#tipo-boardinput) | sim | A entrada. |
+
+Resultado: `null`.
+
 ### `update.*`
 
 <a id="metodo-update-check"></a>
@@ -840,6 +894,39 @@ Um processador terminou de compilar.
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `result` | [`BuildResult`](#tipo-buildresult) | sim | O resultado. |
+
+### `vboard_ready`
+
+A placa virtual subiu (`crate::virtual_board::run`): a placa, o topo
+e os periféricos.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `layout` | [`BoardLayout`](#tipo-boardlayout) | sim | A placa virtual. |
+
+### `vboard_state`
+
+O estado da placa virtual: LEDs, segmentos e UART.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `state` | [`BoardState`](#tipo-boardstate) | sim | O estado. |
+
+### `vboard_frame`
+
+Um quadro de vídeo novo da placa virtual.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `frame` | [`Frame`](#tipo-frame) | sim | O quadro, em PNG. |
+
+### `vboard_output`
+
+Uma linha que o projeto escreveu na placa virtual (`$display`).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `line` | `string` | sim | A linha. |
 
 ### `install`
 
@@ -1027,6 +1114,130 @@ Uma placa.
 | `device` | [`Device`](#tipo-device) | sim | O FPGA. |
 | `jtag` | [`Jtag`](#tipo-jtag) | sim | A gravação pela USB da placa. |
 | `signals` | lista de [`BoardSignal`](#tipo-boardsignal) | sim | Os sinais da placa ligados ao FPGA. |
+| `peripherals` | lista de [`Peripheral`](#tipo-peripheral) | não | O que cada sinal é na placa (chaves, LEDs, displays, tela), para a placa virtual desenhá-los e simulá-los. Um sinal fora daqui também vai para a placa; só não aparece na placa virtual. |
+
+<a id="tipo-boardbuild"></a>
+
+### `BoardBuild`
+
+O resultado de `build`: a placa e o executável, ou os erros do
+Verilator e do compilador C++.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `status` | [`Status`](#tipo-status) | sim | Como terminou. `failed` é Verilog (ou ligação) que não compila. |
+| `failed_step` | [`Step`](#tipo-step) \| `null` | sim | O passo que falhou, quando for o caso (`verilate`). |
+| `steps` | lista de [`StepReport`](#tipo-stepreport) | sim | Os passos rodados, com o comando e a saída. |
+| `diagnostics` | lista de [`Diagnostic`](#tipo-diagnostic) | sim | As mensagens do Verilator e do compilador. |
+| `layout` | [`BoardLayout`](#tipo-boardlayout) | sim | A placa virtual do projeto. |
+| `executable` | `string` \| `null` | sim | O executável, se a compilação deu certo. |
+| `duration_ms` | `integer` | sim | Quanto levou, em milissegundos. |
+
+<a id="tipo-boardinput"></a>
+
+### `BoardInput`
+
+Uma entrada para a placa virtual em execução.
+
+Uma das formas:
+
+**`kind: "set"`**
+
+O valor de chaves (bit 1 = chave para cima) ou dos botões apertados
+(bit 1 = apertado; a polaridade da placa é aplicada no pino).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `device` | `string` | sim | O periférico (`SW`, `KEY`). |
+| `value` | `integer` | sim | Os bits, do bit 0 em diante. |
+
+**`kind: "key"`**
+
+Uma tecla do teclado do computador, apertada ou solta, para o teclado
+PS/2. O código é o `KeyboardEvent.code` dos navegadores (`KeyA`,
+`Enter`, `ArrowUp`, `IntlRo`).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `device` | `string` | sim | O periférico PS/2. |
+| `code` | `string` | sim | O código da tecla. |
+| `pressed` | `boolean` | sim | Apertada (`true`) ou solta (`false`). |
+
+**`kind: "text"`**
+
+Texto: no teclado PS/2, cada caractere vira as teclas que o digitam
+num teclado americano (letras, números, espaço, Enter e a pontuação
+comum); na UART, os bytes em UTF-8.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `device` | `string` | sim | O teclado PS/2 ou a UART. |
+| `text` | `string` | sim | O texto. |
+
+**`kind: "bytes"`**
+
+Bytes crus: códigos de tecla do PS/2 ou bytes para o RX da UART.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `device` | `string` | sim | O teclado PS/2 ou a UART. |
+| `bytes` | lista de `integer` | sim | Os bytes. |
+
+**`kind: "pause"`**
+
+Para a simulação, com o estado atual na tela.
+
+Sem campos.
+
+**`kind: "resume"`**
+
+Continua depois de `BoardInput::Pause` ou `BoardInput::Step`.
+
+Sem campos.
+
+**`kind: "step"`**
+
+Roda esse número de flancos de relógio e para.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `edges` | `integer` | sim | Quantos flancos (dois por ciclo de um relógio). |
+
+**`kind: "speed"`**
+
+Limita a velocidade: 1 é o tempo real, 0 é o mais rápido possível.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `limit` | `number` | sim | Segundos simulados por segundo de relógio; 0 sem limite. |
+
+<a id="tipo-boardlayout"></a>
+
+### `BoardLayout`
+
+A placa virtual de um projeto: a placa, o topo e cada periférico, ligado
+ao projeto ou não, com as larguras. É o que uma interface desenha.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `board` | `string` | sim | A placa (`de2-115`). |
+| `board_name` | `string` | sim | O nome da placa (`Terasic DE2-115`). |
+| `top` | `string` | sim | O módulo do projeto que vai na placa. |
+| `peripherals` | lista de [`LayoutPeripheral`](#tipo-layoutperipheral) | sim | Os periféricos, na ordem do JSON da placa. |
+| `clocks` | lista de [`LayoutClock`](#tipo-layoutclock) | sim | Os relógios da placa que chegam ao projeto. |
+| `notes` | lista de `string` | sim | Os ajustes das ligações (larguras completadas ou cortadas, entradas soltas), como no fluxo da placa. |
+
+<a id="tipo-boardrun"></a>
+
+### `BoardRun`
+
+A placa virtual compilada e rodada: a compilação e, se ela deu certo,
+como a execução terminou.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `build` | [`BoardBuild`](#tipo-boardbuild) | sim | A compilação. |
+| `outcome` | [`SessionOutcome`](#tipo-sessionoutcome) \| `null` | sim | Como a execução terminou; `None` se a compilação falhou. |
 
 <a id="tipo-boardsignal"></a>
 
@@ -1044,6 +1255,20 @@ pino por bit.
 | `active_low` | `boolean` | sim (padrão: `false`) | Ativo em nível baixo: o botão apertado lê 0, o segmento acende em 0. Num sinal de saída, os bits que nada liga ficam no nível inativo. |
 | `clock_mhz` | `number` \| `null` | não | A frequência, se for um clock. |
 | `description` | `string` | sim | O que é, como no manual. |
+
+<a id="tipo-boardstate"></a>
+
+### `BoardState`
+
+O estado da placa virtual, cerca de 30 vezes por segundo.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `time_ps` | `integer` | sim | O tempo simulado, em picossegundos. |
+| `speed` | `number` | sim | Segundos simulados por segundo de relógio desde o estado anterior: 1 é o tempo real. |
+| `paused` | `boolean` | sim | A simulação está parada (`BoardInput::Pause`). |
+| `lights` | mapa de `string` para lista de `integer` | sim | Quanto cada LED e cada segmento ficou aceso desde o estado anterior, de 0 a 255, por sinal, do bit 0 em diante: o PWM aparece como brilho, e o display multiplexado como persistência. |
+| `uart` | mapa de `string` para lista de `integer` | sim | Os bytes que o projeto transmitiu em cada UART desde o estado anterior. |
 
 <a id="tipo-buildresult"></a>
 
@@ -1362,6 +1587,18 @@ Uma chamada do `iverilog` e a árvore que saiu dela.
 | `status` | [`Status`](#tipo-status) | sim | Como esta elaboração terminou. Uma que falha não impede as outras. |
 | `roots` | lista de [`ModuleInstance`](#tipo-moduleinstance) | sim | Os módulos que nenhum outro instancia, com o que eles instanciam. Vazio quando a elaboração falhou. |
 | `diagnostics` | lista de [`Diagnostic`](#tipo-diagnostic) | sim | Os erros e avisos desta elaboração (também em `HierarchyResult::diagnostics`). |
+
+<a id="tipo-endreason"></a>
+
+### `EndReason`
+
+Por que a placa virtual terminou.
+
+| Valor | Descrição |
+|---|---|
+| `"stopped"` | Quem roda pediu para parar (cancelamento). |
+| `"finished"` | O projeto chamou `$finish`. |
+| `"crashed"` | O processo terminou sem avisar: quebrou. |
 
 <a id="tipo-environment"></a>
 
@@ -1821,6 +2058,20 @@ O resultado de `program`.
 | `diagnostics` | lista de [`Diagnostic`](#tipo-diagnostic) | sim | Os erros e avisos do Programmer. |
 | `duration_ms` | `integer` | sim | Quanto a gravação levou, do começo ao fim, em milissegundos. |
 
+<a id="tipo-frame"></a>
+
+### `Frame`
+
+Um quadro de vídeo remontado pela placa virtual. Só sai quando a imagem
+muda.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `device` | `string` | sim | O periférico de vídeo. |
+| `width` | `integer` | sim | A largura visível, em pixels. |
+| `height` | `integer` | sim | A altura visível, em linhas. |
+| `png` | `string` | sim | A imagem em PNG, em base64. |
+
 <a id="tipo-generatedfiles"></a>
 
 ### `GeneratedFiles`
@@ -1971,6 +2222,17 @@ Linguagem do programa de um processador. Em JSON: `"cmm"` ou `"cpp"`.
 | `"cmm"` | C±, compilado pelo `cmmcomp`. |
 | `"cpp"` | C, compilado pelo `cppcomp`. A AURORA e o YANC chamam de "cpp" e usam a extensão `.cpp`. |
 
+<a id="tipo-layoutclock"></a>
+
+### `LayoutClock`
+
+Um relógio da placa que chega ao projeto.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `signal` | `string` | sim | O sinal (`CLOCK_50`). |
+| `mhz` | `number` | sim | A frequência, em MHz. |
+
 <a id="tipo-layoutconversion"></a>
 
 ### `LayoutConversion`
@@ -1985,6 +2247,19 @@ O que `Project::convert_layout` fez.
 | `name_lines` | lista de [`RemovedNameLine`](#tipo-removednameline) | sim | Os fontes que perderam a linha do nome (`#PRNAME`, `#pragma yanc prname`). |
 | `invalid_names` | lista de `string` | sim | Os processadores cujo nome não serve mais: na 7.1 ele vira o módulo Verilog, e o YANC recusa um fonte com esse nome. |
 | `remaining_dirs` | lista de `string` | sim | As subpastas antigas que ficaram com algo que não foi movido (o que o sistema deixa sozinho numa pasta, como o `.DS_Store`, não conta). |
+
+<a id="tipo-layoutperipheral"></a>
+
+### `LayoutPeripheral`
+
+Um periférico na placa virtual.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `id` | `string` | sim | O identificador nas entradas e no estado: o nome do primeiro sinal do periférico (`SW`, `HEX7`, `VGA_R`). |
+| `peripheral` | [`Peripheral`](#tipo-peripheral) | sim | O tipo e os sinais, como no JSON da placa. |
+| `connected` | `boolean` | sim | Algum sinal do periférico chega ao projeto. Um periférico solto aparece apagado: o projeto não o usa. |
+| `signals` | lista de [`LayoutSignal`](#tipo-layoutsignal) | sim | Os sinais, com largura e polaridade. |
 
 <a id="tipo-layoutpolicy"></a>
 
@@ -2021,6 +2296,19 @@ exercício do aurora-learn).
 |---|---|---|---|
 | `path` | `string` | sim | O arquivo (`.surf.ron` ou `.sucl`). |
 
+<a id="tipo-layoutsignal"></a>
+
+### `LayoutSignal`
+
+Um sinal de um periférico.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `name` | `string` | sim | O nome (`LEDR`). |
+| `width` | `integer` | sim | A largura em bits. |
+| `active_low` | `boolean` | sim | Ativo em nível baixo na placa (os segmentos e os botões da Terasic): o estado da placa virtual já vem convertido para aceso e apertado. |
+| `connected` | `boolean` | sim | O sinal chega ao projeto. |
+
 <a id="tipo-learncheckoutcome"></a>
 
 ### `LearnCheckOutcome`
@@ -2044,6 +2332,19 @@ protocolo).
 |---|---|---|---|
 | `dir` | `string` | sim | A pasta das trilhas. |
 | `tracks` | lista de `string` | sim | As trilhas dela. |
+
+<a id="tipo-ledcolor"></a>
+
+### `LedColor`
+
+A cor de um LED.
+
+| Valor | Descrição |
+|---|---|
+| `"red"` | Vermelho. |
+| `"green"` | Verde. |
+| `"blue"` | Azul. |
+| `"yellow"` | Amarelo. |
 
 <a id="tipo-listposition"></a>
 
@@ -2230,6 +2531,85 @@ Uma saída no contraexemplo.
 | `expected` | `string` | sim | O esperado, para ler. |
 | `actual` | `string` | sim | O do aluno, para ler. |
 | `wrong` | `boolean` | sim | Se esta saída errou nessa amostra. |
+
+<a id="tipo-peripheral"></a>
+
+### `Peripheral`
+
+Um periférico da placa: o tipo e os sinais dele. A placa virtual simula
+cada um nos pinos, como a placa de verdade os liga ao FPGA.
+
+Uma das formas:
+
+**`kind: "switches"`**
+
+Chaves deslizantes: o bit fica no valor da chave.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `signal` | `string` | sim | O sinal de entrada. |
+
+**`kind: "buttons"`**
+
+Botões: o bit muda enquanto o botão está apertado (vai a 0 num sinal
+ativo em baixo, como os KEY das placas da Terasic).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `signal` | `string` | sim | O sinal de entrada. |
+
+**`kind: "leds"`**
+
+LEDs, um por bit.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `signal` | `string` | sim | O sinal de saída. |
+| `color` | [`LedColor`](#tipo-ledcolor) | sim | A cor dos LEDs. |
+
+**`kind: "seven_segment"`**
+
+Displays de 7 segmentos, um sinal por dígito, da esquerda para a
+direita. Bit 0 é o segmento a, bit 6 o segmento g; um oitavo bit é o
+ponto decimal.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `digits` | lista de `string` | sim | Os dígitos, da esquerda para a direita. |
+
+**`kind: "vga"`**
+
+Saída de vídeo VGA (ou o vídeo paralelo de um transmissor HDMI): a
+placa virtual remonta a imagem pelos sinais de sincronismo.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `red` | `string` | sim | O canal vermelho. |
+| `green` | `string` | sim | O canal verde. |
+| `blue` | `string` | sim | O canal azul. |
+| `hsync` | `string` | sim | O sincronismo horizontal. |
+| `vsync` | `string` | sim | O sincronismo vertical. |
+| `blank` | `string` \| `null` | não | O vídeo ativo (`VGA_BLANK_N`, `DE`), se a placa tem. |
+| `clock` | `string` \| `null` | não | O relógio de pixel que o projeto entrega ao conversor (`VGA_CLK`), se a placa tem. |
+
+**`kind: "ps2"`**
+
+Teclado PS/2: o projeto recebe os quadros do teclado nos dois fios.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `clock` | `string` | sim | O relógio do teclado (entrada do FPGA). |
+| `data` | `string` | sim | O dado do teclado (entrada do FPGA). |
+
+**`kind: "uart"`**
+
+Porta serial (UART).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `tx` | `string` | sim | O que o projeto transmite (saída do FPGA). |
+| `rx` | `string` \| `null` | não | O que o projeto recebe (entrada do FPGA), se a placa liga. |
+| `baud` | `integer` | sim | A velocidade padrão, em bits por segundo. |
 
 <a id="tipo-phase"></a>
 
@@ -2514,6 +2894,23 @@ O que `Project::remove_processor` tirou do projeto.
 | `record` | [`RunRecord`](#tipo-runrecord) | sim | O que a comparação usa. |
 | `text` | `string` | sim | O `report.txt`, sem mudança. |
 
+<a id="tipo-requestid"></a>
+
+### `RequestId`
+
+O id de um pedido JSON-RPC, como o cliente o mandou: número ou texto.
+Só para o schema de `vboard.input`.
+
+Uma das formas:
+
+**`integer`**
+
+Um número.
+
+**`string`**
+
+Um texto.
+
 <a id="tipo-resolved"></a>
 
 ### `Resolved`
@@ -2681,6 +3078,20 @@ O que `initialize` devolve.
 | `prefix` | `string` \| `null` | sim | A pasta da instalação da AURORA, quando o servidor é o `aurora` instalado. |
 | `experimental` | mapa de `string` para `boolean` | sim | Cada recurso experimental e se está ligado. |
 | `methods` | lista de `string` | sim | Os métodos que este servidor atende. |
+
+<a id="tipo-sessionoutcome"></a>
+
+### `SessionOutcome`
+
+Como a placa virtual terminou.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `reason` | [`EndReason`](#tipo-endreason) | sim | Por que terminou. |
+| `time_ps` | `integer` | sim | O tempo simulado no fim, em picossegundos. |
+| `termination` | [`Termination`](#tipo-termination) | sim | Como o processo terminou. |
+| `duration_ms` | `integer` | sim | Quanto rodou, em milissegundos. |
+| `tail` | lista de `string` | sim | As últimas linhas do stderr, quando o processo quebrou. |
 
 <a id="tipo-severity"></a>
 

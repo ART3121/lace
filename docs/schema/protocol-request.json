@@ -1299,6 +1299,123 @@
       ]
     },
     {
+      "description": "A placa virtual do projeto sem compilar: a placa, o topo e os\nperiféricos, ligados ou não. Resposta: [`BoardLayout`].",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "vboard.layout"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "board": {
+              "description": "A placa, num projeto sem `fpga.json`: as portas com o nome de um\nsinal dela ligam a ele.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Compila a placa virtual e a roda até `$/cancel` (ou o `$finish` do\nprojeto). Enquanto compila, `events`; rodando, `vboard_ready` com a\nplaca, `vboard_state` cerca de 30 vezes por segundo, `vboard_frame`\nquando a imagem muda e `vboard_output` a cada linha do projeto. As\nentradas vão por `vboard.input` com o id deste pedido. Resposta:\n[`BoardRun`]; com o Verilog que não compila, sem `outcome`.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "vboard.run"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "board": {
+              "description": "A placa, num projeto sem `fpga.json` (como em `vboard.layout`).",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "limit": {
+              "description": "Segundos simulados por segundo de relógio, no máximo: 1 é o\ntempo real (o padrão), 0 é o mais rápido possível.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "default": null
+            },
+            "fps": {
+              "description": "Quadros de vídeo por segundo, no máximo (padrão 30).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "default": null
+            }
+          },
+          "required": [
+            "project"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
+      "description": "Uma entrada para a placa virtual de um `vboard.run` que está rodando:\nchaves, botões, teclas, texto, pausa, velocidade. Resposta: nada; um\nperiférico que a placa não tem é erro.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "vboard.input"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "run": {
+              "description": "O id do pedido `vboard.run`, como o cliente o mandou.",
+              "$ref": "#/$defs/RequestId"
+            },
+            "input": {
+              "description": "A entrada.",
+              "$ref": "#/$defs/BoardInput"
+            }
+          },
+          "required": [
+            "run",
+            "input"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
       "description": "As versões: esta AURORA, a última release, o bundle, cada componente.\nResposta: o relatório do instalador.",
       "type": "object",
       "properties": {
@@ -2371,6 +2488,203 @@
       "additionalProperties": false,
       "required": [
         "board"
+      ]
+    },
+    "RequestId": {
+      "description": "O id de um pedido JSON-RPC, como o cliente o mandou: número ou texto.\nSó para o schema de `vboard.input`.",
+      "anyOf": [
+        {
+          "description": "Um número.",
+          "type": "integer",
+          "format": "int64"
+        },
+        {
+          "description": "Um texto.",
+          "type": "string"
+        }
+      ]
+    },
+    "BoardInput": {
+      "description": "Uma entrada para a placa virtual em execução.",
+      "oneOf": [
+        {
+          "description": "O valor de chaves (bit 1 = chave para cima) ou dos botões apertados\n(bit 1 = apertado; a polaridade da placa é aplicada no pino).",
+          "type": "object",
+          "properties": {
+            "device": {
+              "description": "O periférico (`SW`, `KEY`).",
+              "type": "string"
+            },
+            "value": {
+              "description": "Os bits, do bit 0 em diante.",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "set"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "device",
+            "value"
+          ]
+        },
+        {
+          "description": "Uma tecla do teclado do computador, apertada ou solta, para o teclado\nPS/2. O código é o `KeyboardEvent.code` dos navegadores (`KeyA`,\n`Enter`, `ArrowUp`, `IntlRo`).",
+          "type": "object",
+          "properties": {
+            "device": {
+              "description": "O periférico PS/2.",
+              "type": "string"
+            },
+            "code": {
+              "description": "O código da tecla.",
+              "type": "string"
+            },
+            "pressed": {
+              "description": "Apertada (`true`) ou solta (`false`).",
+              "type": "boolean"
+            },
+            "kind": {
+              "type": "string",
+              "const": "key"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "device",
+            "code",
+            "pressed"
+          ]
+        },
+        {
+          "description": "Texto: no teclado PS/2, cada caractere vira as teclas que o digitam\nnum teclado americano (letras, números, espaço, Enter e a pontuação\ncomum); na UART, os bytes em UTF-8.",
+          "type": "object",
+          "properties": {
+            "device": {
+              "description": "O teclado PS/2 ou a UART.",
+              "type": "string"
+            },
+            "text": {
+              "description": "O texto.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "device",
+            "text"
+          ]
+        },
+        {
+          "description": "Bytes crus: códigos de tecla do PS/2 ou bytes para o RX da UART.",
+          "type": "object",
+          "properties": {
+            "device": {
+              "description": "O teclado PS/2 ou a UART.",
+              "type": "string"
+            },
+            "bytes": {
+              "description": "Os bytes.",
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0,
+                "maximum": 255
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "bytes"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "device",
+            "bytes"
+          ]
+        },
+        {
+          "description": "Para a simulação, com o estado atual na tela.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pause"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "Continua depois de [`BoardInput::Pause`] ou [`BoardInput::Step`].",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "resume"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "Roda esse número de flancos de relógio e para.",
+          "type": "object",
+          "properties": {
+            "edges": {
+              "description": "Quantos flancos (dois por ciclo de um relógio).",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "step"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "edges"
+          ]
+        },
+        {
+          "description": "Limita a velocidade: 1 é o tempo real, 0 é o mais rápido possível.",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Segundos simulados por segundo de relógio; 0 sem limite.",
+              "type": "number",
+              "format": "double"
+            },
+            "kind": {
+              "type": "string",
+              "const": "speed"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "limit"
+          ]
+        }
       ]
     }
   }

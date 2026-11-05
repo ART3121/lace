@@ -342,7 +342,71 @@ OSS CAD Suite, nas três plataformas, no componente opcional
   e sem o Quartus a gravação dá `quartus_missing`. Falta testar com as
   placas.
 
+## Placa virtual: `aurora vboard`
+
+A placa virtual roda o projeto no computador com os periféricos da placa
+simulados nos pinos, antes de gravar a placa de verdade. O topo que ela
+simula é o topo da placa do fluxo acima: o mesmo `fpga.json`, as mesmas
+ligações e o mesmo `aurora_board_top`. Num projeto sem `fpga.json`, `--board`
+(ou a escolha da placa na IDE) liga cada porta do topo que tem o nome e a
+direção de um sinal da placa (`SW`, `KEY`, `LEDR`, `HEX0`), como nos topos de
+exemplo da Terasic; o `fpga.json` não é gravado.
+
+O que cada sinal é na placa vem da lista `peripherals` do JSON dela:
+
+| Tipo | Sinais | O que a placa virtual faz |
+|---|---|---|
+| `switches` | `signal` | o valor de cada chave |
+| `buttons` | `signal` | o botão apertado vai a 0 num sinal ativo em baixo (os `KEY`) |
+| `leds` | `signal`, `color` | o tempo aceso de cada LED, de 0 a 255: o PWM aparece como brilho |
+| `seven_segment` | `digits`, da esquerda para a direita | cada segmento como um LED (bit 0 = a, bit 6 = g, bit 7 = ponto); o display multiplexado aparece pela persistência |
+| `vga` | `red`, `green`, `blue`, `hsync`, `vsync`, `blank` e `clock` opcionais | a imagem remontada pelo sincronismo, na subida do relógio de vídeo (`VGA_CLK`) ou do relógio da placa; com `blank` (ou o DE de um transmissor HDMI) a área visível vem dele, sem ele da tabela de modos VESA (640x480 a 1920x1080) |
+| `ps2` | `clock`, `data` | as teclas do computador como quadros PS/2 do conjunto 2, a 12,5 kHz em tempo simulado; nada volta do projeto para o teclado |
+| `uart` | `tx`, `rx` opcional, `baud` | os bytes que o projeto transmite e os que ele recebe, na velocidade dada |
+
+As três placas têm hoje chaves, botões, LEDs e displays. VGA, PS/2 e serial
+da DE2-115, e o vídeo para o transmissor HDMI da C5G e da DE10-Nano, entram
+quando os pinos forem conferidos no manual da Terasic: o simulador deles já
+está pronto e foi testado com os blocos `myKeyPS2` e `myVGAText` da
+biblioteca SAPHO.
+
+`aurora vboard run` compila e roda sem janela (a janela é a aba **Placa
+virtual** da IDE):
+
+```
+$ aurora vboard run --board de2-115 --set SW=0x2A5 --press KEY=0b10 --time 30
+Virtual board: placa on Terasic DE2-115 (verilator --cc --exe --build): finished in 16.81 s
+Terasic DE2-115 30.188 ms simulated in 0.3 s
+  LEDR         000000001010100101
+  LEDG         000000000
+  HEX7               15
+```
+
+O Verilator do bundle compila o topo da placa, os fontes do projeto (com o
+Verilog e as memórias de cada processador SAPHO compilado) e um laço de
+simulação em C++ que simula os periféricos, em `.aurora8/Temp/vboard`. No
+Linux e no macOS ele usa o compilador C++ do sistema, como a simulação com
+o Verilator. A primeira compilação leva de 15 a 30 segundos; as seguintes
+só refazem o que mudou. Medido nesta máquina (Windows, 2026-11-05): um
+projeto pequeno roda a cerca de 10 milhões de flancos de relógio por
+segundo, um décimo do tempo real a 50 MHz, e a tela de texto do `myVGAText`
+sozinha, a 25 quadros por segundo. Um projeto maior roda mais devagar. A
+opção de tempo real (o padrão na IDE) limita a velocidade quando o projeto
+roda mais rápido que a placa.
+
+Limites: um bloco de IP da Intel (PLL, memória com `.mif`, DDIO) não simula
+no Verilator; o Verilator é mais rigoroso que o Icarus, e um projeto que
+simula no Icarus pode não compilar; `$display` do projeto aparece na saída,
+mas o tempo simulado não chega ao `$time`.
+
 ## O que falta
+
+- Os pinos de VGA, PS/2 e serial da DE2-115 e do vídeo HDMI da C5G e da
+  DE10-Nano no JSON das placas, conferidos no manual, para a placa virtual
+  usá-los.
+- Na placa virtual: o LCD de caracteres e a SRAM da DE2-115, o áudio, os
+  comandos do projeto para o teclado PS/2 e a ligação direta aos `toma` e
+  `cade` do SAPHO, sem simular a varredura da tela.
 
 - Compilar e gravar a DE10-Nano com o Quartus de verdade (a DE2-115 foi
   conferida).

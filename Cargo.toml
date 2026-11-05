@@ -38,6 +38,9 @@ tempfile = "3"
 ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
 zstd = { version = "0.14", features = ["zstdmt"] }
 tar = "0.4"
+# Os quadros da placa virtual em PNG, e em base64 no protocolo.
+png = "0.18"
+base64 = "0.22"
 flate2 = "1"
 schemars = "1"
 jsonschema = { version = "0.58", default-features = false }

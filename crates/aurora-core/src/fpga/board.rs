@@ -35,6 +35,149 @@ pub struct Board {
     pub jtag: Jtag,
     /// Os sinais da placa ligados ao FPGA.
     pub signals: Vec<BoardSignal>,
+    /// O que cada sinal é na placa (chaves, LEDs, displays, tela), para a
+    /// placa virtual desenhá-los e simulá-los. Um sinal fora daqui também
+    /// vai para a placa; só não aparece na placa virtual.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub peripherals: Vec<Peripheral>,
+}
+
+/// Um periférico da placa: o tipo e os sinais dele. A placa virtual simula
+/// cada um nos pinos, como a placa de verdade os liga ao FPGA.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[non_exhaustive]
+pub enum Peripheral {
+    /// Chaves deslizantes: o bit fica no valor da chave.
+    Switches {
+        /// O sinal de entrada.
+        signal: String,
+    },
+    /// Botões: o bit muda enquanto o botão está apertado (vai a 0 num sinal
+    /// ativo em baixo, como os KEY das placas da Terasic).
+    Buttons {
+        /// O sinal de entrada.
+        signal: String,
+    },
+    /// LEDs, um por bit.
+    Leds {
+        /// O sinal de saída.
+        signal: String,
+        /// A cor dos LEDs.
+        color: LedColor,
+    },
+    /// Displays de 7 segmentos, um sinal por dígito, da esquerda para a
+    /// direita. Bit 0 é o segmento a, bit 6 o segmento g; um oitavo bit é o
+    /// ponto decimal.
+    SevenSegment {
+        /// Os dígitos, da esquerda para a direita.
+        digits: Vec<String>,
+    },
+    /// Saída de vídeo VGA (ou o vídeo paralelo de um transmissor HDMI): a
+    /// placa virtual remonta a imagem pelos sinais de sincronismo.
+    Vga {
+        /// O canal vermelho.
+        red: String,
+        /// O canal verde.
+        green: String,
+        /// O canal azul.
+        blue: String,
+        /// O sincronismo horizontal.
+        hsync: String,
+        /// O sincronismo vertical.
+        vsync: String,
+        /// O vídeo ativo (`VGA_BLANK_N`, `DE`), se a placa tem.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        blank: Option<String>,
+        /// O relógio de pixel que o projeto entrega ao conversor
+        /// (`VGA_CLK`), se a placa tem.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        clock: Option<String>,
+    },
+    /// Teclado PS/2: o projeto recebe os quadros do teclado nos dois fios.
+    Ps2 {
+        /// O relógio do teclado (entrada do FPGA).
+        clock: String,
+        /// O dado do teclado (entrada do FPGA).
+        data: String,
+    },
+    /// Porta serial (UART).
+    Uart {
+        /// O que o projeto transmite (saída do FPGA).
+        tx: String,
+        /// O que o projeto recebe (entrada do FPGA), se a placa liga.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        rx: Option<String>,
+        /// A velocidade padrão, em bits por segundo.
+        baud: u32,
+    },
+}
+
+/// A cor de um LED.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum LedColor {
+    /// Vermelho.
+    Red,
+    /// Verde.
+    Green,
+    /// Azul.
+    Blue,
+    /// Amarelo.
+    Yellow,
+}
+
+impl Peripheral {
+    /// O nome do tipo, como no JSON (`seven_segment`).
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Peripheral::Switches { .. } => "switches",
+            Peripheral::Buttons { .. } => "buttons",
+            Peripheral::Leds { .. } => "leds",
+            Peripheral::SevenSegment { .. } => "seven_segment",
+            Peripheral::Vga { .. } => "vga",
+            Peripheral::Ps2 { .. } => "ps2",
+            Peripheral::Uart { .. } => "uart",
+        }
+    }
+
+    /// Os sinais do periférico, cada um com a direção que ele exige (`true`:
+    /// entrada do FPGA) e se é obrigatório para o periférico funcionar.
+    pub fn signals(&self) -> Vec<(&str, bool, bool)> {
+        fn opt(s: &Option<String>, input: bool) -> Option<(&str, bool, bool)> {
+            s.as_deref().map(|s| (s, input, false))
+        }
+        match self {
+            Peripheral::Switches { signal } | Peripheral::Buttons { signal } => {
+                vec![(signal.as_str(), true, true)]
+            }
+            Peripheral::Leds { signal, .. } => vec![(signal.as_str(), false, true)],
+            Peripheral::SevenSegment { digits } => {
+                digits.iter().map(|d| (d.as_str(), false, false)).collect()
+            }
+            Peripheral::Vga {
+                red,
+                green,
+                blue,
+                hsync,
+                vsync,
+                blank,
+                clock,
+            } => [red, green, blue, hsync, vsync]
+                .into_iter()
+                .map(|s| (s.as_str(), false, true))
+                .chain(opt(blank, false))
+                .chain(opt(clock, false))
+                .collect(),
+            Peripheral::Ps2 { clock, data } => {
+                vec![(clock.as_str(), true, true), (data.as_str(), true, true)]
+            }
+            Peripheral::Uart { tx, rx, .. } => std::iter::once((tx.as_str(), false, true))
+                .chain(opt(rx, true))
+                .collect(),
+        }
+    }
 }
 
 /// O FPGA de uma placa.
@@ -264,6 +407,85 @@ pub(crate) fn validate(board: &Board) -> std::result::Result<(), String> {
             }
         }
     }
+    validate_peripherals(board)
+}
+
+/// Os periféricos: cada sinal existe, tem a direção que o periférico pede e
+/// está num periférico só; displays de 7 ou 8 bits; sincronismo de 1 bit.
+fn validate_peripherals(board: &Board) -> std::result::Result<(), String> {
+    let mut used = std::collections::BTreeMap::new();
+    for peripheral in &board.peripherals {
+        let kind = peripheral.kind();
+        let signals = peripheral.signals();
+        if signals.is_empty() {
+            return Err(format!("{kind} has no signals"));
+        }
+        for (name, input, _) in signals {
+            let Some(signal) = board.signal(name) else {
+                return Err(format!("{kind}: no signal {name}"));
+            };
+            let direction = if input {
+                SignalDirection::Input
+            } else {
+                SignalDirection::Output
+            };
+            if signal.direction != direction {
+                return Err(format!(
+                    "{kind}: {name} must be an {}",
+                    if input { "input" } else { "output" }
+                ));
+            }
+            if let Some(other) = used.insert(name, kind) {
+                return Err(format!("{name} is in {other} and {kind}"));
+            }
+        }
+        match peripheral {
+            Peripheral::SevenSegment { digits } => {
+                for digit in digits {
+                    let width = board.signal(digit).map_or(0, BoardSignal::width);
+                    if !(7..=8).contains(&width) {
+                        return Err(format!(
+                            "seven_segment: {digit} has {width} bits, not 7 or 8"
+                        ));
+                    }
+                }
+            }
+            Peripheral::Vga {
+                hsync,
+                vsync,
+                blank,
+                clock,
+                ..
+            } => {
+                for one in [Some(hsync), Some(vsync), blank.as_ref(), clock.as_ref()]
+                    .into_iter()
+                    .flatten()
+                {
+                    if board.signal(one).map_or(0, BoardSignal::width) != 1 {
+                        return Err(format!("vga: {one} must have 1 bit"));
+                    }
+                }
+            }
+            Peripheral::Ps2 { clock, data } => {
+                for one in [clock, data] {
+                    if board.signal(one).map_or(0, BoardSignal::width) != 1 {
+                        return Err(format!("ps2: {one} must have 1 bit"));
+                    }
+                }
+            }
+            Peripheral::Uart { tx, rx, baud } => {
+                if *baud == 0 {
+                    return Err("uart: the baud rate must be above 0".into());
+                }
+                for one in std::iter::once(tx).chain(rx.as_ref()) {
+                    if board.signal(one).map_or(0, BoardSignal::width) != 1 {
+                        return Err(format!("uart: {one} must have 1 bit"));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
     Ok(())
 }
 
@@ -309,6 +531,41 @@ mod tests {
         let err = board("zybo").unwrap_err();
         assert_eq!(err.code(), "board_not_found");
         assert!(err.to_string().contains("de10-nano"), "{err}");
+    }
+
+    #[test]
+    fn peripherals_need_existing_signals_in_the_right_direction() {
+        let board = |peripherals: &str| {
+            let signals = r#"[
+              {"name":"SW","direction":"input","pins":["PIN_A1"],"io_standard":"3.3-V LVTTL","description":"a"},
+              {"name":"LED","direction":"output","pins":["PIN_A2"],"io_standard":"3.3-V LVTTL","description":"b"}]"#;
+            format!(
+                r#"{{"id":"t","name":"T","source":"Terasic, teste","device":{{"family":"Cyclone IV E","part":"EP4CE6"}},
+                "jtag":{{"cable":"usb-blaster","position":1}},"signals":{signals},"peripherals":[{peripherals}]}}"#
+            )
+        };
+        let good =
+            r#"{"kind":"switches","signal":"SW"},{"kind":"leds","signal":"LED","color":"red"}"#;
+        assert!(parse("t", &board(good)).is_ok());
+        for (bad, reason) in [
+            (r#"{"kind":"switches","signal":"LED"}"#, "must be an input"),
+            (
+                r#"{"kind":"leds","signal":"NADA","color":"red"}"#,
+                "no signal NADA",
+            ),
+            (r#"{"kind":"seven_segment","digits":["LED"]}"#, "not 7 or 8"),
+            (
+                r#"{"kind":"switches","signal":"SW"},{"kind":"buttons","signal":"SW"}"#,
+                "is in switches and buttons",
+            ),
+            (
+                r#"{"kind":"switches","signal":"SW","cor":"x"}"#,
+                "unknown field",
+            ),
+        ] {
+            let error = parse("t", &board(bad)).unwrap_err().to_string();
+            assert!(error.contains(reason), "{bad}: {error}");
+        }
     }
 
     #[test]

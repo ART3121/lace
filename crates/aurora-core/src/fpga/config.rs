@@ -117,6 +117,31 @@ impl FpgaConfig {
         crate::spf::write(&path, &value)
     }
 
+    /// As ligações de quem deu às portas do topo os nomes dos sinais da
+    /// placa, como nos topos de exemplo da Terasic (`SW`, `KEY`, `LEDR`,
+    /// `HEX0`): cada porta com o nome e a direção de um sinal vai para ele, e
+    /// as outras ficam de fora (as entradas soltas vão a 0 no
+    /// [`resolve`](Self::resolve)). A largura não precisa bater: o `resolve`
+    /// liga os bits de baixo e anota.
+    pub fn by_name(board: &Board, top: &ModuleInterface) -> FpgaConfig {
+        let mut config = FpgaConfig::new(board.id.clone());
+        config.top = Some(top.name.clone());
+        for port in &top.ports {
+            let Some(signal) = board.signal(&port.name) else {
+                continue;
+            };
+            let same_direction = matches!(
+                (port.direction, signal.direction),
+                (PortDirection::Input, SignalDirection::Input)
+                    | (PortDirection::Output, SignalDirection::Output)
+            );
+            if same_direction {
+                config.connect.push(Link::new(&port.name, &signal.name));
+            }
+        }
+        config
+    }
+
     /// Confere as ligações contra a placa e as portas do topo e diz o que vai
     /// em cada bit. Junta todos os problemas, um por linha, em vez de parar no
     /// primeiro.
@@ -872,6 +897,46 @@ pub(crate) mod tests {
             r#""in[0]": "KEY[1]": in[0] is connected twice"#,
         ];
         assert_eq!(err, expected);
+    }
+
+    #[test]
+    fn ports_named_like_board_signals_connect_by_name() {
+        let board = test_board();
+        let first_input = board
+            .signals
+            .iter()
+            .find(|s| s.direction == SignalDirection::Input)
+            .unwrap();
+        let first_output = board
+            .signals
+            .iter()
+            .find(|s| s.direction == SignalDirection::Output)
+            .unwrap();
+        let top = ModuleInterface {
+            name: "topo".into(),
+            file: "topo.v".into(),
+            ports: vec![
+                port(&first_input.name, PortDirection::Input, 1),
+                port(&first_output.name, PortDirection::Output, 1),
+                // O nome de uma entrada da placa numa saída: fica de fora.
+                port(&first_input.name.to_lowercase(), PortDirection::Input, 1),
+                port("outro", PortDirection::Output, 1),
+            ],
+        };
+        let config = FpgaConfig::by_name(&board, &top);
+        assert_eq!(config.top.as_deref(), Some("topo"));
+        let links: Vec<(&str, &str)> = config
+            .connect
+            .iter()
+            .map(|l| (l.port.as_str(), l.signal.as_str()))
+            .collect();
+        assert_eq!(
+            links,
+            [
+                (first_input.name.as_str(), first_input.name.as_str()),
+                (first_output.name.as_str(), first_output.name.as_str()),
+            ]
+        );
     }
 
     #[test]

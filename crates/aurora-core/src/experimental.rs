@@ -83,7 +83,7 @@ impl Feature {
     pub fn description(self) -> &'static str {
         match self {
             Feature::Fpga => {
-                "FPGA boards: the fpga.json connections, the Quartus Prime build and board programming"
+                "FPGA boards: the fpga.json connections, the virtual board, the Quartus Prime build and board programming"
             }
             Feature::Assistant => {
                 "AI assistant: aurora chat, the Assistant view of AURORA IDE and aurora mcp, the AURORA tools for an agent such as Claude Code"

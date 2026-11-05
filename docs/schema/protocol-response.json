@@ -108,6 +108,14 @@
           "$ref": "#/$defs/ModuleInterface"
         },
         {
+          "description": "`vboard.layout`.",
+          "$ref": "#/$defs/BoardLayout"
+        },
+        {
+          "description": "`vboard.run`.",
+          "$ref": "#/$defs/BoardRun"
+        },
+        {
           "description": "`flow.run`.",
           "$ref": "#/$defs/FlowOutcome"
         },
@@ -1444,232 +1452,441 @@
         }
       ]
     },
-    "FlowOutcome": {
-      "description": "O resultado de um fluxo. Os campos de uma fase que não rodou ficam `None`\nou vazios.",
+    "BoardLayout": {
+      "description": "A placa virtual de um projeto: a placa, o topo e cada periférico, ligado\nao projeto ou não, com as larguras. É o que uma interface desenha.",
       "type": "object",
       "properties": {
-        "flow": {
-          "description": "O fluxo ([`FlowRequest::name`]).",
+        "board": {
+          "description": "A placa (`de2-115`).",
           "type": "string"
         },
-        "command": {
-          "description": "O comando equivalente ([`FlowOptions::command`]).",
+        "board_name": {
+          "description": "O nome da placa (`Terasic DE2-115`).",
           "type": "string"
         },
-        "status": {
-          "description": "Como terminou: o pior entre as fases que rodaram. `Cancelled` se o\ncancelamento foi pedido; `TimedOut` se a simulação estourou o prazo;\n`Failed` se alguma fase falhou (inclusive um build de `Build`, que\ncompila todos); senão `Succeeded`.",
-          "$ref": "#/$defs/Status"
+        "top": {
+          "description": "O módulo do projeto que vai na placa.",
+          "type": "string"
         },
-        "succeeded": {
-          "description": "`status == Succeeded`.",
-          "type": "boolean"
-        },
-        "builds": {
-          "description": "Os builds feitos antes (ou o próprio build).",
+        "peripherals": {
+          "description": "Os periféricos, na ordem do JSON da placa.",
           "type": "array",
           "items": {
-            "$ref": "#/$defs/BuildResult"
+            "$ref": "#/$defs/LayoutPeripheral"
           }
         },
-        "registered": {
-          "description": "O que esses builds geraram e entrou no `.spf` agora.",
+        "clocks": {
+          "description": "Os relógios da placa que chegam ao projeto.",
           "type": "array",
           "items": {
-            "$ref": "#/$defs/AddedFile"
+            "$ref": "#/$defs/LayoutClock"
           }
         },
-        "check": {
-          "description": "O resultado da verificação.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/CheckResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "lint_missing": {
-          "description": "Com `lint`, o componente do Verilator que falta quando nenhum passo\ndele rodou: para a interface sugerir a instalação.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hierarchy": {
-          "description": "A hierarquia.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/HierarchyResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "not_built": {
-          "description": "Na hierarquia sem processador: os processadores com fonte e sem\nbuild, que ficaram de fora.",
+        "notes": {
+          "description": "Os ajustes das ligações (larguras completadas ou cortadas, entradas\nsoltas), como no fluxo da placa.",
           "type": "array",
           "items": {
             "type": "string"
           }
-        },
-        "simulation": {
-          "description": "O resultado da simulação.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SimulationResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "outputs": {
-          "description": "Os valores de cada porta de saída do processador simulado (só com\nprocessador e sucesso).",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/FlowPortValues"
-          }
-        },
-        "synthesis": {
-          "description": "O resultado da síntese.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SynthesisResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "schematic": {
-          "description": "O resultado do esquemático.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SchematicResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "schematic_error": {
-          "description": "Por que o esquemático não foi desenhado depois da síntese (o módulo\npedido não está no netlist, `module_not_found`); a síntese vale.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ErrorInfo"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "rtl_viewer": {
-          "description": "O HTML do RTL viewer, gravado ao lado do netlist.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rtl_viewer_error": {
-          "description": "Por que o RTL viewer não saiu (a síntese vale).",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ErrorInfo"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "wave": {
-          "description": "A onda aberta no surfer-aurora.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WaveOpened"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "wave_error": {
-          "description": "Por que a onda não abriu (a simulação vale).",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ErrorInfo"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "report": {
-          "description": "O relatório gravado no histórico (`run-000042`).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "report_error": {
-          "description": "Por que o relatório não foi gravado (o fluxo não falha por isso).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "fpga": {
-          "description": "A compilação para a placa.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/FpgaBuildResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "fpga_program": {
-          "description": "A gravação na placa.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/FpgaProgramResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "learn": {
-          "description": "A correção de um exercício (`learn`): o `Grade` do aurora-learn, em\nJSON (o core não conhece o tipo)."
         }
       },
       "required": [
-        "flow",
-        "command",
+        "board",
+        "board_name",
+        "top",
+        "peripherals",
+        "clocks",
+        "notes"
+      ]
+    },
+    "LayoutPeripheral": {
+      "description": "Um periférico na placa virtual.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "O identificador nas entradas e no estado: o nome do primeiro sinal do\nperiférico (`SW`, `HEX7`, `VGA_R`).",
+          "type": "string"
+        },
+        "peripheral": {
+          "description": "O tipo e os sinais, como no JSON da placa.",
+          "$ref": "#/$defs/Peripheral"
+        },
+        "connected": {
+          "description": "Algum sinal do periférico chega ao projeto. Um periférico solto\naparece apagado: o projeto não o usa.",
+          "type": "boolean"
+        },
+        "signals": {
+          "description": "Os sinais, com largura e polaridade.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LayoutSignal"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "peripheral",
+        "connected",
+        "signals"
+      ]
+    },
+    "Peripheral": {
+      "description": "Um periférico da placa: o tipo e os sinais dele. A placa virtual simula\ncada um nos pinos, como a placa de verdade os liga ao FPGA.",
+      "oneOf": [
+        {
+          "description": "Chaves deslizantes: o bit fica no valor da chave.",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal de entrada.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "switches"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "signal"
+          ]
+        },
+        {
+          "description": "Botões: o bit muda enquanto o botão está apertado (vai a 0 num sinal\nativo em baixo, como os KEY das placas da Terasic).",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal de entrada.",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "buttons"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "signal"
+          ]
+        },
+        {
+          "description": "LEDs, um por bit.",
+          "type": "object",
+          "properties": {
+            "signal": {
+              "description": "O sinal de saída.",
+              "type": "string"
+            },
+            "color": {
+              "description": "A cor dos LEDs.",
+              "$ref": "#/$defs/LedColor"
+            },
+            "kind": {
+              "type": "string",
+              "const": "leds"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "signal",
+            "color"
+          ]
+        },
+        {
+          "description": "Displays de 7 segmentos, um sinal por dígito, da esquerda para a\ndireita. Bit 0 é o segmento a, bit 6 o segmento g; um oitavo bit é o\nponto decimal.",
+          "type": "object",
+          "properties": {
+            "digits": {
+              "description": "Os dígitos, da esquerda para a direita.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "seven_segment"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "digits"
+          ]
+        },
+        {
+          "description": "Saída de vídeo VGA (ou o vídeo paralelo de um transmissor HDMI): a\nplaca virtual remonta a imagem pelos sinais de sincronismo.",
+          "type": "object",
+          "properties": {
+            "red": {
+              "description": "O canal vermelho.",
+              "type": "string"
+            },
+            "green": {
+              "description": "O canal verde.",
+              "type": "string"
+            },
+            "blue": {
+              "description": "O canal azul.",
+              "type": "string"
+            },
+            "hsync": {
+              "description": "O sincronismo horizontal.",
+              "type": "string"
+            },
+            "vsync": {
+              "description": "O sincronismo vertical.",
+              "type": "string"
+            },
+            "blank": {
+              "description": "O vídeo ativo (`VGA_BLANK_N`, `DE`), se a placa tem.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "clock": {
+              "description": "O relógio de pixel que o projeto entrega ao conversor\n(`VGA_CLK`), se a placa tem.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string",
+              "const": "vga"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "red",
+            "green",
+            "blue",
+            "hsync",
+            "vsync"
+          ]
+        },
+        {
+          "description": "Teclado PS/2: o projeto recebe os quadros do teclado nos dois fios.",
+          "type": "object",
+          "properties": {
+            "clock": {
+              "description": "O relógio do teclado (entrada do FPGA).",
+              "type": "string"
+            },
+            "data": {
+              "description": "O dado do teclado (entrada do FPGA).",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "ps2"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "clock",
+            "data"
+          ]
+        },
+        {
+          "description": "Porta serial (UART).",
+          "type": "object",
+          "properties": {
+            "tx": {
+              "description": "O que o projeto transmite (saída do FPGA).",
+              "type": "string"
+            },
+            "rx": {
+              "description": "O que o projeto recebe (entrada do FPGA), se a placa liga.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "baud": {
+              "description": "A velocidade padrão, em bits por segundo.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "uart"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tx",
+            "baud"
+          ]
+        }
+      ]
+    },
+    "LedColor": {
+      "description": "A cor de um LED.",
+      "oneOf": [
+        {
+          "description": "Vermelho.",
+          "type": "string",
+          "const": "red"
+        },
+        {
+          "description": "Verde.",
+          "type": "string",
+          "const": "green"
+        },
+        {
+          "description": "Azul.",
+          "type": "string",
+          "const": "blue"
+        },
+        {
+          "description": "Amarelo.",
+          "type": "string",
+          "const": "yellow"
+        }
+      ]
+    },
+    "LayoutSignal": {
+      "description": "Um sinal de um periférico.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "O nome (`LEDR`).",
+          "type": "string"
+        },
+        "width": {
+          "description": "A largura em bits.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "active_low": {
+          "description": "Ativo em nível baixo na placa (os segmentos e os botões da Terasic):\no estado da placa virtual já vem convertido para aceso e apertado.",
+          "type": "boolean"
+        },
+        "connected": {
+          "description": "O sinal chega ao projeto.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "width",
+        "active_low",
+        "connected"
+      ]
+    },
+    "LayoutClock": {
+      "description": "Um relógio da placa que chega ao projeto.",
+      "type": "object",
+      "properties": {
+        "signal": {
+          "description": "O sinal (`CLOCK_50`).",
+          "type": "string"
+        },
+        "mhz": {
+          "description": "A frequência, em MHz.",
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "signal",
+        "mhz"
+      ]
+    },
+    "BoardRun": {
+      "description": "A placa virtual compilada e rodada: a compilação e, se ela deu certo,\ncomo a execução terminou.",
+      "type": "object",
+      "properties": {
+        "build": {
+          "description": "A compilação.",
+          "$ref": "#/$defs/BoardBuild"
+        },
+        "outcome": {
+          "description": "Como a execução terminou; `None` se a compilação falhou.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionOutcome"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "build",
+        "outcome"
+      ]
+    },
+    "BoardBuild": {
+      "description": "O resultado de [`build`]: a placa e o executável, ou os erros do\nVerilator e do compilador C++.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "Como terminou. `failed` é Verilog (ou ligação) que não compila.",
+          "$ref": "#/$defs/Status"
+        },
+        "failed_step": {
+          "description": "O passo que falhou, quando for o caso (`verilate`).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Step"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps": {
+          "description": "Os passos rodados, com o comando e a saída.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StepReport"
+          }
+        },
+        "diagnostics": {
+          "description": "As mensagens do Verilator e do compilador.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "layout": {
+          "description": "A placa virtual do projeto.",
+          "$ref": "#/$defs/BoardLayout"
+        },
+        "executable": {
+          "description": "O executável, se a compilação deu certo.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration_ms": {
+          "description": "Quanto levou, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
         "status",
-        "succeeded",
-        "builds",
-        "registered",
-        "check",
-        "lint_missing",
-        "hierarchy",
-        "not_built",
-        "simulation",
-        "outputs",
-        "synthesis",
-        "schematic",
-        "schematic_error",
-        "rtl_viewer",
-        "rtl_viewer_error",
-        "wave",
-        "wave_error",
-        "report",
-        "report_error",
-        "fpga",
-        "fpga_program",
-        "learn"
+        "failed_step",
+        "steps",
+        "diagnostics",
+        "layout",
+        "executable",
+        "duration_ms"
       ]
     },
     "Status": {
@@ -1705,86 +1922,6 @@
           "type": "string",
           "const": "timed_out"
         }
-      ]
-    },
-    "BuildResult": {
-      "description": "O resultado de [`build`]. Ver o módulo `pipeline` para os campos comuns a\ntoda operação.\n\nEm JSON (resumido):\n\n```json\n{ \"processor\": \"soma\", \"language\": \"cmm\", \"status\": \"succeeded\",\n  \"failed_step\": null, \"frequency_mhz\": 100, \"clocks\": 2000,\n  \"steps\": [ { \"step\": \"compile\", \"tool\": \"cmmcomp\", \"...\": \"...\" } ],\n  \"diagnostics\": [],\n  \"artifacts\": [ { \"kind\": \"verilog\", \"path\": \"/p/soma/soma/soma.v\",\n                   \"required\": true, \"fresh\": true } ] }\n```",
-      "type": "object",
-      "properties": {
-        "processor": {
-          "description": "O processador compilado.",
-          "type": "string"
-        },
-        "language": {
-          "description": "A linguagem do fonte, que decidiu o pipeline.",
-          "$ref": "#/$defs/Language"
-        },
-        "status": {
-          "description": "Como o build terminou.",
-          "$ref": "#/$defs/Status"
-        },
-        "failed_step": {
-          "description": "O passo que falhou ou quebrou, quando for o caso.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Step"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "frequency_mhz": {
-          "description": "A frequência usada (do `.spf` ou de [`BuildOptions`]).",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
-        "clocks": {
-          "description": "Os clocks usados (do `.spf` ou de [`BuildOptions`]).",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0
-        },
-        "steps": {
-          "description": "Um relatório por compilador executado: `compile` e `assemble`\n([`build_steps`]).",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/StepReport"
-          }
-        },
-        "diagnostics": {
-          "description": "Todas as mensagens de todos os passos, na ordem em que saíram. Hoje\nos compiladores param no primeiro erro, mas a API já é uma lista.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Diagnostic"
-          }
-        },
-        "artifacts": {
-          "description": "Obrigatórios, na pasta de saída: `<nome>.asm`, `<nome>.v`,\n`<nome>_data.mif`, `<nome>_inst.mif` e o testbench `<nome>_tb.v`.\nIntermediários (`pc_<nome>_mem.txt`, `src_lines.txt`,\n`trad_opcode.txt`, `prog_log.txt`, `app_log.txt`), quando existem.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Artifact"
-          }
-        },
-        "duration_ms": {
-          "description": "Quanto o build levou, do começo ao fim, em milissegundos.",
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0
-        }
-      },
-      "required": [
-        "processor",
-        "language",
-        "status",
-        "failed_step",
-        "frequency_mhz",
-        "clocks",
-        "steps",
-        "diagnostics",
-        "artifacts",
-        "duration_ms"
       ]
     },
     "Step": {
@@ -2222,6 +2359,374 @@
           "type": "string",
           "const": "unknown"
         }
+      ]
+    },
+    "SessionOutcome": {
+      "description": "Como a placa virtual terminou.",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "description": "Por que terminou.",
+          "$ref": "#/$defs/EndReason"
+        },
+        "time_ps": {
+          "description": "O tempo simulado no fim, em picossegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "termination": {
+          "description": "Como o processo terminou.",
+          "$ref": "#/$defs/Termination"
+        },
+        "duration_ms": {
+          "description": "Quanto rodou, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "tail": {
+          "description": "As últimas linhas do stderr, quando o processo quebrou.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "reason",
+        "time_ps",
+        "termination",
+        "duration_ms",
+        "tail"
+      ]
+    },
+    "EndReason": {
+      "description": "Por que a placa virtual terminou.",
+      "oneOf": [
+        {
+          "description": "Quem roda pediu para parar (cancelamento).",
+          "type": "string",
+          "const": "stopped"
+        },
+        {
+          "description": "O projeto chamou `$finish`.",
+          "type": "string",
+          "const": "finished"
+        },
+        {
+          "description": "O processo terminou sem avisar: quebrou.",
+          "type": "string",
+          "const": "crashed"
+        }
+      ]
+    },
+    "FlowOutcome": {
+      "description": "O resultado de um fluxo. Os campos de uma fase que não rodou ficam `None`\nou vazios.",
+      "type": "object",
+      "properties": {
+        "flow": {
+          "description": "O fluxo ([`FlowRequest::name`]).",
+          "type": "string"
+        },
+        "command": {
+          "description": "O comando equivalente ([`FlowOptions::command`]).",
+          "type": "string"
+        },
+        "status": {
+          "description": "Como terminou: o pior entre as fases que rodaram. `Cancelled` se o\ncancelamento foi pedido; `TimedOut` se a simulação estourou o prazo;\n`Failed` se alguma fase falhou (inclusive um build de `Build`, que\ncompila todos); senão `Succeeded`.",
+          "$ref": "#/$defs/Status"
+        },
+        "succeeded": {
+          "description": "`status == Succeeded`.",
+          "type": "boolean"
+        },
+        "builds": {
+          "description": "Os builds feitos antes (ou o próprio build).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BuildResult"
+          }
+        },
+        "registered": {
+          "description": "O que esses builds geraram e entrou no `.spf` agora.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AddedFile"
+          }
+        },
+        "check": {
+          "description": "O resultado da verificação.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lint_missing": {
+          "description": "Com `lint`, o componente do Verilator que falta quando nenhum passo\ndele rodou: para a interface sugerir a instalação.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hierarchy": {
+          "description": "A hierarquia.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HierarchyResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "not_built": {
+          "description": "Na hierarquia sem processador: os processadores com fonte e sem\nbuild, que ficaram de fora.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "simulation": {
+          "description": "O resultado da simulação.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outputs": {
+          "description": "Os valores de cada porta de saída do processador simulado (só com\nprocessador e sucesso).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FlowPortValues"
+          }
+        },
+        "synthesis": {
+          "description": "O resultado da síntese.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SynthesisResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schematic": {
+          "description": "O resultado do esquemático.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SchematicResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schematic_error": {
+          "description": "Por que o esquemático não foi desenhado depois da síntese (o módulo\npedido não está no netlist, `module_not_found`); a síntese vale.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rtl_viewer": {
+          "description": "O HTML do RTL viewer, gravado ao lado do netlist.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rtl_viewer_error": {
+          "description": "Por que o RTL viewer não saiu (a síntese vale).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wave": {
+          "description": "A onda aberta no surfer-aurora.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WaveOpened"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wave_error": {
+          "description": "Por que a onda não abriu (a simulação vale).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "report": {
+          "description": "O relatório gravado no histórico (`run-000042`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "report_error": {
+          "description": "Por que o relatório não foi gravado (o fluxo não falha por isso).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fpga": {
+          "description": "A compilação para a placa.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FpgaBuildResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fpga_program": {
+          "description": "A gravação na placa.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FpgaProgramResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "learn": {
+          "description": "A correção de um exercício (`learn`): o `Grade` do aurora-learn, em\nJSON (o core não conhece o tipo)."
+        }
+      },
+      "required": [
+        "flow",
+        "command",
+        "status",
+        "succeeded",
+        "builds",
+        "registered",
+        "check",
+        "lint_missing",
+        "hierarchy",
+        "not_built",
+        "simulation",
+        "outputs",
+        "synthesis",
+        "schematic",
+        "schematic_error",
+        "rtl_viewer",
+        "rtl_viewer_error",
+        "wave",
+        "wave_error",
+        "report",
+        "report_error",
+        "fpga",
+        "fpga_program",
+        "learn"
+      ]
+    },
+    "BuildResult": {
+      "description": "O resultado de [`build`]. Ver o módulo `pipeline` para os campos comuns a\ntoda operação.\n\nEm JSON (resumido):\n\n```json\n{ \"processor\": \"soma\", \"language\": \"cmm\", \"status\": \"succeeded\",\n  \"failed_step\": null, \"frequency_mhz\": 100, \"clocks\": 2000,\n  \"steps\": [ { \"step\": \"compile\", \"tool\": \"cmmcomp\", \"...\": \"...\" } ],\n  \"diagnostics\": [],\n  \"artifacts\": [ { \"kind\": \"verilog\", \"path\": \"/p/soma/soma/soma.v\",\n                   \"required\": true, \"fresh\": true } ] }\n```",
+      "type": "object",
+      "properties": {
+        "processor": {
+          "description": "O processador compilado.",
+          "type": "string"
+        },
+        "language": {
+          "description": "A linguagem do fonte, que decidiu o pipeline.",
+          "$ref": "#/$defs/Language"
+        },
+        "status": {
+          "description": "Como o build terminou.",
+          "$ref": "#/$defs/Status"
+        },
+        "failed_step": {
+          "description": "O passo que falhou ou quebrou, quando for o caso.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Step"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frequency_mhz": {
+          "description": "A frequência usada (do `.spf` ou de [`BuildOptions`]).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "clocks": {
+          "description": "Os clocks usados (do `.spf` ou de [`BuildOptions`]).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "steps": {
+          "description": "Um relatório por compilador executado: `compile` e `assemble`\n([`build_steps`]).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StepReport"
+          }
+        },
+        "diagnostics": {
+          "description": "Todas as mensagens de todos os passos, na ordem em que saíram. Hoje\nos compiladores param no primeiro erro, mas a API já é uma lista.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "artifacts": {
+          "description": "Obrigatórios, na pasta de saída: `<nome>.asm`, `<nome>.v`,\n`<nome>_data.mif`, `<nome>_inst.mif` e o testbench `<nome>_tb.v`.\nIntermediários (`pc_<nome>_mem.txt`, `src_lines.txt`,\n`trad_opcode.txt`, `prog_log.txt`, `app_log.txt`), quando existem.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          }
+        },
+        "duration_ms": {
+          "description": "Quanto o build levou, do começo ao fim, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "processor",
+        "language",
+        "status",
+        "failed_step",
+        "frequency_mhz",
+        "clocks",
+        "steps",
+        "diagnostics",
+        "artifacts",
+        "duration_ms"
       ]
     },
     "Artifact": {
@@ -5125,6 +5630,13 @@
           "items": {
             "$ref": "#/$defs/BoardSignal"
           }
+        },
+        "peripherals": {
+          "description": "O que cada sinal é na placa (chaves, LEDs, displays, tela), para a\nplaca virtual desenhá-los e simulá-los. Um sinal fora daqui também\nvai para a placa; só não aparece na placa virtual.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Peripheral"
+          }
         }
       },
       "additionalProperties": false,
@@ -6579,6 +7091,78 @@
           ]
         },
         {
+          "description": "A placa virtual subiu ([`crate::virtual_board::run`]): a placa, o topo\ne os periféricos.",
+          "type": "object",
+          "properties": {
+            "layout": {
+              "description": "A placa virtual.",
+              "$ref": "#/$defs/BoardLayout"
+            },
+            "type": {
+              "type": "string",
+              "const": "vboard_ready"
+            }
+          },
+          "required": [
+            "type",
+            "layout"
+          ]
+        },
+        {
+          "description": "O estado da placa virtual: LEDs, segmentos e UART.",
+          "type": "object",
+          "properties": {
+            "state": {
+              "description": "O estado.",
+              "$ref": "#/$defs/BoardState"
+            },
+            "type": {
+              "type": "string",
+              "const": "vboard_state"
+            }
+          },
+          "required": [
+            "type",
+            "state"
+          ]
+        },
+        {
+          "description": "Um quadro de vídeo novo da placa virtual.",
+          "type": "object",
+          "properties": {
+            "frame": {
+              "description": "O quadro, em PNG.",
+              "$ref": "#/$defs/Frame"
+            },
+            "type": {
+              "type": "string",
+              "const": "vboard_frame"
+            }
+          },
+          "required": [
+            "type",
+            "frame"
+          ]
+        },
+        {
+          "description": "Uma linha que o projeto escreveu na placa virtual (`$display`).",
+          "type": "object",
+          "properties": {
+            "line": {
+              "description": "A linha.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "vboard_output"
+            }
+          },
+          "required": [
+            "type",
+            "line"
+          ]
+        },
+        {
           "description": "Progresso de uma instalação ou atualização da AURORA (o evento do\ninstalador, serializado por ele; o core não conhece o tipo).",
           "type": "object",
           "properties": {
@@ -6783,6 +7367,92 @@
           "type": "string",
           "const": "stderr"
         }
+      ]
+    },
+    "BoardState": {
+      "description": "O estado da placa virtual, cerca de 30 vezes por segundo.",
+      "type": "object",
+      "properties": {
+        "time_ps": {
+          "description": "O tempo simulado, em picossegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "speed": {
+          "description": "Segundos simulados por segundo de relógio desde o estado anterior: 1\né o tempo real.",
+          "type": "number",
+          "format": "double"
+        },
+        "paused": {
+          "description": "A simulação está parada ([`BoardInput::Pause`]).",
+          "type": "boolean"
+        },
+        "lights": {
+          "description": "Quanto cada LED e cada segmento ficou aceso desde o estado anterior,\nde 0 a 255, por sinal, do bit 0 em diante: o PWM aparece como brilho,\ne o display multiplexado como persistência.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0,
+              "maximum": 255
+            }
+          }
+        },
+        "uart": {
+          "description": "Os bytes que o projeto transmitiu em cada UART desde o estado\nanterior.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0,
+              "maximum": 255
+            }
+          }
+        }
+      },
+      "required": [
+        "time_ps",
+        "speed",
+        "paused",
+        "lights",
+        "uart"
+      ]
+    },
+    "Frame": {
+      "description": "Um quadro de vídeo remontado pela placa virtual. Só sai quando a imagem\nmuda.",
+      "type": "object",
+      "properties": {
+        "device": {
+          "description": "O periférico de vídeo.",
+          "type": "string"
+        },
+        "width": {
+          "description": "A largura visível, em pixels.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "height": {
+          "description": "A altura visível, em linhas.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "png": {
+          "description": "A imagem em PNG, em base64.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "device",
+        "width",
+        "height",
+        "png"
       ]
     },
     "ShutdownReason": {

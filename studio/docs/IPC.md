@@ -432,6 +432,25 @@ escreve no terminal espera. O shell é o do usuário
 (`$SHELL`) no Linux e no macOS e, no Windows, o PowerShell ou o `cmd.exe`, pela preferência `terminal_shell`, com a pasta `bin/`
 da instalação da AURORA no começo do `PATH` e `AURORA_IDE=1`.
 
+## Placa virtual (`vboard.rs`)
+
+A placa virtual é do recurso experimental `fpga`. A sessão é o `vboard.run`
+do servidor, por um canal próprio, fora das operações (`jobs.rs`): a placa
+fica ligada enquanto o usuário compila e simula. As entradas vão pelo
+`aurora_call` (`vboard.input`, com o `run` que o canal deu), e a placa sem
+compilar pelo `vboard.layout`. O `vboard.run` não passa pelo `aurora_call`.
+
+| Comando | Argumentos | Devolve |
+|---|---|---|
+| `vboard_start` | `board?` (num projeto sem `fpga.json`), `limit?` (1 é o tempo real, 0 o mais rápido possível), `fps?`, `channel: Channel<VboardMessage>` | nada; a sessão segue numa thread |
+| `vboard_stop` | `run` | nada: manda o `$/cancel` do pedido, e o fim chega pelo canal |
+
+`VboardMessage` (`ipc/types.ts`): `started` (com o `run`), as notificações
+do pedido com o `type` igual ao método (`phase`, `events` e
+`output_omitted` da compilação; `vboard_ready`, `vboard_state`,
+`vboard_frame` e `vboard_output` da placa rodando) e, no fim, `finished` (o
+`BoardRun`) ou `failed`.
+
 ## Assistente (`assistant.rs`)
 
 O assistente é o recurso experimental `assistant`: desligado, a vista, as

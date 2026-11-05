@@ -25,7 +25,8 @@ pub mod summary;
 pub mod wrapper;
 
 pub use board::{
-    Board, BoardSignal, Cable, Device, IoStandard, Jtag, SignalDirection, board, boards,
+    Board, BoardSignal, Cable, Device, IoStandard, Jtag, LedColor, Peripheral, SignalDirection,
+    board, boards,
 };
 pub use build::{FpgaBuildResult, bitstream_path, build, build_dir};
 pub use config::{CONFIG_FILE, FpgaConfig, Link, Resolved};
@@ -83,7 +84,21 @@ pub struct Connection {
 /// problema por linha), [`AuroraError::BoardNotFound`],
 /// [`AuroraError::NoTopLevel`] e [`AuroraError::ModuleNotFound`].
 pub fn prepare(toolchain: Option<&Toolchain>, project: &Project) -> Result<Prepared> {
-    let config = FpgaConfig::read(project.root())?;
+    prepare_with(toolchain, project, FpgaConfig::read(project.root())?)
+}
+
+/// [`prepare`] com uma configuração dada, em vez da do `fpga.json` (a placa
+/// virtual, num projeto sem `fpga.json`, liga as portas pelo nome com
+/// [`FpgaConfig::by_name`]). Os erros citam o caminho do `fpga.json`.
+///
+/// # Erros
+///
+/// Os de [`prepare`], menos os de ler o `fpga.json`.
+pub fn prepare_with(
+    toolchain: Option<&Toolchain>,
+    project: &Project,
+    config: FpgaConfig,
+) -> Result<Prepared> {
     let path = FpgaConfig::path(project.root());
     let board = board::board(&config.board)?;
     let interface = top_interface(toolchain, project, config.top.as_deref())?;

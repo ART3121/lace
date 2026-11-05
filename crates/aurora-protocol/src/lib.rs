@@ -33,6 +33,7 @@ use aurora_core::fpga::{BitstreamState, Board, FpgaConfig, Prepared};
 use aurora_core::history::{CleanOutcome, Cleanup, ReportView, RunComparison, RunSummary};
 use aurora_core::locate::ToolchainInfo;
 use aurora_core::verilog::ModuleInterface;
+use aurora_core::virtual_board::{BoardInput, BoardLayout, BoardRun};
 use aurora_core::{
     AddedFile, ErrorInfo, FileMismatch, LayoutConversion, ListPosition, MovedPath, NewProcessor,
     Processor, ProcessorConfig, ProjectFile, ProjectStatus, RemoveOutcome, RemovedProcessor,
@@ -224,6 +225,9 @@ methods! {
     FpgaStatus = "fpga.status" => BitstreamState [read, agent],
     FpgaCables = "fpga.cables" => Vec<String>,
     FpgaTop = "fpga.top" => ModuleInterface,
+    VboardLayout = "vboard.layout" => BoardLayout [read],
+    VboardRun = "vboard.run" => BoardRun,
+    VboardInput = "vboard.input" => (),
     UpdateCheck = "update.check" => UpdateReport [install, agent],
     UpdateApply = "update.apply" => UpdateReport [install, agent_update],
     InstallAdd = "install.add" => InstallReport [install, agent_update],
@@ -233,6 +237,18 @@ methods! {
     LearnInit = "learn.init" => WorkspaceSnapshot,
     LearnSetCurrent = "learn.set_current" => WorkspaceSnapshot,
     LearnReset = "learn.reset" => (),
+}
+
+/// O id de um pedido JSON-RPC, como o cliente o mandou: número ou texto.
+/// Só para o schema de `vboard.input`.
+#[derive(JsonSchema)]
+#[serde(untagged)]
+#[allow(dead_code)]
+enum RequestId {
+    /// Um número.
+    Number(i64),
+    /// Um texto.
+    Text(String),
 }
 
 /// O que um cliente pede. Em JSON, `{"method": "...", "params": {...}}`;
@@ -657,6 +673,52 @@ pub enum Request {
         top: Option<String>,
     },
 
+    /// A placa virtual do projeto sem compilar: a placa, o topo e os
+    /// periféricos, ligados ou não. Resposta: [`BoardLayout`].
+    #[serde(rename = "vboard.layout")]
+    VboardLayout {
+        /// O projeto.
+        #[schemars(with = "String")]
+        project: Utf8PathBuf,
+        /// A placa, num projeto sem `fpga.json`: as portas com o nome de um
+        /// sinal dela ligam a ele.
+        #[serde(default)]
+        board: Option<String>,
+    },
+    /// Compila a placa virtual e a roda até `$/cancel` (ou o `$finish` do
+    /// projeto). Enquanto compila, `events`; rodando, `vboard_ready` com a
+    /// placa, `vboard_state` cerca de 30 vezes por segundo, `vboard_frame`
+    /// quando a imagem muda e `vboard_output` a cada linha do projeto. As
+    /// entradas vão por `vboard.input` com o id deste pedido. Resposta:
+    /// [`BoardRun`]; com o Verilog que não compila, sem `outcome`.
+    #[serde(rename = "vboard.run")]
+    VboardRun {
+        /// O projeto.
+        #[schemars(with = "String")]
+        project: Utf8PathBuf,
+        /// A placa, num projeto sem `fpga.json` (como em `vboard.layout`).
+        #[serde(default)]
+        board: Option<String>,
+        /// Segundos simulados por segundo de relógio, no máximo: 1 é o
+        /// tempo real (o padrão), 0 é o mais rápido possível.
+        #[serde(default)]
+        limit: Option<f64>,
+        /// Quadros de vídeo por segundo, no máximo (padrão 30).
+        #[serde(default)]
+        fps: Option<f64>,
+    },
+    /// Uma entrada para a placa virtual de um `vboard.run` que está rodando:
+    /// chaves, botões, teclas, texto, pausa, velocidade. Resposta: nada; um
+    /// periférico que a placa não tem é erro.
+    #[serde(rename = "vboard.input")]
+    VboardInput {
+        /// O id do pedido `vboard.run`, como o cliente o mandou.
+        #[schemars(with = "RequestId")]
+        run: serde_json::Value,
+        /// A entrada.
+        input: BoardInput,
+    },
+
     /// As versões: esta AURORA, a última release, o bundle, cada componente.
     /// Resposta: o relatório do instalador.
     #[serde(rename = "update.check")]
@@ -794,7 +856,9 @@ impl Request {
             | Request::FpgaCheck { project }
             | Request::FpgaModules { project }
             | Request::FpgaStatus { project }
-            | Request::FpgaTop { project, .. } => Some(project),
+            | Request::FpgaTop { project, .. }
+            | Request::VboardLayout { project, .. }
+            | Request::VboardRun { project, .. } => Some(project),
             Request::WaveOpen { project, .. } => project.as_ref(),
             _ => None,
         }
@@ -841,6 +905,10 @@ pub enum Response {
     Flags(Vec<bool>),
     /// `fpga.top`.
     Interface(Box<ModuleInterface>),
+    /// `vboard.layout`.
+    VboardLayout(Box<BoardLayout>),
+    /// `vboard.run`.
+    Vboard(Box<BoardRun>),
     /// `flow.run`.
     Flow(Box<FlowOutcome>),
     /// `wave.open`.
