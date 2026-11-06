@@ -689,6 +689,7 @@ export const en: Record<Key, string> = {
   'vboard.editOff': 'Turn the board off to change the connections',
   'vboard.editHint': 'Click a switch, a button, a LED or a display to choose the top port that goes on it; the screen, the keyboard and the serial port are connected in the connection table. Each change writes fpga.json and takes effect when the board is turned on again.',
   'vboard.unused': 'On the board, not connected to the top:',
+  'vboard.outputOmitted': '({count} lines omitted: the project writes more than can be shown)',
   'vboard.openTable': 'Connection table',
   'vboard.top': 'top {top}',
   'vboard.pcbHint': 'Switches can be set before turning the board on. Shift+click latches a button down.',

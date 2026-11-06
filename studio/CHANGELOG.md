@@ -29,6 +29,8 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - **Ligar a placa** grava os arquivos abertos antes, como compilar e
   simular: a placa compilava o que estava no disco, e não o que estava na
   tela.
+- A saída do projeto na placa virtual chega em lotes, com a contagem das
+  linhas omitidas; um `$display` a cada ciclo travava a janela.
 
 ## [8.0.0] - 2026-11-05
 

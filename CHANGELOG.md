@@ -42,6 +42,13 @@
   placa, como na simulação. Antes, a placa rodava o programa do último build
   sem aviso. O `BoardBuild` ganhou `processors`, e o `layout` fica `null`
   quando um processador não compila. No core, `Processor::is_out_of_date`.
+- Placa virtual: a saída do projeto (`$display`) sai em lotes, um por estado
+  (cerca de 30 por segundo), com no máximo 100 linhas cada e a contagem das
+  que ficaram de fora. Um `$display` a cada ciclo mandava 141 mil
+  notificações por segundo e derrubava os estados de 30 para menos de 10 por
+  segundo. Muda a notificação `vboard_output` (`lines` e `omitted` no lugar
+  de `line`), o `SessionEvent::Output` e o relatório JSON do
+  `aurora vboard run` (`output_omitted`).
 
 ## 1.0.0 (2026-11-05)
 

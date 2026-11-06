@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { api } from '../ipc/api';
 import type { BoardInput, BoardLayout, Diagnostic, Reconnect } from '../ipc/aurora-types';
 import type { IpcError, ModuleInterface, VboardMessage } from '../ipc/types';
+import { t } from '../i18n';
 import { useEditor } from './editor';
 import { useProject } from './project';
 import { showError } from './toasts';
@@ -146,7 +147,9 @@ export const useVboard = create<VboardState>()((set, get) => {
         return;
       }
       case 'vboard_output': {
-        const output = [...get().output, message.line];
+        // Um lote por estado, de até 100 linhas; o resto o servidor só conta.
+        const output = [...get().output, ...message.lines];
+        if (message.omitted > 0) output.push(t('vboard.outputOmitted', { count: message.omitted }));
         set({ output: output.length > OUTPUT_LIMIT ? output.slice(-OUTPUT_LIMIT) : output });
         return;
       }

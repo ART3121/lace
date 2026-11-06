@@ -716,6 +716,7 @@ export const pt = {
   'vboard.editOff': 'Desligue a placa para mudar as ligações',
   'vboard.editHint': 'Clique numa chave, num botão, num LED ou num display para escolher a porta do topo que vai nele; a tela, o teclado e a serial se ligam na tabela de ligações. Cada mudança grava o fpga.json e vale ao ligar a placa de novo.',
   'vboard.unused': 'Na placa, sem ligação com o topo:',
+  'vboard.outputOmitted': '({count} linhas omitidas: o projeto escreve mais do que dá para mostrar)',
   'vboard.openTable': 'Tabela de ligações',
   'vboard.top': 'topo {top}',
   'vboard.pcbHint': 'As chaves podem ser posicionadas antes de ligar a placa. Shift+clique prende um botão apertado.',

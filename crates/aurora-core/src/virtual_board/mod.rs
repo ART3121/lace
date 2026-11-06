@@ -234,12 +234,20 @@ pub enum SessionEvent {
     State(BoardState),
     /// Um quadro de vídeo novo.
     Frame(Frame),
-    /// Uma linha que o projeto escreveu (`$display`).
+    /// As linhas que o projeto escreveu (`$display`) desde o último lote,
+    /// no máximo [`OUTPUT_BATCH`] por lote, um lote por estado: um
+    /// `$display` a cada ciclo chega a centenas de milhares de linhas por
+    /// segundo, mais do que uma interface consegue mostrar.
     Output {
-        /// A linha, sem o fim de linha.
-        line: String,
+        /// As linhas, sem o fim de linha, na ordem.
+        lines: Vec<String>,
+        /// As que ficaram de fora deste lote, depois de `lines`.
+        omitted: u64,
     },
 }
+
+/// Linhas de saída do projeto por lote ([`SessionEvent::Output`]).
+pub const OUTPUT_BATCH: usize = 100;
 
 // ------------------------------------------------------------ compilação
 

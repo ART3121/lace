@@ -67,7 +67,14 @@ fn run_board(
     let built = virtual_board::build(&toolchain, &project, &options, control)?;
     out.vboard_build(&built, &root);
     let Some(layout) = built.layout.clone().filter(|_| built.succeeded()) else {
-        out.json(&VboardRunReport::new(built, None, None, None, Vec::new()))?;
+        out.json(&VboardRunReport::new(
+            built,
+            None,
+            None,
+            None,
+            Vec::new(),
+            0,
+        ))?;
         return Ok(false);
     };
 
@@ -114,6 +121,7 @@ fn run_board(
     let last_state: Arc<Mutex<Option<BoardState>>> = Arc::default();
     let mut uart: BTreeMap<String, Vec<u8>> = BTreeMap::new();
     let mut lines = Vec::new();
+    let mut omitted = 0u64;
     let mut last_frame = None;
     let mut frames = 0u32;
     let mut on_event = |event: SessionEvent| {
@@ -131,11 +139,20 @@ fn run_board(
                 frames += 1;
                 last_frame = Some(frame);
             }
-            SessionEvent::Output { line } => {
+            SessionEvent::Output {
+                lines: batch,
+                omitted: skipped,
+            } => {
                 if out.is_text() {
-                    println!("{}", paint(DIM, &line));
+                    for line in &batch {
+                        println!("{}", paint(DIM, line));
+                    }
+                    if skipped > 0 {
+                        println!("{}", paint(DIM, format!("... {skipped} lines omitted")));
+                    }
                 }
-                lines.push(line);
+                lines.extend(batch);
+                omitted += skipped;
             }
             SessionEvent::Ready => {}
             _ => {}
@@ -181,6 +198,7 @@ fn run_board(
         state,
         png,
         lines,
+        omitted,
     ))?;
     Ok(!crashed)
 }

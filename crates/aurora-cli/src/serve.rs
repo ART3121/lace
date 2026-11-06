@@ -1267,8 +1267,8 @@ impl Server {
                         virtual_board::SessionEvent::Frame(frame) => {
                             Notification::VboardFrame { frame }
                         }
-                        virtual_board::SessionEvent::Output { line } => {
-                            Notification::VboardOutput { line }
+                        virtual_board::SessionEvent::Output { lines, omitted } => {
+                            Notification::VboardOutput { lines, omitted }
                         }
                         _ => return,
                     };

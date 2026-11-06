@@ -183,6 +183,43 @@ struct Exit {
     time_ps: u64,
 }
 
+/// As linhas do projeto esperando o próximo lote ([`SessionEvent::Output`]):
+/// as primeiras [`super::OUTPUT_BATCH`] e a contagem das outras.
+#[derive(Default)]
+struct OutputBatch {
+    lines: Vec<String>,
+    omitted: u64,
+    since: Option<Instant>,
+}
+
+impl OutputBatch {
+    fn push(&mut self, line: String) {
+        self.since.get_or_insert_with(Instant::now);
+        if self.lines.len() < super::OUTPUT_BATCH {
+            self.lines.push(line);
+        } else {
+            self.omitted += 1;
+        }
+    }
+
+    /// Há linhas esperando há mais que o intervalo entre dois estados.
+    fn is_stale(&self) -> bool {
+        self.since
+            .is_some_and(|at| at.elapsed() > Duration::from_millis(50))
+    }
+
+    fn flush(&mut self, on_event: &mut dyn FnMut(SessionEvent)) {
+        self.since = None;
+        if self.lines.is_empty() && self.omitted == 0 {
+            return;
+        }
+        on_event(SessionEvent::Output {
+            lines: std::mem::take(&mut self.lines),
+            omitted: std::mem::take(&mut self.omitted),
+        });
+    }
+}
+
 /// Roda a placa virtual compilada por [`build`](super::build) até o
 /// cancelamento de `control` ou o `$finish` do projeto. As entradas chegam
 /// por `inputs` enquanto ela roda; uma entrada para um periférico que a
@@ -254,6 +291,9 @@ pub fn run(
     let mut time_ps = 0;
     let mut ended: Option<EndReason> = None;
     let mut asked_to_stop: Option<Instant> = None;
+    // A saída do projeto em lotes: sai junto com cada estado, ou sozinha se
+    // nenhum estado vier logo (a placa pausada, o começo).
+    let mut output = OutputBatch::default();
     loop {
         if control.is_cancelled() && asked_to_stop.is_none() {
             send("quit");
@@ -268,6 +308,7 @@ pub fn run(
             Ok(Message::Hello) => on_event(SessionEvent::Ready),
             Ok(Message::State(wire)) => {
                 time_ps = wire.time_ps;
+                output.flush(on_event);
                 on_event(SessionEvent::State(BoardState {
                     time_ps: wire.time_ps,
                     speed: wire.speed,
@@ -282,7 +323,7 @@ pub fn run(
                     tail.remove(0);
                 }
                 tail.push(line.clone());
-                on_event(SessionEvent::Output { line });
+                output.push(line);
             }
             Ok(Message::Exit(exit)) => {
                 time_ps = exit.time_ps;
@@ -304,7 +345,11 @@ pub fn run(
             }
             Err(RecvTimeoutError::Disconnected) => break,
         }
+        if output.is_stale() {
+            output.flush(on_event);
+        }
     }
+    output.flush(on_event);
     drop(stdin);
     let termination = process.stop(Duration::from_secs(2));
     let reason = match ended {
@@ -417,5 +462,25 @@ mod tests {
         let mut short = b"VGA_R\0".to_vec();
         short.extend([3, 0, 1, 0, 1, 2]);
         assert!(super::frame(&short).is_none());
+    }
+
+    #[test]
+    fn the_output_goes_in_batches_with_the_rest_counted() {
+        let mut batch = OutputBatch::default();
+        let mut events = Vec::new();
+        batch.flush(&mut |e| events.push(e));
+        assert!(events.is_empty(), "nada para mandar, nenhum lote");
+        for n in 0..250 {
+            batch.push(format!("linha {n}"));
+        }
+        batch.flush(&mut |e| events.push(e));
+        batch.flush(&mut |e| events.push(e));
+        assert_eq!(events.len(), 1);
+        let SessionEvent::Output { lines, omitted } = &events[0] else {
+            panic!("um lote de saída");
+        };
+        assert_eq!(lines.len(), super::super::OUTPUT_BATCH);
+        assert_eq!(lines[0], "linha 0");
+        assert_eq!(*omitted, 150);
     }
 }

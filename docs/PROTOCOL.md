@@ -941,11 +941,14 @@ Um quadro de vídeo novo da placa virtual.
 
 ### `vboard_output`
 
-Uma linha que o projeto escreveu na placa virtual (`$display`).
+As linhas que o projeto escreveu na placa virtual (`$display`), em
+lotes de no máximo 100, um por estado; as que passam disso são só
+contadas.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `line` | `string` | sim | A linha. |
+| `lines` | lista de `string` | sim | As linhas, na ordem. |
+| `omitted` | `integer` | sim | Quantas ficaram de fora deste lote, depois de `lines`. |
 
 ### `install`
 

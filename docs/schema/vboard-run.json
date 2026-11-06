@@ -38,11 +38,17 @@
       ]
     },
     "output": {
-      "description": "O que o projeto escreveu (`$display`).",
+      "description": "O que o projeto escreveu (`$display`), até 100 linhas por estado.",
       "type": "array",
       "items": {
         "type": "string"
       }
+    },
+    "output_omitted": {
+      "description": "As linhas que passaram desse limite e ficaram de fora de `output`.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
     }
   },
   "required": [
@@ -50,7 +56,8 @@
     "outcome",
     "state",
     "png",
-    "output"
+    "output",
+    "output_omitted"
   ],
   "$defs": {
     "BoardBuild": {

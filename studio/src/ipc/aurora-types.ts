@@ -1162,9 +1162,13 @@ export type Notification =
     }
   | {
       /**
-       * A linha.
+       * As linhas, na ordem.
        */
-      line: string;
+      lines: string[];
+      /**
+       * Quantas ficaram de fora deste lote, depois de `lines`.
+       */
+      omitted: number;
       type: 'vboard_output';
     }
   | {
@@ -9502,9 +9506,13 @@ export interface VboardRunReport {
    */
   png: string | null;
   /**
-   * O que o projeto escreveu (`$display`).
+   * O que o projeto escreveu (`$display`), até 100 linhas por estado.
    */
   output: string[];
+  /**
+   * As linhas que passaram desse limite e ficaram de fora de `output`.
+   */
+  output_omitted: number;
 }
 /**
  * A compilação da placa virtual. Se falha, os outros campos são

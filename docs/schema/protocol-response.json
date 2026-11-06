@@ -7191,12 +7191,21 @@
           ]
         },
         {
-          "description": "Uma linha que o projeto escreveu na placa virtual (`$display`).",
+          "description": "As linhas que o projeto escreveu na placa virtual (`$display`), em\nlotes de no máximo 100, um por estado; as que passam disso são só\ncontadas.",
           "type": "object",
           "properties": {
-            "line": {
-              "description": "A linha.",
-              "type": "string"
+            "lines": {
+              "description": "As linhas, na ordem.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "omitted": {
+              "description": "Quantas ficaram de fora deste lote, depois de `lines`.",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
             },
             "type": {
               "type": "string",
@@ -7205,7 +7214,8 @@
           },
           "required": [
             "type",
-            "line"
+            "lines",
+            "omitted"
           ]
         },
         {

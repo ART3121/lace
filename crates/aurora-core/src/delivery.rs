@@ -121,10 +121,14 @@ pub enum Notification {
         /// O quadro, em PNG.
         frame: crate::virtual_board::Frame,
     },
-    /// Uma linha que o projeto escreveu na placa virtual (`$display`).
+    /// As linhas que o projeto escreveu na placa virtual (`$display`), em
+    /// lotes de no máximo 100, um por estado; as que passam disso são só
+    /// contadas.
     VboardOutput {
-        /// A linha.
-        line: String,
+        /// As linhas, na ordem.
+        lines: Vec<String>,
+        /// Quantas ficaram de fora deste lote, depois de `lines`.
+        omitted: u64,
     },
     /// Progresso de uma instalação ou atualização da AURORA (o evento do
     /// instalador, serializado por ele; o core não conhece o tipo).
