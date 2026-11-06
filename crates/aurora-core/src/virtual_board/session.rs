@@ -30,13 +30,28 @@ pub struct RunOptions {
     pub limit: f64,
     /// Quadros de vídeo por segundo, no máximo.
     pub fps: f64,
+    /// Parar sozinha nesse tempo simulado, em picossegundos: o fim exato,
+    /// que um cancelamento pelo estado (cerca de 30 por segundo de relógio)
+    /// não dá. `None` roda até o cancelamento ou o `$finish`.
+    pub until_ps: Option<u64>,
 }
 
 impl RunOptions {
     /// O limite de velocidade ([`RunOptions::limit`]) e os quadros por
     /// segundo ([`RunOptions::fps`]).
     pub fn new(limit: f64, fps: f64) -> RunOptions {
-        RunOptions { limit, fps }
+        RunOptions {
+            limit,
+            fps,
+            until_ps: None,
+        }
+    }
+
+    /// Parar sozinha em `until_ps` picossegundos simulados
+    /// ([`RunOptions::until_ps`]).
+    pub fn until(mut self, until_ps: u64) -> RunOptions {
+        self.until_ps = Some(until_ps);
+        self
     }
 }
 
@@ -45,6 +60,7 @@ impl Default for RunOptions {
         RunOptions {
             limit: 1.0,
             fps: 30.0,
+            until_ps: None,
         }
     }
 }
@@ -306,6 +322,9 @@ pub fn run(
     };
     send(&format!("limit {}", options.limit.max(0.0)));
     send(&format!("fps {}", options.fps.max(1.0)));
+    if let Some(until) = options.until_ps {
+        send(&format!("until {}", until.max(1)));
+    }
 
     let mut tail: Vec<String> = Vec::new();
     let mut time_ps = 0;

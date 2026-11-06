@@ -77,6 +77,10 @@
   (na IDE e pela CLI, ou em duas janelas) falhava no link, com o executável
   em uso. Ele é renomeado para o lado antes da compilação, e a placa que
   roda segue com ele; a próxima compilação apaga o antigo.
+- `aurora vboard run --time` para no tempo exato: a placa recebe a ordem
+  `until` e para sozinha. Antes a CLI parava pelo estado, umas 30 vezes por
+  segundo de relógio, e 5 ms viravam 9,7 ms, 20 ms viravam 46 ms; o mesmo
+  comando dava resultados diferentes. No core, `RunOptions::until`.
 
 ## 1.0.0 (2026-11-05)
 

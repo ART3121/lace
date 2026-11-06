@@ -165,7 +165,9 @@ fn run_board(
             stop.cancel();
         }
     };
-    let run_options = RunOptions::new(args.speed, 30.0);
+    // A placa para sozinha no tempo pedido; o cancelamento pelo estado fica
+    // só para o caso de ela não parar.
+    let run_options = RunOptions::new(args.speed, 30.0).until(until_ps.max(1));
     let outcome = virtual_board::run(
         &toolchain,
         &project,

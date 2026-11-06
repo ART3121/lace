@@ -12,6 +12,7 @@
 //       send <id> <hex> ...     bytes para o teclado PS/2 ou para o RX da UART
 //       pause | run | step <ciclos>
 //       limit <fator>           0 = o mais rápido possível; 1 = tempo real
+//       until <ps>              para sozinho nesse tempo simulado (0 = nunca)
 //       fps <n>                 no máximo n quadros de vídeo por segundo
 //       quit
 //     O fim da entrada (a AURORA fechou) também encerra.
@@ -538,6 +539,7 @@ public:
             cycles++;
             if (step_left_ > 0 && --step_left_ == 0) paused_ = true;
             if (finished()) { reason = "finish"; break; }
+            if (until_ && now >= until_) { reason = "until"; break; }
         }
         report(now, now - last_report_t, cycles, 0);
         std::vector<unsigned char> f;
@@ -561,6 +563,7 @@ private:
     double limit_ = 0;
     bool limit_changed_ = false;
     double max_fps_ = 30;
+    Time until_ = 0;
     uint64_t report_cycles_ = 0;
 
     void hello() {
@@ -611,6 +614,7 @@ private:
             else if (verb == "step") { uint64_t n = 0; in >> n; step_left_ = n ? n : 1; paused_ = false; }
             else if (verb == "limit") { in >> limit_; limit_changed_ = true; }
             else if (verb == "fps") { in >> max_fps_; }
+            else if (verb == "until") { in >> until_; }
             else if (verb == "set" || verb == "send") {
                 std::string id; in >> id;
                 for (auto& d : devices_) if (d->id == id) d->command(verb, in);
