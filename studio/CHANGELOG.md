@@ -24,6 +24,12 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   FPGA, com a placa FPGA ligada nas Preferências: abre a aba e gira
   enquanto a placa está ligada.
 
+### Corrigido
+
+- **Ligar a placa** grava os arquivos abertos antes, como compilar e
+  simular: a placa compilava o que estava no disco, e não o que estava na
+  tela.
+
 ## [8.0.0] - 2026-11-05
 
 ### Alterado

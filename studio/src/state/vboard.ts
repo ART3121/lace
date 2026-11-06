@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { api } from '../ipc/api';
 import type { BoardInput, BoardLayout, Diagnostic, Reconnect } from '../ipc/aurora-types';
 import type { IpcError, ModuleInterface, VboardMessage } from '../ipc/types';
+import { useEditor } from './editor';
 import { useProject } from './project';
 import { showError } from './toasts';
 
@@ -225,6 +226,11 @@ export const useVboard = create<VboardState>()((set, get) => {
     },
 
     start: async () => {
+      if (get().status !== 'idle') return;
+      // Os arquivos abertos são gravados antes, como nas operações do fluxo
+      // (jobs.ts): a placa compila o que está na tela, e não o que estava no
+      // disco. Quem cancela a gravação não liga a placa.
+      if (!(await useEditor.getState().saveAll())) return;
       if (get().status !== 'idle') return;
       set({ status: 'building', ended: null, ...initialSession });
       try {
