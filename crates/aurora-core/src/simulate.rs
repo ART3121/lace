@@ -60,7 +60,7 @@ use crate::pipeline::{
     Artifact, ArtifactKind, ArtifactTracker, PlannedStep, Runner, Status, Step, StepReport,
     final_status,
 };
-use crate::process::make_path;
+use crate::process::{Termination, make_path};
 use crate::project::{Processor, Project};
 use crate::source::strip_comments;
 use crate::toolchain::{Tool, Toolchain};
@@ -1218,8 +1218,10 @@ fn execute(
             // bundle no Windows), o LC_ALL=C e, no Windows, o VERILATOR_ROOT
             // vêm de Toolchain::invocation; no Linux e no macOS o script do
             // Verilator deduz o VERILATOR_ROOT do próprio caminho.
+            model_build_started(&obj_dir)?;
             let verilated =
                 runner.run(PlannedStep::new(Step::Verilate, Tool::Verilator, verilate))?;
+            model_build_finished(&obj_dir, &runner);
             quiet_runtime_warnings(&mut runner.diagnostics, toolchain.root());
             if verilated {
                 // Com o modelo em dia, o `make` não refaz o executável.
@@ -1318,7 +1320,7 @@ fn execute(
 /// O último passo foi o `simulate` e saiu com 0.
 fn simulated(runner: &Runner<'_>) -> bool {
     runner.steps.last().is_some_and(|s| {
-        s.step == Step::Simulate && matches!(s.termination, crate::process::Termination::Exited(0))
+        s.step == Step::Simulate && matches!(s.termination, Termination::Exited(0))
     })
 }
 
@@ -1444,6 +1446,66 @@ fn verilator_cflags() -> &'static [&'static str] {
             "-Wno-attributes",
         ]
     }
+}
+
+/// Marca, na pasta do modelo, de um `--build` do Verilator em andamento.
+const BUILD_MARK: &str = ".aurora-building";
+
+/// Prepara a pasta do modelo para um `--build` do Verilator e marca a
+/// compilação como em andamento; [`model_build_finished`] tira a marca.
+///
+/// O compilador C++ roda com `-pipe` ([`verilator_cflags`]): o montador cria
+/// o `.o` vazio logo no começo e só o preenche no fim. Uma compilação
+/// interrompida (cancelada, ou morta junto com a AURORA) deixa esse `.o`
+/// vazio com data nova, o `make` o toma por pronto, e o link das compilações
+/// seguintes falha (`undefined reference to
+/// VerilatedContext::VerilatedContext()` com um `verilated.o` de 0 bytes).
+/// Achada a marca de uma compilação que não terminou, ou um `.o` vazio de
+/// uma versão sem a marca, a pasta é apagada e o modelo sai do zero.
+pub(crate) fn model_build_started(obj_dir: &Utf8Path) -> Result<()> {
+    if build_interrupted(obj_dir) {
+        tracing::info!(%obj_dir, "Interrupted Verilator build, starting over");
+        match std::fs::remove_dir_all(obj_dir) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(AuroraError::io("Removing interrupted build", obj_dir)(e)),
+        }
+    }
+    std::fs::create_dir_all(obj_dir).map_err(AuroraError::io("Creating directory", obj_dir))?;
+    let mark = obj_dir.join(BUILD_MARK);
+    std::fs::write(&mark, "").map_err(AuroraError::io("Writing", &mark))
+}
+
+fn build_interrupted(obj_dir: &Utf8Path) -> bool {
+    if obj_dir.join(BUILD_MARK).exists() {
+        return true;
+    }
+    let Ok(entries) = obj_dir.read_dir_utf8() else {
+        return false;
+    };
+    entries.flatten().any(|e| {
+        e.path().extension() == Some("o") && e.metadata().is_ok_and(|m| m.is_file() && m.len() == 0)
+    })
+}
+
+/// Tira a marca de [`model_build_started`] se o passo do Verilator terminou
+/// por conta própria, bem ou com erro: o `make` espera os outros trabalhos,
+/// e o g++ apaga o `.o` do fonte que não compila. Cancelado, fora do prazo
+/// ou morto, a marca fica, e a próxima compilação começa do zero.
+pub(crate) fn model_build_finished(obj_dir: &Utf8Path, runner: &Runner<'_>) {
+    let verilate = runner
+        .steps
+        .last()
+        .filter(|s| s.step == Step::Verilate)
+        .map(|s| s.termination);
+    if build_completed(verilate) {
+        let _ = std::fs::remove_file(obj_dir.join(BUILD_MARK));
+    }
+}
+
+/// O passo não rodou (`None`: uma falha antes dele) ou saiu com um código.
+fn build_completed(verilate: Option<Termination>) -> bool {
+    matches!(verilate, None | Some(Termination::Exited(_)))
 }
 
 fn read(path: &Utf8Path) -> Result<String> {
@@ -1983,6 +2045,39 @@ mod tests {
         assert_eq!(options.simulator_for(true), Simulator::Icarus);
         options.simulator = Simulator::Verilator;
         assert_eq!(options.simulator_for(true), Simulator::Verilator);
+    }
+
+    #[test]
+    fn an_interrupted_model_build_starts_over() {
+        let guard = tempfile::tempdir().unwrap();
+        let obj_dir = Utf8Path::from_path(guard.path()).unwrap().join("obj_dir");
+        std::fs::create_dir_all(&obj_dir).unwrap();
+        // O que uma compilação morta no meio deixa: o `verilated.o` vazio ao
+        // lado de objetos prontos.
+        std::fs::write(obj_dir.join("verilated.o"), "").unwrap();
+        std::fs::write(obj_dir.join("board_main.o"), "obj").unwrap();
+        model_build_started(&obj_dir).unwrap();
+        assert!(!obj_dir.join("verilated.o").exists());
+        assert!(!obj_dir.join("board_main.o").exists());
+        assert!(obj_dir.join(BUILD_MARK).is_file());
+
+        // Uma pasta em dia fica como está.
+        std::fs::remove_file(obj_dir.join(BUILD_MARK)).unwrap();
+        std::fs::write(obj_dir.join("board_main.o"), "obj").unwrap();
+        model_build_started(&obj_dir).unwrap();
+        assert!(obj_dir.join("board_main.o").exists());
+
+        // A marca de uma compilação que não terminou apaga tudo, mesmo sem
+        // `.o` vazio (um objeto pela metade, um executável truncado).
+        model_build_started(&obj_dir).unwrap();
+        assert!(!obj_dir.join("board_main.o").exists());
+
+        assert!(build_completed(Some(Termination::Exited(0))));
+        assert!(build_completed(Some(Termination::Exited(2))));
+        assert!(build_completed(None));
+        assert!(!build_completed(Some(Termination::Cancelled)));
+        assert!(!build_completed(Some(Termination::TimedOut)));
+        assert!(!build_completed(Some(Termination::Exception(0xC000_013A))));
     }
 
     #[test]

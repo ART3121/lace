@@ -496,11 +496,14 @@ pub fn build(
     for file in &files {
         invocation = invocation.tool_path_arg(file);
     }
+    let obj_dir = work.join(OBJ_DIR);
+    crate::simulate::model_build_started(&obj_dir)?;
     let built = runner.run(PlannedStep::new(
         Step::Verilate,
         Tool::Verilator,
         invocation,
     ))?;
+    crate::simulate::model_build_finished(&obj_dir, &runner);
     crate::simulate::quiet_runtime_warnings(&mut runner.diagnostics, toolchain.root());
     let executable = executable_path(project);
     let executable = (built && executable.is_file()).then_some(executable);

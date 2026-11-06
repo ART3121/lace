@@ -29,6 +29,14 @@
   instalada e o Lace saía, mas a pasta da AURORA ficava fora do PATH, e o
   `aurora` não abria num terminal novo. Quem passou por isso volta a ter o
   `aurora` no PATH rodando o instalador da AURORA de novo.
+- Verilator (simulação rápida, simulação com onda, cocotb e placa virtual):
+  uma compilação interrompida no meio, cancelada ou morta junto com a
+  AURORA, deixava um `.o` vazio com data nova na pasta do modelo, e todas as
+  compilações seguintes do mesmo topo falhavam no link
+  (`undefined reference to VerilatedContext::VerilatedContext()`), porque o
+  `make` tomava o objeto por pronto. A AURORA marca a compilação em
+  andamento e, achando a marca de uma que não terminou ou um `.o` vazio,
+  apaga a pasta do modelo e compila do zero.
 
 ## 1.0.0 (2026-11-05)
 
