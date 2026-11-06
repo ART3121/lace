@@ -30,13 +30,28 @@ pub struct RunOptions {
     pub limit: f64,
     /// Quadros de vídeo por segundo, no máximo.
     pub fps: f64,
+    /// Parar sozinha nesse tempo simulado, em picossegundos: o fim exato,
+    /// que um cancelamento pelo estado (cerca de 30 por segundo de relógio)
+    /// não dá. `None` roda até o cancelamento ou o `$finish`.
+    pub until_ps: Option<u64>,
 }
 
 impl RunOptions {
     /// O limite de velocidade ([`RunOptions::limit`]) e os quadros por
     /// segundo ([`RunOptions::fps`]).
     pub fn new(limit: f64, fps: f64) -> RunOptions {
-        RunOptions { limit, fps }
+        RunOptions {
+            limit,
+            fps,
+            until_ps: None,
+        }
+    }
+
+    /// Parar sozinha em `until_ps` picossegundos simulados
+    /// ([`RunOptions::until_ps`]).
+    pub fn until(mut self, until_ps: u64) -> RunOptions {
+        self.until_ps = Some(until_ps);
+        self
     }
 }
 
@@ -45,6 +60,7 @@ impl Default for RunOptions {
         RunOptions {
             limit: 1.0,
             fps: 30.0,
+            until_ps: None,
         }
     }
 }
@@ -115,12 +131,32 @@ impl BoardLayout {
             _ => return Ok(()),
         };
         match self.connected(device) {
-            Some(peripheral) if accepts(peripheral) => Ok(()),
-            _ => Err(AuroraError::VirtualBoardDevice {
-                device: device.to_owned(),
-                available: self.available(accepts),
-            }),
+            Some(peripheral) if accepts(peripheral) => {}
+            _ => {
+                return Err(AuroraError::VirtualBoardDevice {
+                    device: device.to_owned(),
+                    available: self.available(accepts),
+                });
+            }
         }
+        // Chaves e botões: o valor cabe na largura do periférico.
+        if let BoardInput::Set { device, value } = input
+            && let Some(width) = self
+                .peripherals
+                .iter()
+                .find(|p| p.id == *device)
+                .and_then(|p| p.signals.first())
+                .map(|s| s.width)
+            && width < 64
+            && value >> width != 0
+        {
+            return Err(AuroraError::VirtualBoardValue {
+                device: device.clone(),
+                width,
+                value: *value,
+            });
+        }
+        Ok(())
     }
 
     /// A ordem para o executável; `None` para uma entrada que não vai a
@@ -175,12 +211,51 @@ struct Wire {
     lights: std::collections::BTreeMap<String, Vec<u8>>,
     #[serde(default)]
     uart: std::collections::BTreeMap<String, Vec<u8>>,
+    #[serde(default)]
+    uart_baud: std::collections::BTreeMap<String, u32>,
 }
 
 #[derive(Deserialize)]
 struct Exit {
     reason: String,
     time_ps: u64,
+}
+
+/// As linhas do projeto esperando o próximo lote ([`SessionEvent::Output`]):
+/// as primeiras [`super::OUTPUT_BATCH`] e a contagem das outras.
+#[derive(Default)]
+struct OutputBatch {
+    lines: Vec<String>,
+    omitted: u64,
+    since: Option<Instant>,
+}
+
+impl OutputBatch {
+    fn push(&mut self, line: String) {
+        self.since.get_or_insert_with(Instant::now);
+        if self.lines.len() < super::OUTPUT_BATCH {
+            self.lines.push(line);
+        } else {
+            self.omitted += 1;
+        }
+    }
+
+    /// Há linhas esperando há mais que o intervalo entre dois estados.
+    fn is_stale(&self) -> bool {
+        self.since
+            .is_some_and(|at| at.elapsed() > Duration::from_millis(50))
+    }
+
+    fn flush(&mut self, on_event: &mut dyn FnMut(SessionEvent)) {
+        self.since = None;
+        if self.lines.is_empty() && self.omitted == 0 {
+            return;
+        }
+        on_event(SessionEvent::Output {
+            lines: std::mem::take(&mut self.lines),
+            omitted: std::mem::take(&mut self.omitted),
+        });
+    }
 }
 
 /// Roda a placa virtual compilada por [`build`](super::build) até o
@@ -204,11 +279,13 @@ pub fn run(
     on_event: &mut dyn FnMut(SessionEvent),
     control: &Control,
 ) -> Result<SessionOutcome> {
+    let not_built = || AuroraError::VirtualBoardNotBuilt(super::executable_path(project));
     let executable = built
         .executable
         .clone()
         .filter(|e| e.is_file())
-        .ok_or_else(|| AuroraError::VirtualBoardNotBuilt(super::executable_path(project)))?;
+        .ok_or_else(not_built)?;
+    let layout = built.layout.as_ref().ok_or_else(not_built)?;
     let started = Instant::now();
     // Na raiz do projeto, como a simulação: os `$readmem` do projeto leem
     // os arquivos pelo caminho relativo a ela ([`super::build`]).
@@ -247,12 +324,17 @@ pub fn run(
     };
     send(&format!("limit {}", options.limit.max(0.0)));
     send(&format!("fps {}", options.fps.max(1.0)));
+    if let Some(until) = options.until_ps {
+        send(&format!("until {}", until.max(1)));
+    }
 
-    let layout = &built.layout;
     let mut tail: Vec<String> = Vec::new();
     let mut time_ps = 0;
     let mut ended: Option<EndReason> = None;
     let mut asked_to_stop: Option<Instant> = None;
+    // A saída do projeto em lotes: sai junto com cada estado, ou sozinha se
+    // nenhum estado vier logo (a placa pausada, o começo).
+    let mut output = OutputBatch::default();
     loop {
         if control.is_cancelled() && asked_to_stop.is_none() {
             send("quit");
@@ -267,12 +349,14 @@ pub fn run(
             Ok(Message::Hello) => on_event(SessionEvent::Ready),
             Ok(Message::State(wire)) => {
                 time_ps = wire.time_ps;
+                output.flush(on_event);
                 on_event(SessionEvent::State(BoardState {
                     time_ps: wire.time_ps,
                     speed: wire.speed,
                     paused: wire.paused,
                     lights: wire.lights,
                     uart: wire.uart,
+                    uart_baud: wire.uart_baud,
                 }));
             }
             Ok(Message::Frame(frame)) => on_event(SessionEvent::Frame(frame)),
@@ -281,7 +365,7 @@ pub fn run(
                     tail.remove(0);
                 }
                 tail.push(line.clone());
-                on_event(SessionEvent::Output { line });
+                output.push(line);
             }
             Ok(Message::Exit(exit)) => {
                 time_ps = exit.time_ps;
@@ -303,7 +387,11 @@ pub fn run(
             }
             Err(RecvTimeoutError::Disconnected) => break,
         }
+        if output.is_stale() {
+            output.flush(on_event);
+        }
     }
+    output.flush(on_event);
     drop(stdin);
     let termination = process.stop(Duration::from_secs(2));
     let reason = match ended {
@@ -416,5 +504,25 @@ mod tests {
         let mut short = b"VGA_R\0".to_vec();
         short.extend([3, 0, 1, 0, 1, 2]);
         assert!(super::frame(&short).is_none());
+    }
+
+    #[test]
+    fn the_output_goes_in_batches_with_the_rest_counted() {
+        let mut batch = OutputBatch::default();
+        let mut events = Vec::new();
+        batch.flush(&mut |e| events.push(e));
+        assert!(events.is_empty(), "nada para mandar, nenhum lote");
+        for n in 0..250 {
+            batch.push(format!("linha {n}"));
+        }
+        batch.flush(&mut |e| events.push(e));
+        batch.flush(&mut |e| events.push(e));
+        assert_eq!(events.len(), 1);
+        let SessionEvent::Output { lines, omitted } = &events[0] else {
+            panic!("um lote de saída");
+        };
+        assert_eq!(lines.len(), super::super::OUTPUT_BATCH);
+        assert_eq!(lines[0], "linha 0");
+        assert_eq!(*omitted, 150);
     }
 }

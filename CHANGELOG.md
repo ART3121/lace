@@ -37,6 +37,62 @@
   `make` tomava o objeto por pronto. A AURORA marca a compilação em
   andamento e, achando a marca de uma que não terminou ou um `.o` vazio,
   apaga a pasta do modelo e compila do zero.
+- Placa virtual: os processadores SAPHO desatualizados (o fonte ou um arquivo
+  da pasta dele mais novo que o Verilog gerado) são compilados antes da
+  placa, como na simulação. Antes, a placa rodava o programa do último build
+  sem aviso. O `BoardBuild` ganhou `processors`, e o `layout` fica `null`
+  quando um processador não compila. No core, `Processor::is_out_of_date`.
+- Placa virtual: a saída do projeto (`$display`) sai em lotes, um por estado
+  (cerca de 30 por segundo), com no máximo 100 linhas cada e a contagem das
+  que ficaram de fora. Um `$display` a cada ciclo mandava 141 mil
+  notificações por segundo e derrubava os estados de 30 para menos de 10 por
+  segundo. Muda a notificação `vboard_output` (`lines` e `omitted` no lugar
+  de `line`), o `SessionEvent::Output` e o relatório JSON do
+  `aurora vboard run` (`output_omitted`).
+- Verilator (placa virtual, simulação rápida, com onda e cocotb): mudar uma
+  linha do projeto recompilava também a biblioteca do Verilator
+  (`verilated.o` e `verilated_threads.o`), porque o `verilated.mk` a faz
+  depender do makefile do modelo, que o Verilator regrava a cada verilação.
+  O `make` recebe `--old-file=<prefixo>.mk`, e uma marca na pasta do modelo
+  (versão da AURORA, `bundle.json` e flags) a apaga quando algo disso muda.
+  Medido: de 21 s para 5 s na placa virtual e de 12 s para 4,6 s na
+  simulação rápida, numa mudança de uma linha.
+- Verilator (placa virtual, simulação rápida, com onda e cocotb): o
+  `include` procura na pasta do arquivo que inclui, depois na do testbench
+  original e na raiz do projeto (`--relative-includes` e `-I`), como no
+  Icarus. Um `include "defs.vh"` ao lado do arquivo passava no Icarus e dava
+  "Cannot find include file" no Verilator.
+- Portas do topo (placa FPGA e placa virtual): o Yosys que lê as portas
+  roda na raiz do projeto, como na síntese. Rodava na pasta dos arquivos, e
+  um `$readmemh("dados/rom.hex")` relativo à raiz o fazia falhar; o leitor
+  de texto que entrava no lugar não expande macros, e uma porta
+  `` [`LARGURA-1:0] `` saía com 1 bit, sem aviso: só o bit 0 chegava à
+  placa. Novo no core: `verilog::read_interfaces_in`, com a raiz.
+- Placa virtual: um valor de chaves ou botões maior que o periférico
+  (`--set SW=0x40000` nas 18 chaves, `vboard.input` com `1 << 40`) é
+  recusado com o erro `virtual_board_value`, que diz a largura e o maior
+  valor; antes os bits a mais eram cortados sem aviso. O `--set` com um
+  valor que não é número diz o formato, em vez do erro do Rust.
+- Placa virtual no Windows: compilar com uma placa do mesmo projeto ligada
+  (na IDE e pela CLI, ou em duas janelas) falhava no link, com o executável
+  em uso. Ele é renomeado para o lado antes da compilação, e a placa que
+  roda segue com ele; a próxima compilação apaga o antigo.
+- `aurora vboard run --time` para no tempo exato: a placa recebe a ordem
+  `until` e para sozinha. Antes a CLI parava pelo estado, umas 30 vezes por
+  segundo de relógio, e 5 ms viravam 9,7 ms, 20 ms viravam 46 ms; o mesmo
+  comando dava resultados diferentes. No core, `RunOptions::until`.
+- Placa virtual: uma serial do projeto em outra velocidade (9600 numa placa
+  de 115200) dava bytes vazios, sem aviso. A UART conta os quadros com o
+  bit de parada em 0 e, depois de dois, passa a ler na velocidade padrão
+  mais próxima do pulso mais curto do TX; o estado traz `uart_baud`, e a
+  CLI e a IDE mostram a velocidade detectada. Os primeiros bytes se perdem.
+- `aurora vboard run`: um LED em PWM mostra o brilho (`PWM: [0] 25%`), e o
+  grupo de displays aparece como `HEX7..HEX0`, e não `HEX7`.
+- `aurora vboard run`: avisa os caracteres do `--keys` que o teclado
+  americano não digita (`ç`, `€`), que antes sumiam; recusa o `--png` num
+  projeto sem vídeo, como o `--keys` e o `--uart` sem teclado ou serial; e,
+  num projeto sem `fpga.json`, a dica cita o `--board`. No core,
+  `virtual_board::untypeable`.
 
 ## 1.0.0 (2026-11-05)
 

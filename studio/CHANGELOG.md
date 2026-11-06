@@ -20,6 +20,24 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   vai nele (`fpga.connect`), e o `fpga.json` é gravado.
 - A tabela de ligações da aba Placa FPGA lê e grava a saída que vai a
   vários sinais da placa (uma linha para cada, uma lista no `fpga.json`).
+- Botão **Placa virtual** na barra de ferramentas clássica, ao lado do
+  FPGA, com a placa FPGA ligada nas Preferências: abre a aba e gira
+  enquanto a placa está ligada.
+
+### Corrigido
+
+- **Ligar a placa** grava os arquivos abertos antes, como compilar e
+  simular: a placa compilava o que estava no disco, e não o que estava na
+  tela.
+- A saída do projeto na placa virtual chega em lotes, com a contagem das
+  linhas omitidas; um `$display` a cada ciclo travava a janela.
+- A serial da placa virtual mostra a velocidade detectada quando o projeto
+  não transmite na da placa, e lê os bytes como UTF-8 (o acento saía
+  quebrado).
+- A barra de ferramentas clássica fica só com os ícones quando os rótulos
+  não cabem: com a placa FPGA ligada ela precisa de uns 1100 px, e numa
+  janela de 960 px os últimos botões eram cortados. A dica de cada botão
+  continua com o nome.
 
 ## [8.0.0] - 2026-11-05
 

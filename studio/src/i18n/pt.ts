@@ -185,6 +185,8 @@ export const pt = {
   'toolbar.check': 'Verilog',
   'toolbar.waveSignals': 'Sinais',
   'toolbar.board': 'FPGA',
+  'toolbar.vboard': 'Placa virtual',
+  'toolbar.vboardOn': 'a placa está ligada',
   'toolbar.stop': 'Parar',
   // Os controles de execução, na barra de título. O nome no botão Executar é
   // o da etapa que ele roda.
@@ -714,6 +716,7 @@ export const pt = {
   'vboard.editOff': 'Desligue a placa para mudar as ligações',
   'vboard.editHint': 'Clique numa chave, num botão, num LED ou num display para escolher a porta do topo que vai nele; a tela, o teclado e a serial se ligam na tabela de ligações. Cada mudança grava o fpga.json e vale ao ligar a placa de novo.',
   'vboard.unused': 'Na placa, sem ligação com o topo:',
+  'vboard.outputOmitted': '({count} linhas omitidas: o projeto escreve mais do que dá para mostrar)',
   'vboard.openTable': 'Tabela de ligações',
   'vboard.top': 'topo {top}',
   'vboard.pcbHint': 'As chaves podem ser posicionadas antes de ligar a placa. Shift+clique prende um botão apertado.',
@@ -750,6 +753,7 @@ export const pt = {
   'vboard.screenOff': 'Tela desligada',
   'vboard.keyboardHint': 'Clique aqui e digite: as teclas vão para o teclado da placa',
   'vboard.keyboardOff': 'O teclado funciona com a placa ligada',
+  'vboard.uartDetected': '{detected} bps, detectado (a placa usa {baud})',
   'vboard.uartEmpty': 'Nada recebido ainda',
   'vboard.uartPlaceholder': 'Texto para enviar (Enter)',
   'vboard.uartClear': 'Limpar',
@@ -1039,7 +1043,7 @@ export const pt = {
   'settings.experimental.none': 'Esta versão da AURORA não tem recursos experimentais.',
   'experimental.fpga': 'Placa FPGA',
   'experimental.fpga.hint':
-    'Compilar pelo Quartus Prime e gravar na placa, e simular o projeto na placa virtual. Ligada, aparecem as abas Placa FPGA e Placa virtual, o botão FPGA da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle da AURORA; na CLI, o aurora fpga e o aurora vboard.',
+    'Compilar pelo Quartus Prime e gravar na placa, e simular o projeto na placa virtual. Ligada, aparecem as abas Placa FPGA e Placa virtual, os botões FPGA e Placa virtual da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle da AURORA; na CLI, o aurora fpga e o aurora vboard.',
   'experimental.assistant': 'Assistente de IA',
   'experimental.assistant.hint':
     'Uma conversa com o Claude Code instalado na máquina, com as ferramentas da AURORA. Ligado, aparecem a vista Assistente (menu Exibir) e a página Assistente das Preferências; na CLI, o aurora chat e o aurora mcp.',

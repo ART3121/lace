@@ -439,6 +439,13 @@ a {
   overflow: hidden;
 }
 
+/* Sem largura para os rótulos, só os ícones (Toolbar.tsx). */
+.toolbar--compact .tool-btn > span:not(.tool-btn__badge),
+.toolbar--compact .toolbar__target > span,
+.toolbar--compact .toolbar__running > span {
+  display: none;
+}
+
 .toolbar__group {
   display: flex;
   align-items: center;

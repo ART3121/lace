@@ -1147,11 +1147,20 @@ fn execute(
                 // make e Perl). O mesmo formato nas três plataformas.
                 verilate = verilate.arg("--trace").arg("--no-trace-top");
             }
+            // O modelo do cocotb leva o prefixo `Vtop`; os outros, o padrão
+            // do Verilator, `V<topo>`.
+            let prefix = if plan.cocotb.is_some() {
+                "Vtop".to_owned()
+            } else {
+                format!("V{top}")
+            };
             let mut verilate = verilate
                 .arg("-j")
                 .arg(jobs)
                 .arg("-MAKEFLAGS")
                 .arg("OBJCACHE=")
+                .arg("-MAKEFLAGS")
+                .arg(keep_runtime_objects(&prefix))
                 // O Python do bundle, e não o `python3` do sistema.
                 .arg("-MAKEFLAGS")
                 .arg(format!(
@@ -1196,6 +1205,14 @@ fn execute(
             for &flag in verilator_cflags() {
                 verilate = verilate.arg("-CFLAGS").arg(flag);
             }
+            // Os `include` como no Icarus: a pasta do arquivo, a do
+            // testbench original (a cópia instrumentada fica em
+            // `.aurora8/Temp`) e a raiz.
+            let original_dir = plan
+                .instrumented
+                .as_ref()
+                .and_then(|(_, original)| original.parent());
+            verilate = verilator_include_paths(verilate, original_dir, &plan.cwd);
             // A pasta do modelo relativa à pasta de trabalho, o CWD do
             // Verilator: ele a passa ao `make` (`make -C <pasta>`) sem aspas.
             verilate = verilate
@@ -1218,7 +1235,7 @@ fn execute(
             // bundle no Windows), o LC_ALL=C e, no Windows, o VERILATOR_ROOT
             // vêm de Toolchain::invocation; no Linux e no macOS o script do
             // Verilator deduz o VERILATOR_ROOT do próprio caminho.
-            model_build_started(&obj_dir)?;
+            model_build_started(&obj_dir, &model_stamp(toolchain))?;
             let verilated =
                 runner.run(PlannedStep::new(Step::Verilate, Tool::Verilator, verilate))?;
             model_build_finished(&obj_dir, &runner);
@@ -1403,6 +1420,11 @@ pub(crate) fn board_verilator(
         .arg("-MAKEFLAGS")
         .arg("OBJCACHE=")
         .arg("-MAKEFLAGS")
+        .arg(keep_runtime_objects(&format!(
+            "V{}",
+            crate::fpga::wrapper::TOP_MODULE
+        )))
+        .arg("-MAKEFLAGS")
         .arg(format!(
             "PYTHON3={}",
             make_path(&toolchain.bundled_python()?)
@@ -1430,6 +1452,26 @@ pub(crate) fn board_verilator(
     Ok(verilate)
 }
 
+/// Os caminhos de busca do `include` no Verilator, os mesmos do Icarus
+/// ([`crate::synth::include_paths`]): a pasta do arquivo que inclui
+/// (`--relative-includes`), depois `before`, se houver, e por fim a raiz do
+/// projeto. Sem isso o Verilator procura só no CWD dele, a pasta de
+/// trabalho em `.aurora8/Temp`, e um `include "defs.vh"` ao lado do arquivo
+/// passava no Icarus e quebrava na simulação rápida e na placa virtual.
+pub(crate) fn verilator_include_paths(
+    invocation: crate::process::Invocation,
+    before: Option<&Utf8Path>,
+    root: &Utf8Path,
+) -> crate::process::Invocation {
+    let cwd = invocation.cwd.clone();
+    let dir = |path: &Utf8Path| format!("-I{}", crate::process::tool_path(path, &cwd));
+    let mut invocation = invocation.arg("--relative-includes");
+    if let Some(before) = before.filter(|before| *before != root) {
+        invocation = invocation.arg(dir(before));
+    }
+    invocation.arg(dir(root))
+}
+
 /// Flags do compilador C++ do modelo, as da AURORA. No macOS sai o
 /// `-march=native`: o clang da Apple em versões anteriores ao Xcode 15 o
 /// recusa no Apple Silicon (inferência a partir de relatos, não testado aqui),
@@ -1450,6 +1492,40 @@ fn verilator_cflags() -> &'static [&'static str] {
 
 /// Marca, na pasta do modelo, de um `--build` do Verilator em andamento.
 const BUILD_MARK: &str = ".aurora-building";
+/// Na pasta do modelo, o que entrou nos objetos dela ([`model_stamp`]).
+const MODEL_STAMP: &str = ".aurora-model";
+
+/// O que, mudando, deixa os objetos de uma pasta de modelo sem valor: a
+/// versão da AURORA, o bundle (o Verilator e, no Windows, o compilador) e
+/// as flags do compilador. Com [`keep_runtime_objects`], o `make` deixa de
+/// refazer a biblioteca do Verilator sozinho quando algo disso muda; esta
+/// marca faz isso no lugar dele, apagando a pasta.
+pub(crate) fn model_stamp(toolchain: &Toolchain) -> String {
+    let bundle = std::fs::read_to_string(toolchain.root().join("bundle.json")).unwrap_or_default();
+    format!(
+        "aurora {}
+toolchain {}
+cflags {}
+{}
+",
+        env!("CARGO_PKG_VERSION"),
+        toolchain.root(),
+        verilator_cflags().join(" "),
+        bundle.trim()
+    )
+}
+
+/// O `-MAKEFLAGS` que impede o `make` de refazer a biblioteca do Verilator
+/// (`verilated.o`, `verilated_threads.o`) só porque o makefile do modelo
+/// mudou de data. O `verilated.mk` faz esses objetos dependerem do
+/// `<prefixo>.mk`, para o caso de as flags mudarem, e o Verilator regrava o
+/// `.mk` a cada verilação, mesmo igual: toda mudança no projeto recompilava
+/// a biblioteca, uns 25 s de CPU e 20 s de espera numa máquina de 4
+/// núcleos. As flags vêm de [`model_stamp`], que apaga a pasta quando elas
+/// mudam.
+pub(crate) fn keep_runtime_objects(prefix: &str) -> String {
+    format!("--old-file={prefix}.mk")
+}
 
 /// Prepara a pasta do modelo para um `--build` do Verilator e marca a
 /// compilação como em andamento; [`model_build_finished`] tira a marca.
@@ -1460,11 +1536,15 @@ const BUILD_MARK: &str = ".aurora-building";
 /// vazio com data nova, o `make` o toma por pronto, e o link das compilações
 /// seguintes falha (`undefined reference to
 /// VerilatedContext::VerilatedContext()` com um `verilated.o` de 0 bytes).
-/// Achada a marca de uma compilação que não terminou, ou um `.o` vazio de
-/// uma versão sem a marca, a pasta é apagada e o modelo sai do zero.
-pub(crate) fn model_build_started(obj_dir: &Utf8Path) -> Result<()> {
-    if build_interrupted(obj_dir) {
-        tracing::info!(%obj_dir, "Interrupted Verilator build, starting over");
+/// Achada a marca de uma compilação que não terminou, um `.o` vazio de
+/// uma versão sem a marca, ou a pasta feita com outro `stamp`
+/// ([`model_stamp`]), a pasta é apagada e o modelo sai do zero.
+pub(crate) fn model_build_started(obj_dir: &Utf8Path, stamp: &str) -> Result<()> {
+    let stamp_file = obj_dir.join(MODEL_STAMP);
+    let other_stamp =
+        obj_dir.is_dir() && std::fs::read_to_string(&stamp_file).ok().as_deref() != Some(stamp);
+    if build_interrupted(obj_dir) || other_stamp {
+        tracing::info!(%obj_dir, "Interrupted or outdated Verilator build, starting over");
         match std::fs::remove_dir_all(obj_dir) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
@@ -1472,6 +1552,7 @@ pub(crate) fn model_build_started(obj_dir: &Utf8Path) -> Result<()> {
         }
     }
     std::fs::create_dir_all(obj_dir).map_err(AuroraError::io("Creating directory", obj_dir))?;
+    std::fs::write(&stamp_file, stamp).map_err(AuroraError::io("Writing", &stamp_file))?;
     let mark = obj_dir.join(BUILD_MARK);
     std::fs::write(&mark, "").map_err(AuroraError::io("Writing", &mark))
 }
@@ -2047,6 +2128,10 @@ mod tests {
         assert_eq!(options.simulator_for(true), Simulator::Verilator);
     }
 
+    fn model_build_finished_for_test(obj_dir: &Utf8Path) {
+        std::fs::remove_file(obj_dir.join(BUILD_MARK)).unwrap();
+    }
+
     #[test]
     fn an_interrupted_model_build_starts_over() {
         let guard = tempfile::tempdir().unwrap();
@@ -2056,7 +2141,7 @@ mod tests {
         // lado de objetos prontos.
         std::fs::write(obj_dir.join("verilated.o"), "").unwrap();
         std::fs::write(obj_dir.join("board_main.o"), "obj").unwrap();
-        model_build_started(&obj_dir).unwrap();
+        model_build_started(&obj_dir, "s1").unwrap();
         assert!(!obj_dir.join("verilated.o").exists());
         assert!(!obj_dir.join("board_main.o").exists());
         assert!(obj_dir.join(BUILD_MARK).is_file());
@@ -2064,12 +2149,20 @@ mod tests {
         // Uma pasta em dia fica como está.
         std::fs::remove_file(obj_dir.join(BUILD_MARK)).unwrap();
         std::fs::write(obj_dir.join("board_main.o"), "obj").unwrap();
-        model_build_started(&obj_dir).unwrap();
+        model_build_started(&obj_dir, "s1").unwrap();
         assert!(obj_dir.join("board_main.o").exists());
 
         // A marca de uma compilação que não terminou apaga tudo, mesmo sem
         // `.o` vazio (um objeto pela metade, um executável truncado).
-        model_build_started(&obj_dir).unwrap();
+        model_build_started(&obj_dir, "s1").unwrap();
+        assert!(!obj_dir.join("board_main.o").exists());
+
+        // Outra AURORA, outro bundle ou outras flags: a pasta também sai.
+        model_build_finished_for_test(&obj_dir);
+        std::fs::write(obj_dir.join("board_main.o"), "obj").unwrap();
+        model_build_started(&obj_dir, "s1").unwrap();
+        assert!(obj_dir.join("board_main.o").exists());
+        model_build_started(&obj_dir, "s2").unwrap();
         assert!(!obj_dir.join("board_main.o").exists());
 
         assert!(build_completed(Some(Termination::Exited(0))));

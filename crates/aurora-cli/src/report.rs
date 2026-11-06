@@ -649,8 +649,10 @@ pub struct VboardRunReport {
     /// O PNG do último quadro de vídeo, se pedido e se houve vídeo.
     #[schemars(with = "Option<String>")]
     pub png: Option<Utf8PathBuf>,
-    /// O que o projeto escreveu (`$display`).
+    /// O que o projeto escreveu (`$display`), até 100 linhas por estado.
     pub output: Vec<String>,
+    /// As linhas que passaram desse limite e ficaram de fora de `output`.
+    pub output_omitted: u64,
 }
 
 impl VboardRunReport {
@@ -661,6 +663,7 @@ impl VboardRunReport {
         state: Option<aurora_core::virtual_board::BoardState>,
         png: Option<Utf8PathBuf>,
         output: Vec<String>,
+        output_omitted: u64,
     ) -> VboardRunReport {
         VboardRunReport {
             build,
@@ -668,6 +671,7 @@ impl VboardRunReport {
             state,
             png,
             output,
+            output_omitted,
         }
     }
 }

@@ -728,8 +728,15 @@ impl<'a> Resolver<'a> {
                 .filter(|&b| bits[b as usize].is_none())
                 .collect();
             if loose.len() == bits.len() {
-                self.notes
-                    .push(format!("{port} is tied to 0 (no connection)"));
+                // Um reset ou enable ativo em 0 sem ligação fica ativo para
+                // sempre: o projeto não sai do reset, e a nota diz isso.
+                self.notes.push(if active_low_name(&port) {
+                    format!(
+                        "{port} is tied to 0 (no connection): active low by its name, it stays active"
+                    )
+                } else {
+                    format!("{port} is tied to 0 (no connection)")
+                });
             } else if !loose.is_empty() {
                 self.notes.push(format!(
                     "{} is tied to 0 (no connection)",
@@ -1063,6 +1070,15 @@ mod links {
         }
         deserializer.deserialize_map(Links)
     }
+}
+
+/// O nome diz que a porta é ativa em 0: `rst_n`, `reset_b`, `resetn`,
+/// `KEY_N`.
+fn active_low_name(port: &str) -> bool {
+    let name = port.to_ascii_lowercase();
+    name.ends_with("_n")
+        || name.ends_with("_b")
+        || ((name.contains("rst") || name.contains("reset")) && name.ends_with('n'))
 }
 
 #[cfg(test)]
@@ -1451,6 +1467,17 @@ pub(crate) mod tests {
                 (first_output.name.as_str(), first_output.name.as_str()),
             ]
         );
+    }
+
+    #[test]
+    fn an_active_low_input_left_loose_is_said_to_stay_active() {
+        assert!(active_low_name("rst_n"));
+        assert!(active_low_name("RESET_N"));
+        assert!(active_low_name("resetn"));
+        assert!(active_low_name("en_b"));
+        assert!(!active_low_name("rst"));
+        assert!(!active_low_name("clk_en"));
+        assert!(!active_low_name("din"));
     }
 
     #[test]

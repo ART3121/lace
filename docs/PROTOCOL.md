@@ -941,11 +941,14 @@ Um quadro de vídeo novo da placa virtual.
 
 ### `vboard_output`
 
-Uma linha que o projeto escreveu na placa virtual (`$display`).
+As linhas que o projeto escreveu na placa virtual (`$display`), em
+lotes de no máximo 100, um por estado; as que passam disso são só
+contadas.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `line` | `string` | sim | A linha. |
+| `lines` | lista de `string` | sim | As linhas, na ordem. |
+| `omitted` | `integer` | sim | Quantas ficaram de fora deste lote, depois de `lines`. |
 
 ### `install`
 
@@ -1147,8 +1150,9 @@ Verilator e do compilador C++.
 | `status` | [`Status`](#tipo-status) | sim | Como terminou. `failed` é Verilog (ou ligação) que não compila. |
 | `failed_step` | [`Step`](#tipo-step) \| `null` | sim | O passo que falhou, quando for o caso (`verilate`). |
 | `steps` | lista de [`StepReport`](#tipo-stepreport) | sim | Os passos rodados, com o comando e a saída. |
-| `diagnostics` | lista de [`Diagnostic`](#tipo-diagnostic) | sim | As mensagens do Verilator e do compilador. |
-| `layout` | [`BoardLayout`](#tipo-boardlayout) | sim | A placa virtual do projeto. |
+| `diagnostics` | lista de [`Diagnostic`](#tipo-diagnostic) | sim | As mensagens do YANC, do Verilator e do compilador. |
+| `processors` | lista de [`BuildResult`](#tipo-buildresult) | sim | Os processadores SAPHO compilados antes da placa, os desatualizados (`crate::Processor::is_out_of_date`); vazio quando todos estavam em dia. |
+| `layout` | [`BoardLayout`](#tipo-boardlayout) \| `null` | sim | A placa virtual do projeto; `None` quando um processador não compilou, antes de o topo poder ser lido. |
 | `executable` | `string` \| `null` | sim | O executável, se a compilação deu certo. |
 | `duration_ms` | `integer` | sim | Quanto levou, em milissegundos. |
 
@@ -1288,6 +1292,7 @@ O estado da placa virtual, cerca de 30 vezes por segundo.
 | `paused` | `boolean` | sim | A simulação está parada (`BoardInput::Pause`). |
 | `lights` | mapa de `string` para lista de `integer` | sim | Quanto cada LED e cada segmento ficou aceso desde o estado anterior, de 0 a 255, por sinal, do bit 0 em diante: o PWM aparece como brilho, e o display multiplexado como persistência. |
 | `uart` | mapa de `string` para lista de `integer` | sim | Os bytes que o projeto transmitiu em cada UART desde o estado anterior. |
+| `uart_baud` | mapa de `string` para `integer` | não | A velocidade de cada UART que não está na da placa: o projeto transmitia em outra, e a placa passou a ler na padrão mais próxima do bit medido (os primeiros bytes se perdem). Vazio na velocidade da placa. |
 
 <a id="tipo-buildresult"></a>
 

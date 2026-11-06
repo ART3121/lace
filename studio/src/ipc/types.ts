@@ -471,7 +471,7 @@ export type VboardMessage =
   | { type: 'vboard_ready'; layout: BoardLayout }
   | { type: 'vboard_state'; state: BoardState }
   | { type: 'vboard_frame'; frame: { device: string; width: number; height: number; png: string } }
-  | { type: 'vboard_output'; line: string }
+  | { type: 'vboard_output'; lines: string[]; omitted: number }
   | { type: 'finished'; result: BoardRun }
   | { type: 'failed'; error: IpcError };
 

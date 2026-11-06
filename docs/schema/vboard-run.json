@@ -38,11 +38,17 @@
       ]
     },
     "output": {
-      "description": "O que o projeto escreveu (`$display`).",
+      "description": "O que o projeto escreveu (`$display`), até 100 linhas por estado.",
       "type": "array",
       "items": {
         "type": "string"
       }
+    },
+    "output_omitted": {
+      "description": "As linhas que passaram desse limite e ficaram de fora de `output`.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
     }
   },
   "required": [
@@ -50,7 +56,8 @@
     "outcome",
     "state",
     "png",
-    "output"
+    "output",
+    "output_omitted"
   ],
   "$defs": {
     "BoardBuild": {
@@ -80,15 +87,29 @@
           }
         },
         "diagnostics": {
-          "description": "As mensagens do Verilator e do compilador.",
+          "description": "As mensagens do YANC, do Verilator e do compilador.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/Diagnostic"
           }
         },
+        "processors": {
+          "description": "Os processadores SAPHO compilados antes da placa, os desatualizados\n([`crate::Processor::is_out_of_date`]); vazio quando todos estavam em\ndia.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BuildResult"
+          }
+        },
         "layout": {
-          "description": "A placa virtual do projeto.",
-          "$ref": "#/$defs/BoardLayout"
+          "description": "A placa virtual do projeto; `None` quando um processador não compilou,\nantes de o topo poder ser lido.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoardLayout"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "executable": {
           "description": "O executável, se a compilação deu certo.",
@@ -109,6 +130,7 @@
         "failed_step",
         "steps",
         "diagnostics",
+        "processors",
         "layout",
         "executable",
         "duration_ms"
@@ -586,6 +608,254 @@
         }
       ]
     },
+    "BuildResult": {
+      "description": "O resultado de [`build`]. Ver o módulo `pipeline` para os campos comuns a\ntoda operação.\n\nEm JSON (resumido):\n\n```json\n{ \"processor\": \"soma\", \"language\": \"cmm\", \"status\": \"succeeded\",\n  \"failed_step\": null, \"frequency_mhz\": 100, \"clocks\": 2000,\n  \"steps\": [ { \"step\": \"compile\", \"tool\": \"cmmcomp\", \"...\": \"...\" } ],\n  \"diagnostics\": [],\n  \"artifacts\": [ { \"kind\": \"verilog\", \"path\": \"/p/soma/soma/soma.v\",\n                   \"required\": true, \"fresh\": true } ] }\n```",
+      "type": "object",
+      "properties": {
+        "processor": {
+          "description": "O processador compilado.",
+          "type": "string"
+        },
+        "language": {
+          "description": "A linguagem do fonte, que decidiu o pipeline.",
+          "$ref": "#/$defs/Language"
+        },
+        "status": {
+          "description": "Como o build terminou.",
+          "$ref": "#/$defs/Status"
+        },
+        "failed_step": {
+          "description": "O passo que falhou ou quebrou, quando for o caso.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Step"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frequency_mhz": {
+          "description": "A frequência usada (do `.spf` ou de [`BuildOptions`]).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "clocks": {
+          "description": "Os clocks usados (do `.spf` ou de [`BuildOptions`]).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "steps": {
+          "description": "Um relatório por compilador executado: `compile` e `assemble`\n([`build_steps`]).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StepReport"
+          }
+        },
+        "diagnostics": {
+          "description": "Todas as mensagens de todos os passos, na ordem em que saíram. Hoje\nos compiladores param no primeiro erro, mas a API já é uma lista.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          }
+        },
+        "artifacts": {
+          "description": "Obrigatórios, na pasta de saída: `<nome>.asm`, `<nome>.v`,\n`<nome>_data.mif`, `<nome>_inst.mif` e o testbench `<nome>_tb.v`.\nIntermediários (`pc_<nome>_mem.txt`, `src_lines.txt`,\n`trad_opcode.txt`, `prog_log.txt`, `app_log.txt`), quando existem.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          }
+        },
+        "duration_ms": {
+          "description": "Quanto o build levou, do começo ao fim, em milissegundos.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "processor",
+        "language",
+        "status",
+        "failed_step",
+        "frequency_mhz",
+        "clocks",
+        "steps",
+        "diagnostics",
+        "artifacts",
+        "duration_ms"
+      ]
+    },
+    "Language": {
+      "description": "Linguagem do programa de um processador. Em JSON: `\"cmm\"` ou `\"cpp\"`.",
+      "oneOf": [
+        {
+          "description": "C±, compilado pelo `cmmcomp`.",
+          "type": "string",
+          "const": "cmm"
+        },
+        {
+          "description": "C, compilado pelo `cppcomp`. A AURORA e o YANC chamam de \"cpp\" e\nusam a extensão `.cpp`.",
+          "type": "string",
+          "const": "cpp"
+        }
+      ]
+    },
+    "Artifact": {
+      "description": "Um arquivo que a operação deveria produzir.\n\n`fresh` é calculado comparando o horário de modificação antes e depois da\noperação. Um `.v` que sobrou de um build anterior aparece com\n`fresh = false`, e não como sucesso. Artefatos obrigatórios aparecem\nsempre; intermediários, só se existirem.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "O papel do arquivo.",
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "path": {
+          "description": "Caminho absoluto.",
+          "type": "string"
+        },
+        "required": {
+          "description": "Sem ele a operação não está completa.",
+          "type": "boolean"
+        },
+        "fresh": {
+          "description": "Existe e foi escrito por esta operação (não é sobra de uma anterior).\nO executável do Verilator, que o `make` só refaz quando o modelo\nmuda, conta como escrito quando a compilação terminou bem: ele está\nem dia com a entrada.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "required",
+        "fresh"
+      ]
+    },
+    "ArtifactKind": {
+      "description": "O papel de um arquivo produzido por uma operação. Em JSON, em\n`snake_case` (`\"data_memory\"`).",
+      "oneOf": [
+        {
+          "description": "`<nome>/<nome>/<nome>.asm`, na pasta de saída do processador.",
+          "type": "string",
+          "const": "assembly"
+        },
+        {
+          "description": "`<nome>/<nome>/<nome>.v`, o processador sintetizável.",
+          "type": "string",
+          "const": "verilog"
+        },
+        {
+          "description": "`<nome>/<nome>/<nome>_data.mif`",
+          "type": "string",
+          "const": "data_memory"
+        },
+        {
+          "description": "`<nome>/<nome>/<nome>_inst.mif`",
+          "type": "string",
+          "const": "instruction_memory"
+        },
+        {
+          "description": "`<nome>/<nome>/<nome>_tb.v`: o testbench que o `asmcomp` gera, que\nroda na pasta de saída.",
+          "type": "string",
+          "const": "testbench"
+        },
+        {
+          "description": "`<temp>/pp.cpp`, saída do `cpppp` do YANC até a 6.x, nos relatórios\nantigos.",
+          "type": "string",
+          "const": "preprocessed_source"
+        },
+        {
+          "description": "`<nome>/<nome>/pc_<nome>_mem.txt`, liga endereço de instrução a linha\ndo fonte.",
+          "type": "string",
+          "const": "program_counter_map"
+        },
+        {
+          "description": "`<nome>/<nome>/src_lines.txt`: o texto de cada linha do fonte.",
+          "type": "string",
+          "const": "source_translation"
+        },
+        {
+          "description": "`<nome>/<nome>/trad_opcode.txt`",
+          "type": "string",
+          "const": "opcode_translation"
+        },
+        {
+          "description": "`<nome>/<nome>/prog_log.txt`: as variáveis, o número de instruções\ne a pasta do fonte.",
+          "type": "string",
+          "const": "compiler_log"
+        },
+        {
+          "description": "`<nome>/<nome>/app_log.txt`",
+          "type": "string",
+          "const": "pre_assembler_log"
+        },
+        {
+          "description": "O `.vvp` do Icarus.",
+          "type": "string",
+          "const": "icarus_image"
+        },
+        {
+          "description": "O executável que o Verilator gerou.",
+          "type": "string",
+          "const": "verilated_model"
+        },
+        {
+          "description": "Onda da simulação (VCD ou FST).",
+          "type": "string",
+          "const": "waveform"
+        },
+        {
+          "description": "`<nome>/<nome>/output_<n>.txt`, escrito pelo testbench.",
+          "type": "string",
+          "const": "simulation_output"
+        },
+        {
+          "description": "Netlist JSON do Yosys.",
+          "type": "string",
+          "const": "netlist"
+        },
+        {
+          "description": "Grafo do esquemático (`.dot`), gerado pelo Yosys.",
+          "type": "string",
+          "const": "schematic_graph"
+        },
+        {
+          "description": "Esquemático SVG, desenhado pelo `dot`.",
+          "type": "string",
+          "const": "schematic"
+        },
+        {
+          "description": "As estatísticas do `stat -json` do Yosys (`stat.json`).",
+          "type": "string",
+          "const": "synthesis_statistics"
+        },
+        {
+          "description": "O topo da placa que a AURORA gera (`aurora_board_top.v`).",
+          "type": "string",
+          "const": "board_top"
+        },
+        {
+          "description": "As configurações do projeto do Quartus (`.qsf`): a FPGA, os fontes e\nos pinos.",
+          "type": "string",
+          "const": "quartus_project"
+        },
+        {
+          "description": "O arquivo de gravação do Quartus (`.sof`, SRAM Object File), que o\n`quartus_pgm` grava.",
+          "type": "string",
+          "const": "sram_object"
+        },
+        {
+          "description": "O bitstream cru, sem compressão (`.rbf`, Raw Binary File), que o\nopenFPGALoader grava.",
+          "type": "string",
+          "const": "raw_binary"
+        },
+        {
+          "description": "A gravação como vetores JTAG (`.svf`, Serial Vector Format), que o\nopenFPGALoader também grava.",
+          "type": "string",
+          "const": "serial_vector_format"
+        }
+      ]
+    },
     "BoardLayout": {
       "description": "A placa virtual de um projeto: a placa, o topo e cada periférico, ligado\nao projeto ou não, com as larguras. É o que uma interface desenha.",
       "type": "object",
@@ -1051,6 +1321,15 @@
               "minimum": 0,
               "maximum": 255
             }
+          }
+        },
+        "uart_baud": {
+          "description": "A velocidade de cada UART que não está na da placa: o projeto\ntransmitia em outra, e a placa passou a ler na padrão mais próxima do\nbit medido (os primeiros bytes se perdem). Vazio na velocidade da\nplaca.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
           }
         }
       },

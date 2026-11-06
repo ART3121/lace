@@ -1875,7 +1875,7 @@ conferido junto com o resto do JSON dela.
 | `virtual_board::layout(Option<&Toolchain>, &Project, &BuildOptions) -> Result<BoardLayout>` | a placa sem compilar: cada periférico, ligado ao projeto ou não, com as larguras e a polaridade dos sinais, a porta do topo em cada bit (`LayoutSignal::ports`: `a`, `b[3]`, `!rst`; vírgulas quando mais de uma porta lê o mesmo bit), os relógios e os ajustes das ligações |
 | `virtual_board::build(&Toolchain, &Project, &BuildOptions, &Control) -> Result<BoardBuild>` | grava o topo da placa, o `main` em C++ e o runtime dos periféricos em `.aurora8/Temp/vboard` e compila pelo Verilator (passo `verilate`). Verilog que não compila é `Ok` com `status: failed` e os diagnósticos |
 | `virtual_board::run(&Toolchain, &Project, &BoardBuild, &RunOptions, &Receiver<BoardInput>, &mut dyn FnMut(SessionEvent), &Control) -> Result<SessionOutcome>` | roda o executável até o cancelamento ou o `$finish`. As entradas (`BoardInput`: `set`, `key`, `text`, `bytes`, `pause`, `resume`, `step`, `speed`) chegam pelo canal; os `SessionEvent` (`ready`, `state`, `frame`, `output`) vão para quem chama, na thread dele |
-| `BoardLayout::check(&BoardInput) -> Result<()>` | confere que a entrada vai para um periférico ligado que a recebe (`virtual_board_device`, com os que recebem) |
+| `BoardLayout::check(&BoardInput) -> Result<()>` | confere que a entrada vai para um periférico ligado que a recebe (`virtual_board_device`, com os que recebem) e que o valor de chaves e botões cabe nele (`virtual_board_value`, com a largura) |
 
 `BuildOptions::board` vale num projeto sem `fpga.json`. `RunOptions::new(limit,
 fps)`: `limit` 1 é o tempo real, 0 o mais rápido possível; `fps` limita os

@@ -49,7 +49,11 @@ fn assignment(text: &str) -> anyhow::Result<(String, u64)> {
     };
     Ok((
         name.trim().to_owned(),
-        parsed.map_err(|e| anyhow::anyhow!("{text}: {e}"))?,
+        parsed.map_err(|_| {
+            anyhow::anyhow!(
+                "{text}: the value is a number of zero or more, in decimal, 0x (hex) or 0b (binary)"
+            )
+        })?,
     ))
 }
 
@@ -66,10 +70,17 @@ fn run_board(
     options.board.clone_from(&args.board);
     let built = virtual_board::build(&toolchain, &project, &options, control)?;
     out.vboard_build(&built, &root);
-    if !built.succeeded() {
-        out.json(&VboardRunReport::new(built, None, None, None, Vec::new()))?;
+    let Some(layout) = built.layout.clone().filter(|_| built.succeeded()) else {
+        out.json(&VboardRunReport::new(
+            built,
+            None,
+            None,
+            None,
+            Vec::new(),
+            0,
+        ))?;
         return Ok(false);
-    }
+    };
 
     // As entradas antes de começar: conferidas contra a placa, como a
     // interface confere as dela.
@@ -83,9 +94,23 @@ fn run_board(
         first.push(BoardInput::Set { device, value });
     }
     if let Some(keys) = &args.keys {
+        let left_out = virtual_board::untypeable(keys);
+        if !left_out.is_empty() && out.is_text() {
+            let list: Vec<String> = left_out.iter().map(|c| format!("{c:?}")).collect();
+            eprintln!(
+                "{}",
+                paint(
+                    WARNING,
+                    format!(
+                        "The PS/2 keyboard types the keys of a US keyboard; left out: {}",
+                        list.join(", ")
+                    )
+                )
+            );
+        }
         first.push(BoardInput::Text {
             device: device_of(
-                &built.layout,
+                &layout,
                 |p| matches!(p, Peripheral::Ps2 { .. }),
                 "PS/2 keyboard",
             )?,
@@ -94,16 +119,21 @@ fn run_board(
     }
     if let Some(text) = &args.uart {
         first.push(BoardInput::Text {
-            device: device_of(
-                &built.layout,
-                |p| matches!(p, Peripheral::Uart { .. }),
-                "UART",
-            )?,
+            device: device_of(&layout, |p| matches!(p, Peripheral::Uart { .. }), "UART")?,
             text: text.clone(),
         });
     }
     for input in &first {
-        built.layout.check(input)?;
+        layout.check(input)?;
+    }
+    // Uma imagem pedida de um projeto sem vídeo: dito antes de rodar, como o
+    // teclado e a serial.
+    if args.png.is_some() {
+        device_of(
+            &layout,
+            |p| matches!(p, Peripheral::Vga { .. }),
+            "VGA screen",
+        )?;
     }
     let (inputs, receiver) = mpsc::channel();
     for input in first {
@@ -118,6 +148,7 @@ fn run_board(
     let last_state: Arc<Mutex<Option<BoardState>>> = Arc::default();
     let mut uart: BTreeMap<String, Vec<u8>> = BTreeMap::new();
     let mut lines = Vec::new();
+    let mut omitted = 0u64;
     let mut last_frame = None;
     let mut frames = 0u32;
     let mut on_event = |event: SessionEvent| {
@@ -135,11 +166,20 @@ fn run_board(
                 frames += 1;
                 last_frame = Some(frame);
             }
-            SessionEvent::Output { line } => {
+            SessionEvent::Output {
+                lines: batch,
+                omitted: skipped,
+            } => {
                 if out.is_text() {
-                    println!("{}", paint(DIM, &line));
+                    for line in &batch {
+                        println!("{}", paint(DIM, line));
+                    }
+                    if skipped > 0 {
+                        println!("{}", paint(DIM, format!("... {skipped} lines omitted")));
+                    }
                 }
-                lines.push(line);
+                lines.extend(batch);
+                omitted += skipped;
             }
             SessionEvent::Ready => {}
             _ => {}
@@ -148,7 +188,9 @@ fn run_board(
             stop.cancel();
         }
     };
-    let run_options = RunOptions::new(args.speed, 30.0);
+    // A placa para sozinha no tempo pedido; o cancelamento pelo estado fica
+    // só para o caso de ela não parar.
+    let run_options = RunOptions::new(args.speed, 30.0).until(until_ps.max(1));
     let outcome = virtual_board::run(
         &toolchain,
         &project,
@@ -170,7 +212,7 @@ fn run_board(
     };
     if out.is_text() {
         print_state(
-            &built.layout,
+            &layout,
             state.as_ref(),
             &uart,
             frames,
@@ -185,6 +227,7 @@ fn run_board(
         state,
         png,
         lines,
+        omitted,
     ))?;
     Ok(!crashed)
 }
@@ -267,21 +310,55 @@ fn print_state(
                             .collect()
                     })
                     .unwrap_or_default();
-                println!("  {signal:<12} {}", paint(OK, &bits));
+                // Um LED em PWM: o brilho, que o 0 e o 1 escondem.
+                let partial: Vec<String> = levels
+                    .into_iter()
+                    .flatten()
+                    .enumerate()
+                    .filter(|&(_, &v)| (13..=242).contains(&v))
+                    .map(|(bit, &v)| format!("[{bit}] {}%", (u32::from(v) * 100 + 127) / 255))
+                    .collect();
+                let partial = if partial.is_empty() {
+                    String::new()
+                } else {
+                    format!(" {}", paint(DIM, format!("(PWM: {})", partial.join(", "))))
+                };
+                println!("  {signal:<12} {}{partial}", paint(OK, &bits));
             }
             Peripheral::SevenSegment { digits } => {
                 let shown: String = digits
                     .iter()
                     .map(|d| lights.and_then(|l| l.get(d)).map_or(' ', |s| digit(s)))
                     .collect();
-                println!("  {:<12} {}", item.id, paint(OK, &shown));
+                let label = match (digits.first(), digits.last()) {
+                    (Some(first), Some(last)) if first != last => format!("{first}..{last}"),
+                    _ => item.id.clone(),
+                };
+                println!("  {label:<12} {}", paint(OK, &shown));
             }
-            Peripheral::Uart { .. } => {
+            Peripheral::Uart { baud, .. } => {
                 let text = uart
                     .get(&item.id)
                     .map(|b| String::from_utf8_lossy(b).into_owned())
                     .unwrap_or_default();
-                println!("  {:<12} {}", item.id, paint(OK, format!("{text:?}")));
+                // O projeto em outra velocidade: a placa passou a ler nela.
+                let other = state.and_then(|s| s.uart_baud.get(&item.id)).map_or_else(
+                    String::new,
+                    |detected| {
+                        format!(
+                            " {}",
+                            paint(
+                                WARNING,
+                                format!("(at {detected} bps, detected; the board's is {baud})")
+                            )
+                        )
+                    },
+                );
+                println!(
+                    "  {:<12} {}{other}",
+                    item.id,
+                    paint(OK, format!("{text:?}"))
+                );
             }
             _ => {}
         }

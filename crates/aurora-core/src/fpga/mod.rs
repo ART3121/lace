@@ -184,10 +184,12 @@ pub fn connect(
 /// Os de ler os fontes do projeto.
 pub fn modules(toolchain: Option<&Toolchain>, project: &Project) -> Result<Vec<String>> {
     let files = crate::synth::project_sources(project)?;
-    Ok(crate::verilog::read_interfaces(toolchain, &files)?
-        .into_iter()
-        .map(|i| i.name)
-        .collect())
+    Ok(
+        crate::verilog::read_interfaces_in(toolchain, &files, Some(project.root()))?
+            .into_iter()
+            .map(|i| i.name)
+            .collect(),
+    )
 }
 
 /// O módulo que vai para a placa e as portas dele: `top`, se dado (o do
@@ -216,7 +218,8 @@ pub fn top_interface(
         },
     };
     let files = crate::synth::project_sources(project)?;
-    let mut interfaces = crate::verilog::read_interfaces(toolchain, &files)?;
+    let mut interfaces =
+        crate::verilog::read_interfaces_in(toolchain, &files, Some(project.root()))?;
     match interfaces.iter().position(|i| i.name == top) {
         Some(at) => Ok(interfaces.swap_remove(at)),
         None => Err(AuroraError::ModuleNotFound {

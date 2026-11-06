@@ -177,6 +177,8 @@ export const en: Record<Key, string> = {
   'toolbar.check': 'Verilog',
   'toolbar.waveSignals': 'Signals',
   'toolbar.board': 'FPGA',
+  'toolbar.vboard': 'Virtual board',
+  'toolbar.vboardOn': 'the board is on',
   'toolbar.stop': 'Stop',
   'run.label': 'Run',
   'run.more': 'Choose the step',
@@ -687,6 +689,7 @@ export const en: Record<Key, string> = {
   'vboard.editOff': 'Turn the board off to change the connections',
   'vboard.editHint': 'Click a switch, a button, a LED or a display to choose the top port that goes on it; the screen, the keyboard and the serial port are connected in the connection table. Each change writes fpga.json and takes effect when the board is turned on again.',
   'vboard.unused': 'On the board, not connected to the top:',
+  'vboard.outputOmitted': '({count} lines omitted: the project writes more than can be shown)',
   'vboard.openTable': 'Connection table',
   'vboard.top': 'top {top}',
   'vboard.pcbHint': 'Switches can be set before turning the board on. Shift+click latches a button down.',
@@ -723,6 +726,7 @@ export const en: Record<Key, string> = {
   'vboard.screenOff': 'Screen off',
   'vboard.keyboardHint': 'Click here and type: the keys go to the board keyboard',
   'vboard.keyboardOff': 'The keyboard works with the board on',
+  'vboard.uartDetected': '{detected} bps, detected (the board uses {baud})',
   'vboard.uartEmpty': 'Nothing received yet',
   'vboard.uartPlaceholder': 'Text to send (Enter)',
   'vboard.uartClear': 'Clear',
@@ -1007,7 +1011,7 @@ export const en: Record<Key, string> = {
   'settings.experimental.none': 'This version of AURORA has no experimental features.',
   'experimental.fpga': 'FPGA board',
   'experimental.fpga.hint':
-    'Compile with Quartus Prime and program the board, and simulate the project on the virtual board. When on, the FPGA board and virtual board tabs, the FPGA toolbar button, the Flow menu actions, the Board console and Quartus Prime in the AURORA bundle settings appear; in the CLI, aurora fpga and aurora vboard.',
+    'Compile with Quartus Prime and program the board, and simulate the project on the virtual board. When on, the FPGA board and virtual board tabs, the FPGA and Virtual board toolbar buttons, the Flow menu actions, the Board console and Quartus Prime in the AURORA bundle settings appear; in the CLI, aurora fpga and aurora vboard.',
   'experimental.assistant': 'AI assistant',
   'experimental.assistant.hint':
     'A conversation with the Claude Code installed on this machine, with the AURORA tools. When on, the Assistant view (View menu) and the Assistant settings page appear; in the CLI, aurora chat and aurora mcp.',

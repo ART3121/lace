@@ -20,6 +20,13 @@ mod session;
 
 pub use session::{EndReason, RunOptions, SessionOutcome, run};
 
+/// Os caracteres de `text` que o teclado PS/2 da placa virtual não digita
+/// (o texto vira as teclas de um teclado americano: `ç` e `€` ficam de
+/// fora), sem repetir, na ordem.
+pub fn untypeable(text: &str) -> Vec<char> {
+    keys::untypeable(text)
+}
+
 use std::time::Instant;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -196,6 +203,12 @@ pub struct BoardState {
     /// Os bytes que o projeto transmitiu em cada UART desde o estado
     /// anterior.
     pub uart: std::collections::BTreeMap<String, Vec<u8>>,
+    /// A velocidade de cada UART que não está na da placa: o projeto
+    /// transmitia em outra, e a placa passou a ler na padrão mais próxima do
+    /// bit medido (os primeiros bytes se perdem). Vazio na velocidade da
+    /// placa.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub uart_baud: std::collections::BTreeMap<String, u32>,
 }
 
 /// Um quadro de vídeo remontado pela placa virtual. Só sai quando a imagem
@@ -234,12 +247,20 @@ pub enum SessionEvent {
     State(BoardState),
     /// Um quadro de vídeo novo.
     Frame(Frame),
-    /// Uma linha que o projeto escreveu (`$display`).
+    /// As linhas que o projeto escreveu (`$display`) desde o último lote,
+    /// no máximo [`OUTPUT_BATCH`] por lote, um lote por estado: um
+    /// `$display` a cada ciclo chega a centenas de milhares de linhas por
+    /// segundo, mais do que uma interface consegue mostrar.
     Output {
-        /// A linha, sem o fim de linha.
-        line: String,
+        /// As linhas, sem o fim de linha, na ordem.
+        lines: Vec<String>,
+        /// As que ficaram de fora deste lote, depois de `lines`.
+        omitted: u64,
     },
 }
+
+/// Linhas de saída do projeto por lote ([`SessionEvent::Output`]).
+pub const OUTPUT_BATCH: usize = 100;
 
 // ------------------------------------------------------------ compilação
 
@@ -263,10 +284,15 @@ pub struct BoardBuild {
     pub failed_step: Option<Step>,
     /// Os passos rodados, com o comando e a saída.
     pub steps: Vec<StepReport>,
-    /// As mensagens do Verilator e do compilador.
+    /// As mensagens do YANC, do Verilator e do compilador.
     pub diagnostics: Vec<Diagnostic>,
-    /// A placa virtual do projeto.
-    pub layout: BoardLayout,
+    /// Os processadores SAPHO compilados antes da placa, os desatualizados
+    /// ([`crate::Processor::is_out_of_date`]); vazio quando todos estavam em
+    /// dia.
+    pub processors: Vec<crate::BuildResult>,
+    /// A placa virtual do projeto; `None` quando um processador não compilou,
+    /// antes de o topo poder ser lido.
+    pub layout: Option<BoardLayout>,
     /// O executável, se a compilação deu certo.
     #[schemars(with = "Option<String>")]
     pub executable: Option<Utf8PathBuf>,
@@ -442,13 +468,16 @@ fn layout_of(prepared: &Prepared) -> BoardLayout {
 /// pelo Verilator do bundle, em `.aurora8/Temp/vboard`.
 ///
 /// Um processador SAPHO entra compilado (o Verilog e as memórias que o build
-/// dele gerou), como na simulação do projeto.
+/// dele gerou), como na simulação do projeto. O que estiver desatualizado
+/// ([`crate::Processor::is_out_of_date`]) é compilado antes, para a placa
+/// rodar o programa que está no fonte, e não o do último build; os em dia
+/// ficam como estão, o que deixa o modelo do Verilator sem recompilar.
 ///
 /// # Erros
 ///
 /// Os de [`layout`], [`AuroraError::SystemCompilerMissing`] e os de
-/// ferramenta e I/O. Verilog que não compila é `Ok` com `status: failed` e
-/// os diagnósticos.
+/// ferramenta e I/O. Verilog (ou C±) que não compila é `Ok` com
+/// `status: failed` e os diagnósticos.
 pub fn build(
     toolchain: &Toolchain,
     project: &Project,
@@ -456,6 +485,31 @@ pub fn build(
     control: &Control,
 ) -> Result<BoardBuild> {
     let started = Instant::now();
+    let elapsed = || u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let stale = project
+        .buildable_processors()
+        .into_iter()
+        .filter(|p| p.needs_conversion() || p.is_out_of_date());
+    let processors = crate::build_processors(
+        toolchain,
+        stale,
+        &crate::BuildOptions::default(),
+        crate::OnFailure::Stop,
+        control,
+        |_| {},
+    )?;
+    if let Some(failed) = processors.iter().find(|b| !b.succeeded()) {
+        return Ok(BoardBuild {
+            status: failed.status,
+            failed_step: failed.failed_step,
+            steps: failed.steps.clone(),
+            diagnostics: failed.diagnostics.clone(),
+            layout: None,
+            executable: None,
+            duration_ms: elapsed(),
+            processors,
+        });
+    }
     let prepared = prepare(Some(toolchain), project, options)?;
     let layout = layout_of(&prepared);
     let work = work_dir(project);
@@ -492,12 +546,14 @@ pub fn build(
     if let Some(hdl) = &hdl {
         invocation = invocation.arg("-y").tool_path_arg(hdl);
     }
+    invocation = crate::simulate::verilator_include_paths(invocation, None, project.root());
     invocation = invocation.arg("board_main.cpp");
     for file in &files {
         invocation = invocation.tool_path_arg(file);
     }
     let obj_dir = work.join(OBJ_DIR);
-    crate::simulate::model_build_started(&obj_dir)?;
+    crate::simulate::model_build_started(&obj_dir, &crate::simulate::model_stamp(toolchain))?;
+    set_aside_running_executable(&obj_dir);
     let built = runner.run(PlannedStep::new(
         Step::Verilate,
         Tool::Verilator,
@@ -512,15 +568,53 @@ pub fn build(
     } else {
         runner.status
     };
+    let mut steps: Vec<StepReport> = processors.iter().flat_map(|b| b.steps.clone()).collect();
+    steps.extend(runner.steps);
     Ok(BoardBuild {
         status,
         failed_step: runner.failed_step,
-        steps: runner.steps,
+        steps,
         diagnostics: runner.diagnostics,
-        layout,
+        layout: Some(layout),
         executable,
-        duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        duration_ms: elapsed(),
+        processors,
     })
+}
+
+/// O executável de uma placa do mesmo projeto que ainda roda (ligada na IDE
+/// e pela CLI, ou em duas janelas) não pode ser regravado no Windows: o link
+/// falhava com "cannot open output file aurora-vboard.exe: Permission
+/// denied". Um executável em uso pode ser renomeado, e a placa que roda
+/// segue com ele: vai para o lado, com um nome que a próxima compilação
+/// apaga quando ele não estiver mais em uso. Fora do Windows, o `ld` troca
+/// o arquivo sem precisar disso.
+fn set_aside_running_executable(obj_dir: &Utf8Path) {
+    let aside = format!("{EXECUTABLE}.old-");
+    if let Ok(entries) = obj_dir.read_dir_utf8() {
+        for entry in entries.flatten() {
+            if entry.file_name().starts_with(&aside) {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
+    let executable = obj_dir.join(format!("{EXECUTABLE}{}", std::env::consts::EXE_SUFFIX));
+    if !cfg!(windows)
+        || !executable.is_file()
+        || std::fs::OpenOptions::new()
+            .write(true)
+            .open(&executable)
+            .is_ok()
+    {
+        return;
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let to = obj_dir.join(format!("{aside}{stamp}{}", std::env::consts::EXE_SUFFIX));
+    if let Err(error) = std::fs::rename(&executable, &to) {
+        tracing::warn!(%executable, %error, "The running virtual board could not be set aside");
+    }
 }
 
 fn write(path: &Utf8Path, text: &str) -> Result<()> {
@@ -606,6 +700,15 @@ mod tests {
             value: 0x2A,
         };
         assert_eq!(layout.command(&set).as_deref(), Some("set SW 2a"));
+        // As 18 chaves da DE2-115: o bit 18 não cabe.
+        let wide = BoardInput::Set {
+            device: "SW".into(),
+            value: 1 << 18,
+        };
+        let error = layout.check(&wide).unwrap_err();
+        assert_eq!(error.code(), "virtual_board_value");
+        assert!(error.to_string().contains("0x3ffff"), "{error}");
+        assert_eq!(layout.command(&wide), None);
         // Um LED não recebe valor; a placa não tem teclado ligado.
         let led = BoardInput::Set {
             device: "LEDR".into(),
