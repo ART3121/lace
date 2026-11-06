@@ -533,6 +533,7 @@ pub fn build(
     if let Some(hdl) = &hdl {
         invocation = invocation.arg("-y").tool_path_arg(hdl);
     }
+    invocation = crate::simulate::verilator_include_paths(invocation, None, project.root());
     invocation = invocation.arg("board_main.cpp");
     for file in &files {
         invocation = invocation.tool_path_arg(file);

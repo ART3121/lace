@@ -1205,6 +1205,14 @@ fn execute(
             for &flag in verilator_cflags() {
                 verilate = verilate.arg("-CFLAGS").arg(flag);
             }
+            // Os `include` como no Icarus: a pasta do arquivo, a do
+            // testbench original (a cópia instrumentada fica em
+            // `.aurora8/Temp`) e a raiz.
+            let original_dir = plan
+                .instrumented
+                .as_ref()
+                .and_then(|(_, original)| original.parent());
+            verilate = verilator_include_paths(verilate, original_dir, &plan.cwd);
             // A pasta do modelo relativa à pasta de trabalho, o CWD do
             // Verilator: ele a passa ao `make` (`make -C <pasta>`) sem aspas.
             verilate = verilate
@@ -1442,6 +1450,26 @@ pub(crate) fn board_verilator(
         verilate = verilate.arg("-CFLAGS").arg(flag);
     }
     Ok(verilate)
+}
+
+/// Os caminhos de busca do `include` no Verilator, os mesmos do Icarus
+/// ([`crate::synth::include_paths`]): a pasta do arquivo que inclui
+/// (`--relative-includes`), depois `before`, se houver, e por fim a raiz do
+/// projeto. Sem isso o Verilator procura só no CWD dele, a pasta de
+/// trabalho em `.aurora8/Temp`, e um `include "defs.vh"` ao lado do arquivo
+/// passava no Icarus e quebrava na simulação rápida e na placa virtual.
+pub(crate) fn verilator_include_paths(
+    invocation: crate::process::Invocation,
+    before: Option<&Utf8Path>,
+    root: &Utf8Path,
+) -> crate::process::Invocation {
+    let cwd = invocation.cwd.clone();
+    let dir = |path: &Utf8Path| format!("-I{}", crate::process::tool_path(path, &cwd));
+    let mut invocation = invocation.arg("--relative-includes");
+    if let Some(before) = before.filter(|before| *before != root) {
+        invocation = invocation.arg(dir(before));
+    }
+    invocation.arg(dir(root))
 }
 
 /// Flags do compilador C++ do modelo, as da AURORA. No macOS sai o

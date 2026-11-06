@@ -57,6 +57,11 @@
   (versão da AURORA, `bundle.json` e flags) a apaga quando algo disso muda.
   Medido: de 21 s para 5 s na placa virtual e de 12 s para 4,6 s na
   simulação rápida, numa mudança de uma linha.
+- Verilator (placa virtual, simulação rápida, com onda e cocotb): o
+  `include` procura na pasta do arquivo que inclui, depois na do testbench
+  original e na raiz do projeto (`--relative-includes` e `-I`), como no
+  Icarus. Um `include "defs.vh"` ao lado do arquivo passava no Icarus e dava
+  "Cannot find include file" no Verilator.
 
 ## 1.0.0 (2026-11-05)
 
