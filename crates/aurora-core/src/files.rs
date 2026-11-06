@@ -421,7 +421,8 @@ impl Project {
             if declaring.is_empty() {
                 continue;
             }
-            let interfaces = crate::verilog::read_interfaces(toolchain, &declaring)?;
+            let interfaces =
+                crate::verilog::read_interfaces_in(toolchain, &declaring, Some(self.root()))?;
             if let Some(found) = interfaces.into_iter().find(|i| &i.name == module) {
                 return Ok(Some(found));
             }

@@ -62,6 +62,12 @@
   original e na raiz do projeto (`--relative-includes` e `-I`), como no
   Icarus. Um `include "defs.vh"` ao lado do arquivo passava no Icarus e dava
   "Cannot find include file" no Verilator.
+- Portas do topo (placa FPGA e placa virtual): o Yosys que lê as portas
+  roda na raiz do projeto, como na síntese. Rodava na pasta dos arquivos, e
+  um `$readmemh("dados/rom.hex")` relativo à raiz o fazia falhar; o leitor
+  de texto que entrava no lugar não expande macros, e uma porta
+  `` [`LARGURA-1:0] `` saía com 1 bit, sem aviso: só o bit 0 chegava à
+  placa. Novo no core: `verilog::read_interfaces_in`, com a raiz.
 
 ## 1.0.0 (2026-11-05)
 

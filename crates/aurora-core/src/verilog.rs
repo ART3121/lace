@@ -649,14 +649,33 @@ pub fn read_interfaces(
     toolchain: Option<&Toolchain>,
     files: &[Utf8PathBuf],
 ) -> Result<Vec<ModuleInterface>> {
+    read_interfaces_in(toolchain, files, None)
+}
+
+/// [`read_interfaces`] com o Yosys rodando em `root`, a raiz do projeto, como
+/// na síntese: um `$readmemh("dados/rom.hex")` resolve a partir dela. Sem
+/// `root`, o Yosys roda na pasta comum dos arquivos, e um `$readmem` com
+/// caminho relativo à raiz o faz falhar; o leitor de texto que entra no
+/// lugar não expande macros, e uma porta `` [`LARGURA-1:0] `` saía com 1 bit.
+///
+/// # Erros
+///
+/// Os de [`read_interfaces`].
+pub fn read_interfaces_in(
+    toolchain: Option<&Toolchain>,
+    files: &[Utf8PathBuf],
+    root: Option<&Utf8Path>,
+) -> Result<Vec<ModuleInterface>> {
     if files.is_empty() {
         return Ok(Vec::new());
     }
     if let Some(toolchain) = toolchain
         && toolchain.tool(Tool::Yosys).is_ok()
-        && let Some(found) = interfaces_by_yosys(toolchain, files)?
     {
-        return Ok(found);
+        if let Some(found) = interfaces_by_yosys(toolchain, files, root)? {
+            return Ok(found);
+        }
+        tracing::warn!("Yosys could not read the ports; reading the declarations as text");
     }
     let mut found = Vec::new();
     for file in files {
@@ -670,6 +689,7 @@ pub fn read_interfaces(
 fn interfaces_by_yosys(
     toolchain: &Toolchain,
     files: &[Utf8PathBuf],
+    root: Option<&Utf8Path>,
 ) -> Result<Option<Vec<ModuleInterface>>> {
     let dir = std::env::temp_dir().join(format!(
         "aurora-portas-{}-{}",
@@ -685,7 +705,12 @@ fn interfaces_by_yosys(
     // O Yosys roda na pasta comum dos arquivos, que só lê: no Windows, os
     // caminhos com acento vão relativos a ela ([`process::tool_path`]), e o
     // trecho com acento (a pasta do projeto, a do usuário) fica de fora.
-    let cwd = common_folder(files).unwrap_or_else(|| dir.clone());
+    // Na raiz do projeto, quando se sabe qual é, pelos `$readmem`.
+    let cwd = root
+        .filter(|root| root.is_dir())
+        .map(Utf8Path::to_owned)
+        .or_else(|| common_folder(files))
+        .unwrap_or_else(|| dir.clone());
     let mut script = String::from("read_verilog -sv -lib");
     for file in files {
         script.push(' ');

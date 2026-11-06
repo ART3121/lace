@@ -10,7 +10,7 @@ mod common;
 
 use aurora_core::verilog::{
     ModuleInterface, PortDirection, classify, module_template, modules_in, read_interfaces,
-    testbench_template,
+    read_interfaces_in, testbench_template,
 };
 use aurora_core::{
     ArtifactKind, AuroraError, BuildOptions, CheckOptions, CheckResult, Control, DesignTarget,
@@ -1316,6 +1316,45 @@ fn check_of_empty_project_is_an_error() {
     )
     .unwrap_err();
     assert_eq!(err.code(), "empty_project");
+}
+
+#[test]
+fn yosys_reads_the_ports_from_the_project_root() {
+    let Some(toolchain) = common::toolchain_with(&[Tool::Yosys]) else {
+        return;
+    };
+    // A largura vem de uma macro de um cabeçalho ao lado do arquivo, e a ROM
+    // é lida de um caminho relativo à raiz do projeto: na pasta do arquivo,
+    // o Yosys não acha a ROM e falha, e o leitor de texto dava 1 bit à porta.
+    let (_guard, root) = common::tempdir();
+    std::fs::create_dir_all(root.join("rtl")).unwrap();
+    std::fs::create_dir_all(root.join("dados")).unwrap();
+    write(
+        root.join("rtl/defs.vh"),
+        "`define LARGURA 18
+",
+    );
+    write(
+        root.join("dados/rom.hex"),
+        "2A
+15
+",
+    );
+    let top = write(
+        root.join("rtl/placa.v"),
+        "`include \"defs.vh\"
+         module placa (input [1:0] SW, output [`LARGURA-1:0] LEDR);
+         reg [7:0] rom [0:1];
+         initial $readmemh(\"dados/rom.hex\", rom);
+         assign LEDR = {10'b0, rom[SW[0]]};
+         endmodule
+",
+    );
+    let placa = read_interfaces_in(Some(&toolchain), std::slice::from_ref(&top), Some(&root))
+        .unwrap()
+        .remove(0);
+    let ledr = placa.ports.iter().find(|p| p.name == "LEDR").unwrap();
+    assert_eq!(ledr.width, 18, "{placa:#?}");
 }
 
 #[test]
