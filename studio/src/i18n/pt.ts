@@ -185,6 +185,8 @@ export const pt = {
   'toolbar.check': 'Verilog',
   'toolbar.waveSignals': 'Sinais',
   'toolbar.board': 'FPGA',
+  'toolbar.vboard': 'Placa virtual',
+  'toolbar.vboardOn': 'a placa está ligada',
   'toolbar.stop': 'Parar',
   // Os controles de execução, na barra de título. O nome no botão Executar é
   // o da etapa que ele roda.
@@ -1039,7 +1041,7 @@ export const pt = {
   'settings.experimental.none': 'Esta versão da AURORA não tem recursos experimentais.',
   'experimental.fpga': 'Placa FPGA',
   'experimental.fpga.hint':
-    'Compilar pelo Quartus Prime e gravar na placa, e simular o projeto na placa virtual. Ligada, aparecem as abas Placa FPGA e Placa virtual, o botão FPGA da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle da AURORA; na CLI, o aurora fpga e o aurora vboard.',
+    'Compilar pelo Quartus Prime e gravar na placa, e simular o projeto na placa virtual. Ligada, aparecem as abas Placa FPGA e Placa virtual, os botões FPGA e Placa virtual da barra de ferramentas, as ações do menu Fluxo, o console Placa e o Quartus Prime no Bundle da AURORA; na CLI, o aurora fpga e o aurora vboard.',
   'experimental.assistant': 'Assistente de IA',
   'experimental.assistant.hint':
     'Uma conversa com o Claude Code instalado na máquina, com as ferramentas da AURORA. Ligado, aparecem a vista Assistente (menu Exibir) e a página Assistente das Preferências; na CLI, o aurora chat e o aurora mcp.',

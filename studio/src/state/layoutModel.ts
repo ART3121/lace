@@ -133,6 +133,7 @@ export const TOOLBAR_ITEMS: Record<ToolbarStyle, ToolbarItem[]> = {
     { id: 'waveSignals', label: 'toolbar.waveSignals', group: 'flow', section: 'wave' },
     { id: 'synthesize', label: 'toolbar.synthesize', group: 'flow', section: 'hardware' },
     { id: 'showBoard', label: 'toolbar.board', group: 'flow', section: 'hardware' },
+    { id: 'showVirtualBoard', label: 'toolbar.vboard', group: 'flow', section: 'hardware' },
     { id: 'running', label: 'layout.item.running', group: 'running' },
   ],
   titlebar: [

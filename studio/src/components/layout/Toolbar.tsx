@@ -3,6 +3,8 @@
 // usava (C±, Verilog, Wave, RTLViewer), os Sinais da onda e o botão de
 // parar. Um separador fica entre os grupos do fluxo: compilar, simular, a
 // onda e o hardware. O simulador se escolhe no menu Fluxo e nas Preferências.
+// No hardware, com o recurso experimental da placa ligado, ficam também o
+// FPGA e a Placa virtual, que gira enquanto a placa está ligada.
 //
 // É o modelo `classic` do layout (layoutModel.ts, TOOLBAR_STYLES); os outros
 // dois põem o Executar na barra de título ou no editor (RunControls.tsx).
@@ -22,12 +24,14 @@ import { phaseKey, useJobs } from '../../state/jobs';
 import { useLayout } from '../../state/layout';
 import { TOOLBAR_ITEMS, type FlowSection } from '../../state/layoutModel';
 import { useProject } from '../../state/project';
+import { useVboard } from '../../state/vboard';
 import type { Key } from '../../i18n';
 import { openContextMenu, Spinner } from '../common';
 import { toolbarMenu } from './layoutMenus';
 
-/** `badge` vai num círculo depois do nome; `note`, no fim da dica. */
-function ToolButton({ id, label, badge, note }: { id: string; label?: Key; badge?: number; note?: string }) {
+/** `badge` vai num círculo depois do nome; `note`, no fim da dica. `busy`
+ * marca o botão como rodando sem um job do fluxo: a placa virtual ligada. */
+function ToolButton({ id, label, badge, note, busy }: { id: string; label?: Key; badge?: number; note?: string; busy?: boolean }) {
   const t = useT();
   const a = action(id);
   const Icon = a.icon;
@@ -44,7 +48,7 @@ function ToolButton({ id, label, badge, note }: { id: string; label?: Key; badge
       title={`${t(a.label)}${a.keys ? ` (${a.keys})` : ''}${note ? `: ${note}` : ''}`}
       onClick={() => runAction(id)}
     >
-      {status === 'running' ? <Spinner size={15} /> : Icon && <Icon size={15} />}
+      {status === 'running' || busy ? <Spinner size={15} /> : Icon && <Icon size={15} />}
       {label && <span>{t(label)}</span>}
       {badge !== undefined && <span className="tool-btn__badge">{badge}</span>}
     </button>
@@ -67,9 +71,13 @@ export function Toolbar() {
   // O botão Sinais mostra quantos itens a escolha da onda tem; sem escolha,
   // a onda grava todos e o botão fica sem número.
   const chosen = useProject((s) => s.snapshot?.wave_selection?.length ?? 0);
+  // A placa virtual fica ligada fora de qualquer job do fluxo: o botão dela
+  // gira da compilação até desligar.
+  const vboardOn = useVboard((s) => s.status !== 'idle');
   const hidden = useLayout((s) => s.live.hidden.toolbar);
   // Redesenha quando a informação do bundle chega, e quando um recurso
-  // experimental liga ou desliga: o botão FPGA só existe com a placa ligada.
+  // experimental liga ou desliga: os botões FPGA e Placa virtual só existem
+  // com o recurso da placa ligado.
   useApp((s) => s.toolchain);
   useExperimental((s) => s.enabled);
   const shown = (id: string) => !hidden.includes(id) && toolbarItemAvailable(id);
@@ -118,6 +126,14 @@ export function Toolbar() {
               label={item.label}
               badge={chosen > 0 ? chosen : undefined}
               note={signalChoice(chosen)}
+            />
+          ) : item.id === 'showVirtualBoard' ? (
+            <ToolButton
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              busy={vboardOn}
+              note={vboardOn ? t('toolbar.vboardOn') : undefined}
             />
           ) : (
             <ToolButton key={item.id} id={item.id} label={item.label} />

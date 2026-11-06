@@ -20,6 +20,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   vai nele (`fpga.connect`), e o `fpga.json` é gravado.
 - A tabela de ligações da aba Placa FPGA lê e grava a saída que vai a
   vários sinais da placa (uma linha para cada, uma lista no `fpga.json`).
+- Botão **Placa virtual** na barra de ferramentas clássica, ao lado do
+  FPGA, com a placa FPGA ligada nas Preferências: abre a aba e gira
+  enquanto a placa está ligada.
 
 ## [8.0.0] - 2026-11-05
 
