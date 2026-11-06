@@ -73,6 +73,10 @@
   recusado com o erro `virtual_board_value`, que diz a largura e o maior
   valor; antes os bits a mais eram cortados sem aviso. O `--set` com um
   valor que não é número diz o formato, em vez do erro do Rust.
+- Placa virtual no Windows: compilar com uma placa do mesmo projeto ligada
+  (na IDE e pela CLI, ou em duas janelas) falhava no link, com o executável
+  em uso. Ele é renomeado para o lado antes da compilação, e a placa que
+  roda segue com ele; a próxima compilação apaga o antigo.
 
 ## 1.0.0 (2026-11-05)
 

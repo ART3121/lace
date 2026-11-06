@@ -540,6 +540,7 @@ pub fn build(
     }
     let obj_dir = work.join(OBJ_DIR);
     crate::simulate::model_build_started(&obj_dir, &crate::simulate::model_stamp(toolchain))?;
+    set_aside_running_executable(&obj_dir);
     let built = runner.run(PlannedStep::new(
         Step::Verilate,
         Tool::Verilator,
@@ -566,6 +567,41 @@ pub fn build(
         duration_ms: elapsed(),
         processors,
     })
+}
+
+/// O executável de uma placa do mesmo projeto que ainda roda (ligada na IDE
+/// e pela CLI, ou em duas janelas) não pode ser regravado no Windows: o link
+/// falhava com "cannot open output file aurora-vboard.exe: Permission
+/// denied". Um executável em uso pode ser renomeado, e a placa que roda
+/// segue com ele: vai para o lado, com um nome que a próxima compilação
+/// apaga quando ele não estiver mais em uso. Fora do Windows, o `ld` troca
+/// o arquivo sem precisar disso.
+fn set_aside_running_executable(obj_dir: &Utf8Path) {
+    let aside = format!("{EXECUTABLE}.old-");
+    if let Ok(entries) = obj_dir.read_dir_utf8() {
+        for entry in entries.flatten() {
+            if entry.file_name().starts_with(&aside) {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
+    let executable = obj_dir.join(format!("{EXECUTABLE}{}", std::env::consts::EXE_SUFFIX));
+    if !cfg!(windows)
+        || !executable.is_file()
+        || std::fs::OpenOptions::new()
+            .write(true)
+            .open(&executable)
+            .is_ok()
+    {
+        return;
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let to = obj_dir.join(format!("{aside}{stamp}{}", std::env::consts::EXE_SUFFIX));
+    if let Err(error) = std::fs::rename(&executable, &to) {
+        tracing::warn!(%executable, %error, "The running virtual board could not be set aside");
+    }
 }
 
 fn write(path: &Utf8Path, text: &str) -> Result<()> {
