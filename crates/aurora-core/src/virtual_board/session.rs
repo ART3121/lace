@@ -115,12 +115,32 @@ impl BoardLayout {
             _ => return Ok(()),
         };
         match self.connected(device) {
-            Some(peripheral) if accepts(peripheral) => Ok(()),
-            _ => Err(AuroraError::VirtualBoardDevice {
-                device: device.to_owned(),
-                available: self.available(accepts),
-            }),
+            Some(peripheral) if accepts(peripheral) => {}
+            _ => {
+                return Err(AuroraError::VirtualBoardDevice {
+                    device: device.to_owned(),
+                    available: self.available(accepts),
+                });
+            }
         }
+        // Chaves e botões: o valor cabe na largura do periférico.
+        if let BoardInput::Set { device, value } = input
+            && let Some(width) = self
+                .peripherals
+                .iter()
+                .find(|p| p.id == *device)
+                .and_then(|p| p.signals.first())
+                .map(|s| s.width)
+            && width < 64
+            && value >> width != 0
+        {
+            return Err(AuroraError::VirtualBoardValue {
+                device: device.clone(),
+                width,
+                value: *value,
+            });
+        }
+        Ok(())
     }
 
     /// A ordem para o executável; `None` para uma entrada que não vai a

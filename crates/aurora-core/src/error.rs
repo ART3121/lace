@@ -523,6 +523,18 @@ pub enum AuroraError {
         available: Vec<String>,
     },
 
+    /// Um valor para chaves ou botões que não cabe neles: um bit além da
+    /// largura do periférico.
+    #[error("{device} has {width} bits; {value:#x} does not fit (the largest is {:#x})", if *width >= 64 { u64::MAX } else { (1u64 << width) - 1 })]
+    VirtualBoardValue {
+        /// O periférico.
+        device: String,
+        /// A largura dele, em bits.
+        width: u32,
+        /// O valor pedido.
+        value: u64,
+    },
+
     /// Um caminho não é UTF-8. A API serializa caminhos para JSON e usa
     /// [`camino`](https://docs.rs/camino) em toda a superfície, então recusa
     /// esses caminhos na entrada. O texto é a representação com perdas.
@@ -668,6 +680,7 @@ impl AuroraError {
             AuroraError::InvalidFpgaConfig { .. } => "invalid_fpga_config",
             AuroraError::VirtualBoardNotBuilt(_) => "virtual_board_not_built",
             AuroraError::VirtualBoardDevice { .. } => "virtual_board_device",
+            AuroraError::VirtualBoardValue { .. } => "virtual_board_value",
             AuroraError::ExperimentalDisabled { .. } => "experimental_disabled",
             AuroraError::Unsupported(_) => "unsupported",
         }
@@ -794,6 +807,11 @@ impl AuroraError {
             AuroraError::VirtualBoardDevice { device, available } => {
                 json!({ "device": device, "available": available })
             }
+            AuroraError::VirtualBoardValue {
+                device,
+                width,
+                value,
+            } => json!({ "device": device, "width": width, "value": value }),
             AuroraError::ExperimentalDisabled { feature } => json!({ "feature": feature }),
             AuroraError::Io { context, path, .. } => json!({ "context": context, "path": path }),
         };

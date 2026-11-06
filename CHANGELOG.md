@@ -68,6 +68,11 @@
   de texto que entrava no lugar não expande macros, e uma porta
   `` [`LARGURA-1:0] `` saía com 1 bit, sem aviso: só o bit 0 chegava à
   placa. Novo no core: `verilog::read_interfaces_in`, com a raiz.
+- Placa virtual: um valor de chaves ou botões maior que o periférico
+  (`--set SW=0x40000` nas 18 chaves, `vboard.input` com `1 << 40`) é
+  recusado com o erro `virtual_board_value`, que diz a largura e o maior
+  valor; antes os bits a mais eram cortados sem aviso. O `--set` com um
+  valor que não é número diz o formato, em vez do erro do Rust.
 
 ## 1.0.0 (2026-11-05)
 

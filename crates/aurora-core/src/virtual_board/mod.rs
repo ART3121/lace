@@ -651,6 +651,15 @@ mod tests {
             value: 0x2A,
         };
         assert_eq!(layout.command(&set).as_deref(), Some("set SW 2a"));
+        // As 18 chaves da DE2-115: o bit 18 não cabe.
+        let wide = BoardInput::Set {
+            device: "SW".into(),
+            value: 1 << 18,
+        };
+        let error = layout.check(&wide).unwrap_err();
+        assert_eq!(error.code(), "virtual_board_value");
+        assert!(error.to_string().contains("0x3ffff"), "{error}");
+        assert_eq!(layout.command(&wide), None);
         // Um LED não recebe valor; a placa não tem teclado ligado.
         let led = BoardInput::Set {
             device: "LEDR".into(),

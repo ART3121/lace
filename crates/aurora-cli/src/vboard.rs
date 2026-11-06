@@ -49,7 +49,11 @@ fn assignment(text: &str) -> anyhow::Result<(String, u64)> {
     };
     Ok((
         name.trim().to_owned(),
-        parsed.map_err(|e| anyhow::anyhow!("{text}: {e}"))?,
+        parsed.map_err(|_| {
+            anyhow::anyhow!(
+                "{text}: the value is a number of zero or more, in decimal, 0x (hex) or 0b (binary)"
+            )
+        })?,
     ))
 }
 
