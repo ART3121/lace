@@ -88,6 +88,11 @@
   CLI e a IDE mostram a velocidade detectada. Os primeiros bytes se perdem.
 - `aurora vboard run`: um LED em PWM mostra o brilho (`PWM: [0] 25%`), e o
   grupo de displays aparece como `HEX7..HEX0`, e não `HEX7`.
+- `aurora vboard run`: avisa os caracteres do `--keys` que o teclado
+  americano não digita (`ç`, `€`), que antes sumiam; recusa o `--png` num
+  projeto sem vídeo, como o `--keys` e o `--uart` sem teclado ou serial; e,
+  num projeto sem `fpga.json`, a dica cita o `--board`. No core,
+  `virtual_board::untypeable`.
 
 ## 1.0.0 (2026-11-05)
 

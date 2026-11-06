@@ -197,6 +197,18 @@ fn keys_for(c: char) -> Option<(&'static str, bool)> {
 /// Os bytes que um teclado americano manda para digitar `text`: cada
 /// caractere aperta e solta as teclas dele (com o Shift em volta, quando
 /// precisa). Caracteres sem tecla ficam de fora.
+/// Os caracteres de `text` que o teclado americano não digita (`ç`, `€`):
+/// [`text_bytes`] os deixa de fora.
+pub(super) fn untypeable(text: &str) -> Vec<char> {
+    let mut found: Vec<char> = Vec::new();
+    for c in text.chars() {
+        if keys_for(c).is_none() && !found.contains(&c) {
+            found.push(c);
+        }
+    }
+    found
+}
+
 pub(super) fn text_bytes(text: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     for c in text.chars() {

@@ -1655,7 +1655,7 @@ fn hint(error: &AuroraError) -> Option<String> {
         AuroraError::ReportNotFound(_) => "List them with: aurora report list".into(),
         AuroraError::BoardNotFound { .. } => "List them with: aurora fpga boards".into(),
         AuroraError::NoFpgaConfig(_) => {
-            "Write fpga.json next to the .spf with the board and the connections, e.g. {\"board\": \"de2-115\", \"connect\": {\"clk\": \"CLOCK_50\", \"rst\": \"!KEY[0]\"}}; see the signals with: aurora fpga boards <board>".into()
+            "Write fpga.json next to the .spf with the board and the connections, e.g. {\"board\": \"de2-115\", \"connect\": {\"clk\": \"CLOCK_50\", \"rst\": \"!KEY[0]\"}}; see the signals with: aurora fpga boards <board>. The virtual board also runs without it: aurora vboard run --board de2-115 connects the ports named like the board signals".into()
         }
         AuroraError::InvalidBoard { .. } => "This is a bug in AURORA; please report it".into(),
         AuroraError::NoBitstream(_) => "Build for the board first with: aurora fpga build".into(),

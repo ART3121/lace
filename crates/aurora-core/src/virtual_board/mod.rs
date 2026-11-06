@@ -20,6 +20,13 @@ mod session;
 
 pub use session::{EndReason, RunOptions, SessionOutcome, run};
 
+/// Os caracteres de `text` que o teclado PS/2 da placa virtual não digita
+/// (o texto vira as teclas de um teclado americano: `ç` e `€` ficam de
+/// fora), sem repetir, na ordem.
+pub fn untypeable(text: &str) -> Vec<char> {
+    keys::untypeable(text)
+}
+
 use std::time::Instant;
 
 use camino::{Utf8Path, Utf8PathBuf};

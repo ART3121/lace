@@ -94,6 +94,20 @@ fn run_board(
         first.push(BoardInput::Set { device, value });
     }
     if let Some(keys) = &args.keys {
+        let left_out = virtual_board::untypeable(keys);
+        if !left_out.is_empty() && out.is_text() {
+            let list: Vec<String> = left_out.iter().map(|c| format!("{c:?}")).collect();
+            eprintln!(
+                "{}",
+                paint(
+                    WARNING,
+                    format!(
+                        "The PS/2 keyboard types the keys of a US keyboard; left out: {}",
+                        list.join(", ")
+                    )
+                )
+            );
+        }
         first.push(BoardInput::Text {
             device: device_of(
                 &layout,
@@ -111,6 +125,15 @@ fn run_board(
     }
     for input in &first {
         layout.check(input)?;
+    }
+    // Uma imagem pedida de um projeto sem vídeo: dito antes de rodar, como o
+    // teclado e a serial.
+    if args.png.is_some() {
+        device_of(
+            &layout,
+            |p| matches!(p, Peripheral::Vga { .. }),
+            "VGA screen",
+        )?;
     }
     let (inputs, receiver) = mpsc::channel();
     for input in first {
