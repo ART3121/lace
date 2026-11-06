@@ -37,6 +37,11 @@
   `make` tomava o objeto por pronto. A AURORA marca a compilação em
   andamento e, achando a marca de uma que não terminou ou um `.o` vazio,
   apaga a pasta do modelo e compila do zero.
+- Placa virtual: os processadores SAPHO desatualizados (o fonte ou um arquivo
+  da pasta dele mais novo que o Verilog gerado) são compilados antes da
+  placa, como na simulação. Antes, a placa rodava o programa do último build
+  sem aviso. O `BoardBuild` ganhou `processors`, e o `layout` fica `null`
+  quando um processador não compila. No core, `Processor::is_out_of_date`.
 
 ## 1.0.0 (2026-11-05)
 

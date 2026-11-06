@@ -162,7 +162,8 @@ export const useVboard = create<VboardState>()((set, get) => {
         set({
           status: 'idle',
           run: null,
-          layout: build.layout,
+          // Sem placa quando um processador SAPHO não compilou: fica a de antes.
+          layout: build.layout ?? get().layout,
           diagnostics: build.status === 'succeeded' ? [] : build.diagnostics,
           ended,
           buildLine: null,

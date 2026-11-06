@@ -260,6 +260,31 @@ impl Processor {
         !self.source.is_file() && !self.legacy_dirs().is_empty()
     }
 
+    /// O Verilog gerado não acompanha o fonte: falta, ou algum arquivo de
+    /// [`Processor::dir`] (o fonte, as tabelas que inicializam arrays, os
+    /// cabeçalhos do C) é mais novo que ele. As subpastas ficam de fora: a
+    /// de saída é a do próprio YANC.
+    pub fn is_out_of_date(&self) -> bool {
+        let modified = |m: std::fs::Metadata| m.modified().ok();
+        let Some(built) = std::fs::metadata(self.verilog_path())
+            .ok()
+            .and_then(modified)
+        else {
+            return true;
+        };
+        let Ok(entries) = self.dir.read_dir_utf8() else {
+            return false;
+        };
+        entries.flatten().any(|entry| {
+            entry
+                .metadata()
+                .ok()
+                .filter(std::fs::Metadata::is_file)
+                .and_then(modified)
+                .is_some_and(|time| time > built)
+        })
+    }
+
     /// Cria a pasta do processador, a de saída e a temporária, se faltarem.
     /// O YANC 7.1 cria a de saída sozinho, mas a AURORA confere antes que
     /// nenhuma delas é um arquivo.
@@ -2148,6 +2173,41 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = paths::canonicalize(Utf8Path::from_path(dir.path()).unwrap()).unwrap();
         (dir, path)
+    }
+
+    #[test]
+    fn a_processor_is_out_of_date_until_built_after_its_files() {
+        use std::time::{Duration, SystemTime};
+        let (_guard, root) = tmp();
+        let mut project = Project::create(&root, "p").unwrap();
+        let soma = project
+            .add_processor(&NewProcessor::new("soma", Language::Cmm))
+            .unwrap();
+        // Sem o Verilog gerado.
+        assert!(soma.is_out_of_date());
+        let at = |path: &Utf8Path, time: SystemTime| {
+            std::fs::File::options()
+                .write(true)
+                .open(path)
+                .unwrap()
+                .set_modified(time)
+                .unwrap();
+        };
+        let now = SystemTime::now();
+        std::fs::create_dir_all(&soma.output_dir).unwrap();
+        std::fs::write(soma.verilog_path(), "module soma; endmodule\n").unwrap();
+        at(&soma.source, now - Duration::from_secs(60));
+        at(&soma.verilog_path(), now - Duration::from_secs(30));
+        assert!(!soma.is_out_of_date());
+        // Uma tabela de array ao lado do fonte, mexida depois do build.
+        let table = soma.dir.join("tabela.txt");
+        std::fs::write(&table, "1\n").unwrap();
+        at(&table, now);
+        assert!(soma.is_out_of_date());
+        // A pasta de saída é do YANC: o que muda nela não conta.
+        at(&table, now - Duration::from_secs(60));
+        std::fs::write(soma.output_dir.join("soma.asm"), "").unwrap();
+        assert!(!soma.is_out_of_date());
     }
 
     /// A `.lace` de um projeto do Lace vira a `.aurora8` ao abrir, com o que

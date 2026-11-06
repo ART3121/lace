@@ -1244,22 +1244,22 @@ impl Server {
                     &options,
                     &dispatcher.control(cancel.clone()),
                 )?;
-                if !built.succeeded() {
+                let Some(layout) = built.layout.clone().filter(|_| built.succeeded()) else {
                     dispatcher.finish();
                     return Ok(Response::Vboard(Box::new(virtual_board::BoardRun::new(
                         built, None,
                     ))));
-                }
+                };
                 let (inputs, received) = std::sync::mpsc::channel();
                 let key = id.to_string();
                 self.boards
                     .lock()
                     .unwrap_or_else(std::sync::PoisonError::into_inner)
-                    .insert(key.clone(), (inputs, built.layout.clone()));
+                    .insert(key.clone(), (inputs, layout.clone()));
                 let mut on_event = |event: virtual_board::SessionEvent| {
                     let notification = match event {
                         virtual_board::SessionEvent::Ready => Notification::VboardReady {
-                            layout: built.layout.clone(),
+                            layout: layout.clone(),
                         },
                         virtual_board::SessionEvent::State(state) => {
                             Notification::VboardState { state }

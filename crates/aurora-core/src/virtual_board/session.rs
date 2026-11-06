@@ -204,11 +204,13 @@ pub fn run(
     on_event: &mut dyn FnMut(SessionEvent),
     control: &Control,
 ) -> Result<SessionOutcome> {
+    let not_built = || AuroraError::VirtualBoardNotBuilt(super::executable_path(project));
     let executable = built
         .executable
         .clone()
         .filter(|e| e.is_file())
-        .ok_or_else(|| AuroraError::VirtualBoardNotBuilt(super::executable_path(project)))?;
+        .ok_or_else(not_built)?;
+    let layout = built.layout.as_ref().ok_or_else(not_built)?;
     let started = Instant::now();
     // Na raiz do projeto, como a simulação: os `$readmem` do projeto leem
     // os arquivos pelo caminho relativo a ela ([`super::build`]).
@@ -248,7 +250,6 @@ pub fn run(
     send(&format!("limit {}", options.limit.max(0.0)));
     send(&format!("fps {}", options.fps.max(1.0)));
 
-    let layout = &built.layout;
     let mut tail: Vec<String> = Vec::new();
     let mut time_ps = 0;
     let mut ended: Option<EndReason> = None;

@@ -263,10 +263,15 @@ pub struct BoardBuild {
     pub failed_step: Option<Step>,
     /// Os passos rodados, com o comando e a saída.
     pub steps: Vec<StepReport>,
-    /// As mensagens do Verilator e do compilador.
+    /// As mensagens do YANC, do Verilator e do compilador.
     pub diagnostics: Vec<Diagnostic>,
-    /// A placa virtual do projeto.
-    pub layout: BoardLayout,
+    /// Os processadores SAPHO compilados antes da placa, os desatualizados
+    /// ([`crate::Processor::is_out_of_date`]); vazio quando todos estavam em
+    /// dia.
+    pub processors: Vec<crate::BuildResult>,
+    /// A placa virtual do projeto; `None` quando um processador não compilou,
+    /// antes de o topo poder ser lido.
+    pub layout: Option<BoardLayout>,
     /// O executável, se a compilação deu certo.
     #[schemars(with = "Option<String>")]
     pub executable: Option<Utf8PathBuf>,
@@ -442,13 +447,16 @@ fn layout_of(prepared: &Prepared) -> BoardLayout {
 /// pelo Verilator do bundle, em `.aurora8/Temp/vboard`.
 ///
 /// Um processador SAPHO entra compilado (o Verilog e as memórias que o build
-/// dele gerou), como na simulação do projeto.
+/// dele gerou), como na simulação do projeto. O que estiver desatualizado
+/// ([`crate::Processor::is_out_of_date`]) é compilado antes, para a placa
+/// rodar o programa que está no fonte, e não o do último build; os em dia
+/// ficam como estão, o que deixa o modelo do Verilator sem recompilar.
 ///
 /// # Erros
 ///
 /// Os de [`layout`], [`AuroraError::SystemCompilerMissing`] e os de
-/// ferramenta e I/O. Verilog que não compila é `Ok` com `status: failed` e
-/// os diagnósticos.
+/// ferramenta e I/O. Verilog (ou C±) que não compila é `Ok` com
+/// `status: failed` e os diagnósticos.
 pub fn build(
     toolchain: &Toolchain,
     project: &Project,
@@ -456,6 +464,31 @@ pub fn build(
     control: &Control,
 ) -> Result<BoardBuild> {
     let started = Instant::now();
+    let elapsed = || u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let stale = project
+        .buildable_processors()
+        .into_iter()
+        .filter(|p| p.needs_conversion() || p.is_out_of_date());
+    let processors = crate::build_processors(
+        toolchain,
+        stale,
+        &crate::BuildOptions::default(),
+        crate::OnFailure::Stop,
+        control,
+        |_| {},
+    )?;
+    if let Some(failed) = processors.iter().find(|b| !b.succeeded()) {
+        return Ok(BoardBuild {
+            status: failed.status,
+            failed_step: failed.failed_step,
+            steps: failed.steps.clone(),
+            diagnostics: failed.diagnostics.clone(),
+            layout: None,
+            executable: None,
+            duration_ms: elapsed(),
+            processors,
+        });
+    }
     let prepared = prepare(Some(toolchain), project, options)?;
     let layout = layout_of(&prepared);
     let work = work_dir(project);
@@ -512,14 +545,17 @@ pub fn build(
     } else {
         runner.status
     };
+    let mut steps: Vec<StepReport> = processors.iter().flat_map(|b| b.steps.clone()).collect();
+    steps.extend(runner.steps);
     Ok(BoardBuild {
         status,
         failed_step: runner.failed_step,
-        steps: runner.steps,
+        steps,
         diagnostics: runner.diagnostics,
-        layout,
+        layout: Some(layout),
         executable,
-        duration_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        duration_ms: elapsed(),
+        processors,
     })
 }
 

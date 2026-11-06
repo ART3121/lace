@@ -1149,7 +1149,7 @@ export type Notification =
       type: 'build';
     }
   | {
-      layout: BoardLayout3;
+      layout: BoardLayout2;
       type: 'vboard_ready';
     }
   | {
@@ -4813,10 +4813,20 @@ export interface BoardBuild {
    */
   steps: StepReport[];
   /**
-   * As mensagens do Verilator e do compilador.
+   * As mensagens do YANC, do Verilator e do compilador.
    */
   diagnostics: Diagnostic[];
-  layout: BoardLayout1;
+  /**
+   * Os processadores SAPHO compilados antes da placa, os desatualizados
+   * ([`crate::Processor::is_out_of_date`]); vazio quando todos estavam em
+   * dia.
+   */
+  processors: BuildResult[];
+  /**
+   * A placa virtual do projeto; `None` quando um processador não compilou,
+   * antes de o topo poder ser lido.
+   */
+  layout: BoardLayout1 | null;
   /**
    * O executável, se a compilação deu certo.
    */
@@ -4827,7 +4837,11 @@ export interface BoardBuild {
   duration_ms: number;
 }
 /**
- * A placa virtual do projeto.
+ * A placa virtual de um projeto: a placa, o topo e cada periférico, ligado
+ * ao projeto ou não, com as larguras. É o que uma interface desenha.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "BoardLayout".
  */
 export interface BoardLayout1 {
   /**
@@ -7347,40 +7361,6 @@ export interface ModuleInterface1 {
   ports: Port[];
 }
 /**
- * A placa virtual de um projeto: a placa, o topo e cada periférico, ligado
- * ao projeto ou não, com as larguras. É o que uma interface desenha.
- *
- * This interface was referenced by `AuroraSchemas`'s JSON-Schema
- * via the `definition` "BoardLayout".
- */
-export interface BoardLayout2 {
-  /**
-   * A placa (`de2-115`).
-   */
-  board: string;
-  /**
-   * O nome da placa (`Terasic DE2-115`).
-   */
-  board_name: string;
-  /**
-   * O módulo do projeto que vai na placa.
-   */
-  top: string;
-  /**
-   * Os periféricos, na ordem do JSON da placa.
-   */
-  peripherals: LayoutPeripheral[];
-  /**
-   * Os relógios da placa que chegam ao projeto.
-   */
-  clocks: LayoutClock[];
-  /**
-   * Os ajustes das ligações (larguras completadas ou cortadas, entradas
-   * soltas), como no fluxo da placa.
-   */
-  notes: string[];
-}
-/**
  * A placa virtual compilada e rodada: a compilação e, se ela deu certo,
  * como a execução terminou.
  *
@@ -7415,10 +7395,20 @@ export interface BoardBuild1 {
    */
   steps: StepReport[];
   /**
-   * As mensagens do Verilator e do compilador.
+   * As mensagens do YANC, do Verilator e do compilador.
    */
   diagnostics: Diagnostic[];
-  layout: BoardLayout1;
+  /**
+   * Os processadores SAPHO compilados antes da placa, os desatualizados
+   * ([`crate::Processor::is_out_of_date`]); vazio quando todos estavam em
+   * dia.
+   */
+  processors: BuildResult[];
+  /**
+   * A placa virtual do projeto; `None` quando um processador não compilou,
+   * antes de o topo poder ser lido.
+   */
+  layout: BoardLayout1 | null;
   /**
    * O executável, se a compilação deu certo.
    */
@@ -8227,9 +8217,10 @@ export interface BuildResult1 {
   duration_ms: number;
 }
 /**
- * A placa virtual.
+ * A placa virtual de um projeto: a placa, o topo e cada periférico, ligado
+ * ao projeto ou não, com as larguras. É o que uma interface desenha.
  */
-export interface BoardLayout3 {
+export interface BoardLayout2 {
   /**
    * A placa (`de2-115`).
    */
@@ -9533,10 +9524,20 @@ export interface BoardBuild2 {
    */
   steps: StepReport[];
   /**
-   * As mensagens do Verilator e do compilador.
+   * As mensagens do YANC, do Verilator e do compilador.
    */
   diagnostics: Diagnostic[];
-  layout: BoardLayout1;
+  /**
+   * Os processadores SAPHO compilados antes da placa, os desatualizados
+   * ([`crate::Processor::is_out_of_date`]); vazio quando todos estavam em
+   * dia.
+   */
+  processors: BuildResult[];
+  /**
+   * A placa virtual do projeto; `None` quando um processador não compilou,
+   * antes de o topo poder ser lido.
+   */
+  layout: BoardLayout1 | null;
   /**
    * O executável, se a compilação deu certo.
    */

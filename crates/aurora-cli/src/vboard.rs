@@ -66,10 +66,10 @@ fn run_board(
     options.board.clone_from(&args.board);
     let built = virtual_board::build(&toolchain, &project, &options, control)?;
     out.vboard_build(&built, &root);
-    if !built.succeeded() {
+    let Some(layout) = built.layout.clone().filter(|_| built.succeeded()) else {
         out.json(&VboardRunReport::new(built, None, None, None, Vec::new()))?;
         return Ok(false);
-    }
+    };
 
     // As entradas antes de começar: conferidas contra a placa, como a
     // interface confere as dela.
@@ -85,7 +85,7 @@ fn run_board(
     if let Some(keys) = &args.keys {
         first.push(BoardInput::Text {
             device: device_of(
-                &built.layout,
+                &layout,
                 |p| matches!(p, Peripheral::Ps2 { .. }),
                 "PS/2 keyboard",
             )?,
@@ -94,16 +94,12 @@ fn run_board(
     }
     if let Some(text) = &args.uart {
         first.push(BoardInput::Text {
-            device: device_of(
-                &built.layout,
-                |p| matches!(p, Peripheral::Uart { .. }),
-                "UART",
-            )?,
+            device: device_of(&layout, |p| matches!(p, Peripheral::Uart { .. }), "UART")?,
             text: text.clone(),
         });
     }
     for input in &first {
-        built.layout.check(input)?;
+        layout.check(input)?;
     }
     let (inputs, receiver) = mpsc::channel();
     for input in first {
@@ -170,7 +166,7 @@ fn run_board(
     };
     if out.is_text() {
         print_state(
-            &built.layout,
+            &layout,
             state.as_ref(),
             &uart,
             frames,

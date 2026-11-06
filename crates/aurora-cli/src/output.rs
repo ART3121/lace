@@ -996,10 +996,11 @@ impl Output {
         if self.json {
             return;
         }
-        let title = format!(
-            "Virtual board: {} on {}",
-            result.layout.top, result.layout.board_name
-        );
+        // Sem a placa: um processador SAPHO não compilou, e o topo nem foi lido.
+        let title = match &result.layout {
+            Some(layout) => format!("Virtual board: {} on {}", layout.top, layout.board_name),
+            None => "Virtual board".to_owned(),
+        };
         self.summary(Summary {
             title: &title,
             detail: "verilator --cc --exe --build",
@@ -1014,7 +1015,7 @@ impl Output {
             independent_steps: false,
             limit_ms: None,
         });
-        for note in &result.layout.notes {
+        for note in result.layout.iter().flat_map(|l| &l.notes) {
             println!("  {}", paint(DIM, note));
         }
     }
