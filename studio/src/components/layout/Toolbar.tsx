@@ -14,7 +14,7 @@
 // separador.
 
 import { CircleStop } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 
 import { action, isEnabled, runAction, signalChoice, toolbarItemAvailable } from '../../actions';
 import { useT, t as translate } from '../../i18n';
@@ -82,6 +82,24 @@ export function Toolbar() {
   useExperimental((s) => s.enabled);
   const shown = (id: string) => !hidden.includes(id) && toolbarItemAvailable(id);
 
+  // Sem largura para os rótulos (a janela estreita, ou a placa FPGA ligada,
+  // que traz os botões FPGA e Placa virtual), a barra fica só com os ícones;
+  // a dica de cada botão continua com o nome. Mede com os rótulos e só
+  // então decide, a cada desenho e quando a janela muda de tamanho.
+  const bar = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = bar.current;
+    if (!element) return;
+    const fit = () => {
+      element.classList.remove('toolbar--compact');
+      element.classList.toggle('toolbar--compact', element.scrollWidth > element.clientWidth + 1);
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(element);
+    return () => observer.disconnect();
+  });
+
   const segments: ReactNode[] = [];
   const file = FILE_BUTTONS.filter((item) => shown(item.id));
   if (file.length) {
@@ -144,7 +162,7 @@ export function Toolbar() {
   }
 
   return (
-    <div className="toolbar" onContextMenu={(e) => openContextMenu(e, toolbarMenu())}>
+    <div ref={bar} className="toolbar" onContextMenu={(e) => openContextMenu(e, toolbarMenu())}>
       {segments.flatMap((segment, index) => (index === 0 ? [segment] : [<div key={`sep-${index}`} className="toolbar__sep" />, segment]))}
       <div className="toolbar__spacer" />
       {running && shown('running') && (

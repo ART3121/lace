@@ -34,6 +34,10 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
 - A serial da placa virtual mostra a velocidade detectada quando o projeto
   não transmite na da placa, e lê os bytes como UTF-8 (o acento saía
   quebrado).
+- A barra de ferramentas clássica fica só com os ícones quando os rótulos
+  não cabem: com a placa FPGA ligada ela precisa de uns 1100 px, e numa
+  janela de 960 px os últimos botões eram cortados. A dica de cada botão
+  continua com o nome.
 
 ## [8.0.0] - 2026-11-05
 
