@@ -149,6 +149,7 @@ const TOOLS: &[Tool] = &[
     tool("fpga_boards", "fpga.boards"),
     tool("fpga_config", "fpga.config"),
     tool("fpga_config_set", "fpga.config_set"),
+    tool("fpga_connect", "fpga.connect"),
     tool("fpga_check", "fpga.check"),
     tool("fpga_modules", "fpga.modules"),
     tool("fpga_status", "fpga.status"),

@@ -29,7 +29,7 @@ use aurora_core::experimental::ExperimentalInfo;
 use aurora_core::flows::{
     FlowOptions, FlowOutcome, FlowRequest, WaveChoice, WaveChoiceOutcome, WaveOpened, WaveRequest,
 };
-use aurora_core::fpga::{BitstreamState, Board, FpgaConfig, Prepared};
+use aurora_core::fpga::{BitstreamState, Board, FpgaConfig, Prepared, Reconnect};
 use aurora_core::history::{CleanOutcome, Cleanup, ReportView, RunComparison, RunSummary};
 use aurora_core::locate::ToolchainInfo;
 use aurora_core::verilog::ModuleInterface;
@@ -220,6 +220,7 @@ methods! {
     FpgaBoards = "fpga.boards" => Vec<Board> [read, agent],
     FpgaConfigGet = "fpga.config" => Option<FpgaConfig> [read, agent],
     FpgaConfigSet = "fpga.config_set" => () [agent],
+    FpgaConnect = "fpga.connect" => FpgaConfig [agent],
     FpgaCheck = "fpga.check" => Prepared [agent],
     FpgaModules = "fpga.modules" => Vec<String> [read, agent],
     FpgaStatus = "fpga.status" => BitstreamState [read, agent],
@@ -634,6 +635,22 @@ pub enum Request {
         /// A configuração.
         config: FpgaConfig,
     },
+    /// Muda uma ligação a partir da placa: um bit de um sinal (ou o sinal
+    /// inteiro) passa a ir numa porta do topo, ou fica solto; o que estava ali
+    /// sai, e as outras ligações continuam. Grava o `fpga.json`; sem ele,
+    /// parte das portas ligadas pelo nome com a placa `board`. Resposta: o
+    /// [`FpgaConfig`] gravado.
+    #[serde(rename = "fpga.connect")]
+    FpgaConnect {
+        /// O projeto.
+        #[schemars(with = "String")]
+        project: Utf8PathBuf,
+        /// A placa, num projeto sem `fpga.json`.
+        #[serde(default)]
+        board: Option<String>,
+        /// A mudança.
+        change: Reconnect,
+    },
     /// Confere o `fpga.json` contra a placa e o topo. Resposta:
     /// [`Prepared`].
     #[serde(rename = "fpga.check")]
@@ -853,6 +870,7 @@ impl Request {
             | Request::HistoryClean { project, .. }
             | Request::FpgaConfigGet { project }
             | Request::FpgaConfigSet { project, .. }
+            | Request::FpgaConnect { project, .. }
             | Request::FpgaCheck { project }
             | Request::FpgaModules { project }
             | Request::FpgaStatus { project }
@@ -939,6 +957,8 @@ pub enum Response {
     Boards(Vec<Board>),
     /// `fpga.config`.
     FpgaConfig(Option<FpgaConfig>),
+    /// `fpga.connect`.
+    FpgaConnected(Box<FpgaConfig>),
     /// `fpga.check`.
     Prepared(Box<Prepared>),
     /// `fpga.modules`, `verilog.modules`.

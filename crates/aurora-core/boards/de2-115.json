@@ -1,7 +1,7 @@
 {
   "id": "de2-115",
   "name": "Terasic DE2-115",
-  "source": "Terasic DE2-115 User Manual V2.3 (2017), tables 4-1 to 4-5. Pins the manual marks \"Depending on JP6/JP7\" use the factory jumpers: JP7 at 2.5 V (banks 5 and 6) and JP6 at 3.3 V (bank 4).",
+  "source": "Terasic DE2-115 User Manual V2.3 (2017), tables 4-1 to 4-5, 4-16 (VGA), 4-18 (RS-232, with the directions of figure 4-24) and 4-19 (PS/2). Pins the manual marks \"Depending on JP6/JP7\" use the factory jumpers: JP7 at 2.5 V (banks 5 and 6) and JP6 at 3.3 V (bank 4).",
   "device": {
     "family": "Cyclone IV E",
     "part": "EP4CE115F29C7"
@@ -276,6 +276,173 @@
       "io_standard": "3.3-V LVTTL",
       "active_low": true,
       "description": "Seven-segment digit 7, common anode: 0 lights a segment"
+    },
+    {
+      "name": "VGA_R",
+      "direction": "output",
+      "pins": [
+        "PIN_E12",
+        "PIN_E11",
+        "PIN_D10",
+        "PIN_F12",
+        "PIN_G10",
+        "PIN_J12",
+        "PIN_H8",
+        "PIN_H10"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "VGA red, to the ADV7123 video DAC"
+    },
+    {
+      "name": "VGA_G",
+      "direction": "output",
+      "pins": [
+        "PIN_G8",
+        "PIN_G11",
+        "PIN_F8",
+        "PIN_H12",
+        "PIN_C8",
+        "PIN_B8",
+        "PIN_F10",
+        "PIN_C9"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "VGA green, to the ADV7123 video DAC"
+    },
+    {
+      "name": "VGA_B",
+      "direction": "output",
+      "pins": [
+        "PIN_B10",
+        "PIN_A10",
+        "PIN_C11",
+        "PIN_B11",
+        "PIN_A11",
+        "PIN_C12",
+        "PIN_D11",
+        "PIN_D12"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "VGA blue, to the ADV7123 video DAC"
+    },
+    {
+      "name": "VGA_CLK",
+      "direction": "output",
+      "pins": [
+        "PIN_A12"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "VGA pixel clock, to the ADV7123 video DAC"
+    },
+    {
+      "name": "VGA_BLANK_N",
+      "direction": "output",
+      "pins": [
+        "PIN_F11"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "VGA blanking, to the ADV7123: 0 blanks the picture"
+    },
+    {
+      "name": "VGA_SYNC_N",
+      "direction": "output",
+      "pins": [
+        "PIN_C10"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "active_low": true,
+      "description": "Sync on green, to the ADV7123: 0 adds sync to the green channel"
+    },
+    {
+      "name": "VGA_HS",
+      "direction": "output",
+      "pins": [
+        "PIN_G13"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "VGA horizontal sync, to the connector"
+    },
+    {
+      "name": "VGA_VS",
+      "direction": "output",
+      "pins": [
+        "PIN_C13"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "VGA vertical sync, to the connector"
+    },
+    {
+      "name": "PS2_CLK",
+      "direction": "input",
+      "pins": [
+        "PIN_G6"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "PS/2 clock. The line is bidirectional (open drain) on the board; here only the keyboard drives it"
+    },
+    {
+      "name": "PS2_DAT",
+      "direction": "input",
+      "pins": [
+        "PIN_H5"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "PS/2 data. The line is bidirectional (open drain) on the board; here only the keyboard drives it"
+    },
+    {
+      "name": "PS2_CLK2",
+      "direction": "input",
+      "pins": [
+        "PIN_G5"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "PS/2 clock of a second device (Y cable)"
+    },
+    {
+      "name": "PS2_DAT2",
+      "direction": "input",
+      "pins": [
+        "PIN_F5"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "PS/2 data of a second device (Y cable)"
+    },
+    {
+      "name": "UART_RXD",
+      "direction": "input",
+      "pins": [
+        "PIN_G12"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "RS-232 receive, from the ZT3232 transceiver"
+    },
+    {
+      "name": "UART_TXD",
+      "direction": "output",
+      "pins": [
+        "PIN_G9"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "RS-232 transmit, to the ZT3232 transceiver"
+    },
+    {
+      "name": "UART_CTS",
+      "direction": "output",
+      "pins": [
+        "PIN_G14"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "RS-232 clear to send, to the ZT3232 transceiver"
+    },
+    {
+      "name": "UART_RTS",
+      "direction": "input",
+      "pins": [
+        "PIN_J13"
+      ],
+      "io_standard": "3.3-V LVTTL",
+      "description": "RS-232 request to send, from the ZT3232 transceiver"
     }
   ],
   "peripherals": [
@@ -309,6 +476,27 @@
         "HEX1",
         "HEX0"
       ]
+    },
+    {
+      "kind": "vga",
+      "red": "VGA_R",
+      "green": "VGA_G",
+      "blue": "VGA_B",
+      "hsync": "VGA_HS",
+      "vsync": "VGA_VS",
+      "blank": "VGA_BLANK_N",
+      "clock": "VGA_CLK"
+    },
+    {
+      "kind": "ps2",
+      "clock": "PS2_CLK",
+      "data": "PS2_DAT"
+    },
+    {
+      "kind": "uart",
+      "tx": "UART_TXD",
+      "rx": "UART_RXD",
+      "baud": 115200
     }
   ]
 }

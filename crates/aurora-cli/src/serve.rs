@@ -1163,6 +1163,21 @@ impl Server {
                 config.write(project.root())?;
                 Response::Nothing(())
             }
+            Request::FpgaConnect {
+                project,
+                board,
+                change,
+            } => {
+                self.require(Feature::Fpga)?;
+                let project = open_project(&project)?;
+                let toolchain = self.toolchain().ok();
+                Response::FpgaConnected(Box::new(fpga::connect(
+                    toolchain.as_ref(),
+                    &project,
+                    board.as_deref(),
+                    &change,
+                )?))
+            }
             Request::FpgaCheck { project } => {
                 self.require(Feature::Fpga)?;
                 let project = open_project(&project)?;

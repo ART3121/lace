@@ -7,12 +7,20 @@
   botões, LEDs com brilho de PWM, displays de 7 segmentos, teclado PS/2,
   tela VGA e serial), pelo Verilator do bundle, com o mesmo topo da placa do
   `aurora fpga`. O JSON das placas ganhou a lista `peripherals`; as três
-  placas têm chaves, botões, LEDs e displays, e VGA, PS/2 e serial esperam
-  os pinos conferidos no manual. Novos: `aurora vboard run`, os métodos
-  `vboard.layout`, `vboard.run` e `vboard.input` com as notificações
-  `vboard_*`, e no core o módulo `virtual_board`,
-  `fpga::prepare_with`, `FpgaConfig::by_name` e os erros
+  placas têm chaves, botões, LEDs e displays, e a DE2-115 também VGA, PS/2
+  e serial, com os 37 pinos das tabelas 4-16, 4-18 e 4-19 do manual. Novos:
+  `aurora vboard run`, os métodos `vboard.layout`, `vboard.run` e
+  `vboard.input` com as notificações `vboard_*`, e no core o módulo
+  `virtual_board`, `fpga::prepare_with`, `FpgaConfig::by_name` e os erros
   `virtual_board_not_built` e `virtual_board_device`.
+- `fpga.connect` (e a ferramenta MCP `fpga_connect`): muda uma ligação a
+  partir da placa, um bit de um sinal ou o sinal inteiro numa porta do topo,
+  e grava o `fpga.json` com as outras ligações intactas, reescritas em
+  faixas. No core, `fpga::connect` e `FpgaConfig::reconnect`; o
+  `LayoutSignal` da placa virtual traz a porta de cada bit.
+- `fpga.json`: uma saída que vai a vários sinais da placa pode vir numa
+  lista (`"seg": ["HEX0", "HEX1"]`). O esquema do `connect` passou de texto
+  para texto ou lista; um arquivo sem lista lê e grava como antes.
 
 - Windows: o assistente que substitui o Lace põe a AURORA no PATH antes de
   rodar o desinstalador do Lace, e não depois, e mostra o andamento enquanto

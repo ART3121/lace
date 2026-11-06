@@ -415,11 +415,12 @@ export type Phase =
 
 /** O `fpga.json` (`aurora_core::fpga::FpgaConfig`): a placa, o topo e as
  * ligações, porta (com faixa) para sinal da placa (`[!]SINAL[faixa]`, `0`,
- * `1`), na ordem do arquivo. */
+ * `1`), na ordem do arquivo; uma saída que vai a vários sinais tem a lista
+ * deles. */
 export interface FpgaConfig {
   board: string;
   top?: string | null;
-  connect: Record<string, string>;
+  connect: Record<string, string | string[]>;
 }
 
 /** `fpga::Prepared`: o `fpga.json` conferido (`aurora fpga check`). */

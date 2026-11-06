@@ -11,6 +11,7 @@ import type {
   Board,
   BoardInput,
   BoardLayout,
+  Reconnect,
   Cleanup,
   ExperimentalReport,
   Feature,
@@ -282,6 +283,11 @@ export const api = {
     /** O `fpga.json`; `null` se ainda não existe. */
     config: () => aurora<FpgaConfig | null>('fpga.config'),
     setConfig: (config: FpgaConfig) => aurora<void>('fpga.config_set', { config }),
+    /** Muda uma ligação a partir da placa (um bit, ou o sinal inteiro, numa
+     * porta do topo) e grava o `fpga.json`; sem ele, parte das portas ligadas
+     * pelo nome com `board`. */
+    connect: (change: Reconnect, board?: string | null) =>
+      aurora<FpgaConfig>('fpga.connect', { change, board: board ?? null }),
     /** O topo que vai para a placa e as portas dele. */
     top: (top?: string | null) => aurora<ModuleInterface>('fpga.top', { top: top ?? null }),
     check: () => aurora<FpgaPrepared>('fpga.check'),

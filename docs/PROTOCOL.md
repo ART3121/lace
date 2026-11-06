@@ -53,6 +53,7 @@ Um pedido é uma linha: `{"jsonrpc": "2.0", "id": 1, "method": "project.status",
 | [`fpga.boards`](#metodo-fpga-boards) | lista de [`Board`](#tipo-board) | As placas conhecidas, ou uma. |
 | [`fpga.config`](#metodo-fpga-config) | [`FpgaConfig`](#tipo-fpgaconfig) \| `null` | O `fpga.json` do projeto. |
 | [`fpga.config_set`](#metodo-fpga-config-set) | `null` | Grava o `fpga.json`. |
+| [`fpga.connect`](#metodo-fpga-connect) | [`FpgaConfig`](#tipo-fpgaconfig) | Muda uma ligação a partir da placa: um bit de um sinal (ou o sinal inteiro) passa a ir numa porta do topo, ou fica solto; o que estava ali sai, e as outras ligações continuam. |
 | [`fpga.check`](#metodo-fpga-check) | [`Prepared`](#tipo-prepared) | Confere o `fpga.json` contra a placa e o topo. |
 | [`fpga.modules`](#metodo-fpga-modules) | lista de `string` | Os módulos do projeto que podem ir para a placa. |
 | [`fpga.status`](#metodo-fpga-status) | [`BitstreamState`](#tipo-bitstreamstate) | O arquivo de gravação da última compilação e se serve. |
@@ -610,6 +611,24 @@ Grava o `fpga.json`. Resposta: nada.
 | `config` | [`FpgaConfig`](#tipo-fpgaconfig) | sim | A configuração. |
 
 Resultado: `null`.
+
+<a id="metodo-fpga-connect"></a>
+
+#### `fpga.connect`
+
+Muda uma ligação a partir da placa: um bit de um sinal (ou o sinal
+inteiro) passa a ir numa porta do topo, ou fica solto; o que estava ali
+sai, e as outras ligações continuam. Grava o `fpga.json`; sem ele,
+parte das portas ligadas pelo nome com a placa `board`. Resposta: o
+[`FpgaConfig`](#tipo-fpgaconfig) gravado.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `project` | `string` | sim | O projeto. |
+| `board` | `string` \| `null` | não (padrão: `null`) | A placa, num projeto sem `fpga.json`. |
+| `change` | [`Reconnect`](#tipo-reconnect) | sim | A mudança. |
+
+Resultado: [`FpgaConfig`](#tipo-fpgaconfig).
 
 <a id="metodo-fpga-check"></a>
 
@@ -2037,7 +2056,7 @@ O que o `fpga.json` guarda.
 |---|---|---|---|
 | `board` | `string` | sim | A placa (`super::board()`). |
 | `top` | `string` \| `null` | não | O módulo que vai para a placa. Sem ele, o topo do projeto. |
-| `connect` | mapa de `string` para `string` | sim; opcional no pedido (padrão: `{}`) | As ligações, na ordem do arquivo. |
+| `connect` | mapa de `string` para [`LinkTargets`](#tipo-linktargets) | sim; opcional no pedido (padrão: `{}`) | As ligações, na ordem do arquivo. Uma porta com vários sinais (uma saída que vai a mais de um lugar da placa) tem uma `Link` para cada. |
 
 <a id="tipo-fpgaprogramresult"></a>
 
@@ -2308,6 +2327,7 @@ Um sinal de um periférico.
 | `width` | `integer` | sim | A largura em bits. |
 | `active_low` | `boolean` | sim | Ativo em nível baixo na placa (os segmentos e os botões da Terasic): o estado da placa virtual já vem convertido para aceso e apertado. |
 | `connected` | `boolean` | sim | O sinal chega ao projeto. |
+| `ports` | lista de `string` \| `null` | sim | A porta do topo em cada bit, do bit 0 em diante (`b[3]`, `!rst`, `a`); `None` no bit solto. Numa entrada da placa lida por mais de uma porta, as portas separadas por vírgula. |
 
 <a id="tipo-learncheckoutcome"></a>
 
@@ -2345,6 +2365,24 @@ A cor de um LED.
 | `"green"` | Verde. |
 | `"blue"` | Azul. |
 | `"yellow"` | Amarelo. |
+
+<a id="tipo-linktargets"></a>
+
+### `LinkTargets`
+
+O valor de uma ligação no `fpga.json`: um sinal da placa (`"LEDR[7:0]"`,
+`"!KEY[0]"`, `"0"`), ou uma lista deles para uma saída que vai a vários.
+Só descreve o formato; o [`FpgaConfig`](#tipo-fpgaconfig) guarda as ligações em `Link`.
+
+Uma das formas:
+
+**`string`**
+
+Um sinal.
+
+**lista de `string`**
+
+Vários sinais, para uma saída do topo.
 
 <a id="tipo-listposition"></a>
 
@@ -2658,6 +2696,18 @@ Um bit de uma saída do topo.
 | `bit` | `integer` | sim | O bit. |
 | `invert` | `boolean` | sim | Invertido (`!`). |
 
+<a id="tipo-portchoice"></a>
+
+### `PortChoice`
+
+A porta do topo de uma [`Reconnect`](#tipo-reconnect).
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `port` | `string` | sim | A porta. |
+| `bit` | `integer` \| `null` | não (padrão: `null`) | O bit da porta que vai no bit do sinal (no sinal inteiro, o que vai no bit 0 dele); `None`, o bit 0. |
+| `invert` | `boolean` | não (padrão: `false`) | Invertido (`!`): o botão apertado chega como 1, o LED acende com 0. |
+
 <a id="tipo-portdirection"></a>
 
 ### `PortDirection`
@@ -2845,6 +2895,20 @@ Uma instalação do Quartus Prime.
 | `root` | `string` | sim | A pasta `quartus` da instalação (`C:\intelFPGA_lite\22.1std\quartus`). |
 | `bin` | `string` | sim | A pasta dos programas: `bin64` no Windows, `bin` no Linux. |
 | `version` | `string` \| `null` | não | A versão, pelo nome da pasta da instalação (`22.1std`). |
+
+<a id="tipo-reconnect"></a>
+
+### `Reconnect`
+
+Uma mudança de ligação feita na placa (`FpgaConfig::reconnect`): o sinal
+da placa, um bit dele ou ele inteiro, e a porta do topo que passa a ir
+nele.
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `signal` | `string` | sim | O sinal da placa (`SW`, `HEX0`). |
+| `bit` | `integer` \| `null` | não (padrão: `null`) | O bit do sinal; `None`, o sinal inteiro, do bit 0 em diante. |
+| `port` | [`PortChoice`](#tipo-portchoice) \| `null` | não (padrão: `null`) | A porta que vai nele; `None` deixa o bit (ou o sinal) solto. |
 
 <a id="tipo-removeoutcome"></a>
 

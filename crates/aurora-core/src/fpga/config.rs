@@ -17,7 +17,9 @@
 //! Cada ligação é `porta[faixa]` → `[!]SINAL[faixa]`; uma entrada também pode
 //! receber `0` ou `1`. O `!` inverte: o `rst` do SAPHO é ativo em alto e os
 //! botões da placa, em baixo. As faixas são do bit mais alto ao mais baixo
-//! (`[7:0]`) ou um bit só (`[3]`); sem faixa, a porta ou o sinal inteiro.
+//! (`[7:0]`) ou um bit só (`[3]`); sem faixa, a porta ou o sinal inteiro. Uma
+//! saída pode ir a vários sinais da placa, numa lista
+//! (`"seg": ["HEX0", "HEX1"]`).
 //!
 //! Larguras diferentes: com faixa dos dois lados, é erro; senão, ligam-se os
 //! bits de baixo, a entrada que sobra recebe 0 e a saída que sobra não
@@ -45,10 +47,24 @@ pub struct FpgaConfig {
     /// O módulo que vai para a placa. Sem ele, o topo do projeto.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top: Option<String>,
-    /// As ligações, na ordem do arquivo.
+    /// As ligações, na ordem do arquivo. Uma porta com vários sinais (uma
+    /// saída que vai a mais de um lugar da placa) tem uma [`Link`] para cada.
     #[serde(default, with = "links")]
-    #[schemars(with = "std::collections::BTreeMap<String, String>")]
+    #[schemars(with = "std::collections::BTreeMap<String, LinkTargets>")]
     pub connect: Vec<Link>,
+}
+
+/// O valor de uma ligação no `fpga.json`: um sinal da placa (`"LEDR[7:0]"`,
+/// `"!KEY[0]"`, `"0"`), ou uma lista deles para uma saída que vai a vários.
+/// Só descreve o formato; o [`FpgaConfig`] guarda as ligações em [`Link`].
+#[derive(JsonSchema)]
+#[serde(untagged)]
+#[allow(dead_code)]
+enum LinkTargets {
+    /// Um sinal.
+    One(String),
+    /// Vários sinais, para uma saída do topo.
+    Many(Vec<String>),
 }
 
 /// Uma ligação, como escrita no `fpga.json`.
@@ -142,6 +158,244 @@ impl FpgaConfig {
         config
     }
 
+    /// As ligações com uma mudança feita na placa ([`Reconnect`]): o bit (ou
+    /// o sinal inteiro) passa a ir na porta pedida, ou fica solto. O bit da
+    /// placa fica só com a porta pedida (as que estavam nele saem); uma saída
+    /// do topo que já ia a outros lugares da placa continua neles. As outras
+    /// ligações continuam, reescritas em faixas contínuas
+    /// (`b[7:0] -> SW[7:0]`, `b[8] -> SW[12]`), com uma lista para a saída
+    /// que vai a vários sinais.
+    ///
+    /// # Erros
+    ///
+    /// Os problemas das ligações de antes (como em [`resolve`](Self::resolve)),
+    /// um sinal ou uma porta que não existem, direções que não casam, e os
+    /// problemas das ligações novas.
+    pub fn reconnect(
+        &self,
+        board: &Board,
+        top: &ModuleInterface,
+        change: &Reconnect,
+    ) -> std::result::Result<FpgaConfig, Vec<String>> {
+        let mut resolver = Resolver::new(board, top);
+        for link in &self.connect {
+            if let Err(problem) = resolver.link(link) {
+                resolver
+                    .problems
+                    .push(format!("\"{}\": \"{}\": {problem}", link.port, link.signal));
+            }
+        }
+        if !resolver.problems.is_empty() {
+            return Err(resolver.problems);
+        }
+        let mut inputs = resolver.inputs;
+        // As saídas pela porta: (porta, bit) -> os (sinal, bit, invertido) da
+        // placa que esse bit move; pode ser mais de um.
+        type Places = Vec<(String, u32, bool)>;
+        let mut outputs: std::collections::BTreeMap<(String, u32), Places> =
+            std::collections::BTreeMap::new();
+        for (signal, bits) in &resolver.outputs {
+            for (bit, slot) in bits.iter().enumerate() {
+                if let Some(p) = slot {
+                    outputs.entry((p.port.clone(), p.bit)).or_default().push((
+                        signal.clone(),
+                        bit as u32,
+                        p.invert,
+                    ));
+                }
+            }
+        }
+
+        let signal = board
+            .signal(&change.signal)
+            .ok_or_else(|| vec![format!("{} has no signal {}", board.name, change.signal)])?;
+        let targets: Vec<u32> = match change.bit {
+            Some(bit) if bit >= signal.width() => {
+                return Err(vec![format!("{} has {} bits", signal.name, signal.width())]);
+            }
+            Some(bit) => vec![bit],
+            None => (0..signal.width()).collect(),
+        };
+        let port = match &change.port {
+            None => None,
+            Some(choice) => {
+                let port = top
+                    .ports
+                    .iter()
+                    .find(|p| p.name == choice.port)
+                    .ok_or_else(|| vec![format!("{} has no port {}", top.name, choice.port)])?;
+                let wanted = match signal.direction {
+                    SignalDirection::Input => PortDirection::Input,
+                    SignalDirection::Output => PortDirection::Output,
+                };
+                if port.direction != wanted {
+                    return Err(vec![format!(
+                        "{} is an {} of the board, and {} is not an {} of the top",
+                        signal.name,
+                        if wanted == PortDirection::Input {
+                            "input"
+                        } else {
+                            "output"
+                        },
+                        port.name,
+                        if wanted == PortDirection::Input {
+                            "input"
+                        } else {
+                            "output"
+                        },
+                    )]);
+                }
+                let start = choice.bit.unwrap_or(0);
+                if start >= port.width {
+                    return Err(vec![format!("{} has {} bits", port.name, port.width)]);
+                }
+                Some((port, start, choice.invert))
+            }
+        };
+
+        match signal.direction {
+            SignalDirection::Input => {
+                // Quem lia esses bits da placa deixa de ler.
+                for (_, bits) in &mut inputs {
+                    for slot in bits.iter_mut() {
+                        if let Some(BitSource::Pin { signal: s, bit, .. }) = slot
+                            && *s == signal.name
+                            && targets.contains(bit)
+                        {
+                            *slot = None;
+                        }
+                    }
+                }
+                if let Some((port, start, invert)) = port {
+                    let (_, bits) = inputs
+                        .iter_mut()
+                        .find(|(name, _)| *name == port.name)
+                        .expect("toda entrada do topo tem uma linha");
+                    for (i, &bit) in targets.iter().enumerate() {
+                        let Some(slot) = bits.get_mut((start + i as u32) as usize) else {
+                            break;
+                        };
+                        *slot = Some(BitSource::Pin {
+                            signal: signal.name.clone(),
+                            bit,
+                            invert,
+                        });
+                    }
+                }
+            }
+            SignalDirection::Output => {
+                // Esses bits da placa trocam de porta; a porta que os movia
+                // continua nos outros lugares aonde ia.
+                for destinations in outputs.values_mut() {
+                    destinations
+                        .retain(|(s, bit, _)| !(*s == signal.name && targets.contains(bit)));
+                }
+                if let Some((port, start, invert)) = port {
+                    for (i, &bit) in targets.iter().enumerate() {
+                        let port_bit = start + i as u32;
+                        if port_bit >= port.width {
+                            break;
+                        }
+                        outputs
+                            .entry((port.name.clone(), port_bit))
+                            .or_default()
+                            .push((signal.name.clone(), bit, invert));
+                    }
+                }
+            }
+        }
+
+        // As ligações de novo, na ordem das portas, em faixas contínuas: cada
+        // item é (bit da porta, (sinal e bit da placa | constante, invertido,
+        // valor da constante)); uma saída tem um item por lugar aonde vai.
+        type Item = (u32, (Option<(String, u32)>, bool, bool));
+        let mut connect = Vec::new();
+        for port in &top.ports {
+            let mut items: Vec<Item> = match port.direction {
+                PortDirection::Input => {
+                    let (_, bits) = inputs
+                        .iter()
+                        .find(|(name, _)| *name == port.name)
+                        .expect("toda entrada do topo tem uma linha");
+                    bits.iter()
+                        .enumerate()
+                        .filter_map(|(bit, slot)| {
+                            slot.as_ref().map(|source| {
+                                let target = match source {
+                                    BitSource::Pin {
+                                        signal,
+                                        bit,
+                                        invert,
+                                    } => (Some((signal.clone(), *bit)), *invert, false),
+                                    BitSource::Constant { value } => (None, false, *value),
+                                };
+                                (bit as u32, target)
+                            })
+                        })
+                        .collect()
+                }
+                // Os lugares de um bit na ordem dos sinais na placa, para o
+                // arquivo não mudar de ordem a cada edição.
+                PortDirection::Output => (0..port.width)
+                    .flat_map(|bit| {
+                        let mut places: Vec<_> = outputs
+                            .get(&(port.name.clone(), bit))
+                            .into_iter()
+                            .flatten()
+                            .collect();
+                        places.sort_by_key(|(s, b, _)| {
+                            (board.signals.iter().position(|sig| sig.name == *s), *b)
+                        });
+                        places.into_iter().map(move |(s, b, invert)| {
+                            (bit, (Some((s.clone(), *b)), *invert, false))
+                        })
+                    })
+                    .collect(),
+                PortDirection::Inout => continue,
+            };
+            while !items.is_empty() {
+                let (lsb, first) = items.remove(0);
+                let mut width = 1u32;
+                while let Some(next) = items.iter().position(|(bit, target)| {
+                    *bit == lsb + width
+                        && match (target, &first) {
+                            ((Some((s, b)), inv, _), (Some((s0, b0)), inv0, _)) => {
+                                s == s0 && inv == inv0 && *b == b0 + width
+                            }
+                            ((None, _, v), (None, _, v0)) => v == v0,
+                            _ => false,
+                        }
+                }) {
+                    items.remove(next);
+                    width += 1;
+                }
+                let key = if lsb == 0 && width == port.width {
+                    port.name.clone()
+                } else {
+                    show(&port.name, lsb, width)
+                };
+                let value = match &first {
+                    (Some((s, b)), invert, _) => {
+                        let whole = board
+                            .signal(s)
+                            .is_some_and(|sig| *b == 0 && sig.width() == width);
+                        let name = if whole { s.clone() } else { show(s, *b, width) };
+                        if *invert { format!("!{name}") } else { name }
+                    }
+                    (None, _, value) => if *value { "1" } else { "0" }.to_owned(),
+                };
+                connect.push(Link::new(key, value));
+            }
+        }
+        let config = FpgaConfig {
+            board: self.board.clone(),
+            top: self.top.clone().or_else(|| Some(top.name.clone())),
+            connect,
+        };
+        config.resolve(board, top)?;
+        Ok(config)
+    }
+
     /// Confere as ligações contra a placa e as portas do topo e diz o que vai
     /// em cada bit. Junta todos os problemas, um por linha, em vez de parar no
     /// primeiro.
@@ -151,6 +405,62 @@ impl FpgaConfig {
         top: &ModuleInterface,
     ) -> std::result::Result<Resolved, Vec<String>> {
         Resolver::new(board, top).run(&self.connect)
+    }
+}
+
+/// Uma mudança de ligação feita na placa ([`FpgaConfig::reconnect`]): o sinal
+/// da placa, um bit dele ou ele inteiro, e a porta do topo que passa a ir
+/// nele.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[non_exhaustive]
+pub struct Reconnect {
+    /// O sinal da placa (`SW`, `HEX0`).
+    pub signal: String,
+    /// O bit do sinal; `None`, o sinal inteiro, do bit 0 em diante.
+    #[serde(default)]
+    pub bit: Option<u32>,
+    /// A porta que vai nele; `None` deixa o bit (ou o sinal) solto.
+    #[serde(default)]
+    pub port: Option<PortChoice>,
+}
+
+/// A porta do topo de uma [`Reconnect`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[non_exhaustive]
+pub struct PortChoice {
+    /// A porta.
+    pub port: String,
+    /// O bit da porta que vai no bit do sinal (no sinal inteiro, o que vai no
+    /// bit 0 dele); `None`, o bit 0.
+    #[serde(default)]
+    pub bit: Option<u32>,
+    /// Invertido (`!`): o botão apertado chega como 1, o LED acende com 0.
+    #[serde(default)]
+    pub invert: bool,
+}
+
+impl Reconnect {
+    /// O bit `bit` (ou o sinal inteiro) de `signal` recebe `port`, ou fica
+    /// solto.
+    pub fn new(signal: impl Into<String>, bit: Option<u32>, port: Option<PortChoice>) -> Reconnect {
+        Reconnect {
+            signal: signal.into(),
+            bit,
+            port,
+        }
+    }
+}
+
+impl PortChoice {
+    /// A porta, a partir do bit `bit`, invertida ou não.
+    pub fn new(port: impl Into<String>, bit: Option<u32>, invert: bool) -> PortChoice {
+        PortChoice {
+            port: port.into(),
+            bit,
+            invert,
+        }
     }
 }
 
@@ -675,20 +985,39 @@ impl<'a> Resolver<'a> {
 
 // ------------------------------------------------------------ serde
 
-/// As ligações como um objeto `porta → sinal`, na ordem do arquivo.
+/// As ligações como um objeto `porta → sinal`, na ordem do arquivo; as de
+/// uma mesma porta (uma saída que vai a vários sinais) numa lista.
 mod links {
     use serde::de::{MapAccess, Visitor};
     use serde::ser::SerializeMap;
-    use serde::{Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer};
 
     use super::Link;
 
     pub fn serialize<S: Serializer>(links: &[Link], serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(links.len()))?;
+        // As portas na ordem em que aparecem pela primeira vez.
+        let mut ports: Vec<(&str, Vec<&str>)> = Vec::new();
         for link in links {
-            map.serialize_entry(&link.port, &link.signal)?;
+            match ports.iter_mut().find(|(port, _)| *port == link.port) {
+                Some((_, signals)) => signals.push(&link.signal),
+                None => ports.push((&link.port, vec![&link.signal])),
+            }
+        }
+        let mut map = serializer.serialize_map(Some(ports.len()))?;
+        for (port, signals) in ports {
+            match signals.as_slice() {
+                [one] => map.serialize_entry(port, one)?,
+                many => map.serialize_entry(port, many)?,
+            }
         }
         map.end()
+    }
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Targets {
+        One(String),
+        Many(Vec<String>),
     }
 
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<Link>, D::Error> {
@@ -702,13 +1031,32 @@ mod links {
 
             fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Vec<Link>, A::Error> {
                 let mut links: Vec<Link> = Vec::new();
-                while let Some((port, signal)) = map.next_entry::<String, String>()? {
+                while let Some(port) = map.next_key::<String>()? {
+                    let targets = map.next_value::<Targets>().map_err(|_| {
+                        serde::de::Error::custom(format!(
+                            "port {port}: the value is a board signal or a list of them"
+                        ))
+                    })?;
                     if links.iter().any(|l| l.port == port) {
                         return Err(serde::de::Error::custom(format!(
-                            "port {port} appears twice"
+                            "port {port} appears twice; an output that goes to several board signals takes a list"
                         )));
                     }
-                    links.push(Link { port, signal });
+                    let signals = match targets {
+                        Targets::One(signal) => vec![signal],
+                        Targets::Many(signals) if signals.is_empty() => {
+                            return Err(serde::de::Error::custom(format!(
+                                "port {port} has an empty list"
+                            )));
+                        }
+                        Targets::Many(signals) => signals,
+                    };
+                    for signal in signals {
+                        links.push(Link {
+                            port: port.clone(),
+                            signal,
+                        });
+                    }
                 }
                 Ok(links)
             }
@@ -897,6 +1245,172 @@ pub(crate) mod tests {
             r#""in[0]": "KEY[1]": in[0] is connected twice"#,
         ];
         assert_eq!(err, expected);
+    }
+
+    fn reconnect_top() -> ModuleInterface {
+        ModuleInterface {
+            name: "topo".into(),
+            file: "topo.v".into(),
+            ports: vec![
+                port("CLOCK_50", PortDirection::Input, 1),
+                port("b", PortDirection::Input, 4),
+                port("a", PortDirection::Input, 1),
+                port("q", PortDirection::Output, 6),
+                port("seg", PortDirection::Output, 2),
+            ],
+        }
+    }
+
+    fn links_of(config: &FpgaConfig) -> Vec<(String, String)> {
+        config
+            .connect
+            .iter()
+            .map(|l| (l.port.clone(), l.signal.clone()))
+            .collect()
+    }
+
+    #[test]
+    fn a_bit_moves_to_another_port_and_the_ranges_are_rewritten() {
+        let board = test_board();
+        let top = reconnect_top();
+        let mut config = FpgaConfig::new("teste");
+        config.connect = vec![
+            Link::new("CLOCK_50", "CLOCK_50"),
+            Link::new("b", "SW"),
+            Link::new("q", "LED"),
+        ];
+        // A chave 2 passa a ir na entrada a: o b[2] fica solto.
+        let next = config
+            .reconnect(
+                &board,
+                &top,
+                &Reconnect::new("SW", Some(2), Some(PortChoice::new("a", None, false))),
+            )
+            .unwrap();
+        assert_eq!(
+            links_of(&next),
+            [
+                ("CLOCK_50".into(), "CLOCK_50".into()),
+                ("b[1:0]".into(), "SW[1:0]".into()),
+                ("b[3]".into(), "SW[3]".into()),
+                ("a".into(), "SW[2]".into()),
+                ("q".into(), "LED".into()),
+            ]
+        );
+        // O LED 0 solto; os outros continuam com o q.
+        let next = next
+            .reconnect(&board, &top, &Reconnect::new("LED", Some(0), None))
+            .unwrap();
+        assert!(
+            links_of(&next).contains(&("q[5:1]".into(), "LED[5:1]".into())),
+            "{next:?}"
+        );
+        // O sinal inteiro numa porta, e invertido: o botão apertado chega como 1.
+        let next = next
+            .reconnect(
+                &board,
+                &top,
+                &Reconnect::new("HEX0", None, Some(PortChoice::new("seg", None, false))),
+            )
+            .unwrap()
+            .reconnect(
+                &board,
+                &top,
+                &Reconnect::new("KEY", Some(0), Some(PortChoice::new("b", Some(2), true))),
+            )
+            .unwrap();
+        let links = links_of(&next);
+        assert!(links.contains(&("seg".into(), "HEX0".into())), "{links:?}");
+        assert!(
+            links.contains(&("b[2]".into(), "!KEY[0]".into())),
+            "{links:?}"
+        );
+        // E o que sai do reconnect resolve.
+        assert!(next.resolve(&board, &top).is_ok());
+    }
+
+    #[test]
+    fn an_output_keeps_its_other_places_and_goes_to_a_list() {
+        let board = test_board();
+        let top = reconnect_top();
+        let mut config = FpgaConfig::new("teste");
+        config.connect = vec![Link::new("q", "LED"), Link::new("seg", "HEX0")];
+        // O display também no q: os LEDs continuam com ele.
+        let next = config
+            .reconnect(
+                &board,
+                &top,
+                &Reconnect::new("HEX0", None, Some(PortChoice::new("q", Some(0), false))),
+            )
+            .unwrap();
+        assert_eq!(
+            links_of(&next),
+            [("q".into(), "LED".into()), ("q[1:0]".into(), "HEX0".into())]
+        );
+        // Os LEDs 1 e 0 no seg, que também vai ao HEX0: a mesma porta em dois
+        // lugares vira uma lista no arquivo, na ordem dos sinais na placa.
+        let next = config
+            .reconnect(
+                &board,
+                &top,
+                &Reconnect::new("LED", Some(0), Some(PortChoice::new("seg", Some(0), false))),
+            )
+            .unwrap()
+            .reconnect(
+                &board,
+                &top,
+                &Reconnect::new("LED", Some(1), Some(PortChoice::new("seg", Some(1), false))),
+            )
+            .unwrap();
+        assert_eq!(
+            links_of(&next),
+            [
+                ("q[5:2]".into(), "LED[5:2]".into()),
+                ("seg".into(), "LED[1:0]".into()),
+                ("seg".into(), "HEX0".into()),
+            ]
+        );
+        assert!(next.resolve(&board, &top).is_ok());
+        let json = serde_json::to_value(&next).unwrap();
+        assert_eq!(
+            json["connect"]["seg"],
+            serde_json::json!(["LED[1:0]", "HEX0"])
+        );
+        assert_eq!(json["connect"]["q[5:2]"], "LED[5:2]");
+        let back: FpgaConfig = serde_json::from_value(json).unwrap();
+        assert_eq!(back, next);
+    }
+
+    #[test]
+    fn a_port_twice_or_an_empty_list_is_refused() {
+        let twice = r#"{"board": "teste", "connect": {"q": "LED", "q": "HEX0"}}"#;
+        let error = serde_json::from_str::<FpgaConfig>(twice).unwrap_err();
+        assert!(error.to_string().contains("takes a list"), "{error}");
+        let empty = r#"{"board": "teste", "connect": {"q": []}}"#;
+        let error = serde_json::from_str::<FpgaConfig>(empty).unwrap_err();
+        assert!(error.to_string().contains("empty list"), "{error}");
+        let number = r#"{"board": "teste", "connect": {"q": 3}}"#;
+        let error = serde_json::from_str::<FpgaConfig>(number).unwrap_err();
+        assert!(error.to_string().contains("list of them"), "{error}");
+    }
+
+    #[test]
+    fn a_reconnect_needs_the_right_direction() {
+        let board = test_board();
+        let top = reconnect_top();
+        let config = FpgaConfig::new("teste");
+        let problems = config
+            .reconnect(
+                &board,
+                &top,
+                &Reconnect::new("SW", Some(0), Some(PortChoice::new("q", None, false))),
+            )
+            .unwrap_err();
+        assert!(problems[0].contains("is not an input"), "{problems:?}");
+        let problems = config
+            .reconnect(&board, &top, &Reconnect::new("SW", Some(9), None))
+            .unwrap_err();
+        assert!(problems[0].contains("has 4 bits"), "{problems:?}");
     }
 
     #[test]

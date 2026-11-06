@@ -801,8 +801,21 @@ abre em Fluxo > Mostrar a placa virtual, ou pela paleta.
 
 A aba desenha a placa do `fpga.json` do projeto. Sem `fpga.json`, ela pede a
 placa e liga cada porta do topo que tem o nome de um sinal dela (`SW`, `KEY`,
-`LEDR`, `HEX0`), sem gravar nada; para outras ligações, use a aba Placa FPGA.
-O periférico que o projeto não usa aparece apagado.
+`LEDR`, `HEX0`), sem gravar nada. Em cima ficam o monitor, a serial e o
+teclado que o topo usa; os que ele não usa aparecem só numa linha. Embaixo
+fica a placa: os displays, os LEDs sobre as chaves de mesmo bit e os botões,
+como na DE2-115. Cada elemento mostra a porta do topo ligada a ele, em
+faixas (`SW[17:3]`, `KEY[1]`, `LEDR`); o elemento sem ligação aparece
+apagado.
+
+**Editar ligações**, com a placa desligada, transforma cada chave, botão,
+LED e display num alvo: um clique abre as portas do topo da direção certa,
+bit a bit (ou em faixas da largura do display), com **Inverter** para um
+botão ativo em 0. A escolha muda só aquele elemento, grava o `fpga.json` e
+vale ao ligar a placa de novo; **não ligada** solta o elemento. Uma saída
+que já ia a outro lugar continua lá, então dá para ver o mesmo valor nos
+LEDs e num display. A tela, o teclado e a serial, que têm vários sinais, se
+ligam na tabela da aba Placa FPGA (**Tabela de ligações**).
 
 **Ligar a placa** compila o projeto pelo Verilator (a primeira vez leva de
 15 a 30 segundos) e começa a simulação. Enquanto ela roda:

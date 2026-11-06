@@ -39,7 +39,11 @@ distribui ("golden top", gerado pelo System Builder): 110 de 110 na DE2-115
 e 17 de 17 na DE10-Nano, sem diferença. Os LEDs 6 e 7 da DE10-Nano, que a
 tabela do manual não lista, vêm desse arquivo. Em 2026-10-13 os 65 pinos
 da C5G foram comparados do mesmo jeito com dois arquivos do CD dela
-(v1.3.0), o golden top e o da demonstração de fábrica: 65 de 65 nos dois. `aurora fpga boards` lista as
+(v1.3.0), o golden top e o da demonstração de fábrica: 65 de 65 nos dois.
+Em 2026-11-05 entraram na DE2-115 a VGA (tabela 4-16 do manual v2.3), a
+serial RS-232 (tabela 4-18, com as direções da figura 4-24) e o PS/2
+(tabela 4-19), 37 pinos lidos do manual e ainda não comparados com o golden
+top. `aurora fpga boards` lista as
 placas, e `aurora fpga boards <placa>` mostra os sinais com os pinos, o padrão
 de I/O e quais são ativos em nível baixo. Com `--json`, os dados completos.
 
@@ -64,7 +68,9 @@ o primeiro cabo que o `quartus_pgm -l` lista, de qualquer tipo.
 
 ## O `fpga.json`
 
-Fica na raiz do projeto, ao lado do `.spf`. A AURORA não o lê.
+Fica na raiz do projeto, ao lado do `.spf`. A AURORA 7, a IDE em Electron,
+não o lê. Na AURORA IDE, a tabela da aba **Placa FPGA** e o modo de editar
+as ligações da **Placa virtual** o gravam; à mão, é um JSON comum.
 
 ```json
 {
@@ -101,7 +107,10 @@ Regras:
   lado só, ou de nenhum, ligam-se os bits de baixo: a entrada que sobra
   recebe 0 e a saída que sobra não chega à placa. A AURORA avisa cada ajuste.
 - Um bit de entrada do topo tem uma ligação só; um bit de saída da placa
-  também. Uma saída do topo pode dirigir mais de um sinal da placa.
+  também. Uma saída do topo pode dirigir mais de um sinal da placa: numa
+  lista (`"seg": ["HEX0", "HEX1"]` acende os dois displays) ou em faixas
+  que se sobrepõem (`"LEDR": "LEDR"` e `"LEDR[6:0]": "HEX4"`). A mesma
+  porta duas vezes no objeto é erro, porque o JSON guardaria só uma.
 - Entrada do topo sem ligação recebe 0, com aviso. Bit de saída da placa
   sem ligação fica no nível inativo: apagado (0) num LED, apagado (1) num
   segmento de display, que é ativo em nível baixo.
@@ -364,11 +373,14 @@ O que cada sinal é na placa vem da lista `peripherals` do JSON dela:
 | `ps2` | `clock`, `data` | as teclas do computador como quadros PS/2 do conjunto 2, a 12,5 kHz em tempo simulado; nada volta do projeto para o teclado |
 | `uart` | `tx`, `rx` opcional, `baud` | os bytes que o projeto transmite e os que ele recebe, na velocidade dada |
 
-As três placas têm hoje chaves, botões, LEDs e displays. VGA, PS/2 e serial
-da DE2-115, e o vídeo para o transmissor HDMI da C5G e da DE10-Nano, entram
-quando os pinos forem conferidos no manual da Terasic: o simulador deles já
-está pronto e foi testado com os blocos `myKeyPS2` e `myVGAText` da
-biblioteca SAPHO.
+As três placas têm chaves, botões, LEDs e displays. A DE2-115 tem também a
+VGA, o primeiro conector PS/2 (`PS2_CLK`, `PS2_DAT`) e a serial (`UART_TXD`,
+`UART_RXD`, a 115200 bps); o segundo PS/2 e o `UART_CTS`/`UART_RTS` estão no
+JSON dela para o Quartus, mas a placa virtual não os simula. O vídeo para o
+transmissor HDMI da C5G e da DE10-Nano entra quando os pinos forem
+conferidos no manual. Com os blocos `myKeyPS2` e `myVGAText` da biblioteca
+SAPHO ligados um no outro na DE2-115, o que se digita aparece na tela, sai
+pela serial e conta nos displays (2026-11-05, pela CLI e pela IDE).
 
 `aurora vboard run` compila e roda sem janela (a janela é a aba **Placa
 virtual** da IDE):
@@ -396,6 +408,18 @@ sozinha, a 25 quadros por segundo. Um projeto maior roda mais devagar. A
 opção de tempo real (o padrão na IDE) limita a velocidade quando o projeto
 roda mais rápido que a placa.
 
+Na IDE, a aba **Placa virtual** mostra, em cima, o monitor, a serial e o
+teclado que o topo usa (os outros ficam numa linha, sem ocupar a página) e,
+embaixo, a placa: os displays, os LEDs sobre as chaves de mesmo bit e os
+botões. Cada elemento mostra a porta do topo ligada a ele, em faixas
+(`SW[17:3]`, `KEY[1]`). Com a placa desligada, **Editar ligações** faz cada
+chave, botão, LED e display escolher a porta que vai nele: o núcleo
+(`fpga.connect`) muda só aquele bit (ou aquele display inteiro), deixa as
+outras ligações como estavam e grava o `fpga.json`, reescrito em faixas
+contínuas. Uma saída que já ia a outro lugar da placa continua lá. A tela, o
+teclado e a serial, que têm vários sinais, se ligam na tabela da aba
+**Placa FPGA**.
+
 Limites: um bloco de IP da Intel (PLL, memória com `.mif`, DDIO) não simula
 no Verilator; o Verilator é mais rigoroso que o Icarus, e um projeto que
 simula no Icarus pode não compilar; `$display` do projeto aparece na saída,
@@ -403,12 +427,13 @@ mas o tempo simulado não chega ao `$time`.
 
 ## O que falta
 
-- Os pinos de VGA, PS/2 e serial da DE2-115 e do vídeo HDMI da C5G e da
-  DE10-Nano no JSON das placas, conferidos no manual, para a placa virtual
-  usá-los.
-- Na placa virtual: o LCD de caracteres e a SRAM da DE2-115, o áudio, os
-  comandos do projeto para o teclado PS/2 e a ligação direta aos `toma` e
-  `cade` do SAPHO, sem simular a varredura da tela.
+- Comparar os 37 pinos novos da DE2-115 (VGA, PS/2, serial) com o golden
+  top da Terasic, como os outros 110, e gravar uma DE2-115 com eles.
+- Os pinos do vídeo HDMI da C5G e da DE10-Nano no JSON das placas,
+  conferidos no manual, para a placa virtual usá-los.
+- Na placa virtual: o LCD de caracteres e a SRAM da DE2-115, o áudio, o
+  segundo PS/2, os comandos do projeto para o teclado PS/2 e a ligação
+  direta aos `toma` e `cade` do SAPHO, sem simular a varredura da tela.
 
 - Compilar e gravar a DE10-Nano com o Quartus de verdade (a DE2-115 foi
   conferida).

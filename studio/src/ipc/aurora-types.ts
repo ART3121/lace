@@ -813,6 +813,15 @@ export type Cleanup =
       value: string[];
     };
 /**
+ * O valor de uma ligação no `fpga.json`: um sinal da placa (`"LEDR[7:0]"`,
+ * `"!KEY[0]"`, `"0"`), ou uma lista deles para uma saída que vai a vários.
+ * Só descreve o formato; o [`FpgaConfig`] guarda as ligações em [`Link`].
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "LinkTargets".
+ */
+export type LinkTargets = string | string[];
+/**
  * O id de um pedido JSON-RPC, como o cliente o mandou: número ou texto.
  * Só para o schema de `vboard.input`.
  *
@@ -937,6 +946,7 @@ export type Response =
   | ExperimentalInfo
   | Board[]
   | (FpgaConfig | null)
+  | FpgaConfig1
   | Prepared
   | BitstreamState
   | null
@@ -1952,7 +1962,21 @@ export type Request =
          * O projeto.
          */
         project: string;
-        config: FpgaConfig1;
+        config: FpgaConfig2;
+      };
+    }
+  | {
+      method: 'fpga.connect';
+      params: {
+        /**
+         * O projeto.
+         */
+        project: string;
+        /**
+         * A placa, num projeto sem `fpga.json`.
+         */
+        board?: string | null;
+        change: Reconnect1;
       };
     }
   | {
@@ -3866,11 +3890,55 @@ export interface FpgaConfig {
    */
   top?: string | null;
   /**
-   * As ligações, na ordem do arquivo.
+   * As ligações, na ordem do arquivo. Uma porta com vários sinais (uma
+   * saída que vai a mais de um lugar da placa) tem uma [`Link`] para cada.
    */
   connect?: {
-    [k: string]: string | undefined;
+    [k: string]: LinkTargets | undefined;
   };
+}
+/**
+ * Uma mudança de ligação feita na placa ([`FpgaConfig::reconnect`]): o sinal
+ * da placa, um bit dele ou ele inteiro, e a porta do topo que passa a ir
+ * nele.
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "Reconnect".
+ */
+export interface Reconnect {
+  /**
+   * O sinal da placa (`SW`, `HEX0`).
+   */
+  signal: string;
+  /**
+   * O bit do sinal; `None`, o sinal inteiro, do bit 0 em diante.
+   */
+  bit?: number | null;
+  /**
+   * A porta que vai nele; `None` deixa o bit (ou o sinal) solto.
+   */
+  port?: PortChoice | null;
+}
+/**
+ * A porta do topo de uma [`Reconnect`].
+ *
+ * This interface was referenced by `AuroraSchemas`'s JSON-Schema
+ * via the `definition` "PortChoice".
+ */
+export interface PortChoice {
+  /**
+   * A porta.
+   */
+  port: string;
+  /**
+   * O bit da porta que vai no bit do sinal (no sinal inteiro, o que vai no
+   * bit 0 dele); `None`, o bit 0.
+   */
+  bit?: number | null;
+  /**
+   * Invertido (`!`): o botão apertado chega como 1, o LED acende com 0.
+   */
+  invert?: boolean;
 }
 /**
  * `initialize`.
@@ -4695,6 +4763,12 @@ export interface LayoutSignal {
    * O sinal chega ao projeto.
    */
   connected: boolean;
+  /**
+   * A porta do topo em cada bit, do bit 0 em diante (`b[3]`, `!rst`,
+   * `a`); `None` no bit solto. Numa entrada da placa lida por mais de
+   * uma porta, as portas separadas por vírgula.
+   */
+  ports: (string | null)[];
 }
 /**
  * Um relógio da placa que chega ao projeto.
@@ -6533,6 +6607,26 @@ export interface ExperimentalInfo {
    * Cada recurso e se está ligado.
    */
   components: FeatureState[];
+}
+/**
+ * O que o `fpga.json` guarda.
+ */
+export interface FpgaConfig1 {
+  /**
+   * A placa ([`super::board()`]).
+   */
+  board: string;
+  /**
+   * O módulo que vai para a placa. Sem ele, o topo do projeto.
+   */
+  top?: string | null;
+  /**
+   * As ligações, na ordem do arquivo. Uma porta com vários sinais (uma
+   * saída que vai a mais de um lugar da placa) tem uma [`Link`] para cada.
+   */
+  connect?: {
+    [k: string]: LinkTargets | undefined;
+  };
 }
 /**
  * `fpga.check`.
@@ -9032,7 +9126,7 @@ export interface WaveRequest1 {
 /**
  * O que o `fpga.json` guarda.
  */
-export interface FpgaConfig1 {
+export interface FpgaConfig2 {
   /**
    * A placa ([`super::board()`]).
    */
@@ -9042,11 +9136,29 @@ export interface FpgaConfig1 {
    */
   top?: string | null;
   /**
-   * As ligações, na ordem do arquivo.
+   * As ligações, na ordem do arquivo. Uma porta com vários sinais (uma
+   * saída que vai a mais de um lugar da placa) tem uma [`Link`] para cada.
    */
   connect?: {
-    [k: string]: string | undefined;
+    [k: string]: LinkTargets | undefined;
   };
+}
+/**
+ * A mudança.
+ */
+export interface Reconnect1 {
+  /**
+   * O sinal da placa (`SW`, `HEX0`).
+   */
+  signal: string;
+  /**
+   * O bit do sinal; `None`, o sinal inteiro, do bit 0 em diante.
+   */
+  bit?: number | null;
+  /**
+   * A porta que vai nele; `None` deixa o bit (ou o sinal) solto.
+   */
+  port?: PortChoice | null;
 }
 /**
  * This interface was referenced by `AuroraSchemas`'s JSON-Schema

@@ -1838,6 +1838,19 @@ faz a mesma conferência sem gravar: `bitstream`, `built_at_ms` e `reasons`
 montar as ligações antes de estarem certas. `Prepared::connections` traz
 cada ligação como texto (`target`, `source`), como o `aurora fpga check`
 mostra.
+
+`fpga::connect(Option<&Toolchain>, &Project, board: Option<&str>,
+&Reconnect) -> Result<FpgaConfig>` muda uma ligação a partir da placa e
+grava o `fpga.json` (o método `fpga.connect`): `Reconnect { signal, bit,
+port }` diz o sinal da placa, o bit (`None`: o sinal inteiro, como um
+display) e a porta (`PortChoice { port, bit, invert }`, com o primeiro bit
+dela; `None` solta o elemento). Sem `fpga.json`, parte das ligações pelo
+nome na `board` dada. A regra fica em `FpgaConfig::reconnect(&Board,
+&ModuleInterface, &Reconnect)`: o bit da placa fica só com a porta pedida, a
+saída que já ia a outros lugares continua neles, as outras ligações não
+mudam e tudo volta escrito em faixas contínuas, com uma lista para a porta
+que vai a vários sinais; o resultado passa pelo `resolve` antes de gravar,
+e um problema é `InvalidFpgaConfig`, com um por linha.
 `FpgaProgramResult` traz `board`, `bitstream`, `cable`, `position`,
 `quartus` e os campos comuns, menos `artifacts`.
 
@@ -1859,7 +1872,7 @@ conferido junto com o resto do JSON dela.
 
 | Função | Faz |
 |---|---|
-| `virtual_board::layout(Option<&Toolchain>, &Project, &BuildOptions) -> Result<BoardLayout>` | a placa sem compilar: cada periférico, ligado ao projeto ou não, com as larguras e a polaridade dos sinais, os relógios e os ajustes das ligações |
+| `virtual_board::layout(Option<&Toolchain>, &Project, &BuildOptions) -> Result<BoardLayout>` | a placa sem compilar: cada periférico, ligado ao projeto ou não, com as larguras e a polaridade dos sinais, a porta do topo em cada bit (`LayoutSignal::ports`: `a`, `b[3]`, `!rst`; vírgulas quando mais de uma porta lê o mesmo bit), os relógios e os ajustes das ligações |
 | `virtual_board::build(&Toolchain, &Project, &BuildOptions, &Control) -> Result<BoardBuild>` | grava o topo da placa, o `main` em C++ e o runtime dos periféricos em `.aurora8/Temp/vboard` e compila pelo Verilator (passo `verilate`). Verilog que não compila é `Ok` com `status: failed` e os diagnósticos |
 | `virtual_board::run(&Toolchain, &Project, &BoardBuild, &RunOptions, &Receiver<BoardInput>, &mut dyn FnMut(SessionEvent), &Control) -> Result<SessionOutcome>` | roda o executável até o cancelamento ou o `$finish`. As entradas (`BoardInput`: `set`, `key`, `text`, `bytes`, `pause`, `resume`, `step`, `speed`) chegam pelo canal; os `SessionEvent` (`ready`, `state`, `frame`, `output`) vão para quem chama, na thread dele |
 | `BoardLayout::check(&BoardInput) -> Result<()>` | confere que a entrada vai para um periférico ligado que a recebe (`virtual_board_device`, com os que recebem) |

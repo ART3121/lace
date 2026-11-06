@@ -11,7 +11,15 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   FPGA ligada nas Preferências: a placa do projeto desenhada a partir do
   JSON dela, com chaves e botões clicáveis, LEDs, displays de 7 segmentos,
   tela, teclado e serial, ligada ao `vboard.run` do servidor por um canal
-  próprio, fora da fila de operações.
+  próprio, fora da fila de operações. Em cima, o monitor, a serial e o
+  teclado que o topo usa; embaixo, a placa, com os LEDs sobre as chaves de
+  mesmo bit, os botões e os displays, e a porta do topo de cada elemento em
+  faixas.
+- **Editar ligações** na placa virtual: com a placa desligada, um clique
+  numa chave, num botão, num LED ou num display escolhe a porta do topo que
+  vai nele (`fpga.connect`), e o `fpga.json` é gravado.
+- A tabela de ligações da aba Placa FPGA lê e grava a saída que vai a
+  vários sinais da placa (uma linha para cada, uma lista no `fpga.json`).
 
 ## [8.0.0] - 2026-11-05
 

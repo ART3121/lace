@@ -195,6 +195,10 @@
           ]
         },
         {
+          "description": "`fpga.connect`.",
+          "$ref": "#/$defs/FpgaConfig"
+        },
+        {
           "description": "`fpga.check`.",
           "$ref": "#/$defs/Prepared"
         },
@@ -1775,13 +1779,24 @@
         "connected": {
           "description": "O sinal chega ao projeto.",
           "type": "boolean"
+        },
+        "ports": {
+          "description": "A porta do topo em cada bit, do bit 0 em diante (`b[3]`, `!rst`,\n`a`); `None` no bit solto. Numa entrada da placa lida por mais de\numa porta, as portas separadas por vírgula.",
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       },
       "required": [
         "name",
         "width",
         "active_low",
-        "connected"
+        "connected",
+        "ports"
       ]
     },
     "LayoutClock": {
@@ -5809,10 +5824,10 @@
           ]
         },
         "connect": {
-          "description": "As ligações, na ordem do arquivo.",
+          "description": "As ligações, na ordem do arquivo. Uma porta com vários sinais (uma\nsaída que vai a mais de um lugar da placa) tem uma [`Link`] para cada.",
           "type": "object",
           "additionalProperties": {
-            "type": "string"
+            "$ref": "#/$defs/LinkTargets"
           },
           "default": {}
         }
@@ -5821,6 +5836,22 @@
       "required": [
         "board",
         "connect"
+      ]
+    },
+    "LinkTargets": {
+      "description": "O valor de uma ligação no `fpga.json`: um sinal da placa (`\"LEDR[7:0]\"`,\n`\"!KEY[0]\"`, `\"0\"`), ou uma lista deles para uma saída que vai a vários.\nSó descreve o formato; o [`FpgaConfig`] guarda as ligações em [`Link`].",
+      "anyOf": [
+        {
+          "description": "Um sinal.",
+          "type": "string"
+        },
+        {
+          "description": "Vários sinais, para uma saída do topo.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       ]
     },
     "Prepared": {

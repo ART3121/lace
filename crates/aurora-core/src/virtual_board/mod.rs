@@ -106,6 +106,10 @@ pub struct LayoutSignal {
     pub active_low: bool,
     /// O sinal chega ao projeto.
     pub connected: bool,
+    /// A porta do topo em cada bit, do bit 0 em diante (`b[3]`, `!rst`,
+    /// `a`); `None` no bit solto. Numa entrada da placa lida por mais de
+    /// uma porta, as portas separadas por vírgula.
+    pub ports: Vec<Option<String>>,
 }
 
 /// Um relógio da placa que chega ao projeto.
@@ -335,6 +339,59 @@ fn prepare(
 fn layout_of(prepared: &Prepared) -> BoardLayout {
     let resolved = &prepared.resolved;
     let board = &resolved.board;
+    // O nome de um bit de uma porta: `a` numa porta de 1 bit, `b[3]` nas
+    // outras, com `!` quando a ligação inverte.
+    let width_of = |port: &str| {
+        resolved
+            .ports
+            .iter()
+            .find(|p| p.name == port)
+            .map_or(1, |p| p.width)
+    };
+    let bit_name = |port: &str, bit: u32, invert: bool| {
+        let name = if width_of(port) == 1 {
+            port.to_owned()
+        } else {
+            format!("{port}[{bit}]")
+        };
+        if invert { format!("!{name}") } else { name }
+    };
+    let mut labels: std::collections::BTreeMap<(String, u32), Vec<String>> =
+        std::collections::BTreeMap::new();
+    for drive in &resolved.inputs {
+        for (bit, source) in drive.bits.iter().enumerate() {
+            if let crate::fpga::config::BitSource::Pin {
+                signal,
+                bit: pin,
+                invert,
+            } = source
+            {
+                labels
+                    .entry((signal.clone(), *pin))
+                    .or_default()
+                    .push(bit_name(&drive.port, bit as u32, *invert));
+            }
+        }
+    }
+    for drive in &resolved.board_outputs {
+        for (bit, port) in drive.bits.iter().enumerate() {
+            if let Some(port) = port {
+                labels
+                    .entry((drive.signal.clone(), bit as u32))
+                    .or_default()
+                    .push(bit_name(&port.port, port.bit, port.invert));
+            }
+        }
+    }
+    let ports_of = |signal: &str, width: u32| -> Vec<Option<String>> {
+        (0..width)
+            .map(|bit| {
+                labels
+                    .get(&(signal.to_owned(), bit))
+                    .map(|names| names.join(", "))
+            })
+            .collect()
+    };
     let used = |name: &str| {
         resolved.board_inputs.iter().any(|s| s == name)
             || resolved.board_outputs.iter().any(|d| d.signal == name)
@@ -352,6 +409,7 @@ fn layout_of(prepared: &Prepared) -> BoardLayout {
                     width: signal.width(),
                     active_low: signal.active_low,
                     connected: used(&signal.name),
+                    ports: ports_of(&signal.name, signal.width()),
                 })
                 .collect();
             LayoutPeripheral {
@@ -462,6 +520,15 @@ pub fn build(
     })
 }
 
+fn write(path: &Utf8Path, text: &str) -> Result<()> {
+    // Só regrava o que mudou: o `make` do Verilator não refaz o que não
+    // mudou de data.
+    if std::fs::read_to_string(path).is_ok_and(|old| old == text) {
+        return Ok(());
+    }
+    std::fs::write(path, text).map_err(AuroraError::io("Writing", path))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -518,6 +585,14 @@ mod tests {
         );
         let key = &layout.peripherals[1].signals[0];
         assert!(key.active_low);
+        // A porta em cada bit: o SW de 4 bits do topo nas chaves de baixo, o
+        // KEY de 1 bit no botão 0, e as outras chaves soltas.
+        assert_eq!(sw.ports[0].as_deref(), Some("SW[0]"));
+        assert_eq!(sw.ports[3].as_deref(), Some("SW[3]"));
+        assert_eq!(sw.ports[4], None);
+        assert_eq!(key.ports[0].as_deref(), Some("KEY"));
+        let ledr = &layout.peripherals[2].signals[0];
+        assert_eq!(ledr.ports[2].as_deref(), Some("LEDR[2]"));
     }
 
     #[test]
@@ -549,13 +624,4 @@ mod tests {
             Some("step 1")
         );
     }
-}
-
-fn write(path: &Utf8Path, text: &str) -> Result<()> {
-    // Só regrava o que mudou: o `make` do Verilator não refaz o que não
-    // mudou de data.
-    if std::fs::read_to_string(path).is_ok_and(|old| old == text) {
-        return Ok(());
-    }
-    std::fs::write(path, text).map_err(AuroraError::io("Writing", path))
 }

@@ -87,7 +87,10 @@ function emptyRow(port: string): Row {
  * `fpga.json`; as ligações de portas que o topo não tem vêm no fim, para o
  * problema aparecer. */
 function rowsFrom(config: FpgaConfig | null, ports: Port[]): Row[] {
-  const links = Object.entries(config?.connect ?? {});
+  // Uma linha por sinal: a saída que vai a vários tem uma linha para cada.
+  const links = Object.entries(config?.connect ?? {}).flatMap(([port, signals]) =>
+    (Array.isArray(signals) ? signals : [signals]).map((signal) => [port, signal] as const),
+  );
   const taken = new Set<number>();
   const rows: Row[] = [];
   for (const port of ports) {
@@ -339,12 +342,16 @@ export function BoardView() {
     persist(boardId, top, next);
   };
 
-  /** As ligações da tabela como o `fpga.json` as guarda. */
-  const connectOf = (list: Row[]): Record<string, string> => {
-    const connect: Record<string, string> = {};
+  /** As ligações da tabela como o `fpga.json` as guarda: linhas da mesma
+   * porta (uma saída em vários sinais) viram uma lista. */
+  const connectOf = (list: Row[]): Record<string, string | string[]> => {
+    const connect: Record<string, string | string[]> = {};
     for (const row of list) {
       const source = sourceOf(row);
-      if (source && row.port.trim()) connect[row.port.trim()] = source;
+      const port = row.port.trim();
+      if (!source || !port) continue;
+      const before = connect[port];
+      connect[port] = before === undefined ? source : [...(Array.isArray(before) ? before : [before]), source];
     }
     return connect;
   };

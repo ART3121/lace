@@ -5,8 +5,8 @@
 import { create } from 'zustand';
 
 import { api } from '../ipc/api';
-import type { BoardInput, BoardLayout, Diagnostic } from '../ipc/aurora-types';
-import type { IpcError, VboardMessage } from '../ipc/types';
+import type { BoardInput, BoardLayout, Diagnostic, Reconnect } from '../ipc/aurora-types';
+import type { IpcError, ModuleInterface, VboardMessage } from '../ipc/types';
 import { useProject } from './project';
 import { showError } from './toasts';
 
@@ -51,7 +51,16 @@ interface VboardState {
   realtime: boolean;
   /** O valor das chaves e dos botões apertados, por periférico. */
   inputs: Record<string, number>;
+  /** O modo de editar as ligações: um clique num elemento da placa escolhe
+   * a porta do topo que vai nele. */
+  editing: boolean;
+  /** As portas do topo, para escolher na edição. */
+  ports: ModuleInterface['ports'] | null;
   loadLayout: () => Promise<void>;
+  setEditing: (editing: boolean) => void;
+  /** Liga um elemento da placa a uma porta (ou o solta), grava o
+   * `fpga.json` e lê a placa de novo. */
+  connect: (change: Reconnect) => Promise<void>;
   chooseBoard: (board: string | null) => Promise<void>;
   start: () => Promise<void>;
   stop: () => void;
@@ -177,6 +186,8 @@ export const useVboard = create<VboardState>()((set, get) => {
     ended: null,
     realtime: true,
     inputs: {},
+    editing: false,
+    ports: null,
     ...initialSession,
 
     loadLayout: async () => {
@@ -185,6 +196,25 @@ export const useVboard = create<VboardState>()((set, get) => {
         set({ layout, layoutError: null });
       } catch (error) {
         set({ layout: null, layoutError: error as IpcError });
+      }
+      try {
+        const top = await api.fpga.top(get().layout?.top ?? null);
+        set({ ports: top.ports });
+      } catch {
+        set({ ports: null });
+      }
+    },
+
+    setEditing: (editing) => set({ editing }),
+
+    connect: async (change) => {
+      try {
+        await api.fpga.connect(change, get().board);
+        // Com o fpga.json gravado, a placa vem dele.
+        set({ board: null });
+        await get().loadLayout();
+      } catch (error) {
+        showError(error);
       }
     },
 
@@ -248,5 +278,14 @@ useProject.subscribe((state) => {
   if (spf === lastSpf) return;
   lastSpf = spf;
   useVboard.getState().stop();
-  useVboard.setState({ layout: null, layoutError: null, board: null, inputs: {}, ended: null, ...initialSession });
+  useVboard.setState({
+    layout: null,
+    layoutError: null,
+    board: null,
+    inputs: {},
+    ended: null,
+    editing: false,
+    ports: null,
+    ...initialSession,
+  });
 });

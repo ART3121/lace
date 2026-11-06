@@ -1174,6 +1174,45 @@
       ]
     },
     {
+      "description": "Muda uma ligação a partir da placa: um bit de um sinal (ou o sinal\ninteiro) passa a ir numa porta do topo, ou fica solto; o que estava ali\nsai, e as outras ligações continuam. Grava o `fpga.json`; sem ele,\nparte das portas ligadas pelo nome com a placa `board`. Resposta: o\n[`FpgaConfig`] gravado.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "fpga.connect"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "description": "O projeto.",
+              "type": "string"
+            },
+            "board": {
+              "description": "A placa, num projeto sem `fpga.json`.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "change": {
+              "description": "A mudança.",
+              "$ref": "#/$defs/Reconnect"
+            }
+          },
+          "required": [
+            "project",
+            "change"
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "params"
+      ]
+    },
+    {
       "description": "Confere o `fpga.json` contra a placa e o topo. Resposta:\n[`Prepared`].",
       "type": "object",
       "properties": {
@@ -2477,10 +2516,10 @@
           ]
         },
         "connect": {
-          "description": "As ligações, na ordem do arquivo.",
+          "description": "As ligações, na ordem do arquivo. Uma porta com vários sinais (uma\nsaída que vai a mais de um lugar da placa) tem uma [`Link`] para cada.",
           "type": "object",
           "additionalProperties": {
-            "type": "string"
+            "$ref": "#/$defs/LinkTargets"
           },
           "default": {}
         }
@@ -2488,6 +2527,87 @@
       "additionalProperties": false,
       "required": [
         "board"
+      ]
+    },
+    "LinkTargets": {
+      "description": "O valor de uma ligação no `fpga.json`: um sinal da placa (`\"LEDR[7:0]\"`,\n`\"!KEY[0]\"`, `\"0\"`), ou uma lista deles para uma saída que vai a vários.\nSó descreve o formato; o [`FpgaConfig`] guarda as ligações em [`Link`].",
+      "anyOf": [
+        {
+          "description": "Um sinal.",
+          "type": "string"
+        },
+        {
+          "description": "Vários sinais, para uma saída do topo.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "Reconnect": {
+      "description": "Uma mudança de ligação feita na placa ([`FpgaConfig::reconnect`]): o sinal\nda placa, um bit dele ou ele inteiro, e a porta do topo que passa a ir\nnele.",
+      "type": "object",
+      "properties": {
+        "signal": {
+          "description": "O sinal da placa (`SW`, `HEX0`).",
+          "type": "string"
+        },
+        "bit": {
+          "description": "O bit do sinal; `None`, o sinal inteiro, do bit 0 em diante.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0,
+          "default": null
+        },
+        "port": {
+          "description": "A porta que vai nele; `None` deixa o bit (ou o sinal) solto.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PortChoice"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "signal"
+      ]
+    },
+    "PortChoice": {
+      "description": "A porta do topo de uma [`Reconnect`].",
+      "type": "object",
+      "properties": {
+        "port": {
+          "description": "A porta.",
+          "type": "string"
+        },
+        "bit": {
+          "description": "O bit da porta que vai no bit do sinal (no sinal inteiro, o que vai no\nbit 0 dele); `None`, o bit 0.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0,
+          "default": null
+        },
+        "invert": {
+          "description": "Invertido (`!`): o botão apertado chega como 1, o LED acende com 0.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "port"
       ]
     },
     "RequestId": {

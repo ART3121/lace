@@ -29,7 +29,7 @@ pub use board::{
     board, boards,
 };
 pub use build::{FpgaBuildResult, bitstream_path, build, build_dir};
-pub use config::{CONFIG_FILE, FpgaConfig, Link, Resolved};
+pub use config::{CONFIG_FILE, FpgaConfig, Link, PortChoice, Reconnect, Resolved};
 pub use program::{BitstreamState, FpgaProgramResult, bitstream_state, cables, program};
 pub use quartus::Quartus;
 pub use summary::{ClockTiming, ResourceUsage, TimingSummary};
@@ -125,6 +125,54 @@ pub fn prepare_with(
         board_top,
         connections,
     })
+}
+
+/// Muda uma ligação a partir da placa ([`FpgaConfig::reconnect`]) e grava o
+/// `fpga.json`. Num projeto sem `fpga.json`, parte das ligações pelo nome com
+/// a placa `board` ([`FpgaConfig::by_name`]), como a placa virtual. Devolve as
+/// ligações gravadas.
+///
+/// # Erros
+///
+/// [`AuroraError::NoFpgaConfig`] sem `fpga.json` e sem `board`;
+/// [`AuroraError::InvalidFpgaConfig`] com os problemas das ligações (as de
+/// antes ou as novas), e os de [`prepare`] para a placa e o topo.
+pub fn connect(
+    toolchain: Option<&Toolchain>,
+    project: &Project,
+    board: Option<&str>,
+    change: &Reconnect,
+) -> Result<FpgaConfig> {
+    let config = match FpgaConfig::read(project.root()) {
+        Ok(config) => config,
+        Err(AuroraError::NoFpgaConfig(path)) => {
+            let Some(id) = board else {
+                return Err(AuroraError::NoFpgaConfig(path));
+            };
+            let top = top_interface(toolchain, project, None)?;
+            FpgaConfig::by_name(&board::board(id)?, &top)
+        }
+        Err(other) => return Err(other),
+    };
+    let found = board::board(&config.board)?;
+    let top = top_interface(toolchain, project, config.top.as_deref())?;
+    let next = config.reconnect(&found, &top, change).map_err(|problems| {
+        AuroraError::InvalidFpgaConfig {
+            path: FpgaConfig::path(project.root()),
+            reason: format!(
+                "{} problem{}
+  {}",
+                problems.len(),
+                if problems.len() == 1 { "" } else { "s" },
+                problems.join(
+                    "
+  "
+                )
+            ),
+        }
+    })?;
+    next.write(project.root())?;
+    Ok(next)
 }
 
 /// Os módulos que podem ir para a placa: os dos fontes do projeto (sem os

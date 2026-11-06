@@ -849,7 +849,7 @@ Uma sessão do `serve`:
   `layout`), `verilog.*` (`modules`, `testbench_names`), `history.*`
   (`list`, `show`, `compare`, `plan_cleanup`, `clean`), `toolchain.*`
   (`info`, `verify`), `experimental.*` (`list`, `set`), `fpga.*` (com
-  `top`), `vboard.*` (`layout`, `run`, `input`), `update.check`, `update.apply`, `install.add`, `learn.*`
+  `top` e `connect`), `vboard.*` (`layout`, `run`, `input`), `update.check`, `update.apply`, `install.add`, `learn.*`
   (`check`, `tracks`, `status`, `init`, `set_current`, `reset`),
   `initialize` e `shutdown`. O `initialize` lista os que o servidor atende.
   Cada um, com os parâmetros, o resultado e os tipos:

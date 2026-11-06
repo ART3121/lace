@@ -909,13 +909,24 @@
         "connected": {
           "description": "O sinal chega ao projeto.",
           "type": "boolean"
+        },
+        "ports": {
+          "description": "A porta do topo em cada bit, do bit 0 em diante (`b[3]`, `!rst`,\n`a`); `None` no bit solto. Numa entrada da placa lida por mais de\numa porta, as portas separadas por vírgula.",
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       },
       "required": [
         "name",
         "width",
         "active_low",
-        "connected"
+        "connected",
+        "ports"
       ]
     },
     "LayoutClock": {
