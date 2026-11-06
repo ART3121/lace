@@ -1292,6 +1292,7 @@ O estado da placa virtual, cerca de 30 vezes por segundo.
 | `paused` | `boolean` | sim | A simulação está parada (`BoardInput::Pause`). |
 | `lights` | mapa de `string` para lista de `integer` | sim | Quanto cada LED e cada segmento ficou aceso desde o estado anterior, de 0 a 255, por sinal, do bit 0 em diante: o PWM aparece como brilho, e o display multiplexado como persistência. |
 | `uart` | mapa de `string` para lista de `integer` | sim | Os bytes que o projeto transmitiu em cada UART desde o estado anterior. |
+| `uart_baud` | mapa de `string` para `integer` | não | A velocidade de cada UART que não está na da placa: o projeto transmitia em outra, e a placa passou a ler na padrão mais próxima do bit medido (os primeiros bytes se perdem). Vazio na velocidade da placa. |
 
 <a id="tipo-buildresult"></a>
 

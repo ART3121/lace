@@ -700,11 +700,16 @@ function Serial({ item, live }: { item: LayoutPeripheral; live: boolean }) {
   const log = useRef<HTMLPreElement>(null);
   const canSend = item.peripheral.kind === 'uart' && !!item.peripheral.rx;
   const baud = item.peripheral.kind === 'uart' ? item.peripheral.baud : null;
+  const detected = useVboard((s) => s.uartBaud[item.id]);
   useEffect(() => {
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [text]);
   return (
-    <Card title={t('vboard.kind.uart', { name: item.id })} extra={baud ? `${baud} bps` : undefined} off={!item.connected}>
+    <Card
+      title={t('vboard.kind.uart', { name: item.id })}
+      extra={detected ? t('vboard.uartDetected', { detected, baud: baud ?? '' }) : baud ? `${baud} bps` : undefined}
+      off={!item.connected}
+    >
       <pre ref={log} className="vboard-console vboard-console--serial">
         {text || <span className="muted">{t('vboard.uartEmpty')}</span>}
       </pre>

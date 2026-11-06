@@ -287,21 +287,55 @@ fn print_state(
                             .collect()
                     })
                     .unwrap_or_default();
-                println!("  {signal:<12} {}", paint(OK, &bits));
+                // Um LED em PWM: o brilho, que o 0 e o 1 escondem.
+                let partial: Vec<String> = levels
+                    .into_iter()
+                    .flatten()
+                    .enumerate()
+                    .filter(|&(_, &v)| (13..=242).contains(&v))
+                    .map(|(bit, &v)| format!("[{bit}] {}%", (u32::from(v) * 100 + 127) / 255))
+                    .collect();
+                let partial = if partial.is_empty() {
+                    String::new()
+                } else {
+                    format!(" {}", paint(DIM, format!("(PWM: {})", partial.join(", "))))
+                };
+                println!("  {signal:<12} {}{partial}", paint(OK, &bits));
             }
             Peripheral::SevenSegment { digits } => {
                 let shown: String = digits
                     .iter()
                     .map(|d| lights.and_then(|l| l.get(d)).map_or(' ', |s| digit(s)))
                     .collect();
-                println!("  {:<12} {}", item.id, paint(OK, &shown));
+                let label = match (digits.first(), digits.last()) {
+                    (Some(first), Some(last)) if first != last => format!("{first}..{last}"),
+                    _ => item.id.clone(),
+                };
+                println!("  {label:<12} {}", paint(OK, &shown));
             }
-            Peripheral::Uart { .. } => {
+            Peripheral::Uart { baud, .. } => {
                 let text = uart
                     .get(&item.id)
                     .map(|b| String::from_utf8_lossy(b).into_owned())
                     .unwrap_or_default();
-                println!("  {:<12} {}", item.id, paint(OK, format!("{text:?}")));
+                // O projeto em outra velocidade: a placa passou a ler nela.
+                let other = state.and_then(|s| s.uart_baud.get(&item.id)).map_or_else(
+                    String::new,
+                    |detected| {
+                        format!(
+                            " {}",
+                            paint(
+                                WARNING,
+                                format!("(at {detected} bps, detected; the board's is {baud})")
+                            )
+                        )
+                    },
+                );
+                println!(
+                    "  {:<12} {}{other}",
+                    item.id,
+                    paint(OK, format!("{text:?}"))
+                );
             }
             _ => {}
         }

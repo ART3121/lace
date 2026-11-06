@@ -81,6 +81,13 @@
   `until` e para sozinha. Antes a CLI parava pelo estado, umas 30 vezes por
   segundo de relógio, e 5 ms viravam 9,7 ms, 20 ms viravam 46 ms; o mesmo
   comando dava resultados diferentes. No core, `RunOptions::until`.
+- Placa virtual: uma serial do projeto em outra velocidade (9600 numa placa
+  de 115200) dava bytes vazios, sem aviso. A UART conta os quadros com o
+  bit de parada em 0 e, depois de dois, passa a ler na velocidade padrão
+  mais próxima do pulso mais curto do TX; o estado traz `uart_baud`, e a
+  CLI e a IDE mostram a velocidade detectada. Os primeiros bytes se perdem.
+- `aurora vboard run`: um LED em PWM mostra o brilho (`PWM: [0] 25%`), e o
+  grupo de displays aparece como `HEX7..HEX0`, e não `HEX7`.
 
 ## 1.0.0 (2026-11-05)
 

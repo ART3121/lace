@@ -753,6 +753,7 @@ export const pt = {
   'vboard.screenOff': 'Tela desligada',
   'vboard.keyboardHint': 'Clique aqui e digite: as teclas vão para o teclado da placa',
   'vboard.keyboardOff': 'O teclado funciona com a placa ligada',
+  'vboard.uartDetected': '{detected} bps, detectado (a placa usa {baud})',
   'vboard.uartEmpty': 'Nada recebido ainda',
   'vboard.uartPlaceholder': 'Texto para enviar (Enter)',
   'vboard.uartClear': 'Limpar',

@@ -196,6 +196,12 @@ pub struct BoardState {
     /// Os bytes que o projeto transmitiu em cada UART desde o estado
     /// anterior.
     pub uart: std::collections::BTreeMap<String, Vec<u8>>,
+    /// A velocidade de cada UART que não está na da placa: o projeto
+    /// transmitia em outra, e a placa passou a ler na padrão mais próxima do
+    /// bit medido (os primeiros bytes se perdem). Vazio na velocidade da
+    /// placa.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub uart_baud: std::collections::BTreeMap<String, u32>,
 }
 
 /// Um quadro de vídeo remontado pela placa virtual. Só sai quando a imagem

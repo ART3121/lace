@@ -31,6 +31,9 @@ as versões, o [SemVer](https://semver.org/lang/pt-BR/).
   tela.
 - A saída do projeto na placa virtual chega em lotes, com a contagem das
   linhas omitidas; um `$display` a cada ciclo travava a janela.
+- A serial da placa virtual mostra a velocidade detectada quando o projeto
+  não transmite na da placa, e lê os bytes como UTF-8 (o acento saía
+  quebrado).
 
 ## [8.0.0] - 2026-11-05
 

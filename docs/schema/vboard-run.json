@@ -1322,6 +1322,15 @@
               "maximum": 255
             }
           }
+        },
+        "uart_baud": {
+          "description": "A velocidade de cada UART que não está na da placa: o projeto\ntransmitia em outra, e a placa passou a ler na padrão mais próxima do\nbit medido (os primeiros bytes se perdem). Vazio na velocidade da\nplaca.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          }
         }
       },
       "required": [

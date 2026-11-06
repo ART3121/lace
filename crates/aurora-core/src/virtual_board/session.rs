@@ -211,6 +211,8 @@ struct Wire {
     lights: std::collections::BTreeMap<String, Vec<u8>>,
     #[serde(default)]
     uart: std::collections::BTreeMap<String, Vec<u8>>,
+    #[serde(default)]
+    uart_baud: std::collections::BTreeMap<String, u32>,
 }
 
 #[derive(Deserialize)]
@@ -354,6 +356,7 @@ pub fn run(
                     paused: wire.paused,
                     lights: wire.lights,
                     uart: wire.uart,
+                    uart_baud: wire.uart_baud,
                 }));
             }
             Ok(Message::Frame(frame)) => on_event(SessionEvent::Frame(frame)),

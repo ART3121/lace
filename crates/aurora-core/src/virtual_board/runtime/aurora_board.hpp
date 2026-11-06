@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
@@ -160,6 +161,8 @@ struct Device {
     // Um pedaço do JSON do estado ("\"id\":...") ou vazio; `window` é o tempo
     // simulado desde o último estado.
     virtual std::string report(Time, Time) { return ""; }
+    // A velocidade de uma UART, quando não é a da placa ("id":baud), ou vazio.
+    virtual std::string baud_report() const { return ""; }
     // Um quadro de vídeo pronto para mandar, se houver.
     virtual bool frame(std::vector<unsigned char>&) { return false; }
 };
@@ -267,19 +270,43 @@ struct Ps2Keyboard : Device {
     }
 };
 
-// UART: o TX do projeto decodificado e o RX gerado, na velocidade dada.
+// UART: o TX do projeto decodificado e o RX gerado, na velocidade da placa.
+// Um projeto em outra velocidade dá quadros com o bit de parada em 0: depois
+// de dois, a velocidade passa a ser a padrão mais próxima do pulso mais curto
+// visto no TX (um bit), e o estado a informa em `uart_baud`.
 struct Uart : Device {
     Pin tx, rx;
+    double nominal, baud;
     Time bit_time;
+    Time last_edge = 0, shortest = 0;
+    int edges = 0, framing = 0;
     // RX (da AURORA para o projeto)
     std::deque<uint8_t> queue;
     int rx_bit = -1; Time rx_next = 0; uint8_t rx_byte = 0;
     // TX (do projeto para a AURORA)
     bool tx_last = true; int tx_bit = -1; Time tx_next = 0; uint8_t tx_byte = 0;
     std::vector<uint8_t> received;
-    Uart(std::string i, Pin t, Pin r, double baud)
-        : Device(std::move(i)), tx(std::move(t)), rx(std::move(r)),
-          bit_time(static_cast<Time>(PS_PER_S / baud)) { if (rx.bound()) rx.set(1); }
+    Uart(std::string i, Pin t, Pin r, double b)
+        : Device(std::move(i)), tx(std::move(t)), rx(std::move(r)), nominal(b), baud(b),
+          bit_time(static_cast<Time>(PS_PER_S / b)) { if (rx.bound()) rx.set(1); }
+    // A velocidade padrão a menos de 8% do pulso mais curto, se outra.
+    void detect() {
+        if (framing < 2 || edges < 8 || shortest == 0) return;
+        static const double rates[] = {300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400,
+                                       57600, 76800, 115200, 230400, 250000, 460800, 500000, 921600, 1000000};
+        double measured = PS_PER_S / static_cast<double>(shortest);
+        double best = 0;
+        for (double r : rates) if (std::abs(measured - r) / r < 0.08) best = r;
+        framing = 0;
+        if (best == 0 || best == baud) return;
+        baud = best;
+        bit_time = static_cast<Time>(PS_PER_S / baud);
+        tx_bit = -1;
+    }
+    std::string baud_report() const override {
+        if (baud == nominal) return "";
+        return json_string(id) + ":" + std::to_string(static_cast<long long>(baud));
+    }
     const char* kind() const override { return "uart"; }
     void command(const std::string& verb, std::istringstream& in) override {
         if (verb != "send") return;
@@ -303,11 +330,22 @@ struct Uart : Device {
     void sample(Time now) override {
         if (!tx.bound()) return;
         bool level = tx.get() & 1;
+        if (level != tx_last) {
+            // Pulsos de menos de 0,5 us não são bits (nem a 1 Mbps): ruído.
+            if (edges > 0 && now - last_edge > 500000 && (shortest == 0 || now - last_edge < shortest))
+                shortest = now - last_edge;
+            last_edge = now;
+            edges++;
+        }
         if (tx_bit < 0) {
             if (tx_last && !level) { tx_bit = 0; tx_byte = 0; tx_next = now + bit_time + bit_time / 2; }
         } else if (now >= tx_next) {
             if (tx_bit < 8) { tx_byte |= static_cast<uint8_t>(level) << tx_bit; tx_bit++; tx_next += bit_time; }
-            else { if (level) received.push_back(tx_byte); tx_bit = -1; }
+            else {
+                tx_bit = -1;
+                if (level) received.push_back(tx_byte);
+                else { framing++; detect(); }
+            }
         }
         tx_last = level;
     }
@@ -645,14 +683,16 @@ private:
         std::snprintf(buf, sizeof buf, ",\"speed\":%.6g", speed);
         s += buf;
         s += std::string(",\"paused\":") + (paused_ ? "true" : "false");
-        std::string lights, uart;
+        std::string lights, uart, bauds;
         for (auto& d : devices_) {
+            std::string baud = d->baud_report();
+            if (!baud.empty()) bauds += (bauds.empty() ? "" : ",") + baud;
             std::string part = d->report(now, window);
             if (part.empty()) continue;
             std::string& into = std::strcmp(d->kind(), "uart") == 0 ? uart : lights;
             into += (into.empty() ? "" : ",") + part;
         }
-        s += ",\"lights\":{" + lights + "},\"uart\":{" + uart + "}}";
+        s += ",\"lights\":{" + lights + "},\"uart\":{" + uart + "},\"uart_baud\":{" + bauds + "}}";
         out_.message('S', s);
     }
 };

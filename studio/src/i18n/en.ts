@@ -726,6 +726,7 @@ export const en: Record<Key, string> = {
   'vboard.screenOff': 'Screen off',
   'vboard.keyboardHint': 'Click here and type: the keys go to the board keyboard',
   'vboard.keyboardOff': 'The keyboard works with the board on',
+  'vboard.uartDetected': '{detected} bps, detected (the board uses {baud})',
   'vboard.uartEmpty': 'Nothing received yet',
   'vboard.uartPlaceholder': 'Text to send (Enter)',
   'vboard.uartClear': 'Clear',

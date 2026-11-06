@@ -45,6 +45,9 @@ interface VboardState {
   lights: Record<string, number[]>;
   frames: Record<string, VboardFrame>;
   uart: Record<string, string>;
+  /** A velocidade de cada serial que o projeto não transmite na da placa:
+   * a placa detectou outra e passou a ler nela. */
+  uartBaud: Record<string, number>;
   output: string[];
   timePs: number;
   speed: number;
@@ -80,11 +83,24 @@ const initialSession = {
   lights: {},
   frames: {},
   uart: {},
+  uartBaud: {},
   output: [],
   timePs: 0,
   speed: 0,
   paused: false,
 };
+
+/** Um decodificador de UTF-8 por serial, para o caractere de vários bytes
+ * que chega partido entre dois estados. */
+const decoders = new Map<string, TextDecoder>();
+function decoderOf(device: string): TextDecoder {
+  let decoder = decoders.get(device);
+  if (!decoder) {
+    decoder = new TextDecoder('utf-8');
+    decoders.set(device, decoder);
+  }
+  return decoder;
+}
 
 export const useVboard = create<VboardState>()((set, get) => {
   function onMessage(message: VboardMessage) {
@@ -116,7 +132,9 @@ export const useVboard = create<VboardState>()((set, get) => {
         let changed = false;
         for (const [device, bytes] of Object.entries(state.uart)) {
           if (!bytes?.length) continue;
-          const text = (uart[device] ?? '') + String.fromCharCode(...bytes);
+          // UTF-8, com o caractere que veio partido entre dois estados
+          // guardado para o próximo; os bytes que não formam UTF-8 viram �.
+          const text = (uart[device] ?? '') + decoderOf(device).decode(new Uint8Array(bytes), { stream: true });
           uart[device] = text.length > UART_LIMIT ? text.slice(-UART_LIMIT) : text;
           changed = true;
         }
@@ -127,6 +145,9 @@ export const useVboard = create<VboardState>()((set, get) => {
           timePs: state.time_ps,
           speed: state.speed,
           paused: state.paused,
+          uartBaud: Object.fromEntries(
+            Object.entries(state.uart_baud ?? {}).filter((entry): entry is [string, number] => entry[1] !== undefined),
+          ),
           ...(changed ? { uart } : {}),
         });
         return;
@@ -236,6 +257,7 @@ export const useVboard = create<VboardState>()((set, get) => {
       if (!(await useEditor.getState().saveAll())) return;
       if (get().status !== 'idle') return;
       set({ status: 'building', ended: null, ...initialSession });
+      decoders.clear();
       try {
         await api.vboard.start({ board: get().board, limit: get().realtime ? 1 : 0, fps: 30 }, onMessage);
       } catch (error) {
@@ -276,6 +298,7 @@ export const useVboard = create<VboardState>()((set, get) => {
     clearUart: (device) => {
       const uart = { ...get().uart };
       delete uart[device];
+      decoders.delete(device);
       set({ uart });
     },
   };

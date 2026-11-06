@@ -8283,6 +8283,15 @@ export interface BoardState {
   uart: {
     [k: string]: number[] | undefined;
   };
+  /**
+   * A velocidade de cada UART que não está na da placa: o projeto
+   * transmitia em outra, e a placa passou a ler na padrão mais próxima do
+   * bit medido (os primeiros bytes se perdem). Vazio na velocidade da
+   * placa.
+   */
+  uart_baud?: {
+    [k: string]: number | undefined;
+  };
 }
 /**
  * O quadro, em PNG.
@@ -8339,6 +8348,15 @@ export interface BoardState1 {
    */
   uart: {
     [k: string]: number[] | undefined;
+  };
+  /**
+   * A velocidade de cada UART que não está na da placa: o projeto
+   * transmitia em outra, e a placa passou a ler na padrão mais próxima do
+   * bit medido (os primeiros bytes se perdem). Vazio na velocidade da
+   * placa.
+   */
+  uart_baud?: {
+    [k: string]: number | undefined;
   };
 }
 /**
