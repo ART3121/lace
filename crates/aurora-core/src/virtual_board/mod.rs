@@ -538,7 +538,7 @@ pub fn build(
         invocation = invocation.tool_path_arg(file);
     }
     let obj_dir = work.join(OBJ_DIR);
-    crate::simulate::model_build_started(&obj_dir)?;
+    crate::simulate::model_build_started(&obj_dir, &crate::simulate::model_stamp(toolchain))?;
     let built = runner.run(PlannedStep::new(
         Step::Verilate,
         Tool::Verilator,

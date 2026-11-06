@@ -49,6 +49,14 @@
   segundo. Muda a notificação `vboard_output` (`lines` e `omitted` no lugar
   de `line`), o `SessionEvent::Output` e o relatório JSON do
   `aurora vboard run` (`output_omitted`).
+- Verilator (placa virtual, simulação rápida, com onda e cocotb): mudar uma
+  linha do projeto recompilava também a biblioteca do Verilator
+  (`verilated.o` e `verilated_threads.o`), porque o `verilated.mk` a faz
+  depender do makefile do modelo, que o Verilator regrava a cada verilação.
+  O `make` recebe `--old-file=<prefixo>.mk`, e uma marca na pasta do modelo
+  (versão da AURORA, `bundle.json` e flags) a apaga quando algo disso muda.
+  Medido: de 21 s para 5 s na placa virtual e de 12 s para 4,6 s na
+  simulação rápida, numa mudança de uma linha.
 
 ## 1.0.0 (2026-11-05)
 
